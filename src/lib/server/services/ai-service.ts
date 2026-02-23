@@ -66,6 +66,7 @@ For every observation/evidence you find, you MUST link it to one of the 9 dimens
 Generate feedback as strict JSON matching this schema:
 {
   "ack": "string",
+  "transcript": "string (The highly accurate transcription of the audio, including full punctuation and correct sentence structure. Required if audio is provided.)",
   "scores": {
     ${FEEDBACK_DIMENSIONS.map(d => `"${d}": { "score": 1-5, "label": "string" }`).join(',\n    ')}
   },
@@ -100,7 +101,7 @@ Generate feedback as strict JSON matching this schema:
         }
 
         try {
-            const combinedPrompt = `${systemPrompt}\n\n${contextPrompt}\n\n${schemaPrompt}\n\n${audioData ? "Analyze this recording." : `USER ANSWER: "${answerText}"`}`;
+            const combinedPrompt = `${systemPrompt}\n\n${contextPrompt}\n\n${schemaPrompt}\n\n${audioData ? "Analyze this recording. Provide a high-quality transcription in the 'transcript' field of the JSON, including correct punctuation and sentence structure. Do NOT mention being an AI in the transcription." : `USER ANSWER: "${answerText}"`}`;
 
             const promptParts: Part[] = [{ text: combinedPrompt }];
 
