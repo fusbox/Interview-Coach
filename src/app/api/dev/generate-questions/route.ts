@@ -1,12 +1,8 @@
 "use server";
 
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
 import { Logger } from "@/lib/logger";
-
-const apiKey = process.env.GEMINI_API_KEY;
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
-
+import { ai, AI_MODELS } from "@/lib/server/services/ai-config";
 import { showDemoTools } from "@/lib/feature-flags";
 
 export async function POST(req: NextRequest) {
@@ -87,13 +83,13 @@ ${isEntryLevelOrBlueCollar ? `
 PHASE 3: QUESTION GENERATION
 Generate interview questions in these categories:
 
-1. Behavioral Questions - Generate exactly 4 questions.
-   - If Entry-Level/Blue-Collar: Focus on situational reliability and teamwork.
-   - If Senior: Focus on leadership, change management, and influence.
-   - Dimension Labels to use: Situation, Task, Action, Result (to map to the internal STAR schema).
+1. Behavioral Questions - Generate exactly 4 distinct behavioral questions as a keyed object.
+   - Each question must be a complete, cohesive scenario (e.g., "Tell me about a time when..."). 
+   - DO NOT fragmented them into S/T/A/R segments.
+   - KEYS: "Conflict/Resolution", "Adaptability", "Initiative/Growth", "Role-Specific Scenario".
 
-2. Culture/Fit Questions - Generate exactly 5 questions based on PERMA dimensions:
-   - Dimensions: Positive Emotion, Engagement, Relationships, Meaning, Accomplishment.
+2. Culture/Fit Questions - Generate exactly 5 questions as a keyed object based on PERMA dimensions:
+   - KEYS: "Positive Emotion", "Engagement", "Relationships", "Meaning", "Accomplishment".
    - Anchor these to the specific company environment implied in the JD.
 
 3. Technical/Hard Skill Questions - Generate 1-2 questions.
@@ -102,19 +98,19 @@ Generate interview questions in these categories:
 
 OUTPUT FORMAT (strict JSON, no other text):
 {
-  "star": [
-    { "text": "question text", "label": "Situation" },
-    { "text": "question text", "label": "Task" },
-    { "text": "question text", "label": "Action" },
-    { "text": "question text", "label": "Result" }
-  ],
-  "perma": [
-    { "text": "question text", "label": "Positive Emotion" },
-    { "text": "question text", "label": "Engagement" },
-    { "text": "question text", "label": "Relationships" },
-    { "text": "question text", "label": "Meaning" },
-    { "text": "question text", "label": "Accomplishment" }
-  ],
+  "behavioral": {
+    "Conflict/Resolution": "complete question text",
+    "Adaptability": "complete question text",
+    "Initiative/Growth": "complete question text",
+    "Role-Specific Scenario": "complete question text"
+  },
+  "culture": {
+    "Positive Emotion": "complete question text",
+    "Engagement": "complete question text",
+    "Relationships": "complete question text",
+    "Meaning": "complete question text",
+    "Accomplishment": "complete question text"
+  },
   "technical": [
     { "text": "question text" }
   ]
@@ -127,7 +123,7 @@ RULES:
 - Output ONLY valid JSON.`;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: AI_MODELS.QUESTION_GEN,
             contents: { parts: [{ text: prompt }] },
             config: { responseMimeType: 'application/json' },
         });
@@ -149,21 +145,21 @@ RULES:
 
 function getMockQuestions(role: string) {
     return {
-        star: [
-            { text: `Describe a challenging situation you encountered as a ${role}.`, label: "Situation" },
-            { text: `What were your key responsibilities in that situation?`, label: "Task" },
-            { text: `What specific actions did you take to address it?`, label: "Action" },
-            { text: `What was the outcome of your actions?`, label: "Result" },
-        ],
-        perma: [
-            { text: `How do you maintain enthusiasm in your role as a ${role}?`, label: "Positive Emotion" },
-            { text: `What aspects of the ${role} position keep you most engaged?`, label: "Engagement" },
-            { text: `How do you build effective working relationships with your team?`, label: "Relationships" },
-            { text: `What does your work as a ${role} mean to you?`, label: "Meaning" },
-            { text: `What professional accomplishment are you most proud of?`, label: "Accomplishment" },
-        ],
+        behavioral: {
+            "Conflict/Resolution": `Tell me about a time you had to resolve a conflict with a teammate or patient while working as a ${role}.`,
+            "Adaptability": `Describe a situation where you had to adapt quickly to a major change in your shift or responsibilities.`,
+            "Initiative/Growth": `Tell me about a time you took the initiative to improve a process or help a colleague without being asked.`,
+            "Role-Specific Scenario": `Walk me through a specific role-specific challenge you faced as a ${role} and how you handled it.`
+        },
+        culture: {
+            "Positive Emotion": `How do you maintain enthusiasm in your role as a ${role}?`,
+            "Engagement": `What aspects of the ${role} position keep you most engaged?`,
+            "Relationships": `How do you build effective working relationships with your team?`,
+            "Meaning": `What does your work as a ${role} mean to you?`,
+            "Accomplishment": `What professional accomplishment are you most proud of?`
+        },
         technical: [
-            { text: `What tools or techniques do you use most frequently as a ${role}?` },
-        ],
+            { text: `What tools or techniques do you use most frequently as a ${role}?` }
+        ]
     };
 }

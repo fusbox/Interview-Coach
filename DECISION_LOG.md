@@ -85,6 +85,22 @@ Implement a centralized `showDemoTools()` utility in `src/lib/feature-flags.ts`.
 - Easy "Launch Cleanup": Just delete the `/api/dev` folder and remove the `// DEMO_TOOL` marked blocks.
 - Safer than removing the environment gate entirely, as it requires an explicit environment variable.
 
+## ADR-008: Behavioral Question Structure (Consolidated Prompts)
+
+### Context
+The AI generation logic previously segmented single behavioral questions into 4 STAR components (Situation, Task, Action, Result), which the UI rendered as 4 separate fields. This led to fragmented interview sessions where candidates were prompted for incomplete dialogue segments rather than cohesive scenarios.
+
+### Decision
+Merge fragmented components into single, high-fidelity behavioral prompts.
+- **AI Prompt**: Updated to generate 4 distinct, cohesive scenarios (e.g., "Tell me about a time...") rather than fragments.
+- **Template Labels**: Updated `STAR_TEMPLATE` to represent 4 behavioral pillars (Conflict, Adaptability, Initiative, Role-Specific) instead of structural markers.
+- **Handler Logic**: Added defensive slicing in the UI handler to ensure only 4 questions are accepted, preventing fragmentation overflow.
+
+### Consequences
+- Recruitment sessions are more realistic and professional.
+- Candidates receive holistic prompts that allow for natural storytelling.
+- Recruiter settings UI is cleaner and less repetitive.
+
 ## ADR-006: Recruiter Profile Professional Title
 
 ### Context

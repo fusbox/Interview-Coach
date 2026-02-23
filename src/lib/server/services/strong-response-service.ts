@@ -1,10 +1,7 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { Type } from "@google/genai";
 import { QuestionTips, StrongResponseResult } from "@/lib/domain/types";
 import { Logger } from "@/lib/logger";
-
-// --- Service ---
-const apiKey = process.env.GEMINI_API_KEY;
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+import { ai, AI_MODELS } from "./ai-config";
 
 export class StrongResponseService {
     static async generateStrongResponse(
@@ -94,7 +91,7 @@ export class StrongResponseService {
 
         try {
             const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
+                model: AI_MODELS.STRONG_RESPONSE,
                 contents: prompt,
                 config: {
                     responseMimeType: 'application/json',

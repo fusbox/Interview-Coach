@@ -1,8 +1,5 @@
-import { GoogleGenAI } from "@google/genai";
 import { Logger } from "@/lib/logger";
-
-const apiKey = process.env.GEMINI_API_KEY;
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+import { ai, AI_MODELS } from "./ai-config";
 
 export class TTSService {
     static async generateSpeech(text: string): Promise<{ audioData: Buffer; mimeType: string }> {
@@ -20,7 +17,7 @@ export class TTSService {
             const wrapped = `Instruction: Read the following interview question as a hiring manager addressing a candidate. Tone: Professional, clear, slightly encouraging.\n${text}`;
 
             const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash-preview-tts',
+                model: AI_MODELS.TTS,
 
                 contents: {
                     parts: [{ text: wrapped }],

@@ -16,10 +16,10 @@ export interface QuestionInput {
 }
 
 export const STAR_TEMPLATE: QuestionInput[] = [
-    { id: 's', text: '', category: 'STAR', label: 'Situation', isLocked: true },
-    { id: 't', text: '', category: 'STAR', label: 'Task', isLocked: true },
-    { id: 'a', text: '', category: 'STAR', label: 'Action', isLocked: true },
-    { id: 'r', text: '', category: 'STAR', label: 'Result', isLocked: true },
+    { id: 'b1', text: '', category: 'STAR', label: 'Conflict/Resolution', isLocked: false },
+    { id: 'b2', text: '', category: 'STAR', label: 'Adaptability', isLocked: false },
+    { id: 'b3', text: '', category: 'STAR', label: 'Initiative/Growth', isLocked: false },
+    { id: 'b4', text: '', category: 'STAR', label: 'Role-Specific Scenario', isLocked: false },
 ];
 
 export const PERMA_TEMPLATE: QuestionInput[] = [

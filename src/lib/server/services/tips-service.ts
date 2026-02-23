@@ -1,7 +1,8 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { Type } from "@google/genai";
 import { Blueprint, Competency } from "@/lib/domain/types";
 import { Logger } from "@/lib/logger";
 import { z } from "zod";
+import { ai, AI_MODELS } from "./ai-config";
 
 // --- Schema Definition ---
 export const GenerateTipsSchema = z.object({
@@ -24,8 +25,6 @@ export type TipsResponse = {
 };
 
 // --- Service ---
-const apiKey = process.env.GEMINI_API_KEY;
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 export class TipsService {
     static async generateTips(
@@ -87,7 +86,7 @@ export class TipsService {
 
         try {
             const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
+                model: AI_MODELS.TIPS,
                 contents: prompt,
                 config: {
                     responseMimeType: 'application/json',

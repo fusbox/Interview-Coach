@@ -16,3 +16,17 @@ export const SESSION_STATUS = {
     COMPLETED: 'COMPLETED',
     ERROR: 'ERROR',
 } as const;
+
+export const FEEDBACK_DIMENSIONS = [
+    'structural_clarity',
+    'outcome_explicitness',
+    'specificity_concreteness',
+    'decision_rationale',
+    'focus_relevance',
+    'pace',
+    'energy',
+    'clarity',
+    'confidence'
+] as const;
+
+export type Dimension = typeof FEEDBACK_DIMENSIONS[number];

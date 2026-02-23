@@ -600,7 +600,7 @@ export default function UnifiedSessionScreen() {
                             animate={{ y: 0 }}
                             exit={{ y: "100%" }}
                             transition={{ type: "spring", damping: 30, stiffness: 250 }}
-                            className="lg:hidden fixed bottom-0 left-0 right-0 glass-overlay border-t border-slate-200 dark:border-white/10 z-[60] flex flex-col max-h-[85vh] rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.15)]"
+                            className="lg:hidden fixed bottom-0 left-0 right-0 glass-overlay border-t border-slate-200 dark:border-white/10 z-[60] flex flex-col max-h-[85dvh] rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.15)]"
                         >
                             {/* Drag Indicator */}
                             <div className="w-12 h-1.5 bg-slate-300 dark:bg-white/10 rounded-full mx-auto my-3 shrink-0" />

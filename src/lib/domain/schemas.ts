@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { FEEDBACK_DIMENSIONS } from '../constants';
 
 // --- Domain Entity Schemas ---
 
@@ -36,15 +37,30 @@ export const QuestionSchema = z.object({
     tips: QuestionTipsSchema.optional(),
 });
 
+export const DimensionSchema = z.enum(FEEDBACK_DIMENSIONS);
+
+export const DimensionScoreSchema = z.object({
+    score: z.number().min(1).max(5),
+    label: z.string()
+});
+
+export const TaggedObservationSchema = z.object({
+    text: z.string(),
+    dimension: DimensionSchema,
+    type: z.enum(['strength', 'growth'])
+});
+
 export const AnalysisResultSchema = z.object({
     ack: z.string().optional(),
+    scores: z.record(DimensionSchema, DimensionScoreSchema).optional(),
     primaryFocus: z.object({
-        dimension: z.enum(['structural_clarity', 'outcome_explicitness', 'specificity_concreteness', 'decision_rationale', 'focus_relevance', 'delivery_control']),
+        dimension: DimensionSchema,
         headline: z.string(),
         body: z.string(),
     }).optional(),
     whyThisMatters: z.string().optional(),
     observations: z.array(z.string()).optional(),
+    taggedObservations: z.array(TaggedObservationSchema).optional(),
     nextAction: z.object({
         label: z.string(),
         actionType: z.enum(['redo_answer', 'next_question', 'practice_example', 'stop_for_now']),
@@ -52,8 +68,8 @@ export const AnalysisResultSchema = z.object({
     meta: z.object({
         tier: z.union([z.literal(0), z.literal(1), z.literal(2)]),
         modality: z.enum(['text', 'voice']),
-        signalQuality: z.enum(['insufficient', 'emerging', 'reliable', 'strong']),
-        confidence: z.enum(['low', 'medium', 'high']),
+        signalQuality: z.enum(['insufficient', 'emerging', 'reliable', 'strong']).optional(),
+        confidence: z.enum(['low', 'medium', 'high']).optional(),
         readinessLevel: z.enum(['RL1', 'RL2', 'RL3', 'RL4']).optional(),
     }).optional(),
     transcript: z.string().optional(),
@@ -71,7 +87,7 @@ export const AnalysisResultSchema = z.object({
     evidenceExtracts: z.array(z.string()).optional(),
     biggestUpgrade: z.string().optional(),
     redoPrompt: z.string().optional(),
-});
+}).passthrough();
 
 export const AnswerSchema = z.object({
     questionId: z.string(),

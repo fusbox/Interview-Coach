@@ -1,17 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { AnalysisResult } from '@/lib/domain/types';
+import { AnalysisResult, Dimension } from '@/lib/domain/types';
 import {
+    LucideIcon,
     ArrowRight,
+    ArrowLeft,
     Play,
     Pause,
     RotateCcw,
     Sparkles,
-    Users,
     ShieldCheck,
     GitBranch,
-    Box
+    Box,
+    Volume2,
+    Gauge,
+    Zap,
+    Type,
+    Target
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
@@ -30,7 +36,6 @@ interface FeedbackOverlayProps {
 export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
     isOpen,
     analysis,
-    isThinking,
     onNext,
     onRetry,
     isLastQuestion,
@@ -38,7 +43,10 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
     audioBlob
 }) => {
     const [isPlaying, setIsPlaying] = useState(false);
+    const [currentSlide, setCurrentSlide] = useState(0);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    const SLIDES = 4;
 
     const togglePlayback = () => {
         if (!audioBlob) return;
@@ -59,6 +67,12 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
     };
 
     useEffect(() => {
+        if (isOpen) {
+            setCurrentSlide(0);
+        }
+    }, [isOpen]);
+
+    useEffect(() => {
         if (audioRef.current) {
             audioRef.current.pause();
             audioRef.current = null;
@@ -75,69 +89,55 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
         };
     }, []);
 
-    // Card Mapping Logic
-    const isPrimaryFocus = (dimension: string) => analysis?.primaryFocus?.dimension === dimension;
+    // --- Dimensional Logic (V2.5 Quantified) ---
+    const getCardVariant = (dimension: Dimension) => {
+        const data = analysis?.scores?.[dimension];
+        if (!data) return { state: 'strength', label: 'Strength' };
 
-    const getCardState = (dimensions: string[]) => {
-        const primary = dimensions.find(d => isPrimaryFocus(d));
-        return {
-            isFocus: !!primary,
-            label: primary ? "Focus Area" : "Strength"
-        };
+        const score = data.score;
+        const isPolish = score === 3 && analysis?.meta?.readinessLevel === 'RL1';
+
+        if (score >= 4) return { state: 'strength' as const, label: 'Strength' };
+        if (isPolish) return { state: 'polish' as const, label: 'Polish' };
+        return { state: 'focus' as const, label: 'Focus Area' };
     };
 
-    const isTextMode = analysis?.meta?.modality === 'text';
+    // Dimension Definitions
+    const deliveryDimensions: Array<{ id: Dimension; title: string; icon: LucideIcon }> = [
+        { id: 'confidence', title: 'Confidence', icon: ShieldCheck },
+        { id: 'pace', title: 'Pace', icon: Gauge },
+        { id: 'clarity', title: 'Clarity', icon: Type },
+        { id: 'energy', title: 'Tone', icon: Zap }
+    ];
 
-    // Simple comment generator (~10 words)
-    const getComment = (id: string, isFocus: boolean) => {
-        if (isFocus) {
-            switch (id) {
-                case 'presence': return "Refining your delivery will make your answer feel more engaging.";
-                case 'confidence': return "Working on steady delivery will help you sound more self-assured.";
-                case 'logic': return "A more structured approach will help the listener follow along.";
-                case 'material': return "Adding specific outcomes will make your achievements more concrete.";
-                default: return "There's an opportunity to strengthen this area further.";
-            }
-        } else {
-            switch (id) {
-                case 'presence': return "You sounded engaged and reached the listener effectively.";
-                case 'confidence': return "You projected strong poise and self-assurance throughout.";
-                case 'logic': return "Your answer followed a clear, logical, and organized flow.";
-                case 'material': return "You used specific examples that successfully demonstrated your impact.";
-                default: return "You demonstrated strong capability in this specific area.";
-            }
+    const contentDimensions: Array<{ id: Dimension; title: string; icon: LucideIcon }> = [
+        { id: 'focus_relevance', title: 'Relevance', icon: Target },
+        { id: 'structural_clarity', title: 'Structure', icon: GitBranch },
+        { id: 'specificity_concreteness', title: 'Detail', icon: Box },
+        { id: 'outcome_explicitness', title: 'Impact', icon: Volume2 },
+        { id: 'decision_rationale', title: 'Strategy', icon: Sparkles }
+    ];
+
+    // Foundational Filter: Only show the lowest-ranked foundational focus card
+    const getVisibleCards = (pool: Array<{ id: Dimension; title: string; icon: LucideIcon }>) => {
+        const variants = pool.map(d => ({ ...d, ...getCardVariant(d.id as Dimension) }));
+        const focuses = variants.filter(v => v.state === 'focus');
+
+        if (focuses.length > 0) {
+            // Foundational hierarchy: relevance > structure > others
+            const foundationalOrder = ['focus_relevance', 'structural_clarity', 'confidence'];
+            const topFocus = focuses.sort((a, b) => {
+                const aIdx = foundationalOrder.indexOf(a.id);
+                const bIdx = foundationalOrder.indexOf(b.id);
+                if (aIdx === -1) return 1;
+                if (bIdx === -1) return -1;
+                return aIdx - bIdx;
+            })[0];
+
+            return variants.filter(v => v.state !== 'focus' || v.id === topFocus.id);
         }
+        return variants;
     };
-
-    const deliveryCards = [
-        {
-            id: 'presence',
-            title: isTextMode ? "Engagement" : "Presence",
-            icon: Users,
-            dimensions: ['delivery_control', 'focus_relevance']
-        },
-        {
-            id: 'confidence',
-            title: "Confidence",
-            icon: ShieldCheck,
-            dimensions: [] // Special case for meta.confidence
-        }
-    ];
-
-    const contentCards = [
-        {
-            id: 'logic',
-            title: "Logic",
-            icon: GitBranch,
-            dimensions: ['structural_clarity', 'decision_rationale']
-        },
-        {
-            id: 'material',
-            title: "Material",
-            icon: Box,
-            dimensions: ['outcome_explicitness', 'specificity_concreteness']
-        }
-    ];
 
     return (
         <AnimatePresence>
@@ -154,153 +154,252 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="relative w-full max-w-5xl max-h-[95vh] bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-white/5 flex flex-col overflow-hidden"
+                        className={cn(
+                            "relative w-full max-w-[1334px] h-[750px] max-h-[95dvh] rounded-[2.5rem] shadow-2xl border flex flex-col overflow-hidden transition-colors duration-500",
+                            currentSlide === 3
+                                ? "bg-gradient-to-br from-blue-600 to-blue-700 md:from-[#e8f1fd] md:to-[#d1e3fa] dark:from-blue-900 dark:to-slate-950 border-blue-500/20 md:border-slate-200"
+                                : "bg-gradient-to-br from-[#e8f1fd] to-[#d1e3fa] dark:from-slate-900 dark:to-slate-800 border-slate-200 dark:border-white/5"
+                        )}
                     >
-                        <div className="p-8 md:p-12 pb-8 flex flex-col gap-4 items-start border-b border-slate-100 dark:border-white/5">
-                            <div className="flex items-center justify-between w-full">
-                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-xs font-black uppercase tracking-widest leading-none">
-                                    <Sparkles size={14} />
-                                    <span>Evaluation Overview</span>
-                                </div>
-                                {/* DEV-ONLY: Exposed Readiness Level for verification */}
-                                {analysis?.meta?.readinessLevel && (
-                                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none opacity-50">
-                                        Debug: {analysis.meta.readinessLevel}
-                                    </div>
+                        {/* Header: Slide Progress Indicator */}
+                        <div className="px-10 pt-8 pb-0 flex items-center justify-between">
+                            <div className="flex gap-2">
+                                {Array.from({ length: SLIDES }).map((_, i) => (
+                                    <div
+                                        key={i}
+                                        className={cn(
+                                            "h-1.5 rounded-full transition-all duration-300",
+                                            i === currentSlide ? "w-8 bg-blue-600" : "w-2 bg-slate-200 dark:bg-white/10"
+                                        )}
+                                    />
+                                ))}
+                            </div>
+                            <div className="flex items-center gap-3">
+                                {currentSlide > 0 && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setCurrentSlide(prev => prev - 1)}
+                                        className="rounded-full h-8 px-3 text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                                    >
+                                        <ArrowLeft size={16} className="mr-2" />
+                                        Back
+                                    </Button>
+                                )}
+                                {currentSlide < SLIDES - 1 && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setCurrentSlide(prev => prev + 1)}
+                                        className="rounded-full h-8 px-3 bg-blue-50 dark:bg-blue-900/30 text-blue-600 hover:bg-blue-100 font-bold"
+                                    >
+                                        Next
+                                        <ArrowRight size={16} className="ml-2" />
+                                    </Button>
                                 )}
                             </div>
-                            <h2 className="text-2xl md:text-[2.25rem] font-bold text-slate-900 dark:text-white leading-[1.2] font-display w-full">
-                                {analysis?.ack || "Thinking..."}
-                            </h2>
                         </div>
 
-                        {/* Scrollable Content Area */}
-                        <div className="flex-1 overflow-y-auto min-h-0 scrollbar-hide">
-                            {/* Row 2: Grid & Transcript */}
-                            <div className="px-8 md:px-12 py-8 grid grid-cols-1 md:grid-cols-[1.2fr,1fr] gap-10 items-stretch">
-                                {/* Left Column: Feedback Grid */}
-                                <div className="space-y-8">
-                                    <div className="space-y-4">
-                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Speaking Delivery</h4>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            {deliveryCards.map((card) => {
-                                                let state = getCardState(card.dimensions);
-                                                if (card.id === 'confidence') {
-                                                    const lowConfidence = analysis?.meta?.confidence === 'low';
-                                                    state = { isFocus: lowConfidence, label: lowConfidence ? "Focus Area" : "Strength" };
-                                                }
-                                                return (
-                                                    <div key={card.id} className={cn("p-5 rounded-[2rem] border transition-all", state.isFocus ? "bg-amber-50/50 dark:bg-amber-900/10 border-amber-200" : "bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-200")}>
-                                                        <div className="flex items-center gap-3 mb-2">
-                                                            <card.icon size={18} className={state.isFocus ? "text-amber-600" : "text-emerald-600"} />
-                                                            <h3 className="font-bold text-slate-800 dark:text-white capitalize text-sm">{card.title}</h3>
-                                                            <span className={cn("text-[9px] font-black uppercase tracking-tight ml-auto", state.isFocus ? "text-amber-600" : "text-emerald-600")}>{state.label}</span>
-                                                        </div>
-                                                        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">{getComment(card.id, state.isFocus)}</p>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Answer Content</h4>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            {contentCards.map((card) => {
-                                                const state = getCardState(card.dimensions);
-                                                return (
-                                                    <div key={card.id} className={cn("p-5 rounded-[2rem] border transition-all", state.isFocus ? "bg-amber-50/50 dark:bg-amber-900/10 border-amber-200" : "bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-200")}>
-                                                        <div className="flex items-center gap-3 mb-2">
-                                                            <card.icon size={18} className={state.isFocus ? "text-amber-600" : "text-emerald-600"} />
-                                                            <h3 className="font-bold text-slate-800 dark:text-white capitalize text-sm">{card.title}</h3>
-                                                            <span className={cn("text-[9px] font-black uppercase tracking-tight ml-auto", state.isFocus ? "text-amber-600" : "text-emerald-600")}>{state.label}</span>
-                                                        </div>
-                                                        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">{getComment(card.id, state.isFocus)}</p>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Right Column: Transcript (Syncs to Grid Column height) */}
-                                <div className="flex flex-col space-y-4 overflow-hidden">
-                                    <div className="flex items-center justify-between px-1">
-                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Your Transcript</h4>
-                                        {audioBlob && !isThinking && (
-                                            <button
-                                                onClick={togglePlayback}
-                                                className={cn(
-                                                    "inline-flex items-center gap-2 px-2.5 py-1 rounded-lg transition-all text-[10px] font-black uppercase tracking-tight leading-none",
-                                                    isPlaying
-                                                        ? "bg-blue-600 text-white"
-                                                        : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/50"
-                                                )}
-                                            >
-                                                {isPlaying ? <Pause size={12} /> : <Play size={12} fill="currentColor" />}
-                                                <span>{isPlaying ? "Playing" : "Listen"}</span>
-                                            </button>
-                                        )}
-                                    </div>
-                                    <div className="flex-1 relative min-h-[200px] md:min-h-0">
-                                        <div className="md:absolute md:inset-0 p-8 bg-slate-50 dark:bg-white/5 rounded-[2.5rem] border border-slate-100 dark:border-white/5 overflow-y-auto italic scrollbar-hide">
-                                            <p className="text-slate-700 dark:text-slate-300 text-base leading-relaxed">
-                                                &quot;{transcript || "No transcript available."}&quot;
+                        {/* Carousel Content */}
+                        <div className="flex-1 overflow-hidden relative">
+                            <AnimatePresence mode="wait">
+                                <motion.div
+                                    key={currentSlide}
+                                    initial={{ x: 20, opacity: 0 }}
+                                    animate={{ x: 0, opacity: 1 }}
+                                    exit={{ x: -20, opacity: 0 }}
+                                    transition={{ duration: 0.3, ease: "easeOut" }}
+                                    className="absolute inset-0 p-10 md:p-12"
+                                >
+                                    {/* SLIDE 0: ACKNOWLEDGMENT */}
+                                    {currentSlide === 0 && (
+                                        <div className="h-full flex flex-col items-center justify-center text-center max-w-3xl mx-auto space-y-6">
+                                            <h2 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-white leading-[1.1] font-display">
+                                                {analysis?.ack || "Thinking..."}
+                                            </h2>
+                                            <p className="text-slate-500 dark:text-slate-400 text-lg md:text-xl">
+                                                Let&apos;s dive into how you did across delivery and content.
                                             </p>
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
+                                    )}
 
-                            {/* Row 3: Evidence & Recommendation */}
-                            <div className="px-8 md:px-12 pb-12 pt-4 grid grid-cols-1 md:grid-cols-[1.2fr,1fr] gap-10 items-stretch">
-                                {/* Evidence Column */}
-                                <div className="space-y-4">
-                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Specific Evidence</h4>
-                                    <ul className="grid grid-cols-1 gap-2">
-                                        {analysis?.observations?.map((obs, i) => (
-                                            <li key={i} className="flex gap-3 text-sm text-slate-600 dark:text-slate-400 p-4 bg-slate-50/50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 leading-snug">
-                                                <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
-                                                <span>{obs}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
+                                    {/* SLIDE 1: DELIVERY DEEP-DIVE */}
+                                    {currentSlide === 1 && (
+                                        <div className="h-full flex flex-col md:grid md:grid-rows-[1.618fr,1fr] gap-6 overflow-y-auto md:overflow-hidden custom-scrollbar">
+                                            <div className="space-y-4 flex flex-col min-h-0">
+                                                <div className="flex items-center gap-3 shrink-0">
+                                                    <Volume2 size={24} className="text-blue-500" />
+                                                    <h3 className="text-2xl font-bold dark:text-white">Delivery</h3>
+                                                </div>
+                                                <div className={cn(
+                                                    "grid gap-4 flex-1 min-h-0",
+                                                    getVisibleCards(deliveryDimensions).length <= 3
+                                                        ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 items-center"
+                                                        : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 items-start"
+                                                )}>
+                                                    {getVisibleCards(deliveryDimensions).map((card) => {
+                                                        const variant = getCardVariant(card.id as Dimension);
+                                                        const observation = analysis?.taggedObservations?.find(obs => obs.dimension === card.id)?.text;
 
-                                {/* Recommendation Column */}
-                                <div className="flex flex-col space-y-4">
-                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">My Recommendation</h4>
-                                    <div className="flex-1 p-8 bg-blue-600/5 dark:bg-blue-100/5 border border-blue-200 dark:border-blue-500/10 rounded-[2.5rem] flex flex-col justify-between items-stretch">
-                                        {analysis?.primaryFocus ? (
-                                            <div className="space-y-2 mb-6">
-                                                <h5 className="font-bold text-lg text-blue-900 dark:text-blue-100">{analysis.primaryFocus.headline}</h5>
-                                                <p className="text-blue-900/80 dark:text-blue-100/70 text-sm leading-relaxed">{analysis.primaryFocus.body}</p>
+                                                        return (
+                                                            <div key={card.id} className="p-6 rounded-[2.5rem] bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg transition-all flex flex-col items-center justify-start text-center space-y-4 h-full min-h-0">
+                                                                <div className="flex items-center gap-3 shrink-0 pt-2">
+                                                                    <div className={cn(
+                                                                        "w-10 h-10 rounded-2xl flex items-center justify-center bg-white/10 shrink-0",
+                                                                        variant.state === 'strength' ? "text-emerald-300" :
+                                                                            variant.state === 'polish' ? "text-blue-200" :
+                                                                                "text-amber-300"
+                                                                    )}>
+                                                                        <card.icon size={20} />
+                                                                    </div>
+                                                                    <span className="font-bold text-sm tracking-wide">{card.title}</span>
+                                                                </div>
+                                                                {observation && (
+                                                                    <p className="text-[12px] text-blue-50/90 leading-relaxed italic line-clamp-4">
+                                                                        &quot;{observation}&quot;
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
-                                        ) : (
-                                            <div className="flex-1" />
-                                        )}
+                                            <div className="min-h-0 md:overflow-hidden shrink-0">
+                                                <TranscriptPanel transcript={transcript} audioBlob={audioBlob} isPlaying={isPlaying} togglePlayback={togglePlayback} />
+                                            </div>
+                                        </div>
+                                    )}
 
-                                        <div className="space-y-3">
+                                    {/* SLIDE 2: CONTENT DEEP-DIVE */}
+                                    {currentSlide === 2 && (
+                                        <div className="h-full flex flex-col md:grid md:grid-rows-[1.618fr,1fr] gap-6 overflow-y-auto md:overflow-hidden custom-scrollbar">
+                                            <div className="space-y-4 flex flex-col min-h-0">
+                                                <div className="flex items-center gap-3 shrink-0">
+                                                    <Target size={24} className="text-blue-500" />
+                                                    <h3 className="text-2xl font-bold dark:text-white">Answer Content</h3>
+                                                </div>
+                                                <div className={cn(
+                                                    "grid gap-4 flex-1 min-h-0",
+                                                    getVisibleCards(contentDimensions).length <= 3
+                                                        ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 items-center"
+                                                        : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 items-start"
+                                                )}>
+                                                    {getVisibleCards(contentDimensions).map((card) => {
+                                                        const variant = getCardVariant(card.id as Dimension);
+                                                        const docObservations = analysis?.taggedObservations?.filter(obs => obs.dimension === card.id);
+
+                                                        return (
+                                                            <div key={card.id} className="p-5 rounded-[2.5rem] bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg transition-all flex flex-col items-center justify-start text-center space-y-3 h-full min-h-0">
+                                                                <div className="flex items-center gap-3 shrink-0 pt-1">
+                                                                    <div className={cn(
+                                                                        "w-9 h-9 rounded-xl flex items-center justify-center bg-white/10 shrink-0",
+                                                                        variant.state === 'strength' ? "text-emerald-300" :
+                                                                            variant.state === 'polish' ? "text-blue-200" :
+                                                                                "text-amber-300"
+                                                                    )}>
+                                                                        <card.icon size={18} />
+                                                                    </div>
+                                                                    <span className="font-bold text-sm tracking-wide">{card.title}</span>
+                                                                </div>
+                                                                <div className="flex-1 space-y-1 overflow-hidden flex flex-col justify-start">
+                                                                    {docObservations && docObservations.length > 0 && (
+                                                                        <ul className="space-y-1">
+                                                                            {docObservations.slice(0, 2).map((obs, idx) => (
+                                                                                <li key={idx} className="text-[11px] text-blue-50/90 leading-tight italic line-clamp-3">
+                                                                                    &quot;{obs.text}&quot;
+                                                                                </li>
+                                                                            ))}
+                                                                        </ul>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                            <div className="min-h-0 md:overflow-hidden shrink-0">
+                                                <TranscriptPanel transcript={transcript} audioBlob={audioBlob} isPlaying={isPlaying} togglePlayback={togglePlayback} />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* SLIDE 3 (Actual Slide 4): RECOMMENDATION & CTA */}
+                                    {currentSlide === 3 && (() => {
+                                        const allDims = [...deliveryDimensions, ...contentDimensions];
+                                        const hasFocusOrPolish = allDims.some(d => {
+                                            const variant = getCardVariant(d.id as Dimension);
+                                            return variant.state === 'focus' || variant.state === 'polish';
+                                        });
+
+                                        const nextLabel = isLastQuestion
+                                            ? "Finish Session"
+                                            : (<><span className="hidden md:inline">Continue to Next Question</span><span className="inline md:hidden">Next Question</span></>);
+
+                                        const primaryBtn = hasFocusOrPolish ? (
                                             <Button
                                                 onClick={onRetry}
-                                                className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-600/30 text-white font-bold gap-3 group"
+                                                className="h-14 md:h-16 px-6 md:px-10 rounded-2xl bg-white text-blue-600 font-bold text-lg shadow-xl hover:bg-blue-50 hover:scale-[1.02] active:scale-95 transition-all w-full md:w-auto"
                                             >
-                                                <RotateCcw size={18} className="group-hover:rotate-[-45deg] transition-transform" />
-                                                <span>{analysis?.nextAction?.label || "Refine this answer"}</span>
+                                                <RotateCcw size={18} className="mr-2" />
+                                                Retry My Answer
                                             </Button>
-
+                                        ) : (
                                             <Button
                                                 onClick={onNext}
-                                                variant="outline"
-                                                className="w-full h-12 rounded-2xl border-slate-200 dark:border-white/10 text-slate-600 dark:text-white font-bold gap-2"
+                                                className="h-14 md:h-16 px-6 md:px-10 rounded-2xl bg-white text-blue-600 font-bold text-lg shadow-xl hover:bg-blue-50 hover:scale-[1.02] active:scale-95 transition-all w-full md:w-auto"
                                             >
-                                                <span>{isLastQuestion ? "Finish Session" : "Continue to Next Question"}</span>
-                                                <ArrowRight size={18} />
+                                                {nextLabel}
+                                                <ArrowRight size={20} className="ml-2" />
                                             </Button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                                        );
+
+                                        const secondaryBtn = hasFocusOrPolish ? (
+                                            <button
+                                                onClick={onNext}
+                                                className="flex items-center gap-2 text-blue-100 hover:text-white md:text-slate-500 md:hover:text-blue-600 font-bold transition-all group"
+                                            >
+                                                {nextLabel}
+                                                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={onRetry}
+                                                className="flex items-center gap-2 text-blue-100 hover:text-white md:text-slate-500 md:hover:text-blue-600 font-bold transition-all group"
+                                            >
+                                                <RotateCcw size={18} className="group-hover:rotate-[-45deg] transition-transform" />
+                                                <span>Retry My Answer</span>
+                                            </button>
+                                        );
+
+                                        return (
+                                            <div className="h-full flex flex-col items-center justify-center max-w-3xl mx-auto space-y-6 md:space-y-8 px-6 md:px-0">
+                                                <div className="w-full space-y-6">
+                                                    <h3 className="text-[10px] font-black text-blue-200 dark:text-blue-300 md:text-slate-400 md:dark:text-slate-500 uppercase tracking-[0.2em] text-center">The Next Step</h3>
+                                                    <div className="p-0 md:p-12 md:bg-gradient-to-br md:from-blue-600 md:to-blue-700 md:rounded-[3rem] text-white md:shadow-2xl relative overflow-hidden group">
+                                                        <div className="hidden md:block absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                                                            <RotateCcw size={120} />
+                                                        </div>
+                                                        <div className="relative z-10 text-center space-y-6">
+                                                            <h4 className="text-3xl md:text-4xl font-bold">{analysis?.primaryFocus?.headline || "Ready to Proceed?"}</h4>
+                                                            <p className="text-blue-100 md:text-blue-50 text-lg md:text-xl leading-relaxed max-w-xl mx-auto">
+                                                                {analysis?.primaryFocus?.body || "You've addressed the core of this question effectively."}
+                                                            </p>
+                                                            <div className="pt-4 md:pt-6">
+                                                                {primaryBtn}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Secondary Button Below Card, Right-Justified */}
+                                                <div className="w-full flex justify-end pb-12 md:pb-8">
+                                                    {secondaryBtn}
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                </motion.div>
+                            </AnimatePresence>
                         </div>
                     </motion.div>
                 </div>
@@ -308,3 +407,36 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
         </AnimatePresence>
     );
 };
+
+// Sub-component for reuse across slides
+const TranscriptPanel: React.FC<{
+    transcript?: string;
+    audioBlob: Blob | null | undefined;
+    isPlaying: boolean;
+    togglePlayback: () => void
+}> = ({ transcript, audioBlob, isPlaying, togglePlayback }) => (
+    <div className="flex flex-col space-y-4 overflow-hidden h-full">
+        <div className="flex items-center justify-between px-1">
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Your Answer</h4>
+            {audioBlob && (
+                <button
+                    onClick={togglePlayback}
+                    className={cn(
+                        "inline-flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all text-xs font-black uppercase tracking-tight",
+                        isPlaying
+                            ? "bg-blue-600 text-white"
+                            : "bg-blue-50 dark:bg-blue-900/30 text-blue-600"
+                    )}
+                >
+                    {isPlaying ? <Pause size={14} /> : <Play size={14} fill="currentColor" />}
+                    <span>{isPlaying ? "Pause" : "Listen"}</span>
+                </button>
+            )}
+        </div>
+        <div className="flex-1 relative bg-slate-50 dark:bg-white/5 rounded-[2.5rem] border border-slate-100 dark:border-white/5 p-8 overflow-y-auto italic custom-scrollbar">
+            <p className="text-slate-600 dark:text-slate-400 text-base leading-relaxed">
+                &quot;{transcript || "No transcript available."}&quot;
+            </p>
+        </div>
+    </div>
+);

@@ -73,19 +73,35 @@ export interface Answer {
     };
 }
 
+import { Dimension } from '../constants';
+export type { Dimension };
+
+export interface DimensionScore {
+    score: number; // 1-5
+    label: string; // The LLM's brief reasoning for this specific score
+}
+
+export interface TaggedObservation {
+    text: string;
+    dimension: Dimension;
+    type: 'strength' | 'growth';
+}
+
 /**
  * Analysis Result (Model Output)
  */
 export interface AnalysisResult {
     // New Feedback Schema V2
     ack?: string;
+    scores?: Record<Dimension, DimensionScore>;
     primaryFocus?: {
-        dimension: 'structural_clarity' | 'outcome_explicitness' | 'specificity_concreteness' | 'decision_rationale' | 'focus_relevance' | 'delivery_control';
+        dimension: Dimension;
         headline: string;
         body: string;
     };
     whyThisMatters?: string;
-    observations?: string[];
+    observations?: string[]; // Legacy
+    taggedObservations?: TaggedObservation[];
     nextAction?: {
         label: string;
         actionType: 'redo_answer' | 'next_question' | 'practice_example' | 'stop_for_now';
@@ -93,9 +109,9 @@ export interface AnalysisResult {
     meta?: {
         tier: 0 | 1 | 2;
         modality: 'text' | 'voice';
-        signalQuality: 'insufficient' | 'emerging' | 'reliable' | 'strong';
-        confidence: 'low' | 'medium' | 'high';
-        readinessLevel?: 'RL1' | 'RL2' | 'RL3' | 'RL4';
+        signalQuality?: 'insufficient' | 'emerging' | 'reliable' | 'strong';
+        confidence?: 'low' | 'medium' | 'high';
+        readinessLevel?: string; // RL1..RL4
     };
 
     transcript?: string;

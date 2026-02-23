@@ -115,8 +115,8 @@ export interface ExportQuestionPayload {
         meta?: {
             tier: number;
             modality: string;
-            signalQuality: string;
-            confidence: string;
+            signalQuality?: string;
+            confidence?: string;
         };
     } | null;
     // Evaluator scores

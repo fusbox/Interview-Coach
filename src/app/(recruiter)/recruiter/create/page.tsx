@@ -210,11 +210,23 @@ export default function CreateInviteWizard() {
             if (!res.ok) throw new Error("Generation failed");
             const data = await res.json();
 
-            if (data.star) setStar(data.star.map((q: { text: string; label: string }, i: number) => ({ ...STAR_TEMPLATE[i], text: q.text })));
-            if (data.perma) setPerma(data.perma.map((q: { text: string; label: string }, i: number) => ({ ...PERMA_TEMPLATE[i], text: q.text })));
-            if (data.technical) setTechnical(data.technical.map((q: { text: string }, i: number) => ({
-                id: `tech-${i + 1}`, text: q.text, category: 'Technical', label: `Technical Q${i + 1}`
-            })));
+            if (data.behavioral) {
+                setStar(STAR_TEMPLATE.map(t => ({
+                    ...t,
+                    text: data.behavioral[t.label] || ""
+                })));
+            }
+            if (data.culture) {
+                setPerma(PERMA_TEMPLATE.map(t => ({
+                    ...t,
+                    text: data.culture[t.label] || ""
+                })));
+            }
+            if (data.technical) {
+                setTechnical(data.technical.slice(0, 2).map((q: { text: string }, i: number) => ({
+                    id: `tech-${i + 1}`, text: q.text, category: 'Technical', label: `Technical Q${i + 1}`
+                })));
+            }
         } catch (e) {
             console.error("AI question generation failed:", e);
         } finally {

@@ -1,13 +1,32 @@
-import { GoogleGenAI } from "@google/genai";
-import { Question, Blueprint, AnalysisResult, InterviewSession, Answer } from "@/lib/domain/types";
+import { Part } from "@google/genai";
+import { Question, Blueprint, AnalysisResult, InterviewSession, Answer, Dimension, DimensionScore, TaggedObservation } from "@/lib/domain/types";
 import { buildAnalysisContext } from "@/lib/ai/prompts";
 import { Logger } from "@/lib/logger";
-
-const apiKey = process.env.GEMINI_API_KEY;
-Logger.info("[AIService] API Key Check", { present: !!apiKey, length: apiKey?.length });
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+import { ai, AI_MODELS } from "./ai-config";
+import { FEEDBACK_DIMENSIONS } from "@/lib/constants";
 
 export class AIService {
+    /**
+     * Internal Algorithm to determine Readiness Level based on foundational vs advanced dimensions.
+     * Foundational: focus_relevance, structural_clarity, confidence
+     * Middle: specificity_concreteness, outcome_explicitness, pace, clarity
+     * Advanced: decision_rationale, energy
+     */
+    private static calculateReadiness(scores: Record<string, number>): string {
+        const foundational = ['focus_relevance', 'structural_clarity', 'confidence'];
+        const middle = ['specificity_concreteness', 'outcome_explicitness', 'pace', 'clarity'];
+
+        // If any foundational is failing (1 or 2), it's RL3 or RL4
+        const hasFoundationalFail = foundational.some(d => scores[d] <= 2);
+        const avgFoundational = foundational.reduce((acc, d) => acc + (scores[d] || 3), 0) / foundational.length;
+        const avgMiddle = middle.reduce((acc, d) => acc + (scores[d] || 3), 0) / middle.length;
+
+        if (avgFoundational <= 2) return "RL4"; // Incomplete/Incoherent
+        if (hasFoundationalFail || avgFoundational < 3.5) return "RL3"; // Practice Recommended
+        if (avgMiddle < 3.8) return "RL2"; // Strong Potential
+        return "RL1"; // Ready
+    }
+
     static async analyzeAnswer(
         question: Question,
         answerText: string | null,
@@ -20,173 +39,121 @@ export class AIService {
         // 1. Context Construction
         const contextPrompt = buildAnalysisContext(question, blueprint, intakeData, retryContext);
 
-        // 2. Strict JSON System Prompt (V2 Schema)
+        // 2. Strict JSON System Prompt (V2.5 Quantified Engine)
         const systemPrompt = `SYSTEM:
-You are a warm, supportive interview coach named "Coach".
-Your feedback should sound like a spoken conversation between two people who trust each other, not like a written report or computer output.
+You are an expert Interview Coach. Evaluate the candidate's answer across 9 distinct dimensions on a scale of 1-5.
 
-TONE & STYLE:
-- Use "spoken dialogue" phrasing (e.g., "I really liked how you...", "It stood out to me that...", "Let's try to...").
-- Be personal and casual, but professional.
-- Use the candidate's perspective (e.g., "When you talked about X, it helped me see Y").
+SCORING SCALE:
+1: Poor (Missing or irrelevant)
+2: Fair (Significant gaps)
+3: Good (Meets basic expectations/Polish needed)
+4: Strong (Very effective)
+5: Exceptional (World-class clarity/impact)
 
-NON-NEGOTIABLE RULES:
-- Output MUST be valid JSON only. No prose outside JSON.
-- Never use scores, numbers, rankings, or comparisons to other people.
-- Never say pass/fail, readiness, competitive, hire, reject, or imply screening in the text.
-- Never simulate an interviewer’s judgment.
-- Keep language clear and plain-spoken (match READING LEVEL intent).
-- Use “listener” phrasing rather than “interviewer” phrasing.
+DIMENSIONS TO SCORE:
+${FEEDBACK_DIMENSIONS.map((d, i) => `${i + 1}. ${d}`).join('\n')}
 
-STRUCTURE RULES:
-- ack: EXACTLY 1 sentence. MUST be personal, positive, and validating. It should sound like you just heard them finish speaking.
-- observations: 1-3 specific, factual markers from the answer. CRITICAL: These must explicitly support or provide evidence for the sentiment in your 'ack'.
-- primaryFocus: EXACTLY ONE focus. It must be a communication lever the user can act on next.
-- whyThisMatters: include ONLY if tier >= 1 AND providedAllowed=true.
-- nextAction: A short, punchy button label (Verb + Noun). CRITICAL: This must be the logical next step to improve the specific 'primaryFocus' you identified.
+COACHING LADDER RULES:
+- If overall performance is strong (RL1), your feedback should be for "Polishing" (e.g., matching energy to role).
+- If performance is weak, focus ONLY on foundational fixes (Relevance, Structure).
+- Acknowledge (ack) should be EXACTLY 1 sentence, warm and personal.
 
-READINESS LEVEL DEFINITIONS (Internal Logic):
-- RL1 (Ready): Clear, relevant examples; coherent communication; minor refinements only.
-- RL2 (Strong Potential): Good preparation but inconsistent depth; minor confusion/hesitancy; examples present but underdeveloped.
-- RL3 (Practice Recommended): Vague/incomplete answers; difficulty articulating; limited role alignment.
-- RL4 (Incomplete): Answer is too short to judge or irrelevant.
-
-EVIDENCE LOGIC (Internal):
-- Use the "observations" field (internal use only) to list 1-3 specific facts that justify the Readiness Level.
-- Do NOT use advice verbs in observations. Just facts relative to the RL definition.
-
-SAFETY:
-If the input evidence is weak or unclear, use more tentative language and keep feedback minimal.
-If you are uncertain, prefer silence (empty observations) over invented specifics.`;
+DIMENSION TAGGING:
+For every observation/evidence you find, you MUST link it to one of the 9 dimensions above.
+`;
 
         const schemaPrompt = `
-Generate post-answer feedback as strict JSON matching this schema:
+Generate feedback as strict JSON matching this schema:
 {
   "ack": "string",
+  "scores": {
+    ${FEEDBACK_DIMENSIONS.map(d => `"${d}": { "score": 1-5, "label": "string" }`).join(',\n    ')}
+  },
+  "taggedObservations": [
+    { "text": "string", "dimension": "dimension_name", "type": "strength|growth" }
+  ],
   "primaryFocus": {
-    "dimension": "structural_clarity | outcome_explicitness | specificity_concreteness | decision_rationale | focus_relevance | delivery_control",
+    "dimension": "${FEEDBACK_DIMENSIONS.join(' | ')}",
     "headline": "string",
     "body": "string"
   },
-  "whyThisMatters": "string (optional)",
-  "observations": ["string", "string", "string"],
   "nextAction": {
     "label": "string",
-    "actionType": "redo_answer | next_question | practice_example | stop_for_now"
+    "actionType": "redo_answer | next_question"
   },
   "meta": {
-    "tier": 0|1|2,
-    "modality": "text|voice",
-    "signalQuality": "insufficient|emerging|reliable|strong",
-    "confidence": "low|medium|high",
-    "readinessLevel": "RL1|RL2|RL3|RL4"
-  },
-  "deliveryStatus": "string (optional, e.g. 'Clear & Paced', 'Slightly Fast')",
-  "deliveryTips": ["string", "string"],
-  "transcript": "string (REQUIRED for voice input, optional for text)"
+    "tier": 1,
+    "modality": "text|voice"
+  }
 }
-
-CONTEXT (do not reveal these labels; use them only to shape delivery):
-- surface: recruiter_prep
-- modality: ${audioData ? 'voice' : 'text'}
-- tier: 1
-- signalQuality: reliable
-- userConfidence: medium
-- providedAllowedForWhy: true
-
-QUESTION:
-${question.text}
-
-OBSERVABLE MARKERS (facts; do not embellish):
-- (Heuristics disabled for audio/mixed input, rely on extensive blueprint context)
-
-FOCUS CONSTRAINT:
-- Choose the most relevant dimension based on the context and answer.
-
-OUTPUT REQUIREMENTS:
-- Output ONLY valid JSON.
 `;
-
-        // Mock Fallback
+        // 3. Assemble Gemini Prompt Parts
         if (!ai) {
-            Logger.warn("AI Service: No API Key, returning mock analysis V2.");
-            await new Promise(r => setTimeout(r, 1500));
+            Logger.warn("AI Service: No API Key, returning mock analysis.");
+            await new Promise(r => setTimeout(r, 800));
             return {
-                ack: "I see you're focusing on a specific project challenge.",
-                primaryFocus: {
-                    dimension: "structural_clarity",
-                    headline: "Let's organize the story",
-                    body: "You jumped straight into the solution. Start by setting the context so I understand the stakes."
-                },
-                whyThisMatters: "Without context, the impact of your actions is hard to judge.",
-                observations: ["Started with 'I decided to...'", "Mentioned '20% increase' at the end"],
-                nextAction: {
-                    label: "Try again with STAR",
-                    actionType: "redo_answer"
-                },
-                deliveryStatus: "Clear & Paced",
-                deliveryTips: [
-                    "Great volume control throughout the response.",
-                    "Try to reduce filler words like 'um' in the introduction."
-                ],
-                meta: {
-                    tier: 1,
-                    modality: audioData ? "voice" : "text",
-                    signalQuality: "emerging",
-                    confidence: "medium"
-                },
-                transcript: answerText || "Audio Answer (Mock)"
+                ack: "I noted your answer. (No API Key)",
+                meta: { tier: 1, modality: audioData ? "voice" : "text", signalQuality: "insufficient", confidence: "medium", readinessLevel: "RL4" },
+                transcript: answerText || "Audio Answer (Mock)",
+                primaryFocus: { dimension: "focus_relevance", headline: "Setup Needed", body: "Please add your Gemini API key to evaluate your response." }
             };
         }
 
         try {
-            const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [
-                { text: systemPrompt },
-                { text: contextPrompt }, // Injected Blueprint/Intake Context
-                { text: schemaPrompt }
-            ];
+            const combinedPrompt = `${systemPrompt}\n\n${contextPrompt}\n\n${schemaPrompt}\n\n${audioData ? "Analyze this recording." : `USER ANSWER: "${answerText}"`}`;
+
+            const promptParts: Part[] = [{ text: combinedPrompt }];
 
             if (audioData) {
-                parts.push({
+                promptParts.push({
                     inlineData: {
                         mimeType: audioData.mimeType,
                         data: audioData.base64
                     }
                 });
-                parts.push({ text: "Please transcribe the audio and analyze it. Return the transcript in the 'transcript' field." });
-            } else if (answerText) {
-                parts.push({ text: `USER ANSWER: "${answerText}"` });
-            } else {
-                throw new Error("No input provided (text or audio)");
             }
 
             const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: {
-                    parts: parts
-                },
+                model: AI_MODELS.ANALYSIS,
+                contents: { parts: promptParts },
                 config: {
                     responseMimeType: 'application/json',
                 },
             });
 
             const text = response.text;
+            Logger.info("AI Raw Response", { textLength: text?.length, textPreview: text?.substring(0, 100) });
             if (!text) throw new Error("Empty AI Response");
 
             const result = JSON.parse(text);
+            Logger.info("AI Parsed Result", { hasScores: !!result.scores, hasAck: !!result.ack });
 
-            // Ensure transcript exists (from AI or input)
+            // 1. Extract raw scores for Algorithm
+            const scoreValues: Record<string, number> = {};
+            if (result.scores) {
+                Object.entries(result.scores as Record<Dimension, DimensionScore>).forEach(([dim, data]) => {
+                    scoreValues[dim] = data.score;
+                });
+            }
+
+            // 2. Calculate Readiness Level via Server-Side Weights
+            const calculatedRL = AIService.calculateReadiness(scoreValues);
+
+            // 3. Ensure transcript exists
             const finalTranscript = result.transcript || answerText || "Audio Answer";
 
-            const mappedResult = {
+            const mappedResult: AnalysisResult = {
                 ...result,
                 transcript: finalTranscript,
-                deliveryStatus: result.deliveryStatus,
-                deliveryTips: result.deliveryTips,
-                // Map to legacy if UI still needs it, but prefer meta.readinessLevel
-                readinessBand: result.meta?.readinessLevel || result.readinessLevel || "RL4",
+                meta: {
+                    ...result.meta,
+                    readinessLevel: calculatedRL,
+                    confidence: scoreValues.confidence <= 2 ? 'low' : scoreValues.confidence >= 4 ? 'high' : 'medium'
+                },
+                // Legacy support
+                readinessBand: calculatedRL,
                 coachReaction: result.ack,
-                strengths: result.observations || [], // Internal evidence for RL
+                strengths: (result.taggedObservations as TaggedObservation[])?.filter(o => o.type === 'strength').map(o => o.text) || [],
                 opportunities: [result.primaryFocus?.headline || "Review feedback"]
             };
 
@@ -194,21 +161,16 @@ OUTPUT REQUIREMENTS:
 
         } catch (error) {
             Logger.error("AI Analysis Failed", error);
-            // Fallback V2
             return {
                 ack: "I noted your answer.",
                 primaryFocus: {
-                    dimension: "structural_clarity",
+                    dimension: "focus_relevance",
                     headline: "System Offline",
                     body: "I couldn't analyze that response right now. Please try again."
                 },
-                observations: [],
-                nextAction: { label: "Move On", actionType: "next_question" },
+                meta: { tier: 1, modality: audioData ? "voice" : "text", signalQuality: "insufficient", confidence: "medium", readinessLevel: "RL4" },
                 transcript: answerText || "Audio Answer",
-                readinessBand: "RL2",
-                coachReaction: "Error",
-                strengths: [],
-                opportunities: []
+                readinessBand: "RL4"
             };
         }
     }
@@ -221,43 +183,38 @@ OUTPUT REQUIREMENTS:
         const answersContext = Object.values(session.answers as Record<string, Answer> || {})
             .map((a: Answer, i: number) => {
                 const qText = session.questions.find((q: Question) => q.id === a.questionId)?.text || "Unknown Question";
-                return `Q${i + 1}: ${qText}\nA: ${a.transcript}\nResult: ${a.analysis?.readinessBand || 'RL4'}`;
+                return `Q${i + 1}: ${qText} \nA: ${a.transcript} \nResult: ${a.analysis?.readinessBand || 'RL4'} `;
             })
             .join("\n\n");
 
         const prompt = `
-SYSTEM:
+        SYSTEM:
 You are an expert recruiter assistant.
-Summarize the following interview session into a concise, professional 1-2 sentence executive summary for a recruiter.
+Summarize the following interview session into a concise, professional 1 - 2 sentence executive summary for a recruiter.
 Focus on the candidate's core strengths and primary readiness level.
-Do not use pass/fail language.
+Do not use pass / fail language.
 Be specific about the role: ${session.role}.
 
-ANSWERS:
+        ANSWERS:
 ${answersContext}
 
 ROLE CONTEXT:
 ${session.jobDescription}
 
-Generate ONLY the summary string (no JSON, no intro).
+Generate ONLY the summary string(no JSON, no intro).
 `;
 
         try {
             const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: {
-                    parts: [{ text: prompt }]
-                },
-                config: {
-                    // Standard prompt, no JSON schema needed here
-                }
+                model: AI_MODELS.ANALYSIS,
+                contents: [{ text: prompt }]
             });
 
             return response.text || "No summary generated.";
         } catch (error) {
             Logger.error("Session Summarization Failed", error);
             // Fallback for UI
-            return `The candidate completed the interview for the ${session.role} position. They demonstrated consistent effort across all questions.`;
+            return `The candidate completed the interview for the ${session.role} position.They demonstrated consistent effort across all questions.`;
         }
     }
 }

@@ -65,8 +65,7 @@ export default function ReviewFeedbackScreen() {
             'outcome_explicitness': 'Outcome Clarity',
             'structural_clarity': 'Structure',
             'decision_rationale': 'Decision Logic',
-            'focus_relevance': 'Focus',
-            'delivery_control': 'Delivery'
+            'focus_relevance': 'Focus'
         };
         return map[dim] || dim.replace(/_/g, " ");
     };
