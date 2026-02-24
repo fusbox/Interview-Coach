@@ -116,3 +116,23 @@ Add a `title` column to the `recruiter_profiles` table and expose it as a primar
 - More professional candidate invitations (the title can now be injected into email templates).
 - Faster time-to-value for recruiters via direct navigation to the creation wizard.
 - Consistent profile data across the application.
+
+## ADR-009: Dashboard Data Flow — Single Session Fetch + Derived Stats
+
+### Context
+The recruiter dashboard `page.tsx` fired two parallel Supabase queries both hitting `sessions`: `listByRecruiter()` for the table and `getDashboardMetrics()` for stat cards. With the upcoming progress widget as a third consumer of the same data, this would become a triple-fetch for the same session list.
+
+### Decision
+- **Basic stats** (totalInvites, activeSessions, completedSessions, avgEngagement, readinessDistribution) are now computed client-side via `computeDashboardStats(sessions)` from the already-fetched `SessionSummary[]`.
+- **Eval-derived coaching insights** (coachingFocusDistribution, commonObservations) are fetched via a new `getEvalInsights()` repository method that only queries `eval_results`.
+- The old `getDashboardMetrics()` is preserved but marked `@deprecated`.
+
+### Alternatives Considered
+1. **Server-side SSR cache** (Request Deduplication): Would rely on undocumented Next.js caching behavior and wouldn't reduce actual Supabase calls.
+2. **Merge into single mega-query with JOINs**: Would couple the table's full-field needs with the stats' lightweight aggregation.
+
+### Consequences
+- **Performance**: 1 Supabase session query instead of 2 (soon 3). Eval insights is a targeted query of only `eval_results`.
+- **Consistency**: All consumers (DashboardStats, CurrentBaselineBlock, widget) see the same session snapshot.
+- **New files**: `src/lib/services/compute-dashboard-stats.ts` (pure function, easily testable).
+- **Revisit when**: Dashboard data needs real-time updates without full page reload (would require SWR or server-sent events).

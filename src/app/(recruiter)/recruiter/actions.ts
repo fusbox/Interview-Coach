@@ -8,10 +8,25 @@ import { revalidatePath } from "next/cache";
 
 const sessionRepo = new SupabaseSessionRepository();
 
+/**
+ * @deprecated Use `getRecruiterInsights()` + `computeDashboardStats()` instead.
+ * This function re-fetches sessions redundantly. Kept for backward compatibility.
+ */
 export async function getRecruiterMetrics() {
     const user = await getCachedUser();
     if (!user) redirect("/login");
     return sessionRepo.getDashboardMetrics(user.id);
+}
+
+/**
+ * Fetch only eval-derived coaching insights (no duplicate session query).
+ * Basic stats (totalInvites, activeSessions, etc.) are computed client-side
+ * from the SessionSummary[] returned by getRecruiterSessions().
+ */
+export async function getRecruiterInsights() {
+    const user = await getCachedUser();
+    if (!user) redirect("/login");
+    return sessionRepo.getEvalInsights(user.id);
 }
 
 export async function getRecruiterSessions(): Promise<SessionSummary[]> {

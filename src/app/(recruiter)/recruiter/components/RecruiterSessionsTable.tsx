@@ -10,6 +10,7 @@ import { SessionSummary } from "@/lib/domain/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { deleteSession } from "../actions";
+import { StatusBadge, ReadinessBadge } from "./session-badges";
 
 interface RecruiterSessionsTableProps {
     initialSessions: SessionSummary[];
@@ -21,89 +22,6 @@ type SortConfig = {
     direction: 'asc' | 'desc';
 } | null;
 
-function getStatusBadge(session: SessionSummary) {
-    const { status, answerCount, questionCount, submittedCount, viewedAt, enteredInitials } = session;
-
-    const commonClasses = "w-[145px] justify-center text-center";
-
-    // 1. Completed
-    if (status === 'COMPLETED' || (submittedCount === questionCount && questionCount > 0)) {
-        return <Badge variant="default" className={`${commonClasses} bg-green-600 hover:bg-green-700`}>Completed</Badge>;
-    }
-
-    // 2. In Progress (X/Y submitted)
-    if (submittedCount > 0) {
-        return <Badge variant="secondary" className={`${commonClasses} bg-blue-100 text-blue-800 hover:bg-blue-200`}>
-            In Progress ({submittedCount}/{questionCount})
-        </Badge>;
-    }
-
-    // 3. Drafting Answer (entered session and started typing/recording but not submitted)
-    if (status === 'IN_SESSION' && answerCount > 0) {
-        return <Badge variant="secondary" className={`${commonClasses} bg-indigo-100 text-indigo-800 border-indigo-200`}>
-            Drafting Answer
-        </Badge>;
-    }
-
-    // 4. Session Started (clicked start button, no progress yet)
-    if (status === 'IN_SESSION') {
-        return <Badge variant="secondary" className={`${commonClasses} bg-blue-50 text-blue-700 border-blue-100`}>
-            Session Started
-        </Badge>;
-    }
-
-    // 5. Initials Entered (pre-flight gate passed)
-    if (enteredInitials) {
-        return <Badge variant="outline" className={`${commonClasses} text-amber-600 border-amber-200 bg-amber-50`}>
-            Initials Entered
-        </Badge>;
-    }
-
-    // 6. Link Viewed (first engagement)
-    if (viewedAt) {
-        return <Badge variant="outline" className={`${commonClasses} text-indigo-500 border-indigo-200`}>
-            Link Viewed
-        </Badge>;
-    }
-
-    // 7. Never Viewed (initial state)
-    return <Badge variant="outline" className={`${commonClasses} text-slate-400 border-slate-200 text-[10px]`}>
-        Invite Sent
-    </Badge>;
-}
-
-import { ReadinessTooltip } from "./ReadinessTooltip";
-
-function getReadinessBadge(session: SessionSummary) {
-    const rl = session.readinessBand;
-    if (!rl && !session.summaryNarrative) return <span className="text-slate-300 text-xs">—</span>;
-
-    const commonClasses = "w-[125px] justify-center text-center text-[10px] uppercase font-bold tracking-tight";
-
-    let badge;
-    switch (rl) {
-        case 'RL1':
-            badge = <Badge variant="outline" className={`${commonClasses} text-emerald-700 border-emerald-200 bg-emerald-50`}>Ready</Badge>;
-            break;
-        case 'RL2':
-            badge = <Badge variant="outline" className={`${commonClasses} text-blue-700 border-blue-200 bg-blue-50`}>Strong Potential</Badge>;
-            break;
-        case 'RL3':
-            badge = <Badge variant="outline" className={`${commonClasses} text-amber-700 border-amber-200 bg-amber-50`}>Practice Recommended</Badge>;
-            break;
-        case 'RL4':
-            badge = <Badge variant="outline" className={`${commonClasses} text-slate-500 border-slate-200 bg-slate-50`}>Incomplete</Badge>;
-            break;
-        default:
-            badge = <Badge variant="outline" className={`${commonClasses} text-slate-400 border-slate-200`}>Analyzing...</Badge>;
-    }
-
-    return (
-        <ReadinessTooltip narrative={session.summaryNarrative}>
-            {badge}
-        </ReadinessTooltip>
-    );
-}
 
 export function RecruiterSessionsTable({ initialSessions, recruiterTimezone }: RecruiterSessionsTableProps) {
     const router = useRouter();
@@ -354,8 +272,8 @@ export function RecruiterSessionsTable({ initialSessions, recruiterTimezone }: R
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-slate-600">{session.role}</TableCell>
-                                        <TableCell>{getStatusBadge(session)}</TableCell>
-                                        <TableCell>{getReadinessBadge(session)}</TableCell>
+                                        <TableCell><StatusBadge session={session} /></TableCell>
+                                        <TableCell><ReadinessBadge session={session} /></TableCell>
                                         <TableCell className="text-slate-500 whitespace-nowrap text-sm font-medium">
                                             {formatDuration(session.engagedTimeSeconds)}
                                         </TableCell>

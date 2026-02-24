@@ -209,3 +209,12 @@ export interface SessionDashboardMetrics {
     coachingFocusDistribution: Record<string, number>;
     commonObservations: { text: string; count: number }[];
 }
+
+/**
+ * Eval-derived coaching insights only.
+ * Fetched separately from sessions to avoid a duplicate sessions query.
+ */
+export interface EvalInsights {
+    coachingFocusDistribution: Record<string, number>;
+    commonObservations: { text: string; count: number }[];
+}

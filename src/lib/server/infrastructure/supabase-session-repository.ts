@@ -1,5 +1,5 @@
 import { SessionRepository } from "@/lib/domain/repository";
-import { InterviewSession, Answer, Question, SessionSummary, SessionStatus, AnalysisResult, SessionDashboardMetrics } from "@/lib/domain/types";
+import { InterviewSession, Answer, Question, SessionSummary, SessionStatus, AnalysisResult, SessionDashboardMetrics, EvalInsights } from "@/lib/domain/types";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { Logger } from "@/lib/logger";
 import { decrypt } from "@/lib/server/encryption";
@@ -149,6 +149,63 @@ export class SupabaseSessionRepository implements SessionRepository {
             coachingFocusDistribution,
             commonObservations
         };
+    }
+
+    /**
+     * Fetch only eval-derived coaching insights (no sessions re-fetch).
+     * Used by CoachingFocusCard and TopOpportunitiesCard.
+     */
+    async getEvalInsights(recruiterId: string): Promise<EvalInsights> {
+        const supabase = createClient();
+
+        const { data: sessions } = await supabase
+            .from('sessions')
+            .select('session_id')
+            .eq('recruiter_id', recruiterId);
+
+        if (!sessions || sessions.length === 0) {
+            return { coachingFocusDistribution: {}, commonObservations: [] };
+        }
+
+        const sessionIds = sessions.map(s => s.session_id);
+
+        // Try recruiter_id first, fallback to session_id IN (...)
+        let evals: { feedback_json: AnalysisResult | null }[] | null = null;
+        const { data: directEvals, error } = await supabase
+            .from('eval_results')
+            .select('feedback_json')
+            .eq('recruiter_id', recruiterId);
+
+        if (error || !directEvals) {
+            const { data: fallbackEvals } = await supabase
+                .from('eval_results')
+                .select('feedback_json')
+                .in('session_id', sessionIds);
+            evals = fallbackEvals;
+        } else {
+            evals = directEvals;
+        }
+
+        const coachingFocusDistribution: Record<string, number> = {};
+        const observationCounts: Record<string, number> = {};
+
+        evals?.forEach(e => {
+            const feedback = e.feedback_json as AnalysisResult;
+            if (feedback?.primaryFocus?.dimension) {
+                coachingFocusDistribution[feedback.primaryFocus.dimension] =
+                    (coachingFocusDistribution[feedback.primaryFocus.dimension] || 0) + 1;
+            }
+            feedback?.observations?.forEach(obs => {
+                observationCounts[obs] = (observationCounts[obs] || 0) + 1;
+            });
+        });
+
+        const commonObservations = Object.entries(observationCounts)
+            .map(([text, count]) => ({ text, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5);
+
+        return { coachingFocusDistribution, commonObservations };
     }
 
     async listByRecruiter(recruiterId: string): Promise<SessionSummary[]> {

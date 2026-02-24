@@ -13,6 +13,9 @@ import { StepCandidates, CandidateRow } from "./components/StepCandidates";
 import { StepPreviewCombined } from "./components/StepPreviewCombined";
 import { StepBatchSend } from "./components/StepBatchSend";
 
+import { fetchTemplates, saveTemplateAction } from "../templates/actions";
+import { RecruiterTemplate } from "@/lib/domain/template";
+
 export default function CreateInviteWizard() {
     const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
@@ -35,6 +38,8 @@ export default function CreateInviteWizard() {
     const [isLoading, setIsLoading] = useState(false);
     const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
 
+    const [templates, setTemplates] = useState<RecruiterTemplate[]>([]);
+
     // Batch Results
     const [inviteResults, setInviteResults] = useState<{ firstName: string, lastName: string, email: string, link: string }[]>([]);
 
@@ -48,16 +53,17 @@ export default function CreateInviteWizard() {
         company: "Rangam Consultants Inc."
     });
 
-    // Fetch Recruiter Profile
+    // Fetch Recruiter Profile & Templates
     useEffect(() => {
         const supabase = createBrowserClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
         );
 
-        const fetchProfile = async () => {
+        const fetchData = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
+                // Fetch Profile
                 const { data } = await supabase
                     .from('recruiter_profiles')
                     .select('*')
@@ -73,10 +79,33 @@ export default function CreateInviteWizard() {
                     title: data?.title || "Recruiter",
                     company: data?.company || "Rangam Consultants Inc."
                 });
+
+                // Fetch Templates
+                const t = await fetchTemplates();
+                setTemplates(t);
             }
         };
-        fetchProfile();
+        fetchData();
     }, []);
+
+    const handleSaveTemplate = async (name: string, isShared: boolean) => {
+        const res = await saveTemplateAction({
+            name,
+            isShared,
+            targetRole: details.role,
+            questions: {
+                star: star.filter(q => q.text.trim()),
+                perma: perma.filter(q => q.text.trim()),
+                technical: technical.filter(q => q.text.trim())
+            }
+        });
+
+        if (res.success && res.template) {
+            setTemplates(prev => [res.template!, ...prev]);
+        } else {
+            throw new Error(res.error || "Failed to save template");
+        }
+    };
 
     const handleCreate = async () => {
         setIsLoading(true);
@@ -272,6 +301,8 @@ export default function CreateInviteWizard() {
                     onGenerateQuestionsAI={generateQuestionsAI}
                     isGeneratingQuestions={isGeneratingQuestions}
                     StepFooter={StepFooter}
+                    templates={templates}
+                    onSaveTemplate={handleSaveTemplate}
                 />
             )}
 

@@ -317,10 +317,15 @@ export function useSessionMutations(
         });
 
         // Patch to server
-        await ApiClient.patch(`/api/session/${session.id}`,
-            { engagedTimeDelta: deltaSeconds },
-            { token: candidateToken }
-        );
+        try {
+            await ApiClient.patch(`/api/session/${session.id}`,
+                { engagedTimeDelta: deltaSeconds },
+                { token: candidateToken }
+            );
+        } catch (e) {
+            // Silently log background pings to prevent app crashes on flaky networks
+            Logger.warn("Engagement ping failed", e);
+        }
     }, [session, candidateToken, setSession]);
 
     const reset = useCallback(async () => {

@@ -9,26 +9,18 @@ export default async function RecruiterLayout({
 }: {
     children: React.ReactNode
 }) {
-    console.log("[RecruiterLayout] Start");
     const supabase = createClient();
-
     const user = await getCachedUser();
-    console.log("[RecruiterLayout] User:", user?.id);
 
     if (!user) {
         redirect('/login');
     }
 
-    // Fetch profile if user exists
-    let profile = null;
-    if (user) {
-        const { data } = await supabase
-            .from('recruiter_profiles')
-            .select('first_name, last_name, title') // Minimal select
-            .eq('recruiter_id', user.id)
-            .single();
-        profile = data;
-    }
+    const { data: profile } = await supabase
+        .from('recruiter_profiles')
+        .select('first_name, last_name, title')
+        .eq('recruiter_id', user.id)
+        .single();
 
     return (
         <div className="min-h-screen bg-slate-50 flex">

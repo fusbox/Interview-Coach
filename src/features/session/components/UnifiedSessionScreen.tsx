@@ -286,7 +286,7 @@ export default function UnifiedSessionScreen() {
                                 "grow-0 shrink-0 p-4 md:p-6 lg:p-10 w-full transition-all duration-500 ease-in-out cursor-default",
                                 isReviewing ? "opacity-30 scale-[0.98] pointer-events-none blur-sm" : "opacity-100 scale-100"
                             )}>
-                            <div className="glass-card text-slate-900 dark:text-white rounded-3xl p-6 md:p-10 w-full relative transition-all duration-300 ring-1 ring-white/20 bg-gradient-to-br from-[#e8f1fd] to-[#d1e3fa]">
+                            <div className="glass-card text-slate-900 dark:text-white rounded-3xl p-6 md:p-10 w-full relative transition-all duration-300 ring-1 ring-white/20 bg-gradient-to-br from-[#e8f1fd] to-[#d1e3fa] overflow-hidden">
                                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-200 to-blue-600" />
 
                                 <div className="flex justify-start mb-6">
