@@ -57,6 +57,7 @@ COACHING LADDER RULES:
 - If overall performance is strong (RL1), your feedback should be for "Polishing" (e.g., matching energy to role).
 - If performance is weak, focus ONLY on foundational fixes (Relevance, Structure).
 - Acknowledge (ack) should be EXACTLY 1 sentence, warm and personal.
+- For all qualitative feedback (observations and primary focus body), you MUST use first/second person perspective (e.g., "You sounded...", "Your answer was...") and active, coaching-oriented tense. NEVER refer to "the candidate" or use passive third-person language.
 
 DIMENSION TAGGING:
 For every observation/evidence you find, you MUST link it to one of the 9 dimensions above.
