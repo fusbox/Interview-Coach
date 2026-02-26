@@ -6,26 +6,66 @@ import { Question, Blueprint } from "@/lib/domain/types";
  */
 export function getReadingLevelContext(role: string): string {
     const roleTitle = role.toLowerCase();
-    const isSenior = roleTitle.includes('senior') || roleTitle.includes('lead') || roleTitle.includes('principal') || roleTitle.includes('manager') || roleTitle.includes('director') || roleTitle.includes('vp') || roleTitle.includes('head');
-    const isTechnical = roleTitle.includes('engineer') || roleTitle.includes('developer') || roleTitle.includes('architect') || roleTitle.includes('data');
 
+    // --- Categorization Logic (Synced with Question Generation) ---
+    const isEntryLevelOrFrontline =
+        roleTitle.includes('warehouse') ||
+        roleTitle.includes('associate') ||
+        roleTitle.includes('clerk') ||
+        roleTitle.includes('helper') ||
+        roleTitle.includes('worker') ||
+        roleTitle.includes('driver') ||
+        roleTitle.includes('aide') ||
+        roleTitle.includes('healthcare') ||
+        roleTitle.includes('service') ||
+        roleTitle.includes('food') ||
+        roleTitle.includes('hospitality') ||
+        roleTitle.includes('entry') ||
+        roleTitle.includes('junior') ||
+        roleTitle.includes('apprentice') ||
+        roleTitle.includes('coordinator') ||
+        roleTitle.includes('assistant');
+
+    const isSeniorOrLeadership =
+        roleTitle.includes('senior') ||
+        roleTitle.includes('lead') ||
+        roleTitle.includes('manager') ||
+        roleTitle.includes('director') ||
+        roleTitle.includes('vp') ||
+        roleTitle.includes('head') ||
+        roleTitle.includes('architect') ||
+        roleTitle.includes('principal');
+
+    const isTechnical =
+        roleTitle.includes('engineer') ||
+        roleTitle.includes('developer') ||
+        roleTitle.includes('data');
+
+    // --- Context Assembly ---
     let context = `
-READING LEVEL:
-- Keep language clear, professional, but accessible.
-- Avoid excessive corporate jargon.
-- Adopt a supportive, coaching tone.
+READING LEVEL & TONE:
+- Keep language professional, warm, and highly relatable.
+- Avoid corporate jargon and abstract HR speak.
+- Adopt a supportive coaching voice.
 `;
 
-    if (!isSenior && !isTechnical) {
+    if (isEntryLevelOrFrontline) {
         context += `
-- CRITICAL: This is an entry-level or non-technical role.
-- Use simple, plain-spoken language (8th grade reading level).
+- CRITICAL: This is an entry-level, frontline, or service-based role.
+- READABILITY: STRICT 5th-Grade reading level.
+- Use plain, simple, and direct language.
 - Avoid abstract concepts; use concrete examples.
 - Keep sentences short.
 `;
-    } else if (isSenior) {
+    } else if (isSeniorOrLeadership || isTechnical) {
         context += `
-- Adapt tone for a senior candidate: professional, concise, and focusing on strategic impact.
+- READABILITY: Professional, concise, and strategic.
+- Adapt tone for a ${isSeniorOrLeadership ? 'senior leader' : 'technical professional'}: focused on impact, rationale, and complexity.
+`;
+    } else {
+        context += `
+- READABILITY: Clear, professional 8th-grade level.
+- Focus on transparency and competency mastery.
 `;
     }
 

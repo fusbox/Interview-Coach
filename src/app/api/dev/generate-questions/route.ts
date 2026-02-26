@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Logger } from "@/lib/logger";
 import { ai, AI_MODELS } from "@/lib/server/services/ai-config";
 import { showDemoTools } from "@/lib/feature-flags";
+import { getReadingLevelContext } from "@/lib/ai/prompts";
 
 export async function POST(req: NextRequest) {
     // Demo-mode gate (replaces hardcoded dev gate)
@@ -23,33 +24,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(getMockQuestions(role));
         }
 
-        // --- Inclusive Logic Detection ---
-        const roleLower = role.toLowerCase();
-        const isEntryLevelOrBlueCollar =
-            roleLower.includes('warehouse') ||
-            roleLower.includes('associate') ||
-            roleLower.includes('clerk') ||
-            roleLower.includes('helper') ||
-            roleLower.includes('worker') ||
-            roleLower.includes('driver') ||
-            roleLower.includes('aide') ||
-            roleLower.includes('healthcare') ||
-            roleLower.includes('service') ||
-            roleLower.includes('food') ||
-            roleLower.includes('hospitality') ||
-            roleLower.includes('entry') ||
-            roleLower.includes('junior') ||
-            roleLower.includes('apprentice');
-
-        const isSeniorOrCorporate =
-            roleLower.includes('senior') ||
-            roleLower.includes('lead') ||
-            roleLower.includes('manager') ||
-            roleLower.includes('director') ||
-            roleLower.includes('vp') ||
-            roleLower.includes('head') ||
-            roleLower.includes('architect') ||
-            roleLower.includes('principal');
+        const readingLevelContext = getReadingLevelContext(role);
 
         const prompt = `
 SYSTEM:
@@ -64,21 +39,8 @@ PHASE 1: SIGNAL ANALYSIS (Internal Reasoning)
 2. If a RESUME is provided, identify 2-3 specific background markers to anchor questions (e.g., previous experience in a similar industry).
 
 PHASE 2: COGNITIVE CALIBRATION
-${isEntryLevelOrBlueCollar ? `
-- ROLE TYPE: Entry-Level / Blue-Collar / Service.
-- READABILITY: STRICT 5th-Grade readability. Use plain phrasing, common terms, and short sentences.
-- FOCUS: Reliability, Teamwork, Safety, and Patient/Customer Care.
-- BEHAVIORAL STYLE: Use "Concrete Situational Scenarios" (e.g., "What would you do if...") instead of abstract "Tell me about a time..." questions.
-` : isSeniorOrCorporate ? `
-- ROLE TYPE: Senior / Corporate / Leadership.
-- READABILITY: Professional, concise, and strategic.
-- FOCUS: Rationale, Influence, Result-drive, and Strategic Trade-offs.
-- BEHAVIORAL STYLE: Focus on complexity, choice, and long-term impact.
-` : `
-- ROLE TYPE: Standard Professional.
-- READABILITY: Clear, professional 8th-grade level.
-- FOCUS: Competency mastery and role fit.
-`}
+${readingLevelContext}
+- BEHAVIORAL STYLE: Use "Concrete Situational Scenarios" (e.g., "What would you do if...") instead of abstract "Tell me about a time..." questions for entry-level roles.
 
 PHASE 3: QUESTION GENERATION
 Generate interview questions in these categories:
