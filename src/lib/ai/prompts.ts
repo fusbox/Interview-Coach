@@ -1,5 +1,39 @@
 import { Question, Blueprint } from "@/lib/domain/types";
 
+/**
+ * Shared reading level / seniority calibration context.
+ * Import this in any AI service that generates candidate-facing text.
+ */
+export function getReadingLevelContext(role: string): string {
+    const roleTitle = role.toLowerCase();
+    const isSenior = roleTitle.includes('senior') || roleTitle.includes('lead') || roleTitle.includes('principal') || roleTitle.includes('manager') || roleTitle.includes('director') || roleTitle.includes('vp') || roleTitle.includes('head');
+    const isTechnical = roleTitle.includes('engineer') || roleTitle.includes('developer') || roleTitle.includes('architect') || roleTitle.includes('data');
+
+    let context = `
+READING LEVEL:
+- Keep language clear, professional, but accessible.
+- Avoid excessive corporate jargon.
+- Adopt a supportive, coaching tone.
+`;
+
+    if (!isSenior && !isTechnical) {
+        context += `
+- CRITICAL: This is an entry-level or non-technical role.
+- Use simple, plain-spoken language (8th grade reading level).
+- Avoid abstract concepts; use concrete examples.
+- Keep sentences short.
+`;
+    } else if (isSenior) {
+        context += `
+- Adapt tone for a senior candidate: professional, concise, and focusing on strategic impact.
+`;
+    }
+
+    return context;
+}
+
+
+
 export function buildAnalysisContext(
     question: Question,
     blueprint: Blueprint | undefined,
@@ -23,29 +57,7 @@ Competencies: ${JSON.stringify(blueprint.competencies?.map((c: { id: string; tit
     }
 
     // --- 2. Reading Level Context ---
-    const roleTitle = blueprint?.title?.toLowerCase() || '';
-    const isSenior = roleTitle.includes('senior') || roleTitle.includes('lead') || roleTitle.includes('principal') || roleTitle.includes('manager') || roleTitle.includes('director') || roleTitle.includes('vp') || roleTitle.includes('head');
-    const isTechnical = roleTitle.includes('engineer') || roleTitle.includes('developer') || roleTitle.includes('architect') || roleTitle.includes('data');
-
-    let readingLevelContext = `
-    READING LEVEL:
-    - Keep language clear, professional, but accessible.
-    - Avoid excessive corporate jargon.
-    - Adopt a supportive, coaching tone.
-`;
-
-    if (!isSenior && !isTechnical) {
-        readingLevelContext += `
-    - CRITICAL: This is an entry-level or non-technical role.
-    - Use simple, plain-spoken language (8th grade reading level).
-    - Avoid abstract concepts; use concrete examples.
-    - Keep sentences short.
-`;
-    } else if (isSenior) {
-        readingLevelContext += `
-    - Adapt tone for a senior candidate: professional, concise, and focusing on strategic impact.
-`;
-    }
+    const readingLevelContext = getReadingLevelContext(blueprint?.title || '');
 
     // --- 3. Intake / Personalization Context ---
     let struggleContext = '';

@@ -1,93 +1,54 @@
 import { Type } from "@google/genai";
-import { QuestionTips, StrongResponseResult } from "@/lib/domain/types";
+import { StrongResponseResult } from "@/lib/domain/types";
 import { Logger } from "@/lib/logger";
 import { ai, AI_MODELS } from "./ai-config";
+import { getReadingLevelContext } from "@/lib/ai/prompts";
 
 export class StrongResponseService {
     static async generateStrongResponse(
         questionText: string,
-        tips: QuestionTips,
         role: string
     ): Promise<StrongResponseResult> {
 
         if (!ai) {
             Logger.warn("[StrongResponseService] No API Key, returning mock response.");
             return {
-                strongResponse: "This is a mock strong response because the API key is missing. It would usually be a comprehensive answer following the STAR method.",
-                whyThisWorks: {
-                    lookingFor: "Demonstration of resilience (Mock)",
-                    pointsToCover: ["Situation", "Action", "Result"],
-                    answerFramework: "STAR (Mock)",
-                    industrySpecifics: { metrics: "N/A", tools: "N/A" },
-                    mistakesToAvoid: ["N/A"],
-                    proTip: "Mock Pro Tip"
-                }
+                strongResponse: "This is a mock strong response because the API key is missing. It would usually be a comprehensive answer following best practices for this role.",
+                whyThisWorks: "This response demonstrates specificity, clear ownership of actions, and a measurable outcome — the three key differentiators that separate top-20% answers from the rest."
             };
         }
 
-        // Helper to format tips for the prompt
-        const tipsContext = `
-        Use the following coaching tips as the standard for your analysis and generation:
-        - What they're looking for: "${tips.lookingFor}"
-        - Points to cover: ${JSON.stringify(tips.pointsToCover)}
-        - Answer framework: "${tips.answerFramework}"
-        - Industry specifics: ${JSON.stringify(tips.industrySpecifics)}
-        - Mistakes to avoid: ${JSON.stringify(tips.mistakesToAvoid)}
-        - Pro tip: "${tips.proTip}"
-        `;
-
-        const roleTitle = role.toLowerCase();
-        const isSenior = roleTitle.includes('senior') || roleTitle.includes('lead') || roleTitle.includes('principal') || roleTitle.includes('manager') || roleTitle.includes('director') || roleTitle.includes('vp') || roleTitle.includes('head');
-        const isTechnical = roleTitle.includes('engineer') || roleTitle.includes('developer') || roleTitle.includes('architect') || roleTitle.includes('data');
-
-        let readingLevelContext = `
-        READING LEVEL:
-        - Keep language clear, professional, but accessible.
-        - Adopt a supportive, coaching tone.
-        `;
-
-        if (!isSenior && !isTechnical) {
-            readingLevelContext += `
-        - CRITICAL: This is an entry-level or non-technical role.
-        - Use simple, plain-spoken language (8th grade reading level).
-        - Avoid corporate jargon or complex abstract concepts.
-        - Keep sentences short and direct.
-        `;
-        } else if (isSenior) {
-            readingLevelContext += `
-        - Adapt tone for a senior candidate: professional, concise, and focusing on strategic impact.
-        `;
-        }
+        // --- Reading Level (shared utility) ---
+        const readingLevelContext = getReadingLevelContext(role);
 
         const prompt = `
-        You are an expert interview coach.
-        Interview Question: "${questionText}".
-        Target Role: ${role}
-        
-        ${tipsContext}
-        ${readingLevelContext}
+You are an expert interview coach.
+Interview Question: "${questionText}".
+Target Role: ${role}
 
-        Task:
-        1. GENERATE A STRONG RESPONSE: Create a hypothetical "Strong" (10/10) answer to this question that a candidate for this SPECIFIC role would give.
-           - It MUST explicitly follow the provided "Answer Framework" and "Points to Cover".
-           - It should be natural, professional, and ~150-200 words.
-           - CRITICAL: It must strictly adhere to the READING LEVEL constraints above.
-        2. GENERATE "WHY THIS WORKS": Explain why your generated strong response is effective by mapping it back to the specific categories in the coaching tips.
-           - Fill out a structure IDENTICAL to the input tips, but the content should be your explanation of how the strong response meets that criteria.
+${readingLevelContext}
 
-        Return strictly JSON matching this structure:
-        {
-           strongResponse: "The full text of the robust answer",
-           whyThisWorks: {
-               lookingFor: "Explanation relative to answer",
-               pointsToCover: ["Point 1 explanation", "Point 2 explanation"],
-               answerFramework: "Framework usage explanation",
-               industrySpecifics: { metrics: "Metrics used", tools: "Tools mentioned" },
-               mistakesToAvoid: ["How mistakes were avoided"],
-               proTip: "How the pro tip was applied"
-           }
-        }
-        `;
+YOUR INTERNAL REASONING (do NOT output this):
+1. What is this question actually testing?
+2. What does a "10/10" answer look like for a ${role}?
+3. What specific structure, evidence, and tone would make this answer exceptional?
+
+Task:
+1. GENERATE A STRONG RESPONSE: Create a hypothetical "Strong" (10/10) answer to this question that a candidate for this SPECIFIC role would give.
+   - It should be natural, professional, and ~150-200 words.
+   - Include: a specific trigger event or situation, a clear personal action, and a measurable/observable result.
+   - CRITICAL: It must strictly adhere to the READING LEVEL constraints above.
+2. GENERATE "WHY THIS WORKS": Write 2-3 sentences explaining why this response is effective.
+   - Name the specific techniques used (e.g., "opening with the specific challenge immediately establishes relevance").
+   - Explain what makes it stand out from average answers.
+   - Match the explanation's reading level to the READING LEVEL constraints above.
+
+Return strictly JSON matching this structure:
+{
+   "strongResponse": "The full text of the robust answer",
+   "whyThisWorks": "2-3 sentence explanation of why this answer is effective"
+}
+`;
 
         try {
             const response = await ai.models.generateContent({
@@ -99,37 +60,7 @@ export class StrongResponseService {
                         type: Type.OBJECT,
                         properties: {
                             strongResponse: { type: Type.STRING },
-                            whyThisWorks: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    lookingFor: { type: Type.STRING },
-                                    pointsToCover: {
-                                        type: Type.ARRAY,
-                                        items: { type: Type.STRING },
-                                    },
-                                    answerFramework: { type: Type.STRING },
-                                    industrySpecifics: {
-                                        type: Type.OBJECT,
-                                        properties: {
-                                            metrics: { type: Type.STRING },
-                                            tools: { type: Type.STRING },
-                                        },
-                                    },
-                                    mistakesToAvoid: {
-                                        type: Type.ARRAY,
-                                        items: { type: Type.STRING },
-                                    },
-                                    proTip: { type: Type.STRING },
-                                },
-                                required: [
-                                    'lookingFor',
-                                    'pointsToCover',
-                                    'answerFramework',
-                                    'industrySpecifics',
-                                    'mistakesToAvoid',
-                                    'proTip',
-                                ],
-                            },
+                            whyThisWorks: { type: Type.STRING },
                         },
                         required: ['strongResponse', 'whyThisWorks'],
                     },

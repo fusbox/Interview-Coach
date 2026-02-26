@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { QuestionTips, StrongResponseResult } from '@/lib/domain/types';
+import { StrongResponseResult } from '@/lib/domain/types';
 import { Logger } from '@/lib/logger';
 
 // Caching Key Prefix
@@ -14,7 +14,6 @@ export interface StrongResponseState {
 export function useStrongResponse(
     questionId: string,
     questionText: string,
-    tips: QuestionTips | null,
     role: string
 ) {
     const [state, setState] = useState<StrongResponseState>({
@@ -24,7 +23,7 @@ export function useStrongResponse(
     });
 
     const fetchStrongResponse = useCallback(async () => {
-        if (!questionId || !questionText || !tips) return;
+        if (!questionId || !questionText) return;
 
         // Check Cache
         const cacheKey = `${CACHE_KEY_PREFIX}${questionId}`;
@@ -47,7 +46,7 @@ export function useStrongResponse(
             const response = await fetch('/api/response/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question: questionText, tips, role: role }),
+                body: JSON.stringify({ question: questionText, role }),
             });
 
             if (!response.ok) {
@@ -75,15 +74,7 @@ export function useStrongResponse(
                 error: errorMessage,
             });
         }
-    }, [questionId, questionText, tips, role]);
-
-    // Auto-load when tips become available
-    useEffect(() => {
-        // Only fetch if we have tips, no data yet, and not loading
-        if (tips && !state.data && !state.isLoading && !state.error) {
-            fetchStrongResponse();
-        }
-    }, [tips, state.data, state.isLoading, state.error, fetchStrongResponse]);
+    }, [questionId, questionText, role]);
 
     // Reset when question changes
     useEffect(() => {
@@ -92,6 +83,6 @@ export function useStrongResponse(
 
     return {
         ...state,
-        fetchStrongResponse, // Exposed in case manual retry is needed
+        fetchStrongResponse,
     };
 }

@@ -10,8 +10,7 @@ import { SessionHeader } from './SessionHeader';
 import { FeedbackDrawer } from './FeedbackDrawer';
 import { MultiStepLoader } from './MultiStepLoader';
 import AudioVisualizer from '@/features/audio/components/AudioVisualizer';
-import { TipsAccordion } from './TipsAccordion';
-import { StrongResponseAccordion } from './StrongResponseAccordion';
+import { CoachLensDropdown } from './CoachLensDropdown';
 import { Button } from '@/components/ui/button';
 import {
     Mic,
@@ -69,13 +68,12 @@ export default function UnifiedSessionScreen() {
     // Refs
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const mobilePanelRef = useRef<HTMLDivElement>(null);
-    const desktopPanelRef = useRef<HTMLDivElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // Side Panel Auto-Scroll
+    // Mobile Panel Auto-Scroll
     useEffect(() => {
         if (hintOpen || strongResponseOpen) {
             mobilePanelRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-            desktopPanelRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
         }
     }, [hintOpen, strongResponseOpen]);
 
@@ -88,7 +86,6 @@ export default function UnifiedSessionScreen() {
     const { data: strongResponseData, isLoading: isStrongResponseLoading, fetchStrongResponse } = useStrongResponse(
         currentQuestionId!,
         currentQuestion?.text ?? "",
-        hints,
         session?.role || "Product Manager"
     );
     const { transcript, resetTranscript, startListening, stopListening } = useSpeechToText();
@@ -278,7 +275,7 @@ export default function UnifiedSessionScreen() {
 
             <main className="flex-1 w-full flex flex-row overflow-hidden relative">
                 {/* LEFT: Main Workspace */}
-                <div className="flex-1 flex flex-col items-center transition-all duration-700 ease-in-out overflow-y-auto">
+                <div className="flex-1 flex flex-col items-center transition-all duration-700 ease-in-out overflow-y-auto custom-scrollbar">
                     <div className="w-full max-w-4xl flex flex-col">
                         {/* 1. TOP: Question Card Area */}
                         <div
@@ -415,6 +412,29 @@ export default function UnifiedSessionScreen() {
                             </div>
                         </div>
 
+                        {/* COACH'S LENS INLINE DROPDOWN (desktop only) */}
+                        <AnimatePresence initial={false}>
+                            {(hintOpen || strongResponseOpen) && (
+                                <motion.div
+                                    ref={dropdownRef}
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ type: 'spring', damping: 30, stiffness: 200 }}
+                                    className="hidden lg:block overflow-hidden px-4 md:px-6 lg:px-10 w-full"
+                                >
+                                    <div className="py-2">
+                                        <CoachLensDropdown
+                                            mode={hintOpen ? 'hints' : 'example'}
+                                            tips={hints}
+                                            strongResponse={strongResponseData}
+                                            isLoading={hintOpen ? isHintLoading : isStrongResponseLoading}
+                                        />
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
                         {/* 2. BOTTOM: Interaction Area */}
                         <div className={cn(
                             "flex-1 flex flex-col items-center p-4 md:p-6 lg:p-10 py-1 md:py-2 w-full min-h-0 relative",
@@ -544,53 +564,7 @@ export default function UnifiedSessionScreen() {
                     </div>
                 </div>
 
-                {/* RIGHT: Resource Side Panel (lg only) */}
-                <AnimatePresence>
-                    {(hintOpen || strongResponseOpen) && (
-                        <motion.div
-                            initial={{ width: 0, opacity: 0 }}
-                            animate={{ width: "33.333%", opacity: 1 }}
-                            exit={{ width: 0, opacity: 0 }}
-                            transition={{ type: "spring", damping: 30, stiffness: 200 }}
-                            className="hidden lg:flex flex-col border-l border-slate-200 dark:border-white/5 glass-overlay overflow-hidden shadow-2xl"
-                        >
-                            <div className="min-w-[400px] h-full flex flex-col">
-                                <div
-                                    ref={desktopPanelRef}
-                                    className="flex-1 overflow-y-auto p-8 space-y-8"
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className={cn(
-                                                "p-2 rounded-lg",
-                                                hintOpen ? "bg-blue-500/10 text-blue-600" : "bg-purple-500/10 text-purple-600"
-                                            )}>
-                                                {hintOpen ? <Lightbulb size={24} /> : <Sparkles size={24} />}
-                                            </div>
-                                            <h3 className="text-xl font-bold dark:text-white">
-                                                {hintOpen ? "Interview Tips" : "Strong Response"}
-                                            </h3>
-                                        </div>
-                                        <button
-                                            onClick={() => { setHintOpen(false); setStrongResponseOpen(false); }}
-                                            className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full text-slate-400"
-                                        >
-                                            <X size={20} />
-                                        </button>
-                                    </div>
-
-                                    {hintOpen && <TipsAccordion tips={hints} isLoading={isHintLoading} />}
-                                    {strongResponseOpen && (
-                                        <StrongResponseAccordion
-                                            data={strongResponseData}
-                                            isLoading={isStrongResponseLoading}
-                                        />
-                                    )}
-                                </div>
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                {/* Desktop side panel removed — Coach's Lens dropdown now renders inline after question card */}
 
                 {/* Mobile Overlay */}
                 <AnimatePresence>
@@ -608,7 +582,7 @@ export default function UnifiedSessionScreen() {
                             {/* Fixed Header */}
                             <div className="px-6 pb-4 flex items-center justify-between shrink-0 border-b border-slate-100 dark:border-white/5">
                                 <span className="font-black text-sm uppercase tracking-[0.2em] text-slate-400 dark:text-white/40">
-                                    {hintOpen ? "Supportive Hints" : "Example Response"}
+                                    {hintOpen ? "Coach's Lens" : "Example Response"}
                                 </span>
                                 <button
                                     onClick={() => { setHintOpen(false); setStrongResponseOpen(false); }}
@@ -621,15 +595,14 @@ export default function UnifiedSessionScreen() {
                             {/* Scrollable Content */}
                             <div
                                 ref={mobilePanelRef}
-                                className="flex-1 overflow-y-auto p-6 pt-2 space-y-6"
+                                className="flex-1 overflow-y-auto p-6 pt-4 custom-scrollbar"
                             >
-                                {hintOpen && <TipsAccordion tips={hints} isLoading={isHintLoading} />}
-                                {strongResponseOpen && (
-                                    <StrongResponseAccordion
-                                        data={strongResponseData}
-                                        isLoading={isStrongResponseLoading}
-                                    />
-                                )}
+                                <CoachLensDropdown
+                                    mode={hintOpen ? 'hints' : 'example'}
+                                    tips={hints}
+                                    strongResponse={strongResponseData}
+                                    isLoading={hintOpen ? isHintLoading : isStrongResponseLoading}
+                                />
                                 {/* Bottom padding for mobile browser bars */}
                                 <div className="h-8 shrink-0" />
                             </div>

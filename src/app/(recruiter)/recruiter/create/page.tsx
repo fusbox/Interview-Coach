@@ -141,7 +141,8 @@ export default function CreateInviteWizard() {
                     firstName: c.firstName,
                     lastName: c.lastName,
                     email: c.email,
-                    reqId: details.reqId
+                    reqId: details.reqId,
+                    resumeText: c.resumeText || undefined
                 })),
                 questions: allQuestions
             };

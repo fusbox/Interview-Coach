@@ -21,6 +21,7 @@ import {
     Target,
     FileText,
     X,
+    ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
@@ -117,7 +118,7 @@ const TranscriptPanel: React.FC<{
                 )}
             </div>
         </div>
-        <div className="flex-1 relative bg-transparent p-6 overflow-y-auto custom-scrollbar scrollbar-track-transparent min-h-0">
+        <div className="flex-1 relative bg-transparent p-6 overflow-y-auto custom-scrollbar min-h-0">
             <p className="text-slate-600 dark:text-slate-400 text-base leading-relaxed font-medium">
                 {transcript || 'No transcript available.'}
             </p>
@@ -379,7 +380,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                         {/* ── Scroll-Snap Cards ───────────────────────────────────────── */}
                         <div
                             ref={scrollContainerRef}
-                            className="flex-1 min-w-0 overflow-y-scroll scroll-snap-y-mandatory scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-200/50 dark:scrollbar-thumb-white/10"
+                            className="flex-1 min-w-0 overflow-y-scroll scroll-snap-y-mandatory custom-scrollbar"
                             style={{ scrollSnapType: 'y mandatory' }}
                         >
                             {/* Card 0: Start / Ack */}
@@ -390,13 +391,37 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                 style={{ scrollSnapAlign: 'start', minHeight: '100%' }}
                             >
                                 <div className="flex-1 w-full flex flex-col overflow-y-auto custom-scrollbar px-4">
-                                    <div className="my-auto py-12">
-                                        <h2 className="text-4xl md:text-6xl font-bold text-slate-900 dark:text-white leading-[1.1] font-display">
+                                    <div className="my-auto py-8 flex flex-col items-center">
+                                        <h2 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white leading-[1.1] font-display">
                                             {analysis?.ack || 'Reviewing your answer…'}
                                         </h2>
-                                        <p className="text-slate-500 dark:text-slate-400 text-lg md:text-xl max-w-xl mx-auto font-medium mt-6">
-                                            Scroll through to review your delivery and content.
-                                        </p>
+                                        <div className="mt-8 space-y-6">
+                                            <p className="text-slate-500 dark:text-slate-400 text-lg md:text-xl max-w-xl mx-auto font-medium">
+                                                Scroll through to review your delivery and content, or
+                                            </p>
+
+                                            <Button
+                                                onClick={onNext}
+                                                className="h-12 rounded-2xl px-10 bg-blue-600 hover:bg-blue-700 text-white shadow-lg transition-all font-bold"
+                                            >
+                                                Skip and Continue to Next Question
+                                            </Button>
+                                        </div>
+
+                                        {/* Scroll Cue (Option A: Classic Bouncing Chevron) */}
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: 1, duration: 0.5 }}
+                                            className="mt-12 flex flex-col items-center gap-2"
+                                        >
+                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 dark:text-blue-400">
+                                                See Feedback
+                                            </span>
+                                            <div className="animate-bounce">
+                                                <ChevronDown className="text-blue-500 dark:text-blue-400" size={24} />
+                                            </div>
+                                        </motion.div>
                                     </div>
                                 </div>
                             </div>
@@ -446,7 +471,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                         </div>
 
                                         {/* Scrollable Content Area */}
-                                        <div className="flex-1 overflow-y-auto min-h-0 pt-10 px-1 -mx-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-200 dark:scrollbar-thumb-white/10">
+                                        <div className="flex-1 overflow-y-auto min-h-0 pt-10 px-1 -mx-1 custom-scrollbar">
                                             <div className="p-0">
                                                 <p className="text-xl md:text-2xl text-slate-700 dark:text-slate-200 leading-relaxed font-medium">
                                                     {obs ||
@@ -534,7 +559,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                             >
                                 <div className="flex-1 w-full flex flex-col min-h-0">
                                     {/* Recommendation content (scrollable if needed) */}
-                                    <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar scrollbar-track-transparent px-4">
+                                    <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4">
                                         <div className="my-auto py-12 space-y-6 max-w-2xl">
                                             <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">
                                                 The Next Step

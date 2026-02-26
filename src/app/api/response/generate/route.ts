@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GenerateStrongResponseSchema } from '@/lib/domain/schemas';
 import { StrongResponseService } from '@/lib/server/services/strong-response-service';
 import { Logger } from '@/lib/logger';
+import { z } from 'zod';
+
+const GenerateStrongResponseSchema = z.object({
+    question: z.string().min(1, 'Question is required'),
+    role: z.string().optional(),
+});
 
 export async function POST(req: NextRequest) {
     try {
@@ -18,10 +23,10 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { question, tips, role } = result.data;
+        const { question, role } = result.data;
 
-        // Generate content
-        const data = await StrongResponseService.generateStrongResponse(question, tips, role || "Professional");
+        // Generate content (fully self-sufficient — no tips dependency)
+        const data = await StrongResponseService.generateStrongResponse(question, role || "Professional");
 
         return NextResponse.json(data);
 

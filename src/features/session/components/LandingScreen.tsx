@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { Button } from "@/components/ui/button"
 import { Clock, ShieldCheck } from "lucide-react"
 import { audioEngine } from '@/features/audio/audio-engine';
+import { useSession } from '../context/SessionContext';
 
 interface LandingScreenProps {
     onStart: () => void;
@@ -10,6 +11,8 @@ interface LandingScreenProps {
 }
 
 export default function LandingScreen({ onStart, role = "Candidate" }: LandingScreenProps) {
+    const { session } = useSession();
+    const firstQuestion = session?.questions?.[0];
     return (
         <div className="min-h-[100dvh] w-full bg-background font-sans text-foreground selection:bg-primary/10 selection:text-primary overflow-y-auto">
             <div className="w-full max-w-xl mx-auto px-6 py-12 md:py-24 space-y-8 flex flex-col min-h-[100dvh]">
@@ -65,7 +68,14 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                 <div className="pt-4 pb-2 sticky bottom-0 bg-background/95 backdrop-blur-sm border-t md:border-t-0 md:bg-transparent">
                     <Button
                         size="lg"
-                        onClick={() => { audioEngine.unlock(); onStart(); }}
+                        onClick={() => {
+                            audioEngine.unlock().then(() => {
+                                if (firstQuestion) {
+                                    audioEngine.prefetch(firstQuestion.id, firstQuestion.text);
+                                }
+                            });
+                            onStart();
+                        }}
                         className="w-full py-6 text-lg rounded-xl transition-all duration-200 shadow-sm bg-primary hover:bg-primary/90 text-primary-foreground hover:-translate-y-0.5 h-auto"
                     >
                         Start Practice Session

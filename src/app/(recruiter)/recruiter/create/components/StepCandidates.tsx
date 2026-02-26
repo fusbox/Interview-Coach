@@ -11,6 +11,7 @@ export interface CandidateRow {
     firstName: string;
     lastName: string;
     email: string;
+    resumeText?: string;
 }
 
 interface StepCandidatesProps {
@@ -116,6 +117,14 @@ export function StepCandidates({
                                     placeholder="Email Address"
                                     type="email"
                                 />
+                                {isDemo && (
+                                    <input
+                                        className="flex h-10 w-full rounded-md border bg-violet-50/50 dark:bg-violet-900/10 px-3 placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-violet-400 focus:border-violet-400 text-xs md:col-span-3"
+                                        value={candidate.resumeText || ''}
+                                        onChange={(e) => updateCandidate(candidate.id, 'resumeText', e.target.value)}
+                                        placeholder="📋 Paste resume text (dev only)"
+                                    />
+                                )}
                             </div>
                             <Button
                                 size="icon"

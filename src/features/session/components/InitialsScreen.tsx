@@ -8,6 +8,7 @@ import { useSession } from '../context/SessionContext';
 
 export default function InitialsScreen() {
     const { session, submitInitials } = useSession();
+    const firstQuestion = session?.questions?.[0];
     const [initials, setInitials] = useState('');
     const [isFocused, setIsFocused] = useState(false);
     const [isStarting, setIsStarting] = useState(false);
@@ -24,8 +25,13 @@ export default function InitialsScreen() {
     const handleBegin = async () => {
         if (initials.length > 0) {
             setIsStarting(true);
-            // Unlock AudioContext on this user gesture for stable TTS playback
-            audioEngine.unlock();
+            // Unlock AudioContext on this user gesture, then immediately prefetch Q1
+            // so audio is buffered before the session screen mounts.
+            audioEngine.unlock().then(() => {
+                if (firstQuestion) {
+                    audioEngine.prefetch(firstQuestion.id, firstQuestion.text);
+                }
+            });
             try {
                 await submitInitials(initials);
             } catch (err) {

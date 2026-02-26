@@ -41,20 +41,13 @@ export interface Question {
 }
 
 export interface QuestionTips {
-    lookingFor: string;
-    pointsToCover: string[];
-    answerFramework: string;
-    industrySpecifics: {
-        metrics: string;
-        tools: string;
-    };
-    mistakesToAvoid: string[];
-    proTip: string;
+    doThis: string;    // 1-2 sentences: the key differentiator action
+    avoidThis: string; // 1-2 sentences: the most common trap
 }
 
 export interface StrongResponseResult {
     strongResponse: string;
-    whyThisWorks: QuestionTips;
+    whyThisWorks: string;
 }
 
 /**

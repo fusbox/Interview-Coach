@@ -15,14 +15,15 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { question, role, competency, blueprint } = validation.data;
+        const { question, role, competency, blueprint, resumeText } = validation.data;
 
         // Generate Tips
         const tips = await TipsService.generateTips(
             question,
             role,
             competency,
-            blueprint
+            blueprint,
+            resumeText
         );
 
         return NextResponse.json(tips);

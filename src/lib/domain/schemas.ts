@@ -15,15 +15,8 @@ export const SessionStatusSchema = z.enum([
 ]);
 
 export const QuestionTipsSchema = z.object({
-    lookingFor: z.string(),
-    pointsToCover: z.array(z.string()),
-    answerFramework: z.string(),
-    industrySpecifics: z.object({
-        metrics: z.string(),
-        tools: z.string(),
-    }),
-    mistakesToAvoid: z.array(z.string()),
-    proTip: z.string(),
+    doThis: z.string(),
+    avoidThis: z.string(),
 });
 
 export const QuestionSchema = z.object({
@@ -227,8 +220,7 @@ export const GenerateTipsSchema = z.object({
 });
 
 export const GenerateStrongResponseSchema = z.object({
-    question: z.string(),
-    tips: z.any(), // QuestionTips
+    question: z.string().min(1, 'Question is required'),
     role: z.string().optional()
 });
 

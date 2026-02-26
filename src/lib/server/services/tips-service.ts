@@ -1,28 +1,18 @@
 import { Type } from "@google/genai";
-import { Blueprint, Competency } from "@/lib/domain/types";
+import { Blueprint, Competency, QuestionTips } from "@/lib/domain/types";
 import { Logger } from "@/lib/logger";
 import { z } from "zod";
 import { ai, AI_MODELS } from "./ai-config";
+import { getReadingLevelContext } from "@/lib/ai/prompts";
 
 // --- Schema Definition ---
 export const GenerateTipsSchema = z.object({
     question: z.string(),
     role: z.string(),
-    competency: z.any().optional(), // typed loosely here, but we use the domain type in logic
-    blueprint: z.any().optional()
+    competency: z.any().optional(),
+    blueprint: z.any().optional(),
+    resumeText: z.string().optional(),
 });
-
-export type TipsResponse = {
-    lookingFor: string;
-    pointsToCover: string[];
-    answerFramework: string;
-    industrySpecifics: {
-        metrics: string;
-        tools: string;
-    };
-    mistakesToAvoid: string[];
-    proTip: string;
-};
 
 // --- Service ---
 
@@ -31,19 +21,15 @@ export class TipsService {
         questionText: string,
         role: string,
         competency?: Competency,
-        blueprint?: Blueprint
-    ): Promise<TipsResponse> {
+        blueprint?: Blueprint,
+        resumeText?: string
+    ): Promise<QuestionTips> {
 
         if (!ai) {
             Logger.warn("[TipsService] No API Key, returning mock tips.");
-            // Mock fallback for dev/testing without key
             return {
-                lookingFor: "Demonstration of specific skills relative to the role.",
-                pointsToCover: ["Situation", "Task", "Action", "Result"],
-                answerFramework: "STAR Method",
-                industrySpecifics: { metrics: "N/A", tools: "N/A" },
-                mistakesToAvoid: ["Being vague", "Rambling"],
-                proTip: "Keep it concise and focused."
+                doThis: "Pick one specific moment from your experience and describe the exact action you took, with the result.",
+                avoidThis: "Don't just say you 'stayed positive' — the interviewer wants to see what you did, not how you felt.",
             };
         }
 
@@ -51,38 +37,86 @@ export class TipsService {
         let competencyContext = '';
         if (competency) {
             competencyContext = `
-            COMPETENCY FOCUS: ${competency.name}
-            DEFINITION: ${competency.definition}
-            SIGNALS (Points to Cover): ${competency.id === 'unknown' ? 'General best practices' : 'Relevant behavioral indicators'}
-            `;
-            // Simplified from backup to reduce token usage / complexity
+COMPETENCY FOCUS: ${competency.name}
+DEFINITION: ${competency.definition}
+`;
         }
 
-        const readingLevelContext = blueprint?.readingLevel
-            ? `
-            READING LEVEL: Mode ${blueprint.readingLevel.mode || 'Professional'}
-            - Max ${blueprint.readingLevel.maxSentenceWords || 20} words/sentence.
-            - Avoid Jargon: ${blueprint.readingLevel.avoidJargon ? 'Yes' : 'No'}
-            `
-            : '';
+        // --- Reading Level (shared utility) ---
+        const readingLevelContext = getReadingLevelContext(blueprint?.title || role);
+
+        // --- Seniority label for prompt copy ---
+        const roleTitle = (blueprint?.title || role).toLowerCase();
+        const isSenior = roleTitle.includes('senior') || roleTitle.includes('lead') || roleTitle.includes('principal') || roleTitle.includes('manager') || roleTitle.includes('director') || roleTitle.includes('vp') || roleTitle.includes('head');
+        const isEntryLevel = roleTitle.includes('coordinator') || roleTitle.includes('assistant') || roleTitle.includes('associate') || roleTitle.includes('clerk') || roleTitle.includes('entry') || roleTitle.includes('junior') || roleTitle.includes('apprentice');
+
+        let seniorityContext = '';
+        if (isEntryLevel) {
+            seniorityContext = `
+SENIORITY: Entry-Level / Junior
+- Expect small, specific, tactical stories — not strategic narratives.
+- "Good" means: handled a chaotic day without someone rescuing them.
+`;
+        } else if (isSenior) {
+            seniorityContext = `
+SENIORITY: Senior / Leadership
+- Expect strategic impact, decision rationale, and influence narratives.
+- "Good" means: demonstrated judgment under ambiguity with measurable outcomes.
+`;
+        } else {
+            seniorityContext = `
+SENIORITY: Mid-Level Professional
+- Expect competency mastery and clear ownership of outcomes.
+- "Good" means: specific contributions with tangible results.
+`;
+        }
+
+        // --- Resume Context (Optional) ---
+        let resumeContext = '';
+        if (resumeText && resumeText.trim().length > 0) {
+            resumeContext = `
+CANDIDATE RESUME (use to personalize guidance):
+${resumeText}
+
+RESUME INTEGRATION RULES:
+- Scan for experiences that would naturally produce a strong example for this question.
+- Reference the candidate's domain or experience area to help them find the right story.
+- Do NOT script their answer or assume specific events — nudge toward their richest material.
+`;
+        }
 
         const prompt = `
-        You are an expert interview coach for ${role} roles.
-        Provide detailed interview tips for the following question: "${questionText}"
+You are an expert interview coach and hiring professional.
 
-        ${competencyContext}
-        ${readingLevelContext}
+INPUTS:
+- Question: "${questionText}"
+- Role: ${role}
+${readingLevelContext}
+${competencyContext}
+${seniorityContext}
+${resumeContext}
 
-        Return strictly JSON matching this structure:
-        {
-           lookingFor: "What the interviewer is trying to assess (1 sentence)",
-           pointsToCover: ["Point 1", "Point 2", "Point 3"],
-           answerFramework: "Recommended structure (e.g. STAR, Past-Present-Future)",
-           industrySpecifics: { metrics: "Key KPIs to mention", tools: "Relevant software/tools" },
-           mistakesToAvoid: ["Mistake 1", "Mistake 2", "Mistake 3"],
-           proTip: "One advanced insight or unique tip"
-        }
-        `;
+YOUR INTERNAL REASONING PROCESS (follow these steps in order, do NOT output them):
+
+1. QUESTION_INTENT_DECODE: What is the interviewer ACTUALLY testing with this question? What is their hidden concern about a bad hire? What "real question" are they asking beneath the surface?
+
+2. ROLE_CALIBRATION: What does "good" look like at this specific seniority level for this role? Adjust your bar accordingly — don't expect strategic narratives from entry-level candidates, and don't accept vague generalities from senior candidates.
+
+3. RESUME_INTEGRATION (if resume provided): What experiences from this candidate's background would naturally produce a strong example? Their richest material is likely in high-volume, cross-functional, or high-pressure situations. Reference their domain without scripting their answer.
+
+4. DIFFERENTIATOR_IDENTIFICATION: What separates the top 20% of answers from the bottom 80% for this question type? The top 20% almost always have: a specific trigger event, a named personal action (not "we"), and a measurable or observable result. The bottom 80% describe feelings, use vague assertions, or give conceptual answers without evidence.
+
+5. HINT_SYNTHESIS: Compress your reasoning into exactly 2 outputs.
+
+CRITICAL OUTPUT RULES:
+- Each output must be 1-2 sentences. Be specific and actionable.
+- Never say "use STAR" or reference any framework by name — instead say what to ACTUALLY DO.
+- Never give generic advice like "be specific" — instead name the KIND of specificity that matters for this question.
+- If resume is available, reference the candidate's domain or experience area to help them find the right story.
+- Strictly follow READING LEVEL above — match complexity to the role.
+
+Return strictly JSON.
+`;
 
         try {
             const response = await ai.models.generateContent({
@@ -93,33 +127,10 @@ export class TipsService {
                     responseSchema: {
                         type: Type.OBJECT,
                         properties: {
-                            lookingFor: { type: Type.STRING },
-                            pointsToCover: {
-                                type: Type.ARRAY,
-                                items: { type: Type.STRING },
-                            },
-                            answerFramework: { type: Type.STRING },
-                            industrySpecifics: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    metrics: { type: Type.STRING },
-                                    tools: { type: Type.STRING },
-                                },
-                            },
-                            mistakesToAvoid: {
-                                type: Type.ARRAY,
-                                items: { type: Type.STRING },
-                            },
-                            proTip: { type: Type.STRING },
+                            doThis: { type: Type.STRING },
+                            avoidThis: { type: Type.STRING },
                         },
-                        required: [
-                            'lookingFor',
-                            'pointsToCover',
-                            'answerFramework',
-                            'industrySpecifics',
-                            'mistakesToAvoid',
-                            'proTip',
-                        ],
+                        required: ['doThis', 'avoidThis'],
                     },
                 },
             });
@@ -127,7 +138,7 @@ export class TipsService {
             const text = response.text;
             if (!text) throw new Error('No text returned from Gemini for tips');
 
-            return JSON.parse(text) as TipsResponse;
+            return JSON.parse(text) as QuestionTips;
 
         } catch (error) {
             Logger.error("[TipsService] Generation Failed", error);
