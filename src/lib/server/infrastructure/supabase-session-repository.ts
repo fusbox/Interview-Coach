@@ -7,7 +7,7 @@ import { ReadinessAggregator, ReadinessLevel } from "@/lib/server/session/readin
 import { AIService } from "../services/ai-service";
 
 interface SessionIntake {
-    candidate?: { firstName?: string; lastName?: string; name?: string };
+    candidate?: { firstName?: string; lastName?: string; name?: string; email?: string; resumeText?: string };
     invite_token?: string;
     viewed_at?: number;
     entered_initials?: string;
@@ -424,7 +424,8 @@ export class SupabaseSessionRepository implements SessionRepository {
             candidate: {
                 firstName: c.firstName || "",
                 lastName: c.lastName || "",
-                email: c.email || ""
+                email: c.email || "",
+                resumeText: c.resumeText || undefined
             },
             engagedTimeSeconds: intake.engaged_time_seconds || 0,
             intakeData: intake,

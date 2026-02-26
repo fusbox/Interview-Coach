@@ -152,6 +152,7 @@ export interface InterviewSession {
         firstName: string;
         lastName: string;
         email: string;
+        resumeText?: string;
     };
     inviteToken?: string; // Persisted plain token for "Copy Link"
     viewedAt?: number;

@@ -6,6 +6,7 @@ import { z } from 'zod';
 const GenerateStrongResponseSchema = z.object({
     question: z.string().min(1, 'Question is required'),
     role: z.string().optional(),
+    resumeText: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -23,10 +24,10 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { question, role } = result.data;
+        const { question, role, resumeText } = result.data;
 
         // Generate content (fully self-sufficient — no tips dependency)
-        const data = await StrongResponseService.generateStrongResponse(question, role || "Professional");
+        const data = await StrongResponseService.generateStrongResponse(question, role || "Professional", resumeText);
 
         return NextResponse.json(data);
 

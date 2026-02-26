@@ -14,7 +14,8 @@ export interface SmartHintsState {
 export function useSmartHints(
     question: Question,
     role: string,
-    blueprint?: Blueprint
+    blueprint?: Blueprint,
+    resumeText?: string
 ) {
     const [state, setState] = useState<SmartHintsState>({
         hints: null,
@@ -41,8 +42,9 @@ export function useSmartHints(
                 body: JSON.stringify({
                     question: question.text,
                     role: role,
-                    competency: question.competencyId ? { name: question.competencyId } : undefined, // simplified
-                    blueprint: blueprint
+                    competency: question.competencyId ? { name: question.competencyId } : undefined,
+                    blueprint: blueprint,
+                    resumeText: resumeText || undefined
                 })
             });
 
@@ -61,7 +63,7 @@ export function useSmartHints(
             Logger.error("Error fetching hints", err);
             setState({ hints: null, isLoading: false, error: (err as Error).message });
         }
-    }, [question, role, blueprint, cacheKey]);
+    }, [question, role, blueprint, resumeText, cacheKey]);
 
     // Load from cache on mount or question change + Auto-fetch
     useEffect(() => {

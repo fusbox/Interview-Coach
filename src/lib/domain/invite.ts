@@ -10,6 +10,7 @@ export interface Invite {
         lastName: string;
         email: string;
         reqId: string;
+        resumeText?: string;
     };
     questions: Array<{
         text: string;

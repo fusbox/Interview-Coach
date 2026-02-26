@@ -16,7 +16,8 @@ const CreateInviteSchema = z.object({
         firstName: z.string().min(1),
         lastName: z.string().min(1),
         email: z.string().email(),
-        reqId: z.string().min(1)
+        reqId: z.string().min(1),
+        resumeText: z.string().optional()
     })).min(1),
     questions: z.array(z.object({
         text: z.string().min(1),

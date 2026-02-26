@@ -111,6 +111,7 @@ export class SupabaseInviteRepository implements InviteRepository {
                     name?: string;
                     email?: string;
                     reqId?: string;
+                    resumeText?: string;
                 };
             };
         }
@@ -143,7 +144,8 @@ export class SupabaseInviteRepository implements InviteRepository {
             firstName: rawCandidate.firstName || rawCandidate.name?.split(' ')[0] || "",
             lastName: rawCandidate.lastName || rawCandidate.name?.split(' ').slice(1).join(' ') || "",
             email: rawCandidate.email || "",
-            reqId: rawCandidate.reqId || ""
+            reqId: rawCandidate.reqId || "",
+            resumeText: rawCandidate.resumeText || undefined
         };
 
         return {

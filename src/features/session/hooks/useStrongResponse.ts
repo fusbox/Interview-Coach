@@ -14,7 +14,8 @@ export interface StrongResponseState {
 export function useStrongResponse(
     questionId: string,
     questionText: string,
-    role: string
+    role: string,
+    resumeText?: string
 ) {
     const [state, setState] = useState<StrongResponseState>({
         data: null,
@@ -46,7 +47,7 @@ export function useStrongResponse(
             const response = await fetch('/api/response/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question: questionText, role }),
+                body: JSON.stringify({ question: questionText, role, resumeText: resumeText || undefined }),
             });
 
             if (!response.ok) {
@@ -74,7 +75,7 @@ export function useStrongResponse(
                 error: errorMessage,
             });
         }
-    }, [questionId, questionText, role]);
+    }, [questionId, questionText, role, resumeText]);
 
     // Reset when question changes
     useEffect(() => {

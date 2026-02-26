@@ -78,15 +78,18 @@ export default function UnifiedSessionScreen() {
     }, [hintOpen, strongResponseOpen]);
 
     // Hooks
+    const resumeText = session?.candidate?.resumeText;
     const { hints, isLoading: isHintLoading, fetchHints } = useSmartHints(
         currentQuestion!,
         session?.role || "Product Manager",
-        undefined
+        undefined,
+        resumeText
     );
     const { data: strongResponseData, isLoading: isStrongResponseLoading, fetchStrongResponse } = useStrongResponse(
         currentQuestionId!,
         currentQuestion?.text ?? "",
-        session?.role || "Product Manager"
+        session?.role || "Product Manager",
+        resumeText
     );
     const { transcript, resetTranscript, startListening, stopListening } = useSpeechToText();
     const {

@@ -7,7 +7,8 @@ import { getReadingLevelContext } from "@/lib/ai/prompts";
 export class StrongResponseService {
     static async generateStrongResponse(
         questionText: string,
-        role: string
+        role: string,
+        resumeText?: string
     ): Promise<StrongResponseResult> {
 
         if (!ai) {
@@ -21,13 +22,27 @@ export class StrongResponseService {
         // --- Reading Level (shared utility) ---
         const readingLevelContext = getReadingLevelContext(role);
 
+        // --- Resume Context (Optional) ---
+        let resumeContext = '';
+        if (resumeText && resumeText.trim().length > 0) {
+            resumeContext = `
+CANDIDATE RESUME (use to anchor the example response):
+${resumeText}
+
+RESUME INTEGRATION RULES:
+- The "Strong Response" should feel like it could plausibly come from THIS candidate.
+- Reference their industry, domain, or types of experiences without fabricating specific events.
+- The goal is to show a relatable model answer, not a generic one.
+`;
+        }
+
         const prompt = `
 You are an expert interview coach.
 Interview Question: "${questionText}".
 Target Role: ${role}
 
 ${readingLevelContext}
-
+${resumeContext}
 YOUR INTERNAL REASONING (do NOT output this):
 1. What is this question actually testing?
 2. What does a "10/10" answer look like for a ${role}?
