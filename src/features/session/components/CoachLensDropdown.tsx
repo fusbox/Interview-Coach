@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, AlertTriangle, Loader2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { QuestionTips, StrongResponseResult } from '@/lib/domain/types';
