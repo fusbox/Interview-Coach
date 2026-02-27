@@ -667,23 +667,14 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                 transition={{ type: 'spring', damping: 28, stiffness: 280 }}
                                 className="absolute inset-x-0 bottom-0 z-10 h-[78%] md:hidden bg-transparent rounded-t-[2rem] border-t border-slate-200 dark:border-white/10 p-6 flex flex-col shadow-2xl backdrop-blur-xl"
                             >
-                                {/* Close button pinned at top-right of panel */}
-                                <div className="absolute top-4 right-5 z-20">
-                                    <button
-                                        onClick={() => setIsTranscriptOpen(false)}
-                                        className="w-9 h-9 rounded-full bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors shadow-sm"
-                                        aria-label="Close transcript"
-                                    >
-                                        <X size={18} />
-                                    </button>
-                                </div>
-
                                 <div className="pt-2 flex-1 min-h-0">
                                     <TranscriptPanel
                                         transcript={transcript}
                                         audioBlob={audioBlob}
                                         isPlaying={isPlaying}
                                         togglePlayback={togglePlayback}
+                                        showClose={true}
+                                        onClose={() => setIsTranscriptOpen(false)}
                                     />
                                 </div>
                             </motion.div>
