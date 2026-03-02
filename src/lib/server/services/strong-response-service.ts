@@ -85,7 +85,10 @@ Return strictly JSON matching this structure:
             const text = response.text;
             if (!text) throw new Error('No text returned from Gemini for strong response');
 
-            return JSON.parse(text) as StrongResponseResult;
+            const parsedData = JSON.parse(text) as StrongResponseResult;
+            parsedData.__debugPrompt = prompt;
+
+            return parsedData;
 
         } catch (error) {
             Logger.error("[StrongResponseService] Generation Failed", error);

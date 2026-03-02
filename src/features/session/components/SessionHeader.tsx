@@ -21,9 +21,12 @@ export function SessionHeader() {
         <header className="border-b bg-white/50 dark:bg-neutral-900/50 backdrop-blur-md sticky top-0 z-20 shrink-0 overflow-hidden">
             <div className="w-full max-w-4xl mx-auto px-4 md:px-6 lg:px-10 py-4 pb-3">
                 <div className="flex justify-between items-end mb-3">
-                    {/* Left: Progress Label */}
-                    <div className="flex items-center gap-4">
-                        <span className="text-base font-bold text-slate-600 dark:text-slate-300 tabular-nums">
+                    {/* Left: Session Info */}
+                    <div className="flex flex-col items-start gap-1 max-w-[50%] md:max-w-[60%]">
+                        <h1 className="text-sm md:text-base font-black text-slate-900 dark:text-white leading-none tracking-tight truncate w-full">
+                            {session.candidateName ? `${session.candidateName} • ${session.role}` : session.role}
+                        </h1>
+                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 tabular-nums uppercase tracking-widest">
                             Question {currentQuestionIndex + 1} of {questions.length}
                         </span>
                     </div>

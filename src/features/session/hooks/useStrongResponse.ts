@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { StrongResponseResult } from '@/lib/domain/types';
 import { Logger } from '@/lib/logger';
 
@@ -23,8 +23,10 @@ export function useStrongResponse(
         error: null,
     });
 
+    const isFetchingRef = useRef(false);
+
     const fetchStrongResponse = useCallback(async () => {
-        if (!questionId || !questionText) return;
+        if (!questionId || !questionText || isFetchingRef.current) return;
 
         // Check Cache
         const cacheKey = `${CACHE_KEY_PREFIX}${questionId}`;
@@ -41,6 +43,7 @@ export function useStrongResponse(
             }
         }
 
+        isFetchingRef.current = true;
         setState(prev => ({ ...prev, isLoading: true, error: null }));
 
         try {
@@ -74,11 +77,14 @@ export function useStrongResponse(
                 isLoading: false,
                 error: errorMessage,
             });
+        } finally {
+            isFetchingRef.current = false;
         }
     }, [questionId, questionText, role, resumeText]);
 
     // Reset when question changes
     useEffect(() => {
+        isFetchingRef.current = false;
         setState({ data: null, isLoading: false, error: null });
     }, [questionId]);
 

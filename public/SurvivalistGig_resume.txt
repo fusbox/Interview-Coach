@@ -50,6 +50,8 @@ Personal Management: Self-scheduling, basic bookkeeping, mobile app proficiency.
 
 Physical: Able to lift 50+ lbs, comfortable with long hours on feet.
 
+---
+
 Testing Points for Your Platform:
 The "Employer" Challenge: Does your platform recognize "DoorDash" as a job, or does it flag it as an "Organization" or "Skill"? A coach needs the platform to extract the logistics and time management skills from this "gig" work.
 

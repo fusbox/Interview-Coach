@@ -21,22 +21,35 @@ interface RecruiterProfile {
 // --- Timezone Helper ---
 const getTimezones = () => {
     try {
-        // Modern approach: Intl.supportedValuesOf('timeZone')
         const zones = Intl.supportedValuesOf('timeZone');
-        // Sort and format?
-        // Let's create a display map
-        return zones.map(zone => {
-            // Get offset? A bit complex without libraries like date-fns-tz or moment-timezone.
-            // Simplified: Just use the zone string.
-            // Or try to format:
+        const mapped = zones.map(zone => {
             try {
-                const short = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'shortOffset' }).formatToParts().find(p => p.type === 'timeZoneName')?.value || '';
-                const long = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'long' }).formatToParts().find(p => p.type === 'timeZoneName')?.value || '';
-                return { value: zone, label: `(${short}) ${long} - ${zone}` };
+                const short = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'shortOffset' }).formatToParts().find(p => p.type === 'timeZoneName')?.value || 'GMT';
+                const long = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'long' }).formatToParts().find(p => p.type === 'timeZoneName')?.value || zone;
+
+                // Calculate offset for sorting
+                let offset = 0;
+                if (short !== 'GMT') {
+                    const match = short.match(/GMT([+-])(\d+)(?::(\d+))?/);
+                    if (match) {
+                        const [, sign, h, m] = match;
+                        const hours = parseInt(h, 10);
+                        const mins = m ? parseInt(m, 10) : 0;
+                        const total = hours * 60 + mins;
+                        offset = sign === '-' ? -total : total;
+                    }
+                }
+
+                return { value: zone, label: `(${short}) ${long} - ${zone}`, offset };
             } catch {
-                return { value: zone, label: zone };
+                return { value: zone, label: zone, offset: 0 };
             }
         });
+
+        return mapped.sort((a, b) => {
+            if (a.offset !== b.offset) return a.offset - b.offset;
+            return a.label.localeCompare(b.label);
+        }).map(({ value, label }) => ({ value, label }));
     } catch {
         // Fallback for older environments
         return [

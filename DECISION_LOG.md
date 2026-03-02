@@ -136,3 +136,12 @@ The recruiter dashboard `page.tsx` fired two parallel Supabase queries both hitt
 - **Consistency**: All consumers (DashboardStats, CurrentBaselineBlock, widget) see the same session snapshot.
 - **New files**: `src/lib/services/compute-dashboard-stats.ts` (pure function, easily testable).
 - **Revisit when**: Dashboard data needs real-time updates without full page reload (would require SWR or server-sent events).
+
+ # #   A I   I n t r o s p e c t i o n   A r c h i t e c t u r e 
+ -   * * C o n t e x t * * :   T h e   u s e r   l a c k s   v i s i b i l i t y   i n t o   w h y   t h e   L L M   m a k e s   s p e c i f i c   c h o i c e s   b e c a u s e   t h e   a s s e m b l e d   p r o m p t   i s   h i d d e n   i n   i s o l a t e d   s e r v e r   c l a s s e s . 
+ -   * * D e c i s i o n * * :   E l e v a t e   t h e   f u l l   c o m p o s i t e   L L M   p r o m p t   s t r i n g s   f r o m   ` T i p s S e r v i c e ` ,   ` S t r o n g R e s p o n s e S e r v i c e ` ,   a n d   ` A I S e r v i c e `   d i r e c t l y   t h r o u g h   t h e   A P I   b o u n d a r y   v i a   a n   i n j e c t e d   ` _ _ d e b u g `   p r o p e r t y   o n   t h e   r e s p o n s e   p a y l o a d . 
+ -   * * A l t e r n a t i v e s   c o n s i d e r e d * * :   W r i t i n g   p r o m p t s   t o   a   s e r v e r - s i d e   l o g   f i l e   o r   d a t a b a s e .   R e j e c t e d   b e c a u s e   i t   b r e a k s   r e a l - t i m e   U I   c o r r e l a t i o n   f o r   t h e   u s e r   n a v i g a t i n g   t h e   s e s s i o n . 
+ -   * * W h y   c h o s e n * * :   I n j e c t i n g   ` _ _ d e b u g `   i n t o   t h e   A P I   r e s p o n s e   a l l o w s   t h e   R e a c t   c l i e n t   t o   i n s t a n t l y   b i n d   t h e   e x a c t   g e n e r a t i o n   s e e d   t o   t h e   U I   s t a t e   r e s p o n s i b l e   f o r   r e n d e r i n g   t h a t   A I   b l o c k ,   e n a b l i n g   r e a l - t i m e   i n s p e c t i o n . 
+ -   * * C o n s e q u e n c e s   /   t r a d e o f f s * * :   S l i g h t l y   l a r g e r   n e t w o r k   p a y l o a d .   W i l l   n e e d   t o   b e   o m i t t e d   i n   a   s t r i c t   p u b l i c - f a c i n g   p r o d u c t i o n   r e l e a s e ,   b u t   a c c e p t a b l e   f o r   c u r r e n t   b e t a / c o a c h / r e c r u i t e r   u t i l i t y . 
+  
+ 

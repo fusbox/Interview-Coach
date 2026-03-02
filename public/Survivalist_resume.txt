@@ -54,6 +54,8 @@ Technical: Small engine troubleshooting, basic hand tools, inventory scanning.
 
 Soft Skills: Conflict de-escalation, extreme adaptability, time management under stress.
 
+---
+
 Why this works for your platform testing:
 The "Messy" Data: The job history is "jumpy" (seasonal work, short stints). This tests if your platform penalizes "job hopping" or if it can recognize the transferable skills (e.g., training others at Checkers, running a micro-business).
 

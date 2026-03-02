@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Question, Blueprint, QuestionTips } from '@/lib/domain/types';
 import { Logger } from '@/lib/logger';
 
@@ -23,9 +23,12 @@ export function useSmartHints(
         error: null
     });
 
+    const isFetchingRef = useRef(false);
     const cacheKey = `${CACHE_KEY_PREFIX}${question.id}`;
 
     const fetchHints = useCallback(async () => {
+        if (isFetchingRef.current) return;
+
         // If already cached, don't fetch.
         const cached = sessionStorage.getItem(cacheKey);
         if (cached) {
@@ -33,6 +36,7 @@ export function useSmartHints(
             return;
         }
 
+        isFetchingRef.current = true;
         setState(prev => ({ ...prev, isLoading: true, error: null }));
 
         try {
@@ -62,8 +66,16 @@ export function useSmartHints(
         } catch (err) {
             Logger.error("Error fetching hints", err);
             setState({ hints: null, isLoading: false, error: (err as Error).message });
+        } finally {
+            isFetchingRef.current = false;
         }
     }, [question, role, blueprint, resumeText, cacheKey]);
+
+    // Reset state explicitly when question changes to prevent content flashing from the prior question
+    useEffect(() => {
+        isFetchingRef.current = false;
+        setState({ hints: null, isLoading: false, error: null });
+    }, [question.id]);
 
     // Load from cache on mount or question change + Auto-fetch
     useEffect(() => {

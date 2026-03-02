@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from "react"
+import { useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { useSession } from "../context/SessionContext"
-import { ChevronDown, ChevronRight, CheckCircle2, AlertCircle, ArrowRight, CheckCircle } from "lucide-react"
+import { ArrowRight, CheckCircle } from "lucide-react"
 
 // Ensure you import the CSS in layout or here (Global CSS preferred usually, but simple import works if configured)
 import "@/styles/loader.css"
@@ -13,11 +13,9 @@ export default function ReviewFeedbackScreen() {
     const answer = currentQ ? session?.answers[currentQ.id] : undefined;
     const analysis = answer?.analysis;
 
-    const [whyOpen, setWhyOpen] = useState(false);
-    const [obsOpen, setObsOpen] = useState(false);
+    // State and loaders removed due to static layout
 
-    // If no analysis yet, we show loader
-    const isThinking = !analysis || !analysis.primaryFocus;
+    const isThinking = !analysis || (!analysis.contentPulse && !analysis.deliveryPulse);
 
     // --- Ported Logic from PendingEvaluationScreen ---
     const hasTriggered = useRef(false);
@@ -58,17 +56,7 @@ export default function ReviewFeedbackScreen() {
 
     if (!session || !currentQ || !answer) return <div className="p-8">No session data.</div>;
 
-    // Helper: Label Mapping
-    const getDimensionLabel = (dim: string) => {
-        const map: Record<string, string> = {
-            'specificity_concreteness': 'Specific & Concrete',
-            'outcome_explicitness': 'Outcome Clarity',
-            'structural_clarity': 'Structure',
-            'decision_rationale': 'Decision Logic',
-            'focus_relevance': 'Focus'
-        };
-        return map[dim] || dim.replace(/_/g, " ");
-    };
+    // Helper mapping removed
 
     const handleStop = async () => {
         await updateSession(session.id, { status: "PAUSED" });
@@ -108,66 +96,32 @@ export default function ReviewFeedbackScreen() {
                             {analysis.ack}
                         </div>
 
-                        {/* Primary Focus Block */}
-                        <div className="bg-white border border-l-4 border-l-blue-500 rounded-lg shadow-sm p-6 space-y-3">
-                            <div className="flex items-center gap-2 mb-1">
-                                <span className="bg-blue-50 text-blue-700 text-[10px] uppercase font-bold px-2 py-0.5 rounded tracking-wide">
-                                    {analysis.primaryFocus?.dimension ? getDimensionLabel(analysis.primaryFocus.dimension) : 'Feedback'}
-                                </span>
-                            </div>
-                            <h3 className="text-xl font-bold text-slate-900">
-                                {analysis.primaryFocus?.headline}
-                            </h3>
-                            <p className="text-slate-700 leading-relaxed">
-                                {analysis.primaryFocus?.body}
-                            </p>
-                        </div>
-
-                        {/* Collapsible: Why this helps */}
-                        {analysis.whyThisMatters && (
-                            <div className="border rounded-lg bg-white overflow-hidden">
-                                <button
-                                    onClick={() => setWhyOpen(!whyOpen)}
-                                    // Header Styling: Light Blue (More visible)
-                                    className="w-full flex items-center justify-between p-4 bg-blue-50 hover:bg-blue-100 transition-colors text-left border-b border-transparent hover:border-blue-200"
-                                >
-                                    <span className="font-semibold text-slate-700 flex items-center gap-2">
-                                        <CheckCircle2 className="w-4 h-4 text-slate-400" />
-                                        Why this helps
-                                    </span>
-                                    {whyOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                                </button>
-                                {whyOpen && (
-                                    <div className="p-4 pt-4 text-slate-600 bg-white">
-                                        {analysis.whyThisMatters}
-                                    </div>
+                        {/* Content Pulse Block */}
+                        {analysis.contentPulse && (
+                            <div className="bg-white border border-l-4 border-l-emerald-500 rounded-lg shadow-sm p-6 space-y-3">
+                                <h3 className="text-xl font-bold text-slate-900 border-b border-emerald-100 pb-2">
+                                    {analysis.contentPulse.headline}
+                                </h3>
+                                <p className="text-slate-700 leading-relaxed font-medium">
+                                    {analysis.contentPulse.body}
+                                </p>
+                                {analysis.contentPulse.quote && (
+                                    <p className="text-sm text-emerald-700 italic border-l-2 border-emerald-300 pl-3 py-1 bg-emerald-50/50">
+                                        &ldquo;{analysis.contentPulse.quote}&rdquo;
+                                    </p>
                                 )}
                             </div>
                         )}
 
-                        {/* Collapsible: What I noticed */}
-                        {analysis.observations && analysis.observations.length > 0 && (
-                            <div className="border rounded-lg bg-white overflow-hidden">
-                                <button
-                                    onClick={() => setObsOpen(!obsOpen)}
-                                    // Header Styling: Blue Match
-                                    className="w-full flex items-center justify-between p-4 bg-blue-50 hover:bg-blue-100 transition-colors text-left border-b border-transparent hover:border-blue-200"
-                                >
-                                    <span className="font-semibold text-slate-700 flex items-center gap-2">
-                                        <AlertCircle className="w-4 h-4 text-slate-400" />
-                                        What I noticed
-                                    </span>
-                                    {obsOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                                </button>
-                                {obsOpen && (
-                                    <ul className="p-4 pt-2 space-y-2 border-t bg-slate-50/50">
-                                        {analysis.observations.map((obs, idx) => (
-                                            <li key={idx} className="flex gap-2 text-slate-600 text-sm">
-                                                <span className="opacity-50">•</span> {obs}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
+                        {/* Delivery Pulse Block */}
+                        {analysis.deliveryPulse && (
+                            <div className="bg-white border border-l-4 border-l-indigo-500 rounded-lg shadow-sm p-6 space-y-3 mt-4">
+                                <h3 className="text-xl font-bold text-slate-900 border-b border-indigo-100 pb-2">
+                                    {analysis.deliveryPulse.headline}
+                                </h3>
+                                <p className="text-slate-700 leading-relaxed font-medium">
+                                    {analysis.deliveryPulse.body}
+                                </p>
                             </div>
                         )}
 

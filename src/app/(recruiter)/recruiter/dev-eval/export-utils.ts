@@ -38,13 +38,15 @@ export function buildSessionPayload(
             submittedAt: answer?.submittedAt || undefined,
             feedback: answer?.analysis ? {
                 ack: answer.analysis.ack,
-                primaryFocus: answer.analysis.primaryFocus ? {
-                    dimension: answer.analysis.primaryFocus.dimension,
-                    headline: answer.analysis.primaryFocus.headline,
-                    body: answer.analysis.primaryFocus.body,
+                contentPulse: answer.analysis.contentPulse ? {
+                    headline: answer.analysis.contentPulse.headline,
+                    body: answer.analysis.contentPulse.body,
+                    quote: answer.analysis.contentPulse.quote,
                 } : undefined,
-                whyThisMatters: answer.analysis.whyThisMatters,
-                observations: answer.analysis.observations,
+                deliveryPulse: answer.analysis.deliveryPulse ? {
+                    headline: answer.analysis.deliveryPulse.headline,
+                    body: answer.analysis.deliveryPulse.body,
+                } : undefined,
                 nextAction: answer.analysis.nextAction ? {
                     label: answer.analysis.nextAction.label,
                     actionType: answer.analysis.nextAction.actionType,

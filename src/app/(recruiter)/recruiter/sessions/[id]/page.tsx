@@ -178,8 +178,8 @@ export default async function SessionDetailsPage({ params }: { params: { id: str
 
                     // Safe access for analysis properties
                     const analysis = answer?.analysis;
-                    const primaryFocus = analysis?.primaryFocus;
-                    const observations = analysis?.observations || [];
+                    const contentPulse = analysis?.contentPulse;
+                    const deliveryPulse = analysis?.deliveryPulse;
 
                     return (
                         <Card key={question.id} className="overflow-hidden border-slate-200 shadow-sm">
@@ -222,34 +222,38 @@ export default async function SessionDetailsPage({ params }: { params: { id: str
                                     {/* Analysis Grid */}
                                     {hasAnalysis && analysis && (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-100">
-                                            {/* Left: Primary Focus */}
+                                            {/* Left: Content Feedback */}
                                             <div className="space-y-3">
-                                                <h4 className="text-sm font-semibold text-blue-700 flex items-center gap-2">
-                                                    Primary Coaching Focus
+                                                <h4 className="text-sm font-semibold text-emerald-700 flex items-center gap-2">
+                                                    Content Pulse
                                                 </h4>
-                                                <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100/50 h-full">
-                                                    <p className="font-medium text-blue-900 mb-2">
-                                                        {primaryFocus?.headline || "Focus Area"}
+                                                <div className="bg-emerald-50/50 p-4 rounded-lg border border-emerald-100/50 h-full">
+                                                    <p className="font-medium text-emerald-900 mb-2">
+                                                        {contentPulse?.headline || "Content Focus"}
                                                     </p>
-                                                    <p className="text-sm text-blue-800/90 leading-relaxed">
-                                                        {primaryFocus?.body || "No detailed feedback available."}
+                                                    <p className="text-sm text-emerald-800/90 leading-relaxed mb-3">
+                                                        {contentPulse?.body || "No detailed feedback available."}
                                                     </p>
+                                                    {contentPulse?.quote && (
+                                                        <p className="text-xs text-emerald-700/80 italic border-l-2 border-emerald-300 pl-2">
+                                                            &ldquo;{contentPulse.quote}&rdquo;
+                                                        </p>
+                                                    )}
                                                 </div>
                                             </div>
 
-                                            {/* Right: Observations */}
+                                            {/* Right: Delivery Feedback */}
                                             <div className="space-y-3">
-                                                <h4 className="text-sm font-semibold text-slate-900">Key Observations</h4>
-                                                <div className="pl-4">
-                                                    <ul className="list-disc text-sm text-slate-600 space-y-2 marker:text-slate-400">
-                                                        {observations.length > 0 ? (
-                                                            observations.map((obs, i) => (
-                                                                <li key={i}>{obs}</li>
-                                                            ))
-                                                        ) : (
-                                                            <li className="italic text-slate-400">No observations recorded.</li>
-                                                        )}
-                                                    </ul>
+                                                <h4 className="text-sm font-semibold text-indigo-700 flex items-center gap-2">
+                                                    Delivery Pulse
+                                                </h4>
+                                                <div className="bg-indigo-50/50 p-4 rounded-lg border border-indigo-100/50 h-full">
+                                                    <p className="font-medium text-indigo-900 mb-2">
+                                                        {deliveryPulse?.headline || "Delivery Focus"}
+                                                    </p>
+                                                    <p className="text-sm text-indigo-800/90 leading-relaxed">
+                                                        {deliveryPulse?.body || "No detailed feedback available."}
+                                                    </p>
                                                 </div>
                                             </div>
                                         </div>

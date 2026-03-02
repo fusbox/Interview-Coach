@@ -138,7 +138,10 @@ Return strictly JSON.
             const text = response.text;
             if (!text) throw new Error('No text returned from Gemini for tips');
 
-            return JSON.parse(text) as QuestionTips;
+            const parsedData = JSON.parse(text) as QuestionTips;
+            parsedData.__debugPrompt = prompt;
+
+            return parsedData;
 
         } catch (error) {
             Logger.error("[TipsService] Generation Failed", error);

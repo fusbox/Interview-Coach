@@ -40,20 +40,24 @@ export const DimensionScoreSchema = z.object({
 export const TaggedObservationSchema = z.object({
     text: z.string(),
     dimension: DimensionSchema,
-    type: z.enum(['strength', 'growth'])
+    type: z.enum(['strength', 'growth']),
+    quote: z.string().optional()
+});
+
+export const CoachingPulseSchema = z.object({
+    dimension: DimensionSchema,
+    headline: z.string(),
+    body: z.string(),
+    quote: z.string().optional()
 });
 
 export const AnalysisResultSchema = z.object({
     ack: z.string().optional(),
     scores: z.record(DimensionSchema, DimensionScoreSchema).optional(),
-    primaryFocus: z.object({
-        dimension: DimensionSchema,
-        headline: z.string(),
-        body: z.string(),
-    }).optional(),
-    whyThisMatters: z.string().optional(),
-    observations: z.array(z.string()).optional(),
-    taggedObservations: z.array(TaggedObservationSchema).optional(),
+
+    contentPulse: CoachingPulseSchema.optional(),
+    deliveryPulse: CoachingPulseSchema.optional(),
+
     nextAction: z.object({
         label: z.string(),
         actionType: z.enum(['redo_answer', 'next_question', 'practice_example', 'stop_for_now']),
@@ -69,17 +73,7 @@ export const AnalysisResultSchema = z.object({
 
     // Legacy / Optional fields
     readinessBand: z.enum(['RL1', 'RL2', 'RL3', 'RL4']).optional(),
-    confidence: z.any().optional(),
     coachReaction: z.string().optional(),
-    strengths: z.array(z.string()).optional(),
-    opportunities: z.array(z.string()).optional(),
-    missingKeyPoints: z.array(z.string()).optional(),
-    answerScore: z.number().optional(),
-    deliveryStatus: z.string().optional(),
-    deliveryTips: z.array(z.string()).optional(),
-    evidenceExtracts: z.array(z.string()).optional(),
-    biggestUpgrade: z.string().optional(),
-    redoPrompt: z.string().optional(),
 }).passthrough();
 
 export const AnswerSchema = z.object({
@@ -111,7 +105,8 @@ export const InterviewSessionSchema = z.object({
         firstName: z.string(),
         lastName: z.string(),
         email: z.string(),
-    }).optional(),
+        resumeText: z.string().optional(),
+    }).passthrough().optional(),
     engagedTimeSeconds: z.number().nullish().transform(v => v ?? undefined),
     parentSessionId: z.string().uuid().nullish().transform(v => v ?? undefined),
     attemptNumber: z.number().int().min(1).nullish().transform(v => v ?? undefined),
@@ -128,7 +123,9 @@ export const IntakeDataSchema = z
         primaryGoal: z.string().optional(),
         stage: z.string().optional(),
         mustPracticeQuestions: z.array(z.string()).optional(),
+        resumeText: z.string().optional(),
     })
+    .passthrough()
     .optional();
 
 export const InitSessionSchema = z.object({

@@ -155,6 +155,21 @@ Competencies: ${JSON.stringify(blueprint.competencies?.map((c: { id: string; tit
         }
     }
 
+    // --- 4.5 Resume / Context Integration ---
+    let resumeContext = '';
+    if (intakeData?.resumeText) {
+        resumeContext = `
+CANDIDATE RESUME / EXPERIENCE:
+${intakeData.resumeText}
+
+TRANSFERRABLE SKILLS & CONTEXT RULES:
+- Use this resume to understand their baseline trajectory and domain.
+- Actively look for how their specific background (industry, scale, tooling) applies to the target role.
+- If they lack direct experience, praise their ability to bridge non-obvious signals (transferrable skills) when they apply past frameworks to new problems.
+- Do NOT hallucinate experiences they haven't claimed, but DO acknowledge when they successfully map past experience to the question's core competency.
+`;
+    }
+
     // --- 5. Assembly ---
     return `
 You are an expert Interview Coach.
@@ -166,6 +181,7 @@ ${goalContext}
 ${stageContext}
 ${readingLevelContext}
 ${retryPrompt}
+${resumeContext}
 
 **Question**: "${question.text}"
 **Category**: ${question.category}

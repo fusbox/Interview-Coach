@@ -43,11 +43,13 @@ export interface Question {
 export interface QuestionTips {
     doThis: string;    // 1-2 sentences: the key differentiator action
     avoidThis: string; // 1-2 sentences: the most common trap
+    __debugPrompt?: string; // Captured LLM payload for runtime AI introspection
 }
 
 export interface StrongResponseResult {
     strongResponse: string;
     whyThisWorks: string;
+    __debugPrompt?: string; // Captured LLM payload for runtime AI introspection
 }
 
 /**
@@ -78,6 +80,14 @@ export interface TaggedObservation {
     text: string;
     dimension: Dimension;
     type: 'strength' | 'growth';
+    quote?: string;
+}
+
+export interface CoachingPulse {
+    dimension: Dimension;
+    headline: string;
+    body: string;
+    quote?: string; // Required for content, forbidden for delivery (prompt enforced)
 }
 
 /**
@@ -87,14 +97,11 @@ export interface AnalysisResult {
     // New Feedback Schema V2
     ack?: string;
     scores?: Record<Dimension, DimensionScore>;
-    primaryFocus?: {
-        dimension: Dimension;
-        headline: string;
-        body: string;
-    };
-    whyThisMatters?: string;
-    observations?: string[]; // Legacy
-    taggedObservations?: TaggedObservation[];
+
+    // The "Pulse" (In-Session High-Impact Coaching)
+    contentPulse?: CoachingPulse;
+    deliveryPulse?: CoachingPulse;
+
     nextAction?: {
         label: string;
         actionType: 'redo_answer' | 'next_question' | 'practice_example' | 'stop_for_now';
@@ -108,22 +115,11 @@ export interface AnalysisResult {
     };
 
     transcript?: string;
+    __debugPrompt?: string; // Captured LLM payload for runtime AI introspection
 
     // Legacy / Extended Support (Optional - Mapped from V2 where possible or deprecated)
     readinessBand?: 'RL1' | 'RL2' | 'RL3' | 'RL4'; // Deprecated
-    confidence?: string; // Deprecated (use meta.confidence)
     coachReaction?: string; // Mapped to ack
-    strengths?: string[]; // Deprecated
-    opportunities?: string[]; // Deprecated
-    missingKeyPoints?: string[];
-
-    // Legacy fields to prevent breaking unknown consumers
-    answerScore?: number;
-    deliveryStatus?: string;
-    deliveryTips?: string[];
-    evidenceExtracts?: string[];
-    biggestUpgrade?: string;
-    redoPrompt?: string;
 }
 
 /**

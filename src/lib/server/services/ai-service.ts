@@ -1,5 +1,5 @@
 import { Part } from "@google/genai";
-import { Question, Blueprint, AnalysisResult, InterviewSession, Answer, Dimension, DimensionScore, TaggedObservation } from "@/lib/domain/types";
+import { Question, Blueprint, AnalysisResult, InterviewSession, Answer, Dimension, DimensionScore } from "@/lib/domain/types";
 import { buildAnalysisContext } from "@/lib/ai/prompts";
 import { Logger } from "@/lib/logger";
 import { ai, AI_MODELS } from "./ai-config";
@@ -39,7 +39,7 @@ export class AIService {
         // 1. Context Construction
         const contextPrompt = buildAnalysisContext(question, blueprint, intakeData, retryContext);
 
-        // 2. Strict JSON System Prompt (V2.5 Quantified Engine)
+        // 2. Strict JSON System Prompt (V3 Pulse Engine)
         const systemPrompt = `SYSTEM:
 You are an expert Interview Coach. Evaluate the candidate's answer across 9 distinct dimensions on a scale of 1-5.
 
@@ -53,14 +53,16 @@ SCORING SCALE:
 DIMENSIONS TO SCORE:
 ${FEEDBACK_DIMENSIONS.map((d, i) => `${i + 1}. ${d}`).join('\n')}
 
-COACHING LADDER RULES:
-- If overall performance is strong (RL1), your feedback should be for "Polishing" (e.g., matching energy to role).
-- If performance is weak, focus ONLY on foundational fixes (Relevance, Structure).
-- Acknowledge (ack) should be EXACTLY 1 sentence, warm and personal.
-- For all qualitative feedback (observations and primary focus body), you MUST use first/second person perspective (e.g., "You sounded...", "Your answer was...") and active, coaching-oriented tense. NEVER refer to "the candidate" or use passive third-person language.
+COACHING RULES:
+- First, quietly score all 9 dimensions internally with a brief string 'label' explaining the score. These are hidden from the user but used for post-session telemetry.
+- Then, generate EXACTLY TWO high-impact "Pulses" (one Content, one Delivery) representing the most important feedback they need right now.
+- IMPACT-DRIVEN COACHING: You MUST connect your pulse feedback directly to the candidate's target role. Explain WHY this behavior matters for someone doing that specific job. Avoid generic praise like "You sounded confident." Instead say, "Your calm presence is essential when de-escalating angry callers as a Help Desk rep."
+- PERSPECTIVE: You MUST use first/second person perspective (e.g., "You sounded...", "Your answer was..."). 
+- ACK: EXACTLY 1 sentence, warm and personal.
 
-DIMENSION TAGGING:
-For every observation/evidence you find, you MUST link it to one of the 9 dimensions above.
+EVIDENCE RULES (CRITICAL):
+1. **Content Pulse** (structural_clarity, outcome_explicitness, specificity_concreteness, decision_rationale, focus_relevance): You MUST include a direct, exact 'quote' extracted from the user's transcript to anchor your feedback.
+2. **Delivery Pulse** (pace, energy, clarity, confidence): You MUST NOT use an exact quote. Instead, describe *how* they sounded or point to a specific moment.
 `;
 
         const schemaPrompt = `
@@ -71,13 +73,16 @@ Generate feedback as strict JSON matching this schema:
   "scores": {
     ${FEEDBACK_DIMENSIONS.map(d => `"${d}": { "score": 1-5, "label": "string" }`).join(',\n    ')}
   },
-  "taggedObservations": [
-    { "text": "string", "dimension": "dimension_name", "type": "strength|growth" }
-  ],
-  "primaryFocus": {
-    "dimension": "${FEEDBACK_DIMENSIONS.join(' | ')}",
-    "headline": "string",
-    "body": "string"
+  "contentPulse": {
+    "dimension": "structural_clarity | outcome_explicitness | specificity_concreteness | decision_rationale | focus_relevance",
+    "headline": "string (Short action-oriented title)",
+    "body": "string (Narrative coaching tying behavior to role impact)",
+    "quote": "string (Exact quote from transcript)"
+  },
+  "deliveryPulse": {
+    "dimension": "pace | energy | clarity | confidence",
+    "headline": "string (Short action-oriented title)",
+    "body": "string (Narrative coaching tying behavior to role impact. NO QUOTES.)"
   },
   "nextAction": {
     "label": "string",
@@ -97,7 +102,7 @@ Generate feedback as strict JSON matching this schema:
                 ack: "I noted your answer. (No API Key)",
                 meta: { tier: 1, modality: audioData ? "voice" : "text", signalQuality: "insufficient", confidence: "medium", readinessLevel: "RL4" },
                 transcript: answerText || "Audio Answer (Mock)",
-                primaryFocus: { dimension: "focus_relevance", headline: "Setup Needed", body: "Please add your Gemini API key to evaluate your response." }
+                contentPulse: { dimension: "focus_relevance", headline: "Setup Needed", body: "Please add your Gemini API key to evaluate your response.", quote: "" }
             };
         }
 
@@ -152,11 +157,10 @@ Generate feedback as strict JSON matching this schema:
                     readinessLevel: calculatedRL,
                     confidence: scoreValues.confidence <= 2 ? 'low' : scoreValues.confidence >= 4 ? 'high' : 'medium'
                 },
-                // Legacy support
+                // Legacy support (to be fully removed when UI updates)
                 readinessBand: calculatedRL,
                 coachReaction: result.ack,
-                strengths: (result.taggedObservations as TaggedObservation[])?.filter(o => o.type === 'strength').map(o => o.text) || [],
-                opportunities: [result.primaryFocus?.headline || "Review feedback"]
+                __debugPrompt: combinedPrompt
             };
 
             return mappedResult;
@@ -165,14 +169,15 @@ Generate feedback as strict JSON matching this schema:
             Logger.error("AI Analysis Failed", error);
             return {
                 ack: "I noted your answer.",
-                primaryFocus: {
-                    dimension: "focus_relevance",
-                    headline: "System Offline",
-                    body: "I couldn't analyze that response right now. Please try again."
-                },
                 meta: { tier: 1, modality: audioData ? "voice" : "text", signalQuality: "insufficient", confidence: "medium", readinessLevel: "RL4" },
                 transcript: answerText || "Audio Answer",
-                readinessBand: "RL4"
+                readinessBand: "RL4",
+                contentPulse: {
+                    dimension: "focus_relevance",
+                    headline: "System Offline",
+                    body: "I couldn't analyze that response right now. Please try again.",
+                    quote: ""
+                }
             };
         }
     }
@@ -180,30 +185,57 @@ Generate feedback as strict JSON matching this schema:
     static async summarizeSession(
         session: InterviewSession
     ): Promise<string> {
-        if (!ai) return "Session completed. No automated summary available.";
+        if (!ai) return "Session completed. No automated debrief available.";
 
         const answersContext = Object.values(session.answers as Record<string, Answer> || {})
             .map((a: Answer, i: number) => {
                 const qText = session.questions.find((q: Question) => q.id === a.questionId)?.text || "Unknown Question";
-                return `Q${i + 1}: ${qText} \nA: ${a.transcript} \nResult: ${a.analysis?.readinessBand || 'RL4'} `;
+
+                // Extract hidden telemetry to feed the debrief engine
+                let scoreContext = "No telemetry recorded.";
+                if (a.analysis?.scores) {
+                    const scoreMap = Object.entries(a.analysis.scores).map(([dim, data]) => {
+                        return `${dim}: ${data.score}/5 (${data.label})`;
+                    });
+                    scoreContext = scoreMap.join('\n');
+                }
+
+                return `--- Question ${i + 1} ---\nQ: ${qText}\nTRANSCRIPT: ${a.transcript || 'No transcript'}\n\nHIDDEN TELEMETRY SCORES:\n${scoreContext}\n`;
             })
             .join("\n\n");
 
-        const prompt = `
-        SYSTEM:
-You are an expert recruiter assistant.
-Summarize the following interview session into a concise, professional 1 - 2 sentence executive summary for a recruiter.
-Focus on the candidate's core strengths and primary readiness level.
-Do not use pass / fail language.
-Be specific about the role: ${session.role}.
+        const prompt = `SYSTEM:
+You are an expert Interview Coach. The candidate has just finished a multi-question interview session for the role of ${session.role}.
 
-        ANSWERS:
+Below are the candidate's answers to all questions, along with the internal 1-5 telemetry scores you awarded them on 9 dimensions for each question.
+
+YOUR TASK:
+Synthesize this data into a high-impact, actionable Post-Session Debrief formatted in standard Markdown. 
+
+Analyze the telemetry numbers to find PATTERNS:
+- Did they consistently score low in 'pace' across all answers? That's a thematic growth area.
+- Did they score '5' in 'structural_clarity' every time? That's a core strength.
+
+Output EXACTLY this Markdown structure (do not wrap in markdown code blocks like \`\`\`markdown, just return the raw text):
+
+### Executive Summary
+[2-3 sentences summarizing their overall performance, trajectory, and fit for the role. Mention the role explicitly.]
+
+### Core Strengths
+- **[Pattern 1 Name]**: [Describe the behavior seen across answers and *why* it makes them strong for the role. Give a brief example from the transcript.]
+- **[Pattern 2 Name]**: [Same as above]
+
+### Primary Growth Area
+- **[Pattern Name]**: [Identify the most significant weakness seen across multiple answers. Explain how to fix it for the next round.]
+
+**Final Readiness Band:** [RL1 / RL2 / RL3 / RL4]
+*(RL1: Ready, RL2: Strong Potential, RL3: Practice Recommended, RL4: Needs Work)*
+
+SESSION DATA:
 ${answersContext}
 
 ROLE CONTEXT:
-${session.jobDescription}
-
-Generate ONLY the summary string(no JSON, no intro).
+${session.jobDescription || "No specific job description provided."}
 `;
 
         try {
@@ -215,8 +247,7 @@ Generate ONLY the summary string(no JSON, no intro).
             return response.text || "No summary generated.";
         } catch (error) {
             Logger.error("Session Summarization Failed", error);
-            // Fallback for UI
-            return `The candidate completed the interview for the ${session.role} position.They demonstrated consistent effort across all questions.`;
+            return `### Executive Summary\nThe candidate completed the interview for the ${session.role} position. They demonstrated consistent effort across all questions.`;
         }
     }
 }

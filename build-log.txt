@@ -1,0 +1,57 @@
+
+> interview-coach-recruiter@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.35
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/18) ...
+   Generating static pages (4/18) 
+   Generating static pages (8/18) 
+   Generating static pages (13/18) 
+ ✓ Generating static pages (18/18)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                                     Size     First Load JS
+┌ ○ /                                                           4.17 kB         151 kB
+├ ○ /_not-found                                                 873 B          88.2 kB
+├ ƒ /api/analysis                                               0 B                0 B
+├ ƒ /api/dev/export-session/[sessionId]                         0 B                0 B
+├ ƒ /api/dev/generate-questions                                 0 B                0 B
+├ ƒ /api/recruiter/invites                                      0 B                0 B
+├ ƒ /api/response/generate                                      0 B                0 B
+├ ƒ /api/session/[session_id]                                   0 B                0 B
+├ ƒ /api/session/[session_id]/questions/[question_id]/analysis  0 B                0 B
+├ ƒ /api/session/[session_id]/questions/[question_id]/answer    0 B                0 B
+├ ƒ /api/session/[session_id]/questions/[question_id]/retry     0 B                0 B
+├ ƒ /api/session/[session_id]/questions/[question_id]/submit    0 B                0 B
+├ ƒ /api/session/start                                          0 B                0 B
+├ ƒ /api/tips/generate                                          0 B                0 B
+├ ƒ /api/tts                                                    0 B                0 B
+├ ƒ /auth/callback                                              0 B                0 B
+├ ○ /login                                                      3.37 kB         154 kB
+├ ƒ /recruiter                                                  28.6 kB         131 kB
+├ ƒ /recruiter/create                                           11.3 kB         167 kB
+├ ƒ /recruiter/dev-eval                                         6.21 kB         109 kB
+├ ƒ /recruiter/dev-eval/[id]                                    5.46 kB         108 kB
+├ ƒ /recruiter/sessions/[id]                                    175 B          96.2 kB
+├ ƒ /recruiter/settings                                         3.87 kB         154 kB
+├ ƒ /recruiter/templates                                        4.81 kB         108 kB
+├ ƒ /s/[token]                                                  58.4 kB         228 kB
+└ ƒ /s/[token]/coaching                                         3.83 kB         138 kB
++ First Load JS shared by all                                   87.3 kB
+  ├ chunks/117-08af2e5832e3afa9.js                              31.7 kB
+  ├ chunks/fd9d1056-ad15f396ddf9b7e5.js                         53.6 kB
+  └ other shared chunks (total)                                 1.96 kB
+
+
+ƒ Middleware                                                    74.3 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

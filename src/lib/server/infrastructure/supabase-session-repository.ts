@@ -126,12 +126,12 @@ export class SupabaseSessionRepository implements SessionRepository {
 
         finalEvals?.forEach(e => {
             const feedback = e.feedback_json as AnalysisResult;
-            if (feedback?.primaryFocus?.dimension) {
-                coachingFocusDistribution[feedback.primaryFocus.dimension] = (coachingFocusDistribution[feedback.primaryFocus.dimension] || 0) + 1;
+            if (feedback?.contentPulse?.headline) {
+                coachingFocusDistribution[feedback.contentPulse.headline] = (coachingFocusDistribution[feedback.contentPulse.headline] || 0) + 1;
             }
-            feedback?.observations?.forEach(obs => {
-                observationCounts[obs] = (observationCounts[obs] || 0) + 1;
-            });
+            if (feedback?.deliveryPulse?.headline) {
+                coachingFocusDistribution[feedback.deliveryPulse.headline] = (coachingFocusDistribution[feedback.deliveryPulse.headline] || 0) + 1;
+            }
         });
 
         const commonObservations = Object.entries(observationCounts)
@@ -191,13 +191,14 @@ export class SupabaseSessionRepository implements SessionRepository {
 
         evals?.forEach(e => {
             const feedback = e.feedback_json as AnalysisResult;
-            if (feedback?.primaryFocus?.dimension) {
-                coachingFocusDistribution[feedback.primaryFocus.dimension] =
-                    (coachingFocusDistribution[feedback.primaryFocus.dimension] || 0) + 1;
+            if (feedback?.contentPulse?.headline) {
+                coachingFocusDistribution[feedback.contentPulse.headline] =
+                    (coachingFocusDistribution[feedback.contentPulse.headline] || 0) + 1;
             }
-            feedback?.observations?.forEach(obs => {
-                observationCounts[obs] = (observationCounts[obs] || 0) + 1;
-            });
+            if (feedback?.deliveryPulse?.headline) {
+                coachingFocusDistribution[feedback.deliveryPulse.headline] =
+                    (coachingFocusDistribution[feedback.deliveryPulse.headline] || 0) + 1;
+            }
         });
 
         const commonObservations = Object.entries(observationCounts)

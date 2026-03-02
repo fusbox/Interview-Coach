@@ -239,9 +239,14 @@ export function SessionEvalForm({ session }: SessionEvalFormProps) {
                                     {answer.analysis.ack && (
                                         <p className="text-sm text-blue-900"><strong>Ack:</strong> {answer.analysis.ack}</p>
                                     )}
-                                    {answer.analysis.primaryFocus && (
+                                    {answer.analysis.contentPulse && (
                                         <p className="text-sm text-blue-900">
-                                            <strong>{answer.analysis.primaryFocus.headline}:</strong> {answer.analysis.primaryFocus.body}
+                                            <strong>Content:</strong> {answer.analysis.contentPulse.headline}
+                                        </p>
+                                    )}
+                                    {answer.analysis.deliveryPulse && (
+                                        <p className="text-sm text-blue-900">
+                                            <strong>Delivery:</strong> {answer.analysis.deliveryPulse.headline}
                                         </p>
                                     )}
                                     {answer.analysis.nextAction && (

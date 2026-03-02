@@ -128,6 +128,12 @@ export default function UnifiedSessionScreen() {
         }
     }, [isReviewing, analysis]);
 
+    // Reset Dropdown States on Question Change
+    useEffect(() => {
+        setHintOpen(false);
+        setStrongResponseOpen(false);
+    }, [currentQuestionId]);
+
     // Mic Warm-up Optimization
     useEffect(() => {
         if (mode === 'voice' && !isRecording && !hasSubmitted) {
@@ -657,6 +663,11 @@ export default function UnifiedSessionScreen() {
                     debugEvents: engagementDebugEvents,
                     windowTimeRemaining: engagementWindowTimeRemaining,
                     clearDebugEvents: clearDebugEvents
+                }}
+                aiContexts={{
+                    tipsPrompt: hints?.__debugPrompt,
+                    strongResponsePrompt: strongResponseData?.__debugPrompt,
+                    analysisPrompt: analysis?.__debugPrompt
                 }}
             />
 
