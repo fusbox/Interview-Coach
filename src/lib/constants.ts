@@ -23,10 +23,10 @@ export const FEEDBACK_DIMENSIONS = [
     'specificity_concreteness',
     'decision_rationale',
     'focus_relevance',
-    'pace',
-    'energy',
-    'clarity',
-    'confidence'
+    'filler_words',
+    'signposting',
+    'conciseness',
+    'resilience'
 ] as const;
 
 export type Dimension = typeof FEEDBACK_DIMENSIONS[number];

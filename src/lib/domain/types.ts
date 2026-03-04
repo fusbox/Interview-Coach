@@ -100,7 +100,7 @@ export interface AnalysisResult {
 
     // The "Pulse" (In-Session High-Impact Coaching)
     contentPulse?: CoachingPulse;
-    deliveryPulse?: CoachingPulse;
+    deliveryPulse?: CoachingPulse; // Optional: Only triggered on exception (high/low signal)
 
     nextAction?: {
         label: string;

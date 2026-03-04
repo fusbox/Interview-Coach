@@ -23,6 +23,8 @@ import {
     X,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { captureFeedbackAction } from '@/app/actions/feedback';
+import { useSession } from '../context/SessionContext';
 
 // ─────────────────────────────────────────────
 // Types
@@ -53,10 +55,10 @@ interface DimensionDef {
 // ─────────────────────────────────────────────
 
 const DELIVERY_DIMS: DimensionDef[] = [
-    { id: 'confidence', title: 'Confidence', icon: ShieldCheck },
-    { id: 'pace', title: 'Pace', icon: Gauge },
-    { id: 'clarity', title: 'Clarity', icon: Type },
-    { id: 'energy', title: 'Tone & Energy', icon: Zap },
+    { id: 'filler_words', title: 'Verbal Polish', icon: Type },
+    { id: 'signposting', title: 'Signposting', icon: ShieldCheck },
+    { id: 'conciseness', title: 'Conciseness', icon: Gauge },
+    { id: 'resilience', title: 'Resilience', icon: Zap },
 ];
 
 const CONTENT_DIMS: DimensionDef[] = [
@@ -147,6 +149,42 @@ const TranscriptPanel: React.FC<{
     );
 };
 
+const HelpfulRating: React.FC<{
+    onSelect: (val: string) => void;
+    currentVal: string | null;
+}> = ({ onSelect, currentVal }) => {
+    const options = [
+        { label: 'Yes', icon: '👍', val: 'yes' },
+        { label: 'Somewhat', icon: '🤔', val: 'somewhat' },
+        { label: 'Not really', icon: '👎', val: 'no' },
+    ];
+
+    return (
+        <div className="mt-8 pt-6 border-t border-slate-100 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                Was this helpful?
+            </span>
+            <div className="flex items-center gap-2">
+                {options.map((opt) => (
+                    <button
+                        key={opt.val}
+                        onClick={() => onSelect(opt.val)}
+                        className={cn(
+                            "px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 border flex items-center gap-2",
+                            currentVal === opt.val
+                                ? "bg-primary border-primary text-white shadow-md scale-105"
+                                : "bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-primary/30"
+                        )}
+                    >
+                        <span>{opt.icon}</span>
+                        <span>{opt.label}</span>
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+};
+
 // ─────────────────────────────────────────────
 // Main Component
 // ─────────────────────────────────────────────
@@ -160,10 +198,12 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
     transcript,
     audioBlob,
 }) => {
+    const { session } = useSession();
     const [isPlaying, setIsPlaying] = useState(false);
     const [activeSection, setActiveSection] = useState<SectionKey>('start');
     const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
     const [hasExplored, setHasExplored] = useState(false);
+    const [helpfulness, setHelpfulness] = useState<Record<string, string | null>>({});
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -189,11 +229,29 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
         }
     }, [audioBlob, isPlaying]);
 
+    const handleHelpfulnessSelect = async (type: 'delivery' | 'content', val: string) => {
+        setHelpfulness(prev => ({ ...prev, [type]: val }));
+        try {
+            await captureFeedbackAction({
+                sessionId: session?.id,
+                type: `helpfulness_${type}`,
+                comment: val, // yes, somewhat, no
+                metadata: {
+                    dimension: type === 'delivery' ? analysis?.deliveryPulse?.dimension : analysis?.contentPulse?.dimension,
+                    headline: type === 'delivery' ? analysis?.deliveryPulse?.headline : analysis?.contentPulse?.headline
+                }
+            });
+        } catch (err) {
+            console.error('Failed to capture helpfulness', err);
+        }
+    };
+
     // Reset on close; cleanup on unmount
     useEffect(() => {
         if (!isOpen) {
             setActiveSection('start');
             setIsTranscriptOpen(false);
+            setHelpfulness({});
             if (audioRef.current) {
                 audioRef.current.pause();
                 audioRef.current = null;
@@ -226,8 +284,8 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
 
     // ── Variant helpers removed (delegated to pulse architecture) ──────────
 
-    // CTA logic
-    const hasFocusOrPolish = !!analysis?.contentPulse || !!analysis?.deliveryPulse;
+    // CTA logic: The AI explicitly recommends the next action.
+    const shouldRetry = analysis?.nextAction?.actionType === 'redo_answer';
 
     // ── Intersection Observer for sidebar ───────────────────────────────────
 
@@ -385,6 +443,10 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                                 <p className="text-xl md:text-2xl text-slate-700 dark:text-slate-200 leading-relaxed font-medium">
                                                     {analysis.deliveryPulse.body}
                                                 </p>
+                                                <HelpfulRating
+                                                    onSelect={(val) => handleHelpfulnessSelect('delivery', val)}
+                                                    currentVal={helpfulness.delivery || null}
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -430,6 +492,10 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                                         </p>
                                                     </blockquote>
                                                 )}
+                                                <HelpfulRating
+                                                    onSelect={(val) => handleHelpfulnessSelect('content', val)}
+                                                    currentVal={helpfulness.content || null}
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -463,7 +529,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
 
                                     {/* Pinned Footer Actions */}
                                     <div className="shrink-0 pt-6 pb-8 flex flex-col items-start gap-4 w-full">
-                                        {hasFocusOrPolish ? (
+                                        {shouldRetry ? (
                                             <>
                                                 <Button
                                                     onClick={onRetry}

@@ -59,7 +59,10 @@ export default async function RecruiterDashboard() {
             </div>
 
             {/* Top Baseline Header */}
-            <CurrentBaselineBlock metrics={metrics} />
+            <CurrentBaselineBlock
+                metrics={metrics}
+                recruiterEmail={user.email || ''}
+            />
 
             {/* High Level Stats */}
             <DashboardStats metrics={metrics} />

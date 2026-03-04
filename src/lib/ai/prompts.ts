@@ -5,74 +5,47 @@ import { Question, Blueprint } from "@/lib/domain/types";
  * Import this in any AI service that generates candidate-facing text.
  */
 export function getReadingLevelContext(role: string): string {
-    const roleTitle = role.toLowerCase();
-
-    // --- Categorization Logic (Synced with Question Generation) ---
-    const isEntryLevelOrFrontline =
-        roleTitle.includes('warehouse') ||
-        roleTitle.includes('associate') ||
-        roleTitle.includes('clerk') ||
-        roleTitle.includes('helper') ||
-        roleTitle.includes('worker') ||
-        roleTitle.includes('driver') ||
-        roleTitle.includes('aide') ||
-        roleTitle.includes('healthcare') ||
-        roleTitle.includes('service') ||
-        roleTitle.includes('food') ||
-        roleTitle.includes('hospitality') ||
-        roleTitle.includes('entry') ||
-        roleTitle.includes('junior') ||
-        roleTitle.includes('apprentice') ||
-        roleTitle.includes('coordinator') ||
-        roleTitle.includes('assistant');
-
-    const isSeniorOrLeadership =
-        roleTitle.includes('senior') ||
-        roleTitle.includes('lead') ||
-        roleTitle.includes('manager') ||
-        roleTitle.includes('director') ||
-        roleTitle.includes('vp') ||
-        roleTitle.includes('head') ||
-        roleTitle.includes('architect') ||
-        roleTitle.includes('principal');
-
-    const isTechnical =
-        roleTitle.includes('engineer') ||
-        roleTitle.includes('developer') ||
-        roleTitle.includes('data');
-
-    // --- Context Assembly ---
-    let context = `
+    return `
 READING LEVEL & TONE:
-- Keep language professional, warm, and highly relatable.
-- Avoid corporate jargon and abstract HR speak.
-- Adopt a supportive coaching voice.
+- TARGET ROLE: "${role}"
+- You MUST dynamically adapt your vocabulary, sentence structure, and tone to deeply resonate with a typical candidate applying for this specific role.
+- IF FRONTLINE, ENTRY-LEVEL, LABOR, OR SERVICE (e.g., General Factory Laborer, Cashier, Warehouse Associate): STRICT 5th-grade reading level. Keep sentences short, direct, and highly concrete. AVOID all corporate jargon, abstract HR terminology, or overly theoretical concepts ("synergy", "paradigm", "leverage"). Talk like a plain-spoken mentor.
+- IF SENIOR, LEADERSHIP, OR HIGHLY TECHNICAL (e.g., Director, Principal Engineer): Use professional, concise, and strategic language appropriate for a high-functioning peer. Focus on impact, rationale, and complexity.
+- UNIVERSAL TONE: Regardless of the role, your voice must consistently be warm, supportive, and act as an encouraging, empathetic coach. Be direct but kind.
 `;
-
-    if (isEntryLevelOrFrontline) {
-        context += `
-- CRITICAL: This is an entry-level, frontline, or service-based role.
-- READABILITY: STRICT 5th-Grade reading level.
-- Use plain, simple, and direct language.
-- Avoid abstract concepts; use concrete examples.
-- Keep sentences short.
-`;
-    } else if (isSeniorOrLeadership || isTechnical) {
-        context += `
-- READABILITY: Professional, concise, and strategic.
-- Adapt tone for a ${isSeniorOrLeadership ? 'senior leader' : 'technical professional'}: focused on impact, rationale, and complexity.
-`;
-    } else {
-        context += `
-- READABILITY: Clear, professional 8th-grade level.
-- Focus on transparency and competency mastery.
-`;
-    }
-
-    return context;
 }
 
+/**
+ * Shared coaching rigor / difficulty scalar.
+ * Instructs the AI on how strict or lenient to be during evaluation.
+ */
+export function getCoachingRigorContext(role: string): string {
+    const roleTitle = role.toLowerCase();
 
+    const isEntryLevelOrFrontline =
+        roleTitle.includes('warehouse') || roleTitle.includes('associate') || roleTitle.includes('clerk') ||
+        roleTitle.includes('helper') || roleTitle.includes('worker') || roleTitle.includes('driver') ||
+        roleTitle.includes('aide') || roleTitle.includes('healthcare') || roleTitle.includes('service') ||
+        roleTitle.includes('food') || roleTitle.includes('hospitality') || roleTitle.includes('labor') ||
+        roleTitle.includes('entry') || roleTitle.includes('junior') || roleTitle.includes('apprentice');
+
+    const isSeniorOrLeadership =
+        roleTitle.includes('senior') || roleTitle.includes('lead') || roleTitle.includes('manager') ||
+        roleTitle.includes('director') || roleTitle.includes('vp') || roleTitle.includes('head') ||
+        roleTitle.includes('architect') || roleTitle.includes('principal') || roleTitle.includes('executive');
+
+    let context = `\nCOACHING RIGOR (DIFFICULTY SCALER):\n`;
+
+    if (isEntryLevelOrFrontline) {
+        context += `- STRICT INSTRUCTION: This is an entry-level or frontline role. Be HIGHLY LENIENT. Over-index on encouragement and affirmation. Only critique severe structural failures or total lack of relevance. Praise effort and basic clarity heavily.`;
+    } else if (isSeniorOrLeadership) {
+        context += `- STRICT INSTRUCTION: This is a senior/leadership role. Be HIGHLY RIGOROUS. Scrutinize strategic alignment, outcome quantification, brevity, and high-level decision rationale. Hold them to an executive standard while remaining professional and constructive.`;
+    } else {
+        context += `- STRICT INSTRUCTION: This is a mid-level professional role. Apply standard coaching rigor. Balance warm praise with direct, constructive critique on structure, storytelling, and specific impact metrics.`;
+    }
+
+    return context + `\n`;
+}
 
 export function buildAnalysisContext(
     question: Question,
@@ -96,8 +69,9 @@ Competencies: ${JSON.stringify(blueprint.competencies?.map((c: { id: string; tit
 `;
     }
 
-    // --- 2. Reading Level Context ---
+    // --- 2. Reading Level & Rigor Context ---
     const readingLevelContext = getReadingLevelContext(blueprint?.title || '');
+    const rigorContext = getCoachingRigorContext(blueprint?.title || '');
 
     // --- 3. Intake / Personalization Context ---
     let struggleContext = '';
@@ -165,8 +139,9 @@ ${intakeData.resumeText}
 TRANSFERRABLE SKILLS & CONTEXT RULES:
 - Use this resume to understand their baseline trajectory and domain.
 - Actively look for how their specific background (industry, scale, tooling) applies to the target role.
-- If they lack direct experience, praise their ability to bridge non-obvious signals (transferrable skills) when they apply past frameworks to new problems.
-- Do NOT hallucinate experiences they haven't claimed, but DO acknowledge when they successfully map past experience to the question's core competency.
+- CRITICAL INTERPRETATION: Candidates will often answer questions using experiences from completely different industries. This is NOT a tangent or disconnected. A tangent ONLY occurs if they fail to address the underlying psychological or behavioral competency (e.g., adaptability, attention to detail).
+- You MUST actively reward and affirm candidates for applying past frameworks to new problems, even if the domain nouns (e.g., POS vs machine) do not match the target role.
+- If they lack direct experience, praise their ability to bridge non-obvious signals.
 `;
     }
 
@@ -180,6 +155,7 @@ ${struggleContext}
 ${goalContext}
 ${stageContext}
 ${readingLevelContext}
+${rigorContext}
 ${retryPrompt}
 ${resumeContext}
 

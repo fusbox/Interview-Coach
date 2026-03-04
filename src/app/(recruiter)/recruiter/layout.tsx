@@ -33,7 +33,7 @@ export default async function RecruiterLayout({
             />
 
             {/* Mobile Dock: Visible on mobile, replaces sidebar */}
-            <RecruiterMobileDock />
+            <RecruiterMobileDock user={user} />
 
             {/* Main Content - Add bottom padding for dock on mobile */}
             <main className="flex-1 p-8 pt-8 w-full max-w-full overflow-hidden pb-24 md:pb-8">

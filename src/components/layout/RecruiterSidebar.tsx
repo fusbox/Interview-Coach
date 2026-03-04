@@ -7,6 +7,7 @@ import { cn } from '@/lib/cn';
 
 import { User } from '@supabase/supabase-js';
 import { LogoutButton } from '@/components/auth/LogoutButton';
+import { isAdmin } from '@/lib/auth/rbac';
 
 interface RecruiterProfile {
     first_name: string;
@@ -123,6 +124,26 @@ export function RecruiterSidebar({ className, onNavigate, user, profile }: Recru
                 >
                     Settings
                 </Link>
+
+                {isAdmin(user) && (
+                    <div className="pt-6 mt-6 border-t">
+                        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4 px-2">
+                            Admin Portal
+                        </div>
+                        <Link
+                            href="/admin/feedback"
+                            className={cn(
+                                "block p-2 rounded font-medium transition-all duration-200",
+                                isActive('/admin/feedback')
+                                    ? "bg-primary/10 text-primary"
+                                    : "text-muted-foreground hover:bg-slate-100 hover:text-slate-900"
+                            )}
+                            onClick={onNavigate}
+                        >
+                            User Feedback
+                        </Link>
+                    </div>
+                )}
             </nav>
 
             <div className="p-6 mt-auto border-t">

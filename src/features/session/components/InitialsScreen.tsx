@@ -63,29 +63,38 @@ export default function InitialsScreen() {
 
                 {/* 2. Primary Heading */}
                 <div className="space-y-4 text-left">
-                    <h1 className="text-2xl md:text-4xl font-medium tracking-tight text-primary leading-tight">
-                        Interview Practice Session
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-primary leading-tight font-display">
+                        Practice for Your Upcoming Interview
                     </h1>
                 </div>
 
                 {/* 3. Introductory Copy & 4. Reassurance */}
                 <div className="space-y-6 text-lg text-muted-foreground leading-relaxed text-left">
                     <p>
-                        You&rsquo;ll be asked a series of interview-style questions related to a role you applied for.
-                        Your progress is saved automatically, and you can leave and return at any time using
-                        this link.
+                        You&rsquo;ve been invited to practice interview questions related to the role you applied for.
+                    </p>
+                    <p>
+                        This is a guided practice experience designed to help you strengthen your answers before your next interview.
+                    </p>
+                    <p>
+                        You can pause at any time and return using this same link.
                     </p>
 
-                    <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-xl border border-border/50 shadow-sm">
-                        <p className="text-lg text-muted-foreground">
-                            This is a practice experience, not a live interview.
-                        </p>
+                    <div className="space-y-4 p-6 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm overflow-hidden relative">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-primary/20" />
+                        <h3 className="text-slate-900 font-bold text-base">This is practice &mdash; not a live interview.</h3>
+                        <div className="space-y-3">
+                            <p className="text-sm text-slate-600 leading-relaxed">
+                                Your responses are used to generate coaching insights to help you improve.
+                            </p>
+                            <p className="text-sm text-slate-600 leading-relaxed">
+                                The person who shared this link may review your responses to support your preparation.
+                            </p>
+                            <p className="text-sm font-medium text-slate-900 leading-relaxed">
+                                Only you can see the AI coaching feedback generated during practice.
+                            </p>
+                        </div>
                     </div>
-
-                    {/* 5. Visibility Statement - Now aligned with intro */}
-                    <p className="text-lg text-muted-foreground">
-                        The person who shared this link may review your responses to help guide your preparation. Only you can see coaching feedback received during practice.
-                    </p>
                 </div>
 
                 {/* 6. Initials Input */}
@@ -112,7 +121,9 @@ export default function InitialsScreen() {
                         />
                         {/* Feedback Text */}
                         <p className="mt-1 text-sm text-muted-foreground">
-                            *Used to confirm the session was opened by the intended person. ({session?.candidateName || "Candidate"})
+                            Used to confirm the link was opened by the intended recipient.
+                            <br />
+                            <span className="text-[10px] opacity-70 uppercase tracking-wider font-bold">(No account setup required.)</span>
                         </p>
                     </div>
                 </div>
@@ -125,13 +136,13 @@ export default function InitialsScreen() {
                         onClick={handleBegin}
                         disabled={initials.length === 0 || isStarting}
                         className={cn(
-                            'w-full py-6 text-lg rounded-xl transition-all duration-200 shadow-sm h-auto',
+                            'w-full py-6 text-lg rounded-xl transition-all duration-200 shadow-xl h-auto font-bold',
                             initials.length > 0
                                 ? 'bg-primary hover:bg-primary/90 text-primary-foreground hover:-translate-y-0.5'
-                                : 'bg-muted text-muted-foreground cursor-not-allowed hover:bg-muted'
+                                : 'bg-muted text-muted-foreground cursor-not-allowed'
                         )}
                     >
-                        {isStarting ? 'Starting...' : 'Continue'}
+                        {isStarting ? 'Starting...' : 'Next'}
                     </Button>
                 </div>
 

@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Mail, ArrowRight, Copy } from "lucide-react";
 import { RecruiterProfile, InviteResult } from "../constants";
 import Image from "next/image";
+import { useState } from "react";
+import { captureFeedbackAction } from "@/app/actions/feedback";
+import { cn } from "@/lib/cn";
 
 
 interface StepBatchSendProps {
@@ -22,6 +25,26 @@ export function StepBatchSend({
     onBack,
     resetWizard
 }: StepBatchSendProps) {
+    const [rating, setRating] = useState<number | null>(null);
+    const [isSubmitted, setIsSubmitted] = useState(false);
+
+    const handleRating = async (r: number) => {
+        setRating(r);
+        setIsSubmitted(true);
+        try {
+            await captureFeedbackAction({
+                type: 'recruiter_friction_invite',
+                rating: r,
+                metadata: {
+                    recruiter_email: recruiterProfile.email,
+                    role: role,
+                    invite_count: results.length
+                }
+            });
+        } catch (err) {
+            console.error('Failed to capture recruiter feedback', err);
+        }
+    };
 
     const subject = `Interview Invitation: ${role}`;
     const getBody = (firstName: string, link: string) =>
@@ -143,12 +166,40 @@ E: ${recruiterProfile.email}`;
             </div>
 
             <div className="flex justify-between items-center pt-4 border-t">
-                <Button variant="outline" onClick={onBack}>
-                    <ArrowRight className="w-4 h-4 mr-2 rotate-180" /> Back
-                </Button>
-                <Button onClick={resetWizard} variant="outline" className="text-slate-600">
-                    Start New Batch
-                </Button>
+                {!isSubmitted ? (
+                    <div className="flex flex-col md:flex-row items-center gap-4 bg-slate-50 border border-slate-100 rounded-2xl p-4 w-full md:w-auto">
+                        <span className="text-sm font-bold text-slate-500">How easy was sending these invites?</span>
+                        <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map((val) => (
+                                <button
+                                    key={val}
+                                    onClick={() => handleRating(val)}
+                                    className={cn(
+                                        "w-10 h-10 rounded-xl border flex items-center justify-center font-bold text-sm transition-all",
+                                        rating === val
+                                            ? "bg-blue-600 border-blue-600 text-white"
+                                            : "bg-white border-slate-200 text-slate-400 hover:border-blue-300"
+                                    )}
+                                >
+                                    {val}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                ) : (
+                    <div className="text-sm font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 animate-in fade-in slide-in-from-left-2">
+                        Thanks for your feedback!
+                    </div>
+                )}
+
+                <div className="flex gap-4">
+                    <Button variant="outline" onClick={onBack}>
+                        <ArrowRight className="w-4 h-4 mr-2 rotate-180" /> Back
+                    </Button>
+                    <Button onClick={resetWizard} variant="outline" className="text-slate-600">
+                        Start New Batch
+                    </Button>
+                </div>
             </div>
         </div>
     );

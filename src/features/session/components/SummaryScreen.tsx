@@ -7,6 +7,8 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/cn";
+import { captureFeedbackAction } from "@/app/actions/feedback";
+import { ThumbsUp, ThumbsDown, CheckCircle2 } from "lucide-react";
 
 const STOCK_NARRATIVES = [
     "The candidate demonstrated high proficiency and readiness for the role across all evaluated questions.",
@@ -21,6 +23,25 @@ export default function SummaryScreen() {
     const router = useRouter();
 
     const [isCreating, setIsCreating] = useState(false);
+    const [survey, setSurvey] = useState<Record<string, string | number>>({});
+    const [submitted, setSubmitted] = useState<Record<string, boolean>>({});
+
+    const handleSurveySelect = async (key: string, val: string | number) => {
+        setSurvey(prev => ({ ...prev, [key]: val }));
+        setSubmitted(prev => ({ ...prev, [key]: true }));
+
+        try {
+            await captureFeedbackAction({
+                sessionId: session?.id,
+                type: `session_completion_${key}`,
+                rating: typeof val === 'number' ? val : undefined,
+                comment: typeof val === 'string' ? val : undefined,
+                metadata: { question: key }
+            });
+        } catch (err) {
+            console.error('Failed to capture survey response', err);
+        }
+    };
 
     const handlePracticeAgain = async () => {
         if (isCreating) return;
@@ -36,9 +57,26 @@ export default function SummaryScreen() {
         }
     };
 
+    const parseDebrief = (text: string) => {
+        if (!text) return [];
+        const parts = text.split(/(?=### )/g).filter(p => p.trim() !== '');
+
+        if (parts.length === 1 && !parts[0].trim().startsWith('###')) {
+            return [{ title: "Session Debrief", content: text }];
+        }
+
+        return parts.map(part => {
+            const lines = part.trim().split('\n');
+            const titleLine = lines[0];
+            const title = titleLine.replace(/^###\s*/, '').replace(/\*+/g, '').trim();
+            const content = lines.slice(1).join('\n').trim();
+            return { title, content };
+        });
+    };
+
     return (
         <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-background p-6 md:p-12">
-            <div className="w-full max-w-2xl flex flex-col items-center text-center space-y-12">
+            <div className="w-full max-w-4xl flex flex-col items-center text-center space-y-12">
 
                 {/* Logo & Headline Section */}
                 <div className="flex flex-col items-center gap-1 w-full">
@@ -72,22 +110,30 @@ export default function SummaryScreen() {
                     </motion.div>
                 </div>
 
-                {/* Markdown Summary Render */}
+                {/* Markdown Summary Render Render as Cards */}
                 {session?.summaryNarrative && !STOCK_NARRATIVES.includes(session.summaryNarrative) ? (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4, duration: 0.8 }}
-                        className="w-full text-left bg-white dark:bg-slate-900 rounded-3xl p-8 md:p-12 shadow-xl border border-slate-200 dark:border-white/10"
-                    >
-                        <div className="prose prose-slate dark:prose-invert max-w-none prose-h3:text-2xl prose-h3:font-black prose-h3:mb-4 prose-h3:text-slate-900 dark:prose-h3:text-white prose-p:text-slate-600 dark:prose-p:text-slate-300 prose-p:leading-relaxed prose-p:text-lg prose-li:text-lg prose-strong:text-slate-900 dark:prose-strong:text-white">
-                            <ReactMarkdown components={{
-                                strong: ({ className, ...props }) => <strong className={cn("font-bold text-slate-900 dark:text-white", className)} {...props} />,
-                            }}>
-                                {session.summaryNarrative}
-                            </ReactMarkdown>
-                        </div>
-                    </motion.div>
+                    <div className="w-full flex flex-col gap-6">
+                        {parseDebrief(session.summaryNarrative).map((section, idx) => (
+                            <motion.div
+                                key={idx}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.4 + (idx * 0.1), duration: 0.8 }}
+                                className="w-full text-left bg-white dark:bg-slate-900 rounded-3xl p-8 md:p-10 shadow-xl border border-slate-200 dark:border-white/10"
+                            >
+                                <h3 className="text-2xl font-black mb-6 text-slate-900 dark:text-white pb-4 border-b border-slate-100 dark:border-slate-800/60">
+                                    {section.title}
+                                </h3>
+                                <div className="prose prose-slate dark:prose-invert max-w-none prose-p:text-slate-600 dark:prose-p:text-slate-300 prose-p:leading-relaxed prose-p:text-lg prose-li:text-lg prose-strong:text-slate-900 dark:prose-strong:text-white">
+                                    <ReactMarkdown components={{
+                                        strong: ({ className, ...props }) => <strong className={cn("font-bold text-slate-900 dark:text-white", className)} {...props} />,
+                                    }}>
+                                        {section.content}
+                                    </ReactMarkdown>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
                 ) : (
                     <motion.div
                         initial={{ opacity: 0 }}
@@ -99,12 +145,111 @@ export default function SummaryScreen() {
                     </motion.div>
                 )}
 
+                {/* End of Session Survey */}
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.8, duration: 0.8 }}
+                    className="w-full max-w-2xl bg-slate-50 border border-slate-100 rounded-[2.5rem] p-8 md:p-12 space-y-10"
+                >
+                    <div className="text-center space-y-2">
+                        <h3 className="text-2xl font-black text-slate-900 font-display">How was your session?</h3>
+                        <p className="text-slate-500 font-medium italic">Your feedback helps us improve the coaching experience.</p>
+                    </div>
+
+                    <div className="space-y-12">
+                        {/* 1. Confidence Delta */}
+                        <div className="space-y-4">
+                            <p className="text-lg font-bold text-slate-800 text-center md:text-left">
+                                &ldquo;I feel more prepared after this session.&rdquo;
+                            </p>
+                            <div className="flex justify-center md:justify-start gap-2">
+                                {[1, 2, 3, 4, 5].map((val) => (
+                                    <button
+                                        key={val}
+                                        onClick={() => handleSurveySelect('confidence_delta', val)}
+                                        className={cn(
+                                            "w-12 h-12 rounded-2xl border-2 flex items-center justify-center font-bold text-lg transition-all duration-300",
+                                            survey.confidence_delta === val
+                                                ? "bg-blue-600 border-blue-600 text-white shadow-lg scale-110"
+                                                : "bg-white border-slate-200 text-slate-400 hover:border-blue-300 hover:text-blue-600"
+                                        )}
+                                    >
+                                        {val}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* 2. Psychological Safety */}
+                        <div className="space-y-4">
+                            <p className="text-lg font-bold text-slate-800 text-center md:text-left">
+                                &ldquo;I felt safe to focus on my growth during this session.&rdquo;
+                            </p>
+                            <div className="flex justify-center md:justify-start gap-2">
+                                {[1, 2, 3, 4, 5].map((val) => (
+                                    <button
+                                        key={val}
+                                        onClick={() => handleSurveySelect('psychological_safety', val)}
+                                        className={cn(
+                                            "w-12 h-12 rounded-2xl border-2 flex items-center justify-center font-bold text-lg transition-all duration-300",
+                                            survey.psychological_safety === val
+                                                ? "bg-blue-600 border-blue-600 text-white shadow-lg scale-110"
+                                                : "bg-white border-slate-200 text-slate-400 hover:border-blue-300 hover:text-blue-600"
+                                        )}
+                                    >
+                                        {val}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* 3. Repeat Intent */}
+                        <div className="space-y-4">
+                            <p className="text-lg font-bold text-slate-800 text-center md:text-left">
+                                &ldquo;I would use this again to prepare for a different role.&rdquo;
+                            </p>
+                            <div className="flex justify-center md:justify-start gap-4">
+                                <button
+                                    onClick={() => handleSurveySelect('repeat_intent', 'yes')}
+                                    className={cn(
+                                        "flex-1 md:flex-none px-8 py-3 rounded-2xl border-2 font-bold flex items-center justify-center gap-2 transition-all duration-300",
+                                        survey.repeat_intent === 'yes'
+                                            ? "bg-green-600 border-green-600 text-white shadow-lg"
+                                            : "bg-white border-slate-200 text-slate-600 hover:border-green-300 hover:text-green-600"
+                                    )}
+                                >
+                                    <ThumbsUp size={18} /> Yes
+                                </button>
+                                <button
+                                    onClick={() => handleSurveySelect('repeat_intent', 'no')}
+                                    className={cn(
+                                        "flex-1 md:flex-none px-8 py-3 rounded-2xl border-2 font-bold flex items-center justify-center gap-2 transition-all duration-300",
+                                        survey.repeat_intent === 'no'
+                                            ? "bg-slate-900 border-slate-900 text-white shadow-lg"
+                                            : "bg-white border-slate-200 text-slate-600 hover:border-slate-800 hover:text-slate-900"
+                                    )}
+                                >
+                                    <ThumbsDown size={18} /> No
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {Object.keys(submitted).length > 0 && (
+                        <div className="pt-4 flex items-center justify-center gap-2 text-green-600 font-bold text-sm animate-in fade-in slide-in-from-bottom-2">
+                            <CheckCircle2 size={16} />
+                            Feedback captured. Thank you!
+                        </div>
+                    )}
+                </motion.div>
+
                 {/* Primary Action */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6, duration: 0.8, ease: "easeOut" }}
-                    className="w-full max-w-sm"
+                    transition={{ delay: 1.0, duration: 0.8, ease: "easeOut" }}
+                    className="w-full max-w-sm pt-8"
                 >
                     <Button
                         size="lg"
