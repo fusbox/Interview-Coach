@@ -4,9 +4,6 @@
  * This is a Layer 2 derived computation. By computing these client-side
  * from the already-fetched SessionSummary[], we eliminate a redundant
  * Supabase round-trip that previously duplicated the sessions query.
- *
- * For eval-derived insights (coaching focus, observations), use
- * getRecruiterInsights() which fetches only eval_results.
  */
 
 import { SessionSummary } from '@/lib/domain/types';
@@ -21,7 +18,6 @@ export interface DashboardBasicStats {
     completedSessions: number;
     stalledSessions: number;
     averageEngagementTimeSeconds: number;
-    readinessDistribution: Record<'RL1' | 'RL2' | 'RL3' | 'RL4', number>;
 }
 
 // ---------------------------------------------------------------------------
@@ -34,9 +30,6 @@ export function computeDashboardStats(sessions: SessionSummary[]): DashboardBasi
     let completedSessions = 0;
     let stalledSessions = 0;
     let totalEngagedTime = 0;
-    const readinessDistribution: Record<'RL1' | 'RL2' | 'RL3' | 'RL4', number> = {
-        RL1: 0, RL2: 0, RL3: 0, RL4: 0,
-    };
 
     for (const s of sessions) {
         // Completed
@@ -52,10 +45,6 @@ export function computeDashboardStats(sessions: SessionSummary[]): DashboardBasi
         }
 
         totalEngagedTime += (s.engagedTimeSeconds || 0);
-
-        if (s.readinessBand && s.readinessBand in readinessDistribution) {
-            readinessDistribution[s.readinessBand]++;
-        }
     }
 
     return {
@@ -64,6 +53,5 @@ export function computeDashboardStats(sessions: SessionSummary[]): DashboardBasi
         completedSessions,
         stalledSessions,
         averageEngagementTimeSeconds: totalInvites > 0 ? totalEngagedTime / totalInvites : 0,
-        readinessDistribution,
     };
 }

@@ -298,7 +298,7 @@ export default function CreateInviteWizard() {
                                                 'border-border bg-surface-base group-hover:border-primary/50'}`}>
                                         {s < step ? <Check className="w-4 h-4" /> : s}
                                     </div>
-                                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest">
+                                    <span className="text-micro sm:text-xs font-bold uppercase tracking-widest">
                                         {s === 1 ? 'Job & Questions' : s === 2 ? 'Candidates' : 'Confirm'}
                                     </span>
                                 </div>

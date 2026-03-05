@@ -62,7 +62,7 @@ export default function TemplatesPage() {
                 description="Manage and reuse your question sets for consistent interviews."
                 actions={
                     <Link href="/recruiter/create">
-                        <Button className="font-bold uppercase text-[10px] tracking-widest px-6 shadow-raised-1 h-11">
+                        <Button className="font-bold uppercase text-micro tracking-widest px-6 shadow-raised-1 h-11">
                             <Plus className="w-3.5 h-3.5 mr-2" /> New Template
                         </Button>
                     </Link>
@@ -72,7 +72,7 @@ export default function TemplatesPage() {
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-32 bg-surface-subtle/30 rounded-3xl border border-border/10 shadow-flat-2">
                     <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
-                    <p className="text-text-muted font-bold uppercase text-[10px] tracking-widest">Hydrating templates...</p>
+                    <p className="text-text-muted font-bold uppercase text-micro tracking-widest">Hydrating templates...</p>
                 </div>
             ) : templates.length === 0 ? (
                 <EmptyState
@@ -80,7 +80,7 @@ export default function TemplatesPage() {
                     description="You haven't saved any templates yet. You can save your role and question sets while creating a new invite."
                     actions={
                         <Link href="/recruiter/create">
-                            <Button variant="outline" className="font-bold uppercase text-[10px] tracking-widest px-8 mt-4 border-primary/20 hover:border-primary/50 text-primary">
+                            <Button variant="outline" className="font-bold uppercase text-micro tracking-widest px-8 mt-4 border-primary/20 hover:border-primary/50 text-primary">
                                 Create Your First Invite
                             </Button>
                         </Link>
@@ -142,7 +142,7 @@ export default function TemplatesPage() {
                                     </div>
 
                                     <div className="px-6 py-5 bg-surface-subtle/40 rounded-b-3xl border-x border-b border-border/40 flex items-center justify-between border-t border-t-border/5 group-hover:bg-surface-subtle/80 transition-colors duration-base">
-                                        <div className="text-[10px] font-bold uppercase tracking-widest text-text-disabled">
+                                        <div className="text-micro font-bold uppercase tracking-widest text-text-disabled">
                                             {new Date(template.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -160,7 +160,7 @@ export default function TemplatesPage() {
                                                 )}
                                             </Button>
                                             <Link href={`/recruiter/create?templateId=${template.id}`}>
-                                                <Button size="sm" variant="ghost" className="h-10 text-primary font-bold uppercase text-[10px] tracking-widest hover:text-primary hover:bg-primary/5 px-4 rounded-xl transition-all flex items-center gap-2 group/btn">
+                                                <Button size="sm" variant="ghost" className="h-10 text-primary font-bold uppercase text-micro tracking-widest hover:text-primary hover:bg-primary/5 px-4 rounded-xl transition-all flex items-center gap-2 group/btn">
                                                     Use Template <ChevronRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
                                                 </Button>
                                             </Link>

@@ -293,12 +293,12 @@ export default function UnifiedSessionScreen() {
                                 "grow-0 shrink-0 p-4 md:p-6 lg:p-10 w-full transition-all duration-500 ease-in-out cursor-default",
                                 isReviewing ? "opacity-30 scale-[0.98] pointer-events-none blur-sm" : "opacity-100 scale-100"
                             )}>
-                            <div className="glass-card text-slate-900 dark:text-white rounded-3xl p-6 md:p-10 w-full relative transition-all duration-300 ring-1 ring-white/20 bg-gradient-to-br from-[#e8f1fd] to-[#d1e3fa] overflow-hidden">
+                            <div className="glass-card text-slate-900 dark:text-white rounded-3xl p-6 md:p-10 w-full relative transition-all duration-300 ring-1 ring-white/20 bg-gradient-to-br from-brand-glass-start to-brand-glass-end overflow-hidden">
                                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-200 to-blue-600" />
 
                                 <div className="flex justify-start mb-6">
                                     <CategoryTooltip category={currentQuestion.category}>
-                                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-brand-deep text-[10px] font-bold uppercase tracking-wider text-white cursor-help transition-colors">
+                                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-brand-deep text-micro font-bold uppercase tracking-wider text-white cursor-help transition-colors">
                                             {currentQuestion.category.toUpperCase()}
                                         </span>
                                     </CategoryTooltip>
@@ -309,7 +309,7 @@ export default function UnifiedSessionScreen() {
                                     className="mb-10"
                                 />
 
-                                <div className="flex items-center gap-2 md:gap-4 min-h-[48px] md:min-h-[40px] w-auto pt-4 md:pt-6 pb-4 md:pb-10 -mx-6 md:-mx-10 -mb-6 md:-mb-10 px-6 md:px-10 border-t-2 border-slate-500/10 dark:border-white/10 bg-blue-900/[0.03] shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]">
+                                <div className="flex items-center gap-2 md:gap-4 min-h-12 md:min-h-10 w-auto pt-4 md:pt-6 pb-4 md:pb-10 -mx-6 md:-mx-10 -mb-6 md:-mb-10 px-6 md:px-10 border-t-2 border-slate-500/10 dark:border-white/10 bg-blue-900/[0.03] shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]">
                                     <div className="flex-1 flex justify-start gap-4">
                                         {!hasSubmitted && (
                                             <>
@@ -492,7 +492,7 @@ export default function UnifiedSessionScreen() {
                                                             <Button
                                                                 onClick={handleSubmit}
                                                                 disabled={isSubmitting}
-                                                                className="px-10 h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 shadow-lg font-bold min-w-[160px]"
+                                                                className="px-10 h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 shadow-lg font-bold min-w-40"
                                                             >
                                                                 {isSubmitting ? (
                                                                     <>
@@ -538,7 +538,7 @@ export default function UnifiedSessionScreen() {
                                     ) : (
                                         <textarea
                                             ref={textareaRef}
-                                            className="flex-1 w-full bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-3xl p-6 md:p-10 resize-none outline-none text-lg md:text-xl text-slate-800 dark:text-white placeholder:text-slate-300 dark:placeholder:text-white/20 font-medium shadow-sm min-h-[300px] backdrop-blur-sm focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                            className="flex-1 w-full bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-3xl p-6 md:p-10 resize-none outline-none text-lg md:text-xl text-slate-800 dark:text-white placeholder:text-slate-300 dark:placeholder:text-white/20 font-medium shadow-sm min-h-72 backdrop-blur-sm focus:ring-2 focus:ring-blue-500/20 transition-all"
                                             placeholder="Type your answer here..."
                                             value={answerText}
                                             onChange={(e) => {

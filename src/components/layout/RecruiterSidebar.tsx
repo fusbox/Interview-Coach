@@ -56,8 +56,8 @@ export function RecruiterSidebar({ className, onNavigate, user, profile }: Recru
                         />
                     </div>
                     <h1 className="font-bold text-xl tracking-tight font-display select-none">
-                        <span className="text-[#3b82f6]">Ready</span>
-                        <span className="text-[#F95500]">2</span>
+                        <span className="text-blue-500">Ready</span>
+                        <span className="text-brand-orange">2</span>
                         <span className="text-brand-deep">Work</span>
                     </h1>
                 </Link>

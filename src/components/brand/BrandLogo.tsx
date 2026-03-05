@@ -18,7 +18,7 @@ export default function BrandLogo() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.8, duration: 0.4 }}
-                className="text-[#F95500]"
+                className="text-brand-orange"
             >
                 2
             </motion.span>

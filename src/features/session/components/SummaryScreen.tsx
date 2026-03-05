@@ -271,7 +271,7 @@ export default function SummaryScreen() {
                     transition={{ delay: 0.8, duration: 0.8 }}
                     className="flex flex-row items-center justify-center gap-[0.4rem] text-muted-foreground/60 font-medium tracking-wide whitespace-nowrap pt-8"
                 >
-                    <span className="uppercase text-[10px] sm:text-xs tracking-[0.1em] translate-y-[1px]">
+                    <span className="uppercase text-micro sm:text-xs tracking-widest translate-y-px">
                         Workforce Readiness Powered By
                     </span>
                     <div className="relative h-4 w-16 sm:h-5 sm:w-20 flex-shrink-0">

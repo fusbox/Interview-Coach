@@ -163,7 +163,7 @@ export function SessionEvalForm({ session }: SessionEvalFormProps) {
                             }}
                         />
                         <div className="ml-auto">
-                            <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-200 text-[10px] font-bold">
+                            <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-200 text-micro font-bold">
                                 AGGREGATE READINESS: {session.readinessBand || 'N/A'}
                             </Badge>
                         </div>
@@ -256,7 +256,7 @@ export function SessionEvalForm({ session }: SessionEvalFormProps) {
                                     )}
                                     {answer.analysis.readinessBand && (
                                         <div className="pt-1">
-                                            <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200 text-[10px] font-bold">
+                                            <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200 text-micro font-bold">
                                                 AI READINESS: {answer.analysis.readinessBand}
                                             </Badge>
                                         </div>

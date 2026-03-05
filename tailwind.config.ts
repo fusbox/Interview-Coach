@@ -32,6 +32,9 @@ const config = {
 				industrial: ['var(--font-industrial)', ...fontFamily.sans],
 				signage: ['var(--font-signage)', ...fontFamily.sans],
 			},
+			fontSize: {
+				micro: ['0.625rem', { lineHeight: '1rem', letterSpacing: '0.05em' }]
+			},
 
 			colors: {
 				border: 'hsl(var(--border))',
@@ -98,7 +101,10 @@ const config = {
 					unknown: 'hsl(var(--readiness-unknown))',
 				},
 				brand: {
-					deep: '#08409a'
+					deep: '#08409a',
+					orange: '#F95500',
+					'glass-start': '#e8f1fd',
+					'glass-end': '#d1e3fa'
 				},
 				blue: {
 					'50': '#f0f7ff',

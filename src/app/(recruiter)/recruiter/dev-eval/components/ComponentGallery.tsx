@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { SectionHeader } from "@/components/patterns/SectionHeader"
-import { ReadinessBadge } from "@/components/patterns/ReadinessBadge"
 import { MetricCard } from "@/components/patterns/MetricCard"
 import { EmptyState } from "@/components/patterns/EmptyState"
 import { ErrorState } from "@/components/patterns/ErrorState"
@@ -16,7 +15,6 @@ import { Info, CheckCircle2, AlertTriangle, AlertCircle, Sparkles, Footprints, T
 interface SampleData {
     name: string
     status: string
-    readiness: 1 | 2 | 3 | 4
     score: string
 }
 
@@ -39,23 +37,23 @@ export function ComponentGallery() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-1">
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Display</p>
+                                <p className="text-micro font-bold text-muted-foreground uppercase tracking-widest">Display</p>
                                 <p className="text-4xl font-display font-black">Design Mastery</p>
                             </div>
                             <div className="space-y-1">
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">H1 / Heading-lg</p>
+                                <p className="text-micro font-bold text-muted-foreground uppercase tracking-widest">H1 / Heading-lg</p>
                                 <p className="text-3xl font-bold tracking-tight">Canonical Baseline</p>
                             </div>
                             <div className="space-y-1">
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">H2 / Heading-md</p>
+                                <p className="text-micro font-bold text-muted-foreground uppercase tracking-widest">H2 / Heading-md</p>
                                 <p className="text-2xl font-bold">Structural Integrity</p>
                             </div>
                             <div className="space-y-1">
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Body Large</p>
+                                <p className="text-micro font-bold text-muted-foreground uppercase tracking-widest">Body Large</p>
                                 <p className="text-lg">The quick brown fox jumps over the lazy dog.</p>
                             </div>
                             <div className="space-y-1">
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Body Default</p>
+                                <p className="text-micro font-bold text-muted-foreground uppercase tracking-widest">Body Default</p>
                                 <p className="text-base text-text-primary">Reliable and predictable layouts require strict tokens.</p>
                             </div>
                         </CardContent>
@@ -113,19 +111,19 @@ export function ComponentGallery() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                     <div className="space-y-2">
                         <div className="h-24 bg-card border shadow-flat rounded-sm flex items-center justify-center font-bold">sm</div>
-                        <p className="text-[10px] text-center font-bold text-muted-foreground uppercase">4px / Flat</p>
+                        <p className="text-micro text-center font-bold text-muted-foreground uppercase">4px / Flat</p>
                     </div>
                     <div className="space-y-2">
                         <div className="h-24 bg-card border shadow-raised-1 rounded-md flex items-center justify-center font-bold">md</div>
-                        <p className="text-[10px] text-center font-bold text-muted-foreground uppercase">8px / Raised-1</p>
+                        <p className="text-micro text-center font-bold text-muted-foreground uppercase">8px / Raised-1</p>
                     </div>
                     <div className="space-y-2">
                         <div className="h-24 bg-card border shadow-raised-2 rounded-lg flex items-center justify-center font-bold">lg</div>
-                        <p className="text-[10px] text-center font-bold text-muted-foreground uppercase">12px / Raised-2</p>
+                        <p className="text-micro text-center font-bold text-muted-foreground uppercase">12px / Raised-2</p>
                     </div>
                     <div className="space-y-2">
                         <div className="h-24 bg-card border shadow-floating rounded-xl flex items-center justify-center font-bold">xl</div>
-                        <p className="text-[10px] text-center font-bold text-muted-foreground uppercase">16px / Floating</p>
+                        <p className="text-micro text-center font-bold text-muted-foreground uppercase">16px / Floating</p>
                     </div>
                 </div>
             </section>
@@ -154,30 +152,19 @@ export function ComponentGallery() {
                 </Card>
             </section>
 
-            {/* 4. Pattern: ReadinessBadge */}
+            {/* 4. Pattern: Badges */}
             <section className="space-y-6">
-                <SectionHeader title="4. Pattern: ReadinessBadge" size="sm" />
+                <SectionHeader title="4. Pattern: Badges" size="sm" />
                 <Card>
                     <CardContent className="pt-6">
-                        <div className="space-y-8">
-                            <div className="space-y-2">
-                                <p className="text-xs font-bold text-muted-foreground uppercase mb-4">Readiness Levels (Automatic Mapping)</p>
-                                <div className="flex flex-wrap gap-4">
-                                    <ReadinessBadge level={1} />
-                                    <ReadinessBadge level={2} />
-                                    <ReadinessBadge level={3} />
-                                    <ReadinessBadge level={4} />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <p className="text-xs font-bold text-muted-foreground uppercase mb-4">Semantic States (Standard Badges)</p>
-                                <div className="flex flex-wrap gap-4">
-                                    <Badge variant="success">Success</Badge>
-                                    <Badge variant="warning">Warning</Badge>
-                                    <Badge variant="info">Info</Badge>
-                                    <Badge variant="destructive">Critical</Badge>
-                                    <Badge variant="outline">Outline</Badge>
-                                </div>
+                        <div className="space-y-2">
+                            <p className="text-xs font-bold text-muted-foreground uppercase mb-4">Semantic States (Standard Badges)</p>
+                            <div className="flex flex-wrap gap-4">
+                                <Badge variant="success">Success</Badge>
+                                <Badge variant="warning">Warning</Badge>
+                                <Badge variant="info">Info</Badge>
+                                <Badge variant="destructive">Critical</Badge>
+                                <Badge variant="outline">Outline</Badge>
                             </div>
                         </div>
                     </CardContent>
@@ -262,13 +249,12 @@ export function ComponentGallery() {
                     columns={[
                         { header: "Candidate", accessorKey: "name", className: "font-semibold" },
                         { header: "Status", cell: (item) => <Badge variant="outline">{item.status}</Badge> },
-                        { header: "Readiness", cell: (item) => <ReadinessBadge level={item.readiness} /> },
                         { header: "Score", accessorKey: "score", className: "text-right" }
                     ]}
                     data={[
-                        { name: "John Doe", status: "Active", readiness: 1, score: "8.5" },
-                        { name: "Jane Smith", status: "Review", readiness: 2, score: "7.2" },
-                        { name: "Bob Wilson", status: "Archived", readiness: 4, score: "N/A" }
+                        { name: "John Doe", status: "Active", score: "8.5" },
+                        { name: "Jane Smith", status: "Review", score: "7.2" },
+                        { name: "Bob Wilson", status: "Archived", score: "N/A" }
                     ]}
                 />
             </section>

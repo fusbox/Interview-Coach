@@ -109,7 +109,7 @@ export function StepJobAndQuestions({
                                 {onRandomizeJob && (
                                     <button
                                         onClick={onRandomizeJob}
-                                        className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-state-warning/10 text-state-warning hover:bg-state-warning/20 transition-all border border-state-warning/20"
+                                        className="px-3 py-1.5 text-micro font-bold uppercase tracking-wider rounded-full bg-state-warning/10 text-state-warning hover:bg-state-warning/20 transition-all border border-state-warning/20"
                                     >
                                         🎲 Random Job
                                     </button>
@@ -118,7 +118,7 @@ export function StepJobAndQuestions({
                                     <button
                                         onClick={onGenerateQuestionsAI}
                                         disabled={isGeneratingQuestions}
-                                        className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-state-success/10 text-state-success hover:bg-state-success/20 transition-all border border-state-success/20 disabled:opacity-50 flex items-center gap-1.5"
+                                        className="px-3 py-1.5 text-micro font-bold uppercase tracking-wider rounded-full bg-state-success/10 text-state-success hover:bg-state-success/20 transition-all border border-state-success/20 disabled:opacity-50 flex items-center gap-1.5"
                                     >
                                         {isGeneratingQuestions ? (
                                             <><Loader2 className="w-3 h-3 animate-spin" /> Generating...</>
@@ -134,7 +134,7 @@ export function StepJobAndQuestions({
 
                 {/* Template Select - Now Stacked Below */}
                 <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-text-disabled">Apply Template:</span>
+                    <span className="text-micro font-bold uppercase tracking-widest text-text-disabled">Apply Template:</span>
                     <div className="relative">
                         <select
                             className="h-9 min-w-[200px] rounded-lg border border-border bg-surface-base text-[11px] px-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-flat"
@@ -158,20 +158,20 @@ export function StepJobAndQuestions({
                 <CardContent className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-text-secondary ml-1">Req ID</label>
+                            <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Req ID</label>
                             <input className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                                 value={details.reqId} onChange={e => setDetails({ ...details, reqId: e.target.value })}
                                 placeholder="e.g. RCI-ENG-101" />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-text-secondary ml-1">Target Role</label>
+                            <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Target Role</label>
                             <input className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                                 value={details.role} onChange={e => setDetails({ ...details, role: e.target.value })}
                                 placeholder="e.g. Senior Product Manager" />
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-text-secondary ml-1">Job Description <span className="text-text-disabled font-normal lowercase tracking-normal">(Optional)</span></label>
+                        <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Job Description <span className="text-text-disabled font-normal lowercase tracking-normal">(Optional)</span></label>
                         <textarea className="flex min-h-[120px] w-full rounded-xl border border-border bg-surface-subtle px-4 py-3 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all leading-relaxed"
                             value={details.jd} onChange={e => setDetails({ ...details, jd: e.target.value })}
                             placeholder="Paste the job description here..." />
@@ -287,7 +287,7 @@ export function StepJobAndQuestions({
                         </div>
                         <form onSubmit={handleSaveSubmit} className="p-6 space-y-6">
                             <div className="space-y-2">
-                                <label className="text-[10px] font-bold uppercase tracking-wider text-text-secondary ml-1">Template Name</label>
+                                <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Template Name</label>
                                 <input
                                     autoFocus
                                     className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
@@ -295,7 +295,7 @@ export function StepJobAndQuestions({
                                     onChange={e => setTemplateName(e.target.value)}
                                     placeholder="e.g. Senior Backend Engineer"
                                 />
-                                <p className="text-[10px] text-text-muted italic ml-1">
+                                <p className="text-micro text-text-muted italic ml-1">
                                     Includes: Role &quot;{details.role}&quot; and {star.length + perma.length + technical.length} questions.
                                 </p>
                             </div>

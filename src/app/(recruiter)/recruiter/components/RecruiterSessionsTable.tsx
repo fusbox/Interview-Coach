@@ -3,17 +3,26 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, ArrowUpDown, Copy, Trash2, CheckCircle2, ExternalLink } from "lucide-react";
+import { Search, ArrowUpDown, Mail, Trash2, ExternalLink } from "lucide-react";
 import { SessionSummary } from "@/lib/domain/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { deleteSession } from "../actions";
-import { StatusBadge, ReadinessBadge, AttemptBadge } from "./session-badges";
+import { StatusBadge, AttemptBadge } from "./session-badges";
 import { DataTable } from "@/components/patterns/DataTable";
+
+export interface RecruiterProfile {
+    name: string;
+    title: string;
+    company: string;
+    phone: string;
+    email: string;
+}
 
 interface RecruiterSessionsTableProps {
     initialSessions: SessionSummary[];
     recruiterTimezone?: string;
+    recruiterProfile?: RecruiterProfile;
 }
 
 type SortConfig = {
@@ -22,11 +31,10 @@ type SortConfig = {
 } | null;
 
 
-export function RecruiterSessionsTable({ initialSessions, recruiterTimezone }: RecruiterSessionsTableProps) {
+export function RecruiterSessionsTable({ initialSessions, recruiterTimezone, recruiterProfile }: RecruiterSessionsTableProps) {
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState("");
     const [sortConfig, setSortConfig] = useState<SortConfig>(null);
-    const [copiedId, setCopiedId] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
     const handleSort = (key: keyof SessionSummary | 'created' | 'updatedAt') => {
@@ -38,35 +46,26 @@ export function RecruiterSessionsTable({ initialSessions, recruiterTimezone }: R
         });
     };
 
-    const handleCopyLink = async (token: string, sessionId: string) => {
-        const link = `${window.location.origin}/s/${token}`;
+    const buildResendMailto = (session: SessionSummary) => {
+        if (!session.inviteToken) return null;
+        const link = `${window.location.origin}/s/${session.inviteToken}`;
+        const subject = `Interview Invitation: ${session.role}`;
+        const body = `Hi ${session.candidateName},
 
-        try {
-            // Navigator clipboard api needs a secure context (https)
-            if (navigator.clipboard && window.isSecureContext) {
-                await navigator.clipboard.writeText(link);
-            } else {
-                // Fallback for non-secure contexts (http/local network)
-                const textArea = document.createElement("textarea");
-                textArea.value = link;
-                textArea.style.position = "fixed";
-                textArea.style.left = "-9999px";
-                textArea.style.top = "0";
-                document.body.appendChild(textArea);
-                textArea.focus();
-                textArea.select();
-                try {
-                    document.execCommand('copy');
-                } catch (err) {
-                    console.error('Fallback: Oops, unable to copy', err);
-                }
-                document.body.removeChild(textArea);
-            }
-            setCopiedId(sessionId);
-            setTimeout(() => setCopiedId(null), 2000);
-        } catch (err) {
-            console.error('Async: Could not copy text: ', err);
-        }
+I'd like to invite you to a preliminary interview practice session for the ${session.role} role. This interactive session will help us understand your experience better.
+
+Please click the link below to start whenever you're ready:
+${link}
+
+Best regards,
+
+${recruiterProfile?.name || ''}
+${recruiterProfile?.title || 'Recruiter'}
+${recruiterProfile?.company || 'Rangam Consultants Inc.'}
+
+M: ${recruiterProfile?.phone || ''}
+E: ${recruiterProfile?.email || ''}`;
+        return `mailto:${session.candidateEmail || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     };
 
     // Re-fetch data whenever the tab regains focus (covers back-navigation, tab switching, etc.)
@@ -213,15 +212,6 @@ export function RecruiterSessionsTable({ initialSessions, recruiterTimezone }: R
                     },
                     {
                         header: (
-                            <button onClick={() => handleSort('readinessBand')} className="flex items-center gap-1 hover:text-slate-900 transition-colors">
-                                Readiness <ArrowUpDown className="w-3 h-3" />
-                            </button>
-                        ),
-                        cell: (session) => <ReadinessBadge session={session} />,
-                        className: "w-[180px] bg-gradient-to-br from-blue-50/50 to-blue-100/30"
-                    },
-                    {
-                        header: (
                             <button onClick={() => handleSort('engagedTimeSeconds')} className="flex items-center gap-1 hover:text-slate-900 transition-colors">
                                 Active <ArrowUpDown className="w-3 h-3" />
                             </button>
@@ -278,15 +268,13 @@ export function RecruiterSessionsTable({ initialSessions, recruiterTimezone }: R
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
-                                            title="Copy Invite Link"
-                                            onClick={() => handleCopyLink(session.inviteToken!, session.id)}
+                                            asChild
+                                            className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                            title="Resend Invite Email"
                                         >
-                                            {copiedId === session.id ? (
-                                                <CheckCircle2 className="h-4 w-4 text-emerald-600 animate-in zoom-in-50" />
-                                            ) : (
-                                                <Copy className="h-4 w-4" />
-                                            )}
+                                            <a href={buildResendMailto(session) || '#'} target="_blank" rel="noopener noreferrer">
+                                                <Mail className="h-4 w-4" />
+                                            </a>
                                         </Button>
                                     ) : null}
                                 </div>

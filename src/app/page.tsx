@@ -48,7 +48,7 @@ export default function Home() {
                         transition={{ delay: 2.8, duration: 0.8 }}
                         className="flex flex-row items-center justify-center gap-[0.4rem] text-lg md:text-xl text-muted-foreground/80 font-medium tracking-wide whitespace-nowrap"
                     >
-                        <span className="uppercase text-[10px] sm:text-xs md:text-base tracking-[0.1em] opacity-80 translate-y-[1px]">
+                        <span className="uppercase text-micro sm:text-xs md:text-base tracking-widest opacity-80 translate-y-px">
                             Workforce Readiness Powered By
                         </span>
                         <div className="relative h-4 w-16 sm:h-5 sm:w-20 md:h-6 md:w-24 flex-shrink-0">

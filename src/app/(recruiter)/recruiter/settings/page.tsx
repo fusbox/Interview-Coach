@@ -242,7 +242,7 @@ export default function SettingsPage() {
                         )}
 
                         <div className="space-y-3">
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-text-secondary ml-1">Your Job Title</label>
+                            <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Your Job Title</label>
                             <input
                                 className="flex h-12 w-full rounded-xl border border-border bg-surface-subtle px-4 py-2 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-base"
                                 value={profile.title}
@@ -253,7 +253,7 @@ export default function SettingsPage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-3">
-                                <label className="text-[10px] font-bold uppercase tracking-wider text-text-secondary ml-1">First Name</label>
+                                <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">First Name</label>
                                 <input
                                     required
                                     className="flex h-12 w-full rounded-xl border border-border bg-surface-subtle px-4 py-2 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-base"
@@ -262,7 +262,7 @@ export default function SettingsPage() {
                                 />
                             </div>
                             <div className="space-y-3">
-                                <label className="text-[10px] font-bold uppercase tracking-wider text-text-secondary ml-1">Last Name</label>
+                                <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Last Name</label>
                                 <input
                                     required
                                     className="flex h-12 w-full rounded-xl border border-border bg-surface-subtle px-4 py-2 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-base"
@@ -273,7 +273,7 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="space-y-3">
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-text-secondary ml-1">Phone Number</label>
+                            <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Phone Number</label>
                             <input
                                 className="flex h-12 w-full rounded-xl border border-border bg-surface-subtle px-4 py-2 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-base"
                                 value={profile.phone}
@@ -284,7 +284,7 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="space-y-3">
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-text-secondary ml-1">Display Time Zone</label>
+                            <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Display Time Zone</label>
                             <div className="relative group">
                                 <select
                                     className="flex h-12 w-full items-center justify-between rounded-xl border border-border bg-surface-subtle px-4 py-2 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-base cursor-pointer"
@@ -299,12 +299,12 @@ export default function SettingsPage() {
                                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                                 </div>
                             </div>
-                            <p className="text-[10px] text-text-muted italic ml-1">Used for displaying session timestamps and activity logs.</p>
+                            <p className="text-micro text-text-muted italic ml-1">Used for displaying session timestamps and activity logs.</p>
                         </div>
 
                     </CardContent>
                     <CardFooter className="flex justify-between items-center bg-surface-subtle/50 p-6 border-t border-border/10">
-                        <div className="text-[10px] font-bold uppercase tracking-widest text-text-disabled">
+                        <div className="text-micro font-bold uppercase tracking-widest text-text-disabled">
                             {isDirty ? "Unsaved changes" : "All changes saved"}
                         </div>
                         <div className="flex gap-4">
@@ -313,7 +313,7 @@ export default function SettingsPage() {
                                     type="button"
                                     variant="ghost"
                                     onClick={handleCancel}
-                                    className="px-6 font-bold uppercase text-[10px] tracking-widest text-text-disabled hover:text-text-primary transition-all animate-in fade-in slide-in-from-right-1"
+                                    className="px-6 font-bold uppercase text-micro tracking-widest text-text-disabled hover:text-text-primary transition-all animate-in fade-in slide-in-from-right-1"
                                 >
                                     Cancel
                                 </Button>
@@ -322,7 +322,7 @@ export default function SettingsPage() {
                                 type="submit"
                                 disabled={!isDirty || isSaving}
                                 className={cn(
-                                    "h-11 px-8 font-bold uppercase text-[10px] tracking-widest transition-all duration-base flex items-center gap-2",
+                                    "h-11 px-8 font-bold uppercase text-micro tracking-widest transition-all duration-base flex items-center gap-2",
                                     isDirty
                                         ? "bg-primary text-primary-foreground shadow-raised-1 hover:shadow-raised-2 active:scale-95"
                                         : "bg-surface-subtle text-text-disabled border border-border/20 cursor-not-allowed"

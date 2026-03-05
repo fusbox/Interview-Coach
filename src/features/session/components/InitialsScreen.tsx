@@ -123,7 +123,7 @@ export default function InitialsScreen() {
                         <p className="mt-1 text-sm text-muted-foreground">
                             Used to confirm the link was opened by the intended recipient.
                             <br />
-                            <span className="text-[10px] opacity-70 uppercase tracking-wider font-bold">(No account setup required.)</span>
+                            <span className="text-micro opacity-70 uppercase tracking-wider font-bold">(No account setup required.)</span>
                         </p>
                     </div>
                 </div>

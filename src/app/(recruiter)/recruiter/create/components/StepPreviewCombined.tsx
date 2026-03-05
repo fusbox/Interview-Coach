@@ -50,10 +50,10 @@ export function StepPreviewCombined({
                 <Card className="border-border/50 shadow-raised-1 overflow-hidden">
                     <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-4 px-6 border-b border-border/30 bg-surface-base gap-4">
                         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                            <Badge variant="outline" className="bg-state-info/5 text-state-info border-state-info/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shrink-0 w-fit">Job Details</Badge>
+                            <Badge variant="outline" className="bg-state-info/5 text-state-info border-state-info/20 px-2.5 py-0.5 text-micro font-bold uppercase tracking-wider shrink-0 w-fit">Job Details</Badge>
                             <span className="font-bold text-text-primary truncate tracking-tight">{details.role}</span>
                             <span className="hidden sm:inline text-border">|</span>
-                            <span className="text-text-disabled font-mono text-[10px] sm:text-xs">{details.reqId}</span>
+                            <span className="text-text-disabled font-mono text-micro sm:text-xs">{details.reqId}</span>
                         </div>
                         {setDetailStep && (
                             <Button variant="ghost" size="sm" onClick={setDetailStep} className="hidden sm:flex h-8 text-text-secondary hover:bg-surface-subtle transition-all">
@@ -101,7 +101,7 @@ export function StepPreviewCombined({
                     <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-4 px-6 border-b border-border/30 bg-surface-base gap-4">
                         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                             <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="bg-state-info/5 text-state-info border-state-info/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shrink-0">Candidates</Badge>
+                                <Badge variant="outline" className="bg-state-info/5 text-state-info border-state-info/20 px-2.5 py-0.5 text-micro font-bold uppercase tracking-wider shrink-0">Candidates</Badge>
                                 <span className="font-bold text-text-primary tracking-tight sm:hidden">{candidates.length} Recipients</span>
                             </div>
                             <span className="hidden sm:inline font-bold text-text-primary tracking-tight">{candidates.length} Recipients</span>
@@ -117,7 +117,7 @@ export function StepPreviewCombined({
                             {candidates.map((c, i) => (
                                 <div key={c.id} className="flex items-center justify-between text-sm p-3 rounded-xl hover:bg-surface-subtle border border-transparent hover:border-border/30 transition-all group animate-in fade-in slide-in-from-top-1 duration-base">
                                     <div className="flex items-center gap-4">
-                                        <span className="font-mono text-text-disabled text-[10px] w-5 text-center px-1.5 py-0.5 bg-surface-base border border-border/20 rounded shadow-flat group-hover:bg-primary/5 group-hover:text-primary transition-colors">{(i + 1).toString().padStart(2, '0')}</span>
+                                        <span className="font-mono text-text-disabled text-micro w-5 text-center px-1.5 py-0.5 bg-surface-base border border-border/20 rounded shadow-flat group-hover:bg-primary/5 group-hover:text-primary transition-colors">{(i + 1).toString().padStart(2, '0')}</span>
                                         <div className="font-bold text-text-primary tracking-tight">{c.firstName} {c.lastName}</div>
                                     </div>
                                     <div className="text-text-secondary font-medium">{c.email}</div>

@@ -2,7 +2,6 @@
 
 import React from "react";
 import { SessionSummary, InterviewSession } from "@/lib/domain/types";
-import { ReadinessTooltip } from "./ReadinessTooltip";
 import { StatusBadge as CanonicalStatusBadge } from "@/components/patterns/StatusBadge";
 
 // ---------------------------------------------------------------------------
@@ -68,35 +67,6 @@ export function StatusBadge({ session }: { session: BadgeSession }) {
 
     // 7. Invite Sent
     return <CanonicalStatusBadge variant="progressIdle" icon={false} size="sm" className={STATUS_WIDTH} fullWidth={false}>Invite Sent</CanonicalStatusBadge>;
-}
-
-// ---------------------------------------------------------------------------
-// Readiness Badge — RL1-RL4 readiness band with tooltip
-// ---------------------------------------------------------------------------
-
-const READINESS_WIDTH = "w-[160px] justify-center text-center";
-
-const READINESS_MAP: Record<string, { label: string; variant: "readinessHigh" | "readinessPotential" | "readinessMedium" | "readinessLow" | "readinessUnknown" }> = {
-    RL1: { label: 'Ready', variant: 'readinessHigh' },
-    RL2: { label: 'Strong Potential', variant: 'readinessPotential' },
-    RL3: { label: 'Practice Recommended', variant: 'readinessMedium' },
-    RL4: { label: 'Incomplete', variant: 'readinessUnknown' },
-};
-
-export function ReadinessBadge({ session }: { session: BadgeSession }) {
-    const rl = session.readinessBand;
-    if (!rl && !session.summaryNarrative) return <span className="text-slate-300 text-xs">—</span>;
-
-    const mapped = rl ? READINESS_MAP[rl] : null;
-    const badge = mapped
-        ? <CanonicalStatusBadge variant={mapped.variant} icon={false} size="sm" className={READINESS_WIDTH}>{mapped.label}</CanonicalStatusBadge>
-        : <CanonicalStatusBadge variant="neutral" icon={false} size="sm" className={READINESS_WIDTH}>Analyzing...</CanonicalStatusBadge>;
-
-    return (
-        <ReadinessTooltip narrative={session.summaryNarrative}>
-            {badge}
-        </ReadinessTooltip>
-    );
 }
 
 // ---------------------------------------------------------------------------

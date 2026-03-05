@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from "@/components/ui/button"
+
 import { Clock, ShieldCheck } from "lucide-react"
-import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { audioEngine } from '@/features/audio/audio-engine';
 import { useSession } from '../context/SessionContext';
 import { cn } from '@/lib/cn';
@@ -55,7 +55,7 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
 
     return (
         <div className="min-h-[100dvh] w-full bg-background font-sans text-foreground selection:bg-primary/10 selection:text-primary overflow-y-auto">
-            <div className="w-full max-w-xl mx-auto px-6 py-12 md:py-24 space-y-12 flex flex-col min-h-[100dvh]">
+            <div className="w-full max-w-xl mx-auto px-6 py-12 md:py-24 space-y-8 flex flex-col min-h-[100dvh]">
 
                 {/* 1. Logo Area */}
                 <div className="flex justify-between items-center shrink-0">
@@ -70,12 +70,10 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                 </div>
 
                 {/* 2. Primary Heading */}
-                <div className="w-full">
-                    <SectionHeader
-                        title="Let's get you ready for your interview."
-                        size="lg"
-                        className="text-primary font-bold"
-                    />
+                <div className="space-y-4 text-left">
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-primary leading-tight font-display">
+                        Let&rsquo;s get you ready for your interview.
+                    </h1>
                 </div>
 
                 {/* 3. Introductory Copy */}
@@ -126,7 +124,7 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                 {/* Baseline Question */}
                 <div className="pt-4 space-y-6">
                     <div className="space-y-2">
-                        <h4 className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Before we start:</h4>
+                        <h4 className="text-micro font-bold uppercase tracking-widest text-text-muted">Before we start:</h4>
                         <p className="text-lg font-medium text-text-primary text-left">How prepared do you feel for your upcoming interview?</p>
                     </div>
 
@@ -146,7 +144,7 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                             </button>
                         ))}
                     </div>
-                    <div className="flex justify-between w-full px-1 text-[10px] font-bold uppercase tracking-tighter text-text-muted">
+                    <div className="flex justify-between w-full px-1 text-micro font-bold uppercase tracking-tighter text-text-muted">
                         <span>Not prepared</span>
                         <span>Very prepared</span>
                     </div>

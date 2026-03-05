@@ -59,7 +59,7 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 font-sans">
+        <div className="min-h-screen flex items-center justify-center bg-surface-subtle p-4 font-sans">
             <Card className="w-full max-w-md overflow-hidden border-t-4 border-t-primary shadow-xl">
                 <CardHeader className="text-center pb-2">
                     <CardTitle className="text-2xl font-bold text-slate-800">Recruiter Portal</CardTitle>
@@ -110,7 +110,7 @@ export default function LoginPage() {
                         )}
 
                         <div className="space-y-2">
-                            <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 ml-1">
+                            <label className="text-micro font-semibold uppercase tracking-wider text-text-muted ml-1">
                                 Email Address
                             </label>
                             <div className="relative group">
@@ -127,7 +127,7 @@ export default function LoginPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 ml-1">
+                            <label className="text-micro font-semibold uppercase tracking-wider text-text-muted ml-1">
                                 Password
                             </label>
                             <div className="relative group">

@@ -41,7 +41,7 @@ export function ErrorState({
 
             {error && (
                 <div className="mt-6 p-4 bg-black/5 dark:bg-white/5 rounded-lg border border-border/50 max-w-lg overflow-auto">
-                    <code className="text-[10px] text-muted-foreground whitespace-pre-wrap">
+                    <code className="text-micro text-muted-foreground whitespace-pre-wrap">
                         {typeof error === 'string' ? error : error.message}
                     </code>
                 </div>

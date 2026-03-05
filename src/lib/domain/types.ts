@@ -132,6 +132,8 @@ export interface InterviewSession {
     role: string;
     jobDescription?: string;
     status: SessionStatus;
+    readinessBand?: string | null;
+    summaryNarrative?: string | null;
 
     // The Data
     questions: Question[];
@@ -161,8 +163,6 @@ export interface InterviewSession {
     parentSessionId?: string;
     attemptNumber?: number; // 1-based index (default 1)
     clientName?: string; // For future filtering
-    readinessBand?: 'RL1' | 'RL2' | 'RL3' | 'RL4';
-    summaryNarrative?: string;
 }
 
 export interface SessionSummary {
@@ -179,13 +179,11 @@ export interface SessionSummary {
     enteredInitials?: string;
     inviteToken?: string;
 
-    // Lineage
     parentSessionId?: string;
     attemptNumber?: number;
     clientName?: string;
     attempts?: SessionSummary[];
-    readinessBand?: 'RL1' | 'RL2' | 'RL3' | 'RL4';
-    summaryNarrative?: string;
+    candidateEmail?: string;
     engagedTimeSeconds?: number;
 }
 
@@ -195,16 +193,4 @@ export interface SessionDashboardMetrics {
     completedSessions: number;
     stalledSessions: number;
     averageEngagementTimeSeconds: number;
-    readinessDistribution: Record<'RL1' | 'RL2' | 'RL3' | 'RL4', number>;
-    coachingFocusDistribution: Record<string, number>;
-    commonObservations: { text: string; count: number }[];
-}
-
-/**
- * Eval-derived coaching insights only.
- * Fetched separately from sessions to avoid a duplicate sessions query.
- */
-export interface EvalInsights {
-    coachingFocusDistribution: Record<string, number>;
-    commonObservations: { text: string; count: number }[];
 }

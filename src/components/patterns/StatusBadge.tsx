@@ -28,7 +28,7 @@ const statusBadgeVariants = cva(
                 progressComplete: "bg-state-success text-white border-transparent",
             },
             size: {
-                sm: "px-2 py-0.5 text-[10px]",
+                sm: "px-2 py-0.5 text-micro",
                 md: "px-2.5 py-0.5 text-xs",
                 lg: "px-3 py-1 text-sm",
             },

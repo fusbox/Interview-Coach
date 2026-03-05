@@ -34,7 +34,7 @@ export default async function DevEvalDetailPage({ params }: { params: { id: stri
                         <h1 className="text-xl font-bold font-display text-slate-900">
                             {session.candidateName || 'Anonymous'} — {session.role}
                         </h1>
-                        <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200 text-[10px]">DEV EVAL</Badge>
+                        <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200 text-micro">DEV EVAL</Badge>
                     </div>
                     <p className="text-sm text-slate-500 mt-0.5">
                         {session.questions.length} questions · {Object.keys(session.answers).length} answers

@@ -66,7 +66,7 @@ export function StepCandidates({
                     isDemo && onRandomizeCandidate && (
                         <button
                             onClick={onRandomizeCandidate}
-                            className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-state-info/10 text-state-info hover:bg-state-info/20 transition-all border border-state-info/20 shadow-sm"
+                            className="px-3 py-1.5 text-micro font-bold uppercase tracking-wider rounded-full bg-state-info/10 text-state-info hover:bg-state-info/20 transition-all border border-state-info/20 shadow-sm"
                         >
                             🎲 Add Random
                         </button>

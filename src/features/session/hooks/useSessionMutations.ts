@@ -91,6 +91,8 @@ export function useSessionMutations(
         if (isBusyRef.current) return;
         isBusyRef.current = true;
 
+        const previousSessionSnapshot = session; // Snapshot for rollback
+
         try {
             // Optimistic Update
             setSession((prev: InterviewSession | null | undefined) => {
@@ -140,6 +142,9 @@ export function useSessionMutations(
             await analyzeCurrentQuestion(audioData);
         } catch (e) {
             Logger.error("Submit failed with exception", e);
+            // Revert optimistic update so the UI doesn't hang forever
+            setSession(previousSessionSnapshot);
+            alert("Network error: Failed to submit your answer. Please check your connection and try again.");
         } finally {
             isBusyRef.current = false;
         }

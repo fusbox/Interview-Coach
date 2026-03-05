@@ -62,7 +62,7 @@ export default function RootLayout({
                     showSpinner={false}
                     easing="ease"
                     speed={200}
-                    shadow="0 0 10px #08409a,0 0 5px #08409a"
+                    shadow="0 0 10px #08409a, 0 0 5px #08409a"
                 />
                 <ScrollToTop />
                 {children}

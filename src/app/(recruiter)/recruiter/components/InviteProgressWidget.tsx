@@ -5,7 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SessionSummary } from "@/lib/domain/types";
 import { computeWidgetBuckets, WidgetBucket, WidgetSession } from "@/lib/services/compute-widget-buckets";
-import { StatusBadge, ReadinessBadge, AttemptBadge } from "./session-badges";
+import { StatusBadge, AttemptBadge } from "./session-badges";
+import { RecruiterProfile } from "./RecruiterSessionsTable";
 import {
     CheckCircle2,
     Clock,
@@ -13,7 +14,7 @@ import {
     Inbox,
     ChevronDown,
     ChevronUp,
-    Copy,
+    Mail,
     ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -93,21 +94,15 @@ function BucketHeader({ bucket }: { bucket: WidgetBucket }) {
     );
 }
 
-function SessionRow({ session, bucketKey }: { session: WidgetSession; bucketKey: string }) {
+function SessionRow({ session, bucketKey, recruiterProfile }: { session: WidgetSession; bucketKey: string; recruiterProfile?: RecruiterProfile }) {
     const router = useRouter();
-    const [copiedLink, setCopiedLink] = useState(false);
 
-    const handleCopy = async (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (!session.inviteToken) return;
+    const buildResendMailto = () => {
+        if (!session.inviteToken) return null;
         const link = `${window.location.origin}/s/${session.inviteToken}`;
-        try {
-            await navigator.clipboard.writeText(link);
-            setCopiedLink(true);
-            setTimeout(() => setCopiedLink(false), 1500);
-        } catch {
-            // Silent fail for non-secure contexts
-        }
+        const subject = `Interview Invitation: ${session.role}`;
+        const body = `Hi ${session.candidateName},\n\nI'd like to invite you to a preliminary interview practice session for the ${session.role} role. This interactive session will help us understand your experience better.\n\nPlease click the link below to start whenever you're ready:\n${link}\n\nBest regards,\n\n${recruiterProfile?.name || ''}\n${recruiterProfile?.title || 'Recruiter'}\n${recruiterProfile?.company || 'Rangam Consultants Inc.'}\n\nM: ${recruiterProfile?.phone || ''}\nE: ${recruiterProfile?.email || ''}`;
+        return `mailto:${session.candidateEmail || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     };
 
     const handleRowClick = () => {
@@ -137,16 +132,12 @@ function SessionRow({ session, bucketKey }: { session: WidgetSession; bucketKey:
                 </div>
             </div>
 
-            {/* Badge area — context-dependent */}
+            {/* Badge area */}
             <div className="flex items-center flex-shrink-0">
-                {bucketKey === 'ready_to_review' ? (
-                    <ReadinessBadge session={session} />
-                ) : (
-                    <StatusBadge session={session} />
-                )}
+                <StatusBadge session={session} />
             </div>
 
-            {/* Actions — fixed width so badge column stays aligned */}
+            {/* Actions */}
             <div
                 className="flex items-center gap-0.5 w-[60px] justify-end flex-shrink-0"
                 onClick={(e) => e.stopPropagation()}
@@ -156,11 +147,13 @@ function SessionRow({ session, bucketKey }: { session: WidgetSession; bucketKey:
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 text-slate-400 hover:text-slate-700 opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="Copy Invite Link"
-                            onClick={handleCopy}
+                            asChild
+                            className="h-7 w-7 text-slate-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Resend Invite Email"
                         >
-                            <Copy className={`h-3.5 w-3.5 ${copiedLink ? 'text-emerald-500' : ''}`} />
+                            <a href={buildResendMailto() || '#'} target="_blank" rel="noopener noreferrer">
+                                <Mail className="h-3.5 w-3.5" />
+                            </a>
                         </Button>
                     ) : null}
                 </div>
@@ -179,7 +172,7 @@ function SessionRow({ session, bucketKey }: { session: WidgetSession; bucketKey:
     );
 }
 
-function AwaitingActionSummary({ bucket }: { bucket: WidgetBucket }) {
+function AwaitingActionSummary({ bucket, recruiterProfile }: { bucket: WidgetBucket; recruiterProfile?: RecruiterProfile }) {
     const [expanded, setExpanded] = useState(true);
 
     if (bucket.count === 0) {
@@ -213,7 +206,7 @@ function AwaitingActionSummary({ bucket }: { bucket: WidgetBucket }) {
             {expanded && (
                 <div className="space-y-0.5 mt-1 animate-in slide-in-from-top-2 duration-200">
                     {bucket.sessions.map((s) => (
-                        <SessionRow key={s.id} session={s} bucketKey={bucket.key} />
+                        <SessionRow key={s.id} session={s} bucketKey={bucket.key} recruiterProfile={recruiterProfile} />
                     ))}
                 </div>
             )}
@@ -221,7 +214,7 @@ function AwaitingActionSummary({ bucket }: { bucket: WidgetBucket }) {
     );
 }
 
-function BucketSection({ bucket }: { bucket: WidgetBucket }) {
+function BucketSection({ bucket, recruiterProfile }: { bucket: WidgetBucket; recruiterProfile?: RecruiterProfile }) {
     const config = BUCKET_CONFIG[bucket.key];
     const MAX_VISIBLE = 5;
     const [showAll, setShowAll] = useState(false);
@@ -232,7 +225,7 @@ function BucketSection({ bucket }: { bucket: WidgetBucket }) {
             <div>
                 <BucketHeader bucket={bucket} />
                 <div className="mt-2">
-                    <AwaitingActionSummary bucket={bucket} />
+                    <AwaitingActionSummary bucket={bucket} recruiterProfile={recruiterProfile} />
                 </div>
             </div>
         );
@@ -257,6 +250,7 @@ function BucketSection({ bucket }: { bucket: WidgetBucket }) {
                                     key={session.id}
                                     session={session}
                                     bucketKey={bucket.key}
+                                    recruiterProfile={recruiterProfile}
                                 />
                             ))}
                         </div>
@@ -285,9 +279,10 @@ function BucketSection({ bucket }: { bucket: WidgetBucket }) {
 
 interface InviteProgressWidgetProps {
     sessions: SessionSummary[];
+    recruiterProfile?: RecruiterProfile;
 }
 
-export function InviteProgressWidget({ sessions }: InviteProgressWidgetProps) {
+export function InviteProgressWidget({ sessions, recruiterProfile }: InviteProgressWidgetProps) {
     const buckets = useMemo(() => computeWidgetBuckets(sessions), [sessions]);
 
     const totalSessions = sessions.length;
@@ -312,7 +307,7 @@ export function InviteProgressWidget({ sessions }: InviteProgressWidgetProps) {
                             className="border-none shadow-flat bg-surface-base overflow-hidden"
                         >
                             <CardContent className="p-5">
-                                <BucketSection bucket={bucket} />
+                                <BucketSection bucket={bucket} recruiterProfile={recruiterProfile} />
                             </CardContent>
                         </Card>
                     ))}

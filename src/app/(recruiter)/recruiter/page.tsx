@@ -1,14 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { getRecruiterSessions, getRecruiterInsights } from "./actions";
+import { getRecruiterSessions } from "./actions";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { createClient, getCachedUser } from "@/lib/supabase/server";
 import { RecruiterSessionsTable } from "./components/RecruiterSessionsTable";
 import { DashboardStats } from "./components/DashboardStats";
-import { CurrentBaselineBlock } from "./components/CurrentBaselineBlock";
-import { CoachingFocusCard } from "./components/CoachingFocusCard";
-import { TopOpportunitiesCard } from "./components/TopOpportunitiesCard";
 import { InviteProgressWidget } from "./components/InviteProgressWidget";
 import { CollapsibleSection } from "./components/CollapsibleSection";
 import { redirect } from "next/navigation";
@@ -20,26 +17,25 @@ export default async function RecruiterDashboard() {
     const user = await getCachedUser();
     if (!user) redirect("/login");
 
-    // Single session fetch + separate evals query (no duplicate sessions query)
-    const [sessions, insights, profileData] = await Promise.all([
+    const [sessions, profileData] = await Promise.all([
         getRecruiterSessions(),
-        getRecruiterInsights(),
-        createClient().from('recruiter_profiles').select('timezone').eq('recruiter_id', user.id).single()
+        createClient().from('recruiter_profiles').select('timezone, full_name, title, company, phone, email').eq('recruiter_id', user.id).single()
     ]);
 
     const recruiterTimezone = profileData.data?.timezone;
+    const recruiterProfile = {
+        name: profileData.data?.full_name || user.email || '',
+        title: profileData.data?.title || 'Recruiter',
+        company: profileData.data?.company || 'Rangam Consultants Inc.',
+        phone: profileData.data?.phone || '',
+        email: profileData.data?.email || user.email || '',
+    };
 
     // Derive basic stats from the already-fetched sessions
     const basicStats = computeDashboardStats(sessions);
 
-    // Merge into full metrics shape for existing components
-    const metrics = {
-        ...basicStats,
-        ...insights,
-    };
-
     const inviteCountBadge = (
-        <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
+        <span className="text-micro text-slate-400 uppercase tracking-widest font-bold">
             {sessions.length} invite{sessions.length !== 1 ? 's' : ''}
         </span>
     );
@@ -49,7 +45,7 @@ export default async function RecruiterDashboard() {
             <SectionHeader
                 title="Dashboard"
                 size="lg"
-                description="At-a-glance view of your hiring pipeline and coaching impact."
+                description="At-a-glance view of your hiring pipeline."
                 actions={
                     <Button asChild className="shadow-md">
                         <Link href="/recruiter/create">
@@ -60,14 +56,8 @@ export default async function RecruiterDashboard() {
                 }
             />
 
-            {/* Top Baseline Header */}
-            <CurrentBaselineBlock
-                metrics={metrics}
-                recruiterEmail={user.email || ''}
-            />
-
             {/* High Level Stats */}
-            <DashboardStats metrics={metrics} />
+            <DashboardStats metrics={basicStats} />
 
             {/* Invite Progress — collapsible, persisted */}
             <CollapsibleSection
@@ -75,18 +65,7 @@ export default async function RecruiterDashboard() {
                 title="Invite Progress"
                 trailing={inviteCountBadge}
             >
-                <InviteProgressWidget sessions={sessions} />
-            </CollapsibleSection>
-
-            {/* Coaching Trends — collapsible, persisted */}
-            <CollapsibleSection
-                storageKey="coaching_trends"
-                title="Coaching Trends"
-            >
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <CoachingFocusCard metrics={metrics} />
-                    <TopOpportunitiesCard metrics={metrics} />
-                </div>
+                <InviteProgressWidget sessions={sessions} recruiterProfile={recruiterProfile} />
             </CollapsibleSection>
 
             {/* Manage Invites — collapsible, persisted */}
@@ -95,13 +74,14 @@ export default async function RecruiterDashboard() {
                 title="Manage Invites"
                 trailing={
                     <span className="text-sm text-slate-500">
-                        Track individual candidate progress and readiness scores.
+                        Track individual candidate progress.
                     </span>
                 }
             >
                 <RecruiterSessionsTable
                     initialSessions={sessions}
                     recruiterTimezone={recruiterTimezone}
+                    recruiterProfile={recruiterProfile}
                 />
             </CollapsibleSection>
         </div>

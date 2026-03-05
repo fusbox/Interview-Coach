@@ -41,7 +41,7 @@ export function DataTable<T>({
                 <TableHeader className="bg-surface-subtle/50">
                     <TableRow className="hover:bg-transparent">
                         {columns.map((column, idx) => (
-                            <TableHead key={idx} className={cn("text-[10px] font-bold uppercase tracking-widest py-3", column.className)}>
+                            <TableHead key={idx} className={cn("text-micro font-bold uppercase tracking-widest py-3", column.className)}>
                                 {column.header}
                             </TableHead>
                         ))}

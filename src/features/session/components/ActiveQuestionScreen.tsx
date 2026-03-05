@@ -215,7 +215,7 @@ export default function ActiveQuestionScreen({
             {/* Header / Nav */}
             <header className="px-6 py-4 border-b bg-surface-base flex justify-between items-center sticky top-0 z-10">
                 {/* Left Spacer (matches width of Right Status) - roughly 100px */}
-                <div className="hidden sm:block w-[100px]" />
+                <div className="hidden sm:block w-24" />
 
                 {/* Question Navigator (Tabs) */}
                 <div className="hidden sm:flex flex-1 max-w-2xl mx-auto justify-center items-center gap-1 sm:gap-2 px-4 sm:px-6">
@@ -258,7 +258,7 @@ export default function ActiveQuestionScreen({
                 </div>
 
                 {/* Right: In Session Status (Width locked approx 100px for centering) */}
-                <div className="hidden sm:flex w-[100px] justify-end">
+                <div className="hidden sm:flex w-24 justify-end">
                     <StatusBadge variant="success" size="sm" icon={true} className="animate-pulse">
                         In Session
                     </StatusBadge>
@@ -349,7 +349,7 @@ export default function ActiveQuestionScreen({
                     </div>
                 ) : (
                     // --- INPUT MODE ---
-                    <div className="relative flex-1 min-h-[400px] flex flex-col w-full">
+                    <div className="relative flex-1 min-h-96 flex flex-col w-full">
 
                         {mode === 'voice' ? (
                             <>
@@ -463,7 +463,7 @@ export default function ActiveQuestionScreen({
                             <div className="flex justify-end items-center gap-2">
                                 <div className="h-4 mr-2">
                                     <span className={cn(
-                                        "text-[10px] uppercase font-bold tracking-widest transition-colors duration-300",
+                                        "text-micro uppercase font-bold tracking-widest transition-colors duration-300",
                                         isSaving ? "text-amber-500" : "opacity-0"
                                     )}>
                                         {isSaving ? "Saving..." : ""}
@@ -474,12 +474,12 @@ export default function ActiveQuestionScreen({
                                     <Button
                                         size="lg"
                                         onClick={() => handleLocalSubmit()}
-                                        className="min-w-[140px] shadow-raised-1 transition-all animate-in zoom-in-95 duration-base ease-standard"
+                                        className="min-w-32 shadow-raised-1 transition-all animate-in zoom-in-95 duration-base ease-standard"
                                     >
                                         Next <ArrowRight className="ml-2 w-4 h-4" />
                                     </Button>
                                 ) : (
-                                    <div className="w-[140px]" />
+                                    <div className="w-32" />
                                 )}
                             </div>
                         </div>

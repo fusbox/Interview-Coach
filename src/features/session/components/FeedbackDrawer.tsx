@@ -112,7 +112,7 @@ const TranscriptPanel: React.FC<{
     return (
         <div className="flex flex-col h-full min-h-0 gap-4">
             <div className="flex items-center justify-between px-1 shrink-0 h-8">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                <h4 className="text-micro font-black text-slate-400 uppercase tracking-widest leading-none">
                     Your Answer
                 </h4>
                 <div className="flex items-center gap-2">
@@ -341,8 +341,8 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
     const getCardClasses = (sectionKey: SectionKey) => {
         const isElevated = sectionKey === 'start' || sectionKey === 'next';
         return cn(
-            'scroll-snap-align-start flex-shrink-0 w-full min-h-full md:h-full flex flex-col justify-start px-6 md:px-[56px] pb-8',
-            isElevated ? 'pt-8 md:pt-[56px]' : 'pt-8 md:pt-[48px]'
+            'scroll-snap-align-start flex-shrink-0 w-full min-h-full md:h-full flex flex-col justify-start px-6 md:px-14 pb-8',
+            isElevated ? 'pt-8 md:pt-14' : 'pt-8 md:pt-12'
         );
     };
 
@@ -368,7 +368,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                     exit={{ opacity: 0, scale: 0.97, y: 16 }}
                     transition={{ duration: 0.25, ease: 'easeOut' }}
                     className={cn(
-                        "relative w-full max-w-[960px] min-w-[720px] h-[100dvh] md:h-[640px] rounded-none md:rounded-[20px] border-0 md:border border-slate-200 dark:border-white/5 bg-[#ffffff] dark:bg-slate-900 flex overflow-hidden transition-shadow duration-300",
+                        "relative w-full max-w-4xl min-w-[45rem] h-[100dvh] md:h-[40rem] rounded-none md:rounded-3xl border-0 md:border border-slate-200 dark:border-white/5 bg-surface-base dark:bg-slate-900 flex overflow-hidden transition-shadow duration-300",
                         isElevatedMode ? "md:shadow-[0_24px_60px_-15px_rgba(0,0,0,0.12)]" : "md:shadow-lg"
                     )}
                 >
@@ -388,7 +388,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                 style={{ scrollSnapAlign: 'start', minHeight: '100%' }}
                             >
                                 <div className="w-full flex flex-col items-center my-auto py-8">
-                                    <h2 className="text-4xl md:text-5xl lg:text-[40px] font-black text-slate-900 dark:text-white leading-[1.1] font-display">
+                                    <h2 className="text-4xl md:text-5xl lg:text-5xl font-black text-slate-900 dark:text-white leading-[1.1] font-display">
                                         {analysis?.ack || 'Reviewing your answer…'}
                                     </h2>
                                     <div className="mt-12 flex flex-col md:flex-row items-center gap-4 justify-center w-full">
@@ -431,7 +431,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                             <div className="flex-1 pt-1 pr-12 md:pr-48">
                                                 <SectionHeader
                                                     title={analysis.deliveryPulse.headline}
-                                                    description={<span className="text-[13px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2 block">Delivery Insight</span>}
+                                                    description={<span className="text-sm font-black text-slate-400 uppercase tracking-widest leading-none mb-2 block">Delivery Insight</span>}
                                                 />
                                             </div>
                                         </div>
@@ -469,7 +469,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                             <div className="flex-1 pt-1 pr-12 md:pr-48">
                                                 <SectionHeader
                                                     title={analysis.contentPulse.headline}
-                                                    description={<span className="text-[13px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2 block">Content Insight</span>}
+                                                    description={<span className="text-sm font-black text-slate-400 uppercase tracking-widest leading-none mb-2 block">Content Insight</span>}
                                                 />
                                             </div>
                                         </div>
@@ -607,7 +607,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                 animate={{ y: 0, opacity: 1 }}
                                 exit={{ y: '100%', opacity: 0 }}
                                 transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-                                className="absolute inset-x-0 md:left-auto md:right-0 bottom-0 md:top-0 h-[78%] md:h-full md:w-[400px] z-30 bg-white/90 dark:bg-slate-900/90 rounded-t-[2rem] md:rounded-none md:border-l border-t md:border-t-0 border-slate-200 dark:border-white/10 p-6 flex flex-col shadow-2xl backdrop-blur-xl"
+                                className="absolute inset-x-0 md:left-auto md:right-0 bottom-0 md:top-0 h-[78%] md:h-full md:w-96 z-30 bg-white/90 dark:bg-slate-900/90 rounded-t-[2rem] md:rounded-none md:border-l border-t md:border-t-0 border-slate-200 dark:border-white/10 p-6 flex flex-col shadow-2xl backdrop-blur-xl"
                             >
                                 <div className="pt-2 flex-1 min-h-0">
                                     <TranscriptPanel

@@ -95,6 +95,8 @@ export const InterviewSessionSchema = z.object({
     role: z.string(),
     jobDescription: z.string().nullish().transform(v => v ?? undefined),
     status: SessionStatusSchema,
+    readinessBand: z.string().nullish().transform(v => v ?? undefined),
+    summaryNarrative: z.string().nullish().transform(v => v ?? undefined),
     questions: z.array(QuestionSchema),
     currentQuestionIndex: z.number(),
     answers: z.record(z.string(), AnswerSchema),
@@ -111,8 +113,6 @@ export const InterviewSessionSchema = z.object({
     parentSessionId: z.string().uuid().nullish().transform(v => v ?? undefined),
     attemptNumber: z.number().int().min(1).nullish().transform(v => v ?? undefined),
     clientName: z.string().nullish().transform(v => v ?? undefined),
-    readinessBand: z.enum(['RL1', 'RL2', 'RL3', 'RL4']).nullish().transform(v => v ?? undefined),
-    summaryNarrative: z.string().nullish().transform(v => v ?? undefined),
 });
 
 export const IntakeDataSchema = z
@@ -137,6 +137,8 @@ export const InitSessionSchema = z.object({
 
 export const UpdateSessionSchema = z.object({
     status: SessionStatusSchema.optional(),
+    readinessBand: z.string().optional(),
+    summaryNarrative: z.string().optional(),
     currentQuestionIndex: z.number().int().min(0).optional(),
     role: z.string().min(1).optional(),
     jobDescription: z.string().optional(),
@@ -147,8 +149,6 @@ export const UpdateSessionSchema = z.object({
     parentSessionId: z.string().uuid().nullish().transform(v => v ?? undefined),
     attemptNumber: z.number().int().min(1).nullish().transform(v => v ?? undefined),
     clientName: z.string().nullish().transform(v => v ?? undefined),
-    readinessBand: z.enum(['RL1', 'RL2', 'RL3', 'RL4']).nullish().transform(v => v ?? undefined),
-    summaryNarrative: z.string().nullish().transform(v => v ?? undefined),
     engagedTimeDelta: z.number().int().min(0).optional(),
 }).strict();
 

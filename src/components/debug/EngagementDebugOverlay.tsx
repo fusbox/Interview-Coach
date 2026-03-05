@@ -87,7 +87,7 @@ export const EngagementDebugOverlay: React.FC<EngagementDebugOverlayProps> = ({
                             {/* Metrics */}
                             <div className="grid grid-cols-2 gap-px bg-slate-100 border-b border-slate-100 shrink-0">
                                 <div className="flex flex-col p-3 bg-white">
-                                    <span className="text-[10px] uppercase tracking-wider text-slate-400 font-medium">
+                                    <span className="text-micro uppercase tracking-wider text-slate-400 font-medium">
                                         Status
                                     </span>
                                     <span
@@ -100,7 +100,7 @@ export const EngagementDebugOverlay: React.FC<EngagementDebugOverlayProps> = ({
                                     </span>
                                 </div>
                                 <div className="flex flex-col p-3 bg-white">
-                                    <span className="text-[10px] uppercase tracking-wider text-slate-400 font-medium">
+                                    <span className="text-micro uppercase tracking-wider text-slate-400 font-medium">
                                         Window Time
                                     </span>
                                     <span
@@ -113,7 +113,7 @@ export const EngagementDebugOverlay: React.FC<EngagementDebugOverlayProps> = ({
                                     </span>
                                 </div>
                                 <div className="col-span-2 flex items-center justify-between p-2 bg-slate-50">
-                                    <span className="text-[10px] uppercase tracking-wider text-slate-500 font-medium pl-1">
+                                    <span className="text-micro uppercase tracking-wider text-slate-500 font-medium pl-1">
                                         Session Total
                                     </span>
                                     <span className="font-mono text-blue-600 font-bold pr-1">
@@ -124,12 +124,12 @@ export const EngagementDebugOverlay: React.FC<EngagementDebugOverlayProps> = ({
 
                             {/* Event Log */}
                             <div className="flex items-center justify-between px-3 py-2 bg-slate-50 shrink-0 border-b border-slate-100">
-                                <span className="text-[10px] uppercase text-slate-400 font-bold tracking-wider">
+                                <span className="text-micro uppercase text-slate-400 font-bold tracking-wider">
                                     Event Log
                                 </span>
                                 <button
                                     onClick={clearDebugEvents}
-                                    className="text-[10px] flex items-center gap-1 text-slate-400 hover:text-red-500 transition-colors uppercase font-medium"
+                                    className="text-micro flex items-center gap-1 text-slate-400 hover:text-red-500 transition-colors uppercase font-medium"
                                 >
                                     <Trash2 size={10} /> Clear
                                 </button>
@@ -153,7 +153,7 @@ export const EngagementDebugOverlay: React.FC<EngagementDebugOverlayProps> = ({
                                         <div className="flex items-center justify-between">
                                             <span
                                                 className={cn(
-                                                    'font-bold uppercase text-[10px] tracking-wide',
+                                                    'font-bold uppercase text-micro tracking-wide',
                                                     ev.type === 'WINDOW_OPEN'
                                                         ? 'text-emerald-600'
                                                         : ev.type === 'WINDOW_EXTEND'
@@ -167,7 +167,7 @@ export const EngagementDebugOverlay: React.FC<EngagementDebugOverlayProps> = ({
                                             >
                                                 {ev.type.replace(/_/g, ' ')}
                                             </span>
-                                            <span className="text-[10px] text-slate-400 font-mono group-hover:text-slate-500 transition-colors">
+                                            <span className="text-micro text-slate-400 font-mono group-hover:text-slate-500 transition-colors">
                                                 {new Date(ev.timestamp).toLocaleTimeString().split(' ')[0]}
                                             </span>
                                         </div>
@@ -207,14 +207,14 @@ export const EngagementDebugOverlay: React.FC<EngagementDebugOverlayProps> = ({
                                         <button
                                             disabled={!item.content}
                                             onClick={() => item.content && handleCopy(item.content, item.key)}
-                                            className="flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-slate-800 disabled:opacity-30 disabled:hover:text-slate-500 transition-colors bg-slate-100 px-2 py-1 rounded"
+                                            className="flex items-center gap-1 text-micro font-bold text-slate-500 hover:text-slate-800 disabled:opacity-30 disabled:hover:text-slate-500 transition-colors bg-slate-100 px-2 py-1 rounded"
                                         >
                                             {copiedKey === item.key ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
                                             {copiedKey === item.key ? 'COPIED' : 'COPY RAW'}
                                         </button>
                                     </div>
                                     {item.content ? (
-                                        <div className="bg-slate-900 rounded-md p-3 max-h-64 overflow-y-auto font-mono text-[10px] text-emerald-400 whitespace-pre-wrap leading-relaxed shadow-inner">
+                                        <div className="bg-slate-900 rounded-md p-3 max-h-64 overflow-y-auto font-mono text-micro text-emerald-400 whitespace-pre-wrap leading-relaxed shadow-inner">
                                             {item.content}
                                         </div>
                                     ) : (

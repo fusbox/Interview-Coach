@@ -3,10 +3,10 @@
 import React from "react";
 import { MetricCard } from "@/components/patterns/MetricCard";
 import { Sparkles, Target, Zap, Clock } from "lucide-react";
-import { SessionDashboardMetrics } from "@/lib/domain/types";
+import { DashboardBasicStats } from "@/lib/services/compute-dashboard-stats";
 
 interface DashboardStatsProps {
-    metrics: SessionDashboardMetrics;
+    metrics: DashboardBasicStats;
 }
 
 export function DashboardStats({ metrics }: DashboardStatsProps) {
