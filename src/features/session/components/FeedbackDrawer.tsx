@@ -25,6 +25,7 @@ import {
 import { cn } from '@/lib/cn';
 import { captureFeedbackAction } from '@/app/actions/feedback';
 import { useSession } from '../context/SessionContext';
+import { SectionHeader } from '@/components/patterns/SectionHeader';
 
 // ─────────────────────────────────────────────
 // Types
@@ -428,14 +429,10 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                                 <cardDef.icon size={32} strokeWidth={2} />
                                             </div>
                                             <div className="flex-1 pt-1 pr-12 md:pr-48">
-                                                <div className="flex items-center gap-4 mb-2">
-                                                    <h4 className="text-[13px] font-black text-slate-400 uppercase tracking-widest leading-none">
-                                                        Delivery Insight
-                                                    </h4>
-                                                </div>
-                                                <h3 className="text-2xl md:text-[32px] font-bold text-slate-900 dark:text-white leading-none tracking-tight">
-                                                    {analysis.deliveryPulse.headline}
-                                                </h3>
+                                                <SectionHeader
+                                                    title={analysis.deliveryPulse.headline}
+                                                    description={<span className="text-[13px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2 block">Delivery Insight</span>}
+                                                />
                                             </div>
                                         </div>
                                         <div className="flex-1 overflow-y-visible md:overflow-y-auto md:min-h-0 pt-8 md:pt-10 px-1 -mx-1 custom-scrollbar">
@@ -470,14 +467,10 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                                 <cardDef.icon size={32} strokeWidth={2} />
                                             </div>
                                             <div className="flex-1 pt-1 pr-12 md:pr-48">
-                                                <div className="flex items-center gap-4 mb-2">
-                                                    <h4 className="text-[13px] font-black text-slate-400 uppercase tracking-widest leading-none">
-                                                        Content Insight
-                                                    </h4>
-                                                </div>
-                                                <h3 className="text-2xl md:text-[32px] font-bold text-slate-900 dark:text-white leading-none tracking-tight">
-                                                    {analysis.contentPulse.headline}
-                                                </h3>
+                                                <SectionHeader
+                                                    title={analysis.contentPulse.headline}
+                                                    description={<span className="text-[13px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2 block">Content Insight</span>}
+                                                />
                                             </div>
                                         </div>
                                         <div className="flex-1 overflow-y-visible md:overflow-y-auto md:min-h-0 pt-8 md:pt-10 px-1 -mx-1 custom-scrollbar">

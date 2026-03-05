@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/patterns/StatusBadge";
 import { Info } from "lucide-react";
 
 export function ReadinessLegend() {
@@ -14,19 +14,19 @@ export function ReadinessLegend() {
             </div>
             <div className="grid grid-cols-2 gap-x-6 gap-y-4 relative z-10">
                 <div className="flex flex-col gap-1.5">
-                    <Badge variant="outline" className="w-fit text-[10px] px-2 py-0 uppercase font-bold tracking-tight text-emerald-700 border-emerald-200 bg-emerald-50">Ready</Badge>
+                    <StatusBadge variant="readinessHigh" icon={false} size="sm">Ready</StatusBadge>
                     <p className="text-[11px] text-slate-500 leading-snug">Meets all core and advanced competencies.</p>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                    <Badge variant="outline" className="w-fit text-[10px] px-2 py-0 uppercase font-bold tracking-tight text-blue-700 border-blue-200 bg-blue-50">Strong Potential</Badge>
+                    <StatusBadge variant="readinessPotential" icon={false} size="sm">Strong Potential</StatusBadge>
                     <p className="text-[11px] text-slate-500 leading-snug">Solid performance; minor areas for growth.</p>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                    <Badge variant="outline" className="w-fit text-[10px] px-2 py-0 uppercase font-bold tracking-tight text-amber-700 border-amber-200 bg-amber-50">Practice Recommended</Badge>
+                    <StatusBadge variant="readinessMedium" icon={false} size="sm">Practice Recommended</StatusBadge>
                     <p className="text-[11px] text-slate-500 leading-snug">Targeted practice is encouraged in core areas.</p>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                    <Badge variant="outline" className="w-fit text-[10px] px-2 py-0 uppercase font-bold tracking-tight text-slate-500 border-slate-200 bg-slate-50">Incomplete</Badge>
+                    <StatusBadge variant="readinessUnknown" icon={false} size="sm">Incomplete</StatusBadge>
                     <p className="text-[11px] text-slate-500 leading-snug">Insufficient data to establish a reliable rating.</p>
                 </div>
             </div>

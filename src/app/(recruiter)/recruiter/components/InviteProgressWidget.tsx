@@ -33,34 +33,34 @@ const BUCKET_CONFIG: Record<string, {
 }> = {
     ready_to_review: {
         icon: CheckCircle2,
-        accentColor: "text-emerald-600",
-        bgGradient: "from-emerald-50/80 to-emerald-50/20",
-        badgeBg: "bg-emerald-100",
-        badgeText: "text-emerald-700",
+        accentColor: "text-state-success",
+        bgGradient: "from-state-success/10 to-state-success/5",
+        badgeBg: "bg-state-success/10",
+        badgeText: "text-state-success",
         emptyMessage: "No completed sessions yet",
     },
     needs_followup: {
         icon: Clock,
-        accentColor: "text-amber-600",
-        bgGradient: "from-amber-50/80 to-amber-50/20",
-        badgeBg: "bg-amber-100",
-        badgeText: "text-amber-700",
+        accentColor: "text-state-warning",
+        bgGradient: "from-state-warning/10 to-state-warning/5",
+        badgeBg: "bg-state-warning/10",
+        badgeText: "text-state-warning",
         emptyMessage: "No stale sessions — candidates are staying active",
     },
     recently_active: {
         icon: Activity,
-        accentColor: "text-blue-600",
-        bgGradient: "from-blue-50/80 to-blue-50/20",
-        badgeBg: "bg-blue-100",
-        badgeText: "text-blue-700",
+        accentColor: "text-state-info",
+        bgGradient: "from-state-info/10 to-state-info/5",
+        badgeBg: "bg-state-info/10",
+        badgeText: "text-state-info",
         emptyMessage: "No active sessions right now",
     },
     awaiting_action: {
         icon: Inbox,
-        accentColor: "text-slate-500",
-        bgGradient: "from-slate-50/80 to-slate-50/20",
-        badgeBg: "bg-slate-100",
-        badgeText: "text-slate-600",
+        accentColor: "text-text-muted",
+        bgGradient: "from-surface-subtle to-surface-subtle/50",
+        badgeBg: "bg-surface-subtle",
+        badgeText: "text-text-muted",
         emptyMessage: "All invites have been opened",
     },
 };
@@ -116,7 +116,7 @@ function SessionRow({ session, bucketKey }: { session: WidgetSession; bucketKey:
 
     return (
         <div
-            className="group flex items-center gap-3 py-2.5 px-3 -mx-3 rounded-lg hover:bg-slate-50/80 transition-colors cursor-pointer"
+            className="group flex items-center gap-3 py-2.5 px-3 -mx-3 rounded-lg hover:bg-surface-subtle transition-all duration-base ease-standard cursor-pointer"
             onClick={handleRowClick}
         >
             {/* Candidate info */}
@@ -309,7 +309,7 @@ export function InviteProgressWidget({ sessions }: InviteProgressWidgetProps) {
                     {buckets.map((bucket) => (
                         <Card
                             key={bucket.key}
-                            className="border border-slate-200/80 shadow-sm bg-white overflow-hidden"
+                            className="border-none shadow-flat bg-surface-base overflow-hidden"
                         >
                             <CardContent className="p-5">
                                 <BucketSection bucket={bucket} />

@@ -1,4 +1,3 @@
-
 import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-session-repository";
 import { notFound, redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -7,92 +6,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { getCachedUser } from "@/lib/supabase/server";
+import { SectionHeader } from "@/components/patterns/SectionHeader";
+import { FeedbackPanel } from "@/components/patterns/FeedbackPanel";
+import { StatusBadge, ReadinessBadge } from "../../components/session-badges";
 import { InterviewSession } from "@/lib/domain/types";
 
 const sessionRepo = new SupabaseSessionRepository();
 
 export const dynamic = 'force-dynamic';
 
-function getReadinessIndicator(session: InterviewSession) {
-    const { status, answers, questions, viewedAt, enteredInitials } = session;
-    const answerList = Object.values(answers || {});
-    const answerCount = answerList.length;
-    const submittedCount = answerList.filter(a => !!a.submittedAt).length;
-    const questionCount = questions.length;
-
-    const commonClasses = "w-[145px] justify-center text-center";
-
-    // 1. Completed
-    if (status === 'COMPLETED' || (submittedCount === questionCount && questionCount > 0)) {
-        return <Badge variant="default" className={`${commonClasses} bg-green-600 hover:bg-green-700`}>Completed</Badge>;
-    }
-
-    // 2. In Progress (X/Y submitted)
-    if (submittedCount > 0) {
-        return <Badge variant="secondary" className={`${commonClasses} bg-blue-100 text-blue-800`}>
-            In Progress ({submittedCount}/{questionCount})
-        </Badge>;
-    }
-
-    // 3. Drafting Answer
-    if (status === 'IN_SESSION' && answerCount > 0) {
-        return <Badge variant="secondary" className={`${commonClasses} bg-indigo-100 text-indigo-800 border-indigo-200`}>
-            Drafting Answer
-        </Badge>;
-    }
-
-    // 4. Session Started
-    if (status === 'IN_SESSION') {
-        return <Badge variant="secondary" className={`${commonClasses} bg-blue-50 text-blue-700 border-blue-100`}>
-            Session Started
-        </Badge>;
-    }
-
-    // 5. Initials Entered
-    if (enteredInitials) {
-        return <Badge variant="outline" className={`${commonClasses} text-amber-600 border-amber-200 bg-amber-50`}>
-            Initials Entered
-        </Badge>;
-    }
-
-    // 6. Link Viewed
-    if (viewedAt) {
-        return <Badge variant="outline" className={`${commonClasses} text-indigo-500 border-indigo-200`}>
-            Link Viewed
-        </Badge>;
-    }
-
-    // 7. Invite Sent
-    return <Badge variant="outline" className={`${commonClasses} text-slate-400 border-slate-200 uppercase text-[10px]`}>
-        Invite Sent
-    </Badge>;
-}
-
-function getReadinessBadge(session: InterviewSession) {
-    const rl = session.readinessBand;
-    if (!rl) return null;
-
-    const commonClasses = "w-[145px] justify-center text-center text-[10px] uppercase font-bold tracking-tight";
-
-    switch (rl) {
-        case 'RL1':
-            return <Badge variant="outline" className={`${commonClasses} text-emerald-700 border-emerald-200 bg-emerald-50`}>Ready</Badge>;
-        case 'RL2':
-            return <Badge variant="outline" className={`${commonClasses} text-blue-700 border-blue-200 bg-blue-50`}>Strong Potential</Badge>;
-        case 'RL3':
-            return <Badge variant="outline" className={`${commonClasses} text-amber-700 border-amber-200 bg-amber-50`}>Practice Recommended</Badge>;
-        case 'RL4':
-            return <Badge variant="outline" className={`${commonClasses} text-slate-500 border-slate-200 bg-slate-50`}>Incomplete</Badge>;
-        default:
-            return <Badge variant="outline" className={`${commonClasses} text-slate-400 border-slate-200`}>Analyzing...</Badge>;
-    }
-}
+// REMOVED: Internal badge mapping, now using canonical StatusBadge/ReadinessBadge from session-badges.tsx
 
 export default async function SessionDetailsPage({ params }: { params: { id: string } }) {
     const user = await getCachedUser();
     if (!user) redirect("/login");
 
-    const session = await sessionRepo.get(params.id);
+    const session: InterviewSession | null = await sessionRepo.get(params.id);
 
     if (!session) {
         notFound();
@@ -107,37 +36,38 @@ export default async function SessionDetailsPage({ params }: { params: { id: str
 
     return (
         <div className="space-y-8">
-            <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" asChild className="text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors">
-                    <Link href="/recruiter">
-                        <ArrowLeft className="w-5 h-5" />
-                    </Link>
-                </Button>
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-slate-900 font-display">Session Details</h1>
-                    <p className="text-slate-500">Review candidate performance and feedback.</p>
-                </div>
-            </div>
+            <SectionHeader
+                title="Session Results"
+                description="Review candidate performance and AI-driven feedback."
+                actions={
+                    <Button variant="outline" size="sm" asChild className="shadow-flat">
+                        <Link href="/recruiter">
+                            <ArrowLeft className="w-4 h-4 mr-2" />
+                            Back to Dashboard
+                        </Link>
+                    </Button>
+                }
+            />
 
             {/* Summary Card */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Candidate Summary</CardTitle>
+            <Card className="border-none shadow-flat bg-surface-base">
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-bold text-text-muted uppercase tracking-widest">Candidate Summary</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                        <div>
-                            <div className="text-sm font-medium text-slate-500 mb-1">Candidate</div>
-                            <div className="text-lg font-semibold text-slate-900">{session.candidateName || "Anonymous"}</div>
-                            <div className="text-sm text-slate-500">{session.candidate?.email || "No email provided"}</div>
+                        <div className="space-y-1">
+                            <div className="text-[10px] uppercase font-bold text-text-disabled tracking-wider">Candidate</div>
+                            <div className="text-lg font-bold text-text-primary leading-tight">{session.candidateName || "Anonymous"}</div>
+                            <div className="text-sm text-text-muted">{session.candidate?.email || "No email provided"}</div>
                         </div>
-                        <div>
-                            <div className="text-sm font-medium text-slate-500 mb-1">Target Role</div>
-                            <div className="text-lg font-semibold text-slate-900">{session.role}</div>
+                        <div className="space-y-1">
+                            <div className="text-[10px] uppercase font-bold text-text-disabled tracking-wider">Target Role</div>
+                            <div className="text-lg font-bold text-text-primary leading-tight">{session.role}</div>
                         </div>
-                        <div>
-                            <div className="text-sm font-medium text-slate-500 mb-1">Active Engagement</div>
-                            <div className="text-lg font-semibold text-blue-600">
+                        <div className="space-y-1">
+                            <div className="text-[10px] uppercase font-bold text-text-disabled tracking-wider">Active Engagement</div>
+                            <div className="text-lg font-bold text-primary leading-tight">
                                 {(() => {
                                     const seconds = session.engagedTimeSeconds || 0;
                                     const h = Math.floor(seconds / 3600);
@@ -149,15 +79,15 @@ export default async function SessionDetailsPage({ params }: { params: { id: str
                                 })()}
                             </div>
                         </div>
-                        <div>
-                            <div className="text-sm font-medium text-slate-500 mb-1">Status & Readiness</div>
+                        <div className="space-y-1">
+                            <div className="text-[10px] uppercase font-bold text-text-disabled tracking-wider">Status & Readiness</div>
                             <div className="flex flex-col gap-2 mt-1">
                                 <div className="flex items-center gap-2">
-                                    {getReadinessIndicator(session)}
-                                    {getReadinessBadge(session)}
+                                    <StatusBadge session={session} />
+                                    <ReadinessBadge session={session} />
                                 </div>
                                 {session.summaryNarrative && (
-                                    <p className="text-xs text-slate-500 italic leading-relaxed max-w-xs">
+                                    <p className="text-xs text-text-muted italic leading-relaxed max-w-xs border-l-2 border-primary/20 pl-2">
                                         &ldquo;{session.summaryNarrative}&rdquo;
                                     </p>
                                 )}
@@ -221,41 +151,27 @@ export default async function SessionDetailsPage({ params }: { params: { id: str
 
                                     {/* Analysis Grid */}
                                     {hasAnalysis && analysis && (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-100">
-                                            {/* Left: Content Feedback */}
-                                            <div className="space-y-3">
-                                                <h4 className="text-sm font-semibold text-emerald-700 flex items-center gap-2">
-                                                    Content Pulse
-                                                </h4>
-                                                <div className="bg-emerald-50/50 p-4 rounded-lg border border-emerald-100/50 h-full">
-                                                    <p className="font-medium text-emerald-900 mb-2">
-                                                        {contentPulse?.headline || "Content Focus"}
-                                                    </p>
-                                                    <p className="text-sm text-emerald-800/90 leading-relaxed mb-3">
-                                                        {contentPulse?.body || "No detailed feedback available."}
-                                                    </p>
-                                                    {contentPulse?.quote && (
-                                                        <p className="text-xs text-emerald-700/80 italic border-l-2 border-emerald-300 pl-2">
-                                                            &ldquo;{contentPulse.quote}&rdquo;
-                                                        </p>
-                                                    )}
-                                                </div>
-                                            </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-border/50">
+                                            <FeedbackPanel
+                                                title={contentPulse?.headline || "Content Focus"}
+                                                body={
+                                                    <div className="space-y-3">
+                                                        <p>{contentPulse?.body || "No detailed feedback available."}</p>
+                                                        {contentPulse?.quote && (
+                                                            <p className="text-xs italic border-l-2 border-primary/20 pl-2">
+                                                                &ldquo;{contentPulse.quote}&rdquo;
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                }
+                                                className="border-none shadow-none bg-surface-subtle"
+                                            />
 
-                                            {/* Right: Delivery Feedback */}
-                                            <div className="space-y-3">
-                                                <h4 className="text-sm font-semibold text-indigo-700 flex items-center gap-2">
-                                                    Delivery Pulse
-                                                </h4>
-                                                <div className="bg-indigo-50/50 p-4 rounded-lg border border-indigo-100/50 h-full">
-                                                    <p className="font-medium text-indigo-900 mb-2">
-                                                        {deliveryPulse?.headline || "Delivery Focus"}
-                                                    </p>
-                                                    <p className="text-sm text-indigo-800/90 leading-relaxed">
-                                                        {deliveryPulse?.body || "No detailed feedback available."}
-                                                    </p>
-                                                </div>
-                                            </div>
+                                            <FeedbackPanel
+                                                title={deliveryPulse?.headline || "Delivery Focus"}
+                                                body={deliveryPulse?.body || "No detailed feedback available."}
+                                                className="border-none shadow-none bg-surface-subtle"
+                                            />
                                         </div>
                                     )}
                                 </CardContent>

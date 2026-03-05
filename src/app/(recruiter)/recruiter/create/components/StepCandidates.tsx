@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Plus, Trash2, ChevronRight, UserPlus } from "lucide-react";
 import { StepFooterProps } from "../constants";
 import { showDemoTools } from "@/lib/feature-flags";
+import { SectionHeader } from "@/components/patterns/SectionHeader";
+import { EmptyState } from "@/components/patterns/EmptyState";
 
 export interface CandidateRow {
     id: string;
@@ -56,39 +58,43 @@ export function StepCandidates({
     ) && candidates.length > 0;
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-bold font-display">Step 2: Add Candidates</h2>
-                    <p className="text-muted-foreground">Enter the details for one or more candidates.</p>
-                </div>
-                {isDemo && onRandomizeCandidate && (
-                    <button
-                        onClick={onRandomizeCandidate}
-                        className="px-3 py-1.5 text-xs font-medium rounded-full bg-violet-100 text-violet-700 hover:bg-violet-200 transition-colors border border-violet-200"
-                    >
-                        🎲 Add Random
-                    </button>
-                )}
-            </div>
+        <div className="space-y-10">
+            <SectionHeader
+                title="Add Candidates"
+                description="Enter the details for one or more candidates."
+                actions={
+                    isDemo && onRandomizeCandidate && (
+                        <button
+                            onClick={onRandomizeCandidate}
+                            className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-state-info/10 text-state-info hover:bg-state-info/20 transition-all border border-state-info/20 shadow-sm"
+                        >
+                            🎲 Add Random
+                        </button>
+                    )
+                }
+            />
 
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between py-4">
-                    <CardTitle className="text-base font-semibold">Candidate List</CardTitle>
+            <Card className="border-border/50 shadow-raised-1">
+                <CardHeader className="flex flex-row items-center justify-between py-5 border-b border-border/30 bg-surface-base">
+                    <CardTitle className="text-base font-bold tracking-tight">Candidate List</CardTitle>
                     <Button
                         size="sm"
                         variant="outline"
                         onClick={addCandidate}
-                        className="text-emerald-600 border-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
+                        className="text-state-success border-state-success/30 hover:bg-state-success/5 hover:border-state-success/50 transition-all"
                     >
                         <UserPlus className="w-4 h-4 mr-2" />
                         Add Candidate
                     </Button>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-6 pt-6">
                     {candidates.length === 0 && (
-                        <div className="text-center py-8 text-slate-400 border-2 border-dashed rounded-lg bg-slate-50">
-                            No candidates added yet. Click &quot;Add Candidate&quot; to start.
+                        <div className="py-8">
+                            <EmptyState
+                                title="No candidates yet"
+                                description="Click the button above to start adding candidates to this batch."
+                                icon={<UserPlus className="w-10 h-10 text-muted-foreground/40" />}
+                            />
                         </div>
                     )}
 
@@ -99,19 +105,19 @@ export function StepCandidates({
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1">
                                 <input
-                                    className="flex h-10 w-full rounded-md border bg-muted/50 px-3 placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-400"
+                                    className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                                     value={candidate.firstName}
                                     onChange={(e) => updateCandidate(candidate.id, 'firstName', e.target.value)}
                                     placeholder="First Name"
                                 />
                                 <input
-                                    className="flex h-10 w-full rounded-md border bg-muted/50 px-3 placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-400"
+                                    className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                                     value={candidate.lastName}
                                     onChange={(e) => updateCandidate(candidate.id, 'lastName', e.target.value)}
                                     placeholder="Last Name"
                                 />
                                 <input
-                                    className="flex h-10 w-full rounded-md border bg-muted/50 px-3 placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-400"
+                                    className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                                     value={candidate.email}
                                     onChange={(e) => updateCandidate(candidate.id, 'email', e.target.value)}
                                     placeholder="Email Address"
@@ -119,7 +125,7 @@ export function StepCandidates({
                                 />
                                 {isDemo && (
                                     <input
-                                        className="flex h-10 w-full rounded-md border bg-violet-50/50 dark:bg-violet-900/10 px-3 placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-violet-400 focus:border-violet-400 text-xs md:col-span-3"
+                                        className="flex h-10 w-full rounded-xl border border-state-info/20 bg-state-info/5 px-4 text-[11px] placeholder:text-state-info/50 focus:outline-none focus:ring-2 focus:ring-state-info/20 focus:border-state-info/40 transition-all md:col-span-3 italic text-state-info font-medium"
                                         value={candidate.resumeText || ''}
                                         onChange={(e) => updateCandidate(candidate.id, 'resumeText', e.target.value)}
                                         placeholder="📋 Paste resume text (dev only)"
@@ -141,7 +147,7 @@ export function StepCandidates({
                         <Button
                             variant="ghost"
                             onClick={addCandidate}
-                            className="w-full border-2 border-dashed border-slate-200 text-slate-500 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-600 mt-2"
+                            className="w-full border-2 border-dashed border-border/50 text-text-disabled hover:text-text-secondary hover:bg-surface-subtle hover:border-border transition-all mt-4 py-8 rounded-xl"
                         >
                             <Plus className="w-4 h-4 mr-2" /> Add Another Candidate
                         </Button>

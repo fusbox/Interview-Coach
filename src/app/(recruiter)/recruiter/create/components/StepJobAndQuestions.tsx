@@ -8,6 +8,7 @@ import { useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { showDemoTools } from "@/lib/feature-flags";
 import { RecruiterTemplate } from "@/lib/domain/template";
+import { SectionHeader } from "@/components/patterns/SectionHeader";
 
 interface StepJobAndQuestionsProps {
     details: Details;
@@ -97,48 +98,46 @@ export function StepJobAndQuestions({
     const isNextDisabled = !details.role || !details.reqId || !hasAtLeastOneQuestion;
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-10">
             <div className="flex flex-col gap-6">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h2 className="text-2xl font-bold font-display">Step 1: Job Details & Questions</h2>
-                        <p className="text-muted-foreground">Define the role and interview questions.</p>
-                    </div>
-
-                    {/* Demo Tools (formerly Dev Only) */}
-                    {isDemo && (
-                        <div className="flex gap-2 items-center">
-                            {onRandomizeJob && (
-                                <button
-                                    onClick={onRandomizeJob}
-                                    className="px-3 py-1.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors border border-amber-200"
-                                >
-                                    🎲 Random Job
-                                </button>
-                            )}
-                            {onGenerateQuestionsAI && (
-                                <button
-                                    onClick={onGenerateQuestionsAI}
-                                    disabled={isGeneratingQuestions}
-                                    className="px-3 py-1.5 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors border border-emerald-200 disabled:opacity-50 flex items-center gap-1.5"
-                                >
-                                    {isGeneratingQuestions ? (
-                                        <><Loader2 className="w-3 h-3 animate-spin" /> Generating...</>
-                                    ) : (
-                                        <>✨ AI Generate</>
-                                    )}
-                                </button>
-                            )}
-                        </div>
-                    )}
-                </div>
+                <SectionHeader
+                    title="Job Details & Questions"
+                    description="Define the role and interview questions."
+                    actions={
+                        isDemo && (
+                            <div className="flex gap-2 items-center">
+                                {onRandomizeJob && (
+                                    <button
+                                        onClick={onRandomizeJob}
+                                        className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-state-warning/10 text-state-warning hover:bg-state-warning/20 transition-all border border-state-warning/20"
+                                    >
+                                        🎲 Random Job
+                                    </button>
+                                )}
+                                {onGenerateQuestionsAI && (
+                                    <button
+                                        onClick={onGenerateQuestionsAI}
+                                        disabled={isGeneratingQuestions}
+                                        className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-state-success/10 text-state-success hover:bg-state-success/20 transition-all border border-state-success/20 disabled:opacity-50 flex items-center gap-1.5"
+                                    >
+                                        {isGeneratingQuestions ? (
+                                            <><Loader2 className="w-3 h-3 animate-spin" /> Generating...</>
+                                        ) : (
+                                            <>✨ AI Generate</>
+                                        )}
+                                    </button>
+                                )}
+                            </div>
+                        )
+                    }
+                />
 
                 {/* Template Select - Now Stacked Below */}
                 <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Apply Template:</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-text-disabled">Apply Template:</span>
                     <div className="relative">
                         <select
-                            className="h-9 min-w-[200px] rounded-md border text-xs px-3 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
+                            className="h-9 min-w-[200px] rounded-lg border border-border bg-surface-base text-[11px] px-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-flat"
                             defaultValue=""
                             onChange={(e) => handleApplyTemplate(e.target.value)}
                         >
@@ -152,48 +151,49 @@ export function StepJobAndQuestions({
             </div>
 
             {/* Job Details Section */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Job Details</CardTitle>
+            <Card className="border-border/50 shadow-raised-1">
+                <CardHeader className="pb-4">
+                    <CardTitle className="text-base font-bold tracking-tight">Job Details</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-700">Req ID</label>
-                            <input className="flex h-10 w-full rounded-md border bg-muted/50 px-3 placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-400"
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-text-secondary ml-1">Req ID</label>
+                            <input className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                                 value={details.reqId} onChange={e => setDetails({ ...details, reqId: e.target.value })}
                                 placeholder="e.g. RCI-ENG-101" />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-700">Target Role</label>
-                            <input className="flex h-10 w-full rounded-md border bg-muted/50 px-3 placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-400"
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-text-secondary ml-1">Target Role</label>
+                            <input className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                                 value={details.role} onChange={e => setDetails({ ...details, role: e.target.value })}
                                 placeholder="e.g. Senior Product Manager" />
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-700">Job Description <span className="text-muted-foreground font-normal">(Optional)</span></label>
-                        <textarea className="flex min-h-[100px] w-full rounded-md border bg-muted/50 px-3 py-2 placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-400"
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-text-secondary ml-1">Job Description <span className="text-text-disabled font-normal lowercase tracking-normal">(Optional)</span></label>
+                        <textarea className="flex min-h-[120px] w-full rounded-xl border border-border bg-surface-subtle px-4 py-3 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all leading-relaxed"
                             value={details.jd} onChange={e => setDetails({ ...details, jd: e.target.value })}
                             placeholder="Paste the job description here..." />
                     </div>
-
                 </CardContent>
             </Card>
 
             {/* Questions Section */}
-            <div className="space-y-6">
-                <div className="flex items-center justify-between border-b pb-2">
-                    <h3 className="text-lg font-semibold text-slate-900">Interview Questions</h3>
+            <div className="space-y-8">
+                <div className="border-b border-border/50 pb-3">
+                    <h3 className="text-xl font-bold tracking-tight text-text-primary">Interview Questions</h3>
                 </div>
 
                 {/* STAR Section */}
-                <Card>
-                    <CardHeader><CardTitle>STAR Questions (Behavioral)</CardTitle></CardHeader>
-                    <CardContent className="space-y-3">
+                <Card className="border-border/50 shadow-raised-1">
+                    <CardHeader className="pb-4">
+                        <CardTitle className="text-base font-bold tracking-tight">STAR Questions (Behavioral)</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
                         {star.map((q, idx) => (
                             <div key={q.id}>
-                                <input className="flex h-10 w-full rounded-md border bg-muted/50 px-3 placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-400"
+                                <input className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                                     value={q.text} onChange={e => updateQuestion(setStar, star, q.id, e.target.value)}
                                     placeholder={`STAR Question ${idx + 1}...`} />
                             </div>
@@ -202,12 +202,14 @@ export function StepJobAndQuestions({
                 </Card>
 
                 {/* PERMA Section */}
-                <Card>
-                    <CardHeader><CardTitle>PERMA Questions (Culture/Fit)</CardTitle></CardHeader>
-                    <CardContent className="space-y-3">
+                <Card className="border-border/50 shadow-raised-1">
+                    <CardHeader className="pb-4">
+                        <CardTitle className="text-base font-bold tracking-tight">PERMA Questions (Culture/Fit)</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
                         {perma.map(q => (
                             <div key={q.id}>
-                                <input className="flex h-10 w-full rounded-md border bg-muted/50 px-3 placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-400"
+                                <input className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                                     value={q.text} onChange={e => updateQuestion(setPerma, perma, q.id, e.target.value)}
                                     placeholder={`${q.label} Question...`} />
                             </div>
@@ -216,29 +218,29 @@ export function StepJobAndQuestions({
                 </Card>
 
                 {/* Technical Section */}
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle>Technical Questions</CardTitle>
+                <Card className="border-border/50 shadow-raised-1 overflow-hidden transition-all duration-base">
+                    <CardHeader className="flex flex-row items-center justify-between pb-4 bg-surface-base border-b border-border/30">
+                        <CardTitle className="text-base font-bold tracking-tight">Technical Questions</CardTitle>
                         <Button
                             size="sm"
                             variant="outline"
                             onClick={addTechnical}
                             type="button"
-                            className="hidden sm:flex text-emerald-600 border-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
+                            className="hidden sm:flex text-state-success border-state-success/30 hover:bg-state-success/5 hover:border-state-success/50 transition-all"
                         >
                             <Plus className="w-4 h-4 mr-1" /> Add
                         </Button>
                     </CardHeader>
-                    <CardContent className="space-y-3">
+                    <CardContent className="space-y-4 pt-6">
                         {technical.map((q, idx) => (
-                            <div key={q.id} className="flex gap-2 items-center">
+                            <div key={q.id} className="flex gap-2 items-center animate-in fade-in slide-in-from-top-1 duration-base">
                                 <div className="flex-1">
-                                    <input className="flex h-10 w-full rounded-md border bg-muted/50 px-3 placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-400"
+                                    <input className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                                         value={q.text} onChange={e => updateQuestion(setTechnical, technical, q.id, e.target.value)}
                                         placeholder={`Technical Question ${idx + 1}...`} />
                                 </div>
                                 {technical.length > 1 && (
-                                    <Button size="icon" variant="ghost" className="text-destructive shrink-0" onClick={() => removeQuestion(setTechnical, technical, q.id)}>
+                                    <Button size="icon" variant="ghost" className="text-state-critical hover:bg-state-critical/5 shrink-0" onClick={() => removeQuestion(setTechnical, technical, q.id)}>
                                         <Trash2 className="w-4 h-4" />
                                     </Button>
                                 )}
@@ -248,7 +250,7 @@ export function StepJobAndQuestions({
                             variant="outline"
                             onClick={addTechnical}
                             type="button"
-                            className="w-full sm:hidden border-dashed text-emerald-600 border-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 mt-2"
+                            className="w-full sm:hidden border-dashed text-state-success border-state-success/30 hover:bg-state-success/5 mt-2"
                         >
                             <Plus className="w-4 h-4 mr-2" /> Add Technical Question
                         </Button>
@@ -275,52 +277,54 @@ export function StepJobAndQuestions({
 
             {/* Save Template Modal */}
             {showSaveModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-xl shadow-xl border w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="flex items-center justify-between p-4 border-b">
-                            <h3 className="font-bold text-slate-900">Save Interview Template</h3>
-                            <button onClick={() => setShowSaveModal(false)} className="text-slate-400 hover:text-slate-600">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/40 backdrop-blur-md animate-in fade-in duration-slow">
+                    <Card className="shadow-floating border-border/50 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-base ease-emphasized">
+                        <div className="flex items-center justify-between p-6 border-b border-border/50 bg-surface-base">
+                            <h3 className="font-bold text-lg tracking-tight text-text-primary">Save Interview Template</h3>
+                            <button onClick={() => setShowSaveModal(false)} className="text-text-disabled hover:text-text-secondary transition-colors">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-                        <form onSubmit={handleSaveSubmit} className="p-4 space-y-4">
+                        <form onSubmit={handleSaveSubmit} className="p-6 space-y-6">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-700">Template Name</label>
+                                <label className="text-[10px] font-bold uppercase tracking-wider text-text-secondary ml-1">Template Name</label>
                                 <input
                                     autoFocus
-                                    className="flex h-10 w-full rounded-md border px-3 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                    className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                                     value={templateName}
                                     onChange={e => setTemplateName(e.target.value)}
                                     placeholder="e.g. Senior Backend Engineer"
                                 />
-                                <p className="text-[10px] text-slate-500 italic">
+                                <p className="text-[10px] text-text-muted italic ml-1">
                                     Includes: Role &quot;{details.role}&quot; and {star.length + perma.length + technical.length} questions.
                                 </p>
                             </div>
 
-                            <div className="flex items-center gap-2 py-2">
-                                <input
-                                    type="checkbox"
-                                    id="isShared"
-                                    className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary"
-                                    checked={isShared}
-                                    onChange={e => setIsShared(e.target.checked)}
-                                />
-                                <label htmlFor="isShared" className="text-sm text-slate-700 cursor-pointer select-none">
+                            <div className="flex items-center gap-3 py-2 px-1">
+                                <div className="relative flex items-center justify-center">
+                                    <input
+                                        type="checkbox"
+                                        id="isShared"
+                                        className="w-5 h-5 rounded-md border-border bg-surface-subtle text-primary focus:ring-primary/20 transition-all cursor-pointer"
+                                        checked={isShared}
+                                        onChange={e => setIsShared(e.target.checked)}
+                                    />
+                                </div>
+                                <label htmlFor="isShared" className="text-sm font-medium text-text-secondary cursor-pointer select-none leading-none">
                                     Allow other recruiters to see and use this template
                                 </label>
                             </div>
 
-                            <div className="flex gap-3 pt-2">
+                            <div className="flex gap-3 pt-4">
                                 <Button type="button" variant="ghost" className="flex-1" onClick={() => setShowSaveModal(false)}>
                                     Cancel
                                 </Button>
-                                <Button type="submit" className="flex-1" disabled={!templateName.trim() || isSaving}>
+                                <Button type="submit" className="flex-1 shadow-raised-1" disabled={!templateName.trim() || isSaving}>
                                     {isSaving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</> : "Save Template"}
                                 </Button>
                             </div>
                         </form>
-                    </div>
+                    </Card>
                 </div>
             )}
         </div>

@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { Button } from "@/components/ui/button";
 import { Check, ChevronLeft } from "lucide-react";
@@ -87,6 +88,22 @@ export default function CreateInviteWizard() {
         };
         fetchData();
     }, []);
+
+    const searchParams = useSearchParams();
+    const templateIdFromUrl = searchParams.get("templateId");
+
+    // Handle URL Template Prefill
+    useEffect(() => {
+        if (templateIdFromUrl && templates.length > 0) {
+            const template = templates.find(t => t.id === templateIdFromUrl);
+            if (template) {
+                setDetails(prev => ({ ...prev, role: template.targetRole }));
+                setStar(template.questions.star);
+                setPerma(template.questions.perma);
+                setTechnical(template.questions.technical);
+            }
+        }
+    }, [templateIdFromUrl, templates]);
 
     const handleSaveTemplate = async (name: string, isShared: boolean) => {
         const res = await saveTemplateAction({
@@ -180,14 +197,14 @@ export default function CreateInviteWizard() {
     };
 
     const StepFooter = ({ onBack, onNext, nextLabel, isNextDisabled, customAction }: { onBack?: () => void, onNext: () => void, nextLabel: string | React.ReactNode, isNextDisabled?: boolean, customAction?: React.ReactNode }) => (
-        <div className="mt-6 pt-6 border-t">
+        <div className="mt-8 pt-8 border-t border-border/50">
             <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-stretch sm:items-center gap-4 w-full">
                 <div>
                     {onBack && (
                         <Button
                             variant="outline"
                             onClick={onBack}
-                            className="w-full sm:w-auto h-12 sm:h-10"
+                            className="w-full sm:w-auto h-12 sm:h-11 shadow-flat"
                         >
                             <ChevronLeft className="w-4 h-4 mr-2" /> Back
                         </Button>
@@ -198,7 +215,7 @@ export default function CreateInviteWizard() {
                     <Button
                         onClick={onNext}
                         disabled={isNextDisabled}
-                        className="w-full sm:w-auto h-12 sm:h-10 text-base sm:text-sm font-semibold shadow-md"
+                        className="w-full sm:w-auto h-12 sm:h-11 text-base sm:text-sm font-semibold shadow-raised-1"
                     >
                         {nextLabel}
                     </Button>
@@ -268,20 +285,20 @@ export default function CreateInviteWizard() {
         <div className="max-w-4xl mx-auto pb-8 pt-24 md:py-8 transition-all duration-300">
             {/* Stepper Header */}
             {step < 4 && (
-                <div className="fixed top-0 left-0 right-0 z-30 bg-white/95 backdrop-blur px-4 py-3 border-b md:static md:bg-transparent md:border-none md:p-0 md:m-0 md:mb-8 transition-all">
+                <div className="fixed top-0 left-0 right-0 z-30 bg-surface-base/95 backdrop-blur-md px-4 py-3 border-b border-border/50 md:static md:bg-transparent md:border-none md:p-0 md:m-0 md:mb-10 transition-all duration-base ease-standard">
                     <div className="relative">
-                        <div className="absolute left-0 right-0 top-[15px] h-[2px] bg-muted/50 -z-10" />
+                        <div className="absolute left-0 right-0 top-[15px] h-[2px] bg-surface-subtle -z-10" />
                         <div className="flex w-full max-w-2xl mx-auto">
                             {[1, 2, 3].map(s => (
-                                <div key={s} className={`flex-1 flex flex-col items-center group cursor-pointer ${s < step ? 'text-emerald-600' : (s === step ? 'text-primary' : 'text-muted-foreground')}`}
+                                <div key={s} className={`flex-1 flex flex-col items-center group cursor-pointer transition-all duration-base ${s < step ? 'text-state-success' : (s === step ? 'text-primary' : 'text-text-disabled')}`}
                                     onClick={() => s <= step ? setStep(s as 1 | 2 | 3) : null}>
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 mb-2 transition-colors duration-200
-                                         ${s < step ? 'border-emerald-600 bg-slate-50 text-emerald-600' :
-                                            s === step ? 'border-primary bg-primary text-primary-foreground shadow-[0_0_0_4px_hsl(var(--primary)/0.2)]' :
-                                                'border-muted bg-background group-hover:border-primary/50'}`}>
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 mb-2 transition-all duration-base
+                                         ${s < step ? 'border-state-success bg-surface-subtle text-state-success' :
+                                            s === step ? 'border-primary bg-primary text-primary-foreground shadow-[0_0_0_4px_hsl(var(--primary)/0.15)]' :
+                                                'border-border bg-surface-base group-hover:border-primary/50'}`}>
                                         {s < step ? <Check className="w-4 h-4" /> : s}
                                     </div>
-                                    <span className="text-xs font-semibold uppercase tracking-wider">
+                                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest">
                                         {s === 1 ? 'Job & Questions' : s === 2 ? 'Candidates' : 'Confirm'}
                                     </span>
                                 </div>

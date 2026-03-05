@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from "@/components/ui/button"
-import { Clock, ShieldCheck, Sparkles } from "lucide-react"
+import { Clock, ShieldCheck } from "lucide-react"
+import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { audioEngine } from '@/features/audio/audio-engine';
 import { useSession } from '../context/SessionContext';
 import { cn } from '@/lib/cn';
@@ -68,81 +69,84 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                     />
                 </div>
 
-                {/* Header */}
-                <div className="space-y-4 text-left">
-                    <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-primary leading-tight font-display">
-                        Let&rsquo;s get you ready for your next interview.
-                    </h1>
-                    <div className="space-y-4 text-lg text-muted-foreground leading-relaxed">
-                        <p>
-                            You&rsquo;ll answer a series of interview-style questions tailored to your role.
-                        </p>
-                        <p>
-                            After each answer, you&rsquo;ll receive private, AI-generated coaching to help you refine and strengthen your response.
-                        </p>
-                    </div>
+                {/* 2. Primary Heading */}
+                <div className="w-full">
+                    <SectionHeader
+                        title="Let's get you ready for your interview."
+                        size="lg"
+                        className="text-primary font-bold"
+                    />
+                </div>
+
+                {/* 3. Introductory Copy */}
+                <div className="space-y-6 text-lg text-text-secondary leading-relaxed text-left">
+                    <p>
+                        You&rsquo;ll answer a series of interview-style questions tailored to your role.
+                    </p>
                 </div>
 
                 {/* Key Points */}
                 <div className="grid grid-cols-1 gap-4">
-                    <div className="flex items-start gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-100 shadow-sm">
-                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm shrink-0">
+                    <div className="flex items-start gap-4 p-5 rounded-2xl bg-surface-subtle border shadow-flat">
+                        <div className="w-10 h-10 rounded-xl bg-surface-base border shadow-flat flex items-center justify-center shrink-0">
                             <Clock className="w-5 h-5 text-primary" />
                         </div>
                         <div className="space-y-1">
-                            <h3 className="font-bold text-slate-900">No Time Limit</h3>
-                            <p className="text-sm text-slate-600 leading-relaxed">
+                            <h3 className="font-bold text-text-primary">No Time Limit</h3>
+                            <p className="text-sm text-text-secondary leading-relaxed">
                                 Take your time. Thoughtful answers lead to better feedback.
                             </p>
                         </div>
                     </div>
 
-                    <div className="flex items-start gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-100 shadow-sm">
-                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm shrink-0">
+                    <div className="flex items-start gap-4 p-5 rounded-2xl bg-surface-subtle border shadow-flat">
+                        <div className="w-10 h-10 rounded-xl bg-surface-base border shadow-flat flex items-center justify-center shrink-0">
                             <ShieldCheck className="w-5 h-5 text-primary" />
                         </div>
-                        <div className="space-y-1">
-                            <h3 className="font-bold text-slate-900">Private Coaching Feedback</h3>
-                            <p className="text-sm text-slate-600 leading-relaxed">
-                                Your answers are analyzed to provide personalized improvement suggestions. Coaching insights are visible only to you.
+                        <div className="space-y-2">
+                            <h3 className="font-bold text-text-primary">Private Coaching Feedback</h3>
+                            <p className="text-sm text-text-secondary leading-relaxed">
+                                After each answer, your coach looks at <strong className="text-text-primary">what you said</strong> and <strong className="text-text-primary">how you structured it</strong>&mdash;things like clarity, specificity, and relevance to the role.
+                            </p>
+                            <p className="text-sm text-text-secondary leading-relaxed">
+                                Feedback is based on the substance of your ideas, not on accent, speaking style, or delivery polish. There are no scores or rankings&mdash;just concrete suggestions framed as things to try, never as penalties.
+                            </p>
+                            <p className="text-sm text-text-secondary leading-relaxed">
+                                Coaching insights are visible <strong className="text-text-primary">only to you</strong>.
                             </p>
                         </div>
                     </div>
 
-                    <div className="flex items-start gap-4 p-5 rounded-2xl bg-indigo-50/50 border border-indigo-100 shadow-sm">
-                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm shrink-0">
-                            <Sparkles className="w-5 h-5 text-indigo-600" />
-                        </div>
-                        <div className="space-y-1">
-                            <h3 className="font-bold text-indigo-900 text-lg">This space is for skill-building &mdash; not evaluation.</h3>
-                        </div>
+                    <div className="flex items-center justify-center px-6 h-16 bg-surface-subtle rounded-2xl border shadow-raised-1 overflow-hidden relative">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-primary/20" />
+                        <h3 className="text-primary font-bold text-lg m-0">This space is for skill-building &mdash; not evaluation.</h3>
                     </div>
                 </div>
 
                 {/* Baseline Question */}
                 <div className="pt-4 space-y-6">
                     <div className="space-y-2">
-                        <h4 className="text-sm font-bold uppercase tracking-widest text-slate-400">Before we start:</h4>
-                        <p className="text-lg font-medium text-slate-900">How prepared do you feel for your upcoming interview?</p>
+                        <h4 className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Before we start:</h4>
+                        <p className="text-lg font-medium text-text-primary text-left">How prepared do you feel for your upcoming interview?</p>
                     </div>
 
-                    <div className="flex items-center justify-between gap-2 max-w-sm">
+                    <div className="flex items-center justify-between gap-2 w-full">
                         {[1, 2, 3, 4, 5].map((val) => (
                             <button
                                 key={val}
                                 onClick={() => handleRatingSelect(val)}
                                 className={cn(
-                                    "w-12 h-12 rounded-xl border-2 flex items-center justify-center font-bold text-lg transition-all duration-200",
+                                    "w-12 h-12 rounded-xl border-2 flex items-center justify-center font-bold text-lg transition-all duration-base ease-standard",
                                     rating === val
-                                        ? "bg-primary border-primary text-white shadow-lg scale-110"
-                                        : "bg-white border-slate-200 text-slate-400 hover:border-primary/30 hover:text-primary"
+                                        ? "bg-primary border-primary text-white shadow-raised-2 scale-110"
+                                        : "bg-surface-base border-border text-text-muted hover:border-primary/30 hover:text-primary"
                                 )}
                             >
                                 {val}
                             </button>
                         ))}
                     </div>
-                    <div className="flex justify-between max-w-sm px-1 text-[10px] font-bold uppercase tracking-tighter text-slate-400">
+                    <div className="flex justify-between w-full px-1 text-[10px] font-bold uppercase tracking-tighter text-text-muted">
                         <span>Not prepared</span>
                         <span>Very prepared</span>
                     </div>
@@ -157,10 +161,10 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                         onClick={handleBegin}
                         disabled={isSubmitting}
                         className={cn(
-                            "w-full py-6 text-lg rounded-xl transition-all duration-200 shadow-xl font-bold h-auto",
+                            "w-full py-6 text-lg rounded-xl transition-all shadow-floating font-bold h-auto",
                             rating
                                 ? "bg-primary hover:bg-primary/90 text-primary-foreground hover:-translate-y-0.5"
-                                : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                                : "bg-surface-subtle text-text-muted cursor-not-allowed"
                         )}
                     >
                         {isSubmitting ? "Generating Session..." : "Begin First Question"}

@@ -2,7 +2,7 @@ import { useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { useSession } from "../context/SessionContext"
 import { ArrowRight, CheckCircle } from "lucide-react"
-
+import { SectionHeader } from "@/components/patterns/SectionHeader"
 // Ensure you import the CSS in layout or here (Global CSS preferred usually, but simple import works if configured)
 import "@/styles/loader.css"
 
@@ -99,9 +99,7 @@ export default function ReviewFeedbackScreen() {
                         {/* Content Pulse Block */}
                         {analysis.contentPulse && (
                             <div className="bg-white border border-l-4 border-l-emerald-500 rounded-lg shadow-sm p-6 space-y-3">
-                                <h3 className="text-xl font-bold text-slate-900 border-b border-emerald-100 pb-2">
-                                    {analysis.contentPulse.headline}
-                                </h3>
+                                <SectionHeader title={analysis.contentPulse.headline} className="border-b border-emerald-100 pb-2 mb-3" />
                                 <p className="text-slate-700 leading-relaxed font-medium">
                                     {analysis.contentPulse.body}
                                 </p>
@@ -116,9 +114,7 @@ export default function ReviewFeedbackScreen() {
                         {/* Delivery Pulse Block */}
                         {analysis.deliveryPulse && (
                             <div className="bg-white border border-l-4 border-l-indigo-500 rounded-lg shadow-sm p-6 space-y-3 mt-4">
-                                <h3 className="text-xl font-bold text-slate-900 border-b border-indigo-100 pb-2">
-                                    {analysis.deliveryPulse.headline}
-                                </h3>
+                                <SectionHeader title={analysis.deliveryPulse.headline} className="border-b border-indigo-100 pb-2 mb-3" />
                                 <p className="text-slate-700 leading-relaxed font-medium">
                                     {analysis.deliveryPulse.body}
                                 </p>

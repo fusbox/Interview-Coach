@@ -9,6 +9,7 @@ import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/cn";
 import { captureFeedbackAction } from "@/app/actions/feedback";
 import { ThumbsUp, ThumbsDown, CheckCircle2 } from "lucide-react";
+import { SectionHeader } from "@/components/patterns/SectionHeader";
 
 const STOCK_NARRATIVES = [
     "The candidate demonstrated high proficiency and readiness for the role across all evaluated questions.",
@@ -99,14 +100,14 @@ export default function SummaryScreen() {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2, duration: 0.8 }}
-                        className="space-y-4 w-full"
+                        className="w-full max-w-xl mx-auto"
                     >
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black font-display tracking-tight text-slate-900">
-                            Session Complete!
-                        </h1>
-                        <p className="text-lg md:text-xl text-muted-foreground/80 max-w-md mx-auto leading-relaxed">
-                            Great job practicing. Here&apos;s your debrief based on your performance.
-                        </p>
+                        <SectionHeader
+                            title="Session Complete!"
+                            size="lg"
+                            className="flex-col items-center text-center sm:flex-col sm:items-center sm:justify-center"
+                            description="Great job practicing. Here's your debrief based on your performance."
+                        />
                     </motion.div>
                 </div>
 
@@ -119,7 +120,7 @@ export default function SummaryScreen() {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.4 + (idx * 0.1), duration: 0.8 }}
-                                className="w-full text-left bg-white dark:bg-slate-900 rounded-3xl p-8 md:p-10 shadow-xl border border-slate-200 dark:border-white/10"
+                                className="w-full text-left bg-card rounded-3xl p-8 md:p-10 shadow-raised-2 border border-border"
                             >
                                 <h3 className="text-2xl font-black mb-6 text-slate-900 dark:text-white pb-4 border-b border-slate-100 dark:border-slate-800/60">
                                     {section.title}
@@ -150,20 +151,23 @@ export default function SummaryScreen() {
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.8, duration: 0.8 }}
-                    className="w-full max-w-2xl bg-slate-50 border border-slate-100 rounded-[2.5rem] p-8 md:p-12 space-y-10"
+                    className="w-full max-w-2xl bg-surface-subtle border shadow-flat rounded-2xl p-8 md:p-12 space-y-10"
                 >
                     <div className="text-center space-y-2">
-                        <h3 className="text-2xl font-black text-slate-900 font-display">How was your session?</h3>
-                        <p className="text-slate-500 font-medium italic">Your feedback helps us improve the coaching experience.</p>
+                        <SectionHeader
+                            title="How was your session?"
+                            className="flex-col items-center text-center sm:flex-col sm:items-center sm:justify-center"
+                            description={<span className="italic">Your feedback helps us improve the coaching experience.</span>}
+                        />
                     </div>
 
                     <div className="space-y-12">
                         {/* 1. Confidence Delta */}
                         <div className="space-y-4">
-                            <p className="text-lg font-bold text-slate-800 text-center md:text-left">
-                                &ldquo;I feel more prepared after this session.&rdquo;
+                            <p className="text-lg font-bold text-slate-800 text-center">
+                                I feel more prepared after this session.
                             </p>
-                            <div className="flex justify-center md:justify-start gap-2">
+                            <div className="flex justify-center gap-2">
                                 {[1, 2, 3, 4, 5].map((val) => (
                                     <button
                                         key={val}
@@ -183,10 +187,10 @@ export default function SummaryScreen() {
 
                         {/* 2. Psychological Safety */}
                         <div className="space-y-4">
-                            <p className="text-lg font-bold text-slate-800 text-center md:text-left">
-                                &ldquo;I felt safe to focus on my growth during this session.&rdquo;
+                            <p className="text-lg font-bold text-slate-800 text-center">
+                                I felt safe to focus on my growth during this session.
                             </p>
-                            <div className="flex justify-center md:justify-start gap-2">
+                            <div className="flex justify-center gap-2">
                                 {[1, 2, 3, 4, 5].map((val) => (
                                     <button
                                         key={val}
@@ -206,10 +210,10 @@ export default function SummaryScreen() {
 
                         {/* 3. Repeat Intent */}
                         <div className="space-y-4">
-                            <p className="text-lg font-bold text-slate-800 text-center md:text-left">
-                                &ldquo;I would use this again to prepare for a different role.&rdquo;
+                            <p className="text-lg font-bold text-slate-800 text-center">
+                                I would use this again to prepare for a different role.
                             </p>
-                            <div className="flex justify-center md:justify-start gap-4">
+                            <div className="flex justify-center gap-4">
                                 <button
                                     onClick={() => handleSurveySelect('repeat_intent', 'yes')}
                                     className={cn(

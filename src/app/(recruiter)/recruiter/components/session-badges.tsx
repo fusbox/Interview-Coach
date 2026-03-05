@@ -1,86 +1,96 @@
 "use client";
 
 import React from "react";
-import { Badge } from "@/components/ui/badge";
-import { SessionSummary } from "@/lib/domain/types";
+import { SessionSummary, InterviewSession } from "@/lib/domain/types";
 import { ReadinessTooltip } from "./ReadinessTooltip";
+import { StatusBadge as CanonicalStatusBadge } from "@/components/patterns/StatusBadge";
 
 // ---------------------------------------------------------------------------
 // Status Badge — 7-state session status taxonomy
+// Uses canonical StatusBadge for rendering, maps session state to variants.
 // ---------------------------------------------------------------------------
 
-const STATUS_CLASSES = "w-[145px] justify-center text-center";
+const STATUS_WIDTH = "w-[160px] justify-center text-center";
 
-export function StatusBadge({ session }: { session: SessionSummary }) {
-    const { status, answerCount, questionCount, submittedCount, viewedAt, enteredInitials } = session;
+type BadgeSession = SessionSummary | InterviewSession;
+
+function getSessionProgress(session: BadgeSession) {
+    if ('questions' in session) {
+        // Full InterviewSession
+        const answerList = Object.values(session.answers || {});
+        return {
+            questionCount: session.questions.length,
+            submittedCount: answerList.filter(a => !!a.submittedAt).length,
+            answerCount: answerList.length
+        };
+    }
+    // SessionSummary
+    return {
+        questionCount: session.questionCount,
+        submittedCount: session.submittedCount,
+        answerCount: session.answerCount
+    };
+}
+
+export function StatusBadge({ session }: { session: BadgeSession }) {
+    const { status, viewedAt, enteredInitials } = session;
+    const { questionCount, submittedCount, answerCount } = getSessionProgress(session);
 
     // 1. Completed
     if (status === 'COMPLETED' || (submittedCount === questionCount && questionCount > 0)) {
-        return <Badge variant="default" className={`${STATUS_CLASSES} bg-green-600 hover:bg-green-700`}>Completed</Badge>;
+        return <CanonicalStatusBadge variant="progressComplete" icon={false} className={STATUS_WIDTH} fullWidth={false}>Completed</CanonicalStatusBadge>;
     }
 
     // 2. In Progress (X/Y submitted)
     if (submittedCount > 0) {
-        return <Badge variant="secondary" className={`${STATUS_CLASSES} bg-blue-100 text-blue-800 hover:bg-blue-200`}>
-            In Progress ({submittedCount}/{questionCount})
-        </Badge>;
+        return <CanonicalStatusBadge variant="progressSolid" icon={false} className={STATUS_WIDTH} fullWidth={false}>In Progress ({submittedCount}/{questionCount})</CanonicalStatusBadge>;
     }
 
     // 3. Drafting Answer
     if (status === 'IN_SESSION' && answerCount > 0) {
-        return <Badge variant="secondary" className={`${STATUS_CLASSES} bg-indigo-100 text-indigo-800 border-indigo-200`}>
-            Drafting Answer
-        </Badge>;
+        return <CanonicalStatusBadge variant="progressActive" icon={false} className={STATUS_WIDTH} fullWidth={false}>Drafting Answer</CanonicalStatusBadge>;
     }
 
     // 4. Session Started
     if (status === 'IN_SESSION') {
-        return <Badge variant="secondary" className={`${STATUS_CLASSES} bg-blue-50 text-blue-700 border-blue-100`}>
-            Session Started
-        </Badge>;
+        return <CanonicalStatusBadge variant="progressStarted" icon={false} className={STATUS_WIDTH} fullWidth={false}>Session Started</CanonicalStatusBadge>;
     }
 
     // 5. Initials Entered
     if (enteredInitials) {
-        return <Badge variant="outline" className={`${STATUS_CLASSES} text-amber-600 border-amber-200 bg-amber-50`}>
-            Initials Entered
-        </Badge>;
+        return <CanonicalStatusBadge variant="progressStarted" icon={false} className={STATUS_WIDTH} fullWidth={false}>Initials Entered</CanonicalStatusBadge>;
     }
 
     // 6. Link Viewed
     if (viewedAt) {
-        return <Badge variant="outline" className={`${STATUS_CLASSES} text-indigo-500 border-indigo-200`}>
-            Link Viewed
-        </Badge>;
+        return <CanonicalStatusBadge variant="progressViewed" icon={false} className={STATUS_WIDTH} fullWidth={false}>Link Viewed</CanonicalStatusBadge>;
     }
 
     // 7. Invite Sent
-    return <Badge variant="outline" className={`${STATUS_CLASSES} text-slate-400 border-slate-200 text-[10px]`}>
-        Invite Sent
-    </Badge>;
+    return <CanonicalStatusBadge variant="progressIdle" icon={false} size="sm" className={STATUS_WIDTH} fullWidth={false}>Invite Sent</CanonicalStatusBadge>;
 }
 
 // ---------------------------------------------------------------------------
 // Readiness Badge — RL1-RL4 readiness band with tooltip
 // ---------------------------------------------------------------------------
 
-const READINESS_CLASSES = "w-[125px] justify-center text-center text-[10px] uppercase font-bold tracking-tight";
+const READINESS_WIDTH = "w-[160px] justify-center text-center";
 
-const READINESS_CONFIG: Record<string, { label: string; className: string }> = {
-    RL1: { label: 'Ready', className: 'text-emerald-700 border-emerald-200 bg-emerald-50' },
-    RL2: { label: 'Strong Potential', className: 'text-blue-700 border-blue-200 bg-blue-50' },
-    RL3: { label: 'Practice Recommended', className: 'text-amber-700 border-amber-200 bg-amber-50' },
-    RL4: { label: 'Incomplete', className: 'text-slate-500 border-slate-200 bg-slate-50' },
+const READINESS_MAP: Record<string, { label: string; variant: "readinessHigh" | "readinessPotential" | "readinessMedium" | "readinessLow" | "readinessUnknown" }> = {
+    RL1: { label: 'Ready', variant: 'readinessHigh' },
+    RL2: { label: 'Strong Potential', variant: 'readinessPotential' },
+    RL3: { label: 'Practice Recommended', variant: 'readinessMedium' },
+    RL4: { label: 'Incomplete', variant: 'readinessUnknown' },
 };
 
-export function ReadinessBadge({ session }: { session: SessionSummary }) {
+export function ReadinessBadge({ session }: { session: BadgeSession }) {
     const rl = session.readinessBand;
     if (!rl && !session.summaryNarrative) return <span className="text-slate-300 text-xs">—</span>;
 
-    const config = rl ? READINESS_CONFIG[rl] : null;
-    const badge = config
-        ? <Badge variant="outline" className={`${READINESS_CLASSES} ${config.className}`}>{config.label}</Badge>
-        : <Badge variant="outline" className={`${READINESS_CLASSES} text-slate-400 border-slate-200`}>Analyzing...</Badge>;
+    const mapped = rl ? READINESS_MAP[rl] : null;
+    const badge = mapped
+        ? <CanonicalStatusBadge variant={mapped.variant} icon={false} size="sm" className={READINESS_WIDTH}>{mapped.label}</CanonicalStatusBadge>
+        : <CanonicalStatusBadge variant="neutral" icon={false} size="sm" className={READINESS_WIDTH}>Analyzing...</CanonicalStatusBadge>;
 
     return (
         <ReadinessTooltip narrative={session.summaryNarrative}>
@@ -96,8 +106,8 @@ export function ReadinessBadge({ session }: { session: SessionSummary }) {
 export function AttemptBadge({ attemptNumber }: { attemptNumber?: number }) {
     if (!attemptNumber || attemptNumber <= 1) return null;
     return (
-        <Badge variant="outline" className="text-[9px] font-bold text-slate-500 border-slate-200 bg-slate-50 px-1.5 py-0">
+        <CanonicalStatusBadge variant="neutral" icon={false} size="sm">
             Attempt {attemptNumber}
-        </Badge>
+        </CanonicalStatusBadge>
     );
 }

@@ -10,7 +10,8 @@ import { Mic, Lightbulb, Volume2, StopCircle, Loader2, X, ArrowRight, Keyboard }
 import { useSession } from "../context/SessionContext"
 import { EngagementDebugOverlay } from "@/components/debug/EngagementDebugOverlay"
 import { cn } from "@/lib/cn"
-
+import { StatusBadge } from "@/components/patterns/StatusBadge"
+import { SectionHeader } from "@/components/patterns/SectionHeader"
 
 interface ActiveQuestionScreenProps {
     question: Question;
@@ -209,10 +210,10 @@ export default function ActiveQuestionScreen({
 
     // --- 3. Render ---
     return (
-        <div className="flex flex-col bg-slate-50 relative selection:bg-emerald-100">
+        <div className="flex flex-col bg-surface-subtle relative selection:bg-primary/10">
 
             {/* Header / Nav */}
-            <header className="px-6 py-4 border-b bg-white flex justify-between items-center sticky top-0 z-10">
+            <header className="px-6 py-4 border-b bg-surface-base flex justify-between items-center sticky top-0 z-10">
                 {/* Left Spacer (matches width of Right Status) - roughly 100px */}
                 <div className="hidden sm:block w-[100px]" />
 
@@ -258,10 +259,9 @@ export default function ActiveQuestionScreen({
 
                 {/* Right: In Session Status (Width locked approx 100px for centering) */}
                 <div className="hidden sm:flex w-[100px] justify-end">
-                    <div className="flex items-center gap-1.5 opacity-60">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-xs font-semibold tracking-wide uppercase text-slate-600">In Session</span>
-                    </div>
+                    <StatusBadge variant="success" size="sm" icon={true} className="animate-pulse">
+                        In Session
+                    </StatusBadge>
                 </div>
             </header >
 
@@ -278,35 +278,33 @@ export default function ActiveQuestionScreen({
                             exit={{ opacity: 0, y: -10 }}
                             className="bg-transparent pl-1"
                         >
-                            <div className="flex justify-between items-end mb-2">
-                                <div className="text-xs uppercase tracking-wide font-bold text-slate-400">
-                                    {question.category}
-                                </div>
-                                {/* Audio Control - Moved here */}
-                                <button
-                                    onClick={handleTogglePlayback}
-                                    disabled={isTTSLoading}
-                                    className="flex items-center gap-1.5 px-2 py-0.5 rounded hover:bg-slate-50 text-[10px] text-blue-600 hover:text-blue-700 uppercase font-bold transition-colors"
-                                >
-                                    {isTTSLoading ? (
-                                        <span className="animate-pulse">Loading...</span>
-                                    ) : isSpeaking ? (
-                                        <>
-                                            <StopCircle size={12} className="animate-pulse text-red-500" /> Stop
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Volume2 size={12} /> Read Question
-                                        </>
-                                    )}
-                                </button>
+                            <SectionHeader
+                                title={<span className="text-2xl sm:text-3xl font-display text-text-primary leading-tight">{question.text}</span>}
+                                description={<span className="italic mt-1 font-medium text-text-muted">Take your time.</span>}
+                                actions={
+                                    <button
+                                        onClick={handleTogglePlayback}
+                                        disabled={isTTSLoading}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-slate-100 text-xs text-primary font-semibold transition-colors shrink-0"
+                                    >
+                                        {isTTSLoading ? (
+                                            <span className="animate-pulse">Loading...</span>
+                                        ) : isSpeaking ? (
+                                            <>
+                                                <StopCircle size={14} className="animate-pulse text-destructive" /> Stop
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Volume2 size={14} /> Read
+                                            </>
+                                        )}
+                                    </button>
+                                }
+                            />
+
+                            <div className="mt-4 text-xs uppercase tracking-wide font-bold text-slate-400">
+                                {question.category}
                             </div>
-                            <h2 className="text-2xl sm:text-3xl font-sans text-slate-800 leading-tight">
-                                {question.text}
-                            </h2>
-                            <p className="text-slate-400 text-sm mt-3 font-medium italic">
-                                Take your time.
-                            </p>
                         </motion.div>
                     </AnimatePresence>
 
@@ -372,10 +370,10 @@ export default function ActiveQuestionScreen({
                                         onClick={handleToggleRecording}
                                         disabled={isRecordingInitializing}
                                         className={cn(
-                                            "pointer-events-auto group relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300",
+                                            "pointer-events-auto group relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-base ease-standard",
                                             isRecording
-                                                ? "bg-red-50 text-red-500 border-4 border-red-200 scale-110"
-                                                : "bg-blue-600 text-white hover:bg-blue-700 shadow-xl"
+                                                ? "bg-state-critical/10 text-state-critical border-4 border-state-critical/20 scale-110"
+                                                : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-floating"
                                         )}
                                     >
                                         {isRecordingInitializing ? (
@@ -476,7 +474,7 @@ export default function ActiveQuestionScreen({
                                     <Button
                                         size="lg"
                                         onClick={() => handleLocalSubmit()}
-                                        className="min-w-[140px] bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all animate-in zoom-in-95 duration-200"
+                                        className="min-w-[140px] shadow-raised-1 transition-all animate-in zoom-in-95 duration-base ease-standard"
                                     >
                                         Next <ArrowRight className="ml-2 w-4 h-4" />
                                     </Button>

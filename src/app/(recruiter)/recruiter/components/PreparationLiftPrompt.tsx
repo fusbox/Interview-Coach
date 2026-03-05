@@ -53,12 +53,12 @@ export function PreparationLiftPrompt({ recruiterEmail }: { recruiterEmail: stri
                     exit={{ opacity: 0, y: -20, height: 0 }}
                     className="overflow-hidden"
                 >
-                    <div className="mb-8 p-6 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-500/20 rounded-[2rem] relative flex flex-col lg:flex-row items-center justify-between gap-6 shadow-sm">
+                    <div className="mb-8 p-6 bg-surface-subtle border border-border rounded-3xl relative flex flex-col lg:flex-row items-center justify-between gap-6 shadow-flat transition-all duration-base ease-standard">
                         <div className="flex-1 text-center lg:text-left">
-                            <h3 className="text-lg font-bold text-indigo-900 dark:text-indigo-100 mb-1">
+                            <h3 className="text-lg font-bold text-text-primary mb-1">
                                 Candidate Preparation Signal
                             </h3>
-                            <p className="text-indigo-700/70 dark:text-indigo-300/60 font-medium">
+                            <p className="text-text-muted font-medium">
                                 In your experience, do candidates seem more prepared after using this tool?
                             </p>
                         </div>
@@ -71,17 +71,17 @@ export function PreparationLiftPrompt({ recruiterEmail }: { recruiterEmail: stri
                                             key={val}
                                             onClick={() => handleRating(val)}
                                             className={cn(
-                                                "w-11 h-11 rounded-2xl border-2 flex items-center justify-center font-bold text-lg transition-all active:scale-90",
+                                                "w-11 h-11 rounded-2xl border-2 flex items-center justify-center font-bold text-lg transition-all duration-base ease-standard active:scale-95",
                                                 rating === val
-                                                    ? "bg-indigo-600 border-indigo-600 text-white shadow-lg"
-                                                    : "bg-white dark:bg-slate-800 border-indigo-100 dark:border-white/5 text-indigo-400 hover:border-indigo-300 hover:text-indigo-600"
+                                                    ? "bg-primary border-primary text-primary-foreground shadow-raised-1"
+                                                    : "bg-surface-base border-border text-text-muted hover:border-primary/50 hover:text-primary"
                                             )}
                                         >
                                             {val}
                                         </button>
                                     ))}
                                 </div>
-                                <div className="flex justify-between w-full max-w-[240px] text-[10px] font-bold uppercase tracking-wider text-indigo-300">
+                                <div className="flex justify-between w-full max-w-[240px] text-[10px] font-bold uppercase tracking-wider text-text-disabled">
                                     <span>No noticeable lift</span>
                                     <span>Significant lift</span>
                                 </div>

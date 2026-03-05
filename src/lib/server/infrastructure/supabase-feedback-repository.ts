@@ -35,9 +35,9 @@ export class SupabaseFeedbackRepository {
             .from('user_feedback')
             .select(`
                 *,
-                interview_sessions (
-                    role,
-                    candidate_name
+                sessions (
+                    target_role,
+                    intake_json
                 )
             `)
             .order('created_at', { ascending: false });

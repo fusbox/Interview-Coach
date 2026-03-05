@@ -7,6 +7,7 @@ import { useSpeechToText } from '@/features/audio/hooks/useSpeechToText';
 import { useAudioRecording } from "@/features/audio/hooks/useAudioRecording";
 import { useTextToSpeech } from "@/features/audio/hooks/useTextToSpeech";
 import { SessionHeader } from './SessionHeader';
+import { SectionHeader } from '@/components/patterns/SectionHeader';
 import { FeedbackDrawer } from './FeedbackDrawer';
 import { MultiStepLoader } from './MultiStepLoader';
 import AudioVisualizer from '@/features/audio/components/AudioVisualizer';
@@ -303,9 +304,10 @@ export default function UnifiedSessionScreen() {
                                     </CategoryTooltip>
                                 </div>
 
-                                <h2 className="text-2xl md:text-3xl lg:text-4xl font-semibold leading-tight text-left mb-10 text-slate-900 dark:text-white font-display">
-                                    {currentQuestion.text}
-                                </h2>
+                                <SectionHeader
+                                    title={currentQuestion.text}
+                                    className="mb-10"
+                                />
 
                                 <div className="flex items-center gap-2 md:gap-4 min-h-[48px] md:min-h-[40px] w-auto pt-4 md:pt-6 pb-4 md:pb-10 -mx-6 md:-mx-10 -mb-6 md:-mb-10 px-6 md:px-10 border-t-2 border-slate-500/10 dark:border-white/10 bg-blue-900/[0.03] shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]">
                                     <div className="flex-1 flex justify-start gap-4">

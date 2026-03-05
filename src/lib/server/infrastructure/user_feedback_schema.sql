@@ -4,7 +4,7 @@
 
 CREATE TABLE IF NOT EXISTS public.user_feedback (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    session_id UUID REFERENCES public.interview_sessions(id) ON DELETE SET NULL,
+    session_id UUID REFERENCES public.sessions(session_id) ON DELETE SET NULL,
     recruiter_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     
     -- Type categorizes the signal: 

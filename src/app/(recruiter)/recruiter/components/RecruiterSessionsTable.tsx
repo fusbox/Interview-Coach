@@ -1,16 +1,15 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Search, ArrowUpDown, Copy, Trash2, CheckCircle2, ExternalLink } from "lucide-react";
 import { SessionSummary } from "@/lib/domain/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { deleteSession } from "../actions";
-import { StatusBadge, ReadinessBadge } from "./session-badges";
+import { StatusBadge, ReadinessBadge, AttemptBadge } from "./session-badges";
+import { DataTable } from "@/components/patterns/DataTable";
 
 interface RecruiterSessionsTableProps {
     initialSessions: SessionSummary[];
@@ -176,164 +175,144 @@ export function RecruiterSessionsTable({ initialSessions, recruiterTimezone }: R
                 />
             </div>
 
-            <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
-                <Table>
-                    <TableHeader className="bg-slate-50/50">
-                        <TableRow className="hover:bg-transparent">
-                            <TableHead className="w-[250px]">
-                                <button
-                                    onClick={() => handleSort('candidateName')}
-                                    className="flex items-center gap-1 hover:text-slate-900 transition-colors uppercase text-[11px] font-bold tracking-wider text-slate-500"
+            <DataTable<SessionSummary>
+                columns={[
+                    {
+                        header: (
+                            <button onClick={() => handleSort('candidateName')} className="flex items-center gap-1 hover:text-slate-900 transition-colors">
+                                Candidate <ArrowUpDown className="w-3 h-3" />
+                            </button>
+                        ),
+                        cell: (session) => (
+                            <div className="flex flex-col">
+                                <div className="flex items-center gap-2 max-w-full">
+                                    <span className="truncate font-semibold text-slate-900">{session.candidateName}</span>
+                                    <AttemptBadge attemptNumber={session.attemptNumber} />
+                                </div>
+                            </div>
+                        ),
+                        className: "w-[250px]"
+                    },
+                    {
+                        header: (
+                            <button onClick={() => handleSort('role')} className="flex items-center gap-1 hover:text-slate-900 transition-colors">
+                                Role <ArrowUpDown className="w-3 h-3" />
+                            </button>
+                        ),
+                        accessorKey: "role",
+                        className: "text-slate-600"
+                    },
+                    {
+                        header: (
+                            <button onClick={() => handleSort('status')} className="flex items-center gap-1 hover:text-slate-900 transition-colors">
+                                Status <ArrowUpDown className="w-3 h-3" />
+                            </button>
+                        ),
+                        cell: (session) => <StatusBadge session={session} />,
+                        className: "w-[180px]"
+                    },
+                    {
+                        header: (
+                            <button onClick={() => handleSort('readinessBand')} className="flex items-center gap-1 hover:text-slate-900 transition-colors">
+                                Readiness <ArrowUpDown className="w-3 h-3" />
+                            </button>
+                        ),
+                        cell: (session) => <ReadinessBadge session={session} />,
+                        className: "w-[180px] bg-gradient-to-br from-blue-50/50 to-blue-100/30"
+                    },
+                    {
+                        header: (
+                            <button onClick={() => handleSort('engagedTimeSeconds')} className="flex items-center gap-1 hover:text-slate-900 transition-colors">
+                                Active <ArrowUpDown className="w-3 h-3" />
+                            </button>
+                        ),
+                        cell: (session) => (
+                            <span className="text-slate-500 whitespace-nowrap text-sm font-medium">
+                                {formatDuration(session.engagedTimeSeconds)}
+                            </span>
+                        )
+                    },
+                    {
+                        header: (
+                            <button onClick={() => handleSort('updatedAt')} className="flex items-center gap-1 hover:text-slate-900 transition-colors">
+                                Last Activity <ArrowUpDown className="w-3 h-3" />
+                            </button>
+                        ),
+                        cell: (session) => (
+                            <span className="text-slate-500 whitespace-nowrap text-sm">
+                                {formatTimestamp(session.updatedAt || session.createdAt)}
+                            </span>
+                        )
+                    },
+                    {
+                        header: (
+                            <button onClick={() => handleSort('created')} className="flex items-center gap-1 hover:text-slate-900 transition-colors">
+                                Created <ArrowUpDown className="w-3 h-3" />
+                            </button>
+                        ),
+                        cell: (session) => (
+                            <span className="text-slate-500 whitespace-nowrap text-sm">
+                                {formatTimestamp(session.createdAt)}
+                            </span>
+                        )
+                    },
+                    {
+                        header: <span className="px-6 block text-right">Actions</span>,
+                        className: "text-right",
+                        cell: (session) => (
+                            <div className="flex items-center justify-end gap-1 px-6" onClick={(e) => e.stopPropagation()}>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    asChild
+                                    className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/5 transition-colors"
+                                    title="Open Results in New Tab"
                                 >
-                                    Candidate <ArrowUpDown className="w-3 h-3" />
-                                </button>
-                            </TableHead>
-                            <TableHead>
-                                <button
-                                    onClick={() => handleSort('role')}
-                                    className="flex items-center gap-1 hover:text-slate-900 transition-colors uppercase text-[11px] font-bold tracking-wider text-slate-500"
-                                >
-                                    Role <ArrowUpDown className="w-3 h-3" />
-                                </button>
-                            </TableHead>
-                            <TableHead>
-                                <button
-                                    onClick={() => handleSort('status')}
-                                    className="flex items-center gap-1 hover:text-slate-900 transition-colors uppercase text-[11px] font-bold tracking-wider text-slate-500"
-                                >
-                                    Status <ArrowUpDown className="w-3 h-3" />
-                                </button>
-                            </TableHead>
-                            <TableHead className="bg-gradient-to-br from-[#e8f1fd] to-[#d1e3fa]">
-                                <button
-                                    onClick={() => handleSort('readinessBand')}
-                                    className="flex items-center gap-1 hover:text-slate-900 transition-colors uppercase text-[11px] font-bold tracking-wider text-slate-500"
-                                >
-                                    Readiness <ArrowUpDown className="w-3 h-3" />
-                                </button>
-                            </TableHead>
-                            <TableHead>
-                                <button
-                                    onClick={() => handleSort('engagedTimeSeconds')}
-                                    className="flex items-center gap-1 hover:text-slate-900 transition-colors uppercase text-[11px] font-bold tracking-wider text-slate-500"
-                                >
-                                    Active <ArrowUpDown className="w-3 h-3" />
-                                </button>
-                            </TableHead>
-                            <TableHead>
-                                <button
-                                    onClick={() => handleSort('updatedAt')}
-                                    className="flex items-center gap-1 hover:text-slate-900 transition-colors uppercase text-[11px] font-bold tracking-wider text-slate-500"
-                                >
-                                    Last Activity <ArrowUpDown className="w-3 h-3" />
-                                </button>
-                            </TableHead>
-                            <TableHead>
-                                <button
-                                    onClick={() => handleSort('created')}
-                                    className="flex items-center gap-1 hover:text-slate-900 transition-colors uppercase text-[11px] font-bold tracking-wider text-slate-500"
-                                >
-                                    Created <ArrowUpDown className="w-3 h-3" />
-                                </button>
-                            </TableHead>
-                            <TableHead className="text-right uppercase text-[11px] font-bold tracking-wider text-slate-500 px-6">
-                                Actions
-                            </TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {filteredAndSortedSessions.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={5} className="text-center py-12 text-slate-400 italic">
-                                    No sessions found.
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            filteredAndSortedSessions.map((session) => {
-                                return (
-                                    <TableRow
-                                        key={session.id}
-                                        className="group cursor-pointer hover:bg-blue-50/40 transition-colors border-b border-slate-100 last:border-0"
-                                        onClick={() => router.push(`/recruiter/sessions/${session.id}`)}
-                                    >
-                                        <TableCell className="font-semibold text-slate-900 py-4">
-                                            <div className="flex flex-col">
-                                                <div className="flex items-center gap-2 max-w-full">
-                                                    <span className="truncate">{session.candidateName}</span>
-                                                    {session.attemptNumber && session.attemptNumber > 1 && (
-                                                        <Badge
-                                                            variant="outline"
-                                                            className="text-[10px] py-0.5 px-1.5 bg-blue-50 border-blue-100 text-blue-600 whitespace-nowrap flex-shrink-0 font-bold uppercase tracking-tight"
-                                                        >
-                                                            Attempt {session.attemptNumber}
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-slate-600">{session.role}</TableCell>
-                                        <TableCell><StatusBadge session={session} /></TableCell>
-                                        <TableCell><ReadinessBadge session={session} /></TableCell>
-                                        <TableCell className="text-slate-500 whitespace-nowrap text-sm font-medium">
-                                            {formatDuration(session.engagedTimeSeconds)}
-                                        </TableCell>
-                                        <TableCell className="text-slate-500 whitespace-nowrap text-sm">
-                                            {formatTimestamp(session.updatedAt || session.createdAt)}
-                                        </TableCell>
-                                        <TableCell className="text-slate-500 whitespace-nowrap text-sm">
-                                            {formatTimestamp(session.createdAt)}
-                                        </TableCell>
-                                        <TableCell className="text-right px-6" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                                            <div className="flex items-center justify-end gap-1">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    asChild
-                                                    className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/5 transition-colors"
-                                                    title="Open Results in New Tab"
-                                                >
-                                                    <Link href={`/recruiter/sessions/${session.id}`} target="_blank" rel="noopener noreferrer">
-                                                        <ExternalLink className="h-4 w-4" />
-                                                    </Link>
-                                                </Button>
+                                    <Link href={`/recruiter/sessions/${session.id}`} target="_blank" rel="noopener noreferrer">
+                                        <ExternalLink className="h-4 w-4" />
+                                    </Link>
+                                </Button>
 
-                                                <div className="w-8 h-8 flex items-center justify-center">
-                                                    {session.inviteToken ? (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
-                                                            title="Copy Invite Link"
-                                                            onClick={() => handleCopyLink(session.inviteToken!, session.id)}
-                                                        >
-                                                            {copiedId === session.id ? (
-                                                                <CheckCircle2 className="h-4 w-4 text-emerald-600 animate-in zoom-in-50" />
-                                                            ) : (
-                                                                <Copy className="h-4 w-4" />
-                                                            )}
-                                                        </Button>
-                                                    ) : null}
-                                                </div>
+                                <div className="w-8 h-8 flex items-center justify-center">
+                                    {session.inviteToken ? (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                                            title="Copy Invite Link"
+                                            onClick={() => handleCopyLink(session.inviteToken!, session.id)}
+                                        >
+                                            {copiedId === session.id ? (
+                                                <CheckCircle2 className="h-4 w-4 text-emerald-600 animate-in zoom-in-50" />
+                                            ) : (
+                                                <Copy className="h-4 w-4" />
+                                            )}
+                                        </Button>
+                                    ) : null}
+                                </div>
 
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                                                    title="Delete Session"
-                                                    disabled={isDeleting === session.id}
-                                                    onClick={() => handleDelete(session.id)}
-                                                >
-                                                    <Trash2 className={isDeleting === session.id ? "h-4 w-4 animate-pulse" : "h-4 w-4"} />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                    title="Delete Session"
+                                    disabled={isDeleting === session.id}
+                                    onClick={() => handleDelete(session.id)}
+                                >
+                                    <Trash2 className={isDeleting === session.id ? "h-4 w-4 animate-pulse" : "h-4 w-4"} />
+                                </Button>
+                            </div>
+                        )
+                    }
+                ]}
+                data={filteredAndSortedSessions}
+                onRowClick={(session) => router.push(`/recruiter/sessions/${session.id}`)}
+                emptyState={
+                    <div className="text-center py-12 text-slate-400 italic">
+                        No sessions found.
+                    </div>
+                }
+            />
             <p className="text-[11px] text-slate-400 px-1">
                 Tip: Invite links are securely encrypted at rest to maintain SOC 2 compliance.
             </p>

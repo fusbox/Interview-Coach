@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { getRecruiterSessions, getRecruiterInsights } from "./actions";
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { createClient, getCachedUser } from "@/lib/supabase/server";
 import { RecruiterSessionsTable } from "./components/RecruiterSessionsTable";
 import { DashboardStats } from "./components/DashboardStats";
@@ -45,18 +46,19 @@ export default async function RecruiterDashboard() {
 
     return (
         <div className="space-y-10">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-slate-900 font-display">Dashboard</h1>
-                    <p className="text-slate-500 mt-1">At-a-glance view of your hiring pipeline and coaching impact.</p>
-                </div>
-                <Button asChild className="shadow-md">
-                    <Link href="/recruiter/create">
-                        <Plus className="w-4 h-4 mr-2" />
-                        New Invite
-                    </Link>
-                </Button>
-            </div>
+            <SectionHeader
+                title="Dashboard"
+                size="lg"
+                description="At-a-glance view of your hiring pipeline and coaching impact."
+                actions={
+                    <Button asChild className="shadow-md">
+                        <Link href="/recruiter/create">
+                            <Plus className="w-4 h-4 mr-2" />
+                            New Invite
+                        </Link>
+                    </Button>
+                }
+            />
 
             {/* Top Baseline Header */}
             <CurrentBaselineBlock

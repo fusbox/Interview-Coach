@@ -1,11 +1,12 @@
 "use client";
 
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Progress } from "../../../../components/ui/progress";
 import { Target, Info } from "lucide-react";
 import { SessionDashboardMetrics } from "@/lib/domain/types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { SectionHeader } from "@/components/patterns/SectionHeader";
 
 interface CoachingFocusCardProps {
     metrics: SessionDashboardMetrics;
@@ -50,16 +51,17 @@ export function CoachingFocusCard({ metrics }: CoachingFocusCardProps) {
     };
 
     return (
-        <Card className="border-none shadow-sm bg-white">
+        <Card className="border-none shadow-flat bg-surface-base">
             <CardHeader className="pb-2">
                 <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-blue-600 text-white rounded-xl flex items-center justify-center">
+                    <div className="w-8 h-8 bg-primary text-primary-foreground rounded-xl flex items-center justify-center shadow-flat">
                         <Target size={18} />
                     </div>
-                    <div>
-                        <CardTitle className="text-lg font-bold">Top Coaching Needs</CardTitle>
-                        <CardDescription>Aggregate skill gaps across all candidate answers</CardDescription>
-                    </div>
+                    <SectionHeader
+                        title="Top Coaching Needs"
+                        size="sm"
+                        description="Aggregate skill gaps across all candidate answers"
+                    />
                 </div>
             </CardHeader>
             <CardContent className="space-y-6 pt-4">
@@ -83,9 +85,9 @@ export function CoachingFocusCard({ metrics }: CoachingFocusCardProps) {
                                 </div>
                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{Math.round(percentage)}% of answers</span>
                             </div>
-                            <Progress value={percentage} className="h-1.5 bg-slate-100" />
+                            <Progress value={percentage} className="h-1.5 bg-surface-subtle" />
                             {index === 0 && (
-                                <p className="text-xs text-slate-500 mt-1 pl-1 border-l-2 border-blue-200">
+                                <p className="text-xs text-text-muted mt-1 pl-1 border-l-2 border-primary/20">
                                     Primary lever: {getRationale(dimension)}
                                 </p>
                             )}
