@@ -75,6 +75,28 @@ const config = {
 					DEFAULT: 'hsl(var(--warning))',
 					foreground: 'hsl(var(--warning-foreground))'
 				},
+				surface: {
+					base: 'hsl(var(--surface-base))',
+					subtle: 'hsl(var(--surface-subtle))',
+					raised: 'hsl(var(--surface-raised))',
+					overlay: 'hsl(var(--surface-overlay))',
+				},
+				'text-primary': 'hsl(var(--text-primary))',
+				'text-secondary': 'hsl(var(--text-secondary))',
+				'text-muted': 'hsl(var(--text-muted))',
+				'text-inverse': 'hsl(var(--text-inverse))',
+				state: {
+					success: 'hsl(var(--state-success))',
+					warning: 'hsl(var(--state-warning))',
+					critical: 'hsl(var(--state-critical))',
+					info: 'hsl(var(--state-info))',
+				},
+				readiness: {
+					high: 'hsl(var(--readiness-high))',
+					medium: 'hsl(var(--readiness-medium))',
+					low: 'hsl(var(--readiness-low))',
+					unknown: 'hsl(var(--readiness-unknown))',
+				},
 				brand: {
 					deep: '#08409a'
 				},
@@ -113,9 +135,27 @@ const config = {
 				}
 			},
 			borderRadius: {
-				lg: 'var(--radius)',
-				md: 'calc(var(--radius) - 2px)',
-				sm: 'calc(var(--radius) - 4px)'
+				'2xl': 'var(--radius-2xl)',
+				xl: 'var(--radius-xl)',
+				lg: 'var(--radius-lg)',
+				md: 'var(--radius-md)',
+				sm: 'var(--radius-sm)',
+				full: '9999px',
+				DEFAULT: 'var(--radius)',
+			},
+			boxShadow: {
+				flat: 'var(--shadow-flat)',
+				'raised-1': 'var(--shadow-raised-1)',
+				'raised-2': 'var(--shadow-raised-2)',
+				floating: 'var(--shadow-floating)',
+			},
+			transitionDuration: {
+				fast: 'var(--duration-fast)',
+				base: 'var(--duration-base)',
+				slow: 'var(--duration-slow)',
+			},
+			transitionTimingFunction: {
+				emphasized: 'var(--ease-emphasized)',
 			},
 			keyframes: {
 				'accordion-down': {
@@ -136,8 +176,8 @@ const config = {
 				}
 			},
 			animation: {
-				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-down': 'accordion-down var(--duration-base) var(--ease-emphasized)',
+				'accordion-up': 'accordion-up var(--duration-base) var(--ease-emphasized)'
 			}
 		}
 	},

@@ -49,7 +49,7 @@ export function FeedbackPanel({
     ...props
 }: FeedbackPanelProps) {
     const config = assessment ? ASSESSMENT_CONFIG[assessment] : null
-    const Icon = icon || (config?.icon) || Sparkles
+
 
     return (
         <Card className={cn("overflow-hidden border-l-4", config ? `border-l-state-${assessment === 'outstanding' ? 'success' : assessment === 'satisfactory' ? 'info' : assessment === 'growth' ? 'warning' : 'critical'}` : "border-l-primary", className)} {...props}>
@@ -57,7 +57,11 @@ export function FeedbackPanel({
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-2">
                         <div className={cn("p-1.5 rounded-md bg-surface-subtle border shadow-flat", config?.color)}>
-                            {typeof Icon === 'function' ? <Icon size={16} /> : Icon}
+                            {(() => {
+                                if (React.isValidElement(icon)) return icon;
+                                const IconComponent = (icon || (config?.icon) || Sparkles) as React.ElementType;
+                                return <IconComponent size={16} />;
+                            })()}
                         </div>
                         <CardTitle className="text-base font-bold">{title}</CardTitle>
                     </div>

@@ -419,27 +419,38 @@ Landing page mt mapping (example):
 ---
 
 ## Anti-patterns (explicitly avoid)
-
-- “PrimaryButton”, “SessionButton”, “CoachCard” (premature styled duplicates)
-
-- Copy/pasting Tailwind class soup between screens
-
-- Per-page custom palettes, radii, shadows
-
-- Router hooks inside Screens
-
-- Using URL shape to encode session progression
-
----
-
-## Summary
-
-- Tokens define meaning.
-
-- Variants define behavior.
-
-- Primitives define consistency.
-
-- Screens compose; they don’t restyle.
-
-This system is intentionally boring — that’s how you know it will scale.
+ 
+ - “PrimaryButton”, “SessionButton”, “CoachCard” (premature styled duplicates)
+ 
+ - Copy/pasting Tailwind class soup between screens
+ 
+ - Per-page custom palettes, radii, shadows
+ 
+ - Router hooks inside Screens
+ 
+ - Using URL shape to encode session progression
+ 
+ ---
+ 
+ ## Summary
+ 
+ - Tokens define meaning.
+ 
+ - Variants define behavior.
+ 
+ - Primitives define consistency.
+ 
+ - Screens compose; they don’t restyle.
+ 
+-This system is intentionally boring — that’s how you know it will scale.
+\ No newline at end of file
++This system is intentionally boring — that’s how you know it will scale.
++
++## Design system modernization artifacts
++
++- [UI Audit — Current State (2026-03-02)](./UI_AUDIT_2026-03.md)
++- [Canonical Design System Spec (v1)](./CANONICAL_DESIGN_SYSTEM_SPEC.md)
++- [Design System Migration Plan (Canonical v1)](./DESIGN_SYSTEM_MIGRATION_PLAN.md)
+ 
+EOF
+)
