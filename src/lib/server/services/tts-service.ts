@@ -24,13 +24,6 @@ export class TTSService {
                 },
                 config: {
                     responseModalities: ['AUDIO'],
-                    speechConfig: {
-                        voiceConfig: {
-                            prebuiltVoiceConfig: {
-                                voiceName: 'Sulafat',
-                            },
-                        },
-                    },
                 },
             });
 

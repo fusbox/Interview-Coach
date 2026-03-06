@@ -88,7 +88,7 @@ export class SupabaseSessionRepository implements SessionRepository {
             throw new Error(error.message);
         }
 
-        if (!sessionsFinal) return [];
+        if (!sessionsFinal || !Array.isArray(sessionsFinal)) return [];
 
         // 2. Map to Summary
         return sessionsFinal.map((s: DbSession) => {
@@ -98,7 +98,14 @@ export class SupabaseSessionRepository implements SessionRepository {
                 ? `${c.firstName} ${c.lastName}`
                 : (c.name || "Anonymous Candidate");
 
-            const inviteToken = intake.invite_token ? decrypt(intake.invite_token) : undefined;
+            let inviteToken: string | undefined = undefined;
+            if (intake.invite_token) {
+                try {
+                    inviteToken = decrypt(intake.invite_token);
+                } catch {
+                    Logger.error("[Repo] Failed to decrypt invite token", { sessionId: s.session_id });
+                }
+            }
             const viewedAt = intake.viewed_at as number | undefined;
 
             // Extract counts correctly from Supabase response
@@ -254,7 +261,10 @@ export class SupabaseSessionRepository implements SessionRepository {
             },
             engagedTimeSeconds: intake.engaged_time_seconds || 0,
             intakeData: intake,
-            inviteToken: intake.invite_token ? decrypt(intake.invite_token) : undefined,
+            inviteToken: intake.invite_token ? ((): string | undefined => {
+                try { return decrypt(intake.invite_token); }
+                catch { return undefined; }
+            })() : undefined,
             parentSessionId: sData.parent_session_id,
             attemptNumber: sData.attempt_number,
             clientName: sData.client_name,
