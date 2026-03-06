@@ -9,10 +9,10 @@ import UnifiedSessionScreen from "./UnifiedSessionScreen";
 import SummaryScreen from "./SummaryScreen";
 import ErrorScreen from "./ErrorScreen";
 import LoadingScreen from "./LoadingScreen";
-// import IntakeScreen from "./IntakeScreen";
+import EnteringRoomScreen from "./EnteringRoomScreen";
 import SessionSavedScreen from "./SessionSavedScreen";
 import { Question } from "@/lib/domain/types";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 
 export default function SessionOrchestrator() {
@@ -28,10 +28,16 @@ export default function SessionOrchestrator() {
     const currentQ = session?.questions.find((q: Question) => q.id === now.currentQuestionId);
     const currentAns = currentQ && session?.answers ? session.answers[currentQ.id] : undefined;
 
-    console.log(`[Orchestrator] Status: ${now.status}, Screen: ${now.screen}, Analysis?: ${!!currentAns?.analysis}`);
+    const [isEntering, setIsEntering] = useState(false);
 
     // Actions Wrapper
-    const handleStart = () => startSession("Product Manager"); // Default for V1
+    const handleStart = async () => {
+        setIsEntering(true);
+        // Fake transition period for narrative effect
+        await new Promise(resolve => setTimeout(resolve, 1250));
+        startSession("Product Manager"); // Default for V1
+        setIsEntering(false);
+    };
 
     // Render Logic
     if (isLoading && !session) return <LoadingScreen />; // Initial load
@@ -41,7 +47,9 @@ export default function SessionOrchestrator() {
     if (now.requiresInitials || now.status === "NOT_STARTED") {
         return (
             <AnimatePresence mode="wait">
-                {now.requiresInitials ? (
+                {isEntering ? (
+                    <EnteringRoomScreen key="entering" />
+                ) : now.requiresInitials ? (
                     <InitialsScreen key="initials" />
                 ) : (
                     <LandingScreen key="landing" onStart={handleStart} role={now.role} />
