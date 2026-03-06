@@ -141,10 +141,10 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                             <div className="space-y-2">
                                 <h3 className="font-bold text-text-primary">Private Coaching Feedback</h3>
                                 <p className="text-sm text-text-secondary leading-relaxed">
-                                    After each answer, your coach looks at <strong className="text-text-primary">what you said</strong> and <strong className="text-text-primary">how you structured it</strong>&mdash;things like clarity, specificity, and relevance to the role.
+                                    After each answer, your coach looks at <strong className="text-text-primary">what you said</strong> and <strong className="text-text-primary">how you structured it - things like clarity, specificity, and relevance to the role.</strong>
                                 </p>
                                 <p className="text-sm text-text-secondary leading-relaxed">
-                                    Feedback is based on the substance of your response, not on accent, speaking style, or delivery polish. There are no scores or rankings&mdash;just concrete suggestions framed as things to try.
+                                    Feedback is based on the substance of your response, not on accent, speaking style, or delivery polish. There are no scores or rankings&,ust concrete suggestions framed as things to try.
                                 </p>
                                 <p className="text-sm text-text-secondary leading-relaxed">
                                     Coaching insights are visible <strong className="text-text-primary">only to you</strong>.

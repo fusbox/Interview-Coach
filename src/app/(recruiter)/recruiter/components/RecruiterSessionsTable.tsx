@@ -8,7 +8,7 @@ import { SessionSummary } from "@/lib/domain/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { deleteSession } from "../actions";
-import { StatusBadge, AttemptBadge } from "./session-badges";
+import { StatusBadge, AttemptBadge, InitialsMatchBadge } from "./session-badges";
 import { DataTable } from "@/components/patterns/DataTable";
 
 export interface RecruiterProfile {
@@ -183,14 +183,19 @@ E: ${recruiterProfile?.email || ''}`;
                             </button>
                         ),
                         cell: (session) => (
-                            <div className="flex flex-col">
+                            <div className="flex flex-col text-sm">
                                 <div className="flex items-center gap-2 max-w-full">
                                     <span className="truncate font-semibold text-slate-900">{session.candidateName}</span>
                                     <AttemptBadge attemptNumber={session.attemptNumber} />
                                 </div>
                             </div>
                         ),
-                        className: "w-[250px]"
+                        className: "w-[220px]"
+                    },
+                    {
+                        header: <span className="text-slate-600 font-semibold whitespace-nowrap">Initials Match?</span>,
+                        cell: (session) => <InitialsMatchBadge session={session} />,
+                        className: "w-[120px] text-center"
                     },
                     {
                         header: (

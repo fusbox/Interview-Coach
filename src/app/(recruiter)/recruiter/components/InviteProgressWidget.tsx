@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SessionSummary } from "@/lib/domain/types";
 import { computeWidgetBuckets, WidgetBucket, WidgetSession } from "@/lib/services/compute-widget-buckets";
-import { StatusBadge, AttemptBadge } from "./session-badges";
+import { StatusBadge, AttemptBadge, InitialsMatchBadge } from "./session-badges";
 import { RecruiterProfile } from "./RecruiterSessionsTable";
 import {
     CheckCircle2,
@@ -120,6 +120,7 @@ function SessionRow({ session, bucketKey, recruiterProfile }: { session: WidgetS
                     <span className="text-sm font-semibold text-slate-800 truncate">
                         {session.candidateName}
                     </span>
+                    <InitialsMatchBadge session={session} />
                     <AttemptBadge attemptNumber={session.attemptNumber} />
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">

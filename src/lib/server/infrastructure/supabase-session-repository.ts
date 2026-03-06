@@ -132,6 +132,8 @@ export class SupabaseSessionRepository implements SessionRepository {
                 attemptNumber: s.attempt_number || undefined,
                 clientName: s.client_name || undefined,
                 candidateEmail: c.email || undefined,
+                candidateFirstName: c.firstName || undefined,
+                candidateLastName: c.lastName || undefined,
                 engagedTimeSeconds: intake.engaged_time_seconds as number | undefined
             };
         });

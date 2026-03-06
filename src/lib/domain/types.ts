@@ -184,6 +184,8 @@ export interface SessionSummary {
     clientName?: string;
     attempts?: SessionSummary[];
     candidateEmail?: string;
+    candidateFirstName?: string;
+    candidateLastName?: string;
     engagedTimeSeconds?: number;
 }
 

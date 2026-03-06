@@ -76,8 +76,43 @@ export function StatusBadge({ session }: { session: BadgeSession }) {
 export function AttemptBadge({ attemptNumber }: { attemptNumber?: number }) {
     if (!attemptNumber || attemptNumber <= 1) return null;
     return (
-        <CanonicalStatusBadge variant="neutral" icon={false} size="sm">
+        <CanonicalStatusBadge variant="neutral" icon={false} size="sm" className="text-[9px] whitespace-nowrap shrink-0 px-1.5 h-4 min-w-fit">
             Attempt {attemptNumber}
         </CanonicalStatusBadge>
+    );
+}
+
+export function InitialsMatchBadge({ session }: { session: SessionSummary }) {
+    const { enteredInitials, candidateFirstName, candidateLastName } = session;
+
+    // 1. If no initials entered, show neutral/muted state (gray dot)
+    if (!enteredInitials) {
+        return (
+            <div className="flex items-center justify-center w-5 h-5" title="No initials entered yet">
+                <div className="w-2 h-2 rounded-full bg-slate-300" />
+            </div>
+        );
+    }
+
+    // 2. Compute expected initials
+    const first = candidateFirstName?.trim()[0] || "";
+    const last = candidateLastName?.trim()[0] || "";
+    const expected = (first + last).toUpperCase();
+
+    // 3. Compare
+    const isMatch = enteredInitials.trim().toUpperCase() === expected;
+
+    if (isMatch) {
+        return (
+            <div className="flex items-center justify-center w-5 h-5" title={`Initials Match (${expected})`}>
+                <div className="w-2 h-2 rounded-full bg-green-500/60" />
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex items-center justify-center w-5 h-5" title={`Initials Mismatch (Expected: ${expected}, Entered: ${enteredInitials})`}>
+            <div className="w-2 h-2 rounded-full bg-red-400/60" />
+        </div>
     );
 }
