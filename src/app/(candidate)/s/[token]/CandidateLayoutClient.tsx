@@ -2,13 +2,11 @@
 
 
 
-import { SessionProvider, useSession } from '@/features/session/context/SessionContext';
-import { cn } from '@/lib/cn';
+import { SessionProvider } from '@/features/session/context/SessionContext';
 
 
 // Internal component to consume context
 function CandidateLayoutContent({ children }: { children: React.ReactNode }) {
-    const { session } = useSession();
 
     // We keep the padding logic for the main content area, as the session screen likely needs full width (p-0)
     // while other screens (like Initials or Intro) might need the padding.
