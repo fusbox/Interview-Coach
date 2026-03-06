@@ -26,7 +26,6 @@ export default function SessionOrchestrator() {
     // Computed Context for Screens
     // TODO: Improve cleaner selector access either in Context or Hook
     const currentQ = session?.questions.find((q: Question) => q.id === now.currentQuestionId);
-    const currentAns = currentQ && session?.answers ? session.answers[currentQ.id] : undefined;
 
     const [isEntering, setIsEntering] = useState(false);
 
