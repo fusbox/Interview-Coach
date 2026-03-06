@@ -13,6 +13,7 @@ import LoadingScreen from "./LoadingScreen";
 import SessionSavedScreen from "./SessionSavedScreen";
 import { Question } from "@/lib/domain/types";
 import { useEffect } from "react";
+import { AnimatePresence } from "framer-motion";
 
 export default function SessionOrchestrator() {
     const { now, session, startSession, isLoading /*, updateSession */ } = useSession();
@@ -37,10 +38,16 @@ export default function SessionOrchestrator() {
     if (now.status === "ERROR") return <ErrorScreen />;
     if (now.status === "GENERATING_QUESTIONS") return <LoadingScreen />; // Handle generation state
     if (now.status === "PAUSED") return <SessionSavedScreen />;
-    if (now.requiresInitials) return <InitialsScreen />;
-
-    if (now.status === "NOT_STARTED") {
-        return <LandingScreen onStart={handleStart} role={now.role} />;
+    if (now.requiresInitials || now.status === "NOT_STARTED") {
+        return (
+            <AnimatePresence mode="wait">
+                {now.requiresInitials ? (
+                    <InitialsScreen key="initials" />
+                ) : (
+                    <LandingScreen key="landing" onStart={handleStart} role={now.role} />
+                )}
+            </AnimatePresence>
+        );
     }
 
     if (now.status === "IN_SESSION" || now.status === "AWAITING_EVALUATION" || now.status === "REVIEWING") {

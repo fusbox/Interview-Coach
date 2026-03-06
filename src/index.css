@@ -67,6 +67,7 @@
         /* Canonical semantics from v1 Spec */
         --surface-base: 0 0% 100%;
         --surface-subtle: 210 40% 98%;
+        --surface-platinum: 215 25% 50%;
         --surface-raised: 0 0% 100%;
         --surface-overlay: 0 0% 100%;
 
@@ -160,6 +161,7 @@
         /* Canonical semantics from v1 Spec */
         --surface-base: 222.2 84% 4.9%;
         --surface-subtle: 217.2 32.6% 17.5%;
+        --surface-platinum: 217 33% 14%;
         --surface-raised: 217.2 32.6% 17.5%;
         --surface-overlay: 222.2 84% 4.9%;
 

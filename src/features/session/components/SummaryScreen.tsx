@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button"
 import { RotateCcw, Loader2 } from "lucide-react"
 import { useSession } from "../context/SessionContext"
@@ -20,8 +20,22 @@ const STOCK_NARRATIVES = [
 ];
 
 export default function SummaryScreen() {
-    const { session, createNewSession } = useSession();
+    const { session, createNewSession, refresh } = useSession();
     const router = useRouter();
+
+    const hasNarrative = session?.summaryNarrative && !STOCK_NARRATIVES.includes(session.summaryNarrative);
+
+    // Polling for summary narrative
+    useEffect(() => {
+        if (hasNarrative) return;
+
+        console.log("[SummaryScreen] Narrative missing, starting polling...");
+        const interval = setInterval(() => {
+            refresh().catch(err => console.error("[SummaryScreen] Refresh failed:", err));
+        }, 3000);
+
+        return () => clearInterval(interval);
+    }, [hasNarrative, refresh]);
 
     const [isCreating, setIsCreating] = useState(false);
     const [survey, setSurvey] = useState<Record<string, string | number>>({});
@@ -122,12 +136,12 @@ export default function SummaryScreen() {
                                 transition={{ delay: 0.4 + (idx * 0.1), duration: 0.8 }}
                                 className="w-full text-left bg-card rounded-3xl p-8 md:p-10 shadow-raised-2 border border-border"
                             >
-                                <h3 className="text-2xl font-black mb-6 text-slate-900 dark:text-white pb-4 border-b border-slate-100 dark:border-slate-800/60">
+                                <h3 className="text-2xl font-black mb-6 text-text-primary pb-4 border-b border-border/60">
                                     {section.title}
                                 </h3>
-                                <div className="prose prose-slate dark:prose-invert max-w-none prose-p:text-slate-600 dark:prose-p:text-slate-300 prose-p:leading-relaxed prose-p:text-lg prose-li:text-lg prose-strong:text-slate-900 dark:prose-strong:text-white">
+                                <div className="prose max-w-none prose-p:text-text-secondary prose-p:leading-relaxed prose-p:text-lg prose-li:text-lg prose-strong:text-text-primary">
                                     <ReactMarkdown components={{
-                                        strong: ({ className, ...props }) => <strong className={cn("font-bold text-slate-900 dark:text-white", className)} {...props} />,
+                                        strong: ({ className, ...props }) => <strong className={cn("font-bold text-text-primary", className)} {...props} />,
                                     }}>
                                         {section.content}
                                     </ReactMarkdown>
@@ -142,7 +156,7 @@ export default function SummaryScreen() {
                         className="w-full flex flex-col items-center justify-center p-12 space-y-4"
                     >
                         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                        <p className="text-slate-500 font-medium">Analyzing your responses and generating debrief...</p>
+                        <p className="text-text-muted font-medium">Analyzing your responses and generating debrief...</p>
                     </motion.div>
                 )}
 
@@ -164,7 +178,7 @@ export default function SummaryScreen() {
                     <div className="space-y-12">
                         {/* 1. Confidence Delta */}
                         <div className="space-y-4">
-                            <p className="text-lg font-bold text-slate-800 text-center">
+                            <p className="text-lg font-bold text-text-primary text-center">
                                 I feel more prepared after this session.
                             </p>
                             <div className="flex justify-center gap-2">
@@ -176,7 +190,7 @@ export default function SummaryScreen() {
                                             "w-12 h-12 rounded-2xl border-2 flex items-center justify-center font-bold text-lg transition-all duration-300",
                                             survey.confidence_delta === val
                                                 ? "bg-blue-600 border-blue-600 text-white shadow-lg scale-110"
-                                                : "bg-white border-slate-200 text-slate-400 hover:border-blue-300 hover:text-blue-600"
+                                                : "bg-surface-base border-border text-text-muted hover:border-primary/50 hover:text-primary"
                                         )}
                                     >
                                         {val}
@@ -187,7 +201,7 @@ export default function SummaryScreen() {
 
                         {/* 2. Psychological Safety */}
                         <div className="space-y-4">
-                            <p className="text-lg font-bold text-slate-800 text-center">
+                            <p className="text-lg font-bold text-text-primary text-center">
                                 I felt safe to focus on my growth during this session.
                             </p>
                             <div className="flex justify-center gap-2">
@@ -199,7 +213,7 @@ export default function SummaryScreen() {
                                             "w-12 h-12 rounded-2xl border-2 flex items-center justify-center font-bold text-lg transition-all duration-300",
                                             survey.psychological_safety === val
                                                 ? "bg-blue-600 border-blue-600 text-white shadow-lg scale-110"
-                                                : "bg-white border-slate-200 text-slate-400 hover:border-blue-300 hover:text-blue-600"
+                                                : "bg-surface-base border-border text-text-muted hover:border-primary/50 hover:text-primary"
                                         )}
                                     >
                                         {val}
@@ -210,7 +224,7 @@ export default function SummaryScreen() {
 
                         {/* 3. Repeat Intent */}
                         <div className="space-y-4">
-                            <p className="text-lg font-bold text-slate-800 text-center">
+                            <p className="text-lg font-bold text-text-primary text-center">
                                 I would use this again to prepare for a different role.
                             </p>
                             <div className="flex justify-center gap-4">
@@ -220,7 +234,7 @@ export default function SummaryScreen() {
                                         "flex-1 md:flex-none px-8 py-3 rounded-2xl border-2 font-bold flex items-center justify-center gap-2 transition-all duration-300",
                                         survey.repeat_intent === 'yes'
                                             ? "bg-green-600 border-green-600 text-white shadow-lg"
-                                            : "bg-white border-slate-200 text-slate-600 hover:border-green-300 hover:text-green-600"
+                                            : "bg-surface-base border-border text-text-secondary hover:border-green-300 hover:text-green-600"
                                     )}
                                 >
                                     <ThumbsUp size={18} /> Yes
@@ -230,8 +244,8 @@ export default function SummaryScreen() {
                                     className={cn(
                                         "flex-1 md:flex-none px-8 py-3 rounded-2xl border-2 font-bold flex items-center justify-center gap-2 transition-all duration-300",
                                         survey.repeat_intent === 'no'
-                                            ? "bg-slate-900 border-slate-900 text-white shadow-lg"
-                                            : "bg-white border-slate-200 text-slate-600 hover:border-slate-800 hover:text-slate-900"
+                                            ? "bg-text-primary border-text-primary text-text-inverse shadow-lg"
+                                            : "bg-surface-base border-border text-text-secondary hover:border-text-primary hover:text-text-primary"
                                     )}
                                 >
                                     <ThumbsDown size={18} /> No
@@ -248,20 +262,39 @@ export default function SummaryScreen() {
                     )}
                 </motion.div>
 
-                {/* Primary Action */}
+                {/* Path Selection Area (Notice + Separator + Action) */}
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1.0, duration: 0.8, ease: "easeOut" }}
-                    className="w-full max-w-sm pt-8"
+                    transition={{ delay: 0.9, duration: 0.8 }}
+                    className="w-full max-w-2xl flex flex-col items-center gap-10"
                 >
-                    <Button
-                        size="lg"
-                        className="w-full h-14 text-lg rounded-full shadow-lg shadow-blue-900/20 bg-blue-600 hover:bg-blue-700 hover:shadow-blue-900/40 hover:-translate-y-0.5 transition-all gap-3 text-white font-bold"
-                        onClick={handlePracticeAgain}
-                    >
-                        <RotateCcw className="w-5 h-5" /> Practice Again
-                    </Button>
+                    <div className="w-full text-center space-y-3">
+                        <p className="text-text-secondary text-lg md:text-xl font-medium">
+                            Your completion progress has been shared with your recruiter.
+                        </p>
+                        <p className="text-text-muted text-base">
+                            You may now safely close this window.
+                        </p>
+                    </div>
+
+                    <div className="w-full flex items-center gap-4">
+                        <div className="h-px flex-1 bg-border/60" />
+                        <span className="text-xs font-black text-text-muted uppercase tracking-[0.2em]">OR</span>
+                        <div className="h-px flex-1 bg-border/60" />
+                    </div>
+
+                    <div className="w-full">
+                        <Button
+                            size="lg"
+                            onClick={handlePracticeAgain}
+                            disabled={isCreating}
+                            className="w-full h-16 rounded-2xl bg-blue-600 text-white font-bold text-lg shadow-lg hover:bg-blue-700 hover:scale-[1.01] transition-all flex items-center justify-center gap-3"
+                        >
+                            {isCreating ? <Loader2 className="animate-spin" size={24} /> : <RotateCcw size={24} />}
+                            Practice Again
+                        </Button>
+                    </div>
                 </motion.div>
 
                 {/* Tagline Lockup (Aligned with Landing) */}

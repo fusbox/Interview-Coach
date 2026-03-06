@@ -63,15 +63,15 @@ export default function ReviewFeedbackScreen() {
     };
 
     return (
-        <div className="flex flex-col min-h-screen bg-slate-50">
+        <div className="flex flex-col min-h-screen bg-background">
 
             {/* Answer Readonly Panel (Top) */}
-            <div className="bg-white border-b px-6 py-4 shadow-sm">
+            <div className="bg-surface-base border-b border-border px-6 py-4 shadow-sm">
                 <div className="max-w-3xl mx-auto">
-                    <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                    <h2 className="text-sm font-semibold text-text-muted uppercase tracking-wider mb-2">
                         Your Answer
                     </h2>
-                    <p className="text-lg text-slate-800 leading-relaxed font-sans italic opacity-90">
+                    <p className="text-lg text-text-primary leading-relaxed font-sans italic opacity-90">
                         &quot;{answer.transcript}&quot;
                     </p>
                 </div>
@@ -81,7 +81,7 @@ export default function ReviewFeedbackScreen() {
             <main className="flex-1 max-w-3xl w-full mx-auto p-6 flex flex-col gap-6 animate-in fade-in duration-500">
 
                 {isThinking ? (
-                    <div className="thinking-loader p-8 bg-white rounded-xl shadow-sm mt-4 border border-slate-100">
+                    <div className="thinking-loader p-8 bg-surface-base rounded-xl shadow-sm mt-4 border border-border">
                         <div className="flex items-center gap-3 mb-4">
                             <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
                         </div>
@@ -92,15 +92,15 @@ export default function ReviewFeedbackScreen() {
                 ) : (
                     <>
                         {/* Ack Text */}
-                        <div className="text-slate-600 font-medium px-1 text-lg">
+                        <div className="text-text-secondary font-medium px-1 text-lg">
                             {analysis.ack}
                         </div>
 
                         {/* Content Pulse Block */}
                         {analysis.contentPulse && (
-                            <div className="bg-white border border-l-4 border-l-emerald-500 rounded-lg shadow-sm p-6 space-y-3">
+                            <div className="bg-surface-base border border-l-4 border-l-emerald-500 rounded-lg shadow-sm p-6 space-y-3">
                                 <SectionHeader title={analysis.contentPulse.headline} className="border-b border-emerald-100 pb-2 mb-3" />
-                                <p className="text-slate-700 leading-relaxed font-medium">
+                                <p className="text-text-secondary leading-relaxed font-medium">
                                     {analysis.contentPulse.body}
                                 </p>
                                 {analysis.contentPulse.quote && (
@@ -113,9 +113,9 @@ export default function ReviewFeedbackScreen() {
 
                         {/* Delivery Pulse Block */}
                         {analysis.deliveryPulse && (
-                            <div className="bg-white border border-l-4 border-l-indigo-500 rounded-lg shadow-sm p-6 space-y-3 mt-4">
+                            <div className="bg-surface-base border border-l-4 border-l-indigo-500 rounded-lg shadow-sm p-6 space-y-3 mt-4">
                                 <SectionHeader title={analysis.deliveryPulse.headline} className="border-b border-indigo-100 pb-2 mb-3" />
-                                <p className="text-slate-700 leading-relaxed font-medium">
+                                <p className="text-text-secondary leading-relaxed font-medium">
                                     {analysis.deliveryPulse.body}
                                 </p>
                             </div>
@@ -124,8 +124,8 @@ export default function ReviewFeedbackScreen() {
                         {/* Suggested Action (Text Only) */}
                         {analysis.nextAction && (
                             <div className="px-1 pt-2">
-                                <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-1">Suggested Action</p>
-                                <p className="text-slate-700 font-medium">{analysis.nextAction.label}</p>
+                                <p className="text-sm font-medium text-text-muted uppercase tracking-wider mb-1">Suggested Action</p>
+                                <p className="text-text-secondary font-medium">{analysis.nextAction.label}</p>
                             </div>
                         )}
 
@@ -145,7 +145,7 @@ export default function ReviewFeedbackScreen() {
 
                             <button
                                 onClick={() => retryQuestion()}
-                                className="text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors py-2"
+                                className="text-sm font-medium text-text-muted hover:text-primary transition-colors py-2"
                             >
                                 I&apos;d like to try my answer again
                             </button>
@@ -153,7 +153,7 @@ export default function ReviewFeedbackScreen() {
                             {!session || session.currentQuestionIndex < session.questions.length - 1 && (
                                 <button
                                     onClick={handleStop}
-                                    className="text-sm font-medium text-slate-400 hover:text-slate-600 transition-colors py-2"
+                                    className="text-sm font-medium text-text-muted hover:text-primary transition-colors py-2"
                                 >
                                     Stop for now
                                 </button>

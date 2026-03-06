@@ -365,6 +365,7 @@ export class SupabaseSessionRepository implements SessionRepository {
         if (updates.parentSessionId) dbUpdates.parent_session_id = updates.parentSessionId;
         if (updates.attemptNumber) dbUpdates.attempt_number = updates.attemptNumber;
         if (updates.clientName) dbUpdates.client_name = updates.clientName;
+        if (updates.summaryNarrative) dbUpdates.summary_narrative = updates.summaryNarrative;
 
         // Handle intake_json updates (Initials, Engagement)
         if (updates.enteredInitials !== undefined || updates.engagedTimeDelta !== undefined || updates.engagedTimeSeconds !== undefined) {

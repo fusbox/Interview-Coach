@@ -23,10 +23,10 @@ export function SessionHeader() {
                 <div className="flex justify-between items-end mb-3">
                     {/* Left: Session Info */}
                     <div className="flex flex-col items-start gap-1 max-w-[50%] md:max-w-[60%]">
-                        <h1 className="text-sm md:text-base font-black text-slate-900 dark:text-white leading-none tracking-tight truncate w-full">
+                        <h1 className="text-sm md:text-base font-black text-text-primary leading-none tracking-tight truncate w-full">
                             {session.candidateName ? `${session.candidateName} • ${session.role}` : session.role}
                         </h1>
-                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 tabular-nums uppercase tracking-widest">
+                        <span className="text-xs font-bold text-text-secondary tabular-nums uppercase tracking-widest">
                             Question {currentQuestionIndex + 1} of {questions.length}
                         </span>
                     </div>
@@ -36,20 +36,20 @@ export function SessionHeader() {
                         <span className="text-sm font-bold text-blue-600 tracking-tight">
                             {percentage}% Complete
                         </span>
-                        <div className="w-px h-4 bg-slate-200 dark:bg-white/10" />
+                        <div className="w-px h-4 bg-border" />
                         <button
                             onClick={handleExit}
-                            className="group flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+                            className="group flex items-center gap-2 hover:bg-surface-subtle transition-colors px-2 py-1 rounded-md"
                             aria-label="Exit session"
                         >
-                            <span className="text-xs font-medium text-slate-500 group-hover:text-slate-700 transition-colors">Exit Session</span>
-                            <X size={16} className="text-slate-400 group-hover:text-slate-600 transition-colors" />
+                            <span className="text-xs font-medium text-text-muted group-hover:text-text-primary transition-colors">Exit Session</span>
+                            <X size={16} className="text-text-muted group-hover:text-text-primary transition-colors" />
                         </button>
                     </div>
                 </div>
 
                 {/* Bottom: Progress Bar */}
-                <div className="h-1.5 w-full bg-slate-100 dark:bg-neutral-800 rounded-full overflow-hidden shadow-inner">
+                <div className="h-1.5 w-full bg-surface-subtle rounded-full overflow-hidden shadow-inner">
                     <div
                         className="bg-blue-600 h-full transition-all duration-700 cubic-bezier(0.4, 0, 0.2, 1) rounded-full shadow-[0_0_10px_rgba(37,99,235,0.3)]"
                         style={{ width: `${percentage}%` }}

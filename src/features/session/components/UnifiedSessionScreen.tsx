@@ -293,7 +293,7 @@ export default function UnifiedSessionScreen() {
                                 "grow-0 shrink-0 p-4 md:p-6 lg:p-10 w-full transition-all duration-500 ease-in-out cursor-default",
                                 isReviewing ? "opacity-30 scale-[0.98] pointer-events-none blur-sm" : "opacity-100 scale-100"
                             )}>
-                            <div className="glass-card text-slate-900 dark:text-white rounded-3xl p-6 md:p-10 w-full relative transition-all duration-300 ring-1 ring-white/20 bg-gradient-to-br from-brand-glass-start to-brand-glass-end overflow-hidden">
+                            <div className="glass-card text-text-primary rounded-3xl p-6 md:p-10 w-full relative transition-all duration-300 ring-1 ring-border/50 bg-gradient-to-br from-brand-glass-start to-brand-glass-end overflow-hidden">
                                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-200 to-blue-600" />
 
                                 <div className="flex justify-start mb-6">
@@ -309,7 +309,7 @@ export default function UnifiedSessionScreen() {
                                     className="mb-10"
                                 />
 
-                                <div className="flex items-center gap-2 md:gap-4 min-h-12 md:min-h-10 w-auto pt-4 md:pt-6 pb-4 md:pb-10 -mx-6 md:-mx-10 -mb-6 md:-mb-10 px-6 md:px-10 border-t-2 border-slate-500/10 dark:border-white/10 bg-blue-900/[0.03] shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]">
+                                <div className="flex items-center gap-2 md:gap-4 min-h-12 md:min-h-10 w-auto pt-4 md:pt-6 pb-4 md:pb-10 -mx-6 md:-mx-10 -mb-6 md:-mb-10 px-6 md:px-10 border-t-2 border-border/50 bg-surface-platinum/5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]">
                                     <div className="flex-1 flex justify-start gap-4">
                                         {!hasSubmitted && (
                                             <>
@@ -361,7 +361,7 @@ export default function UnifiedSessionScreen() {
 
                                     <div className="flex-none flex justify-center items-center gap-2 md:gap-3">
                                         {!isReviewing && !hasSubmitted && (
-                                            <div className="bg-blue-50/50 dark:bg-white/10 p-1 rounded-full flex gap-1 shadow-md border border-blue-100/50 dark:border-white/10">
+                                            <div className="bg-blue-50/50 p-1 rounded-full flex gap-1 shadow-md border border-border">
                                                 <button
                                                     onClick={() => {
                                                         setMode('voice');
@@ -485,7 +485,7 @@ export default function UnifiedSessionScreen() {
                                                             <Button
                                                                 onClick={() => { resetTranscript(); resetAudio(); }}
                                                                 variant="outline"
-                                                                className="px-8 h-14 rounded-2xl bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300"
+                                                                className="px-8 h-14 rounded-2xl bg-surface-base border-border text-text-secondary hover:bg-surface-subtle"
                                                             >
                                                                 Retry
                                                             </Button>
@@ -509,17 +509,17 @@ export default function UnifiedSessionScreen() {
 
                                                 {/* Transcript Preview */}
                                                 {(transcript || isRecording) && (
-                                                    <div className="w-full max-w-2xl px-6 py-4 bg-blue-50/30 dark:bg-white/5 rounded-2xl border border-blue-100/50 dark:border-white/10 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                                    <div className="w-full max-w-2xl px-6 py-4 bg-surface-subtle rounded-2xl border border-border/50 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                                         <p className={cn(
                                                             "text-base md:text-lg leading-relaxed text-center italic",
-                                                            isRecording ? "text-blue-400 dark:text-blue-500/50" : "text-slate-700 dark:text-slate-200 font-medium"
+                                                            isRecording ? "text-text-primary" : "text-text-primary font-medium"
                                                         )}>
                                                             {transcript ? `"${transcript}"` : isRecording ? "Start speaking..." : ""}
                                                         </p>
                                                     </div>
                                                 )}
 
-                                                <p className="text-sm font-semibold text-slate-400 tracking-wide dark:text-slate-400">
+                                                <p className="text-sm font-semibold text-text-secondary tracking-wide">
                                                     {isRecording ? "Listening..." : transcript ? "Ready to submit" : audioBlob ? "Audio Captured" : "Tap to Speak"}
                                                 </p>
                                             </div>
@@ -538,7 +538,7 @@ export default function UnifiedSessionScreen() {
                                     ) : (
                                         <textarea
                                             ref={textareaRef}
-                                            className="flex-1 w-full bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-3xl p-6 md:p-10 resize-none outline-none text-lg md:text-xl text-slate-800 dark:text-white placeholder:text-slate-300 dark:placeholder:text-white/20 font-medium shadow-sm min-h-72 backdrop-blur-sm focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                            className="flex-1 w-full bg-surface-base/50 border border-border rounded-3xl p-6 md:p-10 resize-none outline-none text-lg md:text-xl text-text-primary placeholder:text-text-muted font-medium shadow-sm min-h-72 backdrop-blur-sm focus:ring-2 focus:ring-ring transition-all"
                                             placeholder="Type your answer here..."
                                             value={answerText}
                                             onChange={(e) => {
@@ -555,7 +555,7 @@ export default function UnifiedSessionScreen() {
 
                         {/* Footer: Inside main column so it squeezes with sidebar */}
                         <footer className={cn(
-                            "shrink-0 bg-white/40 dark:bg-black/20 backdrop-blur-md border-t border-slate-100 dark:border-white/5",
+                            "shrink-0 bg-surface-base/40 backdrop-blur-md border-t border-border",
                             mode === 'voice' && "hidden md:flex opacity-0 h-0 pointer-events-none" // Hide footer in voice mode unless it's for spacing
                         )}>
                             <div className="w-full px-4 md:px-6 lg:px-10 py-2 md:py-3 pb-4 md:pb-6">
@@ -585,19 +585,19 @@ export default function UnifiedSessionScreen() {
                             animate={{ y: 0 }}
                             exit={{ y: "100%" }}
                             transition={{ type: "spring", damping: 30, stiffness: 250 }}
-                            className="lg:hidden fixed bottom-0 left-0 right-0 glass-overlay border-t border-slate-200 dark:border-white/10 z-[60] flex flex-col max-h-[85dvh] rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.15)]"
+                            className="lg:hidden fixed bottom-0 left-0 right-0 glass-overlay border-t border-border z-[60] flex flex-col max-h-[85dvh] rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.15)]"
                         >
                             {/* Drag Indicator */}
-                            <div className="w-12 h-1.5 bg-slate-300 dark:bg-white/10 rounded-full mx-auto my-3 shrink-0" />
+                            <div className="w-12 h-1.5 bg-border rounded-full mx-auto my-3 shrink-0" />
 
                             {/* Fixed Header */}
-                            <div className="px-6 pb-4 flex items-center justify-between shrink-0 border-b border-slate-100 dark:border-white/5">
-                                <span className="font-black text-sm uppercase tracking-[0.2em] text-slate-400 dark:text-white/40">
+                            <div className="px-6 pb-4 flex items-center justify-between shrink-0 border-b border-border">
+                                <span className="font-black text-sm uppercase tracking-[0.2em] text-text-muted">
                                     {hintOpen ? "Coach's Lens" : "Example Response"}
                                 </span>
                                 <button
                                     onClick={() => { setHintOpen(false); setStrongResponseOpen(false); }}
-                                    className="p-2 bg-slate-100 dark:bg-white/5 rounded-full text-slate-500 hover:bg-slate-200 transition-colors"
+                                    className="p-2 bg-surface-subtle rounded-full text-text-secondary hover:bg-surface-raised transition-colors"
                                 >
                                     <X size={18} />
                                 </button>

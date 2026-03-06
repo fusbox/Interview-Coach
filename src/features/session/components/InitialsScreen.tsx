@@ -42,12 +42,13 @@ export default function InitialsScreen() {
     };
 
     return (
-        <div className="min-h-[100dvh] w-full bg-background font-sans text-foreground selection:bg-primary/10 selection:text-primary overflow-y-auto">
+        <div className="w-full flex justify-center items-center flex-1 font-sans text-foreground bg-background">
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -50 }}
                 transition={{ duration: 0.4, ease: 'easeOut' }}
-                className="w-full max-w-xl mx-auto px-6 py-12 md:py-24 space-y-8 flex flex-col min-h-[100dvh]"
+                className="w-full max-w-xl mx-auto px-6 py-6 md:py-8 space-y-6 flex flex-col"
             >
                 {/* 1. Logo Area */}
                 <div className="flex justify-between items-center shrink-0">
@@ -80,17 +81,17 @@ export default function InitialsScreen() {
                         You can pause at any time and return using this same link.
                     </p>
 
-                    <div className="space-y-4 p-6 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm overflow-hidden relative">
+                    <div className="space-y-4 p-6 bg-surface-subtle rounded-2xl border border-border shadow-sm overflow-hidden relative">
                         <div className="absolute top-0 left-0 w-1 h-full bg-primary/20" />
-                        <h3 className="text-slate-900 font-bold text-base">This is practice &mdash; not a live interview.</h3>
+                        <h3 className="text-text-primary font-bold text-base">This is practice &mdash; not a live interview.</h3>
                         <div className="space-y-3">
-                            <p className="text-sm text-slate-600 leading-relaxed">
+                            <p className="text-sm text-text-secondary leading-relaxed">
                                 Your responses are used to generate coaching insights to help you improve.
                             </p>
-                            <p className="text-sm text-slate-600 leading-relaxed">
+                            <p className="text-sm text-text-secondary leading-relaxed">
                                 The person who shared this link may review your responses to support your preparation.
                             </p>
-                            <p className="text-sm font-medium text-slate-900 leading-relaxed">
+                            <p className="text-sm font-medium text-text-primary leading-relaxed">
                                 Only you can see the AI coaching feedback generated during practice.
                             </p>
                         </div>
@@ -113,7 +114,7 @@ export default function InitialsScreen() {
                             placeholder="(e.g. AB)"
                             className={cn(
                                 'w-full px-4 py-4 text-2xl tracking-widest font-medium bg-muted/50 border rounded-xl outline-none transition-all duration-200',
-                                'placeholder:text-muted-foreground/70 placeholder:font-normal placeholder:tracking-normal',
+                                'placeholder:text-muted-foreground/70 placeholder:font-normal placeholder:tracking-normal uppercase',
                                 isFocused
                                     ? 'border-primary ring-4 ring-primary/10'
                                     : 'border-border hover:border-input'
@@ -128,10 +129,8 @@ export default function InitialsScreen() {
                     </div>
                 </div>
 
-                <div className="flex-1" />
-
                 {/* 7. Primary CTA - Anchored Bottom */}
-                <div className="pt-4 pb-2 sticky bottom-0 bg-background/95 backdrop-blur-sm border-t md:border-t-0 md:bg-transparent">
+                <div className="pt-4 pb-4 mt-auto">
                     <Button
                         onClick={handleBegin}
                         disabled={initials.length === 0 || isStarting}

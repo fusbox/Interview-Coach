@@ -65,7 +65,7 @@ export function VideoFeed({ className, onStreamReady }: VideoFeedProps) {
 
     if (error) {
         return (
-            <div className={cn("flex flex-col items-center justify-center bg-slate-900 text-slate-400", className)}>
+            <div className={cn("flex flex-col items-center justify-center bg-text-primary text-text-muted", className)}>
                 <CameraOff size={48} className="mb-2 opacity-50" />
                 <p className="text-sm font-medium">Camera Off</p>
             </div>

@@ -21,8 +21,8 @@ export function CoachLensDropdown({
 
     if (isLoading) {
         return (
-            <div className={cn("w-full rounded-2xl border border-slate-200 dark:border-white/10 p-8 bg-white/50 dark:bg-white/5", className)}>
-                <div className="flex flex-col items-center justify-center space-y-3 text-slate-400 dark:text-white/50">
+            <div className={cn("w-full rounded-2xl border border-border p-8 bg-surface-base", className)}>
+                <div className="flex flex-col items-center justify-center space-y-3 text-text-muted">
                     <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
                     <p className="text-sm font-medium">
                         {mode === 'hints' ? 'Analyzing question...' : 'Generating example...'}
@@ -81,21 +81,21 @@ export function CoachLensDropdown({
                             Example Strong Response
                         </span>
                     </div>
-                    <p className="text-slate-800 dark:text-white/90 text-sm leading-relaxed whitespace-pre-wrap">
+                    <p className="text-text-primary text-sm leading-relaxed whitespace-pre-wrap">
                         {strongResponse.strongResponse}
                     </p>
                 </div>
 
                 {/* Why This Works */}
                 {strongResponse.whyThisWorks && (
-                    <div className="rounded-2xl border border-slate-200/60 dark:border-white/10 bg-slate-50/50 dark:bg-white/5 p-5">
+                    <div className="rounded-2xl border border-border/60 bg-surface-subtle p-5">
                         <div className="flex items-center gap-2 mb-3">
                             <CheckCircle2 size={16} className="text-emerald-500" />
-                            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white/50">
+                            <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
                                 Why This Works
                             </span>
                         </div>
-                        <p className="text-slate-700 dark:text-white/80 text-sm leading-relaxed">
+                        <p className="text-text-secondary text-sm leading-relaxed">
                             {strongResponse.whyThisWorks}
                         </p>
                     </div>

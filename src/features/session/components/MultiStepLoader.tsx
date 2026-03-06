@@ -67,14 +67,14 @@ const LoaderCore = ({
                         transition={{ duration: 0.4 }}
                     >
                         <div className="shrink-0 transition-all duration-500">
-                            {isFuture && <CheckIcon className="text-slate-300 dark:text-white/20" />}
+                            {isFuture && <CheckIcon className="text-text-muted" />}
                             {isCurrent && <CheckFilled className="text-blue-600 dark:text-blue-400 animate-pulse" />}
                             {isCompleted && <CheckFilled className="text-emerald-500" />}
                         </div>
                         <span
                             className={cn(
                                 "text-lg transition-all duration-500 font-medium",
-                                isFuture && "text-slate-400 dark:text-white/20",
+                                isFuture && "text-text-muted",
                                 isCurrent && "text-blue-700 dark:text-blue-400 font-bold",
                                 isCompleted && "text-emerald-700 dark:text-emerald-500"
                             )}
@@ -153,18 +153,18 @@ export const MultiStepLoader = ({
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] rounded-[2.5rem] flex flex-col items-center justify-center p-10 overflow-hidden"
+                        className="relative w-full max-w-md bg-surface-base border border-border shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] rounded-[2.5rem] flex flex-col items-center justify-center p-10 overflow-hidden"
                     >
 
                         <div className="relative z-10 w-full">
-                            <h3 className="text-center text-sm font-bold text-slate-500 dark:text-white/40 mb-10">
+                            <h3 className="text-center text-sm font-bold text-text-muted mb-10">
                                 Reviewing your response...
                             </h3>
                             <LoaderCore value={currentState} loadingStates={loadingStates} />
                         </div>
 
                         {/* Progress Pulse */}
-                        <div className="absolute bottom-0 inset-x-0 h-1 bg-slate-100 dark:bg-white/5 overflow-hidden">
+                        <div className="absolute bottom-0 inset-x-0 h-1 bg-surface-subtle overflow-hidden">
                             <motion.div
                                 className="h-full bg-blue-600 dark:bg-blue-400"
                                 initial={{ width: "0%" }}

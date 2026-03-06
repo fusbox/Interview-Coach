@@ -337,3 +337,18 @@ To mitigate compliance and risk exposure, internal users (recruiters and admins)
 - Drastic reduction in internal privacy and compliance exposure.
 - Safe decoupling of what candidates see (full debrief) vs. what recruiters see (engagement, transcripts merely for record-keeping).
 - AI summaries/feedback remain generated at session conclusion but are walled-off from internal UI.
+
+## ADR-012: Session Summary Generation and Polling Fix
+
+### Context
+The post-session summary screen was hanging because `summaryNarrative` was not being triggered on session completion. Additionally, the client-side `SummaryScreen.tsx` lacked a mechanism to poll for the asynchronous AI generation result.
+
+### Decision
+1. **API Trigger**: Modified `src/app/api/session/[session_id]/route.ts` to detect `status === 'COMPLETED'` during a `PATCH` request and synchronously trigger `AIService.summarizeSession`. The result is then persisted to the database.
+2. **Repository Update**: Updated `SupabaseSessionRepository.updatePartial` to explicitly support the `summary_narrative` field.
+3. **Client Polling**: Introduced a `useEffect` polling loop in `SummaryScreen.tsx` that calls a newly exposed `refresh` function from `SessionContext` every 3 seconds until a valid `summaryNarrative` is received.
+
+### Consequences
+- **User Experience**: Candidates no longer face a permanent loader; the debrief appears once the AI finishes processing (usually 5-10 seconds).
+- **Latency**: The initial `PATCH` call that completes the session will be slower (as it waits for the AI summary), but the client polling ensures that even if the connection drops or the browser refreshes, the summary will eventually load.
+- **Data Integrity**: Ensures that every completed session has a corresponding summary narrative in the database.

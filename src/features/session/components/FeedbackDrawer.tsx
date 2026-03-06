@@ -112,7 +112,7 @@ const TranscriptPanel: React.FC<{
     return (
         <div className="flex flex-col h-full min-h-0 gap-4">
             <div className="flex items-center justify-between px-1 shrink-0 h-8">
-                <h4 className="text-micro font-black text-slate-400 uppercase tracking-widest leading-none">
+                <h4 className="text-micro font-black text-text-muted uppercase tracking-widest leading-none">
                     Your Answer
                 </h4>
                 <div className="flex items-center gap-2">
@@ -133,7 +133,7 @@ const TranscriptPanel: React.FC<{
                     {showClose && onClose && (
                         <button
                             onClick={onClose}
-                            className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+                            className="w-8 h-8 rounded-full bg-surface-subtle flex items-center justify-center text-text-muted hover:text-text-primary transition-colors"
                             aria-label="Close transcript"
                         >
                             <X size={16} />
@@ -142,7 +142,7 @@ const TranscriptPanel: React.FC<{
                 </div>
             </div>
             <div className="flex-1 relative bg-transparent p-6 overflow-y-auto custom-scrollbar min-h-0">
-                <p className="text-slate-600 dark:text-slate-400 text-base leading-relaxed font-medium whitespace-pre-wrap">
+                <p className="text-text-secondary text-base leading-relaxed font-medium whitespace-pre-wrap">
                     {renderTranscript()}
                 </p>
             </div>
@@ -161,8 +161,8 @@ const HelpfulRating: React.FC<{
     ];
 
     return (
-        <div className="mt-8 pt-6 border-t border-slate-100 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+        <div className="mt-8 pt-6 border-t border-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <span className="text-xs font-bold text-text-muted uppercase tracking-widest">
                 Was this helpful?
             </span>
             <div className="flex items-center gap-2">
@@ -174,7 +174,7 @@ const HelpfulRating: React.FC<{
                             "px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 border flex items-center gap-2",
                             currentVal === opt.val
                                 ? "bg-primary border-primary text-white shadow-md scale-105"
-                                : "bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-primary/30"
+                                : "bg-surface-base border-border text-text-secondary hover:border-primary/30"
                         )}
                     >
                         <span>{opt.icon}</span>
@@ -368,7 +368,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                     exit={{ opacity: 0, scale: 0.97, y: 16 }}
                     transition={{ duration: 0.25, ease: 'easeOut' }}
                     className={cn(
-                        "relative w-full max-w-4xl min-w-[45rem] h-[100dvh] md:h-[40rem] rounded-none md:rounded-3xl border-0 md:border border-slate-200 dark:border-white/5 bg-surface-base dark:bg-slate-900 flex overflow-hidden transition-shadow duration-300",
+                        "relative w-full max-w-4xl min-w-[45rem] h-[100dvh] md:h-[40rem] rounded-none md:rounded-3xl border-0 md:border border-border bg-surface-base flex overflow-hidden transition-shadow duration-300",
                         isElevatedMode ? "md:shadow-[0_24px_60px_-15px_rgba(0,0,0,0.12)]" : "md:shadow-lg"
                     )}
                 >
@@ -388,7 +388,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                 style={{ scrollSnapAlign: 'start', minHeight: '100%' }}
                             >
                                 <div className="w-full flex flex-col items-center my-auto py-8">
-                                    <h2 className="text-4xl md:text-5xl lg:text-5xl font-black text-slate-900 dark:text-white leading-[1.1] font-display">
+                                    <h2 className="text-4xl md:text-5xl lg:text-5xl font-black text-text-primary leading-[1.1] font-display">
                                         {analysis?.ack || 'Reviewing your answer…'}
                                     </h2>
                                     <div className="mt-12 flex flex-col md:flex-row items-center gap-4 justify-center w-full">
@@ -397,14 +397,14 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                                 setHasExplored(true);
                                                 setTimeout(() => scrollToSection(analysis?.deliveryPulse ? 'delivery' : 'content'), 50);
                                             }}
-                                            className="h-14 w-full md:w-auto rounded-full px-10 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 transition-all font-bold text-base"
+                                            className="h-14 w-full md:w-auto rounded-full px-10 bg-primary hover:bg-primary/90 text-primary-foreground transition-all font-bold text-base"
                                         >
                                             Explore Feedback
                                         </Button>
                                         <Button
                                             variant="ghost"
                                             onClick={onNext}
-                                            className="h-14 w-full md:w-auto rounded-full px-8 text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-white/5 dark:hover:text-white transition-all font-bold text-base"
+                                            className="h-14 w-full md:w-auto rounded-full px-8 text-text-muted hover:text-text-primary hover:bg-surface-subtle transition-all font-bold text-base"
                                         >
                                             {isLastQuestion ? 'Skip and Finish Session' : 'Skip and Continue to Next Question'}
                                         </Button>
@@ -422,22 +422,22 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                         style={{ scrollSnapAlign: 'start', minHeight: '100%' }}
                                         className={cn(getCardClasses('delivery'))}
                                     >
-                                        <div className="shrink-0 flex items-start gap-6 pb-6 border-b border-slate-200/40 dark:border-white/5">
+                                        <div className="shrink-0 flex items-start gap-6 pb-6 border-b border-border/40">
                                             <div
-                                                className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 dark:border-white/10 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-300"
+                                                className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-sm border border-border/30 bg-surface-base text-indigo-600 dark:text-indigo-400"
                                             >
                                                 <cardDef.icon size={32} strokeWidth={2} />
                                             </div>
                                             <div className="flex-1 pt-1 pr-12 md:pr-48">
                                                 <SectionHeader
                                                     title={analysis.deliveryPulse.headline}
-                                                    description={<span className="text-sm font-black text-slate-400 uppercase tracking-widest leading-none mb-2 block">Delivery Insight</span>}
+                                                    description={<span className="text-sm font-black text-text-muted uppercase tracking-widest leading-none mb-2 block">Delivery Insight</span>}
                                                 />
                                             </div>
                                         </div>
                                         <div className="flex-1 overflow-y-visible md:overflow-y-auto md:min-h-0 pt-8 md:pt-10 px-1 -mx-1 custom-scrollbar">
                                             <div className="p-0 space-y-6">
-                                                <p className="text-xl md:text-2xl text-slate-700 dark:text-slate-200 leading-relaxed font-medium">
+                                                <p className="text-xl md:text-2xl text-text-secondary leading-relaxed font-medium">
                                                     {analysis.deliveryPulse.body}
                                                 </p>
                                                 <HelpfulRating
@@ -460,27 +460,27 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                         style={{ scrollSnapAlign: 'start', minHeight: '100%' }}
                                         className={cn(getCardClasses('content'))}
                                     >
-                                        <div className="shrink-0 flex items-start gap-6 pb-6 border-b border-slate-200/40 dark:border-white/5">
+                                        <div className="shrink-0 flex items-start gap-6 pb-6 border-b border-border/40">
                                             <div
-                                                className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 dark:border-white/10 bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-300"
+                                                className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-sm border border-border/30 bg-surface-base text-emerald-600 dark:text-emerald-400"
                                             >
                                                 <cardDef.icon size={32} strokeWidth={2} />
                                             </div>
                                             <div className="flex-1 pt-1 pr-12 md:pr-48">
                                                 <SectionHeader
                                                     title={analysis.contentPulse.headline}
-                                                    description={<span className="text-sm font-black text-slate-400 uppercase tracking-widest leading-none mb-2 block">Content Insight</span>}
+                                                    description={<span className="text-sm font-black text-text-muted uppercase tracking-widest leading-none mb-2 block">Content Insight</span>}
                                                 />
                                             </div>
                                         </div>
                                         <div className="flex-1 overflow-y-visible md:overflow-y-auto md:min-h-0 pt-8 md:pt-10 px-1 -mx-1 custom-scrollbar">
                                             <div className="p-0 space-y-6">
-                                                <p className="text-xl md:text-2xl text-slate-700 dark:text-slate-200 leading-relaxed font-medium">
+                                                <p className="text-xl md:text-2xl text-text-secondary leading-relaxed font-medium">
                                                     {analysis.contentPulse.body}
                                                 </p>
                                                 {analysis.contentPulse.quote && (
-                                                    <blockquote className="border-l-2 border-indigo-400 dark:border-indigo-500 bg-slate-900/[0.03] dark:bg-white/[0.03] rounded-r-lg p-5">
-                                                        <p className="text-lg md:text-xl text-slate-600 dark:text-slate-300 italic font-medium leading-relaxed">
+                                                    <blockquote className="border-l-2 border-indigo-500 bg-surface-subtle rounded-r-lg p-5">
+                                                        <p className="text-lg md:text-xl text-text-secondary italic font-medium leading-relaxed">
                                                             &quot;{analysis.contentPulse.quote}&quot;
                                                         </p>
                                                     </blockquote>
@@ -506,14 +506,14 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                     {/* Recommendation content (scrollable if needed) */}
                                     <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4">
                                         <div className="my-auto py-12 space-y-6 max-w-2xl">
-                                            <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">
+                                            <p className="text-xs font-black text-text-muted uppercase tracking-[0.2em]">
                                                 The Next Step
                                             </p>
-                                            <h3 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white leading-tight tracking-tight">
+                                            <h3 className="text-4xl md:text-6xl font-black text-text-primary leading-tight tracking-tight">
                                                 Ready to Continue?
                                             </h3>
                                             <div className="pt-8">
-                                                <p className="text-xl md:text-3xl text-slate-700 dark:text-slate-200 leading-relaxed font-medium">
+                                                <p className="text-xl md:text-3xl text-text-secondary leading-relaxed font-medium">
                                                     You&apos;ve addressed the core of this question effectively. Let&apos;s move on or try again to improve your delivery.
                                                 </p>
                                             </div>
@@ -533,7 +533,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                                 </Button>
                                                 <button
                                                     onClick={onNext}
-                                                    className="flex items-center gap-2 text-slate-400 hover:text-blue-600 font-bold text-sm transition-colors group mb-4"
+                                                    className="flex items-center gap-2 text-text-muted hover:text-primary font-bold text-sm transition-colors group mb-4"
                                                 >
                                                     {isLastQuestion ? 'Finish Session' : 'Continue to Next Question'}
                                                     <ArrowRight
@@ -553,7 +553,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                                 </Button>
                                                 <button
                                                     onClick={onRetry}
-                                                    className="flex items-center gap-2 text-slate-400 hover:text-blue-600 font-bold text-sm transition-colors group mb-4"
+                                                    className="flex items-center gap-2 text-text-muted hover:text-primary font-bold text-sm transition-colors group mb-4"
                                                 >
                                                     <RotateCcw
                                                         size={16}
@@ -584,11 +584,11 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                         'flex items-center gap-2 px-5 py-3 rounded-full shadow-lg font-bold text-sm transition-all hover:scale-105 active:scale-95',
                                         isTranscriptOpen
                                             ? 'opacity-0 pointer-events-none'
-                                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/50 dark:border-white/10'
+                                            : 'bg-surface-base text-text-secondary border border-border/50'
                                     )}
                                     aria-label="Compare to your answer"
                                 >
-                                    <FileText size={16} className="text-slate-400" />
+                                    <FileText size={16} className="text-text-muted" />
                                     Compare to your answer
                                     {isPlaying && (
                                         <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse ml-1" />
@@ -607,7 +607,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                 animate={{ y: 0, opacity: 1 }}
                                 exit={{ y: '100%', opacity: 0 }}
                                 transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-                                className="absolute inset-x-0 md:left-auto md:right-0 bottom-0 md:top-0 h-[78%] md:h-full md:w-96 z-30 bg-white/90 dark:bg-slate-900/90 rounded-t-[2rem] md:rounded-none md:border-l border-t md:border-t-0 border-slate-200 dark:border-white/10 p-6 flex flex-col shadow-2xl backdrop-blur-xl"
+                                className="absolute inset-x-0 md:left-auto md:right-0 bottom-0 md:top-0 h-[78%] md:h-full md:w-96 z-30 bg-surface-base/90 rounded-t-[2rem] md:rounded-none md:border-l border-t md:border-t-0 border-border p-6 flex flex-col shadow-2xl backdrop-blur-xl"
                             >
                                 <div className="pt-2 flex-1 min-h-0">
                                     <TranscriptPanel

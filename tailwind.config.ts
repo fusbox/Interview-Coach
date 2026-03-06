@@ -81,6 +81,7 @@ const config = {
 				surface: {
 					base: 'hsl(var(--surface-base))',
 					subtle: 'hsl(var(--surface-subtle))',
+					platinum: 'hsl(var(--surface-platinum))',
 					raised: 'hsl(var(--surface-raised))',
 					overlay: 'hsl(var(--surface-overlay))',
 				},

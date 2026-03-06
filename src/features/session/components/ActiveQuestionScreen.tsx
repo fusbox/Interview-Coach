@@ -190,15 +190,15 @@ export default function ActiveQuestionScreen({
         if (!selectedHintCat) {
             return (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 animate-in fade-in">
-                    <button onClick={() => { setSelectedHintCat('structure'); trackEvent('tier2', 'hint_click', 45); }} className="text-xs p-2 border rounded hover:bg-slate-50 text-slate-600">Structuring your answer</button>
-                    <button onClick={() => { setSelectedHintCat('outcome'); trackEvent('tier2', 'hint_click', 45); }} className="text-xs p-2 border rounded hover:bg-slate-50 text-slate-600">Explaining the outcome</button>
-                    <button onClick={() => { setSelectedHintCat('focus'); trackEvent('tier2', 'hint_click', 45); }} className="text-xs p-2 border rounded hover:bg-slate-50 text-slate-600">Staying focused</button>
+                    <button onClick={() => { setSelectedHintCat('structure'); trackEvent('tier2', 'hint_click', 45); }} className="text-xs p-2 border rounded hover:bg-surface-base text-text-secondary">Structuring your answer</button>
+                    <button onClick={() => { setSelectedHintCat('outcome'); trackEvent('tier2', 'hint_click', 45); }} className="text-xs p-2 border rounded hover:bg-surface-base text-text-secondary">Explaining the outcome</button>
+                    <button onClick={() => { setSelectedHintCat('focus'); trackEvent('tier2', 'hint_click', 45); }} className="text-xs p-2 border rounded hover:bg-surface-base text-text-secondary">Staying focused</button>
                 </div>
             )
         }
 
         return (
-            <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-lg text-slate-700 text-sm animate-in fade-in">
+            <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-lg text-text-secondary text-sm animate-in fade-in">
                 <div className="flex justify-between items-start mb-1">
                     <span className="font-semibold text-blue-900 text-xs uppercase tracking-wider">{selectedHintCat}</span>
                     <button onClick={() => setSelectedHintCat(null)} className="text-xs text-blue-400 hover:text-blue-600">Back</button>
@@ -239,8 +239,8 @@ export default function ActiveQuestionScreen({
                                 <span className={cn(
                                     "relative z-10 px-1",
                                     isCurrent ? "text-blue-600" :
-                                        isAnswered ? "text-slate-400" : // Neutral for answered
-                                            isClickable ? "text-slate-500" : "text-slate-300"
+                                        isAnswered ? "text-text-muted" : // Neutral for answered
+                                            isClickable ? "text-text-secondary" : "text-text-muted/50"
                                 )}>
                                     Q{idx + 1}
                                 </span>
@@ -285,7 +285,7 @@ export default function ActiveQuestionScreen({
                                     <button
                                         onClick={handleTogglePlayback}
                                         disabled={isTTSLoading}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-slate-100 text-xs text-primary font-semibold transition-colors shrink-0"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-surface-subtle text-xs text-primary font-semibold transition-colors shrink-0"
                                     >
                                         {isTTSLoading ? (
                                             <span className="animate-pulse">Loading...</span>
@@ -302,7 +302,7 @@ export default function ActiveQuestionScreen({
                                 }
                             />
 
-                            <div className="mt-4 text-xs uppercase tracking-wide font-bold text-slate-400">
+                            <div className="mt-4 text-xs uppercase tracking-wide font-bold text-text-muted">
                                 {question.category}
                             </div>
                         </motion.div>
@@ -312,7 +312,7 @@ export default function ActiveQuestionScreen({
                     {!hintOpen && answer.length === 0 && !currentAns?.submittedAt && (
                         <button
                             onClick={() => setHintOpen(true)}
-                            className="text-xs font-medium text-right w-full text-slate-400 hover:text-emerald-600 transition-colors flex items-center justify-start gap-1.5 mt-2"
+                            className="text-xs font-medium text-right w-full text-text-muted hover:text-emerald-600 transition-colors flex items-center justify-start gap-1.5 mt-2"
                         >
                             <Lightbulb className="w-3 h-3" />
                             Need a hint?
@@ -323,7 +323,7 @@ export default function ActiveQuestionScreen({
                         <div className="mt-4 animate-in slide-in-from-top-2 duration-300 relative">
                             <button
                                 onClick={() => setHintOpen(false)}
-                                className="absolute -top-2 -right-2 p-1.5 bg-white/50 hover:bg-white rounded-full text-slate-400 hover:text-slate-600 transition-all z-10"
+                                className="absolute -top-2 -right-2 p-1.5 bg-surface-subtle/50 hover:bg-surface-base rounded-full text-text-muted hover:text-text-primary transition-all z-10"
                                 aria-label="Close Hint"
                             >
                                 <X size={14} />
@@ -339,10 +339,10 @@ export default function ActiveQuestionScreen({
                 {/* INPUT BLOCK vs REVISIT BLOCK */}
                 {currentAns?.submittedAt && !isThinking ? (
                     // --- REVISIT MODE ---
-                    <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                    <div className="bg-surface-base rounded-xl border border-border p-6 shadow-sm">
                         <div className="mb-2">
-                            <h3 className="text-xs uppercase tracking-wider font-bold text-slate-400 mb-2">Your Answer</h3>
-                            <div className="text-lg text-slate-700 italic font-sans leading-relaxed">
+                            <h3 className="text-xs uppercase tracking-wider font-bold text-text-muted mb-2">Your Answer</h3>
+                            <div className="text-lg text-text-secondary italic font-sans leading-relaxed">
                                 &quot;{currentAns.transcript}&quot;
                             </div>
                         </div>
@@ -394,12 +394,12 @@ export default function ActiveQuestionScreen({
                                 {/* Status Text - Positioned below center */}
                                 <div className="absolute top-1/2 left-0 right-0 pt-16 flex justify-center z-20 pointer-events-none">
                                     <div className="pointer-events-auto text-center space-y-2 max-w-md px-4">
-                                        <p className="text-sm font-normal text-slate-400">
+                                        <p className="text-sm font-normal text-text-muted">
                                             {isRecording ? "Listening..." : "Tap the microphone to start recording"}
                                         </p>
                                         <div className="min-h-[60px] flex items-center justify-center">
                                             {/* Privacy: Do NOT show streaming transcript */}
-                                            <p className="text-lg text-slate-700 italic font-sans leading-relaxed line-clamp-3">
+                                            <p className="text-lg text-text-secondary italic font-sans leading-relaxed line-clamp-3">
                                                 {isRecording ? "Recording in progress..." : ""}
                                             </p>
                                         </div>
@@ -411,7 +411,7 @@ export default function ActiveQuestionScreen({
                         ) : (
                             <div className="relative flex-1 p-4 mb-4">
                                 <textarea
-                                    className="w-full h-full bg-transparent text-lg text-slate-800 placeholder:text-slate-300 outline-none resize-none"
+                                    className="w-full h-full bg-transparent text-lg text-text-primary placeholder:text-text-muted/50 outline-none resize-none"
                                     placeholder="Type your answer here..."
                                     value={answer}
                                     onChange={(e) => {
@@ -431,14 +431,14 @@ export default function ActiveQuestionScreen({
 
                             {/* Center: Mode Toggle */}
                             <div className="flex justify-center">
-                                <div className="flex items-center gap-1 p-1 bg-slate-200/50 rounded-full backdrop-blur-sm">
+                                <div className="flex items-center gap-1 p-1 bg-surface-subtle/50 rounded-full backdrop-blur-sm">
                                     <button
                                         onClick={() => setMode('voice')}
                                         className={cn(
                                             "p-2 rounded-full transition-all duration-200",
                                             mode === 'voice'
-                                                ? "bg-white text-blue-600 shadow-sm scale-110"
-                                                : "text-slate-400 hover:text-slate-600"
+                                                ? "bg-surface-base text-blue-600 shadow-sm scale-110"
+                                                : "text-text-muted hover:text-primary"
                                         )}
                                         title="Voice Mode"
                                     >
@@ -449,8 +449,8 @@ export default function ActiveQuestionScreen({
                                         className={cn(
                                             "p-2 rounded-full transition-all duration-200",
                                             mode === 'text'
-                                                ? "bg-white text-blue-600 shadow-sm scale-110"
-                                                : "text-slate-400 hover:text-slate-600"
+                                                ? "bg-surface-base text-blue-600 shadow-sm scale-110"
+                                                : "text-text-muted hover:text-primary"
                                         )}
                                         title="Text Mode"
                                     >

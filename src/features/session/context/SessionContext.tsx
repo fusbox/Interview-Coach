@@ -40,6 +40,7 @@ export interface SessionContextType {
     audioUrls: Record<string, string>;
     cacheAudioUrl: (questionId: string, url: string) => void;
     updateSession: (sessionId: string, updates: Partial<InterviewSession>) => Promise<void>;
+    refresh: () => Promise<void>;
 
     // Headless Core State (The New Truth)
     now: NowState;
@@ -187,6 +188,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
         audioUrls: {}, // No audio in V1
         cacheAudioUrl,
         updateSession,
+        refresh: actions.refresh,
         // Engagement
         totalEngagedSeconds: tracker.totalEngagedSeconds,
         trackEvent: tracker.trackEvent,

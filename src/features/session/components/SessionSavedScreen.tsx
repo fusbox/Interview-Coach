@@ -29,10 +29,10 @@ export default function SessionSavedScreen() {
                 </div>
 
                 <div className="space-y-3">
-                    <h1 className="text-[2.5rem] font-bold text-slate-900 dark:text-white leading-none font-display">
+                    <h1 className="text-[2.5rem] font-bold text-text-primary leading-none font-display">
                         Session Saved
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 text-lg font-medium">
+                    <p className="text-text-secondary text-lg font-medium">
                         Your progress is safely stored. Pick up right where you left off.
                     </p>
                 </div>

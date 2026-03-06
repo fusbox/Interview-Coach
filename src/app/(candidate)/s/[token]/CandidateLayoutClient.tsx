@@ -29,14 +29,9 @@ function CandidateLayoutContent({ children }: { children: React.ReactNode }) {
     // If `CandidateLayoutContent` adds padding, it might break the `h-screen` of the session.
     // So ensuring `p-0` for session is critical.
 
-    const isSessionActive = session?.status === 'IN_SESSION' || session?.status === 'AWAITING_EVALUATION' || session?.status === 'REVIEWING';
-
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col">
-            <main className={cn(
-                "flex-1", // Removed overflow-x-hidden to allow sticky header to work with viewport scroll
-                isSessionActive ? "p-0" : "p-4 pt-4 md:p-8 md:pt-8"
-            )}>
+        <div className="min-h-screen flex flex-col">
+            <main className="flex-1 p-0">
                 {children}
             </main>
         </div>
