@@ -162,8 +162,11 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
             console.error("SessionContext: createNewSession failed - invalid result", result);
             return null;
         }
-        // Update the local candidateToken state to match the new session
-        setCandidateToken(result.candidateToken);
+
+        // We do NOT update candidateToken state here. Doing so before the route transition 
+        // completes causes a race condition where the provider fetches the old session ID 
+        // with the new token (resulting in a 403). The soft token transition will happen 
+        // automatically when the router navigates, pushing the new token down as a prop.
         return result as { sessionId: string; candidateToken: string };
     };
 

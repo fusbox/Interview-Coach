@@ -30,3 +30,6 @@ export const FEEDBACK_DIMENSIONS = [
 ] as const;
 
 export type Dimension = typeof FEEDBACK_DIMENSIONS[number];
+
+export const TRANSITION_DURATION = 0.8; // Seconds
+export const AUDIO_BUFFER_MULTIPLIER = 2; // Buffer = 2x Duration

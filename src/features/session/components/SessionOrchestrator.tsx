@@ -15,6 +15,7 @@ import SessionSavedScreen from "./SessionSavedScreen";
 import { Question } from "@/lib/domain/types";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { TRANSITION_DURATION } from "@/lib/constants";
 
 export default function SessionOrchestrator() {
     const { now, session, startSession, isLoading /*, updateSession */ } = useSession();
@@ -67,7 +68,7 @@ export default function SessionOrchestrator() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.6 }}
+                    transition={{ duration: TRANSITION_DURATION }}
                     className="h-full w-full"
                 >
                     <LandingScreen key="landing" onStart={handleStart} role={now.role} />
@@ -83,7 +84,7 @@ export default function SessionOrchestrator() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.8 }} // Smooth cross-fade
+                    transition={{ duration: TRANSITION_DURATION, delay: isEntering ? 0.2 : 0 }} // Perfectly synchronized cross-fade
                     className="h-full w-full"
                 >
                     <UnifiedSessionScreen />

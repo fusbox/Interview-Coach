@@ -21,6 +21,7 @@ import {
     Target,
     FileText,
     X,
+    ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { captureFeedbackAction } from '@/app/actions/feedback';
@@ -186,6 +187,64 @@ const HelpfulRating: React.FC<{
     );
 };
 
+const ProgressDots: React.FC<{
+    sections: { id: SectionKey; label: string }[];
+    activeSection: SectionKey;
+    onDotClick: (id: SectionKey) => void;
+}> = ({ sections, activeSection, onDotClick }) => {
+    return (
+        <div className="hidden md:flex absolute left-6 md:left-8 top-1/2 -translate-y-1/2 z-40 flex-col gap-4">
+            {sections.map((s) => (
+                <button
+                    key={s.id}
+                    onClick={() => onDotClick(s.id)}
+                    className="group relative flex items-center h-4"
+                    aria-label={`Go to ${s.label}`}
+                >
+                    <motion.div
+                        animate={{
+                            scale: activeSection === s.id ? 1.5 : 1,
+                            backgroundColor: activeSection === s.id ? 'hsl(var(--primary))' : 'hsl(var(--border))',
+                        }}
+                        transition={{ type: "spring", damping: 20, stiffness: 300 }}
+                        className={cn(
+                            "w-2 h-2 rounded-full transition-colors duration-300",
+                            activeSection === s.id ? "bg-primary" : "bg-border group-hover:bg-border/80"
+                        )}
+                    />
+                    <div className="absolute left-6 px-2 py-1 rounded bg-slate-900/90 text-white text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-xl">
+                        {s.label}
+                    </div>
+                </button>
+            ))}
+        </div>
+    );
+};
+
+const ScrollHint: React.FC<{ isVisible: boolean }> = ({ isVisible }) => {
+    return (
+        <AnimatePresence>
+            {isVisible && (
+                <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute inset-x-0 bottom-8 z-10 flex flex-col items-center justify-center gap-2 pointer-events-none"
+                >
+                    <span className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">Scroll to Explore</span>
+                    <motion.div
+                        animate={{ y: [0, 8, 0] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                        className="text-text-muted"
+                    >
+                        <ChevronDown size={20} />
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
+};
+
 // ─────────────────────────────────────────────
 // Main Component
 // ─────────────────────────────────────────────
@@ -209,6 +268,13 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+    const sections: { id: SectionKey; label: string }[] = [
+        { id: 'start', label: 'Summary' },
+        ...(analysis?.deliveryPulse ? [{ id: 'delivery' as SectionKey, label: 'Delivery' }] : []),
+        ...(analysis?.contentPulse ? [{ id: 'content' as SectionKey, label: 'Content' }] : []),
+        { id: 'next', label: 'Next' }
+    ];
 
     // ── Audio playback ──────────────────────────────────────────────────────
 
@@ -341,7 +407,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
     const getCardClasses = (sectionKey: SectionKey) => {
         const isElevated = sectionKey === 'start' || sectionKey === 'next';
         return cn(
-            'scroll-snap-align-start flex-shrink-0 w-full min-h-full md:h-full flex flex-col justify-start px-6 md:px-14 pb-8',
+            'scroll-snap-align-start flex-shrink-0 w-full min-h-full md:h-full flex flex-col justify-start px-6 md:pl-20 md:pr-14 pb-8',
             isElevated ? 'pt-8 md:pt-14' : 'pt-8 md:pt-12'
         );
     };
@@ -373,7 +439,16 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                     )}
                 >
                     {/* ── Main Layout (Vertical Split: Header + Content) ─────────────────── */}
-                    <div className="flex-1 flex flex-col min-w-0 bg-transparent">
+                    <div className="flex-1 flex flex-col min-w-0 bg-transparent relative">
+                        {/* Progress Nav */}
+                        <ProgressDots
+                            sections={sections}
+                            activeSection={activeSection}
+                            onDotClick={scrollToSection}
+                        />
+
+                        <ScrollHint isVisible={activeSection === sections.find(s => s.id !== 'start' && s.id !== 'next')?.id} />
+
                         {/* ── Scroll-Snap Cards ───────────────────────────────────────── */}
                         <div
                             ref={scrollContainerRef}
@@ -601,26 +676,36 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                     {/* ── Transcript Slide-over Panel (Universal) ─────────────────────── */}
                     <AnimatePresence>
                         {isTranscriptOpen && (
-                            <motion.div
-                                key="transcript-panel"
-                                initial={{ y: '100%', opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                exit={{ y: '100%', opacity: 0 }}
-                                transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-                                className="absolute inset-x-0 md:left-auto md:right-0 bottom-0 md:top-0 h-[78%] md:h-full md:w-96 z-30 bg-surface-base/90 rounded-t-[2rem] md:rounded-none md:border-l border-t md:border-t-0 border-border p-6 flex flex-col shadow-2xl backdrop-blur-xl"
-                            >
-                                <div className="pt-2 flex-1 min-h-0">
-                                    <TranscriptPanel
-                                        transcript={transcript}
-                                        audioBlob={audioBlob}
-                                        isPlaying={isPlaying}
-                                        togglePlayback={togglePlayback}
-                                        showClose={true}
-                                        onClose={() => setIsTranscriptOpen(false)}
-                                        highlightQuote={analysis?.contentPulse?.quote}
-                                    />
-                                </div>
-                            </motion.div>
+                            <>
+                                <motion.div
+                                    key="transcript-backdrop"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    onClick={() => setIsTranscriptOpen(false)}
+                                    className="absolute inset-0 z-20 bg-slate-900/5 dark:bg-black/20 cursor-pointer rounded-none md:rounded-3xl"
+                                />
+                                <motion.div
+                                    key="transcript-panel"
+                                    initial={{ y: '100%', opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    exit={{ y: '100%', opacity: 0 }}
+                                    transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+                                    className="absolute inset-x-0 md:left-auto md:right-0 bottom-0 md:top-0 h-[78%] md:h-full md:w-96 z-30 bg-surface-base/90 rounded-t-[2rem] md:rounded-none md:border-l border-t md:border-t-0 border-border p-6 flex flex-col shadow-2xl backdrop-blur-xl"
+                                >
+                                    <div className="pt-2 flex-1 min-h-0">
+                                        <TranscriptPanel
+                                            transcript={transcript}
+                                            audioBlob={audioBlob}
+                                            isPlaying={isPlaying}
+                                            togglePlayback={togglePlayback}
+                                            showClose={true}
+                                            onClose={() => setIsTranscriptOpen(false)}
+                                            highlightQuote={analysis?.contentPulse?.quote}
+                                        />
+                                    </div>
+                                </motion.div>
+                            </>
                         )}
                     </AnimatePresence>
                 </motion.div>

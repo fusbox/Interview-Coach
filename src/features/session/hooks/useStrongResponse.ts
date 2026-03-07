@@ -12,8 +12,8 @@ export interface StrongResponseState {
 }
 
 export function useStrongResponse(
-    questionId: string,
-    questionText: string,
+    questionId: string | undefined | null,
+    questionText: string | undefined | null,
     role: string,
     resumeText?: string
 ) {

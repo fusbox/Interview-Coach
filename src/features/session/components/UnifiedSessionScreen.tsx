@@ -28,6 +28,7 @@ import { cn } from '@/lib/cn';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CategoryTooltip } from './CategoryTooltip';
 import { EngagementDebugOverlay } from '@/components/debug/EngagementDebugOverlay';
+import { TRANSITION_DURATION, AUDIO_BUFFER_MULTIPLIER } from '@/lib/constants';
 
 export default function UnifiedSessionScreen() {
     const {
@@ -152,8 +153,24 @@ export default function UnifiedSessionScreen() {
     // Auto-play question audio on entry
     useEffect(() => {
         if (currentQuestion && !hasSubmitted) {
-            speak(currentQuestion.text, currentQuestion.id);
+            const isFirstEntry = currentQuestionIndex === 0;
+
+            // Mask latency: prefetch immediately in the background
+            prefetch(currentQuestion.id, currentQuestion.text);
+
+            if (isFirstEntry) {
+                // Apply narrative buffer for the "first meeting"
+                const lagMs = TRANSITION_DURATION * AUDIO_BUFFER_MULTIPLIER * 1000;
+                const timer = setTimeout(() => {
+                    speak(currentQuestion.text, currentQuestion.id);
+                }, lagMs);
+                return () => clearTimeout(timer);
+            } else {
+                // Subsequent questions play immediately (typically already prefetched)
+                speak(currentQuestion.text, currentQuestion.id);
+            }
         }
+
         // Prefetch next question audio
         if (session?.questions) {
             const nextIdx = currentQuestionIndex + 1;
@@ -304,10 +321,20 @@ export default function UnifiedSessionScreen() {
                                     </CategoryTooltip>
                                 </div>
 
-                                <SectionHeader
-                                    title={currentQuestion.text}
-                                    className="mb-10"
-                                />
+                                <AnimatePresence mode="wait">
+                                    <motion.div
+                                        key={currentQuestion.id}
+                                        initial={{ opacity: 0, x: 10 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -10 }}
+                                        transition={{ duration: 0.5 }}
+                                    >
+                                        <SectionHeader
+                                            title={currentQuestion.text}
+                                            className="mb-10"
+                                        />
+                                    </motion.div>
+                                </AnimatePresence>
 
                                 <div className="flex items-center gap-2 md:gap-4 min-h-12 md:min-h-10 w-auto pt-4 md:pt-6 pb-4 md:pb-10 -mx-6 md:-mx-10 -mb-6 md:-mb-10 px-6 md:px-10 border-t-2 border-border/50 bg-surface-platinum/5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]">
                                     <div className="flex-1 flex justify-start gap-4">

@@ -12,7 +12,7 @@ export interface SmartHintsState {
 }
 
 export function useSmartHints(
-    question: Question,
+    question: Question | undefined | null,
     role: string,
     blueprint?: Blueprint,
     resumeText?: string
@@ -24,10 +24,10 @@ export function useSmartHints(
     });
 
     const isFetchingRef = useRef(false);
-    const cacheKey = `${CACHE_KEY_PREFIX}${question.id}`;
+    const cacheKey = question ? `${CACHE_KEY_PREFIX}${question.id}` : '';
 
     const fetchHints = useCallback(async () => {
-        if (isFetchingRef.current) return;
+        if (!question || isFetchingRef.current) return;
 
         // If already cached, don't fetch.
         const cached = sessionStorage.getItem(cacheKey);
@@ -75,10 +75,11 @@ export function useSmartHints(
     useEffect(() => {
         isFetchingRef.current = false;
         setState({ hints: null, isLoading: false, error: null });
-    }, [question.id]);
+    }, [question?.id]);
 
     // Load from cache on mount or question change + Auto-fetch
     useEffect(() => {
+        if (!question) return;
         const cached = sessionStorage.getItem(cacheKey);
         if (cached) {
             try {
@@ -93,7 +94,7 @@ export function useSmartHints(
             // Proactively fetch if not cached
             fetchHints();
         }
-    }, [question.id, cacheKey, fetchHints]);
+    }, [question?.id, question, cacheKey, fetchHints]);
 
     return {
         ...state,

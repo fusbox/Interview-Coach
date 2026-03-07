@@ -239,7 +239,8 @@ Output EXACTLY this Markdown structure (do not wrap in markdown code blocks like
 - **[Pattern 2 Name]**: [Same as above]
 
 ### Primary Growth Area
-- **[Pattern Name]**: [Identify the most significant weakness seen across multiple answers. Provide actionable advice on how to improve this for the next round.]
+- **[Pattern Name]**: [Identify the most significant weakness seen across multiple answers. Explain *why* it matters.]
+- **[Tip for Next Time]**: [Provide highly actionable, specific advice on exactly how to improve this behavior for the next round.]
 
 ### Readiness & Next Steps
 [1-2 sentences synthesizing your overall readiness into an affirming, encouraging statement. DO NOT use internal codes like RL1, RL2, RL3, or RL4. Instead, use phrases like "You are highly prepared", "You have strong potential with a bit of polish", "More practice is recommended before the real interview", etc.]

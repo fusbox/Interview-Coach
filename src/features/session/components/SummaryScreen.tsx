@@ -25,9 +25,13 @@ export default function SummaryScreen() {
 
     const hasNarrative = session?.summaryNarrative && !STOCK_NARRATIVES.includes(session.summaryNarrative);
 
+    const [isCreating, setIsCreating] = useState(false);
+    const [survey, setSurvey] = useState<Record<string, string | number>>({});
+    const [submitted, setSubmitted] = useState<Record<string, boolean>>({});
+
     // Polling for summary narrative
     useEffect(() => {
-        if (hasNarrative) return;
+        if (hasNarrative || isCreating) return;
 
         console.log("[SummaryScreen] Narrative missing, starting polling...");
         const interval = setInterval(() => {
@@ -35,11 +39,7 @@ export default function SummaryScreen() {
         }, 3000);
 
         return () => clearInterval(interval);
-    }, [hasNarrative, refresh]);
-
-    const [isCreating, setIsCreating] = useState(false);
-    const [survey, setSurvey] = useState<Record<string, string | number>>({});
-    const [submitted, setSubmitted] = useState<Record<string, boolean>>({});
+    }, [hasNarrative, isCreating, refresh]);
 
     const handleSurveySelect = async (key: string, val: string | number) => {
         setSurvey(prev => ({ ...prev, [key]: val }));
@@ -90,8 +90,9 @@ export default function SummaryScreen() {
     };
 
     return (
-        <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-background p-6 md:p-12">
-            <div className="w-full max-w-4xl flex flex-col items-center text-center space-y-12">
+        <div className="relative w-full flex flex-col items-center justify-center font-sans text-foreground bg-gradient-to-br from-brand-glass-start to-brand-glass-end min-h-[100dvh]">
+            <div className="absolute inset-0 bg-white/40 dark:bg-black/20 backdrop-blur-md pointer-events-none" />
+            <div className="relative z-10 w-full max-w-4xl flex flex-col items-center text-center space-y-12 px-6 py-12 md:px-12">
 
                 {/* Logo & Headline Section */}
                 <div className="flex flex-col items-center gap-1 w-full">
@@ -136,12 +137,14 @@ export default function SummaryScreen() {
                                 transition={{ delay: 0.4 + (idx * 0.1), duration: 0.8 }}
                                 className="w-full text-left bg-card rounded-3xl p-8 md:p-10 shadow-raised-2 border border-border"
                             >
-                                <h3 className="text-2xl font-black mb-6 text-text-primary pb-4 border-b border-border/60">
+                                <h3 className="text-2xl font-black mb-3 text-text-primary pb-4 border-b border-border/60">
                                     {section.title}
                                 </h3>
                                 <div className="prose max-w-none prose-p:text-text-secondary prose-p:leading-relaxed prose-p:text-lg prose-li:text-lg prose-strong:text-text-primary">
                                     <ReactMarkdown components={{
                                         strong: ({ className, ...props }) => <strong className={cn("font-bold text-text-primary", className)} {...props} />,
+                                        p: ({ className, ...props }) => <p className={cn("mb-5 last:mb-0", className)} {...props} />,
+                                        li: ({ className, ...props }) => <li className={cn("mb-5 last:mb-0", className)} {...props} />
                                     }}>
                                         {section.content}
                                     </ReactMarkdown>

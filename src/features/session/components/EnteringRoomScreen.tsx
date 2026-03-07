@@ -2,6 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
+import { TRANSITION_DURATION } from "@/lib/constants";
 
 export default function EnteringRoomScreen() {
     return (
@@ -9,7 +10,7 @@ export default function EnteringRoomScreen() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: TRANSITION_DURATION }}
             className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white"
         >
             <div className="text-center px-4">
