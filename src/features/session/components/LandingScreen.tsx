@@ -128,9 +128,31 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                             </div>
                             <div className="space-y-1">
                                 <h3 className="font-bold text-text-primary">No Time Limit</h3>
-                                <p className="text-sm text-text-secondary leading-relaxed">
-                                    Take your time. Thoughtful answers lead to better feedback.
-                                </p>
+                                <div className="space-y-3">
+                                    <p className="text-sm text-text-secondary leading-relaxed">
+                                        Take your time. Thoughtful answers lead to better feedback.
+                                    </p>
+                                    <div className="flex items-start gap-3 pl-3 py-2 bg-state-info/5 rounded-lg relative mt-1">
+                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-state-info/20 rounded-l-lg" />
+                                        <p className="text-sm text-text-secondary leading-relaxed">
+                                            Need to step away?{" "}
+                                            <button
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    navigator.clipboard.writeText(window.location.href);
+                                                    const node = e.currentTarget;
+                                                    const original = node.innerText;
+                                                    node.innerText = "Link copied!";
+                                                    setTimeout(() => node.innerText = original, 2000);
+                                                }}
+                                                className="text-primary font-bold hover:underline inline-flex items-center"
+                                            >
+                                                Copy your practice link.
+                                            </button>
+                                            {" "}You&apos;ll pick up where you left off when you return.
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -188,33 +210,13 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                     </div>
                 </motion.div>
 
-                {/* Extracted Bottom Copy / Utility Link */}
-                <motion.div variants={fadeUp} className="text-center pt-2">
-                    <p className="text-sm text-muted-foreground flex flex-col sm:flex-row items-center justify-center gap-1">
-                        <span>Need to step away?</span>
-                        <button
-                            onClick={(e) => {
-                                e.preventDefault();
-                                navigator.clipboard.writeText(window.location.href);
-                                // A tiny visual feedback flash could go here
-                                const node = e.currentTarget;
-                                const original = node.innerText;
-                                node.innerText = "Link copied!";
-                                setTimeout(() => node.innerText = original, 2000);
-                            }}
-                            className="text-primary font-bold hover:underline"
-                        >
-                            Copy your practice link
-                        </button>
-                    </p>
-                </motion.div>
 
                 {/* CTA */}
                 <motion.div variants={fadeUp} className="pb-8 pt-4 mt-auto">
                     <Button
                         size="lg"
                         onClick={handleBegin}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || !rating}
                         className={cn(
                             "w-full py-6 text-lg rounded-xl transition-all shadow-floating font-bold h-auto",
                             rating

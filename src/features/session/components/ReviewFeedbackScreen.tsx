@@ -3,8 +3,7 @@ import { Button } from "@/components/ui/button"
 import { useSession } from "../context/SessionContext"
 import { ArrowRight, CheckCircle } from "lucide-react"
 import { SectionHeader } from "@/components/patterns/SectionHeader"
-// Ensure you import the CSS in layout or here (Global CSS preferred usually, but simple import works if configured)
-import "@/styles/loader.css"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function ReviewFeedbackScreen() {
     const { session, nextQuestion, retryQuestion, updateSession, analyzeCurrentQuestion } = useSession(); // Corrected destructuring
@@ -81,13 +80,13 @@ export default function ReviewFeedbackScreen() {
             <main className="flex-1 max-w-3xl w-full mx-auto p-6 flex flex-col gap-6 animate-in fade-in duration-500">
 
                 {isThinking ? (
-                    <div className="thinking-loader p-8 bg-surface-base rounded-xl shadow-sm mt-4 border border-border">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
+                    <div className="flex flex-col gap-4 p-8 bg-surface-base rounded-xl shadow-sm mt-4 border border-border" aria-busy="true" aria-live="polite">
+                        <div className="flex items-center gap-3 mb-2">
+                            <Skeleton className="w-2 h-2 rounded-full" />
                         </div>
-                        <div className="skeleton-line" />
-                        <div className="skeleton-line short" />
-                        <div className="skeleton-line" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-4 w-5/6" />
                     </div>
                 ) : (
                     <>

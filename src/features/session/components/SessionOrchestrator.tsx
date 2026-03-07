@@ -46,7 +46,8 @@ export default function SessionOrchestrator() {
         setIsEntering(true);
         // Narrative wait
         await new Promise(resolve => setTimeout(resolve, 1250));
-        startSession("Product Manager"); // Default for V1
+        const role = session?.role || "General Interview";
+        startSession(role); // Use dynamic role from context if available
 
         // Safety: ensure overlay clears even if status check fails for some reason
         const timer = setTimeout(() => setIsEntering(false), 3000);
