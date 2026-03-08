@@ -6,35 +6,34 @@ export interface MetricCardProps extends React.HTMLAttributes<HTMLDivElement> {
     title: string
     value: string | number
     description?: string
-    icon?: React.ReactNode
     trend?: {
         value: string
         positive?: boolean
     }
     variant?: "default" | "glass"
+    valueClassName?: string
 }
 
 export function MetricCard({
     title,
     value,
     description,
-    icon,
     trend,
     variant = "default",
     className,
+    valueClassName,
     ...props
 }: MetricCardProps) {
     return (
-        <Card variant={variant} className={cn("overflow-hidden", className)} {...props}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Card variant={variant} className={cn("overflow-hidden border-none shadow-none", className)} {...props}>
+            <CardHeader className="flex flex-col items-start justify-between space-y-0 p-5 pb-2">
                 <div className="space-y-1">
-                    <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">{title}</CardTitle>
+                    <CardTitle className="text-xs font-bold text-slate-500 uppercase tracking-widest leading-none">{title}</CardTitle>
                     {description && <CardDescription className="text-xs">{description}</CardDescription>}
                 </div>
-                {icon && <div className="text-muted-foreground bg-surface-subtle p-2 rounded-lg border shadow-flat">{icon}</div>}
             </CardHeader>
-            <CardContent>
-                <div className="text-3xl font-bold tracking-tight">{value}</div>
+            <CardContent className="p-5 pt-0">
+                <div className={cn("text-3xl font-black tracking-tight", valueClassName || "text-foreground")}>{value}</div>
                 {trend && (
                     <p className={cn(
                         "mt-1 text-xs font-semibold flex items-center gap-1",

@@ -10,7 +10,7 @@ import { EmptyState } from "@/components/patterns/EmptyState"
 import { ErrorState } from "@/components/patterns/ErrorState"
 import { FeedbackPanel } from "@/components/patterns/FeedbackPanel"
 import { DataTable } from "@/components/patterns/DataTable"
-import { Info, CheckCircle2, AlertTriangle, AlertCircle, Sparkles, Footprints, Target, Users, Archive, Plus, MessageSquare } from "lucide-react"
+import { Info, CheckCircle2, AlertTriangle, AlertCircle, Sparkles, Archive, Plus, MessageSquare } from "lucide-react"
 
 interface SampleData {
     name: string
@@ -179,19 +179,16 @@ export function ComponentGallery() {
                         title="Average Score"
                         value="8.4"
                         trend={{ value: "12%", positive: true }}
-                        icon={<Target size={20} />}
                     />
                     <MetricCard
                         title="Total Sessions"
                         value="124"
                         trend={{ value: "5%", positive: true }}
-                        icon={<Users size={20} />}
                     />
                     <MetricCard
                         title="Growth Rate"
                         value="22%"
                         trend={{ value: "2%", positive: false }}
-                        icon={<Footprints size={20} />}
                     />
                 </div>
             </section>

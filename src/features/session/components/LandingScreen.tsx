@@ -10,6 +10,7 @@ import { cn } from '@/lib/cn';
 import { captureFeedbackAction } from '@/app/actions/feedback';
 
 import { Variants } from 'framer-motion';
+import { EMOJI_SCALE } from '@/components/patterns/FeedbackCard';
 
 const fadeUp: Variants = {
     hidden: { opacity: 0, y: 30 },
@@ -166,7 +167,7 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                                     After each answer, your coach looks at <strong className="text-text-primary">what you said</strong> and <strong className="text-text-primary">how you structured it - things like clarity, specificity, and relevance to the role.</strong>
                                 </p>
                                 <p className="text-sm text-text-secondary leading-relaxed">
-                                    Feedback is based on the substance of your response, not on accent, speaking style, or delivery polish. There are no scores or rankings&,ust concrete suggestions framed as things to try.
+                                    Feedback is based on the substance of your response, not on accent, speaking style, or delivery polish. There are no scores or rankings, just concrete suggestions framed as things to try.
                                 </p>
                                 <p className="text-sm text-text-secondary leading-relaxed">
                                     Coaching insights are visible <strong className="text-text-primary">only to you</strong>.
@@ -174,9 +175,9 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-center px-6 h-16 bg-gradient-to-r from-blue-600 to-blue-950 rounded-2xl border border-blue-800 shadow-raised-1 overflow-hidden relative">
+                        <div className="flex items-center justify-center px-6 py-4 md:py-0 md:h-16 bg-gradient-to-r from-blue-600 to-blue-950 rounded-2xl border border-blue-800 shadow-raised-1 overflow-hidden relative">
                             <div className="absolute top-0 left-0 w-1.5 h-full bg-orange-500" />
-                            <h3 className="text-white font-bold text-lg m-0 drop-shadow-sm">This space is for skill-building &mdash; not evaluation.</h3>
+                            <h3 className="text-white font-bold text-lg m-0 drop-shadow-sm leading-tight md:leading-normal">This space is for skill-building &mdash; not evaluation.</h3>
                         </div>
                     </div>
 
@@ -188,18 +189,19 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                         </div>
 
                         <div className="flex items-center justify-between gap-2 w-full">
-                            {[1, 2, 3, 4, 5].map((val) => (
+                            {EMOJI_SCALE.map(({ val, emoji }) => (
                                 <button
                                     key={val}
                                     onClick={() => handleRatingSelect(val)}
                                     className={cn(
-                                        "w-12 h-12 rounded-xl border-2 flex items-center justify-center font-bold text-lg transition-all duration-base ease-standard",
+                                        "flex-1 max-w-[64px] aspect-square rounded-2xl border-2 flex items-center justify-center text-3xl transition-all duration-300",
                                         rating === val
-                                            ? "bg-primary border-primary text-white shadow-raised-2 scale-110"
-                                            : "bg-surface-base border-border text-text-muted hover:border-primary/30 hover:text-primary"
+                                            ? "bg-white dark:bg-blue-900/20 border-primary/50 shadow-lg scale-110 saturate-100 opacity-100"
+                                            : "bg-transparent border-border text-text-muted hover:border-primary/30 hover:scale-105 saturate-50 opacity-60 hover:saturate-100 hover:opacity-100"
                                     )}
+                                    title={`Rate ${val}/5`}
                                 >
-                                    {val}
+                                    {emoji}
                                 </button>
                             ))}
                         </div>

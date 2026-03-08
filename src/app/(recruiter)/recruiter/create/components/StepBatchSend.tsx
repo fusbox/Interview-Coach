@@ -5,10 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Mail, ArrowRight, Copy, CheckCircle2 } from "lucide-react";
 import { RecruiterProfile, InviteResult } from "../constants";
 import Image from "next/image";
-import { useState } from "react";
-import { captureFeedbackAction } from "@/app/actions/feedback";
-import { cn } from "@/lib/cn";
 import { SectionHeader } from "@/components/patterns/SectionHeader";
+import { FeedbackCard } from "@/components/patterns/FeedbackCard";
 
 
 interface StepBatchSendProps {
@@ -26,24 +24,26 @@ export function StepBatchSend({
     onBack,
     resetWizard
 }: StepBatchSendProps) {
-    const [rating, setRating] = useState<number | null>(null);
-    const [isSubmitted, setIsSubmitted] = useState(false);
 
-    const handleRating = async (r: number) => {
-        setRating(r);
-        setIsSubmitted(true);
-        try {
-            await captureFeedbackAction({
-                type: 'recruiter_friction_invite',
-                rating: r,
-                metadata: {
-                    recruiter_email: recruiterProfile.email,
-                    role: role,
-                    invite_count: results.length
-                }
-            });
-        } catch (err) {
-            console.error('Failed to capture recruiter feedback', err);
+
+    const handleCopy = (link: string) => {
+        if (navigator?.clipboard?.writeText) {
+            navigator.clipboard.writeText(link).catch(console.error);
+        } else {
+            const textArea = document.createElement("textarea");
+            textArea.value = link;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            textArea.style.top = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+            } catch (err) {
+                console.error('Fallback copy failed', err);
+            }
+            document.body.removeChild(textArea);
         }
     };
 
@@ -66,7 +66,7 @@ M: ${recruiterProfile.phone}
 E: ${recruiterProfile.email}`;
 
     return (
-        <div className="space-y-10 animate-in fade-in duration-slow">
+        <div className="space-y-6 md:space-y-10 animate-in fade-in duration-slow">
             <SectionHeader
                 title={
                     <div className="flex items-center gap-3">
@@ -138,13 +138,13 @@ E: ${recruiterProfile.email}`;
 
                             return (
                                 <Card key={idx} className="bg-surface-base hover:shadow-raised-2 transition-all duration-base border-border/50 shadow-raised-1 overflow-hidden group animate-in slide-in-from-right-4 ease-emphasized" style={{ animationDelay: `${idx * 100}ms` }}>
-                                    <div className="p-5 flex items-center justify-between bg-surface-base border-b border-border/10">
+                                    <div className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-surface-base border-b border-border/10">
                                         <div>
                                             <div className="font-bold text-text-primary text-lg tracking-tight">{result.firstName} {result.lastName}</div>
                                             <div className="text-[11px] text-text-disabled font-bold uppercase tracking-wider mt-0.5">{result.email}</div>
                                         </div>
-                                        <a href={mailtoLink} target="_blank" rel="noopener noreferrer">
-                                            <Button size="sm" className="gap-2 bg-state-info text-white shadow-raised-1 transition-all active:scale-95 px-5 font-bold uppercase text-micro tracking-widest h-10 border-b-2 border-state-info/20">
+                                        <a href={mailtoLink} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
+                                            <Button size="sm" className="w-full sm:w-auto gap-2 bg-state-info text-white shadow-raised-1 transition-all active:scale-95 px-5 font-bold uppercase text-micro tracking-widest h-10 border-b-2 border-state-info/20">
                                                 <Mail className="w-3.5 h-3.5" />
                                                 Send Invite
                                             </Button>
@@ -157,8 +157,8 @@ E: ${recruiterProfile.email}`;
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-9 w-9 text-text-disabled hover:text-primary hover:bg-primary/10 transition-all rounded-xl shadow-flat bg-surface-base border border-border/20"
-                                            onClick={() => navigator.clipboard.writeText(result.link)}
+                                            className="h-9 w-9 text-text-disabled hover:text-primary hover:bg-primary/10 transition-all rounded-xl shadow-flat bg-surface-base border border-border/20 shrink-0"
+                                            onClick={() => handleCopy(result.link)}
                                             title="Copy Link"
                                         >
                                             <Copy className="w-3.5 h-3.5" />
@@ -172,32 +172,16 @@ E: ${recruiterProfile.email}`;
             </div>
 
             <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-6 pt-10 border-t border-border/50">
-                {!isSubmitted ? (
-                    <div className="flex flex-col md:flex-row items-center gap-5 bg-surface-subtle p-5 rounded-3xl border border-border/30 shadow-flat w-full md:w-auto">
-                        <span className="text-xs font-bold text-text-secondary uppercase tracking-widest">How easy was it?</span>
-                        <div className="flex gap-2">
-                            {[1, 2, 3, 4, 5].map((val) => (
-                                <button
-                                    key={val}
-                                    onClick={() => handleRating(val)}
-                                    className={cn(
-                                        "w-11 h-11 rounded-xl border flex items-center justify-center font-bold text-sm transition-all duration-base shadow-flat",
-                                        rating === val
-                                            ? "bg-primary border-primary text-primary-foreground scale-110 shadow-raised-1"
-                                            : "bg-surface-base border-border text-text-disabled hover:border-primary/50 hover:text-primary"
-                                    )}
-                                >
-                                    {val}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                ) : (
-                    <div className="flex items-center gap-3 text-sm font-bold text-state-success bg-state-success/5 px-6 py-4 rounded-3xl border border-state-success/20 animate-in fade-in slide-in-from-left-4 shadow-flat">
-                        <CheckCircle2 className="w-5 h-5" />
-                        Thanks for your feedback!
-                    </div>
-                )}
+                <FeedbackCard
+                    title="How easy was it to send the invite?"
+                    type="recruiter_friction_invite"
+                    metadata={{
+                        recruiter_email: recruiterProfile.email,
+                        role: role,
+                        invite_count: results.length
+                    }}
+                    className="w-full md:w-auto md:min-w-[500px]"
+                />
 
                 <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4 sm:pt-0">
                     <Button variant="ghost" onClick={onBack} className="h-12 sm:h-11 px-6 font-bold uppercase text-micro tracking-widest text-text-disabled hover:text-text-primary transition-all">

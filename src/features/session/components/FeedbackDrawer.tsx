@@ -408,7 +408,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
         const isElevated = sectionKey === 'start' || sectionKey === 'next';
         return cn(
             'scroll-snap-align-start flex-shrink-0 w-full min-h-full md:h-full flex flex-col justify-start px-6 md:pl-20 md:pr-14 pb-8',
-            isElevated ? 'pt-8 md:pt-14' : 'pt-8 md:pt-12'
+            isElevated ? 'pt-8 md:pt-14' : 'pt-20 md:pt-12'
         );
     };
 
@@ -434,7 +434,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                     exit={{ opacity: 0, scale: 0.97, y: 16 }}
                     transition={{ duration: 0.25, ease: 'easeOut' }}
                     className={cn(
-                        "relative w-full max-w-4xl min-w-[45rem] h-[100dvh] md:h-[40rem] rounded-none md:rounded-3xl border-0 md:border border-border bg-surface-base flex overflow-hidden transition-shadow duration-300",
+                        "relative w-full max-w-4xl md:min-w-[45rem] h-[100dvh] md:h-[40rem] rounded-none md:rounded-3xl border-0 md:border border-border bg-surface-base flex overflow-hidden transition-shadow duration-300",
                         isElevatedMode ? "md:shadow-[0_24px_60px_-15px_rgba(0,0,0,0.12)]" : "md:shadow-lg"
                     )}
                 >
@@ -647,29 +647,31 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                     {/* ── Universal Sticky Transcript FAB (Only visible in Stage 2 Feedback) ───────────────────────────── */}
                     <AnimatePresence>
                         {(activeSection === 'content' || activeSection === 'delivery') && (
-                            <motion.div
-                                initial={{ opacity: 0, y: -20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -20 }}
-                                className="absolute top-5 right-5 z-20"
-                            >
-                                <button
-                                    onClick={() => setIsTranscriptOpen(true)}
-                                    className={cn(
-                                        'flex items-center gap-2 px-5 py-3 rounded-full shadow-lg font-bold text-sm transition-all hover:scale-105 active:scale-95',
-                                        isTranscriptOpen
-                                            ? 'opacity-0 pointer-events-none'
-                                            : 'bg-surface-base text-text-secondary border border-border/50'
-                                    )}
-                                    aria-label="Compare to your answer"
+                            <div className="absolute top-4 right-4 z-40">
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    className="pointer-events-auto"
                                 >
-                                    <FileText size={16} className="text-text-muted" />
-                                    Compare to your answer
-                                    {isPlaying && (
-                                        <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse ml-1" />
-                                    )}
-                                </button>
-                            </motion.div>
+                                    <button
+                                        onClick={() => setIsTranscriptOpen(true)}
+                                        className={cn(
+                                            'flex items-center gap-2 px-5 py-3 rounded-full shadow-lg font-bold text-sm transition-all hover:scale-105 active:scale-95',
+                                            isTranscriptOpen
+                                                ? 'opacity-0 pointer-events-none'
+                                                : 'bg-surface-base text-text-secondary border border-border/50'
+                                        )}
+                                        aria-label="Compare to your answer"
+                                    >
+                                        <FileText size={16} className="text-text-muted" />
+                                        Compare to your answer
+                                        {isPlaying && (
+                                            <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse ml-1" />
+                                        )}
+                                    </button>
+                                </motion.div>
+                            </div>
                         )}
                     </AnimatePresence>
 

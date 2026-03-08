@@ -111,11 +111,11 @@ function SessionRow({ session, bucketKey, recruiterProfile }: { session: WidgetS
 
     return (
         <div
-            className="group flex items-center gap-3 py-2.5 px-3 -mx-3 rounded-lg hover:bg-surface-subtle transition-all duration-base ease-standard cursor-pointer"
+            className="group flex items-center gap-3 py-2.5 px-3 min-w-[400px] lg:min-w-0 lg:-mx-3 rounded-lg hover:bg-surface-subtle transition-all duration-base ease-standard cursor-pointer"
             onClick={handleRowClick}
         >
             {/* Candidate info */}
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-[240px] md:min-w-0">
                 <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-slate-800 truncate">
                         {session.candidateName}
@@ -245,7 +245,7 @@ function BucketSection({ bucket, recruiterProfile }: { bucket: WidgetBucket; rec
                     </p>
                 ) : (
                     <>
-                        <div className="space-y-0.5">
+                        <div className="space-y-0.5 overflow-x-auto custom-scrollbar pb-1">
                             {visibleSessions.map((session) => (
                                 <SessionRow
                                     key={session.id}

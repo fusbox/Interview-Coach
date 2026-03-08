@@ -20,10 +20,10 @@ import { TRANSITION_DURATION } from "@/lib/constants";
 export default function SessionOrchestrator() {
     const { now, session, startSession, isLoading /*, updateSession */ } = useSession();
 
-    // Reset scroll on status or question change (SPA flow)
+    // Reset scroll on status, screen, or question change (SPA flow)
     useEffect(() => {
         window.scrollTo(0, 0);
-    }, [now.status, now.currentQuestionId]);
+    }, [now.status, now.screen, now.currentQuestionId]);
 
     const [isEntering, setIsEntering] = useState(false);
 

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Details, QuestionInput, StepFooterProps } from "../constants";
 import { CandidateRow } from "./StepCandidates";
-import { Edit, Loader2, Users, ClipboardCheck, MessageSquare, Check } from "lucide-react";
+import { Edit, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { MetricCard } from "@/components/patterns/MetricCard";
@@ -66,19 +66,16 @@ export function StepPreviewCombined({
                             <MetricCard
                                 title="Behavioral"
                                 value={activeStar.length}
-                                icon={<MessageSquare className="w-4 h-4" />}
                                 variant="default"
                             />
                             <MetricCard
                                 title="Culture"
                                 value={activePerma.length}
-                                icon={<Users className="w-4 h-4" />}
                                 variant="default"
                             />
                             <MetricCard
                                 title="Technical"
                                 value={activeTechnical.length}
-                                icon={<ClipboardCheck className="w-4 h-4" />}
                                 variant="default"
                             />
                         </div>

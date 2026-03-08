@@ -211,7 +211,9 @@ Generate feedback as strict JSON matching this schema:
                     scoreContext = scoreMap.join('\n');
                 }
 
-                return `--- Question ${i + 1} ---\nQ: ${qText}\nTRANSCRIPT: ${a.transcript || 'No transcript'}\n\nHIDDEN TELEMETRY SCORES:\n${scoreContext}\n`;
+                const modality = a.analysis?.meta?.modality || 'text';
+
+                return `--- Question ${i + 1} ---\nQ: ${qText}\nMODALITY: ${modality === 'voice' ? 'VOICE (SPOKEN)' : 'TEXT (TYPED)'}\nTRANSCRIPT: ${a.transcript || 'No transcript'}\n\nHIDDEN TELEMETRY SCORES:\n${scoreContext}\n`;
             })
             .join("\n\n");
 
@@ -225,6 +227,12 @@ Below are their answers to all questions, along with the internal 1-5 telemetry 
 YOUR TASK:
 Synthesize this data into a high-impact, actionable Post-Session Debrief formatted in standard Markdown.
 Speak directly to the candidate ("you"), not about them ("the candidate"). Address them warmly and professionally.
+
+MODALITY AWARENESS:
+- You MUST acknowledge the candidate's chosen response mode. 
+- IF the session was primarily VOICE (SPOKEN), use verbs like "said", "spoke", "sounded", "vocal tone".
+- IF the session was primarily TEXT (TYPED), use verbs like "wrote", "crafted", "drafted", "written structure".
+- IF the session was a HYBRID, acknowledge both modes (e.g., "In both your spoken and written answers...").
 
 ${readingLevelContext}
 

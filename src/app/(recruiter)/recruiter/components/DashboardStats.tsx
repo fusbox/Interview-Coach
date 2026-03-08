@@ -2,7 +2,6 @@
 
 import React from "react";
 import { MetricCard } from "@/components/patterns/MetricCard";
-import { Sparkles, Target, Zap, Clock } from "lucide-react";
 import { DashboardBasicStats } from "@/lib/services/compute-dashboard-stats";
 
 interface DashboardStatsProps {
@@ -14,37 +13,38 @@ export function DashboardStats({ metrics }: DashboardStatsProps) {
         {
             label: "Total Invites",
             value: metrics.totalInvites,
-            icon: <Target size={18} />,
-            color: "text-blue-600",
+            bgColor: "bg-blue-50/50 dark:bg-blue-950/20",
+            textColor: "text-blue-700 dark:text-blue-300",
         },
         {
             label: "In Progress",
             value: metrics.activeSessions,
-            icon: <Zap size={18} />,
-            color: "text-amber-600",
+            bgColor: "bg-amber-50/50 dark:bg-amber-950/20",
+            textColor: "text-amber-700 dark:text-amber-300",
         },
         {
             label: "Completed",
             value: metrics.completedSessions,
-            icon: <Sparkles size={18} />,
-            color: "text-emerald-600",
+            bgColor: "bg-emerald-50/50 dark:bg-emerald-950/20",
+            textColor: "text-emerald-700 dark:text-emerald-300",
         },
         {
             label: "Avg. Engagement",
             value: `${Math.round(metrics.averageEngagementTimeSeconds / 60)}m`,
-            icon: <Clock size={18} />,
-            color: "text-indigo-600",
+            bgColor: "bg-indigo-50/50 dark:bg-indigo-950/20",
+            textColor: "text-indigo-700 dark:text-indigo-300",
         }
     ];
 
     return (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {stats.map((stat) => (
                 <MetricCard
                     key={stat.label}
                     title={stat.label}
                     value={stat.value}
-                    icon={<div className={stat.color}>{stat.icon}</div>}
+                    className={stat.bgColor}
+                    valueClassName={stat.textColor}
                 />
             ))}
         </div>

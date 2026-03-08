@@ -60,8 +60,8 @@ export function SessionSurvey({ sessionId }: SessionSurveyProps) {
                             className={cn(
                                 "flex-1 md:flex-none w-14 h-14 rounded-2xl border-2 flex items-center justify-center text-3xl transition-all duration-300",
                                 survey.confidence_delta === val
-                                    ? "bg-transparent border-primary/30 shadow-lg scale-110 grayscale-0 opacity-100"
-                                    : "bg-transparent border-transparent text-text-muted hover:border-primary/10 hover:scale-105 grayscale opacity-60 hover:grayscale-0 hover:opacity-100"
+                                    ? "bg-white dark:bg-blue-900/20 border-primary/50 shadow-lg scale-110 saturate-100 opacity-100"
+                                    : "bg-transparent border-border text-text-muted hover:border-primary/30 hover:scale-105 saturate-50 opacity-60 hover:saturate-100 hover:opacity-100"
                             )}
                         >
                             {emoji}
@@ -75,7 +75,7 @@ export function SessionSurvey({ sessionId }: SessionSurveyProps) {
                 )}
                 {submitted['confidence_delta'] && !submitError['confidence_delta'] && (
                     <p className="text-green-600 dark:text-green-400 text-sm font-medium flex items-center justify-center gap-1.5 animate-in fade-in slide-in-from-top-1">
-                        <CheckCircle2 className="w-4 h-4" /> Feedback captured
+                        <CheckCircle2 className="w-4 h-4" /> Thanks for your feedback!
                     </p>
                 )}
             </div>
@@ -93,8 +93,8 @@ export function SessionSurvey({ sessionId }: SessionSurveyProps) {
                             className={cn(
                                 "flex-1 md:flex-none w-14 h-14 rounded-2xl border-2 flex items-center justify-center text-3xl transition-all duration-300",
                                 survey.psychological_safety === val
-                                    ? "bg-transparent border-primary/30 shadow-lg scale-110 grayscale-0 opacity-100"
-                                    : "bg-transparent border-transparent text-text-muted hover:border-primary/10 hover:scale-105 grayscale opacity-60 hover:grayscale-0 hover:opacity-100"
+                                    ? "bg-white dark:bg-blue-900/20 border-primary/50 shadow-lg scale-110 saturate-100 opacity-100"
+                                    : "bg-transparent border-border text-text-muted hover:border-primary/30 hover:scale-105 saturate-50 opacity-60 hover:saturate-100 hover:opacity-100"
                             )}
                         >
                             {emoji}
@@ -108,13 +108,13 @@ export function SessionSurvey({ sessionId }: SessionSurveyProps) {
                 )}
                 {submitted['psychological_safety'] && !submitError['psychological_safety'] && (
                     <p className="text-green-600 dark:text-green-400 text-sm font-medium flex items-center justify-center gap-1.5 animate-in fade-in slide-in-from-top-1">
-                        <CheckCircle2 className="w-4 h-4" /> Feedback captured
+                        <CheckCircle2 className="w-4 h-4" /> Thanks for your feedback!
                     </p>
                 )}
             </div>
 
             {/* 3. Repeat Intent */}
-            <div className="space-y-4">
+            <div className="space-y-6">
                 <p className="text-lg font-bold text-text-primary text-center">
                     I would use this again to prepare for a different role.
                 </p>
@@ -122,10 +122,10 @@ export function SessionSurvey({ sessionId }: SessionSurveyProps) {
                     <button
                         onClick={() => handleSurveySelect('repeat_intent', 'yes')}
                         className={cn(
-                            "flex-1 md:flex-none px-8 py-3 rounded-2xl border-2 font-bold flex items-center justify-center gap-2 transition-all duration-300",
+                            "flex-1 md:flex-none px-8 py-4 rounded-2xl border-2 font-bold flex items-center justify-center gap-2 transition-all duration-300",
                             survey.repeat_intent === 'yes'
-                                ? "bg-green-600 border-green-600 text-white shadow-lg"
-                                : "bg-transparent border-border text-text-secondary hover:border-green-300 hover:text-green-600 hover:bg-green-50/50 dark:hover:bg-green-900/20"
+                                ? "bg-green-600 border-green-600 text-white shadow-lg scale-105"
+                                : "bg-white dark:bg-surface-subtle border-border text-text-secondary hover:border-green-300 hover:text-green-600"
                         )}
                     >
                         <ThumbsUp size={18} /> Yes
@@ -133,10 +133,10 @@ export function SessionSurvey({ sessionId }: SessionSurveyProps) {
                     <button
                         onClick={() => handleSurveySelect('repeat_intent', 'no')}
                         className={cn(
-                            "flex-1 md:flex-none px-8 py-3 rounded-2xl border-2 font-bold flex items-center justify-center gap-2 transition-all duration-300",
+                            "flex-1 md:flex-none px-8 py-4 rounded-2xl border-2 font-bold flex items-center justify-center gap-2 transition-all duration-300",
                             survey.repeat_intent === 'no'
-                                ? "bg-text-primary border-text-primary text-text-inverse shadow-lg"
-                                : "bg-transparent border-border text-text-secondary hover:border-text-primary hover:text-text-primary hover:bg-surface-elevated/50"
+                                ? "bg-slate-800 border-slate-800 text-white shadow-lg scale-105"
+                                : "bg-white dark:bg-surface-subtle border-border text-text-secondary hover:border-slate-300 hover:text-slate-800"
                         )}
                     >
                         <ThumbsDown size={18} /> No
@@ -149,7 +149,7 @@ export function SessionSurvey({ sessionId }: SessionSurveyProps) {
                 )}
                 {submitted['repeat_intent'] && !submitError['repeat_intent'] && (
                     <p className="text-green-600 dark:text-green-400 text-sm font-medium flex items-center justify-center gap-1.5 animate-in fade-in slide-in-from-top-1">
-                        <CheckCircle2 className="w-4 h-4" /> Response recorded
+                        <CheckCircle2 className="w-4 h-4" /> Thanks for your feedback!
                     </p>
                 )}
             </div>
