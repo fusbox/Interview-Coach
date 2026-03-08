@@ -7,6 +7,7 @@ import { Clock, ShieldCheck } from "lucide-react"
 import { audioEngine } from '@/features/audio/audio-engine';
 import { useSession } from '../context/SessionContext';
 import { cn } from '@/lib/cn';
+import { toast } from "sonner";
 import { captureFeedbackAction } from '@/app/actions/feedback';
 
 import { Variants } from 'framer-motion';
@@ -61,6 +62,7 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                 rating: val,
                 metadata: { role }
             });
+            toast.success("Thanks for your feedback!");
         } catch (err) {
             console.error('Failed to capture baseline feedback', err);
         }

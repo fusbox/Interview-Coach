@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { captureFeedbackAction } from "@/app/actions/feedback";
-import { ThumbsUp, ThumbsDown, CheckCircle2 } from "lucide-react";
+import { ThumbsUp, ThumbsDown } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/cn";
 
 export interface SessionSurveyProps {
@@ -17,7 +18,6 @@ const EMOJI_SCALE = [
 
 export function SessionSurvey({ sessionId }: SessionSurveyProps) {
     const [survey, setSurvey] = useState<Record<string, string | number>>({});
-    const [submitted, setSubmitted] = useState<Record<string, boolean>>({});
     const [submitError, setSubmitError] = useState<Record<string, boolean>>({});
 
     const handleSurveySelect = async (key: string, val: string | number) => {
@@ -32,7 +32,7 @@ export function SessionSurvey({ sessionId }: SessionSurveyProps) {
                 comment: typeof val === 'string' ? val : undefined,
                 metadata: { question: key }
             });
-            setSubmitted(prev => ({ ...prev, [key]: true }));
+            toast.success("Thanks for your feedback!");
         } catch (err) {
             console.error(`[SessionSurvey] FAILED to capture ${key}:`, err);
             setSubmitError(prev => ({ ...prev, [key]: true }));
@@ -73,11 +73,6 @@ export function SessionSurvey({ sessionId }: SessionSurveyProps) {
                         Could not save feedback. Please try again.
                     </p>
                 )}
-                {submitted['confidence_delta'] && !submitError['confidence_delta'] && (
-                    <p className="text-green-600 dark:text-green-400 text-sm font-medium flex items-center justify-center gap-1.5 animate-in fade-in slide-in-from-top-1">
-                        <CheckCircle2 className="w-4 h-4" /> Thanks for your feedback!
-                    </p>
-                )}
             </div>
 
             {/* 2. Psychological Safety */}
@@ -104,11 +99,6 @@ export function SessionSurvey({ sessionId }: SessionSurveyProps) {
                 {submitError['psychological_safety'] && (
                     <p className="text-destructive text-sm font-medium text-center animate-in fade-in slide-in-from-top-1">
                         Could not save feedback. Please try again.
-                    </p>
-                )}
-                {submitted['psychological_safety'] && !submitError['psychological_safety'] && (
-                    <p className="text-green-600 dark:text-green-400 text-sm font-medium flex items-center justify-center gap-1.5 animate-in fade-in slide-in-from-top-1">
-                        <CheckCircle2 className="w-4 h-4" /> Thanks for your feedback!
                     </p>
                 )}
             </div>
@@ -145,11 +135,6 @@ export function SessionSurvey({ sessionId }: SessionSurveyProps) {
                 {submitError['repeat_intent'] && (
                     <p className="text-destructive text-sm font-medium text-center animate-in fade-in slide-in-from-top-1">
                         Could not save feedback. Please try again.
-                    </p>
-                )}
-                {submitted['repeat_intent'] && !submitError['repeat_intent'] && (
-                    <p className="text-green-600 dark:text-green-400 text-sm font-medium flex items-center justify-center gap-1.5 animate-in fade-in slide-in-from-top-1">
-                        <CheckCircle2 className="w-4 h-4" /> Thanks for your feedback!
                     </p>
                 )}
             </div>

@@ -24,6 +24,7 @@ import {
     ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { toast } from "sonner";
 import { captureFeedbackAction } from '@/app/actions/feedback';
 import { useSession } from '../context/SessionContext';
 import { SectionHeader } from '@/components/patterns/SectionHeader';
@@ -308,6 +309,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                     headline: type === 'delivery' ? analysis?.deliveryPulse?.headline : analysis?.contentPulse?.headline
                 }
             });
+            toast.success("Thanks for your feedback!");
         } catch (err) {
             console.error('Failed to capture helpfulness', err);
         }

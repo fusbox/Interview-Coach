@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Loader2, Save, X } from "lucide-react";
 import { Details, QuestionInput, StepFooterProps } from "../constants";
-import { useState } from "react";
+import { useState, useLayoutEffect, useRef } from "react";
 import { ChevronRight } from "lucide-react";
 import { showDemoTools } from "@/lib/feature-flags";
 import { RecruiterTemplate } from "@/lib/domain/template";
@@ -46,6 +46,40 @@ export function StepJobAndQuestions({
     const [showSaveModal, setShowSaveModal] = useState(false);
     const [templateName, setTemplateName] = useState("");
     const [isShared, setIsShared] = useState(true);
+
+    // Reactive auto-resize textarea helper
+    const AutoResizeTextarea = ({
+        value,
+        onChange,
+        placeholder,
+        className
+    }: {
+        value: string;
+        onChange: (val: string) => void;
+        placeholder: string;
+        className?: string;
+    }) => {
+        const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+        useLayoutEffect(() => {
+            if (textareaRef.current) {
+                textareaRef.current.style.height = 'auto';
+                textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+            }
+        }, [value]);
+
+        return (
+            <textarea
+                ref={textareaRef}
+                className={className}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder={placeholder}
+                rows={1}
+                style={{ resize: 'none', overflow: 'hidden' }}
+            />
+        );
+    };
 
     const addTechnical = () => {
         setTechnical([...technical, {
@@ -193,9 +227,12 @@ export function StepJobAndQuestions({
                     <CardContent className="space-y-4">
                         {star.map((q, idx) => (
                             <div key={q.id}>
-                                <input className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                                    value={q.text} onChange={e => updateQuestion(setStar, star, q.id, e.target.value)}
-                                    placeholder={`STAR Question ${idx + 1}...`} />
+                                <AutoResizeTextarea
+                                    className="flex min-h-[44px] w-full rounded-xl border border-border bg-surface-subtle px-4 py-3 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                    value={q.text}
+                                    onChange={val => updateQuestion(setStar, star, q.id, val)}
+                                    placeholder={`STAR Question ${idx + 1}...`}
+                                />
                             </div>
                         ))}
                     </CardContent>
@@ -209,9 +246,12 @@ export function StepJobAndQuestions({
                     <CardContent className="space-y-4">
                         {perma.map(q => (
                             <div key={q.id}>
-                                <input className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                                    value={q.text} onChange={e => updateQuestion(setPerma, perma, q.id, e.target.value)}
-                                    placeholder={`${q.label} Question...`} />
+                                <AutoResizeTextarea
+                                    className="flex min-h-[44px] w-full rounded-xl border border-border bg-surface-subtle px-4 py-3 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                    value={q.text}
+                                    onChange={val => updateQuestion(setPerma, perma, q.id, val)}
+                                    placeholder={`${q.label} Question...`}
+                                />
                             </div>
                         ))}
                     </CardContent>
@@ -235,9 +275,12 @@ export function StepJobAndQuestions({
                         {technical.map((q, idx) => (
                             <div key={q.id} className="flex gap-2 items-center animate-in fade-in slide-in-from-top-1 duration-base">
                                 <div className="flex-1">
-                                    <input className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                                        value={q.text} onChange={e => updateQuestion(setTechnical, technical, q.id, e.target.value)}
-                                        placeholder={`Technical Question ${idx + 1}...`} />
+                                    <AutoResizeTextarea
+                                        className="flex min-h-[44px] w-full rounded-xl border border-border bg-surface-subtle px-4 py-3 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                        value={q.text}
+                                        onChange={val => updateQuestion(setTechnical, technical, q.id, val)}
+                                        placeholder={`Technical Question ${idx + 1}...`}
+                                    />
                                 </div>
                                 {technical.length > 1 && (
                                     <Button size="icon" variant="ghost" className="text-state-critical hover:bg-state-critical/5 shrink-0" onClick={() => removeQuestion(setTechnical, technical, q.id)}>

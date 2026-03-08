@@ -2,9 +2,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mail, ArrowRight, Copy, CheckCircle2 } from "lucide-react";
+import { Mail, ChevronLeft, Copy, CheckCircle2 } from "lucide-react";
 import { RecruiterProfile, InviteResult } from "../constants";
-import Image from "next/image";
 import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { FeedbackCard } from "@/components/patterns/FeedbackCard";
 
@@ -24,6 +23,7 @@ export function StepBatchSend({
     onBack,
     resetWizard
 }: StepBatchSendProps) {
+    const firstName = recruiterProfile.name ? recruiterProfile.name.split(' ')[0] : "Recruiter";
 
 
     const handleCopy = (link: string) => {
@@ -77,57 +77,19 @@ E: ${recruiterProfile.email}`;
                 description="Send the invites to your candidates using the dashboard below."
             />
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[600px]">
-                {/* Column 1: Generic Email Preview */}
-                <Card className="flex flex-col overflow-hidden border-border/50 shadow-raised-1 bg-surface-base">
-                    <CardHeader className="bg-surface-subtle/50 border-b border-border/30 py-3 px-6">
-                        <CardTitle className="text-micro font-bold text-text-disabled uppercase tracking-widest">Email Preview</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex-1 overflow-y-auto p-8 font-sans text-sm leading-relaxed text-text-secondary">
-                        <div className="mb-8 pb-4 border-b border-border/30">
-                            <div className="grid grid-cols-[60px_1fr] gap-2 mb-2">
-                                <span className="text-text-disabled font-bold uppercase text-micro tracking-wider pt-1">Subject:</span>
-                                <span className="font-bold text-text-primary text-base tracking-tight">{subject}</span>
-                            </div>
-                        </div>
-                        <div className="space-y-6">
-                            <p>Hi [Candidate Name],</p>
-                            <p>I&apos;d like to invite you to a preliminary interview practice session for the <strong className="text-text-primary font-bold">{role}</strong> role. This interactive session will help us understand your experience better.</p>
-                            <p>Please click the button below to start whenever you&apos;re ready:</p>
+            <FeedbackCard
+                title={`${firstName}, how easy was it to set up the invite?`}
+                type="recruiter_friction_invite"
+                metadata={{
+                    recruiter_email: recruiterProfile.email,
+                    role: role,
+                    invite_count: results.length
+                }}
+                className="w-full"
+            />
 
-                            <div className="py-6 flex flex-col items-center sm:items-start group">
-                                <Button className="bg-primary text-primary-foreground hover:bg-primary/90 pointer-events-none px-8 py-6 rounded-xl shadow-raised-1 font-bold tracking-tight">
-                                    Start Interview Session
-                                </Button>
-                                <div className="text-micro text-text-disabled mt-4 font-mono italic bg-surface-subtle px-3 py-1.5 rounded-lg border border-border/20">
-                                    Link: https://ready2work.ai/s/example-token
-                                </div>
-                            </div>
-
-                            <div className="text-text-secondary space-y-1.5 pt-8 border-t border-border/30 mt-10">
-                                <div className="text-xs text-text-disabled font-medium">Best regards,</div>
-                                <div className="font-bold text-text-primary text-base tracking-tight pt-2">{recruiterProfile.name}</div>
-                                <div className="text-xs font-medium text-text-secondary">{recruiterProfile.title || 'Recruiter'}</div>
-                                <div className="font-bold text-primary tracking-tight">{recruiterProfile.company || 'Rangam Consultants Inc.'}</div>
-                                <div className="py-4">
-                                    <Image
-                                        src="/rangam-logo.webp"
-                                        alt="Rangam"
-                                        width={100}
-                                        height={36}
-                                        className="h-9 w-auto object-contain opacity-80"
-                                    />
-                                </div>
-                                <div className="text-[11px] text-text-disabled font-medium space-y-0.5 pt-2 border-t border-border/10">
-                                    <div className="flex items-center gap-2"><span className="w-3 text-center inline-block">M:</span> {recruiterProfile.phone}</div>
-                                    <div className="flex items-center gap-2"><span className="w-3 text-center inline-block">E:</span> {recruiterProfile.email}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Column 2: Action List */}
+            <div>
+                {/* Action List */}
                 <Card className="flex flex-col overflow-hidden border-border/50 shadow-raised-1 bg-surface-subtle/30">
                     <CardHeader className="bg-surface-base border-b border-border/30 py-3 px-6">
                         <CardTitle className="text-micro font-bold text-text-disabled uppercase tracking-widest">Candidate Actions</CardTitle>
@@ -171,26 +133,22 @@ E: ${recruiterProfile.email}`;
                 </Card>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-6 pt-10 border-t border-border/50">
-                <FeedbackCard
-                    title="How easy was it to send the invite?"
-                    type="recruiter_friction_invite"
-                    metadata={{
-                        recruiter_email: recruiterProfile.email,
-                        role: role,
-                        invite_count: results.length
-                    }}
-                    className="w-full md:w-auto md:min-w-[500px]"
-                />
-
-                <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4 sm:pt-0">
-                    <Button variant="ghost" onClick={onBack} className="h-12 sm:h-11 px-6 font-bold uppercase text-micro tracking-widest text-text-disabled hover:text-text-primary transition-all">
-                        <ArrowRight className="w-4 h-4 mr-2 rotate-180" /> Back to Preview
-                    </Button>
-                    <Button onClick={resetWizard} variant="outline" className="h-12 sm:h-11 px-6 font-bold uppercase text-micro tracking-widest border-border/50 shadow-flat hover:bg-surface-subtle transition-all">
-                        Start New Batch
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-stretch sm:items-center gap-4 pt-8 mt-8 border-t border-border/50">
+                <div>
+                    <Button
+                        variant="outline"
+                        onClick={onBack}
+                        className="w-full sm:w-auto h-12 sm:h-11 shadow-flat"
+                    >
+                        <ChevronLeft className="w-4 h-4 mr-2" /> Back
                     </Button>
                 </div>
+                <Button
+                    onClick={resetWizard}
+                    className="w-full sm:w-auto h-12 sm:h-11 text-base sm:text-sm font-semibold shadow-raised-1"
+                >
+                    Start New Batch
+                </Button>
             </div>
         </div>
     );

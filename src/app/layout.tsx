@@ -5,6 +5,7 @@ import '@/index.css' // Import global styles
 import { cn } from '@/lib/cn'
 import { ScrollToTop } from '@/components/navigation/ScrollToTop'
 import NextTopLoader from 'nextjs-toploader'
+import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 const tech = JetBrains_Mono({ subsets: ['latin'], variable: '--font-tech' })
@@ -65,6 +66,7 @@ export default function RootLayout({
                     shadow="0 0 10px #08409a, 0 0 5px #08409a"
                 />
                 <ScrollToTop />
+                <Toaster richColors position="top-center" />
                 {children}
             </body>
         </html>
