@@ -5,7 +5,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Lock, Mail, UserPlus, LogIn, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, UserPlus, LogIn, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 export default function LoginPage() {
@@ -62,20 +62,20 @@ export default function LoginPage() {
         <div className="min-h-screen flex items-center justify-center bg-surface-subtle p-4 font-sans">
             <Card className="w-full max-w-md overflow-hidden border-t-4 border-t-primary shadow-xl">
                 <CardHeader className="text-center pb-2">
-                    <CardTitle className="text-2xl font-bold text-slate-800">Recruiter Portal</CardTitle>
+                    <CardTitle className="text-2xl font-bold text-foreground">Recruiter Portal</CardTitle>
                     <CardDescription>Manage your interview sessions and candidates</CardDescription>
                 </CardHeader>
 
                 {/* Tabs */}
                 <div className="px-6 pb-2">
-                    <div className="grid grid-cols-2 bg-slate-100 p-1 rounded-lg">
+                    <div className="grid grid-cols-2 bg-muted p-1 rounded-lg">
                         <button
                             onClick={() => { setActiveTab('login'); setError(null); setSuccessMessage(null); }}
                             className={cn(
                                 "py-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center justify-center gap-2",
                                 activeTab === 'login'
-                                    ? "bg-white text-primary shadow-sm"
-                                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                                    ? "bg-surface-base text-primary shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                             )}
                         >
                             <LogIn size={16} /> Sign In
@@ -85,8 +85,8 @@ export default function LoginPage() {
                             className={cn(
                                 "py-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center justify-center gap-2",
                                 activeTab === 'signup'
-                                    ? "bg-white text-primary shadow-sm"
-                                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                                    ? "bg-surface-base text-primary shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                             )}
                         >
                             <UserPlus size={16} /> Create Account
@@ -97,14 +97,14 @@ export default function LoginPage() {
                 <CardContent className="pt-6">
                     <form onSubmit={handleAuth} className="space-y-4">
                         {error && (
-                            <div className="p-3 bg-red-50 text-red-600 text-sm rounded-md border border-red-100 flex items-start gap-2 animate-in fade-in slide-in-from-top-1">
-                                <span className="mt-0.5">⚠️</span>
+                            <div className="p-3 bg-state-critical/5 text-state-critical text-sm rounded-md border border-state-critical/20 flex items-start gap-2 animate-in fade-in slide-in-from-top-1">
+                                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                                 <span>{error}</span>
                             </div>
                         )}
                         {successMessage && (
-                            <div className="p-3 bg-emerald-50 text-emerald-600 text-sm rounded-md border border-emerald-100 flex items-start gap-2 animate-in fade-in slide-in-from-top-1">
-                                <span className="mt-0.5">✓</span>
+                            <div className="p-3 bg-state-success/5 text-state-success text-sm rounded-md border border-state-success/20 flex items-start gap-2 animate-in fade-in slide-in-from-top-1">
+                                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
                                 <span>{successMessage}</span>
                             </div>
                         )}
@@ -114,10 +114,10 @@ export default function LoginPage() {
                                 Email Address
                             </label>
                             <div className="relative group">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors h-4 w-4" />
+                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors h-4 w-4" />
                                 <input
                                     required
-                                    className="w-full h-10 pl-10 pr-3 rounded-md border border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-slate-400 text-sm text-slate-900"
+                                    className="w-full h-10 pl-10 pr-3 rounded-md border border-border bg-surface-subtle/50 focus:bg-surface-base focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-muted-foreground text-sm text-foreground"
                                     placeholder="name@company.com"
                                     type="email"
                                     value={email}
@@ -131,10 +131,10 @@ export default function LoginPage() {
                                 Password
                             </label>
                             <div className="relative group">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors h-4 w-4" />
+                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors h-4 w-4" />
                                 <input
                                     required
-                                    className="w-full h-10 pl-10 pr-10 rounded-md border border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-slate-400 text-sm text-slate-900"
+                                    className="w-full h-10 pl-10 pr-10 rounded-md border border-border bg-surface-subtle/50 focus:bg-surface-base focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-muted-foreground text-sm text-foreground"
                                     placeholder={activeTab === 'signup' ? "Create a strong password" : "Enter your password"}
                                     type={showPassword ? "text" : "password"}
                                     value={password}
@@ -143,7 +143,7 @@ export default function LoginPage() {
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
                                 >
                                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                 </button>

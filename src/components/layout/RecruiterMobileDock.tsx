@@ -66,7 +66,7 @@ export function RecruiterMobileDock({ user }: { user?: User | null }) {
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className="fixed bottom-0 left-0 right-0 z-50 p-4 pb-6 md:hidden pointer-events-none"
         >
-            <div className="mx-auto max-w-sm bg-white/90 backdrop-blur-lg border shadow-lg rounded-2xl flex items-center justify-around p-2 pointer-events-auto">
+            <div className="mx-auto max-w-sm bg-surface-base/90 backdrop-blur-lg border shadow-lg rounded-2xl flex items-center justify-around p-2 pointer-events-auto">
                 {navItems.map((item) => (
                     <Link
                         key={item.label}
@@ -75,7 +75,7 @@ export function RecruiterMobileDock({ user }: { user?: User | null }) {
                             "p-3 rounded-xl transition-all duration-200 flex flex-col items-center gap-1",
                             isActive(item.href) && item.href !== '#'
                                 ? "bg-primary/10 text-primary"
-                                : "text-muted-foreground hover:bg-slate-100"
+                                : "text-muted-foreground hover:bg-muted"
                         )}
                         title={item.label}
                     >

@@ -39,7 +39,7 @@ export function RecruiterSidebar({ className, onNavigate, user, profile }: Recru
     };
 
     return (
-        <aside className={cn("bg-white border-r flex flex-col h-screen sticky top-0", className)}>
+        <aside className={cn("bg-surface-base border-r flex flex-col h-screen sticky top-0", className)}>
             <div className="p-6 pb-0">
                 <Link
                     href="/"
@@ -56,7 +56,7 @@ export function RecruiterSidebar({ className, onNavigate, user, profile }: Recru
                         />
                     </div>
                     <h1 className="font-bold text-xl tracking-tight font-display select-none">
-                        <span className="text-blue-500">Ready</span>
+                        <span className="text-primary">Ready</span>
                         <span className="text-brand-orange">2</span>
                         <span className="text-brand-deep">Work</span>
                     </h1>
@@ -79,7 +79,7 @@ export function RecruiterSidebar({ className, onNavigate, user, profile }: Recru
                         "block p-2 rounded font-medium transition-all duration-200",
                         isActive('/recruiter/create')
                             ? "bg-primary/10 text-primary"
-                            : "text-muted-foreground hover:bg-slate-100 hover:text-slate-900"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     )}
                     onClick={onNavigate}
                 >
@@ -92,7 +92,7 @@ export function RecruiterSidebar({ className, onNavigate, user, profile }: Recru
                         "block p-2 rounded font-medium transition-all duration-200",
                         isActive('/recruiter')
                             ? "bg-primary/10 text-primary"
-                            : "text-muted-foreground hover:bg-slate-100 hover:text-slate-900"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     )}
                     onClick={onNavigate}
                 >
@@ -105,7 +105,7 @@ export function RecruiterSidebar({ className, onNavigate, user, profile }: Recru
                         "block p-2 rounded font-medium transition-all duration-200",
                         isActive('/recruiter/templates')
                             ? "bg-primary/10 text-primary"
-                            : "text-muted-foreground hover:bg-slate-100 hover:text-slate-900"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     )}
                     onClick={onNavigate}
                 >
@@ -118,7 +118,7 @@ export function RecruiterSidebar({ className, onNavigate, user, profile }: Recru
                         "block p-2 rounded font-medium transition-all duration-200",
                         isActive('/recruiter/settings')
                             ? "bg-primary/10 text-primary"
-                            : "text-muted-foreground hover:bg-slate-100 hover:text-slate-900"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     )}
                     onClick={onNavigate}
                 >
@@ -136,7 +136,7 @@ export function RecruiterSidebar({ className, onNavigate, user, profile }: Recru
                                 "block p-2 rounded font-medium transition-all duration-200",
                                 isActive('/admin/feedback')
                                     ? "bg-primary/10 text-primary"
-                                    : "text-muted-foreground hover:bg-slate-100 hover:text-slate-900"
+                                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                             )}
                             onClick={onNavigate}
                         >

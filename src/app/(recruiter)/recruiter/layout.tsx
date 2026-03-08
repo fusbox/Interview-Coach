@@ -23,7 +23,7 @@ export default async function RecruiterLayout({
         .single();
 
     return (
-        <div className="min-h-screen bg-slate-50 flex">
+        <div className="min-h-screen bg-surface-subtle flex">
             <ProfileGuard />
             {/* Desktop Sidebar: Hidden on mobile, visible on md+ */}
             <RecruiterSidebar
