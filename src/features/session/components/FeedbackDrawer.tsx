@@ -628,7 +628,10 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                             </h3>
                                             <div className="pt-8">
                                                 <p className="text-xl md:text-3xl text-text-secondary leading-relaxed font-medium">
-                                                    You&apos;ve addressed the core of this question effectively. Let&apos;s move on or try again to improve your delivery.
+                                                    {analysis?.recommendation || (shouldRetry
+                                                        ? "You might have missed a key signal that the interviewer is looking for. Let's try again to ensure your expertise really shines through."
+                                                        : "You've addressed the core of this question effectively. Let's move on or try again to improve your delivery.")
+                                                    }
                                                 </p>
                                             </div>
                                         </div>

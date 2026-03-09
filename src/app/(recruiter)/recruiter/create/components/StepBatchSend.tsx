@@ -6,6 +6,7 @@ import { Mail, ChevronLeft, Copy, CheckCircle2 } from "lucide-react";
 import { RecruiterProfile, InviteResult } from "../constants";
 import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { FeedbackCard } from "@/components/patterns/FeedbackCard";
+import { toast } from "sonner";
 
 
 interface StepBatchSendProps {
@@ -28,7 +29,9 @@ export function StepBatchSend({
 
     const handleCopy = (link: string) => {
         if (navigator?.clipboard?.writeText) {
-            navigator.clipboard.writeText(link).catch(console.error);
+            navigator.clipboard.writeText(link).then(() => {
+                toast.success("Link copied to clipboard!");
+            }).catch(console.error);
         } else {
             const textArea = document.createElement("textarea");
             textArea.value = link;

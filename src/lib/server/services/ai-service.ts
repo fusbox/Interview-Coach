@@ -33,11 +33,15 @@ export class AIService {
         audioData: { base64: string; mimeType: string } | null,
         blueprint?: Blueprint,
         intakeData?: Record<string, unknown>,
-        retryContext?: { trigger: 'user' | 'coach'; focus?: string }
+        retryContext?: { trigger: 'user' | 'coach'; focus?: string },
+        progress?: { current: number; total: number }
     ): Promise<AnalysisResult> {
 
         // 1. Context Construction
         const contextPrompt = buildAnalysisContext(question, blueprint, intakeData, retryContext);
+        const progressPrompt = progress
+            ? `PROGRESS: The candidate is on question ${progress.current} of ${progress.total}.`
+            : "";
 
         // 2. Strict JSON System Prompt (V3 Pulse Engine)
         const systemPrompt = `SYSTEM:
@@ -59,7 +63,14 @@ COACHING RULES:
 - THE GRACEFUL PIVOT (NOTEBOOK-LM STYLE): Always look for ANY positive signal or relevant transferrable skill first and explicitly affirm it. Then, gracefully pivot to what the question is *really* indexing for. Example framework: "It's great that you brought up [X]. Interviewers ask this to understand your ability to [underlying dimension]. Here, what they're looking for is..."
 - PERSPECTIVE: You MUST use first/second person perspective (e.g., "Your answer was...", "You wrote/spoke..."). 
 - ACK: EXACTLY 1 sentence, warm and personal. You MUST explicitly reference one specific observation, noun, or concept they mentioned in their answer to prove they were heard (e.g. "I love your approach to reconciling cash drawers.").
-- NEXT ACTION LOGIC: If the candidate scores a 1 or 2 on any dimension, you MUST recommend 'redo_answer'. If all scores are 3 or higher, recommend 'next_question'.
+- NEXT ACTION LOGIC: 
+  - If the candidate scores a 1 or 2 on any dimension, you MUST recommend 'redo_answer'. 
+  - If all scores are 3 or higher, recommend 'next_question'.
+  - LAST QUESTION EXCEPTION: If scores are 3+ AND this is the last question (${progress?.total || 'X'} of ${progress?.total || 'X'}), you MUST recommend 'stop_for_now' and set the label to 'See Session Summary'.
+- RECOMMENDATION GUIDANCE:
+  - If REDO, explain the missing critical piece the candidate should focus on.
+  - If NEXT, affirm readiness with a minor polish tip.
+  - If LAST (Summary), briefly summarize their overall trajectory across the questions and congratulate them on finishing.
 
 EVIDENCE RULES & PULSE GENERATION:
 You must generate at least 1, but no more than 2, High-Impact "Pulses" highlighting the most critical feedback.
@@ -99,6 +110,7 @@ Generate feedback as strict JSON matching this schema:
     "label": "string",
     "actionType": "redo_answer | next_question"
   },
+  "recommendation": "string (A contextual summary for the next step. If REDO, explain the missing critical piece. If NEXT, affirm readiness with a minor polish tip.)",
   "meta": {
     "tier": 1,
     "modality": "text|voice"
@@ -118,7 +130,7 @@ Generate feedback as strict JSON matching this schema:
         }
 
         try {
-            const combinedPrompt = `${systemPrompt}\n\n${contextPrompt}\n\n${schemaPrompt}\n\n${audioData ? "Analyze this recording. Provide a high-quality transcription in the 'transcript' field of the JSON, including correct punctuation and sentence structure. Do NOT mention being an AI in the transcription." : `USER ANSWER: "${answerText}"`}`;
+            const combinedPrompt = `${systemPrompt}\n\n${contextPrompt}\n\n${progressPrompt}\n\n${schemaPrompt}\n\n${audioData ? "Analyze this recording. Provide a high-quality transcription in the 'transcript' field of the JSON, including correct punctuation and sentence structure. Do NOT mention being an AI in the transcription." : `USER ANSWER: "${answerText}"`}`;
 
             const promptParts: Part[] = [{ text: combinedPrompt }];
 

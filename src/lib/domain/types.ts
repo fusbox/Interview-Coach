@@ -106,6 +106,7 @@ export interface AnalysisResult {
         label: string;
         actionType: 'redo_answer' | 'next_question' | 'practice_example' | 'stop_for_now';
     };
+    recommendation?: string; // Narrative summary for the "Next Step" slide
     meta?: {
         tier: 0 | 1 | 2;
         modality: 'text' | 'voice';

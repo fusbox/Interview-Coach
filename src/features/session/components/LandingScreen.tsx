@@ -8,6 +8,7 @@ import { audioEngine } from '@/features/audio/audio-engine';
 import { useSession } from '../context/SessionContext';
 import { cn } from '@/lib/cn';
 import { captureFeedbackAction } from '@/app/actions/feedback';
+import { toast } from "sonner";
 
 import { Variants } from 'framer-motion';
 import { EMOJI_SCALE } from '@/components/patterns/FeedbackCard';
@@ -139,7 +140,9 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                                             <button
                                                 onClick={() => {
                                                     const url = window.location.href;
-                                                    navigator.clipboard.writeText(url);
+                                                    navigator.clipboard.writeText(url).then(() => {
+                                                        toast.success("Practice link copied!");
+                                                    });
                                                     setShowCopySuccess(true);
                                                     setTimeout(() => setShowCopySuccess(false), 2000);
                                                 }}
@@ -253,7 +256,7 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                         onClick={handleBegin}
                         disabled={isSubmitting || !rating}
                         className={cn(
-                            "w-full py-6 text-lg rounded-xl transition-all shadow-floating font-bold h-auto",
+                            "w-full py-6 text-lg rounded-2xl transition-all shadow-floating font-bold h-auto",
                             rating
                                 ? "bg-primary hover:bg-primary/90 text-primary-foreground hover:-translate-y-0.5"
                                 : "bg-surface-subtle text-text-muted cursor-not-allowed"

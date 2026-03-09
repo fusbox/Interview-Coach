@@ -40,13 +40,20 @@ export async function POST(
         const body = await request.json().catch(() => ({}));
         const { audioData } = body;
 
+        const questionIndex = session.questions.findIndex(q => q.id === params.question_id);
+        const progress = {
+            current: questionIndex + 1,
+            total: session.questions.length
+        };
+
         const analysis = await AIService.analyzeAnswer(
             context.question,
             answer.transcript || null,
             audioData || null,
             context.blueprint,
             session.intakeData,
-            answer.retryContext
+            answer.retryContext,
+            progress
         );
 
         const updatedSession = {

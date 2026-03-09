@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { useEngagementTracker } from '@/features/analytics/hooks/useEngagementTracker';
 import { X, Trash2, Activity, Cpu, Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { toast } from "sonner";
 
 interface EngagementDebugOverlayProps {
     isVisible: boolean;
@@ -27,7 +28,9 @@ export const EngagementDebugOverlay: React.FC<EngagementDebugOverlayProps> = ({
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
     const handleCopy = (text: string, key: string) => {
-        navigator.clipboard.writeText(text);
+        navigator.clipboard.writeText(text).then(() => {
+            toast.success("Prompt copied to clipboard!");
+        });
         setCopiedKey(key);
         setTimeout(() => setCopiedKey(null), 2000);
     };

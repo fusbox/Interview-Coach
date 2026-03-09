@@ -135,7 +135,7 @@ export default function InitialsScreen() {
                         onClick={handleBegin}
                         disabled={initials.length === 0 || isStarting}
                         className={cn(
-                            'w-full py-6 text-lg rounded-xl transition-all duration-200 shadow-xl h-auto font-bold',
+                            'w-full py-6 text-lg rounded-2xl transition-all duration-200 shadow-xl h-auto font-bold',
                             initials.length > 0
                                 ? 'bg-primary hover:bg-primary/90 text-primary-foreground hover:-translate-y-0.5'
                                 : 'bg-muted text-muted-foreground cursor-not-allowed'
