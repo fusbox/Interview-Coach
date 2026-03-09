@@ -121,7 +121,7 @@ export function SessionSurvey({ sessionId }: SessionSurveyProps) {
                                 "flex-1 md:flex-none w-14 h-14 rounded-2xl border-2 flex items-center justify-center text-3xl transition-all duration-300",
                                 survey.psychological_safety === val
                                     ? "bg-white dark:bg-blue-900/20 border-primary/50 shadow-lg scale-110 saturate-100 opacity-100"
-                                    : "bg-transparent border-border text-text-muted hover:border-primary/30 hover:scale-105 saturate-50 opacity-60 hover:saturate-100 hover:opacity-100"
+                                    : "bg-transparent border-border text-text-muted hover:border-primary/30 hover:scale-105 saturate-80 opacity-80 hover:saturate-100 hover:opacity-100"
                             )}
                         >
                             {emoji}

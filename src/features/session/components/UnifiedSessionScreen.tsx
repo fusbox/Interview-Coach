@@ -130,6 +130,16 @@ export default function UnifiedSessionScreen() {
         }
     }, [isReviewing, analysis]);
 
+    useEffect(() => {
+        if (isDrawerOpen) {
+            console.log("[UnifiedSessionScreen] Opening FeedbackDrawer with audioBlob:", {
+                present: !!audioBlob,
+                size: audioBlob?.size,
+                type: audioBlob?.type
+            });
+        }
+    }, [isDrawerOpen, audioBlob]);
+
     // Reset Dropdown States on Question Change
     useEffect(() => {
         setHintOpen(false);
@@ -143,7 +153,7 @@ export default function UnifiedSessionScreen() {
         }
         return () => {
             // Cleanup on mode switch or unmount if not recording
-            if (mode !== 'voice' || hasSubmitted) {
+            if (mode !== 'voice') {
                 stopListening();
                 resetAudio();
             }
@@ -678,7 +688,7 @@ export default function UnifiedSessionScreen() {
                 onStop={handleStop}
                 isLastQuestion={currentQuestionIndex === (session?.questions.length ?? 0) - 1}
                 transcript={answerData?.transcript || (mode === 'voice' ? transcript : answerText)}
-                audioBlob={answerData?.transcript ? audioBlob : null}
+                audioBlob={audioBlob}
             />
 
             <EngagementDebugOverlay

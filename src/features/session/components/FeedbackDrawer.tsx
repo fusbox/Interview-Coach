@@ -86,7 +86,10 @@ const TranscriptPanel: React.FC<{
                 <div className="flex items-center gap-2">
                     {audioBlob && (
                         <button
-                            onClick={togglePlayback}
+                            onClick={() => {
+                                console.log("[TranscriptPanel] Listen button clicked", { isPlaying });
+                                togglePlayback();
+                            }}
                             className={cn(
                                 'inline-flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all text-xs font-black uppercase tracking-tight',
                                 isPlaying
@@ -192,11 +195,6 @@ const ProgressDots: React.FC<{
                     <motion.div
                         animate={{
                             scale: activeSection === s.id ? 1.5 : 1,
-                            backgroundColor: activeSection === s.id
-                                ? 'hsl(var(--primary))'
-                                : isBranded
-                                    ? 'hsl(var(--surface-subtle))'
-                                    : 'hsl(var(--border))',
                         }}
                         transition={{ type: "spring", damping: 20, stiffness: 300 }}
                         className={cn(
@@ -259,8 +257,38 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
     const [activeSection, setActiveSection] = useState<SectionKey>('start');
     const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
     const [hasExplored, setHasExplored] = useState(false);
+    const [hasScrolled, setHasScrolled] = useState(false);
+    const isProgrammaticScroll = useRef(false);
     const [helpfulness, setHelpfulness] = useState<Record<string, string>>({});
     const [savedTypes, setSavedTypes] = useState<Record<string, boolean>>({});
+
+    console.log("[FeedbackDrawer] Render State:", {
+        isOpen,
+        hasAudio: !!audioBlob,
+        hasAnalysis: !!analysis,
+        isTranscriptOpen
+    });
+
+    // Global Debug
+    useEffect(() => {
+        interface DebugWindow extends Window {
+            DEBUG_FEEDBACK?: () => {
+                audioBlob: Blob | null | undefined;
+                isPlaying: boolean;
+                audioRefCurrent: HTMLAudioElement | null;
+                analysis: AnalysisResult | undefined;
+                transcript: string | undefined;
+            };
+        }
+        (window as unknown as DebugWindow).DEBUG_FEEDBACK = () => ({
+            audioBlob,
+            isPlaying,
+            audioRefCurrent: audioRef.current,
+            analysis,
+            transcript
+        });
+        return () => { delete (window as unknown as DebugWindow).DEBUG_FEEDBACK; };
+    }, [audioBlob, isPlaying, analysis, transcript]);
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -276,20 +304,52 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
     // ── Audio playback ──────────────────────────────────────────────────────
 
     const togglePlayback = useCallback(() => {
-        if (!audioBlob) return;
+        console.log("[FeedbackDrawer] togglePlayback triggered", {
+            hasAudioBlob: !!audioBlob,
+            isPlaying,
+            hasAudioRef: !!audioRef.current,
+            blobSize: audioBlob?.size,
+            blobType: audioBlob?.type
+        });
+
+        if (!audioBlob) {
+            console.warn("[FeedbackDrawer] No audioBlob available for playback");
+            return;
+        }
 
         if (!audioRef.current) {
-            const url = URL.createObjectURL(audioBlob);
-            audioRef.current = new Audio(url);
-            audioRef.current.onended = () => setIsPlaying(false);
+            try {
+                const url = URL.createObjectURL(audioBlob);
+                console.log("[FeedbackDrawer] Creating new Audio object from URL", url);
+                audioRef.current = new Audio(url);
+                audioRef.current.onended = () => {
+                    console.log("[FeedbackDrawer] Audio playback ended");
+                    setIsPlaying(false);
+                };
+                audioRef.current.onerror = (e) => {
+                    console.error("[FeedbackDrawer] Audio error:", e);
+                    setIsPlaying(false);
+                };
+            } catch (err) {
+                console.error("[FeedbackDrawer] Failed to create Audio object:", err);
+                return;
+            }
         }
 
         if (isPlaying) {
             audioRef.current.pause();
             setIsPlaying(false);
         } else {
-            audioRef.current.play();
-            setIsPlaying(true);
+            console.log("[FeedbackDrawer] Attempting to play audio...");
+            audioRef.current.play()
+                .then(() => {
+                    console.log("[FeedbackDrawer] Playback started successfully");
+                    setIsPlaying(true);
+                })
+                .catch(err => {
+                    console.error("[FeedbackDrawer] Playback failed:", err);
+                    setIsPlaying(false);
+                });
         }
     }, [audioBlob, isPlaying]);
 
@@ -331,11 +391,14 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                 scrollContainerRef.current.scrollTop = 0;
             }
             setHasExplored(false);
+            setHasScrolled(false);
+            isProgrammaticScroll.current = false;
         }
     }, [isOpen]);
 
     useEffect(() => {
-        if (audioRef.current) {
+        if (!audioBlob && audioRef.current) {
+            console.log("[FeedbackDrawer] Clearing audioRef because audioBlob became null");
             audioRef.current.pause();
             audioRef.current = null;
             setIsPlaying(false);
@@ -390,7 +453,10 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
     const scrollToSection = (section: SectionKey) => {
         const sectionFirstCardKey = section; // Simple mapping now
         const el = cardRefs.current.get(sectionFirstCardKey);
+        isProgrammaticScroll.current = true;
         el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Reset the flag after the smooth scroll finishes (roughly)
+        setTimeout(() => { isProgrammaticScroll.current = false; }, 1000);
     };
 
     // Styles removed ─────────────────────────────────────────────────────
@@ -452,11 +518,16 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                             isBranded={isElevatedMode}
                         />
 
-                        <ScrollHint isVisible={activeSection === sections.find(s => s.id !== 'start' && s.id !== 'next')?.id && !hasExplored} />
+                        <ScrollHint isVisible={hasExplored && !hasScrolled} />
 
                         {/* ── Scroll-Snap Cards ───────────────────────────────────────── */}
                         <div
                             ref={scrollContainerRef}
+                            onScroll={() => {
+                                if (!isProgrammaticScroll.current && !hasScrolled) {
+                                    setHasScrolled(true);
+                                }
+                            }}
                             className={cn('flex-1 min-w-0 scroll-snap-y-mandatory custom-scrollbar bg-transparent', hasExplored ? 'overflow-y-scroll' : 'overflow-hidden')}
                             style={{ scrollSnapType: 'y mandatory' }}
                         >
@@ -652,7 +723,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
 
                     {/* ── Universal Sticky Transcript FAB (Only visible in Stage 2 Feedback) ───────────────────────────── */}
                     <AnimatePresence>
-                        {(activeSection === 'content' || activeSection === 'delivery') && (
+                        {(activeSection === 'content' || activeSection === 'delivery') && !isTranscriptOpen && (
                             <div className="absolute top-4 right-4 z-40">
                                 <motion.div
                                     initial={{ opacity: 0, scale: 0.95 }}
@@ -662,12 +733,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                 >
                                     <button
                                         onClick={() => setIsTranscriptOpen(true)}
-                                        className={cn(
-                                            'flex items-center gap-2 px-5 py-3 rounded-full shadow-lg font-bold text-sm transition-all hover:scale-105 active:scale-95',
-                                            isTranscriptOpen
-                                                ? 'opacity-0 pointer-events-none'
-                                                : 'bg-surface-base text-text-secondary border border-border/50'
-                                        )}
+                                        className="flex items-center gap-2 px-5 py-3 rounded-full shadow-lg font-bold text-sm transition-all hover:scale-105 active:scale-95 bg-surface-base text-text-secondary border border-border/50"
                                         aria-label="Compare to your answer"
                                     >
                                         <FileText size={16} className="text-text-muted" />
@@ -691,15 +757,15 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
                                     onClick={() => setIsTranscriptOpen(false)}
-                                    className="absolute inset-0 z-20 bg-surface-overlay/10 backdrop-blur-sm cursor-pointer rounded-none md:rounded-3xl"
+                                    className="absolute inset-0 z-40 bg-surface-overlay/10 backdrop-blur-sm cursor-pointer rounded-none md:rounded-3xl"
                                 />
                                 <motion.div
                                     key="transcript-panel"
-                                    initial={{ y: '100%', opacity: 0 }}
+                                    initial={{ y: '-100%', opacity: 0 }}
                                     animate={{ y: 0, opacity: 1 }}
-                                    exit={{ y: '100%', opacity: 0 }}
+                                    exit={{ y: '-100%', opacity: 0 }}
                                     transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-                                    className="absolute inset-x-0 md:left-auto md:right-0 bottom-0 md:top-0 h-[78%] md:h-full md:w-96 z-30 bg-surface-base/90 rounded-t-[2rem] md:rounded-none md:border-l border-t md:border-t-0 border-border p-6 flex flex-col shadow-2xl backdrop-blur-xl"
+                                    className="absolute inset-x-0 md:left-auto md:right-0 top-0 h-[78%] md:h-full md:w-96 z-50 bg-surface-base/90 rounded-b-[2rem] md:rounded-none md:border-l border-b md:border-b-0 border-border p-6 flex flex-col shadow-2xl backdrop-blur-xl"
                                 >
                                     <div className="pt-2 flex-1 min-h-0">
                                         <TranscriptPanel
