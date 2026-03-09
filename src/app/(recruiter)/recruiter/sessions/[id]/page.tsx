@@ -35,7 +35,7 @@ export default async function SessionDetailsPage({ params }: { params: { id: str
                 title="Session Details"
                 description="Review candidate transcripts and session progress."
                 actions={
-                    <Button variant="outline" size="sm" asChild className="shadow-flat">
+                    <Button variant="outline" size="sm" asChild className="shadow-flat rounded-2xl">
                         <Link href="/recruiter">
                             <ArrowLeft className="w-4 h-4 mr-2" />
                             Back to Dashboard
@@ -45,7 +45,7 @@ export default async function SessionDetailsPage({ params }: { params: { id: str
             />
 
             {/* Summary Card */}
-            <Card className="border-none shadow-flat bg-surface-base">
+            <Card className="border-none shadow-flat bg-surface-base rounded-2xl">
                 <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-bold text-text-muted uppercase tracking-widest">Candidate Summary</CardTitle>
                 </CardHeader>
@@ -92,7 +92,7 @@ export default async function SessionDetailsPage({ params }: { params: { id: str
                     const hasAnswer = !!answer;
 
                     return (
-                        <Card key={question.id} className="overflow-hidden border-border shadow-flat bg-surface-base">
+                        <Card key={question.id} className="overflow-hidden border-border shadow-flat bg-surface-base rounded-2xl">
                             <CardHeader className="bg-surface-subtle/50 border-b border-border py-4">
                                 <div className="flex justify-between items-start gap-4">
                                     <div className="space-y-1">
@@ -117,7 +117,7 @@ export default async function SessionDetailsPage({ params }: { params: { id: str
                                 <CardContent className="p-6">
                                     <div className="space-y-4">
                                         <h4 className="text-micro font-bold text-text-muted uppercase tracking-widest">Candidate Response</h4>
-                                        <div className="bg-surface-subtle p-4 rounded-lg border border-border text-text-secondary text-sm leading-relaxed">
+                                        <div className="bg-surface-subtle p-4 rounded-2xl border border-border text-text-secondary text-sm leading-relaxed">
                                             {answer.transcript ? (
                                                 <p className="whitespace-pre-wrap">{answer.transcript}</p>
                                             ) : (

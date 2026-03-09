@@ -56,7 +56,7 @@ export function StepPreviewCombined({
                             <span className="text-text-disabled font-mono text-micro sm:text-xs">{details.reqId}</span>
                         </div>
                         {setDetailStep && (
-                            <Button variant="ghost" size="sm" onClick={setDetailStep} className="hidden sm:flex h-8 text-text-secondary hover:bg-surface-subtle transition-all">
+                            <Button variant="ghost" size="sm" onClick={setDetailStep} className="hidden sm:flex h-8 text-text-secondary hover:bg-surface-subtle transition-all rounded-2xl">
                                 <Edit className="w-3.5 h-3.5 mr-2" /> Edit
                             </Button>
                         )}
@@ -86,7 +86,7 @@ export function StepPreviewCombined({
                         </div>
 
                         {setDetailStep && (
-                            <Button variant="ghost" size="sm" onClick={setDetailStep} className="sm:hidden w-full h-12 border-2 border-dashed border-border/50 text-text-secondary hover:bg-surface-subtle transition-all mt-2 rounded-xl">
+                            <Button variant="ghost" size="sm" onClick={setDetailStep} className="sm:hidden w-full h-12 border-2 border-dashed border-border/50 text-text-secondary hover:bg-surface-subtle transition-all mt-2 rounded-2xl">
                                 <Edit className="w-4 h-4 mr-2" /> Edit Job Details / Questions
                             </Button>
                         )}
@@ -104,7 +104,7 @@ export function StepPreviewCombined({
                             <span className="hidden sm:inline font-bold text-text-primary tracking-tight">{candidates.length} Recipients</span>
                         </div>
                         {setCandidateStep && (
-                            <Button variant="ghost" size="sm" onClick={setCandidateStep} className="hidden sm:flex h-8 text-text-secondary hover:bg-surface-subtle transition-all">
+                            <Button variant="ghost" size="sm" onClick={setCandidateStep} className="hidden sm:flex h-8 text-text-secondary hover:bg-surface-subtle transition-all rounded-2xl">
                                 <Edit className="w-3.5 h-3.5 mr-2" /> Edit
                             </Button>
                         )}
@@ -123,7 +123,7 @@ export function StepPreviewCombined({
                         </div>
 
                         {setCandidateStep && (
-                            <Button variant="ghost" size="sm" onClick={setCandidateStep} className="sm:hidden w-full h-12 border-2 border-dashed border-border/50 text-text-secondary hover:bg-surface-subtle transition-all mt-4 rounded-xl">
+                            <Button variant="ghost" size="sm" onClick={setCandidateStep} className="sm:hidden w-full h-12 border-2 border-dashed border-border/50 text-text-secondary hover:bg-surface-subtle transition-all mt-4 rounded-2xl">
                                 <Edit className="w-4 h-4 mr-2" /> Edit Candidates
                             </Button>
                         )}

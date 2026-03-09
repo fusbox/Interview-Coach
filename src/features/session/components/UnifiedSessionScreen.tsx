@@ -330,7 +330,7 @@ export default function UnifiedSessionScreen() {
                                         transition={{ duration: 0.5 }}
                                     >
                                         <SectionHeader
-                                            title={currentQuestion.text}
+                                            title={<span className="tracking-normal">{currentQuestion.text}</span>}
                                             className="mb-10"
                                         />
                                     </motion.div>
@@ -565,7 +565,7 @@ export default function UnifiedSessionScreen() {
                                     ) : (
                                         <textarea
                                             ref={textareaRef}
-                                            className="flex-1 w-full bg-surface-base/50 border border-border rounded-3xl p-6 md:p-10 resize-none outline-none text-lg md:text-xl text-text-primary placeholder:text-text-muted font-medium shadow-sm min-h-72 backdrop-blur-sm focus:ring-2 focus:ring-ring transition-all"
+                                            className="flex-1 w-full bg-surface-base/50 border border-border rounded-3xl p-6 md:p-10 resize-none outline-none text-lg md:text-xl text-text-primary placeholder:text-text-muted font-medium shadow-sm min-h-72 backdrop-blur-sm focus:ring-2 focus:ring-primary/20 focus:ring-offset-0 focus:border-primary/50 transition-all"
                                             placeholder="Type your answer here..."
                                             value={answerText}
                                             onChange={(e) => {

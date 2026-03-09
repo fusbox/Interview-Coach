@@ -13,26 +13,26 @@ export function DashboardStats({ metrics }: DashboardStatsProps) {
         {
             label: "Total Invites",
             value: metrics.totalInvites,
-            bgColor: "bg-blue-50/50 dark:bg-blue-950/20",
-            textColor: "text-blue-700 dark:text-blue-300",
+            bgColor: "bg-state-info/10",
+            textColor: "text-state-info",
         },
         {
             label: "In Progress",
             value: metrics.activeSessions,
-            bgColor: "bg-amber-50/50 dark:bg-amber-950/20",
-            textColor: "text-amber-700 dark:text-amber-300",
+            bgColor: "bg-state-warning/10",
+            textColor: "text-state-warning",
         },
         {
             label: "Completed",
             value: metrics.completedSessions,
-            bgColor: "bg-emerald-50/50 dark:bg-emerald-950/20",
-            textColor: "text-emerald-700 dark:text-emerald-300",
+            bgColor: "bg-state-success/10",
+            textColor: "text-state-success",
         },
         {
             label: "Avg. Engagement",
             value: `${Math.round(metrics.averageEngagementTimeSeconds / 60)}m`,
-            bgColor: "bg-indigo-50/50 dark:bg-indigo-950/20",
-            textColor: "text-indigo-700 dark:text-indigo-300",
+            bgColor: "bg-state-info/10",
+            textColor: "text-state-info",
         }
     ];
 

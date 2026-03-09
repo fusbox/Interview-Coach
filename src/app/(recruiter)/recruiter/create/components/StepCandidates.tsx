@@ -81,7 +81,7 @@ export function StepCandidates({
                         size="sm"
                         variant="outline"
                         onClick={addCandidate}
-                        className="text-state-success border-state-success/30 hover:bg-state-success/5 hover:border-state-success/50 transition-all"
+                        className="text-state-success border-state-success/30 hover:bg-state-success/5 hover:border-state-success/50 transition-all rounded-2xl"
                     >
                         <UserPlus className="w-4 h-4 mr-2" />
                         Add Candidate
@@ -147,7 +147,7 @@ export function StepCandidates({
                         <Button
                             variant="ghost"
                             onClick={addCandidate}
-                            className="w-full border-2 border-dashed border-border/50 text-text-disabled hover:text-text-secondary hover:bg-surface-subtle hover:border-border transition-all mt-4 py-8 rounded-xl"
+                            className="w-full border-2 border-dashed border-border/50 text-text-disabled hover:text-text-secondary hover:bg-surface-subtle hover:border-border transition-all mt-4 py-8 rounded-2xl"
                         >
                             <Plus className="w-4 h-4 mr-2" /> Add Another Candidate
                         </Button>

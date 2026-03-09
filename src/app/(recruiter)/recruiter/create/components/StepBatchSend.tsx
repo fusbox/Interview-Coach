@@ -106,8 +106,8 @@ E: ${recruiterProfile.email}`;
                                             <div className="text-[11px] text-text-disabled font-bold uppercase tracking-wider mt-0.5">{result.email}</div>
                                         </div>
                                         <a href={mailtoLink} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
-                                            <Button size="sm" className="w-full sm:w-auto gap-2 bg-state-info text-white shadow-raised-1 transition-all active:scale-95 px-5 font-bold uppercase text-micro tracking-widest h-10 border-b-2 border-state-info/20">
-                                                <Mail className="w-3.5 h-3.5" />
+                                            <Button size="sm" className="w-full sm:w-auto gap-2 shadow-raised-1 transition-all active:scale-95 px-5 font-bold uppercase text-micro tracking-widest h-10 border-b-2 border-primary/20 rounded-2xl !text-white">
+                                                <Mail className="w-3.5 h-3.5 font-bold !text-white" />
                                                 Send Invite
                                             </Button>
                                         </a>
@@ -119,7 +119,7 @@ E: ${recruiterProfile.email}`;
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-9 w-9 text-text-disabled hover:text-primary hover:bg-primary/10 transition-all rounded-xl shadow-flat bg-surface-base border border-border/20 shrink-0"
+                                            className="h-9 w-9 text-text-disabled hover:text-primary hover:bg-primary/10 transition-all rounded-2xl shadow-flat bg-surface-base border border-border/20 shrink-0"
                                             onClick={() => handleCopy(result.link)}
                                             title="Copy Link"
                                         >
@@ -138,14 +138,14 @@ E: ${recruiterProfile.email}`;
                     <Button
                         variant="outline"
                         onClick={onBack}
-                        className="w-full sm:w-auto h-12 sm:h-11 shadow-flat"
+                        className="w-full sm:w-auto h-12 sm:h-11 shadow-flat rounded-2xl"
                     >
                         <ChevronLeft className="w-4 h-4 mr-2" /> Back
                     </Button>
                 </div>
                 <Button
                     onClick={resetWizard}
-                    className="w-full sm:w-auto h-12 sm:h-11 text-base sm:text-sm font-semibold shadow-raised-1"
+                    className="w-full sm:w-auto h-12 sm:h-11 text-base sm:text-sm font-semibold shadow-raised-1 rounded-2xl"
                 >
                     Start New Batch
                 </Button>

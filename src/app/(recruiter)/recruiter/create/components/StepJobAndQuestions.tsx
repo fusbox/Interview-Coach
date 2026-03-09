@@ -184,40 +184,36 @@ export function StepJobAndQuestions({
                 </div>
             </div>
 
-            {/* Job Details Section */}
-            <Card className="border-border/50 shadow-raised-1">
-                <CardHeader className="pb-4">
-                    <CardTitle className="text-base font-bold tracking-tight">Job Details</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Req ID</label>
-                            <input className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                                value={details.reqId} onChange={e => setDetails({ ...details, reqId: e.target.value })}
-                                placeholder="e.g. RCI-ENG-101" />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Target Role</label>
-                            <input className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                                value={details.role} onChange={e => setDetails({ ...details, role: e.target.value })}
-                                placeholder="e.g. Senior Product Manager" />
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Job Description <span className="text-text-disabled font-normal lowercase tracking-normal">(Optional)</span></label>
-                        <textarea className="flex min-h-[120px] w-full rounded-xl border border-border bg-surface-subtle px-4 py-3 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all leading-relaxed"
-                            value={details.jd} onChange={e => setDetails({ ...details, jd: e.target.value })}
-                            placeholder="Paste the job description here..." />
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Questions Section */}
+            {/* Cards Section: Job Details & Questions */}
             <div className="space-y-8">
-                <div className="border-b border-border/50 pb-3">
-                    <h3 className="text-xl font-bold tracking-tight text-text-primary">Interview Questions</h3>
-                </div>
+                {/* Job Details Section */}
+                <Card className="border-border/50 shadow-raised-1">
+                    <CardHeader className="pb-4">
+                        <CardTitle className="text-base font-bold tracking-tight">Job Details</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Req ID</label>
+                                <input className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                    value={details.reqId} onChange={e => setDetails({ ...details, reqId: e.target.value })}
+                                    placeholder="e.g. RCI-ENG-101" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Target Role</label>
+                                <input className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                    value={details.role} onChange={e => setDetails({ ...details, role: e.target.value })}
+                                    placeholder="e.g. Senior Product Manager" />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Job Description <span className="text-text-disabled font-normal lowercase tracking-normal">(Optional)</span></label>
+                            <textarea className="flex min-h-[120px] w-full rounded-xl border border-border bg-surface-subtle px-4 py-3 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all leading-relaxed"
+                                value={details.jd} onChange={e => setDetails({ ...details, jd: e.target.value })}
+                                placeholder="Paste the job description here..." />
+                        </div>
+                    </CardContent>
+                </Card>
 
                 {/* STAR Section */}
                 <Card className="border-border/50 shadow-raised-1">
@@ -266,7 +262,7 @@ export function StepJobAndQuestions({
                             variant="outline"
                             onClick={addTechnical}
                             type="button"
-                            className="hidden sm:flex text-state-success border-state-success/30 hover:bg-state-success/5 hover:border-state-success/50 transition-all"
+                            className="hidden sm:flex text-state-success border-state-success/30 hover:bg-state-success/5 hover:border-state-success/50 transition-all rounded-xl"
                         >
                             <Plus className="w-4 h-4 mr-1" /> Add
                         </Button>
@@ -293,7 +289,7 @@ export function StepJobAndQuestions({
                             variant="outline"
                             onClick={addTechnical}
                             type="button"
-                            className="w-full sm:hidden border-dashed text-state-success border-state-success/30 hover:bg-state-success/5 mt-2"
+                            className="w-full sm:hidden border-dashed text-state-success border-state-success/30 hover:bg-state-success/5 mt-2 rounded-2xl"
                         >
                             <Plus className="w-4 h-4 mr-2" /> Add Technical Question
                         </Button>
@@ -308,7 +304,7 @@ export function StepJobAndQuestions({
                 customAction={
                     <Button
                         variant="outline"
-                        className="text-slate-600 w-full h-12 sm:h-10"
+                        className="text-slate-600 w-full h-12 sm:h-10 rounded-2xl"
                         onClick={() => setShowSaveModal(true)}
                         disabled={!details.role || !hasAtLeastOneQuestion}
                     >
@@ -359,10 +355,10 @@ export function StepJobAndQuestions({
                             </div>
 
                             <div className="flex gap-3 pt-4">
-                                <Button type="button" variant="ghost" className="flex-1" onClick={() => setShowSaveModal(false)}>
+                                <Button type="button" variant="ghost" className="flex-1 rounded-2xl" onClick={() => setShowSaveModal(false)}>
                                     Cancel
                                 </Button>
-                                <Button type="submit" className="flex-1 shadow-raised-1" disabled={!templateName.trim() || isSaving}>
+                                <Button type="submit" className="flex-1 shadow-raised-1 rounded-2xl" disabled={!templateName.trim() || isSaving}>
                                     {isSaving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</> : "Save Template"}
                                 </Button>
                             </div>

@@ -36,7 +36,7 @@ export function DataTable<T>({
     ...props
 }: DataTableProps<T>) {
     return (
-        <div className={cn("overflow-hidden rounded-xl border bg-card shadow-flat", className)} {...props}>
+        <div className={cn("overflow-hidden rounded-2xl border bg-card shadow-flat", className)} {...props}>
             <Table>
                 <TableHeader className="bg-surface-subtle/50">
                     <TableRow className="hover:bg-transparent">

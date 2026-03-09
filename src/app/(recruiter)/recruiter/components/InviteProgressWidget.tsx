@@ -62,7 +62,7 @@ const BUCKET_CONFIG: Record<string, {
         bgGradient: "from-surface-subtle to-surface-subtle/50",
         badgeBg: "bg-surface-subtle",
         badgeText: "text-text-muted",
-        emptyMessage: "All invites have been opened",
+        emptyMessage: "No invites waiting to be started",
     },
 };
 
@@ -80,7 +80,7 @@ function BucketHeader({ bucket }: { bucket: WidgetBucket }) {
                 <div className={`p-1.5 rounded-lg bg-gradient-to-br ${config.bgGradient}`}>
                     <Icon className={`w-4 h-4 ${config.accentColor}`} />
                 </div>
-                <h3 className="text-sm font-bold text-slate-800 tracking-tight">
+                <h3 className="text-sm font-bold text-text-primary tracking-tight">
                     {bucket.label}
                 </h3>
             </div>
@@ -117,16 +117,16 @@ function SessionRow({ session, bucketKey, recruiterProfile }: { session: WidgetS
             {/* Candidate info */}
             <div className="flex-1 min-w-[240px] md:min-w-0">
                 <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-slate-800 truncate">
+                    <span className="text-sm font-semibold text-text-primary truncate">
                         {session.candidateName}
                     </span>
                     <InitialsMatchBadge session={session} />
                     <AttemptBadge attemptNumber={session.attemptNumber} />
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs text-slate-400 truncate">{session.role}</span>
+                    <span className="text-xs text-text-muted truncate">{session.role}</span>
                     {bucketKey !== 'ready_to_review' && (
-                        <span className="text-[10px] text-slate-400 flex-shrink-0">
+                        <span className="text-[10px] text-text-muted flex-shrink-0">
                             · {session.idleLabel}
                         </span>
                     )}
@@ -149,7 +149,7 @@ function SessionRow({ session, bucketKey, recruiterProfile }: { session: WidgetS
                             variant="ghost"
                             size="icon"
                             asChild
-                            className="h-7 w-7 text-slate-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="h-7 w-7 text-text-muted hover:text-state-info opacity-0 group-hover:opacity-100 transition-opacity"
                             title="Resend Invite Email"
                         >
                             <a href={buildResendMailto() || '#'} target="_blank" rel="noopener noreferrer">
@@ -162,7 +162,7 @@ function SessionRow({ session, bucketKey, recruiterProfile }: { session: WidgetS
                     href={`/recruiter/sessions/${session.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="h-7 w-7 flex items-center justify-center rounded-md text-slate-400 hover:text-blue-600 hover:bg-slate-100 opacity-0 group-hover:opacity-100 transition-all"
+                    className="h-7 w-7 flex items-center justify-center rounded-md text-text-muted hover:text-state-info hover:bg-surface-subtle opacity-0 group-hover:opacity-100 transition-all"
                     title="Open in New Tab"
                     onClick={(e) => e.stopPropagation()}
                 >
@@ -186,7 +186,7 @@ function BucketSection({ bucket, recruiterProfile }: { bucket: WidgetBucket; rec
             <BucketHeader bucket={bucket} />
             <div className="mt-2">
                 {bucket.count === 0 ? (
-                    <p className="text-xs text-slate-400 italic py-2">
+                    <p className="text-xs text-text-muted italic py-2">
                         {config.emptyMessage}
                     </p>
                 ) : (
@@ -204,7 +204,7 @@ function BucketSection({ bucket, recruiterProfile }: { bucket: WidgetBucket; rec
                         {hasMore && (
                             <button
                                 onClick={() => setShowAll(!showAll)}
-                                className="text-xs text-blue-600 hover:text-blue-700 font-medium mt-2 flex items-center gap-1"
+                                className="text-xs text-primary hover:text-primary/80 font-medium mt-2 flex items-center gap-1"
                             >
                                 {showAll ? (
                                     <>Show less <ChevronUp className="w-3 h-3" /></>
@@ -237,11 +237,11 @@ export function InviteProgressWidget({ sessions, recruiterProfile }: InviteProgr
     return (
         <div>
             {totalSessions === 0 ? (
-                <Card className="border border-slate-200/80 shadow-sm bg-white">
+                <Card className="border border-border/80 shadow-sm bg-surface-base rounded-2xl">
                     <CardContent className="py-12 text-center">
-                        <Inbox className="w-10 h-10 text-slate-200 mx-auto mb-3" />
-                        <p className="text-sm text-slate-500 font-medium">No invites yet</p>
-                        <p className="text-xs text-slate-400 mt-1">
+                        <Inbox className="w-10 h-10 text-text-disabled mx-auto mb-3" />
+                        <p className="text-sm text-text-secondary font-medium">No invites yet</p>
+                        <p className="text-xs text-text-muted mt-1">
                             Create your first invite to start tracking progress.
                         </p>
                     </CardContent>
@@ -251,7 +251,7 @@ export function InviteProgressWidget({ sessions, recruiterProfile }: InviteProgr
                     {buckets.map((bucket) => (
                         <Card
                             key={bucket.key}
-                            className="border-none shadow-flat bg-surface-base overflow-hidden"
+                            className="border-none shadow-flat bg-surface-base overflow-hidden rounded-2xl"
                         >
                             <CardContent className="p-5">
                                 <BucketSection bucket={bucket} recruiterProfile={recruiterProfile} />

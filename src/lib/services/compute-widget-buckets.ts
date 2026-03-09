@@ -5,7 +5,7 @@
  *   1. Ready to Review  (completed sessions)
  *   2. Needs Follow-Up  (engaged but stale > 48h)
  *   3. Recently Active   (engaged and not stale)
- *   4. Awaiting Action   (first-attempt, never engaged)
+ *   4. Not Started        (first-attempt, never engaged)
  *
  * This is a Layer 2 derived computation (dashboard constitution §4).
  * Computed at render time, never persisted.
@@ -208,7 +208,7 @@ export function computeWidgetBuckets(
         },
         {
             key: 'awaiting_action',
-            label: 'Awaiting Action',
+            label: 'Not Started',
             sessions: awaitingAction,
             count: awaitingAction.length,
             neverEngagedCount: awaitingAction.length,

@@ -34,12 +34,6 @@ export default async function RecruiterDashboard() {
     // Derive basic stats from the already-fetched sessions
     const basicStats = computeDashboardStats(sessions);
 
-    const inviteCountBadge = (
-        <span className="text-micro text-text-disabled uppercase tracking-widest font-bold">
-            {sessions.length} invite{sessions.length !== 1 ? 's' : ''}
-        </span>
-    );
-
     return (
         <div className="space-y-10">
             <SectionHeader
@@ -47,7 +41,7 @@ export default async function RecruiterDashboard() {
                 size="lg"
                 description="At-a-glance view of your hiring pipeline."
                 actions={
-                    <Button asChild className="shadow-md">
+                    <Button asChild className="h-11 shadow-raised-1 rounded-2xl font-semibold">
                         <Link href="/recruiter/create">
                             <Plus className="w-4 h-4 mr-2" />
                             New Invite
@@ -63,7 +57,6 @@ export default async function RecruiterDashboard() {
             <CollapsibleSection
                 storageKey="invite_progress"
                 title="Invite Progress"
-                trailing={inviteCountBadge}
             >
                 <InviteProgressWidget sessions={sessions} recruiterProfile={recruiterProfile} />
             </CollapsibleSection>
@@ -84,6 +77,6 @@ export default async function RecruiterDashboard() {
                     recruiterProfile={recruiterProfile}
                 />
             </CollapsibleSection>
-        </div>
+        </div >
     );
 }

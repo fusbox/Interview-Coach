@@ -14,10 +14,10 @@ import {
     FileText,
     X,
     ChevronDown,
-    ArrowRight
+    ArrowRight,
+    Check
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
-import { toast } from "sonner";
 import { captureFeedbackAction } from '@/app/actions/feedback';
 import { useSession } from '../context/SessionContext';
 import { SectionHeader } from '@/components/patterns/SectionHeader';
@@ -121,7 +121,8 @@ const TranscriptPanel: React.FC<{
 const HelpfulRating: React.FC<{
     onSelect: (val: string) => void;
     currentVal: string | null;
-}> = ({ onSelect, currentVal }) => {
+    showSaved?: boolean;
+}> = ({ onSelect, currentVal, showSaved }) => {
     const options = [
         { label: 'Yes', icon: '👍', val: 'yes' },
         { label: 'Somewhat', icon: '🤔', val: 'somewhat' },
@@ -130,9 +131,28 @@ const HelpfulRating: React.FC<{
 
     return (
         <div className="mt-8 pt-6 border-t border-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <span className="text-xs font-bold text-text-muted uppercase tracking-widest">
-                Was this helpful?
-            </span>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 relative">
+                <span className="text-xs font-bold text-text-muted uppercase tracking-widest leading-none">
+                    Was this helpful?
+                </span>
+                <div className="relative h-0 w-0">
+                    <AnimatePresence>
+                        {showSaved && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.5, y: 10 }}
+                                animate={{ opacity: 1, scale: 1, y: -20 }}
+                                exit={{ opacity: 0, scale: 0.8 }}
+                                className="absolute bottom-4 left-0 z-20 pointer-events-none"
+                            >
+                                <div className="bg-green-600 text-white rounded-full px-2 py-0.5 shadow-lg flex items-center gap-1 whitespace-nowrap">
+                                    <Check size={10} strokeWidth={4} />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Saved</span>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            </div>
             <div className="flex items-center gap-2">
                 {options.map((opt) => (
                     <button
@@ -239,7 +259,8 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
     const [activeSection, setActiveSection] = useState<SectionKey>('start');
     const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
     const [hasExplored, setHasExplored] = useState(false);
-    const [helpfulness, setHelpfulness] = useState<Record<string, string | null>>({});
+    const [helpfulness, setHelpfulness] = useState<Record<string, string>>({});
+    const [savedTypes, setSavedTypes] = useState<Record<string, boolean>>({});
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -274,6 +295,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
 
     const handleHelpfulnessSelect = async (type: 'delivery' | 'content', val: string) => {
         setHelpfulness(prev => ({ ...prev, [type]: val }));
+        setSavedTypes(prev => ({ ...prev, [type]: false }));
         try {
             await captureFeedbackAction({
                 sessionId: session?.id,
@@ -284,7 +306,10 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                     headline: type === 'delivery' ? analysis?.deliveryPulse?.headline : analysis?.contentPulse?.headline
                 }
             });
-            toast.success("Thanks for your feedback!");
+            setSavedTypes(prev => ({ ...prev, [type]: true }));
+            setTimeout(() => {
+                setSavedTypes(prev => ({ ...prev, [type]: false }));
+            }, 2000);
         } catch (err) {
             console.error('Failed to capture helpfulness', err);
         }
@@ -499,6 +524,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                                 <HelpfulRating
                                                     onSelect={(val) => handleHelpfulnessSelect('delivery', val)}
                                                     currentVal={helpfulness.delivery || null}
+                                                    showSaved={savedTypes.delivery}
                                                 />
                                             </div>
                                         </div>
@@ -542,6 +568,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                             <HelpfulRating
                                                 onSelect={(val) => handleHelpfulnessSelect('content', val)}
                                                 currentVal={helpfulness.content || null}
+                                                showSaved={savedTypes.content}
                                             />
                                         </div>
                                     </div>

@@ -165,10 +165,10 @@ E: ${recruiterProfile?.email || ''}`;
     return (
         <div className="space-y-4">
             <div className="relative max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                 <Input
                     placeholder="Search candidates or roles..."
-                    className="pl-9 bg-slate-50 border-slate-200"
+                    className="pl-9 bg-surface-base border-border rounded-2xl focus-visible:ring-primary/20 focus-visible:ring-offset-0 focus-visible:border-primary/50"
                     value={searchQuery}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
                 />
@@ -178,14 +178,14 @@ E: ${recruiterProfile?.email || ''}`;
                 columns={[
                     {
                         header: (
-                            <button onClick={() => handleSort('candidateName')} className="flex items-center gap-1 hover:text-slate-900 transition-colors">
+                            <button onClick={() => handleSort('candidateName')} className="flex items-center gap-1 hover:text-text-primary transition-colors">
                                 Candidate <ArrowUpDown className="w-3 h-3" />
                             </button>
                         ),
                         cell: (session) => (
                             <div className="flex flex-col text-sm">
                                 <div className="flex items-center gap-2 max-w-full">
-                                    <span className="truncate font-semibold text-slate-900">{session.candidateName}</span>
+                                    <span className="truncate font-semibold text-text-primary">{session.candidateName}</span>
                                     <AttemptBadge attemptNumber={session.attemptNumber} />
                                 </div>
                             </div>
@@ -193,22 +193,26 @@ E: ${recruiterProfile?.email || ''}`;
                         className: "w-[220px]"
                     },
                     {
-                        header: <span className="text-slate-600 font-semibold whitespace-nowrap">Initials Match?</span>,
+                        header: "Initials Match?",
                         cell: (session) => <InitialsMatchBadge session={session} />,
-                        className: "w-[120px] text-center"
+                        className: "w-[140px] text-center normal-case"
                     },
                     {
                         header: (
-                            <button onClick={() => handleSort('role')} className="flex items-center gap-1 hover:text-slate-900 transition-colors">
+                            <button onClick={() => handleSort('role')} className="flex items-center gap-1 hover:text-text-primary transition-colors">
                                 Role <ArrowUpDown className="w-3 h-3" />
                             </button>
                         ),
-                        accessorKey: "role",
-                        className: "text-slate-600"
+                        cell: (session) => (
+                            <span className="text-xs text-text-muted font-medium truncate max-w-[140px] block">
+                                {session.role}
+                            </span>
+                        ),
+                        className: "min-w-[160px]"
                     },
                     {
                         header: (
-                            <button onClick={() => handleSort('status')} className="flex items-center gap-1 hover:text-slate-900 transition-colors">
+                            <button onClick={() => handleSort('status')} className="flex items-center gap-1 hover:text-text-primary transition-colors">
                                 Status <ArrowUpDown className="w-3 h-3" />
                             </button>
                         ),
@@ -217,36 +221,36 @@ E: ${recruiterProfile?.email || ''}`;
                     },
                     {
                         header: (
-                            <button onClick={() => handleSort('engagedTimeSeconds')} className="flex items-center gap-1 hover:text-slate-900 transition-colors">
+                            <button onClick={() => handleSort('engagedTimeSeconds')} className="flex items-center gap-1 hover:text-text-primary transition-colors">
                                 Active <ArrowUpDown className="w-3 h-3" />
                             </button>
                         ),
                         cell: (session) => (
-                            <span className="text-slate-500 whitespace-nowrap text-sm font-medium">
+                            <span className="text-text-secondary whitespace-nowrap text-sm font-medium">
                                 {formatDuration(session.engagedTimeSeconds)}
                             </span>
                         )
                     },
                     {
                         header: (
-                            <button onClick={() => handleSort('updatedAt')} className="flex items-center gap-1 hover:text-slate-900 transition-colors">
+                            <button onClick={() => handleSort('updatedAt')} className="flex items-center gap-1 hover:text-text-primary transition-colors">
                                 Last Activity <ArrowUpDown className="w-3 h-3" />
                             </button>
                         ),
                         cell: (session) => (
-                            <span className="text-slate-500 whitespace-nowrap text-sm">
+                            <span className="text-text-secondary whitespace-nowrap text-sm">
                                 {formatTimestamp(session.updatedAt || session.createdAt)}
                             </span>
                         )
                     },
                     {
                         header: (
-                            <button onClick={() => handleSort('created')} className="flex items-center gap-1 hover:text-slate-900 transition-colors">
+                            <button onClick={() => handleSort('created')} className="flex items-center gap-1 hover:text-text-primary transition-colors">
                                 Created <ArrowUpDown className="w-3 h-3" />
                             </button>
                         ),
                         cell: (session) => (
-                            <span className="text-slate-500 whitespace-nowrap text-sm">
+                            <span className="text-text-secondary whitespace-nowrap text-sm">
                                 {formatTimestamp(session.createdAt)}
                             </span>
                         )
@@ -260,7 +264,7 @@ E: ${recruiterProfile?.email || ''}`;
                                     variant="ghost"
                                     size="icon"
                                     asChild
-                                    className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/5 transition-colors"
+                                    className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/5 transition-colors rounded-2xl"
                                     title="Open Results in New Tab"
                                 >
                                     <Link href={`/recruiter/sessions/${session.id}`} target="_blank" rel="noopener noreferrer">
@@ -274,7 +278,7 @@ E: ${recruiterProfile?.email || ''}`;
                                             variant="ghost"
                                             size="icon"
                                             asChild
-                                            className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                            className="h-8 w-8 text-text-muted hover:text-state-info hover:bg-state-info/5 transition-colors rounded-2xl"
                                             title="Resend Invite Email"
                                         >
                                             <a href={buildResendMailto(session) || '#'} target="_blank" rel="noopener noreferrer">
@@ -287,7 +291,7 @@ E: ${recruiterProfile?.email || ''}`;
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                    className="h-8 w-8 text-text-muted hover:text-state-critical hover:bg-state-critical/5 transition-colors rounded-2xl"
                                     title="Delete Session"
                                     disabled={isDeleting === session.id}
                                     onClick={() => handleDelete(session.id)}
@@ -301,12 +305,12 @@ E: ${recruiterProfile?.email || ''}`;
                 data={filteredAndSortedSessions}
                 onRowClick={(session) => router.push(`/recruiter/sessions/${session.id}`)}
                 emptyState={
-                    <div className="text-center py-12 text-slate-400 italic">
+                    <div className="text-center py-12 text-text-muted italic">
                         No sessions found.
                     </div>
                 }
             />
-            <p className="text-[11px] text-slate-400 px-1">
+            <p className="text-[11px] text-text-muted px-1">
                 Tip: Invite links are securely encrypted at rest to maintain SOC 2 compliance.
             </p>
         </div>

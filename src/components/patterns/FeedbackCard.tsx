@@ -1,8 +1,8 @@
 import * as React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/cn";
-import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Check } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { captureFeedbackAction } from "@/app/actions/feedback";
 
 export const EMOJI_SCALE = [
@@ -30,12 +30,22 @@ export function FeedbackCard({
 }: FeedbackCardProps) {
     const [rating, setRating] = useState<number | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Auto-hide success checkmark after 1.5s
+    useEffect(() => {
+        if (showSuccess) {
+            const timer = setTimeout(() => setShowSuccess(false), 1500);
+            return () => clearTimeout(timer);
+        }
+    }, [showSuccess]);
 
     const handleRate = async (val: number) => {
         setRating(val);
         setIsSubmitting(true);
         setError(null);
+        setShowSuccess(false);
 
         try {
             const res = await captureFeedbackAction({
@@ -45,7 +55,7 @@ export function FeedbackCard({
             });
 
             if (res.success) {
-                toast.success("Thanks for your feedback!");
+                setShowSuccess(true);
                 onSuccess?.();
             } else {
                 throw new Error("Failed to capture feedback");
@@ -61,7 +71,7 @@ export function FeedbackCard({
 
     return (
         <div className={cn(
-            "flex flex-wrap items-center justify-between gap-4 md:gap-6 p-5 md:p-6 rounded-[2rem] border transition-all duration-500",
+            "relative flex flex-wrap items-center justify-between gap-4 md:gap-6 p-5 md:p-6 rounded-[2rem] border transition-all duration-500",
             "bg-purple-50/50 dark:bg-purple-900/10 border-purple-100 dark:border-purple-800/30 shadow-sm hover:shadow-md",
             className
         )}>
@@ -69,7 +79,7 @@ export function FeedbackCard({
                 {title}
             </span>
             <div className="flex flex-col items-center gap-2">
-                <div className="flex gap-1.5 md:gap-2">
+                <div className="relative flex gap-1.5 md:gap-2">
                     {EMOJI_SCALE.map(({ val, emoji }) => (
                         <button
                             key={val}
@@ -79,14 +89,31 @@ export function FeedbackCard({
                                 "w-12 h-12 md:w-14 md:h-14 rounded-2xl border-2 flex items-center justify-center text-3xl transition-all duration-300",
                                 rating === val
                                     ? "bg-white dark:bg-purple-900 border-purple-400/50 shadow-lg scale-110 saturate-100 opacity-100"
-                                    : "bg-transparent border-transparent text-text-muted hover:border-purple-200 hover:scale-105 saturate-50 opacity-60 hover:saturate-100 hover:opacity-100",
-                                isSubmitting && "pointer-events-none"
+                                    : "bg-transparent border-transparent text-text-muted hover:border-purple-200 hover:scale-105 saturate-80 opacity-80 hover:saturate-100 hover:opacity-100",
+                                (isSubmitting || showSuccess) && "pointer-events-none"
                             )}
                             title={`Rate ${val}/5`}
                         >
                             {emoji}
                         </button>
                     ))}
+
+                    <AnimatePresence>
+                        {showSuccess && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.5, y: 10 }}
+                                animate={{ opacity: 1, scale: 1, y: -20 }}
+                                exit={{ opacity: 0, scale: 0.8 }}
+                                transition={{ duration: 0.4 }}
+                                className="absolute -top-8 left-1/2 -translate-x-1/2 z-20 pointer-events-none"
+                            >
+                                <div className="bg-green-600 text-white rounded-full px-3 py-1 shadow-lg flex items-center gap-1.5 whitespace-nowrap">
+                                    <Check size={14} strokeWidth={4} />
+                                    <span className="text-xs font-black uppercase tracking-widest">Saved</span>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
                 {error && (
                     <p className="text-destructive text-[10px] font-bold uppercase tracking-widest animate-in fade-in slide-in-from-top-1">

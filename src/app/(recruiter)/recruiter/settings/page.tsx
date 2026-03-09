@@ -216,6 +216,7 @@ export default function SettingsPage() {
         <div className="max-w-2xl mx-auto space-y-10 animate-in fade-in duration-slow">
             <SectionHeader
                 title="Account Settings"
+                size="lg"
                 description="Manage your profile and display preferences."
             />
 
@@ -313,7 +314,7 @@ export default function SettingsPage() {
                                     type="button"
                                     variant="ghost"
                                     onClick={handleCancel}
-                                    className="px-6 font-bold uppercase text-micro tracking-widest text-text-disabled hover:text-text-primary transition-all animate-in fade-in slide-in-from-right-1"
+                                    className="px-6 font-bold uppercase text-micro tracking-widest text-text-disabled hover:text-text-primary transition-all animate-in fade-in slide-in-from-right-1 rounded-2xl"
                                 >
                                     Cancel
                                 </Button>
@@ -322,7 +323,7 @@ export default function SettingsPage() {
                                 type="submit"
                                 disabled={!isDirty || isSaving}
                                 className={cn(
-                                    "h-11 px-8 font-bold uppercase text-micro tracking-widest transition-all duration-base flex items-center gap-2",
+                                    "h-11 px-8 font-bold uppercase text-micro tracking-widest transition-all duration-base flex items-center gap-2 rounded-2xl",
                                     isDirty
                                         ? "bg-primary text-primary-foreground shadow-raised-1 hover:shadow-raised-2 active:scale-95"
                                         : "bg-surface-subtle text-text-disabled border border-border/20 cursor-not-allowed"

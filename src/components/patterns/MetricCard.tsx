@@ -28,7 +28,7 @@ export function MetricCard({
         <Card variant={variant} className={cn("overflow-hidden border-none shadow-none", className)} {...props}>
             <CardHeader className="flex flex-col items-start justify-between space-y-0 p-5 pb-2">
                 <div className="space-y-1">
-                    <CardTitle className="text-xs font-bold text-slate-500 uppercase tracking-widest leading-none">{title}</CardTitle>
+                    <CardTitle className="text-xs font-bold text-text-muted uppercase tracking-widest leading-none">{title}</CardTitle>
                     {description && <CardDescription className="text-xs">{description}</CardDescription>}
                 </div>
             </CardHeader>
@@ -41,7 +41,7 @@ export function MetricCard({
                     )}>
                         {trend.positive ? "↑" : "↓"}
                         {trend.value}
-                        <span className="text-muted-foreground font-normal ml-1">vs last session</span>
+                        <span className="text-text-muted font-normal ml-1">vs last session</span>
                     </p>
                 )}
             </CardContent>

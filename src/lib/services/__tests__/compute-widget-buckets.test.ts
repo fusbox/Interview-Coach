@@ -135,8 +135,8 @@ describe('computeWidgetBuckets', () => {
         expect(bucket(result, 'recently_active').count).toBe(0);
     });
 
-    // 5. Never viewed invite → Awaiting Action
-    it('places never-viewed first-attempt invites in Awaiting Action', () => {
+    // 5. Never viewed invite → Not Started
+    it('places never-viewed first-attempt invites in Not Started', () => {
         const sessions = [
             makeSession({ status: 'NOT_STARTED' }),
             makeSession({ status: 'NOT_STARTED', createdAt: NOW - 10 * DAY }),
@@ -182,7 +182,7 @@ describe('computeWidgetBuckets', () => {
     });
 
     // 8. Retry (attempt 2), never viewed → safety net → Recently Active
-    it('routes zero-engagement retry to Recently Active (not Awaiting Action)', () => {
+    it('routes zero-engagement retry to Recently Active (not Not Started)', () => {
         const sessions = [
             makeSession({
                 attemptNumber: 2,
