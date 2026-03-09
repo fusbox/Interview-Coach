@@ -123,14 +123,12 @@ export function StepCandidates({
                                     placeholder="Email Address"
                                     type="email"
                                 />
-                                {isDemo && (
-                                    <input
-                                        className="flex h-10 w-full rounded-xl border border-state-info/20 bg-state-info/5 px-4 text-[11px] placeholder:text-state-info/50 focus:outline-none focus:ring-2 focus:ring-state-info/20 focus:border-state-info/40 transition-all md:col-span-3 italic text-state-info font-medium"
-                                        value={candidate.resumeText || ''}
-                                        onChange={(e) => updateCandidate(candidate.id, 'resumeText', e.target.value)}
-                                        placeholder="📋 Paste resume text (dev only)"
-                                    />
-                                )}
+                                <input
+                                    className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all md:col-span-3"
+                                    value={candidate.resumeText || ''}
+                                    onChange={(e) => updateCandidate(candidate.id, 'resumeText', e.target.value)}
+                                    placeholder="Paste resume text (optional)"
+                                />
                             </div>
                             <Button
                                 size="icon"
