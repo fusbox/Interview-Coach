@@ -20,11 +20,11 @@ export function SessionHeader() {
     return (
         <header className="border-b bg-white/50 dark:bg-neutral-900/50 backdrop-blur-md sticky top-0 z-20 shrink-0 overflow-hidden">
             <div className="w-full max-w-4xl mx-auto px-4 md:px-6 lg:px-10 py-4 pb-3">
-                <div className="flex justify-between items-end mb-3">
+                <div className="flex justify-between items-end gap-4 mb-3">
                     {/* Left: Session Info */}
                     <div className="flex flex-col items-start gap-1 max-w-[50%] md:max-w-[60%]">
                         <h1 className="text-sm md:text-base font-black text-text-primary leading-none tracking-tight truncate w-full">
-                            {session.candidateName ? `${session.candidateName} • ${session.role}` : session.role}
+                            {session.role}
                         </h1>
                         <span className="text-xs font-bold text-text-secondary tabular-nums uppercase tracking-widest">
                             Question {currentQuestionIndex + 1} of {questions.length}
@@ -32,8 +32,8 @@ export function SessionHeader() {
                     </div>
 
                     {/* Right: Percent & Exit */}
-                    <div className="flex items-center gap-6">
-                        <span className="text-sm font-bold text-primary tracking-tight">
+                    <div className="flex items-center gap-3 md:gap-6">
+                        <span className="text-xs md:text-sm font-bold text-primary tracking-tight whitespace-nowrap">
                             {percentage}% Complete
                         </span>
                         <div className="w-px h-4 bg-border" />
@@ -43,7 +43,7 @@ export function SessionHeader() {
                             aria-label="Exit session"
                         >
                             <span className="text-xs font-medium text-text-muted group-hover:text-text-primary transition-colors">Exit Session</span>
-                            <X size={16} className="text-text-muted group-hover:text-text-primary transition-colors" />
+                            <X size={16} className="hidden md:block text-text-muted group-hover:text-text-primary transition-colors" />
                         </button>
                     </div>
                 </div>
