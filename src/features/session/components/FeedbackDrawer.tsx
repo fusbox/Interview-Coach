@@ -262,33 +262,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
     const [helpfulness, setHelpfulness] = useState<Record<string, string>>({});
     const [savedTypes, setSavedTypes] = useState<Record<string, boolean>>({});
 
-    console.log("[FeedbackDrawer] Render State:", {
-        isOpen,
-        hasAudio: !!audioBlob,
-        hasAnalysis: !!analysis,
-        isTranscriptOpen
-    });
 
-    // Global Debug
-    useEffect(() => {
-        interface DebugWindow extends Window {
-            DEBUG_FEEDBACK?: () => {
-                audioBlob: Blob | null | undefined;
-                isPlaying: boolean;
-                audioRefCurrent: HTMLAudioElement | null;
-                analysis: AnalysisResult | undefined;
-                transcript: string | undefined;
-            };
-        }
-        (window as unknown as DebugWindow).DEBUG_FEEDBACK = () => ({
-            audioBlob,
-            isPlaying,
-            audioRefCurrent: audioRef.current,
-            analysis,
-            transcript
-        });
-        return () => { delete (window as unknown as DebugWindow).DEBUG_FEEDBACK; };
-    }, [audioBlob, isPlaying, analysis, transcript]);
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -304,34 +278,24 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
     // ── Audio playback ──────────────────────────────────────────────────────
 
     const togglePlayback = useCallback(() => {
-        console.log("[FeedbackDrawer] togglePlayback triggered", {
-            hasAudioBlob: !!audioBlob,
-            isPlaying,
-            hasAudioRef: !!audioRef.current,
-            blobSize: audioBlob?.size,
-            blobType: audioBlob?.type
-        });
 
         if (!audioBlob) {
-            console.warn("[FeedbackDrawer] No audioBlob available for playback");
             return;
         }
 
         if (!audioRef.current) {
             try {
                 const url = URL.createObjectURL(audioBlob);
-                console.log("[FeedbackDrawer] Creating new Audio object from URL", url);
                 audioRef.current = new Audio(url);
                 audioRef.current.onended = () => {
-                    console.log("[FeedbackDrawer] Audio playback ended");
                     setIsPlaying(false);
                 };
                 audioRef.current.onerror = (e) => {
-                    console.error("[FeedbackDrawer] Audio error:", e);
+                    console.error("[Audio] Playback error:", e);
                     setIsPlaying(false);
                 };
             } catch (err) {
-                console.error("[FeedbackDrawer] Failed to create Audio object:", err);
+                console.error("[Audio] Failed to create Audio object:", err);
                 return;
             }
         }
@@ -340,14 +304,12 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
             audioRef.current.pause();
             setIsPlaying(false);
         } else {
-            console.log("[FeedbackDrawer] Attempting to play audio...");
             audioRef.current.play()
                 .then(() => {
-                    console.log("[FeedbackDrawer] Playback started successfully");
                     setIsPlaying(true);
                 })
                 .catch(err => {
-                    console.error("[FeedbackDrawer] Playback failed:", err);
+                    console.error("[Audio] Playback failed:", err);
                     setIsPlaying(false);
                 });
         }

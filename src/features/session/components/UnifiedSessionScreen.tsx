@@ -130,15 +130,6 @@ export default function UnifiedSessionScreen() {
         }
     }, [isReviewing, analysis]);
 
-    useEffect(() => {
-        if (isDrawerOpen) {
-            console.log("[UnifiedSessionScreen] Opening FeedbackDrawer with audioBlob:", {
-                present: !!audioBlob,
-                size: audioBlob?.size,
-                type: audioBlob?.type
-            });
-        }
-    }, [isDrawerOpen, audioBlob]);
 
     // Reset Dropdown States on Question Change
     useEffect(() => {
@@ -224,13 +215,6 @@ export default function UnifiedSessionScreen() {
         const finalAnswer = mode === 'voice' ? transcript : answerText;
         const canSubmitAudio = mode === 'voice' && audioBlob;
 
-        // Detailed logging for production debugging via console
-        console.log("[UnifiedSessionScreen] handleSubmit triggered", {
-            mode,
-            hasTranscript: !!transcript.trim(),
-            hasAudio: !!audioBlob,
-            currentQuestionId
-        });
 
         if (!finalAnswer.trim() && !canSubmitAudio) {
             trackEvent('tier2', 'submit_blocked_empty');
