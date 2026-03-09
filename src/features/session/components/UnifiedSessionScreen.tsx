@@ -656,15 +656,15 @@ export default function UnifiedSessionScreen() {
                 loadingStates={
                     mode === 'voice'
                         ? [
-                            { text: 'Coach is analyzing your answer...' },
-                            { text: 'Generating feedback...' },
+                            { text: 'Taking a look...' },
+                            { text: 'Reviewing answer content...' },
                             { text: 'Noting your speaking delivery...' },
-                            { text: 'Finalizing review...' },
+                            { text: 'Creating feedback...' },
                         ]
                         : [
-                            { text: 'Coach is analyzing your answer...' },
-                            { text: 'Generating feedback...' },
-                            { text: 'Finalizing review...' },
+                            { text: 'Taking a look...' },
+                            { text: 'Reviewing answer content...' },
+                            { text: 'Creating feedback...' },
                         ]
                 }
             />

@@ -35,7 +35,7 @@ export default async function RecruiterDashboard() {
     const basicStats = computeDashboardStats(sessions);
 
     const inviteCountBadge = (
-        <span className="text-micro text-slate-400 uppercase tracking-widest font-bold">
+        <span className="text-micro text-text-disabled uppercase tracking-widest font-bold">
             {sessions.length} invite{sessions.length !== 1 ? 's' : ''}
         </span>
     );
@@ -73,7 +73,7 @@ export default async function RecruiterDashboard() {
                 storageKey="manage_invites"
                 title="Manage Invites"
                 trailing={
-                    <span className="text-sm text-slate-500">
+                    <span className="text-sm text-text-secondary">
                         Track individual candidate progress.
                     </span>
                 }

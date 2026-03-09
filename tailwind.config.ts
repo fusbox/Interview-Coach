@@ -142,6 +142,7 @@ const config = {
 				}
 			},
 			borderRadius: {
+				'3xl': 'var(--radius-3xl)',
 				'2xl': 'var(--radius-2xl)',
 				xl: 'var(--radius-xl)',
 				lg: 'var(--radius-lg)',
@@ -160,8 +161,10 @@ const config = {
 				fast: 'var(--duration-fast)',
 				base: 'var(--duration-base)',
 				slow: 'var(--duration-slow)',
+				700: '700ms',
 			},
 			transitionTimingFunction: {
+				standard: 'var(--ease-standard)',
 				emphasized: 'var(--ease-emphasized)',
 			},
 			keyframes: {

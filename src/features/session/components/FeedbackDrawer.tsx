@@ -3,25 +3,18 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { AnalysisResult, Dimension } from '@/lib/domain/types';
+import { AnalysisResult } from '@/lib/domain/types';
 import {
-    LucideIcon,
-    ArrowRight,
+    Mic2,
+    Keyboard,
     Play,
     Pause,
     RotateCcw,
-    Sparkles,
-    ShieldCheck,
-    GitBranch,
-    Box,
-    Volume2,
-    Gauge,
-    Zap,
-    Type,
     Target,
     FileText,
     X,
-    ChevronDown
+    ChevronDown,
+    ArrowRight
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { toast } from "sonner";
@@ -46,33 +39,6 @@ interface FeedbackOverlayProps {
 }
 
 type SectionKey = 'start' | 'delivery' | 'content' | 'next';
-
-interface DimensionDef {
-    id: Dimension;
-    title: string;
-    icon: LucideIcon;
-}
-
-// ─────────────────────────────────────────────
-// Static Dimension Definitions
-// ─────────────────────────────────────────────
-
-const DELIVERY_DIMS: DimensionDef[] = [
-    { id: 'filler_words', title: 'Verbal Polish', icon: Type },
-    { id: 'signposting', title: 'Signposting', icon: ShieldCheck },
-    { id: 'conciseness', title: 'Conciseness', icon: Gauge },
-    { id: 'resilience', title: 'Resilience', icon: Zap },
-];
-
-const CONTENT_DIMS: DimensionDef[] = [
-    { id: 'focus_relevance', title: 'Relevance', icon: Target },
-    { id: 'structural_clarity', title: 'Structure', icon: GitBranch },
-    { id: 'specificity_concreteness', title: 'Specificity', icon: Box },
-    { id: 'outcome_explicitness', title: 'Impact', icon: Volume2 },
-    { id: 'decision_rationale', title: 'Strategy', icon: Sparkles },
-];
-
-
 
 // ─────────────────────────────────────────────
 // Sub-components
@@ -103,7 +69,7 @@ const TranscriptPanel: React.FC<{
         return (
             <>
                 {textBefore}
-                <mark className="bg-purple-500/10 text-purple-900 dark:text-purple-200 rounded px-1 -mx-1 transition-colors border border-purple-500/10 dark:border-purple-400/20">
+                <mark className="bg-primary/10 text-primary dark:text-primary-foreground rounded px-1 -mx-1 transition-colors border border-primary/10 dark:border-primary/20">
                     {matchText}
                 </mark>
                 {textAfter}
@@ -124,8 +90,8 @@ const TranscriptPanel: React.FC<{
                             className={cn(
                                 'inline-flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all text-xs font-black uppercase tracking-tight',
                                 isPlaying
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-blue-50 dark:bg-blue-900/30 text-blue-600'
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-primary/10 text-primary hover:bg-primary/20'
                             )}
                         >
                             {isPlaying ? <Pause size={14} /> : <Play size={14} fill="currentColor" />}
@@ -175,7 +141,7 @@ const HelpfulRating: React.FC<{
                         className={cn(
                             "px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 border flex items-center gap-2",
                             currentVal === opt.val
-                                ? "bg-primary border-primary text-white shadow-md scale-105"
+                                ? "bg-primary border-primary text-primary-foreground shadow-md scale-105"
                                 : "bg-surface-base border-border text-text-secondary hover:border-primary/30"
                         )}
                     >
@@ -192,7 +158,8 @@ const ProgressDots: React.FC<{
     sections: { id: SectionKey; label: string }[];
     activeSection: SectionKey;
     onDotClick: (id: SectionKey) => void;
-}> = ({ sections, activeSection, onDotClick }) => {
+    isBranded?: boolean;
+}> = ({ sections, activeSection, onDotClick, isBranded }) => {
     return (
         <div className="hidden md:flex absolute left-6 md:left-8 top-1/2 -translate-y-1/2 z-40 flex-col gap-4">
             {sections.map((s) => (
@@ -205,15 +172,23 @@ const ProgressDots: React.FC<{
                     <motion.div
                         animate={{
                             scale: activeSection === s.id ? 1.5 : 1,
-                            backgroundColor: activeSection === s.id ? 'hsl(var(--primary))' : 'hsl(var(--border))',
+                            backgroundColor: activeSection === s.id
+                                ? 'hsl(var(--primary))'
+                                : isBranded
+                                    ? 'hsl(var(--surface-subtle))'
+                                    : 'hsl(var(--border))',
                         }}
                         transition={{ type: "spring", damping: 20, stiffness: 300 }}
                         className={cn(
                             "w-2 h-2 rounded-full transition-colors duration-300",
-                            activeSection === s.id ? "bg-primary" : "bg-border group-hover:bg-border/80"
+                            activeSection === s.id
+                                ? "bg-primary"
+                                : isBranded
+                                    ? "bg-surface-subtle"
+                                    : "bg-border group-hover:bg-border/80"
                         )}
                     />
-                    <div className="absolute left-6 px-2 py-1 rounded bg-slate-900/90 text-white text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-xl">
+                    <div className="absolute left-6 px-2 py-1 rounded bg-surface-overlay text-text-inverse text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-floating">
                         {s.label}
                     </div>
                 </button>
@@ -425,7 +400,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
+                    className="absolute inset-0 bg-surface-overlay/40 backdrop-blur-md"
                 />
 
                 {/* Modal shell */}
@@ -436,8 +411,10 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                     exit={{ opacity: 0, scale: 0.97, y: 16 }}
                     transition={{ duration: 0.25, ease: 'easeOut' }}
                     className={cn(
-                        "relative w-full max-w-4xl md:min-w-[45rem] h-[100dvh] md:h-[40rem] rounded-none md:rounded-3xl border-0 md:border border-border bg-surface-base flex overflow-hidden transition-shadow duration-300",
-                        isElevatedMode ? "md:shadow-[0_24px_60px_-15px_rgba(0,0,0,0.12)]" : "md:shadow-lg"
+                        "relative w-full max-w-4xl md:min-w-[45rem] h-[100dvh] md:h-[40rem] rounded-none md:rounded-3xl border-0 md:border border-border flex overflow-hidden transition-all duration-300",
+                        isElevatedMode
+                            ? "bg-gradient-to-br from-brand-glass-start to-brand-glass-end md:shadow-[0_24px_60px_-15px_rgba(0,0,0,0.12)]"
+                            : "bg-surface-base md:shadow-lg"
                     )}
                 >
                     {/* ── Main Layout (Vertical Split: Header + Content) ─────────────────── */}
@@ -447,23 +424,25 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                             sections={sections}
                             activeSection={activeSection}
                             onDotClick={scrollToSection}
+                            isBranded={isElevatedMode}
                         />
 
-                        <ScrollHint isVisible={activeSection === sections.find(s => s.id !== 'start' && s.id !== 'next')?.id} />
+                        <ScrollHint isVisible={activeSection === sections.find(s => s.id !== 'start' && s.id !== 'next')?.id && !hasExplored} />
 
                         {/* ── Scroll-Snap Cards ───────────────────────────────────────── */}
                         <div
                             ref={scrollContainerRef}
-                            className={cn('flex-1 min-w-0 scroll-snap-y-mandatory custom-scrollbar', hasExplored ? 'overflow-y-scroll' : 'overflow-hidden')}
+                            className={cn('flex-1 min-w-0 scroll-snap-y-mandatory custom-scrollbar bg-transparent', hasExplored ? 'overflow-y-scroll' : 'overflow-hidden')}
                             style={{ scrollSnapType: 'y mandatory' }}
                         >
                             {/* Card 0: Start / Ack */}
                             <div
                                 ref={setCardRef('start')}
                                 data-section="start"
-                                className={cn(getCardClasses('start'), 'items-center justify-center text-center max-w-4xl mx-auto')}
+                                className={cn(getCardClasses('start'), 'items-center justify-center text-center max-w-4xl mx-auto relative overflow-hidden')}
                                 style={{ scrollSnapAlign: 'start', minHeight: '100%' }}
                             >
+                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-200 to-blue-600 opacity-100" />
                                 <div className="w-full flex flex-col items-center my-auto py-8">
                                     <h2 className="text-4xl md:text-5xl lg:text-5xl font-black text-text-primary leading-[1.1] font-display">
                                         {analysis?.ack || 'Reviewing your answer…'}
@@ -491,7 +470,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
 
                             {/* Card: Delivery Pulse */}
                             {analysis?.deliveryPulse && (() => {
-                                const cardDef = DELIVERY_DIMS.find(d => d.id === analysis.deliveryPulse?.dimension) || DELIVERY_DIMS[0];
+                                const isVoice = analysis?.meta?.modality === 'voice';
                                 return (
                                     <div
                                         ref={setCardRef('delivery')}
@@ -501,9 +480,9 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                     >
                                         <div className="shrink-0 flex items-start gap-6 pb-6 border-b border-border/40">
                                             <div
-                                                className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-sm border border-border/30 bg-surface-base text-indigo-600 dark:text-indigo-400"
+                                                className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-flat border border-border/30 bg-surface-base text-primary"
                                             >
-                                                <cardDef.icon size={32} strokeWidth={2} />
+                                                {isVoice ? <Mic2 size={32} strokeWidth={2} /> : <Keyboard size={32} strokeWidth={2} />}
                                             </div>
                                             <div className="flex-1 pt-1 pr-12 md:pr-48">
                                                 <SectionHeader
@@ -528,57 +507,55 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                             })()}
 
                             {/* Card: Content Pulse */}
-                            {analysis?.contentPulse && (() => {
-                                const cardDef = CONTENT_DIMS.find(d => d.id === analysis.contentPulse?.dimension) || CONTENT_DIMS[0];
-                                return (
-                                    <div
-                                        ref={setCardRef('content')}
-                                        data-section="content"
-                                        style={{ scrollSnapAlign: 'start', minHeight: '100%' }}
-                                        className={cn(getCardClasses('content'))}
-                                    >
-                                        <div className="shrink-0 flex items-start gap-6 pb-6 border-b border-border/40">
-                                            <div
-                                                className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-sm border border-border/30 bg-surface-base text-emerald-600 dark:text-emerald-400"
-                                            >
-                                                <cardDef.icon size={32} strokeWidth={2} />
-                                            </div>
-                                            <div className="flex-1 pt-1 pr-12 md:pr-48">
-                                                <SectionHeader
-                                                    title={analysis.contentPulse.headline}
-                                                    description={<span className="text-sm font-black text-text-muted uppercase tracking-widest leading-none mb-2 block">Content Insight</span>}
-                                                />
-                                            </div>
+                            {analysis?.contentPulse && (
+                                <div
+                                    ref={setCardRef('content')}
+                                    data-section="content"
+                                    style={{ scrollSnapAlign: 'start', minHeight: '100%' }}
+                                    className={cn(getCardClasses('content'))}
+                                >
+                                    <div className="shrink-0 flex items-start gap-6 pb-6 border-b border-border/40">
+                                        <div
+                                            className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-flat border border-border/30 bg-surface-base text-state-success"
+                                        >
+                                            <Target size={32} strokeWidth={2} />
                                         </div>
-                                        <div className="flex-1 overflow-y-visible md:overflow-y-auto md:min-h-0 pt-8 md:pt-10 px-1 -mx-1 custom-scrollbar">
-                                            <div className="p-0 space-y-6">
-                                                <p className="text-xl md:text-2xl text-text-secondary leading-relaxed font-medium">
-                                                    {analysis.contentPulse.body}
-                                                </p>
-                                                {analysis.contentPulse.quote && (
-                                                    <blockquote className="border-l-2 border-indigo-500 bg-surface-subtle rounded-r-lg p-5">
-                                                        <p className="text-lg md:text-xl text-text-secondary italic font-medium leading-relaxed">
-                                                            &quot;{analysis.contentPulse.quote}&quot;
-                                                        </p>
-                                                    </blockquote>
-                                                )}
-                                                <HelpfulRating
-                                                    onSelect={(val) => handleHelpfulnessSelect('content', val)}
-                                                    currentVal={helpfulness.content || null}
-                                                />
-                                            </div>
+                                        <div className="flex-1 pt-1 pr-12 md:pr-48">
+                                            <SectionHeader
+                                                title={analysis.contentPulse.headline}
+                                                description={<span className="text-sm font-black text-text-muted uppercase tracking-widest leading-none mb-2 block">Content Insight</span>}
+                                            />
                                         </div>
                                     </div>
-                                );
-                            })()}
+                                    <div className="flex-1 overflow-y-visible md:overflow-y-auto md:min-h-0 pt-8 md:pt-10 px-1 -mx-1 custom-scrollbar">
+                                        <div className="p-0 space-y-6">
+                                            <p className="text-xl md:text-2xl text-text-secondary leading-relaxed font-medium">
+                                                {analysis.contentPulse.body}
+                                            </p>
+                                            {analysis.contentPulse.quote && (
+                                                <blockquote className="border-l-2 border-primary bg-surface-subtle rounded-r-lg p-5">
+                                                    <p className="text-lg md:text-xl text-text-secondary italic font-medium leading-relaxed">
+                                                        &quot;{analysis.contentPulse.quote}&quot;
+                                                    </p>
+                                                </blockquote>
+                                            )}
+                                            <HelpfulRating
+                                                onSelect={(val) => handleHelpfulnessSelect('content', val)}
+                                                currentVal={helpfulness.content || null}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Card 10: Next / CTA */}
                             <div
                                 ref={setCardRef('next')}
                                 data-section="next"
                                 style={{ scrollSnapAlign: 'start', minHeight: '100%' }}
-                                className={cn(getCardClasses('next'), 'items-start text-left')}
+                                className={cn(getCardClasses('next'), 'items-start text-left relative overflow-hidden')}
                             >
+                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-200 to-blue-600 opacity-100" />
                                 <div className="flex-1 w-full flex flex-col min-h-0">
                                     {/* Recommendation content (scrollable if needed) */}
                                     <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4">
@@ -603,7 +580,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                             <>
                                                 <Button
                                                     onClick={onRetry}
-                                                    className="w-full h-14 rounded-2xl bg-blue-600 text-white font-bold text-base shadow-lg hover:bg-blue-700 hover:scale-[1.02] active:scale-95 transition-all"
+                                                    className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-bold text-base shadow-lg hover:bg-primary/90 hover:scale-[1.02] active:scale-95 transition-all"
                                                 >
                                                     <RotateCcw size={18} className="mr-2" />
                                                     Retry My Answer
@@ -623,7 +600,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                             <>
                                                 <Button
                                                     onClick={onNext}
-                                                    className="w-full h-14 rounded-2xl bg-blue-600 text-white font-bold text-base shadow-lg hover:bg-blue-700 hover:scale-[1.02] active:scale-95 transition-all"
+                                                    className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-bold text-base shadow-lg hover:bg-primary/90 hover:scale-[1.02] active:scale-95 transition-all"
                                                 >
                                                     {isLastQuestion ? 'Finish Session' : 'Continue to Next Question'}
                                                     <ArrowRight size={18} className="ml-2" />
@@ -669,7 +646,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                         <FileText size={16} className="text-text-muted" />
                                         Compare to your answer
                                         {isPlaying && (
-                                            <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse ml-1" />
+                                            <span className="w-2 h-2 rounded-full bg-primary animate-pulse ml-1" />
                                         )}
                                     </button>
                                 </motion.div>
@@ -687,7 +664,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
                                     onClick={() => setIsTranscriptOpen(false)}
-                                    className="absolute inset-0 z-20 bg-slate-900/5 dark:bg-black/20 cursor-pointer rounded-none md:rounded-3xl"
+                                    className="absolute inset-0 z-20 bg-surface-overlay/10 backdrop-blur-sm cursor-pointer rounded-none md:rounded-3xl"
                                 />
                                 <motion.div
                                     key="transcript-panel"

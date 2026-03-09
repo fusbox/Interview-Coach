@@ -68,15 +68,15 @@ const LoaderCore = ({
                     >
                         <div className="shrink-0 transition-all duration-500">
                             {isFuture && <CheckIcon className="text-text-muted" />}
-                            {isCurrent && <CheckFilled className="text-blue-600 dark:text-blue-400 animate-pulse" />}
-                            {isCompleted && <CheckFilled className="text-emerald-500" />}
+                            {isCurrent && <CheckFilled className="text-primary dark:text-primary-foreground animate-pulse" />}
+                            {isCompleted && <CheckFilled className="text-state-success" />}
                         </div>
                         <span
                             className={cn(
                                 "text-lg transition-all duration-500 font-medium",
                                 isFuture && "text-text-muted",
-                                isCurrent && "text-blue-700 dark:text-blue-400 font-bold",
-                                isCompleted && "text-emerald-700 dark:text-emerald-500"
+                                isCurrent && "text-primary dark:text-primary-foreground font-bold",
+                                isCompleted && "text-state-success dark:text-state-success"
                             )}
                         >
                             {loadingState.text}
@@ -153,7 +153,7 @@ export const MultiStepLoader = ({
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="relative w-full max-w-md bg-surface-base border border-border shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] rounded-[2.5rem] flex flex-col items-center justify-center p-10 overflow-hidden"
+                        className="relative w-full max-w-md bg-surface-base border border-border shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] rounded-3xl flex flex-col items-center justify-center p-10 overflow-hidden"
                     >
 
                         <div className="relative z-10 w-full">
@@ -166,7 +166,7 @@ export const MultiStepLoader = ({
                         {/* Progress Pulse */}
                         <div className="absolute bottom-0 inset-x-0 h-1 bg-surface-subtle overflow-hidden">
                             <motion.div
-                                className="h-full bg-blue-600 dark:bg-blue-400"
+                                className="h-full bg-primary dark:bg-primary-foreground"
                                 initial={{ width: "0%" }}
                                 animate={{ width: `${((currentState + 1) / loadingStates.length) * 100}%` }}
                                 transition={{ duration: 0.5 }}

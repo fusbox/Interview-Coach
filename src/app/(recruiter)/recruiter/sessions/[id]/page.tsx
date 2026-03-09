@@ -1,13 +1,13 @@
 import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-session-repository";
 import { notFound, redirect } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { getCachedUser } from "@/lib/supabase/server";
 import { SectionHeader } from "@/components/patterns/SectionHeader";
-import { StatusBadge } from "../../components/session-badges";
+import { StatusBadge as SessionStatusBadge } from "../../components/session-badges";
+import { StatusBadge } from "@/components/patterns/StatusBadge";
 import { InterviewSession } from "@/lib/domain/types";
 
 const sessionRepo = new SupabaseSessionRepository();
@@ -76,7 +76,7 @@ export default async function SessionDetailsPage({ params }: { params: { id: str
                         <div className="space-y-1">
                             <div className="text-micro uppercase font-bold text-text-disabled tracking-wider">Completion Status</div>
                             <div className="mt-1">
-                                <StatusBadge session={session} />
+                                <SessionStatusBadge session={session} />
                             </div>
                         </div>
                     </div>
@@ -85,29 +85,29 @@ export default async function SessionDetailsPage({ params }: { params: { id: str
 
             {/* Question Set */}
             <div className="space-y-6">
-                <h2 className="text-xl font-semibold tracking-tight text-slate-900">Question Set</h2>
+                <h2 className="text-xl font-bold tracking-tight text-text-primary">Question Set</h2>
 
                 {session.questions.map((question, index) => {
                     const answer = session.answers[question.id];
                     const hasAnswer = !!answer;
 
                     return (
-                        <Card key={question.id} className="overflow-hidden border-slate-200 shadow-sm">
-                            <CardHeader className="bg-slate-50/50 border-b border-slate-100 py-4">
+                        <Card key={question.id} className="overflow-hidden border-border shadow-flat bg-surface-base">
+                            <CardHeader className="bg-surface-subtle/50 border-b border-border py-4">
                                 <div className="flex justify-between items-start gap-4">
                                     <div className="space-y-1">
-                                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                        <span className="text-micro font-bold text-text-muted uppercase tracking-widest">
                                             Question {index + 1}
                                         </span>
-                                        <h3 className="text-base font-medium text-slate-900 leading-snug">
+                                        <h3 className="text-base font-bold text-text-primary leading-tight">
                                             {question.text}
                                         </h3>
                                     </div>
                                     <div className="shrink-0">
                                         {hasAnswer ? (
-                                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Submitted</Badge>
+                                            <StatusBadge variant="progressActive" icon={false}>Submitted</StatusBadge>
                                         ) : (
-                                            <Badge variant="outline" className="text-slate-400 border-slate-200">Pending</Badge>
+                                            <StatusBadge variant="progressIdle" icon={false}>Pending</StatusBadge>
                                         )}
                                     </div>
                                 </div>
@@ -115,13 +115,13 @@ export default async function SessionDetailsPage({ params }: { params: { id: str
 
                             {hasAnswer && (
                                 <CardContent className="p-6">
-                                    <div className="space-y-2">
-                                        <h4 className="text-sm font-semibold text-slate-900">Candidate Response</h4>
-                                        <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 text-slate-700 text-sm leading-relaxed">
+                                    <div className="space-y-4">
+                                        <h4 className="text-micro font-bold text-text-muted uppercase tracking-widest">Candidate Response</h4>
+                                        <div className="bg-surface-subtle p-4 rounded-lg border border-border text-text-secondary text-sm leading-relaxed">
                                             {answer.transcript ? (
                                                 <p className="whitespace-pre-wrap">{answer.transcript}</p>
                                             ) : (
-                                                <span className="italic text-slate-400">No transcript available.</span>
+                                                <span className="italic text-text-disabled">No transcript available.</span>
                                             )}
                                         </div>
                                     </div>
@@ -129,7 +129,7 @@ export default async function SessionDetailsPage({ params }: { params: { id: str
                             )}
 
                             {!hasAnswer && (
-                                <CardContent className="p-8 text-center text-slate-400 italic text-sm">
+                                <CardContent className="p-8 text-center text-text-disabled italic text-sm">
                                     The candidate has not answered this question yet.
                                 </CardContent>
                             )}

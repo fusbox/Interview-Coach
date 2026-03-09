@@ -173,64 +173,10 @@ function SessionRow({ session, bucketKey, recruiterProfile }: { session: WidgetS
     );
 }
 
-function AwaitingActionSummary({ bucket, recruiterProfile }: { bucket: WidgetBucket; recruiterProfile?: RecruiterProfile }) {
-    const [expanded, setExpanded] = useState(true);
-
-    if (bucket.count === 0) {
-        return (
-            <p className="text-xs text-slate-400 italic py-2">
-                {BUCKET_CONFIG[bucket.key].emptyMessage}
-            </p>
-        );
-    }
-
-    return (
-        <div>
-            <button
-                onClick={() => setExpanded(!expanded)}
-                className="flex items-center gap-2 w-full text-left py-2 group/expand"
-            >
-                <p className="text-xs text-slate-500">
-                    <span className="font-semibold text-slate-700">{bucket.neverEngagedCount}</span>
-                    {" "}invite{bucket.count !== 1 ? 's' : ''} sent, no views.
-                    {bucket.oldestNeverEngagedLabel && (
-                        <span className="text-slate-400"> Oldest: {bucket.oldestNeverEngagedLabel}</span>
-                    )}
-                </p>
-                {expanded ? (
-                    <ChevronUp className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                ) : (
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                )}
-            </button>
-
-            {expanded && (
-                <div className="space-y-0.5 mt-1 animate-in slide-in-from-top-2 duration-200">
-                    {bucket.sessions.map((s) => (
-                        <SessionRow key={s.id} session={s} bucketKey={bucket.key} recruiterProfile={recruiterProfile} />
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-}
-
 function BucketSection({ bucket, recruiterProfile }: { bucket: WidgetBucket; recruiterProfile?: RecruiterProfile }) {
     const config = BUCKET_CONFIG[bucket.key];
     const MAX_VISIBLE = 5;
     const [showAll, setShowAll] = useState(false);
-
-    // Awaiting Action has its own collapsed layout
-    if (bucket.key === 'awaiting_action') {
-        return (
-            <div>
-                <BucketHeader bucket={bucket} />
-                <div className="mt-2">
-                    <AwaitingActionSummary bucket={bucket} recruiterProfile={recruiterProfile} />
-                </div>
-            </div>
-        );
-    }
 
     const visibleSessions = showAll ? bucket.sessions : bucket.sessions.slice(0, MAX_VISIBLE);
     const hasMore = bucket.count > MAX_VISIBLE;

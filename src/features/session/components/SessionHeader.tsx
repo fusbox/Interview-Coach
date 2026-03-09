@@ -33,7 +33,7 @@ export function SessionHeader() {
 
                     {/* Right: Percent & Exit */}
                     <div className="flex items-center gap-6">
-                        <span className="text-sm font-bold text-blue-600 tracking-tight">
+                        <span className="text-sm font-bold text-primary tracking-tight">
                             {percentage}% Complete
                         </span>
                         <div className="w-px h-4 bg-border" />
@@ -51,7 +51,7 @@ export function SessionHeader() {
                 {/* Bottom: Progress Bar */}
                 <div className="h-1.5 w-full bg-surface-subtle rounded-full overflow-hidden shadow-inner">
                     <div
-                        className="bg-blue-600 h-full transition-all duration-700 cubic-bezier(0.4, 0, 0.2, 1) rounded-full shadow-[0_0_10px_rgba(37,99,235,0.3)]"
+                        className="bg-primary h-full transition-all duration-700 ease-standard rounded-full shadow-raised-1"
                         style={{ width: `${percentage}%` }}
                     />
                 </div>

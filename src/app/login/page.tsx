@@ -59,65 +59,71 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-surface-subtle p-4 font-sans">
-            <Card className="w-full max-w-md overflow-hidden border-t-4 border-t-primary shadow-xl">
-                <CardHeader className="text-center pb-2">
-                    <CardTitle className="text-2xl font-bold text-foreground">Recruiter Portal</CardTitle>
-                    <CardDescription>Manage your interview sessions and candidates</CardDescription>
+        <div className="min-h-screen flex items-center justify-center p-4 font-sans relative overflow-hidden bg-background">
+            {/* Background Aesthetic */}
+            <div className="absolute inset-0 z-0">
+                <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-brand-glass-start/30 blur-[120px]" />
+                <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/5 blur-[100px]" />
+            </div>
+
+            <Card className="w-full max-w-md overflow-hidden border-border shadow-raised-2 bg-surface-base/80 backdrop-blur-md relative z-10 rounded-2xl">
+                <CardHeader className="text-center pb-4 pt-8">
+                    <CardTitle className="text-2xl font-bold tracking-tight text-text-primary font-display">Recruiter Portal</CardTitle>
+                    <CardDescription className="text-text-muted">Manage your interview sessions and candidates</CardDescription>
                 </CardHeader>
 
                 {/* Tabs */}
-                <div className="px-6 pb-2">
-                    <div className="grid grid-cols-2 bg-muted p-1 rounded-lg">
+                <div className="px-8 pb-2">
+                    <div className="grid grid-cols-2 bg-surface-subtle p-1 rounded-xl border border-border/50">
                         <button
                             onClick={() => { setActiveTab('login'); setError(null); setSuccessMessage(null); }}
                             className={cn(
-                                "py-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center justify-center gap-2",
+                                "py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all duration-base ease-emphasized flex items-center justify-center gap-2",
                                 activeTab === 'login'
-                                    ? "bg-surface-base text-primary shadow-sm"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                    ? "bg-surface-base text-primary shadow-flat"
+                                    : "text-text-disabled hover:text-text-secondary"
                             )}
                         >
-                            <LogIn size={16} /> Sign In
+                            <LogIn size={14} /> Sign In
                         </button>
                         <button
                             onClick={() => { setActiveTab('signup'); setError(null); setSuccessMessage(null); }}
                             className={cn(
-                                "py-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center justify-center gap-2",
+                                "py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all duration-base ease-emphasized flex items-center justify-center gap-2",
                                 activeTab === 'signup'
-                                    ? "bg-surface-base text-primary shadow-sm"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                    ? "bg-surface-base text-primary shadow-flat"
+                                    : "text-text-disabled hover:text-text-secondary"
                             )}
                         >
-                            <UserPlus size={16} /> Create Account
+                            <UserPlus size={14} /> Create Account
                         </button>
                     </div>
                 </div>
 
-                <CardContent className="pt-6">
-                    <form onSubmit={handleAuth} className="space-y-4">
+                <CardContent className="px-8 pb-8 pt-6">
+                    <form onSubmit={handleAuth} className="space-y-5">
                         {error && (
-                            <div className="p-3 bg-state-critical/5 text-state-critical text-sm rounded-md border border-state-critical/20 flex items-start gap-2 animate-in fade-in slide-in-from-top-1">
+                            <div className="p-3 bg-state-critical/10 text-state-critical text-sm rounded-xl border border-state-critical/20 flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
                                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                                <span>{error}</span>
+                                <span className="font-medium">{error}</span>
                             </div>
                         )}
                         {successMessage && (
-                            <div className="p-3 bg-state-success/5 text-state-success text-sm rounded-md border border-state-success/20 flex items-start gap-2 animate-in fade-in slide-in-from-top-1">
+                            <div className="p-3 bg-state-success/10 text-state-success text-sm rounded-xl border border-state-success/20 flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
                                 <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-                                <span>{successMessage}</span>
+                                <span className="font-medium">{successMessage}</span>
                             </div>
                         )}
 
                         <div className="space-y-2">
-                            <label className="text-micro font-semibold uppercase tracking-wider text-text-muted ml-1">
+                            <label className="text-micro font-bold uppercase tracking-widest text-text-muted ml-1">
                                 Email Address
                             </label>
                             <div className="relative group">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors h-4 w-4" />
+                                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-disabled group-focus-within:text-primary transition-colors h-4 w-4" />
                                 <input
                                     required
-                                    className="w-full h-10 pl-10 pr-3 rounded-md border border-border bg-surface-subtle/50 focus:bg-surface-base focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-muted-foreground text-sm text-foreground"
+                                    className="w-full h-11 pl-11 pr-4 rounded-xl border border-border bg-surface-subtle/30 focus:bg-surface-base focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all duration-base placeholder:text-text-disabled text-sm text-text-primary"
                                     placeholder="name@company.com"
                                     type="email"
                                     value={email}
@@ -127,14 +133,14 @@ export default function LoginPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-micro font-semibold uppercase tracking-wider text-text-muted ml-1">
+                            <label className="text-micro font-bold uppercase tracking-widest text-text-muted ml-1">
                                 Password
                             </label>
                             <div className="relative group">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors h-4 w-4" />
+                                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-disabled group-focus-within:text-primary transition-colors h-4 w-4" />
                                 <input
                                     required
-                                    className="w-full h-10 pl-10 pr-10 rounded-md border border-border bg-surface-subtle/50 focus:bg-surface-base focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-muted-foreground text-sm text-foreground"
+                                    className="w-full h-11 pl-11 pr-11 rounded-xl border border-border bg-surface-subtle/30 focus:bg-surface-base focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all duration-base placeholder:text-text-disabled text-sm text-text-primary"
                                     placeholder={activeTab === 'signup' ? "Create a strong password" : "Enter your password"}
                                     type={showPassword ? "text" : "password"}
                                     value={password}
@@ -143,15 +149,15 @@ export default function LoginPage() {
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-disabled hover:text-text-primary focus:outline-none transition-colors"
                                 >
-                                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                 </button>
                             </div>
                         </div>
 
                         <div className="pt-2">
-                            <Button className="w-full font-bold shadow-md hover:shadow-lg transition-all" type="submit" disabled={loading}>
+                            <Button className="w-full h-11 rounded-xl font-bold shadow-flat hover:shadow-raised-1 hover:bg-primary/90 transition-all duration-base ease-emphasized active:scale-[0.98]" type="submit" disabled={loading}>
                                 {loading ? (
                                     <>
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -165,7 +171,7 @@ export default function LoginPage() {
 
                         {activeTab === 'login' && (
                             <div className="text-center pt-2">
-                                <a href="#" className="text-xs text-primary hover:underline font-medium">
+                                <a href="#" className="text-xs text-text-muted hover:text-primary hover:underline font-bold tracking-tight transition-colors">
                                     Forgot your password?
                                 </a>
                             </div>
