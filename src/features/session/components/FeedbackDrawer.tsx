@@ -695,10 +695,10 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                 >
                                     <button
                                         onClick={() => setIsTranscriptOpen(true)}
-                                        className="flex items-center gap-2 px-5 py-3 rounded-full shadow-lg font-bold text-sm transition-all hover:scale-105 active:scale-95 bg-surface-base text-text-secondary border border-border/50"
+                                        className="flex items-center gap-2 px-5 py-3 rounded-full shadow-lg font-bold text-sm transition-all hover:scale-105 active:scale-95 bg-surface-base border border-border/50 text-primary"
                                         aria-label="Compare to your answer"
                                     >
-                                        <FileText size={16} className="text-text-muted" />
+                                        <FileText size={16} className="text-primary/70" />
                                         Compare to your answer
                                         {isPlaying && (
                                             <span className="w-2 h-2 rounded-full bg-primary animate-pulse ml-1" />
