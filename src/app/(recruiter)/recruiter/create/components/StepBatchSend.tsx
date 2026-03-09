@@ -91,8 +91,8 @@ E: ${recruiterProfile.email}`;
             <div>
                 {/* Action List */}
                 <Card className="flex flex-col overflow-hidden border-border/50 shadow-raised-1 bg-surface-subtle/30">
-                    <CardHeader className="bg-surface-base border-b border-border/30 py-3 px-6">
-                        <CardTitle className="text-micro font-bold text-text-disabled uppercase tracking-widest">Candidate Actions</CardTitle>
+                    <CardHeader className="bg-surface-base border-b border-border/30 py-4 px-6 md:py-5">
+                        <CardTitle className="text-xl font-bold text-slate-800 tracking-tight font-display">Send Invites</CardTitle>
                     </CardHeader>
                     <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
                         {results.map((result, idx) => {
