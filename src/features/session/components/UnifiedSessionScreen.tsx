@@ -200,6 +200,9 @@ export default function UnifiedSessionScreen() {
     };
 
     const handleToggleRecording = async () => {
+        // Prime the audio engine on user gesture
+        audioEngine.unlock();
+
         if (isRecording) {
             await stopRecording();
             stopListening();
@@ -336,6 +339,7 @@ export default function UnifiedSessionScreen() {
                                             <>
                                                 <button
                                                     onClick={() => {
+                                                        audioEngine.unlock();
                                                         if (hintOpen) {
                                                             setHintOpen(false);
                                                         } else {
@@ -357,6 +361,7 @@ export default function UnifiedSessionScreen() {
                                                 </button>
                                                 <button
                                                     onClick={() => {
+                                                        audioEngine.unlock();
                                                         if (strongResponseOpen) {
                                                             setStrongResponseOpen(false);
                                                         } else {
@@ -385,6 +390,7 @@ export default function UnifiedSessionScreen() {
                                             <div className="bg-surface-subtle/50 p-1 rounded-full flex gap-1 shadow-flat border border-border">
                                                 <button
                                                     onClick={() => {
+                                                        audioEngine.unlock();
                                                         setMode('voice');
                                                         setAnswerText('');
                                                         trackEvent('tier2', 'mode_voice');
@@ -401,6 +407,7 @@ export default function UnifiedSessionScreen() {
                                                 </button>
                                                 <button
                                                     onClick={() => {
+                                                        audioEngine.unlock();
                                                         setMode('text');
                                                         stopListening();
                                                         resetTranscript();

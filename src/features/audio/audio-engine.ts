@@ -30,7 +30,11 @@ class AudioEngine {
 
     /** Call on a user gesture (click/tap) to unlock the AudioContext. Idempotent. */
     async unlock(): Promise<void> {
-        if (this.state === 'unlocked' && this.ctx?.state === 'running') return;
+        // If we are already running, we are unlocked.
+        if (this.ctx?.state === 'running') {
+            this.state = 'unlocked';
+            return;
+        }
 
         try {
             const AudioCtx = window.AudioContext ||
@@ -45,20 +49,16 @@ class AudioEngine {
                 this.ctx = new AudioCtx();
             }
 
-            // Resume if suspended (happens on some browsers)
-            if (this.ctx.state === 'suspended') {
+            // Always try to resume if not running
+            if (this.ctx.state !== 'running') {
                 await this.ctx.resume();
             }
 
-            // Play a silent buffer to fully unlock
-            const silent = this.ctx.createBuffer(1, 1, 22050);
-            const source = this.ctx.createBufferSource();
-            source.buffer = silent;
-            source.connect(this.ctx.destination);
-            source.start();
-
-            this.state = 'unlocked';
-            console.log('[AudioEngine] Unlocked');
+            // Verify state after resume attempt
+            if (this.ctx.state === 'running') {
+                this.state = 'unlocked';
+                console.log('[AudioEngine] Unlocked');
+            }
         } catch (err) {
             console.error('[AudioEngine] Unlock failed:', err);
         }
@@ -117,7 +117,7 @@ class AudioEngine {
 
     /** Prefetch audio for a question (fire-and-forget). */
     prefetch(id: string, text: string): void {
-        if (this.state !== 'unlocked' || !this.ctx) return;
+        if (!this.ctx) return;
         // Fire-and-forget — just populate cache
         this.getOrFetch(id, text).catch(() => { /* swallow */ });
     }

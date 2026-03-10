@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { AnalysisResult } from '@/lib/domain/types';
+import { audioEngine } from '@/features/audio/audio-engine';
 import {
     Mic2,
     Keyboard,
@@ -210,7 +211,7 @@ const ScrollHint: React.FC<{ isVisible: boolean }> = ({ isVisible }) => {
                     exit={{ opacity: 0, y: 10 }}
                     className="absolute inset-x-0 bottom-8 z-10 flex flex-col items-center justify-center gap-2 pointer-events-none"
                 >
-                    <span className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">Scroll to Explore</span>
+                    <span className="text-[10px] font-medium text-primary uppercase tracking-[0.2em]">Scroll to Explore</span>
                     <motion.div
                         animate={{ y: [0, 8, 0] }}
                         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
@@ -263,6 +264,8 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
     // ── Audio playback ──────────────────────────────────────────────────────
 
     const togglePlayback = useCallback(() => {
+        // Prime the audio engine on user gesture
+        audioEngine.unlock();
 
         if (!audioBlob) {
             return;
@@ -301,6 +304,8 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
     }, [audioBlob, isPlaying]);
 
     const handleHelpfulnessSelect = async (type: 'delivery' | 'content', val: string) => {
+        // Prime the audio engine on user gesture
+        audioEngine.unlock();
         setHelpfulness(prev => ({ ...prev, [type]: val }));
         setSavedTypes(prev => ({ ...prev, [type]: false }));
         try {
@@ -493,6 +498,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                     <div className="mt-12 flex flex-col md:flex-row items-center gap-4 justify-center w-full">
                                         <Button
                                             onClick={() => {
+                                                audioEngine.unlock();
                                                 setHasExplored(true);
                                                 setTimeout(() => scrollToSection(analysis?.deliveryPulse ? 'delivery' : 'content'), 50);
                                             }}
@@ -502,7 +508,10 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                         </Button>
                                         <Button
                                             variant="ghost"
-                                            onClick={onNext}
+                                            onClick={() => {
+                                                audioEngine.unlock();
+                                                onNext();
+                                            }}
                                             className="h-14 w-full md:w-auto rounded-full px-8 text-text-muted hover:text-text-primary hover:bg-surface-subtle transition-all font-bold text-base"
                                         >
                                             {isLastQuestion ? 'Skip and Finish Session' : 'Skip and Continue to Next Question'}
@@ -627,14 +636,20 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                         {shouldRetry ? (
                                             <>
                                                 <Button
-                                                    onClick={onRetry}
+                                                    onClick={() => {
+                                                        audioEngine.unlock();
+                                                        onRetry();
+                                                    }}
                                                     className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-bold text-base shadow-lg hover:bg-primary/90 hover:scale-[1.02] active:scale-95 transition-all"
                                                 >
                                                     <RotateCcw size={18} className="mr-2" />
                                                     Retry My Answer
                                                 </Button>
                                                 <button
-                                                    onClick={onNext}
+                                                    onClick={() => {
+                                                        audioEngine.unlock();
+                                                        onNext();
+                                                    }}
                                                     className="flex items-center gap-2 text-text-muted hover:text-primary font-bold text-sm transition-colors group mb-4"
                                                 >
                                                     {isLastQuestion ? 'Finish Session' : 'Continue to Next Question'}
@@ -647,14 +662,20 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                         ) : (
                                             <>
                                                 <Button
-                                                    onClick={onNext}
+                                                    onClick={() => {
+                                                        audioEngine.unlock();
+                                                        onNext();
+                                                    }}
                                                     className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-bold text-base shadow-lg hover:bg-primary/90 hover:scale-[1.02] active:scale-95 transition-all"
                                                 >
                                                     {isLastQuestion ? 'Finish Session' : 'Continue to Next Question'}
                                                     <ArrowRight size={18} className="ml-2" />
                                                 </Button>
                                                 <button
-                                                    onClick={onRetry}
+                                                    onClick={() => {
+                                                        audioEngine.unlock();
+                                                        onRetry();
+                                                    }}
                                                     className="flex items-center gap-2 text-text-muted hover:text-primary font-bold text-sm transition-colors group mb-4"
                                                 >
                                                     <RotateCcw
@@ -682,7 +703,10 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                     className="pointer-events-auto"
                                 >
                                     <button
-                                        onClick={() => setIsTranscriptOpen(true)}
+                                        onClick={() => {
+                                            audioEngine.unlock();
+                                            setIsTranscriptOpen(true);
+                                        }}
                                         className="flex items-center gap-2 px-5 py-3 rounded-full shadow-lg font-bold text-sm transition-all hover:scale-105 active:scale-95 bg-surface-base border border-border/50 text-primary"
                                         aria-label="View your answer"
                                     >
