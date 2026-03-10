@@ -3,13 +3,13 @@
 > [!IMPORTANT]
 > ### Use Cases (v2) - Active Work
 > We are currently migrating all use cases to a new enterprise template. Below are the individual flows:
-> - **[UC-R0: Recruiter Login](02-requirements/use-cases/v2/UC-R0%20Recruiter%20Login.md)**
-> - **[UC-R1: Recruiter Configures Session](02-requirements/use-cases/v2/UC-R1%20Recruiter%20Configures%20an%20Interview%20Session.md)**
-> - **[UC-R2: Recruiter Reviews Session](02-requirements/use-cases/v2/UC-R2%20Recruiter%20Reviews%20a%20Candidate%20Interview%20Session.md)**
-> - **[UC-C1: Candidate Access](02-requirements/use-cases/v2/UC-C1%20Candidate%20Accesses%20the%20Interview%20Session.md)**
-> - **[UC-C2: Candidate Response](02-requirements/use-cases/v2/UC-C2%20Candidate%20Responds%20to%20a%20Question.md)**
-> - **[UC-C4: Feedback & Retry](02-requirements/use-cases/v2/UC-C4%20Candidate%20Reviews%20AI%20Feedback%20and%20Retries.md)**
-> - **[UC-C5: Session Summary](02-requirements/use-cases/v2/UC-C5%20Candidate%20Views%20Session%20Summary%20and%20Concludes.md)**
+> - **[UC-R0: Recruiter Login](02-requirements/use-cases/v2/UC-R0-Recruiter-Login.md)**
+> - **[UC-R1: Recruiter Configures Session](02-requirements/use-cases/v2/UC-R1-Recruiter-Configures-an-Interview-Session.md)**
+> - **[UC-R2: Recruiter Reviews Session](02-requirements/use-cases/v2/UC-R2-Recruiter-Reviews-a-Candidate-Interview-Session.md)**
+> - **[UC-C1: Candidate Access](02-requirements/use-cases/v2/UC-C1-Candidate-Accesses-the-Interview-Session.md)**
+> - **[UC-C2: Candidate Response](02-requirements/use-cases/v2/UC-C2-Candidate-Responds-to-a-Question.md)**
+> - **[UC-C4: Feedback & Retry](02-requirements/use-cases/v2/UC-C4-Candidate-Reviews-AI-Feedback-and-Retries.md)**
+> - **[UC-C5: Session Summary](02-requirements/use-cases/v2/UC-C5-Candidate-Views-Session-Summary-and-Concludes.md)**
 
 This folder contains all project documentation for Interview Coach for Recruiters. Documents are organized to support discovery, requirements, architecture, and delivery, with explicit status indicators to prevent ambiguity as the system evolves.
 

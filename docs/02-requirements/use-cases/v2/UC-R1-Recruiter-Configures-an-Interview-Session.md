@@ -1,3 +1,8 @@
+---
+title: "UC-R1: Recruiter Configures an Interview Session"
+layout: default
+---
+
 # UC-R1: Recruiter Configures an Interview Session
 
 ## 1. Introduction

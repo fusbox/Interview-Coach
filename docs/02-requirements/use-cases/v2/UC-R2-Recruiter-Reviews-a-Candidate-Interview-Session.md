@@ -1,3 +1,8 @@
+---
+title: "UC-R2: Recruiter Reviews a Candidate Interview Session"
+layout: default
+---
+
 # UC-R2: Recruiter Reviews a Candidate Interview Session
 
 ## 1. Introduction

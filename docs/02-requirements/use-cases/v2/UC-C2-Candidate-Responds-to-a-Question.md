@@ -1,3 +1,8 @@
+---
+title: "UC-C2: Candidate Responds to a Question"
+layout: default
+---
+
 # UC-C2: Candidate Responds to a Question
 
 ## 1. Introduction

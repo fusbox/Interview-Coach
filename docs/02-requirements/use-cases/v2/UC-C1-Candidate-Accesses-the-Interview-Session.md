@@ -1,3 +1,8 @@
+---
+title: "UC-C1: Candidate Accesses the Interview Session"
+layout: default
+---
+
 # UC-C1: Candidate Accesses the Interview Session
 
 ## 1. Introduction

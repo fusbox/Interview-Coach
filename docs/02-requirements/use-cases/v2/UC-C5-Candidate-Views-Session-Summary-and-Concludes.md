@@ -1,3 +1,8 @@
+---
+title: "UC-C5: Candidate Views Session Summary and Concludes"
+layout: default
+---
+
 # UC-C5: Candidate Views Session Summary and Concludes
 
 ## 1. Introduction
