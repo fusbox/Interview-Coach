@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { Button } from "@/components/ui/button"
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
-import { Clock, ShieldCheck, Check } from "lucide-react"
+import { Clock, ShieldCheck } from "lucide-react"
 import { audioEngine } from '@/features/audio/audio-engine';
 import { useSession } from '../context/SessionContext';
 import { cn } from '@/lib/cn';
 import { captureFeedbackAction } from '@/app/actions/feedback';
-import { toast } from "sonner";
+import { FeedbackPill } from '@/components/patterns/FeedbackPill';
 
 import { Variants } from 'framer-motion';
 import { EMOJI_SCALE } from '@/components/patterns/FeedbackCard';
@@ -84,7 +84,7 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
 
     return (
         <div className="relative w-full flex flex-col flex-1 font-sans text-foreground bg-gradient-to-br from-brand-glass-start to-brand-glass-end">
-            <div className="absolute inset-0 bg-white/40 dark:bg-black/20 backdrop-blur-md pointer-events-none" />
+            <div className="absolute inset-0 bg-surface-base/40 dark:bg-surface-base/10 backdrop-blur-md pointer-events-none" />
 
             <motion.div
                 initial="hidden"
@@ -107,6 +107,7 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                         width={180}
                         height={40}
                         className="h-10 w-auto object-contain"
+                        style={{ width: 'auto', height: 'auto' }}
                         priority
                     />
                 </motion.div>
@@ -124,8 +125,8 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                 {/* Key Points */}
                 <motion.div variants={fadeUp} className="w-full space-y-4 flex flex-col relative z-10">
                     <div className="flex items-start gap-4 p-5 rounded-2xl bg-surface-base border border-border/50 shadow-sm">
-                        <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-950 border border-blue-100 dark:border-blue-900 shadow-flat flex items-center justify-center shrink-0">
-                            <Clock className="w-5 h-5 text-blue-600 dark:text-blue-300" />
+                        <div className="w-10 h-10 rounded-full bg-state-info/10 border border-state-info/20 shadow-flat flex items-center justify-center shrink-0">
+                            <Clock className="w-5 h-5 text-state-info" />
                         </div>
                         <div className="space-y-2">
                             <h3 className="font-bold text-text-primary">No Time Limit</h3>
@@ -133,16 +134,14 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                                 <p className="text-sm text-text-secondary leading-relaxed">
                                     Take your time. Thoughtful answers lead to better feedback.
                                 </p>
-                                <div className="p-4 bg-blue-50/50 dark:bg-blue-950/30 rounded-xl relative border-l-4 border-blue-400 dark:border-blue-600">
+                                <div className="p-4 bg-state-info/5 rounded-xl relative border-l-4 border-state-info/50">
                                     <p className="text-sm text-text-secondary leading-relaxed">
                                         Need to step away?{" "}
                                         <span className="relative inline-block">
                                             <button
                                                 onClick={() => {
                                                     const url = window.location.href;
-                                                    navigator.clipboard.writeText(url).then(() => {
-                                                        toast.success("Practice link copied!");
-                                                    });
+                                                    navigator.clipboard.writeText(url);
                                                     setShowCopySuccess(true);
                                                     setTimeout(() => setShowCopySuccess(false), 2000);
                                                 }}
@@ -150,21 +149,7 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                                             >
                                                 Copy your practice link.
                                             </button>
-                                            <AnimatePresence>
-                                                {showCopySuccess && (
-                                                    <motion.div
-                                                        initial={{ opacity: 0, scale: 0.5, y: 10 }}
-                                                        animate={{ opacity: 1, scale: 1, y: -20 }}
-                                                        exit={{ opacity: 0, scale: 0.8 }}
-                                                        className="absolute bottom-full left-1/2 -translate-x-1/2 z-20 pointer-events-none pb-2"
-                                                    >
-                                                        <div className="bg-blue-600 text-white rounded-full px-2 py-0.5 shadow-lg flex items-center gap-1 whitespace-nowrap">
-                                                            <Check size={10} strokeWidth={4} />
-                                                            <span className="text-[10px] font-black uppercase tracking-widest">Link Copied</span>
-                                                        </div>
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
+                                            <FeedbackPill isVisible={showCopySuccess} text="Link Copied" />
                                         </span>
                                         {" "}You&apos;ll pick up where you left off when you return.
                                     </p>
@@ -193,8 +178,8 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-center px-6 py-4 md:py-0 md:h-16 bg-gradient-to-r from-blue-600 to-blue-950 rounded-2xl border border-blue-800 shadow-raised-1 overflow-hidden relative">
-                        <div className="absolute top-0 left-0 w-1.5 h-full bg-orange-500" />
+                    <div className="flex items-center justify-center px-6 py-4 md:py-0 md:h-16 bg-gradient-to-r from-brand-deep to-brand-deep/80 rounded-2xl border border-brand-deep/30 shadow-raised-1 overflow-hidden relative">
+                        <div className="absolute top-0 left-0 w-1.5 h-full bg-brand-orange" />
                         <h3 className="text-white font-bold text-lg m-0 drop-shadow-sm leading-tight md:leading-normal">This space is for skill-building &mdash; not evaluation.</h3>
                     </div>
 
@@ -204,41 +189,26 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                             <h4 className="text-micro font-bold uppercase tracking-widest text-text-muted">Before we start:</h4>
                             <div className="flex items-center justify-between w-full">
                                 <p className="text-lg font-medium text-text-primary text-left">How prepared do you feel for your upcoming interview?</p>
-                                <div className="relative h-0 w-0">
-                                    <AnimatePresence>
-                                        {showSuccess && (
-                                            <motion.div
-                                                initial={{ opacity: 0, scale: 0.5, y: 10 }}
-                                                animate={{ opacity: 1, scale: 1, y: -25 }}
-                                                exit={{ opacity: 0, scale: 0.8 }}
-                                                className="absolute bottom-0 right-0 z-20 pointer-events-none"
-                                            >
-                                                <div className="bg-green-600 text-white rounded-full px-2.5 py-1 shadow-lg flex items-center gap-1.5 whitespace-nowrap">
-                                                    <Check size={12} strokeWidth={4} />
-                                                    <span className="text-[10px] font-black uppercase tracking-widest">Saved</span>
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-                                </div>
                             </div>
                         </div>
 
                         <div className="flex items-center justify-between gap-2 w-full">
                             {EMOJI_SCALE.map(({ val, emoji }) => (
-                                <button
-                                    key={val}
-                                    onClick={() => handleRatingSelect(val)}
-                                    className={cn(
-                                        "flex-1 max-w-[64px] aspect-square rounded-2xl border-2 flex items-center justify-center text-3xl transition-all duration-300",
-                                        rating === val
-                                            ? "bg-white dark:bg-blue-900/20 border-primary/50 shadow-lg scale-110 saturate-100 opacity-100"
-                                            : "bg-transparent border-border text-text-muted hover:border-primary/30 hover:scale-105 saturate-80 opacity-80 hover:saturate-100 hover:opacity-100"
-                                    )}
-                                    title={`Rate ${val}/5`}
-                                >
-                                    {emoji}
-                                </button>
+                                <div key={val} className="relative flex-1 max-w-[64px]">
+                                    <button
+                                        onClick={() => handleRatingSelect(val)}
+                                        className={cn(
+                                            "w-full aspect-square rounded-2xl border-2 flex items-center justify-center text-3xl transition-all duration-300",
+                                            rating === val
+                                                ? "bg-surface-base dark:bg-brand-deep/10 border-primary/50 shadow-lg scale-110 saturate-100 opacity-100"
+                                                : "bg-transparent border-border text-text-muted hover:border-primary/30 hover:scale-105 saturate-80 opacity-80 hover:saturate-100 hover:opacity-100"
+                                        )}
+                                        title={`Rate ${val}/5`}
+                                    >
+                                        {emoji}
+                                    </button>
+                                    <FeedbackPill isVisible={showSuccess && rating === val} text="Saved" />
+                                </div>
                             ))}
                         </div>
                         <div className="flex justify-between w-full px-1 text-micro font-bold uppercase tracking-tighter text-text-muted">

@@ -166,6 +166,7 @@ export function StepEmail({
                                     width={120}
                                     height={48}
                                     className="h-12 w-auto object-contain"
+                                    style={{ width: 'auto', height: 'auto' }}
                                 />
                             </div>
                             <div className="text-xs">

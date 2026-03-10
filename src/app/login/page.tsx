@@ -73,29 +73,29 @@ export default function LoginPage() {
                 </CardHeader>
 
                 {/* Tabs */}
-                <div className="px-8 pb-2">
-                    <div className="grid grid-cols-2 bg-surface-subtle p-1 rounded-xl border border-border/50">
+                <div className="px-5 md:px-8 pb-2">
+                    <div className="grid grid-cols-2 bg-surface-subtle p-1 rounded-xl border border-border/40">
                         <button
                             onClick={() => { setActiveTab('login'); setError(null); setSuccessMessage(null); }}
                             className={cn(
-                                "py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all duration-base ease-emphasized flex items-center justify-center gap-2",
+                                "py-2.5 text-[9px] md:text-xs font-bold uppercase tracking-wider md:tracking-widest rounded-lg transition-all duration-base flex items-center justify-center gap-1.5 whitespace-nowrap",
                                 activeTab === 'login'
                                     ? "bg-surface-base text-primary shadow-flat"
                                     : "text-text-disabled hover:text-text-secondary"
                             )}
                         >
-                            <LogIn size={14} /> Sign In
+                            <LogIn className="w-3.5 h-3.5" strokeWidth={2.5} /> Sign In
                         </button>
                         <button
                             onClick={() => { setActiveTab('signup'); setError(null); setSuccessMessage(null); }}
                             className={cn(
-                                "py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all duration-base ease-emphasized flex items-center justify-center gap-2",
+                                "py-2.5 text-[9px] md:text-xs font-bold uppercase tracking-wider md:tracking-widest rounded-lg transition-all duration-base flex items-center justify-center gap-1.5 whitespace-nowrap",
                                 activeTab === 'signup'
                                     ? "bg-surface-base text-primary shadow-flat"
                                     : "text-text-disabled hover:text-text-secondary"
                             )}
                         >
-                            <UserPlus size={14} /> Create Account
+                            <UserPlus className="w-3.5 h-3.5" strokeWidth={2.5} /> Create Account
                         </button>
                     </div>
                 </div>

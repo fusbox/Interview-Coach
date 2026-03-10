@@ -1,8 +1,8 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/cn";
-import { Loader2, Check } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Loader2 } from "lucide-react";
+import { FeedbackPill } from "./FeedbackPill";
 import { captureFeedbackAction } from "@/app/actions/feedback";
 
 export const EMOJI_SCALE = [
@@ -98,22 +98,7 @@ export function FeedbackCard({
                         </button>
                     ))}
 
-                    <AnimatePresence>
-                        {showSuccess && (
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.5, y: 10 }}
-                                animate={{ opacity: 1, scale: 1, y: -20 }}
-                                exit={{ opacity: 0, scale: 0.8 }}
-                                transition={{ duration: 0.4 }}
-                                className="absolute -top-8 left-1/2 -translate-x-1/2 z-20 pointer-events-none"
-                            >
-                                <div className="bg-green-600 text-white rounded-full px-3 py-1 shadow-lg flex items-center gap-1.5 whitespace-nowrap">
-                                    <Check size={14} strokeWidth={4} />
-                                    <span className="text-xs font-black uppercase tracking-widest">Saved</span>
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                    <FeedbackPill isVisible={showSuccess} text="Saved" />
                 </div>
                 {error && (
                     <p className="text-destructive text-[10px] font-bold uppercase tracking-widest animate-in fade-in slide-in-from-top-1">
@@ -123,8 +108,8 @@ export function FeedbackCard({
             </div>
 
             {isSubmitting && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/20 dark:bg-black/20 backdrop-blur-[1px] rounded-[2rem]">
-                    <Loader2 className="w-8 h-8 text-purple-600 animate-spin" />
+                <div className="absolute inset-0 flex items-center justify-center bg-surface-base/20 backdrop-blur-[1px] rounded-[2rem]">
+                    <Loader2 className="w-8 h-8 text-primary animate-spin" />
                 </div>
             )}
         </div>

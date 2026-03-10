@@ -14,9 +14,9 @@ import {
     FileText,
     X,
     ChevronDown,
-    ArrowRight,
-    Check
+    ArrowRight
 } from 'lucide-react';
+import { FeedbackPill } from '@/components/patterns/FeedbackPill';
 import { cn } from '@/lib/cn';
 import { captureFeedbackAction } from '@/app/actions/feedback';
 import { useSession } from '../context/SessionContext';
@@ -138,39 +138,24 @@ const HelpfulRating: React.FC<{
                 <span className="text-xs font-bold text-text-muted uppercase tracking-widest leading-none">
                     Was this helpful?
                 </span>
-                <div className="relative h-0 w-0">
-                    <AnimatePresence>
-                        {showSaved && (
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.5, y: 10 }}
-                                animate={{ opacity: 1, scale: 1, y: -20 }}
-                                exit={{ opacity: 0, scale: 0.8 }}
-                                className="absolute bottom-4 left-0 z-20 pointer-events-none"
-                            >
-                                <div className="bg-green-600 text-white rounded-full px-2 py-0.5 shadow-lg flex items-center gap-1 whitespace-nowrap">
-                                    <Check size={10} strokeWidth={4} />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">Saved</span>
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
             </div>
             <div className="flex items-center gap-2">
                 {options.map((opt) => (
-                    <button
-                        key={opt.val}
-                        onClick={() => onSelect(opt.val)}
-                        className={cn(
-                            "px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 border flex items-center gap-2",
-                            currentVal === opt.val
-                                ? "bg-primary border-primary text-primary-foreground shadow-md scale-105"
-                                : "bg-surface-base border-border text-text-secondary hover:border-primary/30"
-                        )}
-                    >
-                        <span>{opt.icon}</span>
-                        <span>{opt.label}</span>
-                    </button>
+                    <div key={opt.val} className="relative">
+                        <button
+                            onClick={() => onSelect(opt.val)}
+                            className={cn(
+                                "px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 border flex items-center gap-2",
+                                currentVal === opt.val
+                                    ? "bg-primary border-primary text-primary-foreground shadow-md scale-105"
+                                    : "bg-surface-base border-border text-text-secondary hover:border-primary/30"
+                            )}
+                        >
+                            <span>{opt.icon}</span>
+                            <span>{opt.label}</span>
+                        </button>
+                        <FeedbackPill isVisible={!!showSaved && currentVal === opt.val} text="Saved" />
+                    </div>
                 ))}
             </div>
         </div>
@@ -500,7 +485,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                 className={cn(getCardClasses('start'), 'items-center justify-center text-center max-w-4xl mx-auto relative overflow-hidden')}
                                 style={{ scrollSnapAlign: 'start', minHeight: '100%' }}
                             >
-                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-200 to-blue-600 opacity-100" />
+                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-deep/20 to-brand-deep opacity-100" />
                                 <div className="w-full flex flex-col items-center my-auto py-8">
                                     <h2 className="text-4xl md:text-5xl lg:text-5xl font-black text-text-primary leading-[1.1] font-display">
                                         {analysis?.ack || 'Reviewing your answer…'}
@@ -615,7 +600,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                 style={{ scrollSnapAlign: 'start', minHeight: '100%' }}
                                 className={cn(getCardClasses('next'), 'items-start text-left relative overflow-hidden')}
                             >
-                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-200 to-blue-600 opacity-100" />
+                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-deep/20 to-brand-deep opacity-100" />
                                 <div className="flex-1 w-full flex flex-col min-h-0">
                                     {/* Recommendation content (scrollable if needed) */}
                                     <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4">
@@ -699,10 +684,10 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                     <button
                                         onClick={() => setIsTranscriptOpen(true)}
                                         className="flex items-center gap-2 px-5 py-3 rounded-full shadow-lg font-bold text-sm transition-all hover:scale-105 active:scale-95 bg-surface-base border border-border/50 text-primary"
-                                        aria-label="Compare to your answer"
+                                        aria-label="View your answer"
                                     >
                                         <FileText size={16} className="text-primary/70" />
-                                        Compare to your answer
+                                        View your answer
                                         {isPlaying && (
                                             <span className="w-2 h-2 rounded-full bg-primary animate-pulse ml-1" />
                                         )}

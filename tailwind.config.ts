@@ -60,7 +60,8 @@ const config = {
 				},
 				accent: {
 					DEFAULT: 'hsl(var(--accent))',
-					foreground: 'hsl(var(--accent-foreground))'
+					foreground: 'hsl(var(--accent-foreground))',
+					alt: 'hsl(var(--accent-alt))'
 				},
 				popover: {
 					DEFAULT: 'hsl(var(--popover))',
@@ -102,36 +103,10 @@ const config = {
 					unknown: 'hsl(var(--readiness-unknown))',
 				},
 				brand: {
-					deep: '#08409a',
-					orange: '#F95500',
-					'glass-start': '#e8f1fd',
-					'glass-end': '#d1e3fa'
-				},
-				blue: {
-					'50': '#f0f7ff',
-					'100': '#e0f0ff',
-					'200': '#bae0ff',
-					'300': '#7cc2ff',
-					'400': '#3d9eff',
-					'500': '#1a7cff',
-					'600': '#0c61e7',
-					'700': '#084bbd',
-					'800': '#093b94',
-					'900': '#0c3275',
-					'950': '#081f4d'
-				},
-				green: {
-					'50': '#f0fdf7',
-					'100': '#e0fbf0',
-					'200': '#b8f3dc',
-					'300': '#8feac6',
-					'400': '#66e0af',
-					'500': '#3dd699',
-					'600': '#259368',
-					'700': '#1d7251',
-					'800': '#14523a',
-					'900': '#0c3123',
-					'950': '#05160f'
+					deep: 'hsl(var(--brand-deep))',
+					orange: 'hsl(var(--brand-orange))',
+					'glass-start': 'hsl(var(--brand-glass-start))',
+					'glass-end': 'hsl(var(--brand-glass-end))'
 				},
 				chart: {
 					'1': 'hsl(var(--chart-1))',

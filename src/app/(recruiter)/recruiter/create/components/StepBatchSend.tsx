@@ -6,8 +6,8 @@ import { Mail, ChevronLeft, Copy, CheckCircle2 } from "lucide-react";
 import { RecruiterProfile, InviteResult } from "../constants";
 import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { FeedbackCard } from "@/components/patterns/FeedbackCard";
-import { toast } from "sonner";
-
+import { FeedbackPill } from "@/components/patterns/FeedbackPill";
+import { useState } from "react";
 
 interface StepBatchSendProps {
     results: InviteResult[];
@@ -24,30 +24,36 @@ export function StepBatchSend({
     onBack,
     resetWizard
 }: StepBatchSendProps) {
+    const [copiedId, setCopiedId] = useState<string | null>(null);
     const firstName = recruiterProfile.name ? recruiterProfile.name.split(' ')[0] : "Recruiter";
 
-
-    const handleCopy = (link: string) => {
-        if (navigator?.clipboard?.writeText) {
-            navigator.clipboard.writeText(link).then(() => {
-                toast.success("Link copied to clipboard!");
-            }).catch(console.error);
-        } else {
-            const textArea = document.createElement("textarea");
-            textArea.value = link;
-            textArea.style.position = "fixed";
-            textArea.style.left = "-999999px";
-            textArea.style.top = "-999999px";
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            try {
-                document.execCommand('copy');
-            } catch (err) {
-                console.error('Fallback copy failed', err);
+    const handleCopy = (link: string, id: string) => {
+        const performCopy = () => {
+            if (navigator?.clipboard?.writeText) {
+                return navigator.clipboard.writeText(link);
+            } else {
+                const textArea = document.createElement("textarea");
+                textArea.value = link;
+                textArea.style.position = "fixed";
+                textArea.style.left = "-999999px";
+                textArea.style.top = "-999999px";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                } catch (err) {
+                    console.error('Fallback copy failed', err);
+                }
+                document.body.removeChild(textArea);
+                return Promise.resolve();
             }
-            document.body.removeChild(textArea);
-        }
+        };
+
+        performCopy().then(() => {
+            setCopiedId(id);
+            setTimeout(() => setCopiedId(null), 2000);
+        }).catch(console.error);
     };
 
     const subject = `Interview Invitation: ${role}`;
@@ -119,15 +125,18 @@ E: ${recruiterProfile.email}`;
                                         <div className="text-micro text-text-secondary font-mono bg-surface-base px-3 py-2 rounded-lg border border-border/20 flex-1 truncate shadow-flat group-hover:bg-primary/5 transition-colors">
                                             {result.link}
                                         </div>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-9 w-9 text-text-disabled hover:text-primary hover:bg-primary/10 transition-all rounded-2xl shadow-flat bg-surface-base border border-border/20 shrink-0"
-                                            onClick={() => handleCopy(result.link)}
-                                            title="Copy Link"
-                                        >
-                                            <Copy className="w-3.5 h-3.5" />
-                                        </Button>
+                                        <div className="relative">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-9 w-9 text-text-disabled hover:text-primary hover:bg-primary/10 transition-all rounded-2xl shadow-flat bg-surface-base border border-border/20 shrink-0"
+                                                onClick={() => handleCopy(result.link, result.email)}
+                                                title="Copy Link"
+                                            >
+                                                <Copy className="w-3.5 h-3.5" />
+                                            </Button>
+                                            <FeedbackPill isVisible={copiedId === result.email} text="Copied" />
+                                        </div>
                                     </div>
                                 </Card>
                             );

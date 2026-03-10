@@ -28,6 +28,40 @@ interface StepJobAndQuestionsProps {
     onSaveTemplate: (name: string, isShared: boolean) => Promise<void>;
 }
 
+// Reactive auto-resize textarea helper - Moved outside component to prevent focus loss on re-render
+const AutoResizeTextarea = ({
+    value,
+    onChange,
+    placeholder,
+    className
+}: {
+    value: string;
+    onChange: (val: string) => void;
+    placeholder: string;
+    className?: string;
+}) => {
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    useLayoutEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+        }
+    }, [value]);
+
+    return (
+        <textarea
+            ref={textareaRef}
+            className={className}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            rows={1}
+            style={{ resize: 'none', overflow: 'hidden' }}
+        />
+    );
+};
+
 export function StepJobAndQuestions({
     details, setDetails,
     star, setStar,
@@ -46,40 +80,6 @@ export function StepJobAndQuestions({
     const [showSaveModal, setShowSaveModal] = useState(false);
     const [templateName, setTemplateName] = useState("");
     const [isShared, setIsShared] = useState(true);
-
-    // Reactive auto-resize textarea helper
-    const AutoResizeTextarea = ({
-        value,
-        onChange,
-        placeholder,
-        className
-    }: {
-        value: string;
-        onChange: (val: string) => void;
-        placeholder: string;
-        className?: string;
-    }) => {
-        const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-        useLayoutEffect(() => {
-            if (textareaRef.current) {
-                textareaRef.current.style.height = 'auto';
-                textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-            }
-        }, [value]);
-
-        return (
-            <textarea
-                ref={textareaRef}
-                className={className}
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-                placeholder={placeholder}
-                rows={1}
-                style={{ resize: 'none', overflow: 'hidden' }}
-            />
-        );
-    };
 
     const addTechnical = () => {
         setTechnical([...technical, {

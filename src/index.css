@@ -61,8 +61,10 @@
         --ring: 222.2 84% 4.9%;
         /* focus ring */
 
-        --brand-deep: 217 90% 32%;
-        /* #08409a */
+        --brand-deep: 217 90% 32%; /* #08409a */
+        --brand-orange: 20 100% 49%; /* #F95500 */
+        --brand-glass-start: 214 80% 95%; /* #e8f1fd */
+        --brand-glass-end: 214 80% 90%; /* New 90% Lightness */
 
         /* Canonical semantics from v1 Spec */
         --surface-base: 0 0% 100%;
@@ -85,6 +87,7 @@
         --readiness-medium: 38 92% 50%;
         --readiness-low: 0 84.2% 60.2%;
         --readiness-unknown: 214.3 31.8% 91.4%;
+        --accent-alt: 262 83% 58%;
 
         /* Extension tokens */
         --success: 160 60% 36%;
@@ -152,6 +155,7 @@
 
         --accent: 217.2 32.6% 17.5%;
         --accent-foreground: 210 40% 98%;
+        --accent-alt: 262 70% 68%;
 
         --destructive: 0 62.8% 30.6%;
         --destructive-foreground: 210 40% 98%;
@@ -159,6 +163,9 @@
         --ring: 212.7 26.8% 83.9%;
 
         --brand-deep: 217 90% 40%;
+        --brand-orange: 20 100% 49%;
+        --brand-glass-start: 222 47% 7%; /* Darker start for glass */
+        --brand-glass-end: 222 47% 13%; /* Adjusted for relative depth */
 
         /* Canonical semantics from v1 Spec */
         --surface-base: 222.2 84% 4.9%;
@@ -222,17 +229,17 @@
 
 
     .glass-card {
-        @apply bg-white/70 dark:bg-neutral-900/70 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl;
+        @apply bg-gradient-to-br from-brand-glass-start to-brand-glass-end backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl;
     }
 
     .glass-overlay {
-        @apply bg-white/40 dark:bg-neutral-950/40 backdrop-blur-2xl;
+        @apply bg-surface-base/40 dark:bg-surface-base/40 backdrop-blur-2xl;
     }
 }
 
 .custom-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: hsl(214.3 31.8% 91.4% / 0.5) transparent;
+    scrollbar-color: hsl(var(--border) / 0.5) transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -245,5 +252,5 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-slate-200/50 dark:bg-white/10 rounded-full hover:bg-slate-300/50 dark:hover:bg-white/20 transition-colors;
+    @apply bg-muted-foreground/30 dark:bg-white/10 rounded-full hover:bg-muted-foreground/50 dark:hover:bg-white/20 transition-colors;
 }

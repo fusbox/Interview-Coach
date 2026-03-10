@@ -202,3 +202,20 @@ Executed a phased modularization of the Summary Screen:
 - **Maintainability**: `SummaryScreen.tsx` is reduced to roughly half its original size and now focuses purely on composing high-level layout elements.
 - **Error Boundaries**: The survey component now manages its own explicit error states and prevents "fire-and-forget" failures.
 - **Testability**: Pure utility functions can now be unit tested independently of the React DOM environment.
+
+## ADR-015: Semantic Color Token Migration
+
+### Context
+The codebase contained numerous hard-coded hex values, standard Tailwind color aliases (e.g., `blue-600`), and arbitrary utility values. This led to "magic colors" that were difficult to audit for accessibility and theme consistency.
+
+### Decision
+- **Variable Centralization**: Migrated all brand-specific colors (`brand-deep`, `brand-orange`, `brand-glass`) to HSL variables in `src/index.css`.
+- **Config Standardization**: Updated `tailwind.config.ts` to map theme extensions directly to CSS variables using `hsl(var(--variable))`.
+- **Literal Elimination**: Removed hard-coded `blue` and `green` overrides from the Tailwind config to prevent collision with standard Tailwind palettes and encourage semantic token usage.
+- **Component Refactoring**: Systematically replaced color literals in key features (`LandingScreen`, `FeedbackCard`, `AudioVisualizer`) with semantic equivalents like `state-success`, `state-info`, and `brand-deep`.
+- **Dynamic Contexts**: Refactored the `AudioVisualizer` Canvas implementation to dynamically retrieve semantic colors via `getComputedStyle`.
+
+### Consequences
+- **Themeability**: The core brand identity is now entirely manageable via CSS variables without touching the configuration or component logic.
+- **Consistency**: Visual elements like success badges and information cards now share uniform semantic tokens.
+- **Maintainability**: Reduced the risk of "token drift" where different components use slightly different shades of the same brand color.

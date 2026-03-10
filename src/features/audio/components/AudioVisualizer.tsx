@@ -83,7 +83,8 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ stream, isRecording, 
                     // Base height + reactive height
                     const h = 4 + (value * height * 0.8);
 
-                    ctx.fillStyle = '#3b82f6'; // primary blue
+                    const primaryColor = getComputedStyle(canvas).getPropertyValue('--primary') || '#3b82f6';
+                    ctx.fillStyle = `hsl(${primaryColor})`;
                     ctx.globalAlpha = 0.4 + (value * 0.6);
 
                     // Symmetrical drawing

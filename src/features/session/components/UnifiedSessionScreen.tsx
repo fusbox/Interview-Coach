@@ -304,12 +304,12 @@ export default function UnifiedSessionScreen() {
                                 "grow-0 shrink-0 p-4 md:p-6 lg:p-10 w-full transition-all duration-500 ease-in-out cursor-default",
                                 isReviewing ? "opacity-30 scale-[0.98] pointer-events-none blur-sm" : "opacity-100 scale-100"
                             )}>
-                            <div className="glass-card text-text-primary rounded-3xl p-6 md:p-10 w-full relative transition-all duration-300 ring-1 ring-border/50 bg-gradient-to-br from-brand-glass-start to-brand-glass-end overflow-hidden">
-                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-200 to-blue-600" />
+                            <div className="glass-card text-text-primary rounded-3xl p-6 md:p-10 w-full relative transition-all duration-300 ring-1 ring-border/50 overflow-hidden">
+                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-deep/20 to-brand-deep" />
 
                                 <div className="flex justify-start mb-6">
                                     <CategoryTooltip category={currentQuestion.category}>
-                                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-brand-deep text-micro font-bold uppercase tracking-wider text-white cursor-help transition-colors">
+                                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-brand-deep text-micro font-bold uppercase tracking-wider text-text-inverse cursor-help transition-colors">
                                             {currentQuestion.category.toUpperCase()}
                                         </span>
                                     </CategoryTooltip>
@@ -330,7 +330,7 @@ export default function UnifiedSessionScreen() {
                                     </motion.div>
                                 </AnimatePresence>
 
-                                <div className="flex items-center gap-2 md:gap-4 min-h-12 md:min-h-10 w-auto pt-4 md:pt-6 pb-4 md:pb-10 -mx-6 md:-mx-10 -mb-6 md:-mb-10 px-6 md:px-10 border-t-2 border-border/50 bg-surface-platinum/5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]">
+                                <div className="flex items-center gap-2 md:gap-4 min-h-12 md:min-h-10 w-auto pt-4 md:pt-6 pb-4 md:pb-10 -mx-6 md:-mx-10 -mb-6 md:-mb-10 px-6 md:px-10 border-t-2 border-border/50 bg-surface-platinum/5 shadow-flat">
                                     <div className="flex-1 flex justify-start gap-4">
                                         {!hasSubmitted && (
                                             <>
@@ -348,8 +348,8 @@ export default function UnifiedSessionScreen() {
                                                     className={cn(
                                                         "inline-flex items-center justify-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm font-semibold transition-all shrink-0",
                                                         hintOpen
-                                                            ? "bg-blue-600 text-white shadow-lg"
-                                                            : "bg-blue-50 dark:bg-blue-900/20 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/40"
+                                                            ? "bg-brand-deep text-text-inverse shadow-lg"
+                                                            : "bg-state-info/10 text-state-info hover:bg-state-info/20"
                                                     )}
                                                     title="Interview Hints"
                                                 >
@@ -369,8 +369,8 @@ export default function UnifiedSessionScreen() {
                                                     className={cn(
                                                         "inline-flex items-center justify-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm font-semibold transition-all shrink-0",
                                                         strongResponseOpen
-                                                            ? "bg-purple-600 text-white shadow-lg"
-                                                            : "bg-purple-50 dark:bg-purple-900/20 text-purple-600 hover:bg-purple-100 dark:hover:bg-purple-900/40"
+                                                            ? "bg-accent-alt text-text-inverse shadow-lg"
+                                                            : "bg-accent-alt/10 text-accent-alt hover:bg-accent-alt/20"
                                                     )}
                                                     title="Example Response"
                                                 >
@@ -382,7 +382,7 @@ export default function UnifiedSessionScreen() {
 
                                     <div className="flex-none flex justify-center items-center gap-2 md:gap-3">
                                         {!isReviewing && !hasSubmitted && (
-                                            <div className="bg-blue-50/50 p-1 rounded-full flex gap-1 shadow-md border border-border">
+                                            <div className="bg-surface-subtle/50 p-1 rounded-full flex gap-1 shadow-flat border border-border">
                                                 <button
                                                     onClick={() => {
                                                         setMode('voice');
@@ -392,8 +392,8 @@ export default function UnifiedSessionScreen() {
                                                     className={cn(
                                                         "p-2 px-3 rounded-full transition-all flex items-center justify-center gap-2",
                                                         mode === 'voice'
-                                                            ? "bg-blue-600 text-white shadow-md ring-1 ring-blue-600 border-none outline-none"
-                                                            : "text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200"
+                                                            ? "bg-brand-deep text-text-inverse shadow-md ring-1 ring-brand-deep border-none outline-none"
+                                                            : "text-state-info hover:text-state-info/80"
                                                     )}
                                                     title="Voice Mode"
                                                 >
@@ -410,8 +410,8 @@ export default function UnifiedSessionScreen() {
                                                     className={cn(
                                                         "p-2 px-3 rounded-full transition-all flex items-center justify-center gap-2",
                                                         mode === 'text'
-                                                            ? "bg-blue-600 text-white shadow-md ring-1 ring-blue-600 border-none outline-none"
-                                                            : "text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200"
+                                                            ? "bg-brand-deep text-text-inverse shadow-md ring-1 ring-brand-deep border-none outline-none"
+                                                            : "text-state-info hover:text-state-info/80"
                                                     )}
                                                     title="Text Mode"
                                                 >
@@ -428,8 +428,8 @@ export default function UnifiedSessionScreen() {
                                             className={cn(
                                                 "p-2.5 rounded-full transition-all duration-300 shadow-sm border flex items-center justify-center",
                                                 isPlaying
-                                                    ? "bg-blue-600 text-white border-blue-600 scale-105 shadow-blue-500/20"
-                                                    : "bg-blue-50/50 dark:bg-blue-900/20 text-blue-600 border-blue-100/50 dark:border-blue-800/50 hover:bg-blue-100/80 hover:scale-105"
+                                                    ? "bg-brand-deep text-text-inverse border-brand-deep scale-105 shadow-floating"
+                                                    : "bg-surface-subtle/50 text-state-info border-border/50 hover:bg-surface-subtle/80 hover:scale-105"
                                             )}
                                             aria-label={isPlaying ? "Stop reading" : "Read question"}
                                         >
@@ -489,8 +489,8 @@ export default function UnifiedSessionScreen() {
                                                             className={cn(
                                                                 "relative w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl",
                                                                 isRecording
-                                                                    ? "bg-red-50 dark:bg-red-900/20 text-red-500 border-4 border-red-100 dark:border-red-900/40"
-                                                                    : "bg-blue-600 text-white hover:bg-blue-700 hover:scale-105"
+                                                                    ? "bg-state-critical/10 text-state-critical border-4 border-state-critical/20"
+                                                                    : "bg-brand-deep text-text-inverse hover:bg-brand-deep/90 hover:scale-105"
                                                             )}
                                                         >
                                                             {isRecordingInitializing ? (
@@ -513,7 +513,7 @@ export default function UnifiedSessionScreen() {
                                                             <Button
                                                                 onClick={handleSubmit}
                                                                 disabled={isSubmitting}
-                                                                className="px-10 h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 shadow-lg font-bold min-w-40"
+                                                                className="px-10 h-14 rounded-2xl bg-brand-deep hover:bg-brand-deep/90 shadow-lg font-bold min-w-40"
                                                             >
                                                                 {isSubmitting ? (
                                                                     <>
@@ -585,7 +585,7 @@ export default function UnifiedSessionScreen() {
                                         <Button
                                             onClick={handleSubmit}
                                             disabled={!answerText.trim()}
-                                            className="px-8 h-16 text-lg bg-blue-600 hover:bg-blue-700 shadow-xl rounded-2xl font-bold"
+                                            className="px-8 h-16 text-lg bg-brand-deep hover:bg-brand-deep/90 shadow-xl rounded-2xl font-bold"
                                         >
                                             Submit Answer <ArrowRight className="ml-2 w-5 h-5" />
                                         </Button>
@@ -606,7 +606,7 @@ export default function UnifiedSessionScreen() {
                             animate={{ y: 0 }}
                             exit={{ y: "100%" }}
                             transition={{ type: "spring", damping: 30, stiffness: 250 }}
-                            className="lg:hidden fixed bottom-0 left-0 right-0 glass-overlay border-t border-border z-[60] flex flex-col max-h-[85dvh] rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.15)]"
+                            className="lg:hidden fixed bottom-0 left-0 right-0 glass-overlay border-t border-border z-[60] flex flex-col max-h-[85dvh] rounded-t-3xl shadow-floating"
                         >
                             {/* Drag Indicator */}
                             <div className="w-12 h-1.5 bg-border rounded-full mx-auto my-3 shrink-0" />

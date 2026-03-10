@@ -146,14 +146,14 @@ export const MultiStepLoader = ({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xl"
+                    className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-surface-overlay/60 backdrop-blur-xl"
                 >
                     {/* Premium Container */}
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="relative w-full max-w-md bg-surface-base border border-border shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] rounded-3xl flex flex-col items-center justify-center p-10 overflow-hidden"
+                        className="relative w-full max-w-md bg-surface-base border border-border shadow-floating rounded-3xl flex flex-col items-center justify-center p-10 overflow-hidden"
                     >
 
                         <div className="relative z-10 w-full">
