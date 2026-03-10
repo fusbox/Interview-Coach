@@ -1,5 +1,9 @@
 ## Documentation Index
 
+> [!IMPORTANT]
+> ### Use Cases (v2) - Active Work
+> We are currently migrating all use cases to a new enterprise template. Please refer to the [v2 Use Case Directory](02-requirements/use-cases/v2/) for the latest production-grade documentation, including real screenshots and STAR-method AI feedback flows.
+
 This folder contains all project documentation for Interview Coach for Recruiters. Documents are organized to support discovery, requirements, architecture, and delivery, with explicit status indicators to prevent ambiguity as the system evolves.
 
 ---
@@ -47,7 +51,7 @@ This folder contains all project documentation for Interview Coach for Recruiter
 | API Surface                   | 🔒 Locked   | Contract (V1)       | 2026-01-31
 | Code Organization & Layering  | ✅ Complete | Structural Guidance | 2026-01-31
 | Stability & Change Policy     | 🔒 Locked   | Governance          | 2026-01-31
-| Use Cases                     | ⏳ Pending  | —                   | —
+| Use Cases                     | ⚠️ Drafting (v2) | Enterprise Template | 2026-03-10
 | User Flows                    | ⏳ Pending  | —                   | —
 | Wireframes                    | ⏳ Pending  | —                   | —
 
