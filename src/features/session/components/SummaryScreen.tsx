@@ -239,7 +239,6 @@ export default function SummaryScreen() {
                             fill
                             sizes="(max-width: 640px) 64px, 80px"
                             className="object-contain opacity-50"
-                            style={{ width: 'auto', height: 'auto' }}
                         />
                     </div>
                 </motion.div>

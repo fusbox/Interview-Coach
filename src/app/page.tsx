@@ -57,7 +57,6 @@ export default function Home() {
                                 alt="Rangam"
                                 fill
                                 className="object-contain"
-                                style={{ width: 'auto', height: 'auto' }}
                             />
                         </div>
                     </motion.div>
