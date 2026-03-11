@@ -106,7 +106,7 @@ Recruiter Dashboard > "Manage Invites" Section > [Candidate Row]
 - Greenhouse (Factual Evaluation Records)
 
 ## 5. Mockup Reference
-Live Dashboard and Session Detail captures in `media/` directory.
+See mockups above.
 
 ## 6. Software BA Change Order Documentation Self-Verification Checklist
 - [x] 1. Introduction & Objective clear and concise?

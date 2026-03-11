@@ -114,7 +114,7 @@ Supports legacy sessions without Req IDs by defaulting to "N/A" for report consi
 - Greenhouse
 
 ## 5. Mockup Reference
-![Desktop Final Invite Page](media/UC-R1_desktop.png)
+See mockups above.
 
 ## 6. Software BA Change Order Documentation Self-Verification Checklist
 - [x] 1. Introduction & Objective clear and concise?

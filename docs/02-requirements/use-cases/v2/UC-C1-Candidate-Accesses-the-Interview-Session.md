@@ -7,10 +7,10 @@ layout: default
 
 ## 1. Introduction
 ### 1.1.1. Scope:
-Covers the entry point for the candidate, from clicking the invitation link to arriving at the landing screen where they begin their practice journey.
+Covers the process where a candidate enters the session via a secure link, confirms their identity through initials, captures their baseline preparation sentiment, and transitions into a "practice-first" mindset.
 
 ### 1.1.2. Objective:
-To provide a friction-less, non-intimidating entry into the practice environment that clearly states the purpose of the session.
+To provide a frictionless, non-intimidating entry into the practice environment that confirms participant identity and sets a skill-building (non-evaluative) tone.
 
 ### 1.1.3. Actors:
 - **Candidate** (Primary)
@@ -18,13 +18,16 @@ To provide a friction-less, non-intimidating entry into the practice environment
 
 ## 2. Business Requirements
 ### 2.1.1. User Needs and Goals:
-- Enter the session without creating an account.
-- Understand that this is a "Practice" environment, not a live high-stakes interview.
-- Clarify privacy (who sees what).
+- Access the session without account creation or password management.
+- Understand the privacy boundary (who sees responses vs. who sees coaching).
+- Confirm identity via initials to align with the recruiter's record.
+- Gauge and record personal preparation baseline via sentiment rating.
 
 ### 2.1.2. Business Needs and Goals:
-- Candidate engagement: High conversion from link click to session start.
-- Branding: Reinforce "Ready2Work" and partner brand (Rangam).
+- **Zero-Friction Conversion**: High transition rate from link click to active session.
+- **Identity Anchoring**: Recruiter-visible validation of the participant's initials.
+- **Mindset Alignment**: Frame the session as "skill-building" to reduce performance anxiety.
+- **Rangam Branding**: Consistent professional presentation.
 
 ### 2.1.3. Preconditions:
 - Recruiter has shared a valid unique URL.
@@ -32,29 +35,33 @@ To provide a friction-less, non-intimidating entry into the practice environment
 ## 3. Process Workflow Diagram
 ```mermaid
 graph TD
-    Link[Click Invite Link] --> Landing[Landing Screen]
-    Landing --> Initials[Enter Initials]
-    Initials --> Prep[Select Prep Level]
-    Prep --> Start[Begin First Question]
+    Link[Click Invite Link] --> Initials[Enter Initials]
+    Initials --> Landing[Landing Screen]
+    Landing --> Start[Begin First Question]
 ```
 
 ## 4. Use Case
-### 4.1.1. Use Case 1: Candidate Arrives
+### 4.1.1. Use Case 1: Candidate Entry & Mindset Setting
 ### 4.1.2. Description:
-Candidate clicks the link (e.g., AA-2024-001 specific) and sees the brand logo and the "Practice for Your Upcoming Interview" headline. They are reassured that this is guided and can be paused.
+Upon clicking the secure email link, the candidate is prompted for their initials (Identity Anchoring). They then arrive at a landing screen featuring the "Practice for Your Upcoming Interview" headline and the target role context. Before starting, they provide a 1-5 sentiment rating (Baseline Preparation), transitioning them into the session after receiving reassurance that the space is for practice, not live evaluation.
 
 ### 4.1.3. Navigation:
-Direct link from Email/SMS/WhatsApp.
+Direct link from Email.
 
 ### 4.1.4. Mock-up:
-![Candidate Landing - Desktop](media/uc_c1_desktop_landing_1773171503821.png)
-![Candidate Landing - Mobile](media/uc_c1_mobile_landing_1773171511854.png)
+![Candidate Landing - Desktop](media/UC-C1_desktop.png)
+![Candidate Landing - Mobile](media/UC-C1_mobile.png)
+![Candidate Landing - Desktop](media/UC-C1_desktop2.png)
+![Candidate Landing - Mobile](media/UC-C1_mobile2.png)
 
 ### 4.1.5. Acceptance Criteria:
-- [x] Brand logo is clearly visible.
-- [x] "This is practice — not a live interview" disclaimer is prominent.
-- [x] Initials input is required for link validation.
-- [x] No password/login required.
+- [x] **Zero-Auth Access**: Participant enters session directly via hashed token link with no password requirement.
+- [x] **Required Identity Check**: Mandatory 2-character initials entry for recruiter-side verification.
+- [x] **Baseline Sentiment Capture**: Required 1-5 emoji rating ("How prepared do you feel?") before "Begin" is activated.
+- [x] **Privacy/Mindset Framing**: Explicit messaging that coaching feedback is "visible only to you" and the space is for "skill-building, not evaluation."
+- [x] **Persistence Reassurance**: Visible "Copy Practice Link" utility and confirmation that progress can be resumed later.
+- [x] **Dynamic Role Content**: Greeting and introduction explicitly reference the target role metadata (e.g., "Administrative Assistant").
+- [x] **Audio Unlock**: User interaction (clicking Initials or Begin) successfully initializes the browser's AudioContext.
 
 ### 4.1.6. Accessibility Aspects:
 - Large, legible fonts.
