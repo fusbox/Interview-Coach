@@ -40,19 +40,19 @@ graph TD
 ## 4. Use Case
 ### 4.1.1. Use Case 1: Recruiter Authentication
 ### 4.1.2. Description:
-The recruiter enters their email and password (or requests a magic link) to authenticate with Supabase. Upon success, they are redirected to the Recruiter Dashboard.
+The recruiter enters their email and password to authenticate with Supabase. Upon success, they are redirected to the Recruiter Dashboard.
 
 ### 4.1.3. Navigation:
 `https://productionurl.com/login`
 
 ### 4.1.4. Mock-up:
-![Desktop Login View](media/uc_r0_desktop_login_1773170977365.png)
-![Mobile Login View](media/uc_r0_mobile_login_1773170980980.png)
+![Desktop Login View](media/UC-R0_desktop.png)
+![Mobile Login View](media/UC-R0_mobile.png)
 
 ### 4.1.5. Acceptance Criteria:
-- [x] Login page renders both email/password and magic link options.
+- [x] Login page renders sign up and login options.
 - [x] Validation errors shown for incorrect credentials.
-- [ ] Redirect to `/recruiter/dashboard` on success. (Pending verification)
+- [x] Redirect to `/recruiter/dashboard` on success.
 
 ### 4.1.6. Accessibility Aspects:
 - WCAG compliant input fields and labels.
@@ -73,13 +73,12 @@ The recruiter enters their email and password (or requests a magic link) to auth
 - Logs login events for security auditing.
 
 ### 4.1.11. Help Guide:
-"Use your institutional email to access your recruitment portal."
+"Use your Rangam email to access the recruiter portal."
 
 ### 4.1.12. Handling Retrospective vs. New Format:
 Compatible with existing Supabase Auth configuration.
 
 ### 4.1.13. Alternatives to Routine Solutions:
-- **Magic Link**: Use password-less login for enhanced security.
 - **SSO**: Integration with enterprise providers (future).
 
 ### 4.1.14. Global Best Practices Followed:
