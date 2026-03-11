@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, JetBrains_Mono, EB_Garamond, Crimson_Pro, Barlow_Condensed, Overpass } from 'next/font/google'
+import { Inter, Outfit } from 'next/font/google'
 
 import '@/index.css' // Import global styles
 import { cn } from '@/lib/cn'
@@ -8,11 +8,7 @@ import NextTopLoader from 'nextjs-toploader'
 import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
-const tech = JetBrains_Mono({ subsets: ['latin'], variable: '--font-tech' })
-const classic = EB_Garamond({ subsets: ['latin'], variable: '--font-classic' })
-const academic = Crimson_Pro({ subsets: ['latin'], variable: '--font-academic' })
-const industrial = Barlow_Condensed({ subsets: ['latin'], weight: ['400', '700'], variable: '--font-industrial' })
-const signage = Overpass({ subsets: ['latin'], variable: '--font-signage' })
+const display = Outfit({ subsets: ['latin'], variable: '--font-display' })
 
 
 export const viewport: Viewport = {
@@ -47,11 +43,7 @@ export default function RootLayout({
             <body className={cn(
                 "min-h-screen bg-background font-sans antialiased",
                 inter.variable,
-                tech.variable,
-                classic.variable,
-                academic.variable,
-                industrial.variable,
-                signage.variable
+                display.variable
             )}>
 
                 <NextTopLoader

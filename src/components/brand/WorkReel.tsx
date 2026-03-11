@@ -2,13 +2,14 @@
 
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
+import { tech, classic, academic, industrial, signage } from '@/lib/fonts';
 
 const fonts = [
-    { className: 'font-tech pl-[0.1em]', label: 'Work', scale: 0.98, yOffset: '-0.052em' },
-    { className: 'font-classic', label: 'Work', scale: 1.07, yOffset: '-0.088em' },
-    { className: 'font-academic', label: 'Work', scale: 1.25, yOffset: '-0.103em' },
-    { className: 'font-industrial pl-[0.05em]', label: 'Work', scale: 1.02, yOffset: '-0.105em' },
-    { className: 'font-signage', label: 'Work', scale: 1.03, yOffset: '0.04em' },
+    { className: `${tech.variable} font-tech pl-[0.1em]`, label: 'Work', scale: 0.98, yOffset: '-0.052em' },
+    { className: `${classic.variable} font-classic`, label: 'Work', scale: 1.07, yOffset: '-0.088em' },
+    { className: `${academic.variable} font-academic`, label: 'Work', scale: 1.25, yOffset: '-0.103em' },
+    { className: `${industrial.variable} font-industrial pl-[0.05em]`, label: 'Work', scale: 1.02, yOffset: '-0.105em' },
+    { className: `${signage.variable} font-signage`, label: 'Work', scale: 1.03, yOffset: '0.04em' },
     { className: 'font-display font-bold tracking-tighter', label: 'Work', scale: 1.0, yOffset: '-0.07em' },
 ];
 

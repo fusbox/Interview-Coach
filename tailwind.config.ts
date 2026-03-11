@@ -142,6 +142,13 @@ const config = {
 				standard: 'var(--ease-standard)',
 				emphasized: 'var(--ease-emphasized)',
 			},
+			fontWeight: {
+				normal: 'var(--font-weight-normal)',
+				medium: 'var(--font-weight-medium)',
+				semibold: 'var(--font-weight-semibold)',
+				bold: 'var(--font-weight-bold)',
+				black: 'var(--font-weight-black)',
+			},
 			keyframes: {
 				'accordion-down': {
 					from: {

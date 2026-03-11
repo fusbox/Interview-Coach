@@ -104,7 +104,7 @@ export default function SummaryScreen() {
                             >
                                 <div className="flex items-center gap-4 mb-3 pb-4 border-b border-border/60">
                                     <IconBadge {...getIconForTitle(section.title)} size="sm" />
-                                    <h3 className="text-2xl font-black text-text-primary">
+                                    <h3 className="text-2xl font-bold text-text-primary">
                                         {section.title}
                                     </h3>
                                 </div>

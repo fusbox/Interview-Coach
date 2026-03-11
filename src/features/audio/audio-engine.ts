@@ -117,7 +117,8 @@ class AudioEngine {
 
     /** Prefetch audio for a question (fire-and-forget). */
     prefetch(id: string, text: string): void {
-        if (!this.ctx) return;
+        if (!this.ctx || this.cache.has(id) || this.pending.has(id)) return;
+        
         console.log(`[AudioEngine] Pre-fetching audio for: "${id}"`);
         // Fire-and-forget — just populate cache
         this.getOrFetch(id, text).catch(() => { /* swallow */ });
@@ -175,6 +176,7 @@ class AudioEngine {
         if (!this.ctx) throw new Error('AudioContext not initialized');
 
         console.log(`[AudioEngine] Sending text for TTS processing: "${id}"`);
+        const startTime = performance.now();
         const response = await fetch('/api/tts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -186,9 +188,13 @@ class AudioEngine {
         }
 
         const arrayBuffer = await response.arrayBuffer();
+        const networkTime = performance.now() - startTime;
+        
+        const decodeStartTime = performance.now();
         const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+        const decodeTime = performance.now() - decodeStartTime;
 
-        console.log(`[AudioEngine] Cached audio for "${id}" (${audioBuffer.duration.toFixed(1)}s)`);
+        console.log(`[AudioEngine] Cached audio for "${id}" (Duration: ${audioBuffer.duration.toFixed(1)}s, Network: ${networkTime.toFixed(0)}ms, Decode: ${decodeTime.toFixed(0)}ms)`);
         return audioBuffer;
     }
 }

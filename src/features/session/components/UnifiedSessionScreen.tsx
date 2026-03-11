@@ -153,35 +153,32 @@ export default function UnifiedSessionScreen() {
 
     // Auto-play question audio on entry
     useEffect(() => {
-        if (currentQuestion && !hasSubmitted) {
-            const isFirstEntry = currentQuestionIndex === 0;
+        if (!currentQuestion || hasSubmitted) return;
 
-            // Mask latency: prefetch immediately in the background
-            prefetch(currentQuestion.id, currentQuestion.text);
+        // Mask latency: prefetch immediately in the background
+        prefetch(currentQuestion.id, currentQuestion.text);
 
-            if (isFirstEntry) {
-                // Apply narrative buffer for the "first meeting"
-                const lagMs = TRANSITION_DURATION * AUDIO_BUFFER_MULTIPLIER * 1000;
-                const timer = setTimeout(() => {
-                    speak(currentQuestion.text, currentQuestion.id);
-                }, lagMs);
-                return () => clearTimeout(timer);
-            } else {
-                // Subsequent questions play immediately (typically already prefetched)
+        const isFirstEntry = currentQuestionIndex === 0;
+        if (isFirstEntry) {
+            const lagMs = TRANSITION_DURATION * AUDIO_BUFFER_MULTIPLIER * 1000;
+            const timer = setTimeout(() => {
                 speak(currentQuestion.text, currentQuestion.id);
-            }
+            }, lagMs);
+            return () => clearTimeout(timer);
+        } else {
+            speak(currentQuestion.text, currentQuestion.id);
         }
+    }, [currentQuestionIndex, currentQuestionId, currentQuestion, hasSubmitted, prefetch, speak]);
 
-        // Prefetch next question audio
-        if (session?.questions) {
-            const nextIdx = currentQuestionIndex + 1;
-            if (nextIdx < session.questions.length) {
-                const nextQ = session.questions[nextIdx];
-                prefetch(nextQ.id, nextQ.text);
-            }
+    // Prefetch next question audio
+    useEffect(() => {
+        const questions = session?.questions || [];
+        const nextIdx = currentQuestionIndex + 1;
+        if (nextIdx < questions.length) {
+            const nextQ = questions[nextIdx];
+            prefetch(nextQ.id, nextQ.text);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentQuestionIndex, currentQuestion?.id]);
+    }, [currentQuestionIndex, session?.questions, prefetch]);
 
     // Handlers
     const handleTogglePlayback = async () => {
