@@ -63,10 +63,18 @@ Recruiter Dashboard > "Create Invite" link
 ![Mobile View - Invite](media/UC-R1_mobile4.png)
 
 ### 4.1.5. Acceptance Criteria:
-- [x] Recruiter MUST enter a Req ID for tracking.
-- [x] System supports Administrative Assistant role context.
-- [x] AI Generate correctly populates STAR/Technical questions.
-- [x] Multi-step progress bar (Job, Candidates, Preview, Invite) accurately reflects status.
+- [x] **Guided Wizard Flow**: 4-step creation process (Job & Questions, Candidates, Preview, Invite) with a persistent progress indicator.
+- [x] **Mandatory Role Context**: Requisition ID and Target Role are required for session initialization.
+- [x] **Template Integration**: Support for pre-filling configuration via saved or shared recruiter templates.
+- [x] **AI Question Orchestration**: "✨ AI Generate" feature triggers contextual generation of Behavioral (STAR), Culture (PERMA), and Technical questions based on the job description.
+- [x] **Question Composition**: 
+  - Behavioral: 4 standard STAR categories (Conflict, Adaptability, Growth, Scenario).
+  - Culture: 5 locked PERMA dimensions.
+  - Technical: Dynamic addition/removal of role-specific technical questions.
+- [x] **Batch Candidate Management**: Supports adding multiple candidates with optional resume text context per individual.
+- [x] **Unified Preview**: Comprehensive review of all role metadata and mapped questions before link generation.
+- [x] **Atomic Invite Generation**: Bulk creation of unique, secure interview tokens and links for the candidate pool.
+- [x] **Recruiter Profile Branding**: Generated invites include the recruiter's name, title, and "Rangam Consultants Inc." branding.
 
 ### 4.1.6. Accessibility Aspects:
 - WCAG 2.1 Level AA Compliance.
@@ -106,7 +114,7 @@ Supports legacy sessions without Req IDs by defaulting to "N/A" for report consi
 - Greenhouse
 
 ## 5. Mockup Reference
-![Desktop Final Invite Page](media/uc_r1_desktop_final_1773171420965.png)
+![Desktop Final Invite Page](media/UC-R1_desktop.png)
 
 ## 6. Software BA Change Order Documentation Self-Verification Checklist
 - [x] 1. Introduction & Objective clear and concise?
