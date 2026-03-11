@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-session-repository";
-import { requireCandidateToken } from "@/lib/server/auth/candidate-token";
+import { validatedSessionHandler } from "@/lib/server/api-handler-utils";
 
 const repository = new SupabaseSessionRepository();
 
@@ -8,21 +8,11 @@ export async function POST(
     request: Request,
     { params }: { params: { session_id: string; question_id: string } }
 ) {
-    try {
-        const auth = await requireCandidateToken(request, params.session_id);
-        if (!auth.ok) {
-            return NextResponse.json({ error: auth.error }, { status: auth.status });
-        }
-
-        const session = await repository.get(params.session_id);
-        if (!session) {
-            return NextResponse.json({ error: "Session not found" }, { status: 404 });
-        }
-
+    return validatedSessionHandler(request, params, async (req, { session }) => {
         // Parse retryContext from body if present
         let retryContext;
         try {
-            const body = await request.json();
+            const body = await req.json();
             retryContext = body.retryContext;
         } catch {
             // No body or invalid JSON, ignore
@@ -48,9 +38,5 @@ export async function POST(
         await repository.update(session);
 
         return NextResponse.json(session);
-
-    } catch (error) {
-        console.error("Retry Failed:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-    }
+    });
 }

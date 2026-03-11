@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-session-repository";
 import { z } from "zod";
-import { requireCandidateToken } from "@/lib/server/auth/candidate-token";
+import { validatedSessionHandler } from "@/lib/server/api-handler-utils";
 
 const repository = new SupabaseSessionRepository();
 
@@ -14,15 +14,8 @@ export async function PUT(
     request: Request,
     { params }: { params: { session_id: string; question_id: string } }
 ) {
-    try {
-        const auth = await requireCandidateToken(request, params.session_id);
-        if (!auth.ok) {
-            return NextResponse.json({ error: auth.error }, { status: auth.status });
-        }
-
-        const body = await request.json();
-
-
+    return validatedSessionHandler(request, params, async (req) => {
+        const body = await req.json();
         const { text } = DraftSchema.parse(body);
 
         // ATOMIC DRAFT SAVE (Fixes race condition with Submit/Analyze)
@@ -30,9 +23,5 @@ export async function PUT(
         await repository.saveDraft(params.session_id, params.question_id, text);
 
         return NextResponse.json({ success: true });
-
-    } catch (error) {
-        console.error("Save Draft Failed:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-    }
+    });
 }

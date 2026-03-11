@@ -14,6 +14,7 @@ export class TTSService {
 
         try {
             // 1. Call Gemini for Audio
+            console.log(`[TTSService] Generating speech for text: "${text.substring(0, 50)}..."`);
             const wrapped = `Instruction: Read the following interview question as a hiring manager addressing a candidate. Tone: Professional, clear, slightly encouraging.\n${text}`;
 
             const response = await ai.models.generateContent({

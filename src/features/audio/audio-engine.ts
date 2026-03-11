@@ -118,6 +118,7 @@ class AudioEngine {
     /** Prefetch audio for a question (fire-and-forget). */
     prefetch(id: string, text: string): void {
         if (!this.ctx) return;
+        console.log(`[AudioEngine] Pre-fetching audio for: "${id}"`);
         // Fire-and-forget — just populate cache
         this.getOrFetch(id, text).catch(() => { /* swallow */ });
     }
@@ -173,6 +174,7 @@ class AudioEngine {
     private async fetchAndDecode(id: string, text: string): Promise<AudioBuffer> {
         if (!this.ctx) throw new Error('AudioContext not initialized');
 
+        console.log(`[AudioEngine] Sending text for TTS processing: "${id}"`);
         const response = await fetch('/api/tts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

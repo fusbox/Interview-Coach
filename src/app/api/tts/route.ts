@@ -9,6 +9,8 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { text } = body;
 
+        console.log(`[TTS API] POST request received for text: "${text?.substring(0, 50)}..."`);
+
         if (!text) {
             return NextResponse.json({ error: "Missing text" }, { status: 400 });
         }
