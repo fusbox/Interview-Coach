@@ -50,9 +50,14 @@ The recruiter enters their email and password to authenticate with Supabase. Upo
 ![Mobile Login View](media/UC-R0_mobile.png)
 
 ### 4.1.5. Acceptance Criteria:
-- [x] Login page renders sign up and login options.
-- [x] Validation errors shown for incorrect credentials.
-- [x] Redirect to `/recruiter/dashboard` on success.
+- [x] **Dual-Mode Toggle**: Single interface supports "Sign In" and "Create Account" views via tabbed navigation.
+- [x] **Form Validation**: Client-side enforcement of required fields for Email (pattern-matched) and Password.
+- [x] **Password Visibility**: User can toggle password mask visibility via inline "Eye" icon.
+- [x] **Loading States**: Adaptive UI feedback (button spinner and label updates) during authentication processing.
+- [x] **Error Handling**: Contextual alert messages (state-critical) for invalid credentials or connection failures.
+- [x] **Success Feedback**: Success instructions (state-success) displayed upon account creation for email verification.
+- [x] **Post-Auth Redirection**: Successful login redirects the user to the primary creation workflow at `/recruiter/create`.
+- [x] **Session Persistence**: Secure JWT-based session management and automatic token refresh via Supabase SSR.
 
 ### 4.1.6. Accessibility Aspects:
 - WCAG compliant input fields and labels.

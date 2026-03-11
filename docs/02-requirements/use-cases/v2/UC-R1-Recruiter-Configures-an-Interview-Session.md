@@ -7,15 +7,14 @@ layout: default
 
 ## 1. Introduction
 ### 1.1.1. Scope:
-Covers the initial setup phase where a Recruiter defines the parameters for a candidate's interview session, including the target role and behavioral questions.
+Covers the initial setup phase where a Recruiter defines the parameters for a candidate's interview session, including the target role and interview questions.
 
 ### 1.1.2. Objective:
-To generate a candidate-specific session link and prepare the session context (role, job description, intake defaults) while preserving privacy and determinism.
+To generate a candidate-specific session link and prepare the session context (role, job description, interview questions, resume context) while preserving privacy and determinism.
 
 ### 1.1.3. Actors:
 - **Recruiter** (Primary)
 - **System** (Secondary - Session Orchestrator)
-- **AI Service** (Secondary - Populates technical and behavioral questions)
 
 ## 2. Business Requirements
 ### 2.1.1. User Needs and Goals:
@@ -31,15 +30,15 @@ To generate a candidate-specific session link and prepare the session context (r
 ### 2.1.3. Preconditions:
 - Recruiter is authenticated.
 - Target role is known (e.g., Administrative Assistant).
+- Requirement ID is known
 
 ## 3. Process Workflow Diagram
 ```mermaid
 graph TD
     Start[Initiate Creation] --> Auth{Authenticated?}
     Auth -- No --> Login[Login Redirect]
-    Auth -- Yes --> Input[Enter Req ID, Role & JD]
-    Input --> AIGen[AI Generate Questions]
-    AIGen --> Candidates[Add Candidates]
+    Auth -- Yes --> Input[Enter Req ID, Role & JD, Interview Questions]
+    Input --> Candidates[Add Candidates, Resume Context]
     Candidates --> Preview[Final Review]
     Preview --> Save[Generate Invites]
     Save --> Success[Display Shared Link]
@@ -48,14 +47,20 @@ graph TD
 ## 4. Use Case
 ### 4.1.1. Use Case 1: Recruiter Configures Session
 ### 4.1.2. Description:
-The recruiter enters the Req ID (e.g., AA-2024-001), target role, and job description. The system uses AI to generate relevant questions. The recruiter then adds candidates and previews the invite before generation.
+The recruiter enters the Req ID (e.g., RCI-ABCDE-001), target role, and job description. The recruiter inputs approved interview questions, adds candidates and resumes, and previews the invite before generation.
 
 ### 4.1.3. Navigation:
-Recruiter Dashboard > "New Invite" Button
+Recruiter Dashboard > "Create Invite" link
 
 ### 4.1.4. Mock-up:
-![Desktop View - Job Details](media/uc_r1_desktop_create_filled_1773171330137.png)
-![Mobile View - Job Details](media/uc_r1_mobile_create_filled_1773171330628.png)
+![Desktop View - Job Details](media/UC-R1_desktop.png)
+![Mobile View - Job Details](media/UC-R1_mobile.png)
+![Desktop View - Candidates](media/UC-R1_desktop2.png)
+![Mobile View - Candidates](media/UC-R1_mobile2.png)
+![Desktop View - Preview](media/UC-R1_desktop3.png)
+![Mobile View - Preview](media/UC-R1_mobile3.png)
+![Desktop View - Invite](media/UC-R1_desktop4.png)
+![Mobile View - Invite](media/UC-R1_mobile4.png)
 
 ### 4.1.5. Acceptance Criteria:
 - [x] Recruiter MUST enter a Req ID for tracking.
