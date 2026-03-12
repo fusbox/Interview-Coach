@@ -218,4 +218,32 @@ The codebase contained numerous hard-coded hex values, standard Tailwind color a
 ### Consequences
 - **Themeability**: The core brand identity is now entirely manageable via CSS variables without touching the configuration or component logic.
 - **Consistency**: Visual elements like success badges and information cards now share uniform semantic tokens.
-- **Maintainability**: Reduced the risk of "token drift" where different components use slightly different shades of the same brand color.
+- **Maintainability**: Reduced the risk of "token drift" where different components use slightly different shades of the same brand color.
+
+## ADR-016: Recharts Adoption for Admin Dashboard
+
+### Context
+The admin feedback portal required dataviews (trendlines, distribution charts) to visualize candidate efficacy, platform trust, and recruiter ROI over time. A charting library was needed to handle responsive SVGs, tooltips, and axes without building complex D3 primitives from scratch.
+
+### Decision
+- **Library Selection**: Adopted \echarts\ as the primary charting library for the admin dashboard.
+- **Implementation**: Created visualization components (e.g., \CandidateEfficacyChart\) that inherit global CSS variables via standard Tailwind classes where possible, or via direct CSS variable lookups for chart strokes/fills to ensure theme consistency.
+
+### Consequences / Tradeoffs
+- Rapid development of complex data visualizations.
+- Increases the admin bundle size slightly, but acceptable since these routes are protected and not part of the critical path for candidates or external public flows.
+
+## ADR-017: Deprecation of Recruiter Preparation Lift Prompt
+
+### Context
+During the implementation of "Metric 4: Recruiter ROI & Friction" for the Admin Feedback Dashboard, we needed a data source for `recruiter_preparation_lift` ("Do candidates seem more prepared after using this tool?"). However, recruiters do not currently possess sufficient context at the time of session completion to accurately answer this. They only see completion status, engagement time, and transcripts, not subsequent interview outcomes.
+
+### Decision
+- **Logic Extraction**: We extracted the Recharts visualization logic for "Candidate Preparation Lift" (`RecruiterPreparationLiftChart.tsx`) and moved it to a `/.deprecated/src/app/(recruiter)/admin/feedback/components` shadow folder.
+- **Dictionary Removal**: Removed the `recruiter_preparation_lift` constants from the active `page.tsx` dictionary mappings.
+- **Active Metric Adjustment**: Maintained the `recruiter_friction_invite` metric as the sole component of the "Recruiter Metrics" row, scaling its visual presentation to a single column.
+
+### Consequences
+- **Data Integrity**: Avoids collecting low-confidence "vibe check" data that misrepresents actual ROI.
+- **Future Readiness**: The visualization code is preserved in `/.deprecated/` and can be easily reinstated when an ATS integration (e.g. tracking stage progression from Intake to Shortlist) provides a reliable, high-signal trigger for the prompt.
+

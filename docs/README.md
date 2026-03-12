@@ -1,8 +1,8 @@
 ## Documentation Index
 
-> [!IMPORTANT]
-> ### Use Cases (v2) - Active Work
-> We are currently migrating all use cases to a new enterprise template. Below are the individual flows:
+> [!NOTE]
+> ### Core Use Cases
+> The primary enterprise use cases driving development are defined here:
 > - **[UC-R0: Recruiter Login](02-requirements/use-cases/v2/UC-R0-Recruiter-Login.md)**
 > - **[UC-R1: Recruiter Configures Session](02-requirements/use-cases/v2/UC-R1-Recruiter-Configures-an-Interview-Session.md)**
 > - **[UC-R2: Recruiter Reviews Session](02-requirements/use-cases/v2/UC-R2-Recruiter-Reviews-a-Candidate-Interview-Session.md)**
@@ -31,7 +31,8 @@ This folder contains all project documentation for Interview Coach for Recruiter
 ### Architecture (System Contracts)
 
 6. [Architecture Overview](04-architecture/architecture-overview.md) — System shape and intent
-7. [State \& Streaming Contract](04-architecture/state-and-streaming-contract.md) — Canonical state model and streaming rules
+7. [End-to-End Flow](04-architecture/e2e-flow.md) — Full technical walkthrough of the recruiter to candidate process
+8. [State \& Streaming Contract](04-architecture/state-and-streaming-contract.md) — Canonical state model and streaming rules
 8. [API Surface](04-architecture/api-surface.md) — Client/server contract
 9. [Code Organization \& Layering](04-architecture/code-organization.md) — Structural boundaries
 10. [Stability & Change Policy](04-architecture/stability-and-change-policy.md) — Governance for architectural evolution
@@ -58,7 +59,7 @@ This folder contains all project documentation for Interview Coach for Recruiter
 | API Surface                   | 🔒 Locked   | Contract (V1)       | 2026-01-31
 | Code Organization & Layering  | ✅ Complete | Structural Guidance | 2026-01-31
 | Stability & Change Policy     | 🔒 Locked   | Governance          | 2026-01-31
-| Use Cases                     | ⚠️ Drafting (v2) | Enterprise Template | 2026-03-10
+| Use Cases                     | ✅ Complete | Enterprise Template | 2026-03-12
 | User Flows                    | ⏳ Pending  | —                   | —
 | Wireframes                    | ⏳ Pending  | —                   | —
 

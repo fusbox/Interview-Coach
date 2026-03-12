@@ -6,6 +6,11 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getCachedUser } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
+import { CandidateEfficacyChart } from "./components/CandidateEfficacyChart";
+import { AIFeedbackQualityChart } from "./components/AIFeedbackQualityChart";
+import { PlatformTrustChart } from "./components/PlatformTrustChart";
+import { RecruiterMetricsChart } from "./components/RecruiterMetricsChart";
+import { RolePatternsChart } from "./components/RolePatternsChart";
 
 export const dynamic = 'force-dynamic';
 
@@ -26,8 +31,6 @@ const QUESTION_TEXT: Record<string, string> = {
     session_completion_repeat_intent: "I would use this again to prepare for a different role.",
     // Recruiter: StepBatchSend friction
     recruiter_friction_invite: "How easy was sending these invites?",
-    // Recruiter: PreparationLiftPrompt
-    recruiter_preparation_lift: "Do candidates seem more prepared after using this tool?",
 };
 
 const FEEDBACK_LABELS: Record<string, string> = {
@@ -39,7 +42,6 @@ const FEEDBACK_LABELS: Record<string, string> = {
     session_completion_psychological_safety: 'Psychological Safety',
     session_completion_repeat_intent: 'Repeat Intent',
     recruiter_friction_invite: 'Invite Ease',
-    recruiter_preparation_lift: 'Preparation Lift',
 };
 
 function getLabelForType(type: string) {
@@ -199,6 +201,21 @@ export default async function AdminFeedbackPage() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Candidate Efficacy Chart (Metric 1) */}
+            <CandidateEfficacyChart feedback={feedback} />
+
+            {/* AI Feedback Quality (Metric 2) */}
+            <AIFeedbackQualityChart feedback={feedback} />
+
+            {/* Platform Trust & Virality (Metric 3) */}
+            <PlatformTrustChart feedback={feedback} />
+
+            {/* Cross-Dimensional Role Patterns (Metric 5) */}
+            <RolePatternsChart feedback={feedback} />
+
+            {/* Recruiter ROI & Friction (Metric 4) */}
+            <RecruiterMetricsChart feedback={feedback} />
 
             {/* Signals Table */}
             <Card>
