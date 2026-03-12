@@ -249,7 +249,7 @@ export default function CreateInviteWizard() {
         if (!details.role) return;
         setIsGeneratingQuestions(true);
         try {
-            const res = await fetch("/api/dev/generate-questions", {
+            const res = await fetch("/api/questions/generate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ role: details.role, jobDescription: details.jd })

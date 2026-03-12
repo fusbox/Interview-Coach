@@ -15,8 +15,6 @@ interface FeedbackPillProps {
 /**
  * FeedbackPill is a localized, animated pill used to show temporal success states
  * like "Copied" or "Saved" near the triggering element.
- * 
- * Default styling matches the "success green" (bg-state-success) design system token.
  */
 export const FeedbackPill: React.FC<FeedbackPillProps> = ({
     isVisible,

@@ -142,31 +142,29 @@ export function StepJobAndQuestions({
                     title="Job Details & Questions"
                     description="Define the role and interview questions."
                     actions={
-                        isDemo && (
-                            <div className="flex gap-2 items-center">
-                                {onRandomizeJob && (
-                                    <button
-                                        onClick={onRandomizeJob}
-                                        className="px-3 py-1.5 text-micro font-bold uppercase tracking-wider rounded-full bg-state-warning/10 text-state-warning hover:bg-state-warning/20 transition-all border border-state-warning/20"
-                                    >
-                                        🎲 Random Job
-                                    </button>
-                                )}
-                                {onGenerateQuestionsAI && (
-                                    <button
-                                        onClick={onGenerateQuestionsAI}
-                                        disabled={isGeneratingQuestions}
-                                        className="px-3 py-1.5 text-micro font-bold uppercase tracking-wider rounded-full bg-state-success/10 text-state-success hover:bg-state-success/20 transition-all border border-state-success/20 disabled:opacity-50 flex items-center gap-1.5"
-                                    >
-                                        {isGeneratingQuestions ? (
-                                            <><Loader2 className="w-3 h-3 animate-spin" /> Generating...</>
-                                        ) : (
-                                            <>✨ AI Generate</>
-                                        )}
-                                    </button>
-                                )}
-                            </div>
-                        )
+                        <div className="flex gap-2 items-center">
+                            {isDemo && onRandomizeJob && (
+                                <button
+                                    onClick={onRandomizeJob}
+                                    className="px-3 py-1.5 text-micro font-bold uppercase tracking-wider rounded-full bg-state-warning/10 text-state-warning hover:bg-state-warning/20 transition-all border border-state-warning/20"
+                                >
+                                    🎲 Random Job
+                                </button>
+                            )}
+                            {onGenerateQuestionsAI && (
+                                <button
+                                    onClick={onGenerateQuestionsAI}
+                                    disabled={isGeneratingQuestions}
+                                    className="px-4 py-1.5 text-micro font-bold uppercase tracking-wider rounded-full bg-brand-deep text-white hover:bg-brand-deep/90 active:scale-95 transition-all shadow-raised-1 border border-brand-deep/20 disabled:opacity-50 flex items-center gap-1.5"
+                                >
+                                    {isGeneratingQuestions ? (
+                                        <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating...</>
+                                    ) : (
+                                        <>✨ AI Generate Questions</>
+                                    )}
+                                </button>
+                            )}
+                        </div>
                     }
                 />
 

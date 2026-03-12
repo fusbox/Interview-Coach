@@ -50,3 +50,5 @@ coverage/
 openspec
 .deprecated
 .todo
+.pfizer
+.webreel

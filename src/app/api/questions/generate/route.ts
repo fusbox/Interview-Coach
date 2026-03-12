@@ -3,15 +3,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Logger } from "@/lib/logger";
 import { ai, AI_MODELS } from "@/lib/server/services/ai-config";
-import { showDemoTools } from "@/lib/feature-flags";
 import { getReadingLevelContext } from "@/lib/ai/prompts";
 
 export async function POST(req: NextRequest) {
-    // Demo-mode gate
-    if (!showDemoTools()) {
-        return NextResponse.json({ error: "Not available" }, { status: 404 });
-    }
-
     try {
         const { role, jobDescription, resume } = await req.json();
 
@@ -20,7 +14,7 @@ export async function POST(req: NextRequest) {
         }
 
         if (!ai) {
-            Logger.warn("[Dev] No API key, returning mock questions");
+            Logger.warn("[AI] No API key, returning mock questions");
             return NextResponse.json(getMockQuestions(role));
         }
 
@@ -84,6 +78,8 @@ RULES:
 - Do not mention the word "STAR" or "PERMA" in the question text.
 - Output ONLY valid JSON.`;
 
+        Logger.info("[AI] Generating questions", { role });
+
         const response = await ai.models.generateContent({
             model: AI_MODELS.QUESTION_GEN,
             contents: { parts: [{ text: prompt }] },
@@ -94,10 +90,13 @@ RULES:
         if (!text) throw new Error("Empty AI response");
 
         const result = JSON.parse(text);
+        
+        Logger.info("[AI] Questions generated successfully", { role });
+        
         return NextResponse.json(result);
 
     } catch (error) {
-        Logger.error("[Dev] Question generation failed", error);
+        Logger.error("[AI] Question generation failed", error);
         return NextResponse.json(
             { error: "Failed to generate questions" },
             { status: 500 }

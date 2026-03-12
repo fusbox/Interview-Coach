@@ -247,3 +247,18 @@ During the implementation of "Metric 4: Recruiter ROI & Friction" for the Admin 
 - **Data Integrity**: Avoids collecting low-confidence "vibe check" data that misrepresents actual ROI.
 - **Future Readiness**: The visualization code is preserved in `/.deprecated/` and can be easily reinstated when an ATS integration (e.g. tracking stage progression from Intake to Shortlist) provides a reliable, high-signal trigger for the prompt.
 
+## ADR-018: Productionization of AI Question Generator
+
+### Context
+The AI Question Generator was previously a development-only tool gated by `showDemoTools()`. To scale the platform's value for recruiters, this needs to be a first-class production feature with a refined UI.
+
+### Decision
+- **API Promotion**: Moved the endpoint from `/api/dev/generate-questions` to `/api/questions/generate` to reflect its production status.
+- **Access Control**: Removed the `showDemoTools()` gate to allow all authenticated recruiters access.
+- **UI Refinement**: Upgraded the "AI Generate" button from a "debug-style" success badge look to a premium `brand-deep` primary action button with standard shadow and interaction states.
+- **Observability**: Added semantic production logging (`[AI]`) for better tracking of generation success and failure rates.
+
+### Consequences
+- Recruiters can now leverage AI to bootstrap their interview process directly from the creation wizard.
+- Improves the "vertical rhythm" and professionalism of the recruiter creation flow.
+- Required updating API call sites in `CreateInviteWizard`.
