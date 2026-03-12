@@ -17,7 +17,7 @@ export async function GET(
     req: NextRequest,
     { params }: { params: { sessionId: string } }
 ) {
-    // Demo-mode gate (replaces hardcoded dev gate)
+    // Demo-mode gate
     if (!showDemoTools()) {
         return NextResponse.json({ error: "Not available" }, { status: 404 });
     }

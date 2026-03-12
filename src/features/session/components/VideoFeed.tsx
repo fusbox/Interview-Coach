@@ -49,7 +49,7 @@ export function VideoFeed({ className, onStreamReady }: VideoFeedProps) {
 
         return () => {
             mounted = false;
-            // Cleanup: Stop all video tracks
+            // Release camera resources
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
             }

@@ -31,10 +31,6 @@ export function ProfileGuard() {
                 .eq('recruiter_id', user.id)
                 .single();
 
-            // If not found (error code PGRST116) or data is null
-            // Also logic: "first name, last name" required?
-            // "On first time entry via verification, route them..."
-            // Usually first time means row doesn't exist.
             if (error?.code === 'PGRST116' || !data) {
                 console.log("No profile found, redirecting to settings...");
                 router.push('/recruiter/settings');

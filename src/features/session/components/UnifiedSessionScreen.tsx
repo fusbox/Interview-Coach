@@ -143,7 +143,7 @@ export default function UnifiedSessionScreen() {
             warmUp();
         }
         return () => {
-            // Cleanup on mode switch or unmount if not recording
+            // Reset audio and speech-to-text when switching modes
             if (mode !== 'voice') {
                 stopListening();
                 resetAudio();
@@ -238,7 +238,7 @@ export default function UnifiedSessionScreen() {
                 });
             }
 
-            // Cleanup local states
+            // Reset local state buffers
             if (mode === 'voice') {
                 stopListening();
                 resetTranscript();

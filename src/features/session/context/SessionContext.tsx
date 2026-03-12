@@ -12,7 +12,6 @@ export interface OnboardingIntakeV1 {
 }
 
 export interface SessionContextType {
-    // Legacy State (Mapped to Core where possible)
     session?: InterviewSession | null;
     startSession: (
         role: string,
@@ -26,7 +25,7 @@ export interface SessionContextType {
     goToQuestion: (index: number) => void;
     isLoading: boolean;
 
-    // Stubs for legacy signature compatibility
+    // Compatibility stubs for legacy signatures
     loadTipsForQuestion: (questionId: string) => Promise<void>;
     saveAnswer: (
         questionId: string,
@@ -42,7 +41,7 @@ export interface SessionContextType {
     updateSession: (sessionId: string, updates: Partial<InterviewSession>) => Promise<void>;
     refresh: () => Promise<void>;
 
-    // Headless Core State (The New Truth)
+    // Core State
     now: NowState;
     screen: ScreenId;
 

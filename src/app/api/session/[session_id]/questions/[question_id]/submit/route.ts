@@ -14,10 +14,10 @@ export async function POST(
         const body = await req.json();
         const { text, analysis } = z.object({
             text: z.string(),
-            analysis: z.any().optional() // Allow client to pass partial analysis or none
+            analysis: z.any().optional()
         }).parse(body);
 
-        const answer = text; // Alias for internal logic
+        const answer = text;
 
         console.log(`[SubmitAPI] Submitting answer for Q: ${params.question_id}`);
 
@@ -29,10 +29,8 @@ export async function POST(
         const updatedSession = submitAnswer(session, params.question_id, answer, analysis || undefined);
         console.log(`[SubmitAPI] Session Updated (Memory), Status: ${updatedSession.status}`);
 
-        // 3. Persist
-        // Ensure we clear any previous analysis (stale feedback bug)
+        // Ensure atomic state by clearing existing analysis before update
         await repository.deleteAnalysis(params.session_id, params.question_id);
-
         await repository.update(updatedSession);
         console.log(`[SubmitAPI] Session Persisted to DB`);
 

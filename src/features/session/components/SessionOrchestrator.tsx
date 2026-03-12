@@ -5,7 +5,6 @@ import { audioEngine } from "@/features/audio/audio-engine";
 import InitialsScreen from "./InitialsScreen";
 import LandingScreen from "./LandingScreen";
 import UnifiedSessionScreen from "./UnifiedSessionScreen";
-// import ReviewFeedbackScreen from "./ReviewFeedbackScreen";
 import SummaryScreen from "./SummaryScreen";
 import ErrorScreen from "./ErrorScreen";
 import LoadingScreen from "./LoadingScreen";
@@ -36,7 +35,6 @@ export default function SessionOrchestrator() {
     }, [now.status, isEntering]);
 
     // Computed Context for Screens
-    // TODO: Improve cleaner selector access either in Context or Hook
     const currentQ = session?.questions.find((q: Question) => q.id === now.currentQuestionId);
 
     // Actions Wrapper

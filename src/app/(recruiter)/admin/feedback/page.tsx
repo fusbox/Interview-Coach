@@ -159,7 +159,7 @@ export default async function AdminFeedbackPage() {
         feedback = await repo.listAdminView();
     } catch (e) {
         console.error('Failed to fetch admin feedback', e);
-        error = "Failed to load feedback records. The user_feedback table may not exist yet — run the migration in Supabase SQL Editor.";
+        error = "Failed to load feedback records. Please contact system support if this persists.";
     }
 
     const internalCount = feedback.filter(f => f.type.startsWith('recruiter_')).length;

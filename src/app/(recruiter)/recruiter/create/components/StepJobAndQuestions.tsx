@@ -170,7 +170,7 @@ export function StepJobAndQuestions({
                     }
                 />
 
-                {/* Template Select - Now Stacked Below */}
+                {/* Template Select */}
                 <div className="flex items-center gap-2">
                     <span className="text-micro font-bold uppercase tracking-widest text-text-disabled">Apply Template:</span>
                     <div className="relative">

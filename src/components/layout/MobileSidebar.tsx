@@ -11,18 +11,6 @@ interface MobileSidebarProps {
 
 export function MobileSidebar({ children }: MobileSidebarProps) {
     const [isOpen, setIsOpen] = React.useState(false);
-
-    // Close on navigation (if children use onNavigate prop correctly, or we can just rely on the Overlay click)
-    // To make this robust, we clone the children to inject onNavigate if it's a valid element, 
-    // but specific composition is safer. For now, we'll expose a wrapper.
-
-    // Actually, deeper integration: logic in the Sidebar component itself? 
-    // Or just let the user click the overlay to close. 
-    // Better: Pass `isOpen` state down? No, let's keep it simple:
-    // Sidebar links should probably close the drawer. 
-    // We can wrap the children in a div that handles capturing clicks if we wanted, 
-    // but for now let's just implement the drawer mechanism.
-
     return (
         <>
             <Button

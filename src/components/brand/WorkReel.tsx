@@ -15,12 +15,11 @@ const fonts = [
 
 export default function WorkReel() {
     const [index, setIndex] = useState(-1);
-    // Increased slot height from 1em to 1.6em to provide vertical "leak protection" buffer
     const slotHeight = 1.6;
 
     useEffect(() => {
         const delayTimer = setTimeout(() => {
-            setIndex(0); // Scroll into first font precisely at the 1.3s mark
+            setIndex(0);
             const timer = setInterval(() => {
                 setIndex((prev) => {
                     if (prev >= fonts.length - 1) {

@@ -1,14 +1,9 @@
 /**
  * Recruiter Dashboard — Widget Bucketing Logic
  *
- * Transforms SessionSummary[] into 4 action-oriented buckets:
- *   1. Ready to Review  (completed sessions)
- *   2. Needs Follow-Up  (engaged but stale > 48h)
- *   3. Recently Active   (engaged and not stale)
- *   4. Not Started        (first-attempt, never engaged)
- *
- * This is a Layer 2 derived computation (dashboard constitution §4).
- * Computed at render time, never persisted.
+ * Segments sessions into action-oriented buckets based on status and activity.
+ * This is a derived computation for dashboard presentation layers.
+ * Computed at render time.
  */
 
 import { SessionSummary } from '@/lib/domain/types';
@@ -104,7 +99,7 @@ function isRetry(s: SessionSummary): boolean {
 }
 
 /**
- * Get the last-activity timestamp for staleness computation.
+ * Get the reference timestamp for activity calculations.
  */
 function lastActivity(s: SessionSummary): number {
     return s.updatedAt || s.createdAt;
@@ -154,12 +149,11 @@ export function computeWidgetBuckets(
 
         // Has engagement evidence?
         if (ws.hasEngagement) {
-            // Stale check
             if (ws.idleDurationMs > STALE_THRESHOLD_MS) {
-                // Bucket 2: Stale + engaged
+                // Segment as follow-up if idle beyond threshold
                 needsFollowup.push(ws);
             } else {
-                // Bucket 3: Active + engaged
+                // Active session
                 recentlyActive.push(ws);
             }
             continue;

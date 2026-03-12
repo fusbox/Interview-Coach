@@ -12,8 +12,8 @@ export interface Competency {
     id: string;
     title: string;
     description: string;
-    name?: string; // Optional alias for title (tips-service compatibility)
-    definition?: string; // Optional alias for description (tips-service compatibility)
+    name?: string; // Compatibility alias for title
+    definition?: string; // Compatibility alias for description
 }
 
 export interface Blueprint {
@@ -118,9 +118,8 @@ export interface AnalysisResult {
     transcript?: string;
     __debugPrompt?: string; // Captured LLM payload for runtime AI introspection
 
-    // Legacy / Extended Support (Optional - Mapped from V2 where possible or deprecated)
-    readinessBand?: 'RL1' | 'RL2' | 'RL3' | 'RL4'; // Deprecated
-    coachReaction?: string; // Mapped to ack
+    readinessBand?: 'RL1' | 'RL2' | 'RL3' | 'RL4';
+    coachReaction?: string;
 }
 
 /**

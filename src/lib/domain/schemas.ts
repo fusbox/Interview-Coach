@@ -70,8 +70,6 @@ export const AnalysisResultSchema = z.object({
         readinessLevel: z.enum(['RL1', 'RL2', 'RL3', 'RL4']).optional(),
     }).optional(),
     transcript: z.string().optional(),
-
-    // Legacy / Optional fields
     readinessBand: z.enum(['RL1', 'RL2', 'RL3', 'RL4']).optional(),
     coachReaction: z.string().optional(),
 }).passthrough();

@@ -18,7 +18,9 @@ interface RecruiterMetricsProps {
     feedback: FeedbackRecord[];
 }
 
-// Normalizes yes/somewhat/no OR 1-5 ratings into positive/neutral/negative buckets
+/**
+ * Normalizes qualitative (yes/no) or quantitative (1-5) feedback into sentiment categories.
+ */
 function normalizeToSentiment(record: FeedbackRecord): 'positive' | 'neutral' | 'negative' | null {
     if (record.rating !== null && record.rating !== undefined) {
         if (record.rating >= 4) return 'positive';

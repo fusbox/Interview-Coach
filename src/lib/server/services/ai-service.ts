@@ -180,7 +180,6 @@ Generate feedback as strict JSON matching this schema:
                     readinessLevel: calculatedRL,
                     confidence: scoreValues.confidence <= 2 ? 'low' : scoreValues.confidence >= 4 ? 'high' : 'medium'
                 },
-                // Legacy support (to be fully removed when UI updates)
                 readinessBand: calculatedRL,
                 coachReaction: result.ack,
                 __debugPrompt: combinedPrompt

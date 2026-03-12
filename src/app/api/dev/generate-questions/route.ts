@@ -7,7 +7,7 @@ import { showDemoTools } from "@/lib/feature-flags";
 import { getReadingLevelContext } from "@/lib/ai/prompts";
 
 export async function POST(req: NextRequest) {
-    // Demo-mode gate (replaces hardcoded dev gate)
+    // Demo-mode gate
     if (!showDemoTools()) {
         return NextResponse.json({ error: "Not available" }, { status: 404 });
     }
