@@ -98,6 +98,10 @@ export function StepJobAndQuestions({
         set(list.map(q => q.id === id ? { ...q, text } : q));
     };
 
+    const clearQuestion = (set: (val: QuestionInput[]) => void, list: QuestionInput[], id: string) => {
+        set(list.map(q => q.id === id ? { ...q, text: '' } : q));
+    };
+
     const handleApplyTemplate = (templateId: string) => {
         const template = templates.find(t => t.id === templateId);
         if (!template) return;
@@ -222,13 +226,23 @@ export function StepJobAndQuestions({
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {star.map((q, idx) => (
-                            <div key={q.id}>
+                            <div key={q.id} className="relative group/field">
                                 <AutoResizeTextarea
-                                    className="flex min-h-[44px] w-full rounded-xl border border-border bg-surface-subtle px-4 py-3 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                    className="flex min-h-[44px] w-full rounded-xl border border-border bg-surface-subtle pl-4 pr-10 py-3 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                                     value={q.text}
                                     onChange={val => updateQuestion(setStar, star, q.id, val)}
                                     placeholder={`STAR Question ${idx + 1}...`}
                                 />
+                                {q.text && (
+                                    <button
+                                        type="button"
+                                        onClick={() => clearQuestion(setStar, star, q.id)}
+                                        className="absolute right-3 top-3 p-1 text-text-disabled hover:text-state-critical opacity-0 group-hover/field:opacity-100 transition-all duration-base"
+                                        title="Clear content"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                )}
                             </div>
                         ))}
                     </CardContent>
@@ -241,13 +255,23 @@ export function StepJobAndQuestions({
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {perma.map(q => (
-                            <div key={q.id}>
+                            <div key={q.id} className="relative group/field">
                                 <AutoResizeTextarea
-                                    className="flex min-h-[44px] w-full rounded-xl border border-border bg-surface-subtle px-4 py-3 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                    className="flex min-h-[44px] w-full rounded-xl border border-border bg-surface-subtle pl-4 pr-10 py-3 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                                     value={q.text}
                                     onChange={val => updateQuestion(setPerma, perma, q.id, val)}
                                     placeholder={`${q.label} Question...`}
                                 />
+                                {q.text && (
+                                    <button
+                                        type="button"
+                                        onClick={() => clearQuestion(setPerma, perma, q.id)}
+                                        className="absolute right-3 top-3 p-1 text-text-disabled hover:text-state-critical opacity-0 group-hover/field:opacity-100 transition-all duration-base"
+                                        title="Clear content"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                )}
                             </div>
                         ))}
                     </CardContent>
@@ -270,13 +294,23 @@ export function StepJobAndQuestions({
                     <CardContent className="space-y-4 pt-6">
                         {technical.map((q, idx) => (
                             <div key={q.id} className="flex gap-2 items-center animate-in fade-in slide-in-from-top-1 duration-base">
-                                <div className="flex-1">
+                                <div className="flex-1 relative group/field">
                                     <AutoResizeTextarea
-                                        className="flex min-h-[44px] w-full rounded-xl border border-border bg-surface-subtle px-4 py-3 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                        className="flex min-h-[44px] w-full rounded-xl border border-border bg-surface-subtle pl-4 pr-10 py-3 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                                         value={q.text}
                                         onChange={val => updateQuestion(setTechnical, technical, q.id, val)}
                                         placeholder={`Technical Question ${idx + 1}...`}
                                     />
+                                    {q.text && (
+                                        <button
+                                            type="button"
+                                            onClick={() => clearQuestion(setTechnical, technical, q.id)}
+                                            className="absolute right-3 top-3 p-1 text-text-disabled hover:text-state-critical opacity-0 group-hover/field:opacity-100 transition-all duration-base"
+                                            title="Clear content"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    )}
                                 </div>
                                 {technical.length > 1 && (
                                     <Button size="icon" variant="ghost" className="text-state-critical hover:bg-state-critical/5 shrink-0" onClick={() => removeQuestion(setTechnical, technical, q.id)}>
