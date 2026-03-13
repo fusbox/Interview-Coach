@@ -62,9 +62,9 @@ export async function PATCH(
                 await repository.updatePartial(session_id, { summaryNarrative: narrative });
                 session.summaryNarrative = narrative;
 
-                // Trigger Email Debrief asynchronously
+                // Trigger Email Debrief
                 if (session.candidate?.email) {
-                    EmailService.sendDebriefEmail(session).catch(err => 
+                    await EmailService.sendDebriefEmail(session).catch(err => 
                         console.error("[API] Email send failed:", err)
                     );
                 }
