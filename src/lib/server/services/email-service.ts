@@ -52,7 +52,7 @@ export class EmailService {
                 role: session.role,
                 summaryNarrative: session.summaryNarrative || '',
                 debriefUrl,
-                logoUrl: `${baseUrl}/rangam-logo.webp`,
+                logoUrl: `${baseUrl}/rangam-logo.png`,
             });
 
             const { data, error } = await resend.emails.send({
