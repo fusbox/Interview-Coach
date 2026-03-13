@@ -27,9 +27,22 @@ export function renderSessionDebriefEmail({
   const safeRole = escapeHTML(role);
   
   // Extract summary text if it follows the MD structure
-  const summaryText = summaryNarrative.split('\n')[0] === '### Executive Summary' 
-    ? summaryNarrative.split('\n').slice(1, 4).join(' ').trim() 
-    : "View your full performance breakdown, strengths, and primary growth areas in your interactive debrief dashboard.";
+  let summaryText = "View your full performance breakdown, strengths, and primary growth areas in your interactive debrief dashboard.";
+  const lines = summaryNarrative.split('\n');
+  const execIdx = lines.findIndex(l => l.trim() === '### Executive Summary');
+  
+  if (execIdx !== -1) {
+    // Find where the next section starts (next line starting with ###)
+    const nextSectionIdx = lines.findIndex((l, i) => i > execIdx && l.trim().startsWith('###'));
+    const contentLines = nextSectionIdx !== -1 
+      ? lines.slice(execIdx + 1, nextSectionIdx) 
+      : lines.slice(execIdx + 1);
+    
+    const extracted = contentLines.join(' ').trim();
+    if (extracted) {
+      summaryText = extracted;
+    }
+  }
   
   const safeSummary = escapeHTML(summaryText);
 
