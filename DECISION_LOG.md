@@ -262,3 +262,19 @@ The AI Question Generator was previously a development-only tool gated by `showD
 - Recruiters can now leverage AI to bootstrap their interview process directly from the creation wizard.
 - Improves the "vertical rhythm" and professionalism of the recruiter creation flow.
 - Required updating API call sites in `CreateInviteWizard`.
+
+## ADR-019: Automated Candidate Email Debriefs
+
+### Context
+Candidates often finish practice sessions and don't immediately review their debriefs or forget to bookmark the link. To increase engagement and ensure coaching value is delivered, we need a reliable way to push the debrief summary to the candidate's inbox.
+
+### Decision
+- **Email Provider**: Adopted **Resend** as the system-wide email delivery service.
+- **Trigger Mechanic**: Triggered the debrief email asynchronously within the session `PATCH` route immediately after successful AI summarization.
+- **React-First Templates**: Built the email templates using React components to maintain design consistency with the platform's UI.
+- **Access Flow**: Included a secure direct access link containing the invite token to ensure a zero-friction path from email to dashboard.
+
+### Consequences
+- Candidates receive immediate positive reinforcement and a record of their practice session.
+- Increased return rates to the platform.
+- Introduces `RESEND_API_KEY` as a new required production secret.

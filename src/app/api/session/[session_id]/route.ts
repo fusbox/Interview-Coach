@@ -3,6 +3,7 @@ import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-
 import { requireCandidateToken } from "@/lib/server/auth/candidate-token";
 import { UpdateSessionSchema } from "@/lib/domain/schemas";
 import { AIService } from "@/lib/server/services/ai-service";
+import { EmailService } from "@/lib/server/services/email-service";
 
 const repository = new SupabaseSessionRepository();
 
@@ -60,6 +61,13 @@ export async function PATCH(
                 const narrative = await AIService.summarizeSession(session);
                 await repository.updatePartial(session_id, { summaryNarrative: narrative });
                 session.summaryNarrative = narrative;
+
+                // Trigger Email Debrief asynchronously
+                if (session.candidate?.email) {
+                    EmailService.sendDebriefEmail(session).catch(err => 
+                        console.error("[API] Email send failed:", err)
+                    );
+                }
             } catch (summaryError) {
                 console.error("[API] Summarization failed:", summaryError);
                 // We still return the session even if summarization fails; polling will try again or show fallback

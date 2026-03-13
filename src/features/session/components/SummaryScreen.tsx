@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button"
 import { RotateCcw, Loader2 } from "lucide-react"
 import { useSession } from "../context/SessionContext"
@@ -28,6 +28,24 @@ export default function SummaryScreen() {
     const router = useRouter();
 
     const hasNarrative = session?.summaryNarrative && !STOCK_NARRATIVES.includes(session.summaryNarrative);
+
+    // Dynamic Greeting Logic (Replicated from LandingScreen)
+    const titleText = useMemo(() => {
+        const defaultTitle = "Session Complete!";
+        if (!session?.enteredInitials || !session?.candidate?.firstName || !session?.candidate?.lastName) {
+            return defaultTitle;
+        }
+
+        const expectedInitials = `${session.candidate.firstName[0]}${session.candidate.lastName[0]}`.toUpperCase();
+        if (session.enteredInitials.toUpperCase() === expectedInitials) {
+            return `Great practice round, ${session.candidate.firstName}!`;
+        }
+        return defaultTitle;
+    }, [session?.enteredInitials, session?.candidate?.firstName, session?.candidate?.lastName]);
+
+    const descriptionText = hasNarrative 
+        ? "Here's your feedback summary. You'll also receive an email of this report."
+        : "One moment while I create your feedback summary";
 
     const [isCreating, setIsCreating] = useState(false);
 
@@ -83,10 +101,10 @@ export default function SummaryScreen() {
                         className="w-full space-y-4 text-left"
                     >
                         <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-primary leading-tight font-display">
-                            Session Complete!
+                            {titleText}
                         </h1>
                         <p className="text-lg text-text-secondary leading-relaxed">
-                            Great job practicing! Here&rsquo;s your debrief based on your performance.
+                            {descriptionText}
                         </p>
                     </motion.div>
                 </div>
