@@ -155,7 +155,7 @@ export function StepJobAndQuestions({
                                 <button
                                     onClick={onGenerateQuestionsAI}
                                     disabled={isGeneratingQuestions}
-                                    className="px-4 py-1.5 text-micro font-bold uppercase tracking-wider rounded-full bg-brand-deep text-white hover:bg-brand-deep/90 active:scale-95 transition-all shadow-raised-1 border border-brand-deep/20 disabled:opacity-50 flex items-center gap-1.5"
+                                    className="px-4 py-1.5 min-w-[180px] justify-center text-micro font-bold uppercase tracking-wider rounded-full bg-brand-deep text-white hover:bg-brand-deep/90 active:scale-95 transition-all shadow-raised-1 border border-brand-deep/20 disabled:opacity-50 flex items-center gap-1.5"
                                 >
                                     {isGeneratingQuestions ? (
                                         <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating...</>
@@ -235,7 +235,7 @@ export function StepJobAndQuestions({
                                     <button
                                         type="button"
                                         onClick={() => clearQuestion(setStar, star, q.id)}
-                                        className="absolute right-3 top-3 p-1 text-text-disabled hover:text-state-critical opacity-0 group-hover/field:opacity-100 transition-all duration-base"
+                                        className="absolute right-3 top-3 p-1 text-state-critical hover:text-red-700 transition-all duration-base"
                                         title="Clear content"
                                     >
                                         <X className="w-4 h-4" />
@@ -264,7 +264,7 @@ export function StepJobAndQuestions({
                                     <button
                                         type="button"
                                         onClick={() => clearQuestion(setPerma, perma, q.id)}
-                                        className="absolute right-3 top-3 p-1 text-text-disabled hover:text-state-critical opacity-0 group-hover/field:opacity-100 transition-all duration-base"
+                                        className="absolute right-3 top-3 p-1 text-state-critical hover:text-red-700 transition-all duration-base"
                                         title="Clear content"
                                     >
                                         <X className="w-4 h-4" />
@@ -303,7 +303,7 @@ export function StepJobAndQuestions({
                                         <button
                                             type="button"
                                             onClick={() => clearQuestion(setTechnical, technical, q.id)}
-                                            className="absolute right-3 top-3 p-1 text-text-disabled hover:text-state-critical opacity-0 group-hover/field:opacity-100 transition-all duration-base"
+                                            className="absolute right-3 top-3 p-1 text-state-critical hover:text-red-700 transition-all duration-base"
                                             title="Clear content"
                                         >
                                             <X className="w-4 h-4" />

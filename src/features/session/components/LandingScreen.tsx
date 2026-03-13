@@ -124,37 +124,38 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
 
                 {/* Key Points */}
                 <motion.div variants={fadeUp} className="w-full space-y-4 flex flex-col relative z-10">
-                    <div className="flex items-start gap-4 p-5 rounded-2xl bg-surface-base border border-border/50 shadow-sm">
-                        <div className="w-10 h-10 rounded-full bg-state-info/10 border border-state-info/20 shadow-flat flex items-center justify-center shrink-0">
-                            <Clock className="w-5 h-5 text-state-info" />
-                        </div>
-                        <div className="space-y-2">
-                            <h3 className="font-bold text-text-primary">No Time Limit</h3>
-                            <div className="space-y-3">
+                    <div className="flex flex-col gap-4 p-5 rounded-2xl bg-surface-base border border-border/50 shadow-sm transition-all duration-base">
+                        <div className="flex items-start gap-4">
+                            <div className="w-10 h-10 rounded-full bg-state-info/10 border border-state-info/20 shadow-flat flex items-center justify-center shrink-0">
+                                <Clock className="w-5 h-5 text-state-info" />
+                            </div>
+                            <div className="space-y-1">
+                                <h3 className="font-bold text-text-primary">No Time Limit</h3>
                                 <p className="text-sm text-text-secondary leading-relaxed">
                                     Take your time. Thoughtful answers lead to better feedback.
                                 </p>
-                                <div className="p-4 bg-state-info/5 rounded-xl relative border-l-4 border-state-info/50">
-                                    <p className="text-sm text-text-secondary leading-relaxed">
-                                        Need to step away?{" "}
-                                        <span className="relative inline-block">
-                                            <button
-                                                onClick={() => {
-                                                    const url = window.location.href;
-                                                    navigator.clipboard.writeText(url);
-                                                    setShowCopySuccess(true);
-                                                    setTimeout(() => setShowCopySuccess(false), 2000);
-                                                }}
-                                                className="text-primary font-bold hover:underline"
-                                            >
-                                                Copy your practice link.
-                                            </button>
-                                            <FeedbackPill isVisible={showCopySuccess} text="Link Copied" />
-                                        </span>
-                                        {" "}You&apos;ll pick up where you left off when you return.
-                                    </p>
-                                </div>
                             </div>
+                        </div>
+
+                        <div className="p-4 bg-state-info/5 rounded-xl relative border-l-4 border-state-info/50 w-full animate-in fade-in slide-in-from-top-1 duration-slow">
+                            <p className="text-sm text-text-secondary leading-relaxed">
+                                Need to step away?{" "}
+                                <span className="relative inline-block">
+                                    <button
+                                        onClick={() => {
+                                            const url = window.location.href;
+                                            navigator.clipboard.writeText(url);
+                                            setShowCopySuccess(true);
+                                            setTimeout(() => setShowCopySuccess(false), 2000);
+                                        }}
+                                        className="text-primary font-bold hover:underline"
+                                    >
+                                        Copy your practice link.
+                                    </button>
+                                    <FeedbackPill isVisible={showCopySuccess} text="Link Copied" />
+                                </span>
+                                {" "}You&apos;ll pick up where you left off when you return.
+                            </p>
                         </div>
                     </div>
 
