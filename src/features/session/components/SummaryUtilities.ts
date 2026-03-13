@@ -11,10 +11,21 @@ export const getIconForTitle = (title: string) => {
 
 export const parseDebrief = (text?: string) => {
     if (!text) return [];
-    const parts = text.split(/(?=### )/g).filter(p => p.trim() !== '');
+    
+    // LLM cleanup: Find the first structural header and discard preambles
+    const promptHeader = '### Executive Summary';
+    const fallbackHeader = '### ';
+    
+    let startIndex = text.indexOf(promptHeader);
+    if (startIndex === -1) {
+        startIndex = text.indexOf(fallbackHeader);
+    }
+    
+    const effectiveText = startIndex !== -1 ? text.slice(startIndex) : text;
+    const parts = effectiveText.split(/(?=### )/g).filter(p => p.trim() !== '');
 
     if (parts.length === 1 && !parts[0].trim().startsWith('###')) {
-        return [{ title: "Session Debrief", content: text }];
+        return [{ title: "Session Debrief", content: effectiveText }];
     }
 
     return parts.map(part => {
