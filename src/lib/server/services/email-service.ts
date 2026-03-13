@@ -37,12 +37,14 @@ export class EmailService {
         }
 
         try {
+            const fromEmail = process.env.RESEND_FROM_EMAIL || 'Rangam Interview Coach <interviews@coach.rangam.com>';
+            
             Logger.info("[EmailService] Preparing to send via Resend", { 
                 sessionId: session.id, 
                 recipient: candidateEmail,
-                from: 'onboarding@resend.dev'
+                from: fromEmail
             }, "EmailService");
-
+            
             const debriefUrl = `${baseUrl}/s/${session.inviteToken}`;
 
             const html = renderSessionDebriefEmail({
@@ -54,7 +56,7 @@ export class EmailService {
             });
 
             const { data, error } = await resend.emails.send({
-                from: 'Rangam Interview Coach <onboarding@resend.dev>',
+                from: fromEmail,
                 to: [candidateEmail],
                 subject: 'Your Interview Practice Debrief is Ready',
                 html,

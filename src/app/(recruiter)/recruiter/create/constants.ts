@@ -55,14 +55,14 @@ export interface InviteResult {
 
 // ─── Dev-Only Data Pools ────────────────────────────────────────
 export const DEV_CANDIDATE_POOL = [
-    { firstName: "Ian", lastName: "Caldwell", email: "icclearly@yopmail.com" },
-    { firstName: "Maria", lastName: "Santos", email: "msantos@yopmail.com" },
-    { firstName: "Jamal", lastName: "Williams", email: "jwilliams@yopmail.com" },
-    { firstName: "Priya", lastName: "Patel", email: "ppatel@yopmail.com" },
-    { firstName: "Chen", lastName: "Wei", email: "cwei@yopmail.com" },
-    { firstName: "Aisha", lastName: "Mohammed", email: "amohammed@yopmail.com" },
-    { firstName: "Tyler", lastName: "Robinson", email: "trobinson@yopmail.com" },
-    { firstName: "Sofia", lastName: "Hernandez", email: "shernandez@yopmail.com" },
+    { firstName: "Ian", lastName: "Caldwell", email: "icclearly@example.com" },
+    { firstName: "Maria", lastName: "Santos", email: "msantos@example.com" },
+    { firstName: "Jamal", lastName: "Williams", email: "jwilliams@example.com" },
+    { firstName: "Priya", lastName: "Patel", email: "ppatel@example.com" },
+    { firstName: "Chen", lastName: "Wei", email: "cwei@example.com" },
+    { firstName: "Aisha", lastName: "Mohammed", email: "amohammed@example.com" },
+    { firstName: "Tyler", lastName: "Robinson", email: "trobinson@example.com" },
+    { firstName: "Sofia", lastName: "Hernandez", email: "shernandez@example.com" },
 ];
 
 export const DEV_JOB_POOL = [
