@@ -82,7 +82,7 @@ export default function CreateInviteWizard() {
                 });
 
                 // Fetch Templates
-                const t = await fetchTemplates();
+                const { templates: t } = await fetchTemplates();
                 setTemplates(t);
             }
         };
