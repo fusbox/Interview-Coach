@@ -42,9 +42,13 @@ export function renderSessionDebriefEmail({
   <title>Your Interview Prep Debrief is Ready</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji'; background-color: #ffffff; color: #333333; padding: 40px 20px; max-width: 600px; margin: 0 auto; -webkit-font-smoothing: antialiased;">
-    <div style="margin-bottom: 32px; background-color: #ffffff; display: inline-block; padding: 4px; border-radius: 4px;">
-      <img src="${logoUrl}" alt="Rangam" style="height: 40px; display: block; border: none; outline: none; text-decoration: none;" />
-    </div>
+    <table border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 32px;">
+      <tr>
+        <td align="left" style="background-color: #ffffff; padding: 8px; border-radius: 8px;">
+          <img src="${logoUrl}" alt="Rangam" width="160" style="display: block; border: 0; outline: none; text-decoration: none;" />
+        </td>
+      </tr>
+    </table>
 
     <h1 style="font-size: 24px; font-weight: bold; line-height: 1.2; margin-bottom: 24px; color: #1a1a1a;">
       Your Interview Prep Debrief is Ready
