@@ -75,7 +75,7 @@ export function SessionSurvey({ sessionId }: SessionSurveyProps) {
                             >
                                 {emoji}
                             </button>
-                            <FeedbackPill isVisible={justSaved['confidence_delta'] && survey.confidence_delta === val} text="Saved" />
+                            <FeedbackPill isVisible={justSaved['confidence_delta'] && survey.confidence_delta === val} text="" />
                         </div>
                     ))}
                 </div>
@@ -107,7 +107,7 @@ export function SessionSurvey({ sessionId }: SessionSurveyProps) {
                             >
                                 {emoji}
                             </button>
-                            <FeedbackPill isVisible={justSaved['psychological_safety'] && survey.psychological_safety === val} text="Saved" />
+                            <FeedbackPill isVisible={justSaved['psychological_safety'] && survey.psychological_safety === val} text="" />
                         </div>
                     ))}
                 </div>
@@ -138,7 +138,7 @@ export function SessionSurvey({ sessionId }: SessionSurveyProps) {
                         >
                             <ThumbsUp size={18} /> Yes
                         </button>
-                        <FeedbackPill isVisible={justSaved['repeat_intent'] && survey.repeat_intent === 'yes'} text="Saved" />
+                        <FeedbackPill isVisible={justSaved['repeat_intent'] && survey.repeat_intent === 'yes'} text="" />
                     </div>
                     <div className="relative">
                         <button
@@ -152,7 +152,7 @@ export function SessionSurvey({ sessionId }: SessionSurveyProps) {
                         >
                             <ThumbsDown size={18} /> No
                         </button>
-                        <FeedbackPill isVisible={justSaved['repeat_intent'] && survey.repeat_intent === 'no'} text="Saved" />
+                        <FeedbackPill isVisible={justSaved['repeat_intent'] && survey.repeat_intent === 'no'} text="" />
                     </div>
                 </div>
                 {submitError['repeat_intent'] && (

@@ -34,9 +34,12 @@ export const FeedbackPill: React.FC<FeedbackPillProps> = ({
                         className
                     )}
                 >
-                    <div className="bg-state-success text-text-inverse rounded-full px-2 py-0.5 shadow-lg flex items-center gap-1 whitespace-nowrap">
+                    <div className={cn(
+                        "bg-state-success text-text-inverse rounded-full shadow-lg flex items-center justify-center whitespace-nowrap",
+                        text ? "px-2 py-0.5 gap-1" : "p-1.5"
+                    )}>
                         {icon}
-                        <span className="text-[10px] font-black uppercase tracking-widest">{text}</span>
+                        {text && <span className="text-[10px] font-black uppercase tracking-widest">{text}</span>}
                     </div>
                 </motion.div>
             )}

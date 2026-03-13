@@ -95,6 +95,10 @@ E: ${recruiterProfile.email}`;
                     invite_count: results.length
                 }}
                 className="w-full"
+                scaleType="numeric"
+                successText=""
+                lowLabel="Very difficult"
+                highLabel="Very easy"
             />
 
             <div>

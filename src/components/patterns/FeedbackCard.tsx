@@ -19,6 +19,10 @@ interface FeedbackCardProps {
     metadata?: Record<string, string | number | boolean | undefined>;
     className?: string;
     onSuccess?: () => void;
+    scaleType?: 'emoji' | 'numeric';
+    successText?: string;
+    lowLabel?: string;
+    highLabel?: string;
 }
 
 export function FeedbackCard({
@@ -26,7 +30,11 @@ export function FeedbackCard({
     type,
     metadata = {},
     className,
-    onSuccess
+    onSuccess,
+    scaleType = 'emoji',
+    successText = 'Saved',
+    lowLabel,
+    highLabel
 }: FeedbackCardProps) {
     const [rating, setRating] = useState<number | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -78,27 +86,37 @@ export function FeedbackCard({
             <span className="text-base md:text-lg font-bold text-purple-900/80 dark:text-purple-100/80 tracking-tight">
                 {title}
             </span>
-            <div className="flex flex-col items-center gap-2">
-                <div className="relative flex gap-1.5 md:gap-2">
-                    {EMOJI_SCALE.map(({ val, emoji }) => (
-                        <button
-                            key={val}
-                            onClick={() => handleRate(val)}
-                            disabled={isSubmitting}
-                            className={cn(
-                                "w-12 h-12 md:w-14 md:h-14 rounded-2xl border-2 flex items-center justify-center text-3xl transition-all duration-300",
-                                rating === val
-                                    ? "bg-white dark:bg-purple-900 border-purple-400/50 shadow-lg scale-110 saturate-100 opacity-100"
-                                    : "bg-transparent border-transparent text-text-muted hover:border-purple-200 hover:scale-105 saturate-80 opacity-80 hover:saturate-100 hover:opacity-100",
-                                (isSubmitting || showSuccess) && "pointer-events-none"
-                            )}
-                            title={`Rate ${val}/5`}
-                        >
-                            {emoji}
-                        </button>
-                    ))}
+            <div className="flex flex-col items-center gap-3">
+                <div className="relative flex flex-col items-center gap-2">
+                    <div className="flex gap-1.5 md:gap-2">
+                        {EMOJI_SCALE.map(({ val, emoji }) => (
+                            <button
+                                key={val}
+                                onClick={() => handleRate(val)}
+                                disabled={isSubmitting}
+                                className={cn(
+                                    "w-12 h-12 md:w-14 md:h-14 rounded-2xl border-2 flex items-center justify-center transition-all duration-300",
+                                    scaleType === 'emoji' ? "text-3xl" : "text-xl font-black font-display",
+                                    rating === val
+                                        ? "bg-white dark:bg-purple-900 border-purple-400/50 shadow-lg scale-110 saturate-100 opacity-100 text-purple-600"
+                                        : "bg-transparent border-transparent text-text-muted hover:border-purple-200 hover:scale-105 saturate-80 opacity-80 hover:saturate-100 hover:opacity-100",
+                                    (isSubmitting || showSuccess) && "pointer-events-none"
+                                )}
+                                title={`Rate ${val}/5`}
+                            >
+                                {scaleType === 'emoji' ? emoji : val}
+                            </button>
+                        ))}
 
-                    <FeedbackPill isVisible={showSuccess} text="Saved" />
+                        <FeedbackPill isVisible={showSuccess} text={successText} />
+                    </div>
+                    
+                    {(lowLabel || highLabel) && (
+                        <div className="flex justify-between w-full px-1 text-[10px] font-bold uppercase tracking-widest text-purple-900/40 dark:text-purple-100/40">
+                            <span>{lowLabel}</span>
+                            <span>{highLabel}</span>
+                        </div>
+                    )}
                 </div>
                 {error && (
                     <p className="text-destructive text-[10px] font-bold uppercase tracking-widest animate-in fade-in slide-in-from-top-1">
