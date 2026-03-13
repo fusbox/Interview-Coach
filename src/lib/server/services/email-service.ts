@@ -63,13 +63,18 @@ export class EmailService {
             });
 
             if (error) {
-                Logger.error("[EmailService] Resend API Error", error, "EmailService");
+                Logger.error("[EmailService] Resend API Error Details", { 
+                    error, 
+                    sessionId: session.id,
+                    from: fromEmail,
+                    to: candidateEmail 
+                }, "EmailService");
                 throw error;
             }
 
             Logger.info("[EmailService] Email dispatched successfully", { 
                 sessionId: session.id, 
-                emailId: data?.id,
+                resendResponse: data,
                 status: 'Check Resend Dashboard for delivery updates'
             }, "EmailService");
 
