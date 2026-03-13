@@ -19,4 +19,5 @@ export interface TemplateRepository {
     list(): Promise<RecruiterTemplate[]>;
     create(template: Partial<RecruiterTemplate>): Promise<RecruiterTemplate>;
     delete(id: string): Promise<void>;
+    update(id: string, updates: Partial<RecruiterTemplate>): Promise<RecruiterTemplate>;
 }

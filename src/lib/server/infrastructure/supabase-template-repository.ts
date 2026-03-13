@@ -2,9 +2,21 @@ import { createClient } from "@/lib/supabase/server";
 import { RecruiterTemplate, TemplateRepository } from "@/lib/domain/template";
 import { QuestionInput } from "@/app/(recruiter)/recruiter/create/constants";
 
+import { SupabaseClient } from '@supabase/supabase-js';
+
 export class SupabaseTemplateRepository implements TemplateRepository {
+    private client: SupabaseClient | null = null;
+
+    constructor(client?: SupabaseClient) {
+        if (client) this.client = client;
+    }
+
+    private getClient(): SupabaseClient {
+        return this.client || createClient();
+    }
+
     async list(): Promise<RecruiterTemplate[]> {
-        const supabase = createClient();
+        const supabase = this.getClient();
 
         const { data, error } = await supabase
             .from('recruiter_templates')
@@ -17,7 +29,7 @@ export class SupabaseTemplateRepository implements TemplateRepository {
     }
 
     async create(template: Partial<RecruiterTemplate>): Promise<RecruiterTemplate> {
-        const supabase = createClient();
+        const supabase = this.getClient();
 
         // Ensure recruiter_id is set (RLS will also check this)
         const { data: { user } } = await supabase.auth.getUser();
@@ -41,7 +53,7 @@ export class SupabaseTemplateRepository implements TemplateRepository {
     }
 
     async delete(id: string): Promise<void> {
-        const supabase = createClient();
+        const supabase = this.getClient();
 
         const { error } = await supabase
             .from('recruiter_templates')
@@ -49,6 +61,33 @@ export class SupabaseTemplateRepository implements TemplateRepository {
             .eq('id', id);
 
         if (error) throw new Error(`Supabase Template Delete Error: ${error.message}`);
+    }
+
+    async update(id: string, updates: Partial<RecruiterTemplate>): Promise<RecruiterTemplate> {
+        const supabase = this.getClient();
+
+        const dataToUpdate: {
+            name?: string;
+            is_shared?: boolean;
+            target_role?: string;
+            questions?: unknown; // Supabase JSONB
+        } = {};
+        if (updates.name !== undefined) dataToUpdate.name = updates.name;
+        if (updates.isShared !== undefined) dataToUpdate.is_shared = updates.isShared;
+        if (updates.targetRole !== undefined) dataToUpdate.target_role = updates.targetRole;
+        if (updates.questions !== undefined) dataToUpdate.questions = updates.questions;
+
+        const { data, error } = await supabase
+            .from('recruiter_templates')
+            .update(dataToUpdate)
+            .eq('id', id)
+            .select('*')
+            .maybeSingle();
+
+        if (error) throw new Error(`Supabase Template Update Error: ${error.message}`);
+        if (!data) throw new Error("Unauthorized or Template not found. You can only edit templates you created.");
+
+        return this.mapRowToTemplate(data);
     }
 
     private mapRowToTemplate(row: {

@@ -151,19 +151,6 @@ export function StepJobAndQuestions({
                                     🎲 Random Job
                                 </button>
                             )}
-                            {onGenerateQuestionsAI && (
-                                <button
-                                    onClick={onGenerateQuestionsAI}
-                                    disabled={isGeneratingQuestions}
-                                    className="px-4 py-1.5 min-w-[180px] justify-center text-micro font-bold uppercase tracking-wider rounded-full bg-brand-deep text-white hover:bg-brand-deep/90 active:scale-95 transition-all shadow-raised-1 border border-brand-deep/20 disabled:opacity-50 flex items-center gap-1.5"
-                                >
-                                    {isGeneratingQuestions ? (
-                                        <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating...</>
-                                    ) : (
-                                        <>✨ AI Generate Questions</>
-                                    )}
-                                </button>
-                            )}
                         </div>
                     }
                 />
@@ -216,93 +203,44 @@ export function StepJobAndQuestions({
                         </div>
                     </CardContent>
                 </Card>
-
-                {/* STAR Section */}
-                <Card className="border-border/50 shadow-raised-1">
-                    <CardHeader className="pb-4">
-                        <CardTitle className="text-base font-bold tracking-tight">STAR Questions (Behavioral)</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {star.map((q, idx) => (
-                            <div key={q.id} className="relative group/field">
-                                <AutoResizeTextarea
-                                    className="flex min-h-[44px] w-full rounded-xl border border-border bg-surface-subtle pl-4 pr-10 py-3 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                                    value={q.text}
-                                    onChange={val => updateQuestion(setStar, star, q.id, val)}
-                                    placeholder={`STAR Question ${idx + 1}...`}
-                                />
-                                {q.text && (
-                                    <button
-                                        type="button"
-                                        onClick={() => clearQuestion(setStar, star, q.id)}
-                                        className="absolute right-3 top-3 p-1 text-state-critical hover:text-red-700 transition-all duration-base"
-                                        title="Clear content"
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </button>
+                
+                {/* Questions Group: AI Generator + Question Sections */}
+                <div className="space-y-4">
+                    {/* AI Generator Action - Contextually placed closer to questions */}
+                    {onGenerateQuestionsAI && (
+                        <div className="flex justify-start">
+                            <button
+                                onClick={onGenerateQuestionsAI}
+                                disabled={isGeneratingQuestions}
+                                className="px-5 py-2.5 min-w-[200px] justify-center text-micro font-bold uppercase tracking-wider rounded-full bg-brand-deep text-white hover:bg-brand-deep/90 active:scale-95 transition-all shadow-raised-1 border border-brand-deep/20 disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {isGeneratingQuestions ? (
+                                    <><Loader2 className="w-4 h-4 animate-spin" /> Generating Questions...</>
+                                ) : (
+                                    <>✨ AI Generate Questions</>
                                 )}
-                            </div>
-                        ))}
-                    </CardContent>
-                </Card>
+                            </button>
+                        </div>
+                    )}
 
-                {/* PERMA Section */}
-                <Card className="border-border/50 shadow-raised-1">
-                    <CardHeader className="pb-4">
-                        <CardTitle className="text-base font-bold tracking-tight">PERMA Questions (Culture/Fit)</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {perma.map(q => (
-                            <div key={q.id} className="relative group/field">
-                                <AutoResizeTextarea
-                                    className="flex min-h-[44px] w-full rounded-xl border border-border bg-surface-subtle pl-4 pr-10 py-3 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                                    value={q.text}
-                                    onChange={val => updateQuestion(setPerma, perma, q.id, val)}
-                                    placeholder={`${q.label} Question...`}
-                                />
-                                {q.text && (
-                                    <button
-                                        type="button"
-                                        onClick={() => clearQuestion(setPerma, perma, q.id)}
-                                        className="absolute right-3 top-3 p-1 text-state-critical hover:text-red-700 transition-all duration-base"
-                                        title="Clear content"
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                )}
-                            </div>
-                        ))}
-                    </CardContent>
-                </Card>
-
-                {/* Technical Section */}
-                <Card className="border-border/50 shadow-raised-1 overflow-hidden transition-all duration-base">
-                    <CardHeader className="flex flex-row items-center justify-between pb-4 bg-surface-base border-b border-border/30">
-                        <CardTitle className="text-base font-bold tracking-tight">Technical Questions</CardTitle>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={addTechnical}
-                            type="button"
-                            className="hidden sm:flex text-state-success border-state-success/30 hover:bg-state-success/5 hover:border-state-success/50 transition-all rounded-xl"
-                        >
-                            <Plus className="w-4 h-4 mr-1" /> Add
-                        </Button>
-                    </CardHeader>
-                    <CardContent className="space-y-4 pt-6">
-                        {technical.map((q, idx) => (
-                            <div key={q.id} className="flex gap-2 items-center animate-in fade-in slide-in-from-top-1 duration-base">
-                                <div className="flex-1 relative group/field">
+                    {/* STAR Section */}
+                    <Card className="border-border/50 shadow-raised-1">
+                        <CardHeader className="pb-4">
+                            <CardTitle className="text-base font-bold tracking-tight">STAR Questions (Behavioral)</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {star.map((q, idx) => (
+                                <div key={q.id} className="relative group/field">
                                     <AutoResizeTextarea
                                         className="flex min-h-[44px] w-full rounded-xl border border-border bg-surface-subtle pl-4 pr-10 py-3 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                                         value={q.text}
-                                        onChange={val => updateQuestion(setTechnical, technical, q.id, val)}
-                                        placeholder={`Technical Question ${idx + 1}...`}
+                                        onChange={val => updateQuestion(setStar, star, q.id, val)}
+                                        placeholder={`STAR Question ${idx + 1}...`}
                                     />
                                     {q.text && (
                                         <button
                                             type="button"
-                                            onClick={() => clearQuestion(setTechnical, technical, q.id)}
+                                            onClick={() => clearQuestion(setStar, star, q.id)}
                                             className="absolute right-3 top-3 p-1 text-state-critical hover:text-red-700 transition-all duration-base"
                                             title="Clear content"
                                         >
@@ -310,23 +248,92 @@ export function StepJobAndQuestions({
                                         </button>
                                     )}
                                 </div>
-                                {technical.length > 1 && (
-                                    <Button size="icon" variant="ghost" className="text-state-critical hover:bg-state-critical/5 shrink-0" onClick={() => removeQuestion(setTechnical, technical, q.id)}>
-                                        <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                )}
-                            </div>
-                        ))}
-                        <Button
-                            variant="outline"
-                            onClick={addTechnical}
-                            type="button"
-                            className="w-full sm:hidden border-dashed text-state-success border-state-success/30 hover:bg-state-success/5 mt-2 rounded-2xl"
-                        >
-                            <Plus className="w-4 h-4 mr-2" /> Add Technical Question
-                        </Button>
-                    </CardContent>
-                </Card>
+                            ))}
+                        </CardContent>
+                    </Card>
+
+                    {/* PERMA Section */}
+                    <Card className="border-border/50 shadow-raised-1">
+                        <CardHeader className="pb-4">
+                            <CardTitle className="text-base font-bold tracking-tight">PERMA Questions (Culture/Fit)</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {perma.map(q => (
+                                <div key={q.id} className="relative group/field">
+                                    <AutoResizeTextarea
+                                        className="flex min-h-[44px] w-full rounded-xl border border-border bg-surface-subtle pl-4 pr-10 py-3 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                        value={q.text}
+                                        onChange={val => updateQuestion(setPerma, perma, q.id, val)}
+                                        placeholder={`${q.label} Question...`}
+                                    />
+                                    {q.text && (
+                                        <button
+                                            type="button"
+                                            onClick={() => clearQuestion(setPerma, perma, q.id)}
+                                            className="absolute right-3 top-3 p-1 text-state-critical hover:text-red-700 transition-all duration-base"
+                                            title="Clear content"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+
+                    {/* Technical Section */}
+                    <Card className="border-border/50 shadow-raised-1 overflow-hidden transition-all duration-base">
+                        <CardHeader className="flex flex-row items-center justify-between pb-4 bg-surface-base border-b border-border/30">
+                            <CardTitle className="text-base font-bold tracking-tight">Technical Questions</CardTitle>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={addTechnical}
+                                type="button"
+                                className="hidden sm:flex text-state-success border-state-success/30 hover:bg-state-success/5 hover:border-state-success/50 transition-all rounded-xl"
+                            >
+                                <Plus className="w-4 h-4 mr-1" /> Add
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="space-y-4 pt-6">
+                            {technical.map((q, idx) => (
+                                <div key={q.id} className="flex gap-2 items-center animate-in fade-in slide-in-from-top-1 duration-base">
+                                    <div className="flex-1 relative group/field">
+                                        <AutoResizeTextarea
+                                            className="flex min-h-[44px] w-full rounded-xl border border-border bg-surface-subtle pl-4 pr-10 py-3 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                            value={q.text}
+                                            onChange={val => updateQuestion(setTechnical, technical, q.id, val)}
+                                            placeholder={`Technical Question ${idx + 1}...`}
+                                        />
+                                        {q.text && (
+                                            <button
+                                                type="button"
+                                                onClick={() => clearQuestion(setTechnical, technical, q.id)}
+                                                className="absolute right-3 top-3 p-1 text-state-critical hover:text-red-700 transition-all duration-base"
+                                                title="Clear content"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
+                                    {technical.length > 1 && (
+                                        <Button size="icon" variant="ghost" className="text-state-critical hover:bg-state-critical/5 shrink-0" onClick={() => removeQuestion(setTechnical, technical, q.id)}>
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                    )}
+                                </div>
+                            ))}
+                            <Button
+                                variant="outline"
+                                onClick={addTechnical}
+                                type="button"
+                                className="w-full sm:hidden border-dashed text-state-success border-state-success/30 hover:bg-state-success/5 mt-2 rounded-2xl"
+                            >
+                                <Plus className="w-4 h-4 mr-2" /> Add Technical Question
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
 
             <StepFooter
