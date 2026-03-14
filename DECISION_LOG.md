@@ -278,3 +278,17 @@ Candidates often finish practice sessions and don't immediately review their deb
 - Candidates receive immediate positive reinforcement and a record of their practice session.
 - Increased return rates to the platform.
 - Introduces `RESEND_API_KEY` as a new required production secret.
+## ADR-020: Automated Candidate Invitation Emails
+
+### Context
+Recruiters previously relied solely on local mail clients (`mailto:`) or manual link copying to send interview invitations. This was inconsistent, lacked branding, and placed significant friction on the recruiter.
+
+### Decision
+- **Branded Templates**: Created `CandidateInviteEmail.ts` utilizing the same "bulletproof" table-based styling and PNG logo as the debrief emails.
+- **Platform Dispatch**: Implemented a POST endpoint `/api/invite/send` and `EmailService.sendInviteEmail` to allow the Rangam platform to send emails directly via Resend.
+- **Hybrid UI**: Updated `StepBatchSend.tsx` to offer a primary "Send via Platform" action while preserving the existing "Local Client" (mailto) and "Copy Link" options for maximum flexibility and redundancy during the transition period.
+
+### Consequences
+- Improved recruiter UX with single-click branded delivery.
+- Higher visual consistency and trust for candidates receiving invitations.
+- No impact on existing manual workflows, ensuring safe testing of the new feature.

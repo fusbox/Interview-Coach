@@ -100,7 +100,7 @@ export function StepCandidates({
 
                     {candidates.map((candidate, index) => (
                         <div key={candidate.id} className="flex gap-3 items-start animate-in fade-in slide-in-from-top-2 duration-200">
-                            <div className="pt-3 text-xs font-bold text-slate-400 w-6 text-center">
+                            <div className="pt-3 text-xs font-bold text-text-disabled w-6 text-center">
                                 #{index + 1}
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1">
@@ -133,7 +133,7 @@ export function StepCandidates({
                             <Button
                                 size="icon"
                                 variant="ghost"
-                                className="text-destructive shrink-0 mt-1 hover:bg-red-50"
+                                className="text-destructive shrink-0 mt-1 hover:bg-state-critical/5"
                                 onClick={() => removeCandidate(candidate.id)}
                             >
                                 <Trash2 className="w-4 h-4" />

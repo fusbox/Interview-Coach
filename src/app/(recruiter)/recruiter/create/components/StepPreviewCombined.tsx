@@ -1,13 +1,14 @@
 "use client";
 
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Details, QuestionInput, StepFooterProps } from "../constants";
+import { Card, CardContent } from "@/components/ui/card";
+import { Details, QuestionInput, InviteResult, RecruiterProfile } from "../constants";
 import { CandidateRow } from "./StepCandidates";
-import { Edit, Loader2, Check } from "lucide-react";
+import { Briefcase, ChevronLeft, Edit, Eye, Loader2, MailCheck, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/patterns/SectionHeader";
-import { MetricCard } from "@/components/patterns/MetricCard";
+import { useState, useEffect } from "react";
+import { cn } from "@/lib/cn";
+import { InviteEmailPreviewModal } from "@/components/patterns/InviteEmailPreviewModal";
 
 interface StepPreviewCombinedProps {
     details: Details;
@@ -20,8 +21,10 @@ interface StepPreviewCombinedProps {
     onBack: () => void;
     onHandleCreate: () => void;
     isLoading: boolean;
+    isGenerated?: boolean;
+    results: InviteResult[];
     error: string | null;
-    StepFooter: React.ComponentType<StepFooterProps>;
+    recruiterProfile: RecruiterProfile;
 }
 
 export function StepPreviewCombined({
@@ -29,120 +32,255 @@ export function StepPreviewCombined({
     star, perma, technical,
     candidates, setCandidateStep,
     onBack, onHandleCreate,
-    isLoading, error,
-    StepFooter
+    isLoading, isGenerated = false,
+    results,
+    error,
+    recruiterProfile
 }: StepPreviewCombinedProps) {
+    const [localIsGenerated, setLocalIsGenerated] = useState(isGenerated);
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [isSending, setIsSending] = useState(false);
+    const [sendSuccess, setSendSuccess] = useState(false);
 
     const activeStar = star.filter(q => q.text.trim());
     const activePerma = perma.filter(q => q.text.trim());
     const activeTechnical = technical.filter(q => q.text.trim());
-    const totalQuestions = activeStar.length + activePerma.length + activeTechnical.length;
+
+    useEffect(() => {
+        if (isGenerated && !localIsGenerated) {
+            setLocalIsGenerated(true);
+        }
+    }, [isGenerated, localIsGenerated]);
+
+    const handleAction = async () => {
+        if (!isGenerated) {
+            await onHandleCreate();
+            // The useEffect will handle opening the preview once isGenerated becomes true
+        } else {
+            setIsPreviewOpen(true);
+        }
+    };
+
+    useEffect(() => {
+        if (isGenerated && isLoading === false && !isPreviewOpen && !sendSuccess) {
+            // Auto-open preview once generation finishes
+            setIsPreviewOpen(true);
+        }
+    }, [isGenerated, isLoading, isPreviewOpen, sendSuccess]);
+
+    const handleSendAll = async () => {
+        if (!results.length) return;
+        setIsSending(true);
+        try {
+            const response = await fetch('/api/invite/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    recipientEmails: results.map(r => r.email),
+                    recipientFirstName: results.length === 1 ? results[0].firstName : "Candidate",
+                    role: details.role,
+                    inviteLink: results.length === 1 ? results[0].link : "https://coach.rangam.com/dashboard",
+                    recruiterName: recruiterProfile.name,
+                    recruiterTitle: recruiterProfile.title,
+                    recruiterCompany: recruiterProfile.company,
+                    recruiterPhone: recruiterProfile.phone,
+                    recruiterEmail: recruiterProfile.email
+                })
+            });
+            
+            if (response.ok) {
+                setSendSuccess(true);
+                setIsPreviewOpen(false);
+                // Maybe a reset or redirect here? For now just success state.
+            } else {
+                throw new Error("Failed to send invites");
+            }
+        } catch (err) {
+            console.error("Failed to send invites:", err);
+        } finally {
+            setIsSending(false);
+        }
+    };
 
     return (
-        <div className="space-y-10">
+        <div className="space-y-8 animate-in fade-in duration-slow">
             <SectionHeader
-                title="Preview & Confirm"
-                description="Review the details before generating the invites."
+                title="Confirm Details & Invite"
+                description="Finalize your job requirements and candidate list. Once generated, you can preview and send the invitations."
             />
 
-            <div className="grid grid-cols-1 gap-6">
-                {/* Job & Questions Summary */}
-                <Card className="border-border/50 shadow-raised-1 overflow-hidden">
-                    <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-4 px-6 border-b border-border/30 bg-surface-base gap-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                            <Badge variant="outline" className="bg-state-info/5 text-state-info border-state-info/20 px-2.5 py-0.5 text-micro font-bold uppercase tracking-wider shrink-0 w-fit">Job Details</Badge>
-                            <span className="font-bold text-text-primary truncate tracking-tight">{details.role}</span>
-                            <span className="hidden sm:inline text-border">|</span>
-                            <span className="text-text-disabled font-mono text-micro sm:text-xs">{details.reqId}</span>
-                        </div>
-                        {setDetailStep && (
-                            <Button variant="ghost" size="sm" onClick={setDetailStep} className="hidden sm:flex h-8 text-text-secondary hover:bg-surface-subtle transition-all rounded-2xl">
-                                <Edit className="w-3.5 h-3.5 mr-2" /> Edit
-                            </Button>
-                        )}
-                    </CardHeader>
-                    <CardContent className="p-6 space-y-6">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <MetricCard
-                                title="Behavioral"
-                                value={activeStar.length}
-                                variant="default"
-                            />
-                            <MetricCard
-                                title="Culture"
-                                value={activePerma.length}
-                                variant="default"
-                            />
-                            <MetricCard
-                                title="Technical"
-                                value={activeTechnical.length}
-                                variant="default"
-                            />
-                        </div>
-                        <div className="text-[11px] font-bold uppercase tracking-widest text-text-disabled flex items-center gap-2">
-                            <div className="h-[1px] flex-1 bg-border/30" />
-                            Total {totalQuestions} questions configured
-                            <div className="h-[1px] flex-1 bg-border/30" />
-                        </div>
-
-                        {setDetailStep && (
-                            <Button variant="ghost" size="sm" onClick={setDetailStep} className="sm:hidden w-full h-12 border-2 border-dashed border-border/50 text-text-secondary hover:bg-surface-subtle transition-all mt-2 rounded-2xl">
-                                <Edit className="w-4 h-4 mr-2" /> Edit Job Details / Questions
-                            </Button>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* Candidates Summary */}
-                <Card className="border-border/50 shadow-raised-1 overflow-hidden">
-                    <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-4 px-6 border-b border-border/30 bg-surface-base gap-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                            <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="bg-state-info/5 text-state-info border-state-info/20 px-2.5 py-0.5 text-micro font-bold uppercase tracking-wider shrink-0">Candidates</Badge>
-                                <span className="font-bold text-text-primary tracking-tight sm:hidden">{candidates.length} Recipients</span>
-                            </div>
-                            <span className="hidden sm:inline font-bold text-text-primary tracking-tight">{candidates.length} Recipients</span>
-                        </div>
-                        {setCandidateStep && (
-                            <Button variant="ghost" size="sm" onClick={setCandidateStep} className="hidden sm:flex h-8 text-text-secondary hover:bg-surface-subtle transition-all rounded-2xl">
-                                <Edit className="w-3.5 h-3.5 mr-2" /> Edit
-                            </Button>
-                        )}
-                    </CardHeader>
-                    <CardContent className="p-6">
-                        <div className="max-h-[220px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-                            {candidates.map((c, i) => (
-                                <div key={c.id} className="flex items-center justify-between text-sm p-3 rounded-xl hover:bg-surface-subtle border border-transparent hover:border-border/30 transition-all group animate-in fade-in slide-in-from-top-1 duration-base">
-                                    <div className="flex items-center gap-4">
-                                        <span className="font-mono text-text-disabled text-micro w-5 text-center px-1.5 py-0.5 bg-surface-base border border-border/20 rounded shadow-flat group-hover:bg-primary/5 group-hover:text-primary transition-colors">{(i + 1).toString().padStart(2, '0')}</span>
-                                        <div className="font-bold text-text-primary tracking-tight">{c.firstName} {c.lastName}</div>
+            <Card className="border-border/50 shadow-raised-2 overflow-hidden bg-surface-base">
+                <CardContent className="p-0">
+                    <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border/30">
+                        {/* Left Column: Job Details */}
+                        <div className="p-8 space-y-8">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-sm border border-primary/20">
+                                        <Briefcase size={20} />
                                     </div>
-                                    <div className="text-text-secondary font-medium">{c.email}</div>
+                                    <h3 className="text-xl font-bold text-text-primary tracking-tight">Job Details</h3>
                                 </div>
-                            ))}
+                                {setDetailStep && (
+                                    <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        onClick={setDetailStep} 
+                                        className="h-9 px-4 text-primary hover:bg-primary/10 font-bold text-xs uppercase tracking-widest rounded-xl transition-all active:scale-95"
+                                    >
+                                        <Edit className="w-4 h-4 mr-2" /> Edit
+                                    </Button>
+                                )}
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-bold text-text-disabled uppercase tracking-widest">Role</p>
+                                    <p className="text-lg font-bold text-text-primary leading-tight">{details.role || "Not Specified"}</p>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-bold text-text-disabled uppercase tracking-widest">Req ID</p>
+                                    <p className="text-sm font-mono font-bold text-text-secondary bg-surface-subtle px-3 py-1.5 rounded-lg border border-border/30 w-fit">{details.reqId || "N/A"}</p>
+                                </div>
+
+                                <div className="pt-2 space-y-3">
+                                    <p className="text-[10px] font-bold text-text-disabled uppercase tracking-widest mb-2 flex items-center gap-2">
+                                        Configuration
+                                    </p>
+                                    <div className="space-y-2">
+                                        {[
+                                            { label: 'Behavioral', count: activeStar.length },
+                                            { label: 'Culture', count: activePerma.length },
+                                            { label: 'Technical', count: activeTechnical.length }
+                                        ].map((cat, i) => (
+                                            <div key={i} className={cn(
+                                                "flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all duration-300",
+                                                cat.count > 0 
+                                                    ? "bg-surface-base border-border/10 text-text-primary shadow-sm" 
+                                                    : "bg-surface-subtle border-border/30 text-text-disabled opacity-60"
+                                            )}>
+                                                <div className={cn(
+                                                    "w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold",
+                                                    cat.count > 0 ? "bg-primary/5 text-primary border border-primary/10" : "bg-surface-muted text-text-disabled"
+                                                )}>
+                                                    {cat.count.toString().padStart(2, '0')}
+                                                </div>
+                                                <span className="text-sm font-bold tracking-tight">{cat.label}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        {setCandidateStep && (
-                            <Button variant="ghost" size="sm" onClick={setCandidateStep} className="sm:hidden w-full h-12 border-2 border-dashed border-border/50 text-text-secondary hover:bg-surface-subtle transition-all mt-4 rounded-2xl">
-                                <Edit className="w-4 h-4 mr-2" /> Edit Candidates
-                            </Button>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
+                        {/* Right Column: Candidates */}
+                        <div className="p-8 space-y-8 bg-surface-subtle/30">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-sm border border-primary/20">
+                                        <Users size={20} />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-text-primary tracking-tight">Candidates</h3>
+                                </div>
+                                {setCandidateStep && (
+                                    <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        onClick={setCandidateStep} 
+                                        className="h-9 px-4 text-primary hover:bg-primary/10 font-bold text-xs uppercase tracking-widest rounded-xl transition-all active:scale-95"
+                                    >
+                                        <Edit className="w-4 h-4 mr-2" /> Edit
+                                    </Button>
+                                )}
+                            </div>
+
+                            <div className="space-y-3 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar">
+                                {candidates.map((c, i) => (
+                                    <div key={c.id} className="group flex items-center justify-between p-4 rounded-2xl bg-surface-base border border-border/30 hover:border-primary/30 hover:shadow-md transition-all duration-300 animate-in slide-in-from-right-4" style={{ animationDelay: `${i * 50}ms` }}>
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-8 h-8 rounded-xl bg-surface-subtle border border-border/30 flex items-center justify-center text-xs font-bold text-text-disabled group-hover:bg-primary/10 group-hover:text-primary group-hover:border-primary/20 transition-colors">
+                                                {(i + 1).toString().padStart(2, '0')}
+                                            </div>
+                                            <div className="font-bold text-text-primary tracking-tight">{c.firstName} {c.lastName}</div>
+                                        </div>
+                                        <div className="text-xs font-medium text-text-secondary font-mono bg-surface-subtle/80 px-2 py-1 rounded-lg truncate max-w-[160px] md:max-w-none">
+                                            {c.email}
+                                        </div>
+                                    </div>
+                                ))}
+                                {candidates.length === 0 && (
+                                    <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-border/50 rounded-3xl text-text-disabled space-y-2">
+                                        <Users size={40} className="opacity-20" />
+                                        <p className="font-bold text-sm tracking-tight uppercase">No candidates added</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
             {error && (
-                <div className="p-4 bg-state-critical/5 text-state-critical rounded-xl text-sm border border-state-critical/20 font-medium animate-in shake-in duration-base">
-                    Error: {error}
+                <div className="p-4 bg-state-critical/10 text-state-critical rounded-2xl text-sm border border-state-critical/20 font-bold flex items-center gap-3 animate-in shake-in">
+                    <div className="w-8 h-8 rounded-xl bg-state-critical/20 flex items-center justify-center shrink-0">
+                        <X size={16} />
+                    </div>
+                    {error}
                 </div>
             )}
 
-            <StepFooter
-                onBack={onBack}
-                onNext={onHandleCreate}
-                nextLabel={isLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</> : <><Check className="w-4 h-4 mr-2" /> Generate Invites</>}
-                isNextDisabled={isLoading}
-            />
+            <div className="pt-8 border-t border-border/30 flex flex-col sm:flex-row items-center justify-between gap-6">
+                <Button
+                    variant="ghost"
+                    onClick={onBack}
+                    className="w-full sm:w-auto h-12 px-8 text-text-disabled hover:text-text-secondary font-bold text-sm uppercase tracking-widest rounded-2xl transition-all"
+                >
+                    <ChevronLeft size={18} className="mr-2" /> Back
+                </Button>
+
+                <div className="relative w-full sm:w-auto">
+                    {sendSuccess ? (
+                        <div className="h-14 px-10 bg-state-success text-white font-bold text-sm uppercase tracking-widest rounded-2xl shadow-xl shadow-state-success/20 flex items-center gap-3 animate-in zoom-in duration-slow">
+                            <MailCheck size={18} />
+                            Invites Sent!
+                        </div>
+                    ) : (
+                        <Button
+                            onClick={handleAction}
+                            disabled={isLoading || isSending}
+                            className="w-full sm:w-auto h-14 px-10 bg-primary text-primary-foreground font-bold text-sm uppercase tracking-widest rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3"
+                        >
+                            {(isLoading || isSending) ? (
+                                <Loader2 size={18} className="animate-spin" />
+                            ) : (
+                                <Eye size={18} />
+                            )}
+                            {(isLoading || isSending) ? (isLoading ? "Generating..." : "Sending...") : "Preview & Send"}
+                        </Button>
+                    )}
+                </div>
+            </div>
+
+            {recruiterProfile && (
+                <InviteEmailPreviewModal 
+                    isOpen={isPreviewOpen}
+                    onClose={() => setIsPreviewOpen(false)}
+                    data={{
+                        recipientEmails: candidates.map(c => c.email),
+                        recipientFirstName: candidates.length === 1 ? candidates[0].firstName : "Candidate",
+                        role: details.role,
+                        inviteLink: "https://coach.rangam.com/...", // Placeholder
+                        recruiterName: recruiterProfile.name,
+                        recruiterTitle: recruiterProfile.title,
+                        recruiterCompany: recruiterProfile.company,
+                        recruiterPhone: recruiterProfile.phone,
+                        recruiterEmail: recruiterProfile.email
+                    }}
+                    onSend={handleSendAll}
+                    isSending={isSending}
+                />
+            )}
         </div>
     );
 }

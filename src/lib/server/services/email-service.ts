@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 import { InterviewSession } from '@/lib/domain/types';
 import { Logger } from '@/lib/logger';
 import { renderSessionDebriefEmail } from '../emails/SessionDebriefEmail';
+import { renderCandidateInviteEmail } from '../emails/CandidateInviteEmail';
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://coach.rangam.com';
 
@@ -81,6 +82,89 @@ export class EmailService {
             return data;
         } catch (error) {
             Logger.error("[EmailService] Failed to send email", error, "EmailService");
+            throw error;
+        }
+    }
+
+    static async sendInviteEmail(params: {
+        recipientEmails: string[];
+        recipientFirstName: string;
+        role: string;
+        inviteLink: string;
+        recruiterName: string;
+        recruiterTitle?: string;
+        recruiterCompany?: string;
+        recruiterPhone?: string;
+        recruiterEmail?: string;
+    }) {
+        const resend = this.getClient();
+        
+        if (!resend) {
+            Logger.warn("[EmailService] No RESEND_API_KEY found in environment. Skipping invite email.", { 
+                recipientEmails: params.recipientEmails,
+                envKeys: Object.keys(process.env).filter(k => k.includes('RESEND'))
+            }, "EmailService");
+            return;
+        }
+
+        try {
+            const fromEmail = process.env.RESEND_FROM_EMAIL || 'Rangam Interview Coach <interviews@coach.rangam.com>';
+            
+            const html = renderCandidateInviteEmail({
+                firstName: params.recipientFirstName,
+                role: params.role,
+                inviteLink: params.inviteLink,
+                logoUrl: `${baseUrl}/rangam-logo.png`,
+                recruiterName: params.recruiterName,
+                recruiterTitle: params.recruiterTitle,
+                recruiterCompany: params.recruiterCompany,
+                recruiterPhone: params.recruiterPhone,
+                recruiterEmail: params.recruiterEmail,
+            });
+
+            Logger.info("[EmailService] Preparing to send invite via Resend", { 
+                recipients: params.recipientEmails,
+                from: fromEmail,
+                role: params.role,
+                htmlLength: html.length
+            }, "EmailService");
+
+            // Addressing logic
+            // 1 recipient -> To
+            // >1 recipient -> Bcc, To blank
+            // Recruiter -> Cc
+            const to = params.recipientEmails.length === 1 ? params.recipientEmails : [];
+            const bcc = params.recipientEmails.length > 1 ? params.recipientEmails : [];
+            const cc = params.recruiterEmail ? [params.recruiterEmail] : [];
+
+            const { data, error } = await resend.emails.send({
+                from: fromEmail,
+                to: to.length > 0 ? to : [' '], // Resend might require to be non-empty, use a placeholder or handle specifically
+                cc,
+                bcc,
+                subject: `Interview Invitation: ${params.role}`,
+                html,
+            });
+
+            if (error) {
+                Logger.error("[EmailService] Resend Invite API Error", { 
+                    error, 
+                    from: fromEmail,
+                    to,
+                    cc,
+                    bcc
+                }, "EmailService");
+                throw error;
+            }
+
+            Logger.info("[EmailService] Invite email dispatched", { 
+                recipientEmails: params.recipientEmails,
+                resendResponse: data 
+            }, "EmailService");
+
+            return data;
+        } catch (error) {
+            Logger.error("[EmailService] Failed to send invite email", error, "EmailService");
             throw error;
         }
     }

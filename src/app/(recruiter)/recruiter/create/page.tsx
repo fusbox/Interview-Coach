@@ -12,13 +12,12 @@ import { Details, QuestionInput, STAR_TEMPLATE, PERMA_TEMPLATE, DEV_CANDIDATE_PO
 import { StepJobAndQuestions } from "./components/StepJobAndQuestions";
 import { StepCandidates, CandidateRow } from "./components/StepCandidates";
 import { StepPreviewCombined } from "./components/StepPreviewCombined";
-import { StepBatchSend } from "./components/StepBatchSend";
 
 import { fetchTemplates, saveTemplateAction } from "../templates/actions";
 import { RecruiterTemplate } from "@/lib/domain/template";
 
 export default function CreateInviteWizard() {
-    const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+    const [step, setStep] = useState<1 | 2 | 3>(1);
 
     // Reset scroll on step change (Wizard flow)
     useEffect(() => {
@@ -175,7 +174,7 @@ export default function CreateInviteWizard() {
 
             if (data.results) {
                 setInviteResults(data.results);
-                setStep(4);
+                // No longer advancing to step 4
             }
         } catch (e: unknown) {
             console.error(e);
@@ -185,19 +184,9 @@ export default function CreateInviteWizard() {
         }
     };
 
-    const resetWizard = () => {
-        setStep(1);
-        setDetails({ role: "", jd: "", firstName: "", lastName: "", candidateEmail: "", reqId: "" });
-        setCandidates([]);
-        setStar(STAR_TEMPLATE);
-        setPerma(PERMA_TEMPLATE);
-        setTechnical([{ id: 'tech-1', text: '', category: 'Technical', label: 'Technical Q1' }]);
-        setInviteResults([]);
-        setError(null);
-    };
 
     const StepFooter = ({ onBack, onNext, nextLabel, isNextDisabled, customAction }: { onBack?: () => void, onNext: () => void, nextLabel: string | React.ReactNode, isNextDisabled?: boolean, customAction?: React.ReactNode }) => (
-        <div className="mt-8 pt-8 border-t border-border/50">
+        <div className="mt-8 pt-8 border-t border-border/30">
             <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-stretch sm:items-center gap-4 w-full">
                 <div>
                     {onBack && (
@@ -284,14 +273,14 @@ export default function CreateInviteWizard() {
     return (
         <div className="max-w-4xl mx-auto pb-8 pt-24 md:py-8 transition-all duration-300">
             {/* Stepper Header */}
-            {step <= 4 && (
+            {step <= 3 && (
                 <div className="fixed top-0 left-0 right-0 z-30 bg-surface-base/95 backdrop-blur-md px-4 py-3 border-b border-border/50 md:static md:bg-transparent md:border-none md:p-0 md:m-0 md:mb-10 transition-all duration-base ease-standard">
                     <div className="relative">
                         <div className="absolute left-0 right-0 top-[15px] h-[2px] bg-surface-subtle -z-10" />
                         <div className="flex w-full max-w-2xl mx-auto">
-                            {[1, 2, 3, 4].map(s => (
+                            {[1, 2, 3].map(s => (
                                 <div key={s} className={`flex-1 flex flex-col items-center group cursor-pointer transition-all duration-base ${s < step ? 'text-state-success' : (s === step ? 'text-primary' : 'text-text-disabled')}`}
-                                    onClick={() => s <= step ? setStep(s as 1 | 2 | 3 | 4) : null}>
+                                    onClick={() => s <= step ? setStep(s as 1 | 2 | 3) : null}>
                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 mb-2 transition-all duration-base
                                          ${s < step ? 'border-state-success bg-surface-subtle text-state-success' :
                                             s === step ? 'border-primary bg-primary text-primary-foreground shadow-[0_0_0_4px_hsl(var(--primary)/0.15)]' :
@@ -299,7 +288,7 @@ export default function CreateInviteWizard() {
                                         {s < step ? <Check className="w-4 h-4" /> : s}
                                     </div>
                                     <span className="text-micro sm:text-xs font-bold uppercase tracking-widest text-center px-1 max-w-full line-clamp-2 break-words">
-                                        {s === 1 ? 'Job & Questions' : s === 2 ? 'Candidates' : s === 3 ? 'Preview' : 'Invite'}
+                                        {s === 1 ? 'Job & Questions' : s === 2 ? 'Candidates' : 'Invite'}
                                     </span>
                                 </div>
                             ))}
@@ -345,18 +334,10 @@ export default function CreateInviteWizard() {
                     onBack={() => setStep(2)}
                     onHandleCreate={handleCreate}
                     isLoading={isLoading}
-                    error={error}
-                    StepFooter={StepFooter}
-                />
-            )}
-
-            {step === 4 && (
-                <StepBatchSend
+                    isGenerated={inviteResults.length > 0}
                     results={inviteResults}
-                    role={details.role}
+                    error={error}
                     recruiterProfile={recruiterProfile}
-                    onBack={() => setStep(3)}
-                    resetWizard={resetWizard}
                 />
             )}
         </div>

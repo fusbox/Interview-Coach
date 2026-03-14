@@ -241,7 +241,7 @@ export function StepJobAndQuestions({
                                         <button
                                             type="button"
                                             onClick={() => clearQuestion(setStar, star, q.id)}
-                                            className="absolute right-3 top-3 p-1 text-state-critical hover:text-red-700 transition-all duration-base"
+                                            className="absolute right-3 top-3 p-1 text-state-critical hover:opacity-80 transition-all duration-base"
                                             title="Clear content"
                                         >
                                             <X className="w-4 h-4" />
@@ -270,7 +270,7 @@ export function StepJobAndQuestions({
                                         <button
                                             type="button"
                                             onClick={() => clearQuestion(setPerma, perma, q.id)}
-                                            className="absolute right-3 top-3 p-1 text-state-critical hover:text-red-700 transition-all duration-base"
+                                            className="absolute right-3 top-3 p-1 text-state-critical hover:opacity-80 transition-all duration-base"
                                             title="Clear content"
                                         >
                                             <X className="w-4 h-4" />
@@ -309,7 +309,7 @@ export function StepJobAndQuestions({
                                             <button
                                                 type="button"
                                                 onClick={() => clearQuestion(setTechnical, technical, q.id)}
-                                                className="absolute right-3 top-3 p-1 text-state-critical hover:text-red-700 transition-all duration-base"
+                                                className="absolute right-3 top-3 p-1 text-state-critical hover:opacity-80 transition-all duration-base"
                                                 title="Clear content"
                                             >
                                                 <X className="w-4 h-4" />
@@ -343,7 +343,7 @@ export function StepJobAndQuestions({
                 customAction={
                     <Button
                         variant="outline"
-                        className="text-slate-600 w-full h-12 sm:h-10 rounded-2xl"
+                        className="text-text-secondary w-full h-12 sm:h-10 rounded-2xl"
                         onClick={() => setShowSaveModal(true)}
                         disabled={!details.role || !hasAtLeastOneQuestion}
                     >
