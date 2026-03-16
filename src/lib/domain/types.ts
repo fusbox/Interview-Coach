@@ -178,7 +178,7 @@ export interface SessionSummary {
     updatedAt?: number;
     enteredInitials?: string;
     inviteToken?: string;
-
+    invitationSentAt?: number;
     parentSessionId?: string;
     attemptNumber?: number;
     clientName?: string;

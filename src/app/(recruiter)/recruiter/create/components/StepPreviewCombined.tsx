@@ -3,7 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Details, QuestionInput, InviteResult, RecruiterProfile } from "../constants";
 import { CandidateRow } from "./StepCandidates";
-import { Briefcase, ChevronLeft, Edit, Eye, Loader2, Users, X } from "lucide-react";
+import { ChevronLeft, Edit, Eye, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { useState, useEffect } from "react";
@@ -123,9 +123,6 @@ export function StepPreviewCombined({
                         <div className="p-8 space-y-8">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-sm border border-primary/20">
-                                        <Briefcase size={20} />
-                                    </div>
                                     <h3 className="text-xl font-bold text-text-primary tracking-tight">Job Details</h3>
                                 </div>
                                 {setDetailStep && (
@@ -148,7 +145,7 @@ export function StepPreviewCombined({
 
                                 <div className="space-y-1">
                                     <p className="text-[10px] font-bold text-text-disabled uppercase tracking-widest">Req ID</p>
-                                    <p className="text-sm font-mono font-bold text-text-secondary bg-surface-subtle px-3 py-1.5 rounded-lg border border-border/30 w-fit">{details.reqId || "N/A"}</p>
+                                    <p className="text-sm font-mono font-bold text-text-secondary">{details.reqId || "N/A"}</p>
                                 </div>
 
                                 <div className="pt-2 space-y-3">
@@ -162,17 +159,15 @@ export function StepPreviewCombined({
                                             { label: 'Technical', count: activeTechnical.length }
                                         ].map((cat, i) => (
                                             <div key={i} className={cn(
-                                                "flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all duration-300",
-                                                cat.count > 0 
-                                                    ? "bg-surface-base border-border/10 text-text-primary shadow-sm" 
-                                                    : "bg-surface-subtle border-border/30 text-text-disabled opacity-60"
+                                                "flex items-center gap-4 transition-all duration-300",
+                                                cat.count > 0 ? "text-text-primary" : "text-text-disabled opacity-60"
                                             )}>
-                                                <div className={cn(
-                                                    "w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold",
-                                                    cat.count > 0 ? "bg-primary/5 text-primary border border-primary/10" : "bg-surface-muted text-text-disabled"
+                                                <span className={cn(
+                                                    "text-sm font-bold min-w-[12px] text-left",
+                                                    cat.count > 0 ? "text-primary" : "text-text-disabled"
                                                 )}>
-                                                    {cat.count.toString().padStart(2, '0')}
-                                                </div>
+                                                    {cat.count}
+                                                </span>
                                                 <span className="text-sm font-bold tracking-tight">{cat.label}</span>
                                             </div>
                                         ))}
@@ -185,9 +180,6 @@ export function StepPreviewCombined({
                         <div className="p-8 space-y-8 bg-surface-subtle/30">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-sm border border-primary/20">
-                                        <Users size={20} />
-                                    </div>
                                     <h3 className="text-xl font-bold text-text-primary tracking-tight">Candidates</h3>
                                 </div>
                                 {setCandidateStep && (
@@ -204,10 +196,10 @@ export function StepPreviewCombined({
 
                             <div className="space-y-3 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar">
                                 {candidates.map((c, i) => (
-                                    <div key={c.id} className="group flex items-center justify-between p-4 rounded-2xl bg-surface-base border border-border/30 hover:border-primary/30 hover:shadow-md transition-all duration-300 animate-in slide-in-from-right-4" style={{ animationDelay: `${i * 50}ms` }}>
+                                    <div key={c.id} className="group flex items-center justify-between transition-all duration-300 animate-in slide-in-from-right-4" style={{ animationDelay: `${i * 50}ms` }}>
                                         <div className="flex items-center gap-4">
-                                            <div className="w-8 h-8 rounded-xl bg-surface-subtle border border-border/30 flex items-center justify-center text-xs font-bold text-text-disabled group-hover:bg-primary/10 group-hover:text-primary group-hover:border-primary/20 transition-colors">
-                                                {(i + 1).toString().padStart(2, '0')}
+                                            <div className="text-xs font-bold text-text-disabled min-w-[12px] text-left group-hover:text-primary transition-colors">
+                                                {i + 1}
                                             </div>
                                             <div className="font-bold text-text-primary tracking-tight">{c.firstName} {c.lastName}</div>
                                         </div>
@@ -218,7 +210,6 @@ export function StepPreviewCombined({
                                 ))}
                                 {candidates.length === 0 && (
                                     <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-border/50 rounded-3xl text-text-disabled space-y-2">
-                                        <Users size={40} className="opacity-20" />
                                         <p className="font-bold text-sm tracking-tight uppercase">No candidates added</p>
                                     </div>
                                 )}
@@ -237,28 +228,32 @@ export function StepPreviewCombined({
                 </div>
             )}
 
-            <div className="pt-8 border-t border-border/30 flex flex-col sm:flex-row items-center justify-between gap-6">
-                <Button
-                    variant="ghost"
-                    onClick={onBack}
-                    className="w-full sm:w-auto h-12 px-8 text-text-disabled hover:text-text-secondary font-bold text-sm uppercase tracking-widest rounded-2xl transition-all"
-                >
-                    <ChevronLeft size={18} className="mr-2" /> Back
-                </Button>
+            <div className="mt-8 pt-8 border-t border-border/30">
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-stretch sm:items-center gap-4 w-full">
+                    <div>
+                        <Button
+                            variant="outline"
+                            onClick={onBack}
+                            className="w-full sm:w-auto h-12 sm:h-11 shadow-flat rounded-2xl"
+                        >
+                            <ChevronLeft className="w-4 h-4 mr-2" /> Back
+                        </Button>
+                    </div>
 
-                <div className="relative w-full sm:w-auto">
-                    <Button
-                        onClick={handleAction}
-                        disabled={isLoading || isSending || sendSuccess}
-                        className="w-full sm:w-auto h-14 px-10 font-bold text-sm uppercase tracking-widest rounded-2xl transition-all flex items-center gap-3"
-                    >
-                        {(isLoading || isSending) ? (
-                            <Loader2 size={18} className="animate-spin" />
-                        ) : (
-                            <Eye size={18} />
-                        )}
-                        {(isLoading || isSending) ? (isLoading ? "Generating..." : "Sending...") : "Preview & Send"}
-                    </Button>
+                    <div className="relative w-full sm:w-auto">
+                        <Button
+                            onClick={handleAction}
+                            disabled={isLoading || isSending || sendSuccess}
+                            className="w-full sm:w-auto h-12 sm:h-11 text-base sm:text-sm font-semibold shadow-raised-1 rounded-2xl transition-all flex items-center gap-3"
+                        >
+                            {(isLoading || isSending) ? (
+                                <Loader2 size={18} className="animate-spin" />
+                            ) : (
+                                <Eye size={18} />
+                            )}
+                            {(isLoading || isSending) ? (isLoading ? "Generating..." : "Sending...") : "Preview & Send"}
+                        </Button>
+                    </div>
                 </div>
             </div>
 

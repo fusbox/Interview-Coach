@@ -131,15 +131,17 @@ export class EmailService {
 
             // Addressing logic
             // 1 recipient -> To
-            // >1 recipient -> Bcc, To blank
+            // >1 recipient -> Bcc, To as Batch placeholder (using recruiter email as valid target)
             // Recruiter -> Cc
-            const to = params.recipientEmails.length === 1 ? params.recipientEmails : [];
+            const to = params.recipientEmails.length === 1 
+                ? params.recipientEmails 
+                : [`Interviews (${params.recipientEmails.length} recipients) <${params.recruiterEmail || 'interviews@coach.rangam.com'}>`];
             const bcc = params.recipientEmails.length > 1 ? params.recipientEmails : [];
             const cc = params.recruiterEmail ? [params.recruiterEmail] : [];
 
             const { data, error } = await resend.emails.send({
                 from: fromEmail,
-                to: to.length > 0 ? to : [' '], // Resend might require to be non-empty, use a placeholder or handle specifically
+                to,
                 cc,
                 bcc,
                 subject: `Interview Invitation: ${params.role}`,

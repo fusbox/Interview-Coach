@@ -12,9 +12,9 @@ const IV_LENGTH = 12;
 // SECURE KEY DERIVATION
 // In a production AWS environment, the secret should be fetched from AWS Secrets Manager.
 const getSecret = () => {
-    const rawSecret = process.env.ENCRYPTION_SECRET || "development-only-fallback-secret-at-least-32-chars";
-    if (process.env.NODE_ENV === "production" && (!process.env.ENCRYPTION_SECRET || process.env.ENCRYPTION_SECRET.length < 32)) {
-        throw new Error("ENCRYPTION_SECRET must be at least 32 characters in production.");
+    const rawSecret = process.env.ENCRYPTION_SECRET;
+    if (!rawSecret || rawSecret.length < 32) {
+        throw new Error("ENCRYPTION_SECRET environment variable is missing or too short (min 32 chars).");
     }
     return scryptSync(rawSecret, "interview-coach-salt", 32);
 };
@@ -45,8 +45,8 @@ export function decrypt(cipherText: string): string {
         decipher.setAuthTag(tag);
 
         return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString("utf8");
-    } catch (e) {
-        console.error("[Encryption] Decryption failed. Possible key mismatch or data corruption.", e);
+    } catch {
+        // Silent failure to prevent console flooding on historical data mismatch
         return "";
     }
 }

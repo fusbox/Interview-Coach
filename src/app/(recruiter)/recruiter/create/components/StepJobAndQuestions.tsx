@@ -155,30 +155,31 @@ export function StepJobAndQuestions({
                     }
                 />
 
-                {/* Template Select */}
-                <div className="flex items-center gap-2">
-                    <span className="text-micro font-bold uppercase tracking-widest text-text-disabled">Apply Template:</span>
-                    <div className="relative">
-                        <select
-                            className="h-9 min-w-[200px] rounded-lg border border-border bg-surface-base text-[11px] px-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-flat"
-                            defaultValue=""
-                            onChange={(e) => handleApplyTemplate(e.target.value)}
-                        >
-                            <option value="" disabled>Select a Template...</option>
-                            {templates.map(t => (
-                                <option key={t.id} value={t.id}>{t.name}</option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
             </div>
 
             {/* Cards Section: Job Details & Questions */}
             <div className="space-y-8">
                 {/* Job Details Section */}
                 <Card className="border-border/50 shadow-raised-1">
-                    <CardHeader className="pb-4">
+                    <CardHeader className="flex flex-row items-center justify-between pb-4">
                         <CardTitle className="text-base font-bold tracking-tight">Job Details</CardTitle>
+
+                        {/* Template Select */}
+                        <div className="flex items-center gap-2">
+                            <span className="text-micro font-bold uppercase tracking-widest text-text-disabled">Use a Template:</span>
+                            <div className="relative">
+                                <select
+                                    className="h-9 min-w-[200px] rounded-lg border border-border bg-surface-base text-[11px] px-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-flat"
+                                    defaultValue=""
+                                    onChange={(e) => handleApplyTemplate(e.target.value)}
+                                >
+                                    <option value="" disabled>Select a Template...</option>
+                                    {templates.map(t => (
+                                        <option key={t.id} value={t.id}>{t.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

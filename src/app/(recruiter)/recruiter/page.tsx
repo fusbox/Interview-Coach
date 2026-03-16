@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { getRecruiterSessions } from "./actions";
 import Link from "next/link";
+import { isAdmin } from "@/lib/auth/rbac";
 import { Plus } from "lucide-react";
 import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { createClient, getCachedUser } from "@/lib/supabase/server";
@@ -10,8 +11,6 @@ import { InviteProgressWidget } from "./components/InviteProgressWidget";
 import { CollapsibleSection } from "./components/CollapsibleSection";
 import { redirect } from "next/navigation";
 import { computeDashboardStats } from "@/lib/services/compute-dashboard-stats";
-import { isAdmin } from "@/lib/auth/rbac";
-
 export const dynamic = 'force-dynamic';
 
 export default async function RecruiterDashboard() {

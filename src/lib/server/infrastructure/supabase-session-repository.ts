@@ -22,6 +22,7 @@ interface DbSession {
     parent_session_id: string | null;
     attempt_number: number | null;
     client_name: string | null;
+    invitation_sent_at: string | null;
 
     updated_at: string;
     questions?: { count: number }[];
@@ -62,7 +63,6 @@ export class SupabaseSessionRepository implements SessionRepository {
     async listByRecruiter(recruiterId: string): Promise<SessionSummary[]> {
         const supabase = createClient();
         
-        // 1. Fetch Sessions (only those with sent invitations)
         const { data: sessionsInitial, error } = await supabase
             .from('sessions')
             .select(`
@@ -76,23 +76,24 @@ export class SupabaseSessionRepository implements SessionRepository {
                 attempt_number,
                 client_name,
                 questions(count),
-                answers(submitted_at)
+                answers(submitted_at),
+                invitation_sent_at
             `)
             .eq('recruiter_id', recruiterId)
-            .not('invitation_sent_at', 'is', null) // Filter for visibility
-            .order('created_at', { ascending: false });
-
-        const sessionsFinal: DbSession[] | null = sessionsInitial as unknown as DbSession[];
+            .not('invitation_sent_at', 'is', null) // Only show delivered sessions
+            .order('invitation_sent_at', { ascending: false });
 
         if (error) {
             Logger.error("[SupabaseSessionRepo] List Failed", error);
             throw new Error(error.message);
         }
 
-        if (!sessionsFinal || !Array.isArray(sessionsFinal)) return [];
+        const sessionsFinal = (sessionsInitial as unknown as DbSession[] || []);
+        return this.mapSessions(sessionsFinal);
+    }
 
-        // 2. Map to Summary
-        return sessionsFinal.map((s: DbSession) => {
+    private mapSessions(sessions: DbSession[]): SessionSummary[] {
+        return sessions.map((s: DbSession) => {
             const intake = s.intake_json || {};
             const c = intake.candidate || {};
             const candidateName = (c.firstName && c.lastName)
@@ -142,7 +143,8 @@ export class SupabaseSessionRepository implements SessionRepository {
                 candidateEmail: c.email || undefined,
                 candidateFirstName: c.firstName || undefined,
                 candidateLastName: c.lastName || undefined,
-                engagedTimeSeconds: intake.engaged_time_seconds as number | undefined
+                engagedTimeSeconds: intake.engaged_time_seconds as number | undefined,
+                invitationSentAt: s.invitation_sent_at ? new Date(s.invitation_sent_at).getTime() : undefined
             };
         });
     }

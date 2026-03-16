@@ -27,7 +27,7 @@ interface RecruiterSessionsTableProps {
 }
 
 type SortConfig = {
-    key: keyof SessionSummary | 'created' | 'updatedAt' | 'engagedTimeSeconds';
+    key: keyof SessionSummary | 'delivered' | 'updatedAt' | 'engagedTimeSeconds';
     direction: 'asc' | 'desc';
 } | null;
 
@@ -38,7 +38,7 @@ export function RecruiterSessionsTable({ initialSessions, recruiterTimezone, rec
     const [sortConfig, setSortConfig] = useState<SortConfig>(null);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
-    const handleSort = (key: keyof SessionSummary | 'created' | 'updatedAt') => {
+    const handleSort = (key: keyof SessionSummary | 'delivered' | 'updatedAt') => {
         setSortConfig(prev => {
             if (prev?.key === key) {
                 return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
@@ -142,9 +142,9 @@ E: ${recruiterProfile?.email || ''}`;
                 let aVal: string | number;
                 let bVal: string | number;
 
-                if (sortConfig.key === 'created') {
-                    aVal = a.createdAt;
-                    bVal = b.createdAt;
+                if (sortConfig.key === 'delivered') {
+                    aVal = a.invitationSentAt || 0;
+                    bVal = b.invitationSentAt || 0;
                 } else if (sortConfig.key === 'updatedAt') {
                     aVal = a.updatedAt || a.createdAt;
                     bVal = b.updatedAt || b.createdAt;
@@ -246,13 +246,13 @@ E: ${recruiterProfile?.email || ''}`;
                     },
                     {
                         header: (
-                            <button onClick={() => handleSort('created')} className="flex items-center gap-1 hover:text-text-primary transition-colors">
-                                Created <ArrowUpDown className="w-3 h-3" />
+                            <button onClick={() => handleSort('delivered')} className="flex items-center gap-1 hover:text-text-primary transition-colors">
+                                Delivered <ArrowUpDown className="w-3 h-3" />
                             </button>
                         ),
                         cell: (session) => (
                             <span className="text-text-secondary whitespace-nowrap text-sm">
-                                {formatTimestamp(session.createdAt)}
+                                {formatTimestamp(session.invitationSentAt || session.createdAt)}
                             </span>
                         )
                     },
