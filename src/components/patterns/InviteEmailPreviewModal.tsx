@@ -212,6 +212,16 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                                             {data.recruiterEmail && <span className="block">E: {data.recruiterEmail}</span>}
                                                         </div>
                                                     )}
+                                                    
+                                                    <div className="pt-4">
+                                                        <Image 
+                                                            src="/rangam-logo.png" 
+                                                            alt="Rangam" 
+                                                            width={80} 
+                                                            height={20} 
+                                                            className="h-5 w-auto" 
+                                                        />
+                                                    </div>
                                                 </div>
 
                                                 <p className="text-[10px] text-text-disabled font-medium pt-8">

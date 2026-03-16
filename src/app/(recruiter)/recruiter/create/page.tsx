@@ -350,6 +350,9 @@ export default function CreateInviteWizard() {
                         setStep(1);
                         setDetails({ role: "", jd: "", firstName: "", lastName: "", candidateEmail: "", reqId: "" });
                         setCandidates([]);
+                        setStar(STAR_TEMPLATE);
+                        setPerma(PERMA_TEMPLATE);
+                        setTechnical([{ id: 'tech-1', text: '', category: 'Technical', label: 'Technical Q1' }]);
                     }}
                     onDashboard={() => window.location.href = '/recruiter'}
                 />

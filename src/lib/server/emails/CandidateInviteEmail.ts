@@ -88,7 +88,7 @@ export function renderCandidateInviteEmail({
       ${safeRecruiterEmail ? `<p style="margin: 0;">E: ${safeRecruiterEmail}</p>` : ''}
       
       <div style="margin-top: 16px;">
-        <img src="${logoUrl}" alt="Rangam" width="100" style="display: block; border: 0; outline: none; text-decoration: none;" />
+        <img src="${logoUrl}" alt="Rangam" width="80" style="display: block; border: 0; outline: none; text-decoration: none;" />
       </div>
     </div>
     
