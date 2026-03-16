@@ -28,7 +28,9 @@ export default function CreateInviteWizard() {
         role: "", jd: "", firstName: "", lastName: "", candidateEmail: "", reqId: ""
     });
 
-    const [candidates, setCandidates] = useState<CandidateRow[]>([]);
+    const [candidates, setCandidates] = useState<CandidateRow[]>([
+        { id: 'cand-initial', firstName: "", lastName: "", email: "" }
+    ]);
 
     // Questions State
     const [star, setStar] = useState<QuestionInput[]>(STAR_TEMPLATE);

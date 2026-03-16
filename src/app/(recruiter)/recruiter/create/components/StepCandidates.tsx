@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, ChevronRight, UserPlus } from "lucide-react";
+import { Trash2, ChevronRight, UserPlus } from "lucide-react";
 import { StepFooterProps } from "../constants";
 import { showDemoTools } from "@/lib/feature-flags";
 import { SectionHeader } from "@/components/patterns/SectionHeader";
@@ -77,22 +77,13 @@ export function StepCandidates({
             <Card className="border-border/50 shadow-raised-1">
                 <CardHeader className="flex flex-row items-center justify-between py-5 border-b border-border/30 bg-surface-base">
                     <CardTitle className="text-base font-bold tracking-tight">Candidate List</CardTitle>
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={addCandidate}
-                        className="text-state-success border-state-success/30 hover:bg-state-success/5 hover:border-state-success/50 transition-all rounded-2xl"
-                    >
-                        <UserPlus className="w-4 h-4 mr-2" />
-                        Add Candidate
-                    </Button>
                 </CardHeader>
                 <CardContent className="space-y-6 pt-6">
                     {candidates.length === 0 && (
                         <div className="py-8">
                             <EmptyState
                                 title="No candidates yet"
-                                description="Click the button above to start adding candidates to this batch."
+                                description="Click the button below to start adding candidates to this batch."
                                 icon={<UserPlus className="w-10 h-10 text-muted-foreground/40" />}
                             />
                         </div>
@@ -141,15 +132,13 @@ export function StepCandidates({
                         </div>
                     ))}
 
-                    {candidates.length > 0 && (
-                        <Button
-                            variant="ghost"
-                            onClick={addCandidate}
-                            className="w-full border-2 border-dashed border-border/50 text-text-disabled hover:text-text-secondary hover:bg-surface-subtle hover:border-border transition-all mt-4 py-8 rounded-2xl"
-                        >
-                            <Plus className="w-4 h-4 mr-2" /> Add Another Candidate
-                        </Button>
-                    )}
+                    <Button
+                        variant="outline"
+                        onClick={addCandidate}
+                        className="w-full text-state-success border-state-success/30 hover:bg-state-success/5 hover:border-state-success/50 transition-all mt-4 py-6 rounded-2xl flex items-center justify-center gap-2"
+                    >
+                        <UserPlus className="w-4 h-4" /> Add Candidate
+                    </Button>
                 </CardContent>
             </Card>
 
