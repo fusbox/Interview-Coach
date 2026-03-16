@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { EmailService } from "@/lib/server/services/email-service";
 import { Logger } from "@/lib/logger";
+import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-session-repository";
+
+const sessionRepo = new SupabaseSessionRepository();
 
 export async function POST(req: NextRequest) {
     try {
@@ -15,7 +18,8 @@ export async function POST(req: NextRequest) {
             recruiterTitle,
             recruiterCompany,
             recruiterPhone,
-            recruiterEmail
+            recruiterEmail,
+            sessionIds
         } = body;
 
         // Support both single recipientEmail and recipientEmails array
@@ -45,6 +49,11 @@ export async function POST(req: NextRequest) {
             recruiterPhone,
             recruiterEmail
         });
+
+        // Mark as sent in DB if session IDs provided
+        if (sessionIds && Array.isArray(sessionIds)) {
+            await Promise.all(sessionIds.map(id => sessionRepo.markInvitationSent(id)));
+        }
 
         return NextResponse.json({ success: true, data: result });
     } catch (error) {

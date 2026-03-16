@@ -10,6 +10,7 @@ import { InviteProgressWidget } from "./components/InviteProgressWidget";
 import { CollapsibleSection } from "./components/CollapsibleSection";
 import { redirect } from "next/navigation";
 import { computeDashboardStats } from "@/lib/services/compute-dashboard-stats";
+import { isAdmin } from "@/lib/auth/rbac";
 
 export const dynamic = 'force-dynamic';
 
@@ -75,6 +76,7 @@ export default async function RecruiterDashboard() {
                     initialSessions={sessions}
                     recruiterTimezone={recruiterTimezone}
                     recruiterProfile={recruiterProfile}
+                    isAdmin={isAdmin(user)}
                 />
             </CollapsibleSection>
         </div >

@@ -61,8 +61,8 @@ export class SupabaseSessionRepository implements SessionRepository {
 
     async listByRecruiter(recruiterId: string): Promise<SessionSummary[]> {
         const supabase = createClient();
-
-        // 1. Fetch Sessions
+        
+        // 1. Fetch Sessions (only those with sent invitations)
         const { data: sessionsInitial, error } = await supabase
             .from('sessions')
             .select(`
@@ -79,6 +79,7 @@ export class SupabaseSessionRepository implements SessionRepository {
                 answers(submitted_at)
             `)
             .eq('recruiter_id', recruiterId)
+            .not('invitation_sent_at', 'is', null) // Filter for visibility
             .order('created_at', { ascending: false });
 
         const sessionsFinal: DbSession[] | null = sessionsInitial as unknown as DbSession[];
@@ -457,5 +458,17 @@ export class SupabaseSessionRepository implements SessionRepository {
         const supabase = createAdminClient();
         const { error } = await supabase.from('sessions').delete().eq('session_id', id);
         if (error) throw new Error(error.message);
+    }
+
+    async markInvitationSent(sessionId: string): Promise<void> {
+        const supabase = createAdminClient();
+        const { error } = await supabase
+            .from('sessions')
+            .update({ invitation_sent_at: new Date().toISOString() })
+            .eq('session_id', sessionId);
+
+        if (error) {
+            throw new Error(`Failed to mark invitation sent: ${error.message}`);
+        }
     }
 }

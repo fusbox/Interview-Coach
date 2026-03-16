@@ -46,7 +46,7 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { role, jobDescription, candidates, questions } = CreateInviteSchema.parse(body);
 
-        const results: { firstName: string, lastName: string, email: string, link: string }[] = [];
+        const results: { id: string, firstName: string, lastName: string, email: string, link: string }[] = [];
 
         // Use Admin Client if bypassing auth (RLS Bypass)
         let adminClient: SupabaseClient | null = null;
@@ -82,6 +82,7 @@ export async function POST(request: Request) {
             const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
 
             results.push({
+                id: sessionId,
                 firstName: candidate.firstName,
                 lastName: candidate.lastName,
                 email: candidate.email,

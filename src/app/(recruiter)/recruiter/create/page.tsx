@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { Button } from "@/components/ui/button";
 import { Check, ChevronLeft } from "lucide-react";
-import { Details, QuestionInput, STAR_TEMPLATE, PERMA_TEMPLATE, DEV_CANDIDATE_POOL, DEV_JOB_POOL, RecruiterProfile } from "./constants";
+import { Details, QuestionInput, STAR_TEMPLATE, PERMA_TEMPLATE, DEV_CANDIDATE_POOL, DEV_JOB_POOL, RecruiterProfile, InviteResult } from "./constants";
 
 // Sub-components
 import { StepJobAndQuestions } from "./components/StepJobAndQuestions";
@@ -41,7 +41,7 @@ export default function CreateInviteWizard() {
     const [templates, setTemplates] = useState<RecruiterTemplate[]>([]);
 
     // Batch Results
-    const [inviteResults, setInviteResults] = useState<{ firstName: string, lastName: string, email: string, link: string }[]>([]);
+    const [inviteResults, setInviteResults] = useState<InviteResult[]>([]);
 
     const [error, setError] = useState<string | null>(null);
 
@@ -103,6 +103,13 @@ export default function CreateInviteWizard() {
             }
         }
     }, [templateIdFromUrl, templates]);
+
+    // Stale State Protection: Clear results if job/candidates change
+    useEffect(() => {
+        if (inviteResults.length > 0) {
+            setInviteResults([]);
+        }
+    }, [details.role, details.jd, candidates]); // Only clear if inputs change
 
     const handleSaveTemplate = async (name: string, isShared: boolean) => {
         const res = await saveTemplateAction({
@@ -338,6 +345,13 @@ export default function CreateInviteWizard() {
                     results={inviteResults}
                     error={error}
                     recruiterProfile={recruiterProfile}
+                    onNewInvite={() => {
+                        setInviteResults([]);
+                        setStep(1);
+                        setDetails({ role: "", jd: "", firstName: "", lastName: "", candidateEmail: "", reqId: "" });
+                        setCandidates([]);
+                    }}
+                    onDashboard={() => window.location.href = '/recruiter'}
                 />
             )}
         </div>

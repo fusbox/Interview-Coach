@@ -47,6 +47,7 @@ export interface RecruiterProfile {
 }
 
 export interface InviteResult {
+    id: string;
     firstName: string;
     lastName: string;
     email: string;

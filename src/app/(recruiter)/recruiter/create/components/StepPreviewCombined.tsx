@@ -3,7 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Details, QuestionInput, InviteResult, RecruiterProfile } from "../constants";
 import { CandidateRow } from "./StepCandidates";
-import { Briefcase, ChevronLeft, Edit, Eye, Loader2, MailCheck, Users, X } from "lucide-react";
+import { Briefcase, ChevronLeft, Edit, Eye, Loader2, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { useState, useEffect } from "react";
@@ -25,6 +25,8 @@ interface StepPreviewCombinedProps {
     results: InviteResult[];
     error: string | null;
     recruiterProfile: RecruiterProfile;
+    onNewInvite: () => void;
+    onDashboard: () => void;
 }
 
 export function StepPreviewCombined({
@@ -35,10 +37,13 @@ export function StepPreviewCombined({
     isLoading, isGenerated = false,
     results,
     error,
-    recruiterProfile
+    recruiterProfile,
+    onNewInvite,
+    onDashboard
 }: StepPreviewCombinedProps) {
     const [localIsGenerated, setLocalIsGenerated] = useState(isGenerated);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [hasUserManuallyClosed, setHasUserManuallyClosed] = useState(false);
     const [isSending, setIsSending] = useState(false);
     const [sendSuccess, setSendSuccess] = useState(false);
 
@@ -54,19 +59,21 @@ export function StepPreviewCombined({
 
     const handleAction = async () => {
         if (!isGenerated) {
+            setHasUserManuallyClosed(false); // Reset on new attempt if needed
             await onHandleCreate();
-            // The useEffect will handle opening the preview once isGenerated becomes true
         } else {
+            setHasUserManuallyClosed(false); // Reset so it can be opened manually
             setIsPreviewOpen(true);
         }
     };
 
     useEffect(() => {
-        if (isGenerated && isLoading === false && !isPreviewOpen && !sendSuccess) {
-            // Auto-open preview once generation finishes
+        // Only auto-open if results exist, generation finished, it's not already open, 
+        // we haven't successfully sent yet, AND the user hasn't manually closed it.
+        if (isGenerated && isLoading === false && !isPreviewOpen && !sendSuccess && !hasUserManuallyClosed) {
             setIsPreviewOpen(true);
         }
-    }, [isGenerated, isLoading, isPreviewOpen, sendSuccess]);
+    }, [isGenerated, isLoading, isPreviewOpen, sendSuccess, hasUserManuallyClosed]);
 
     const handleSendAll = async () => {
         if (!results.length) return;
@@ -84,14 +91,14 @@ export function StepPreviewCombined({
                     recruiterTitle: recruiterProfile.title,
                     recruiterCompany: recruiterProfile.company,
                     recruiterPhone: recruiterProfile.phone,
-                    recruiterEmail: recruiterProfile.email
+                    recruiterEmail: recruiterProfile.email,
+                    sessionIds: results.map(r => r.id)
                 })
             });
             
             if (response.ok) {
                 setSendSuccess(true);
-                setIsPreviewOpen(false);
-                // Maybe a reset or redirect here? For now just success state.
+                // Keep modal open to show the internal success screen (Option A)
             } else {
                 throw new Error("Failed to send invites");
             }
@@ -240,37 +247,33 @@ export function StepPreviewCombined({
                 </Button>
 
                 <div className="relative w-full sm:w-auto">
-                    {sendSuccess ? (
-                        <div className="h-14 px-10 bg-state-success text-white font-bold text-sm uppercase tracking-widest rounded-2xl shadow-xl shadow-state-success/20 flex items-center gap-3 animate-in zoom-in duration-slow">
-                            <MailCheck size={18} />
-                            Invites Sent!
-                        </div>
-                    ) : (
-                        <Button
-                            onClick={handleAction}
-                            disabled={isLoading || isSending}
-                            className="w-full sm:w-auto h-14 px-10 bg-primary text-primary-foreground font-bold text-sm uppercase tracking-widest rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3"
-                        >
-                            {(isLoading || isSending) ? (
-                                <Loader2 size={18} className="animate-spin" />
-                            ) : (
-                                <Eye size={18} />
-                            )}
-                            {(isLoading || isSending) ? (isLoading ? "Generating..." : "Sending...") : "Preview & Send"}
-                        </Button>
-                    )}
+                    <Button
+                        onClick={handleAction}
+                        disabled={isLoading || isSending || sendSuccess}
+                        className="w-full sm:w-auto h-14 px-10 font-bold text-sm uppercase tracking-widest rounded-2xl transition-all flex items-center gap-3"
+                    >
+                        {(isLoading || isSending) ? (
+                            <Loader2 size={18} className="animate-spin" />
+                        ) : (
+                            <Eye size={18} />
+                        )}
+                        {(isLoading || isSending) ? (isLoading ? "Generating..." : "Sending...") : "Preview & Send"}
+                    </Button>
                 </div>
             </div>
 
             {recruiterProfile && (
                 <InviteEmailPreviewModal 
                     isOpen={isPreviewOpen}
-                    onClose={() => setIsPreviewOpen(false)}
+                    onClose={() => {
+                        setIsPreviewOpen(false);
+                        setHasUserManuallyClosed(true);
+                    }}
                     data={{
-                        recipientEmails: candidates.map(c => c.email),
-                        recipientFirstName: candidates.length === 1 ? candidates[0].firstName : "Candidate",
+                        recipientEmails: candidates.length > 0 ? candidates.map(c => c.email) : results.map(r => r.email),
+                        recipientFirstName: candidates.length === 1 ? candidates[0].firstName : (results.length === 1 ? results[0].firstName : "Candidate"),
                         role: details.role,
-                        inviteLink: "https://coach.rangam.com/...", // Placeholder
+                        inviteLink: results.length > 0 ? results[0].link : "https://coach.rangam.com/...",
                         recruiterName: recruiterProfile.name,
                         recruiterTitle: recruiterProfile.title,
                         recruiterCompany: recruiterProfile.company,
@@ -279,6 +282,9 @@ export function StepPreviewCombined({
                     }}
                     onSend={handleSendAll}
                     isSending={isSending}
+                    sendSuccess={sendSuccess}
+                    onNewInvite={onNewInvite}
+                    onDashboard={onDashboard}
                 />
             )}
         </div>

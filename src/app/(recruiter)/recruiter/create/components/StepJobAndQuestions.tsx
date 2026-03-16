@@ -212,7 +212,7 @@ export function StepJobAndQuestions({
                             <button
                                 onClick={onGenerateQuestionsAI}
                                 disabled={isGeneratingQuestions}
-                                className="px-5 py-2.5 min-w-[200px] justify-center text-micro font-bold uppercase tracking-wider rounded-full bg-brand-deep text-white hover:bg-brand-deep/90 active:scale-95 transition-all shadow-raised-1 border border-brand-deep/20 disabled:opacity-50 flex items-center gap-2"
+                                className="px-5 py-2.5 min-w-[200px] justify-center text-micro font-bold uppercase tracking-wider rounded-full bg-brand-deep text-primary-foreground hover:bg-brand-deep/90 active:scale-95 transition-all shadow-raised-1 border border-brand-deep/20 disabled:opacity-50 flex items-center gap-2"
                             >
                                 {isGeneratingQuestions ? (
                                     <><Loader2 className="w-4 h-4 animate-spin" /> Generating Questions...</>
@@ -355,7 +355,7 @@ export function StepJobAndQuestions({
 
             {/* Save Template Modal */}
             {showSaveModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/40 backdrop-blur-md animate-in fade-in duration-slow">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 glass-overlay animate-in fade-in duration-slow">
                     <Card className="shadow-floating border-border/50 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-base ease-emphasized">
                         <div className="flex items-center justify-between p-6 border-b border-border/50 bg-surface-base">
                             <h3 className="font-bold text-lg tracking-tight text-text-primary">Save Interview Template</h3>

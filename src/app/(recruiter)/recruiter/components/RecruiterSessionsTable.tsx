@@ -23,6 +23,7 @@ interface RecruiterSessionsTableProps {
     initialSessions: SessionSummary[];
     recruiterTimezone?: string;
     recruiterProfile?: RecruiterProfile;
+    isAdmin?: boolean;
 }
 
 type SortConfig = {
@@ -31,7 +32,7 @@ type SortConfig = {
 } | null;
 
 
-export function RecruiterSessionsTable({ initialSessions, recruiterTimezone, recruiterProfile }: RecruiterSessionsTableProps) {
+export function RecruiterSessionsTable({ initialSessions, recruiterTimezone, recruiterProfile, isAdmin = false }: RecruiterSessionsTableProps) {
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState("");
     const [sortConfig, setSortConfig] = useState<SortConfig>(null);
@@ -288,16 +289,18 @@ E: ${recruiterProfile?.email || ''}`;
                                     ) : null}
                                 </div>
 
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-text-muted hover:text-state-critical hover:bg-state-critical/5 transition-colors rounded-2xl"
-                                    title="Delete Session"
-                                    disabled={isDeleting === session.id}
-                                    onClick={() => handleDelete(session.id)}
-                                >
-                                    <Trash2 className={isDeleting === session.id ? "h-4 w-4 animate-pulse" : "h-4 w-4"} />
-                                </Button>
+                                {isAdmin && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-text-muted hover:text-state-critical hover:bg-state-critical/5 transition-colors rounded-2xl"
+                                        title="Delete Session"
+                                        disabled={isDeleting === session.id}
+                                        onClick={() => handleDelete(session.id)}
+                                    >
+                                        <Trash2 className={isDeleting === session.id ? "h-4 w-4 animate-pulse" : "h-4 w-4"} />
+                                    </Button>
+                                )}
                             </div>
                         )
                     }
