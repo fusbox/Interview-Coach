@@ -83,7 +83,7 @@ export function FeedbackCard({
             "bg-purple-50/50 dark:bg-purple-900/10 border-purple-100 dark:border-purple-800/30 shadow-sm hover:shadow-md",
             className
         )}>
-            <span className="text-base md:text-lg font-bold text-purple-900/80 dark:text-purple-100/80 tracking-tight">
+            <span className="text-base md:text-lg font-bold text-purple-900/80 dark:text-purple-100/80">
                 {title}
             </span>
             <div className="flex flex-col items-center gap-3">

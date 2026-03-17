@@ -65,7 +65,7 @@ export default function InitialsScreen() {
 
                 {/* 2. Primary Heading */}
                 <div className="space-y-4 text-left">
-                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-primary leading-tight font-display">
+                    <h1 className="text-2xl md:text-3xl font-bold text-primary leading-tight font-display">
                         Practice for Your Upcoming Interview
                     </h1>
                 </div>

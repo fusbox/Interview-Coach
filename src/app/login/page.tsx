@@ -68,7 +68,7 @@ export default function LoginPage() {
 
             <Card className="w-full max-w-md overflow-hidden border-border shadow-raised-2 bg-surface-base/80 backdrop-blur-md relative z-10 rounded-2xl">
                 <CardHeader className="text-center pb-4 pt-8">
-                    <CardTitle className="text-2xl font-bold tracking-tight text-text-primary font-display">Recruiter Portal</CardTitle>
+                    <CardTitle className="text-2xl font-semibold text-text-primary font-display">Recruiter Portal</CardTitle>
                     <CardDescription className="text-text-muted">Manage your interview sessions and candidates</CardDescription>
                 </CardHeader>
 
@@ -173,7 +173,7 @@ export default function LoginPage() {
 
                         {activeTab === 'login' && (
                             <div className="text-center pt-2">
-                                <a href="#" className="text-xs text-text-muted hover:text-primary hover:underline font-bold tracking-tight transition-colors">
+                                <a href="#" className="text-xs text-text-muted hover:text-primary hover:underline font-bold transition-colors">
                                     Forgot your password?
                                 </a>
                             </div>

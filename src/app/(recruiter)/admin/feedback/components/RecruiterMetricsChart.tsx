@@ -124,7 +124,7 @@ export function RecruiterMetricsChart({ feedback }: RecruiterMetricsProps) {
                                 <Briefcase className="w-6 h-6 text-success" />
                             </div>
                             <div>
-                                <p className="text-sm font-bold text-muted-foreground uppercase tracking-tight">Operational Ease</p>
+                                <p className="text-sm font-bold text-muted-foreground uppercase">Operational Ease</p>
                                 <p className="text-2xl font-black text-foreground">{frictionData.find(d => d.name === 'Positive (Low Friction)')?.value || 0} <span className="text-sm font-semibold text-muted-foreground">found it easy</span></p>
                             </div>
                         </div>

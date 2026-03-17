@@ -216,14 +216,14 @@ export default function SettingsPage() {
         <div className="max-w-2xl mx-auto space-y-10 animate-in fade-in duration-slow">
             <SectionHeader
                 title="Account Settings"
-                size="lg"
+                isPageHeader
                 description="Manage your profile and display preferences."
             />
 
             <form onSubmit={handleSave}>
                 <Card className="border-border/50 shadow-raised-1 bg-surface-base overflow-hidden">
                     <CardHeader className="bg-surface-subtle/30 border-b border-border/10 py-6">
-                        <CardTitle className="text-xl font-bold tracking-tight text-text-primary">Profile Details</CardTitle>
+                        <CardTitle className="text-xl font-bold text-text-primary">Profile Details</CardTitle>
                         <CardDescription className="text-sm text-text-muted mt-1">
                             Your name and contact information will appear on candidate invites and emails.
                         </CardDescription>

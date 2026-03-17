@@ -76,7 +76,10 @@ export function StepCandidates({
 
             <Card className="border-border/50 shadow-raised-1">
                 <CardHeader className="flex flex-row items-center justify-between py-5 border-b border-border/30 bg-surface-base">
-                    <CardTitle className="text-base font-bold tracking-tight">Candidate List</CardTitle>
+                    <CardTitle className="text-base font-bold font-sans flex items-center gap-2.5">
+                    <div className="w-1 h-4 bg-primary rounded-full" />
+                    Candidate List
+                </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6 pt-6">
                     {candidates.length === 0 && (
@@ -135,7 +138,7 @@ export function StepCandidates({
                     <Button
                         variant="outline"
                         onClick={addCandidate}
-                        className="w-full text-state-success border-state-success/30 hover:bg-state-success/5 hover:border-state-success/50 transition-all mt-4 py-6 rounded-2xl flex items-center justify-center gap-2"
+                        className="w-full text-state-success border-state-success/30 hover:bg-state-success/5 hover:border-state-success/50 hover:text-state-success transition-all mt-4 py-6 rounded-2xl flex items-center justify-center gap-2"
                     >
                         <UserPlus className="w-4 h-4" /> Add Candidate
                     </Button>

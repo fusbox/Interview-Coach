@@ -63,8 +63,6 @@ export class SupabaseInviteRepository implements InviteRepository {
         const supabase = createClient();
         const tokenHash = hashToken(token);
 
-        console.log(`[Repo] Looking up token: ${token} (Hash: ${tokenHash})`);
-
         // Debug: Separate queries to isolate RLS issues
         const { data: tokenData, error: tokenError } = await supabase
             .from('candidate_tokens')
@@ -73,11 +71,9 @@ export class SupabaseInviteRepository implements InviteRepository {
             .single();
 
         if (tokenError || !tokenData) {
-            console.error("[Repo] Token Lookup Failed:", tokenError);
             return null;
         }
 
-        console.log(`[Repo] Token found. Linked Session ID: ${tokenData.session_id}`);
 
         const { data: sessionData, error: sessionError } = await supabase
             .from('sessions')

@@ -25,7 +25,7 @@ export default function IntakeScreen({ onComplete }: IntakeScreenProps) {
 
                 {/* Header */}
                 <div className="space-y-2 text-center sm:text-left">
-                    <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                    <h1 className="text-2xl font-bold text-foreground">
                         What kind of feedback would you like?
                     </h1>
                     <p className="text-xs text-muted-foreground pt-1">

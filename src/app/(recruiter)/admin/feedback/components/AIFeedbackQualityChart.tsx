@@ -98,7 +98,7 @@ export function AIFeedbackQualityChart({ feedback }: AIQualityProps) {
         <Card className="h-full">
             <CardHeader className="pb-4">
                 <SectionHeader title="AI Feedback Quality Breakdown" size="sm" className="mb-0" />
-                <div className="flex items-center gap-4 text-xs font-bold text-muted-foreground uppercase tracking-tight">
+                <div className="flex items-center gap-4 text-xs font-bold text-muted-foreground uppercase">
                     <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-success" /> Helpful</div>
                     <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-warning" /> Somewhat</div>
                     <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-destructive" /> Not Helpful</div>

@@ -94,7 +94,7 @@ export const EngagementDebugOverlay: React.FC<EngagementDebugOverlayProps> = ({
                                     </span>
                                     <span
                                         className={cn(
-                                            'text-lg font-bold font-mono tracking-tight',
+                                            'text-lg font-bold font-mono',
                                             isWindowOpen ? 'text-state-success' : 'text-state-warning'
                                         )}
                                     >
@@ -107,7 +107,7 @@ export const EngagementDebugOverlay: React.FC<EngagementDebugOverlayProps> = ({
                                     </span>
                                     <span
                                         className={cn(
-                                            'text-lg font-bold font-mono tracking-tight',
+                                            'text-lg font-bold font-mono',
                                             windowTimeRemaining > 0 ? 'text-state-info' : 'text-text-muted'
                                         )}
                                     >

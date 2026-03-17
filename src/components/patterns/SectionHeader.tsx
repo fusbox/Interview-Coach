@@ -6,6 +6,7 @@ export interface SectionHeaderProps extends Omit<React.HTMLAttributes<HTMLDivEle
     description?: string | React.ReactNode
     actions?: React.ReactNode
     size?: "sm" | "md" | "lg"
+    isPageHeader?: boolean
 }
 
 export function SectionHeader({
@@ -13,9 +14,12 @@ export function SectionHeader({
     description,
     actions,
     size = "md",
+    isPageHeader = false,
     className,
     ...props
 }: SectionHeaderProps) {
+    const HeadingTag = isPageHeader ? "h1" : "h2"
+
     return (
         <div
             className={cn(
@@ -25,18 +29,20 @@ export function SectionHeader({
             {...props}
         >
             <div className="space-y-1">
-                <h2
+                <HeadingTag
                     className={cn(
-                        "font-semibold text-text-primary tracking-tight",
-                        {
-                            "text-lg": size === "sm",
-                            "text-xl": size === "md",
-                            "text-2xl font-display": size === "lg",
-                        }
+                        "text-text-primary",
+                        isPageHeader
+                            ? "text-3xl font-semibold text-text-muted tracking-wider font-display"
+                            : cn("font-semibold", {
+                                "text-lg": size === "sm",
+                                "text-xl": size === "md",
+                                "text-2xl": size === "lg",
+                            })
                     )}
                 >
                     {title}
-                </h2>
+                </HeadingTag>
                 {description && (
                     <div className={cn(
                         "text-text-muted",

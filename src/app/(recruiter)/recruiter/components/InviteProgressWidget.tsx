@@ -17,6 +17,7 @@ import {
     Mail,
     ExternalLink,
 } from "lucide-react";
+import { formatTimestamp } from "@/lib/utils/format";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
@@ -80,7 +81,7 @@ function BucketHeader({ bucket }: { bucket: WidgetBucket }) {
                 <div className={`p-1.5 rounded-lg bg-gradient-to-br ${config.bgGradient}`}>
                     <Icon className={`w-4 h-4 ${config.accentColor}`} />
                 </div>
-                <h3 className="text-sm font-bold text-text-primary tracking-tight">
+                <h3 className="text-base font-bold text-text-primary font-sans">
                     {bucket.label}
                 </h3>
             </div>
@@ -94,12 +95,13 @@ function BucketHeader({ bucket }: { bucket: WidgetBucket }) {
     );
 }
 
-function SessionRow({ session, bucketKey, recruiterProfile }: { session: WidgetSession; bucketKey: string; recruiterProfile?: RecruiterProfile }) {
+function SessionRow({ session, bucketKey, recruiterProfile, recruiterTimezone }: { session: WidgetSession; bucketKey: string; recruiterProfile?: RecruiterProfile; recruiterTimezone?: string }) {
     const router = useRouter();
 
     const buildResendMailto = () => {
         if (!session.inviteToken) return null;
-        const link = `${window.location.origin}/s/${session.inviteToken}`;
+        const origin = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || '');
+        const link = `${origin}/s/${session.inviteToken}`;
         const subject = `Interview Invitation: ${session.role}`;
         const body = `Hi ${session.candidateName},\n\nI'd like to invite you to a preliminary interview practice session for the ${session.role} role. This interactive session will help us understand your experience better.\n\nPlease click the link below to start whenever you're ready:\n${link}\n\nBest regards,\n\n${recruiterProfile?.name || ''}\n${recruiterProfile?.title || 'Recruiter'}\n${recruiterProfile?.company || 'Rangam Consultants Inc.'}\n\nM: ${recruiterProfile?.phone || ''}\nE: ${recruiterProfile?.email || ''}`;
         return `mailto:${session.candidateEmail || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -111,11 +113,11 @@ function SessionRow({ session, bucketKey, recruiterProfile }: { session: WidgetS
 
     return (
         <div
-            className="group flex items-center gap-3 py-2.5 px-3 min-w-[400px] lg:min-w-0 lg:-mx-3 rounded-lg hover:bg-surface-subtle transition-all duration-base ease-standard cursor-pointer"
+            className="group grid grid-cols-12 gap-3 py-2.5 px-3 rounded-lg hover:bg-surface-subtle transition-all duration-base ease-standard cursor-pointer items-center"
             onClick={handleRowClick}
         >
-            {/* Candidate info */}
-            <div className="flex-1 min-w-[240px] md:min-w-0">
+            {/* Col 1: Candidate (5 cols) */}
+            <div className="col-span-5 min-w-0">
                 <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-text-primary truncate">
                         {session.candidateName}
@@ -125,55 +127,61 @@ function SessionRow({ session, bucketKey, recruiterProfile }: { session: WidgetS
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-xs text-text-muted truncate">{session.role}</span>
-                    {bucketKey !== 'ready_to_review' && (
-                        <span className="text-[10px] text-text-muted flex-shrink-0">
-                            · {session.idleLabel}
-                        </span>
-                    )}
                 </div>
             </div>
 
-            {/* Badge area */}
-            <div className="flex items-center flex-shrink-0">
-                <StatusBadge session={session} />
+            {/* Col 2: Status (3 cols) */}
+            <div className="col-span-3 flex items-center min-w-0">
+                {(bucketKey === 'needs_followup' || bucketKey === 'recently_active') ? (
+                    <StatusBadge session={session} />
+                ) : null}
             </div>
 
-            {/* Actions */}
-            <div
-                className="flex items-center gap-0.5 w-[60px] justify-end flex-shrink-0"
-                onClick={(e) => e.stopPropagation()}
-            >
-                <div className="w-7 h-7 flex items-center justify-center">
-                    {session.inviteToken && bucketKey !== 'ready_to_review' ? (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            asChild
-                            className="h-7 w-7 text-text-muted hover:text-state-info opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="Resend Invite Email"
-                        >
-                            <a href={buildResendMailto() || '#'} target="_blank" rel="noopener noreferrer">
-                                <Mail className="h-3.5 w-3.5" />
-                            </a>
-                        </Button>
-                    ) : null}
-                </div>
-                <a
-                    href={`/recruiter/sessions/${session.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="h-7 w-7 flex items-center justify-center rounded-md text-text-muted hover:text-state-info hover:bg-surface-subtle opacity-0 group-hover:opacity-100 transition-all"
-                    title="Open in New Tab"
+            {/* Col 3: Timestamp + Actions (4 cols) */}
+            <div className="col-span-4 flex items-center justify-between min-w-0 gap-2">
+                <span className="text-xs text-text-secondary truncate">
+                    {bucketKey === 'ready_to_review' && formatTimestamp(session.updatedAt || session.createdAt, recruiterTimezone)}
+                    {(bucketKey === 'needs_followup' || bucketKey === 'recently_active') && formatTimestamp(session.updatedAt || session.createdAt, recruiterTimezone)}
+                    {bucketKey === 'awaiting_action' && formatTimestamp(session.invitationSentAt || session.createdAt, recruiterTimezone)}
+                </span>
+
+                {/* Actions (visible on hover) */}
+                <div
+                    className="flex items-center gap-0.5 shrink-0"
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                </a>
+                    <div className="w-7 h-7 flex items-center justify-center">
+                        {session.inviteToken && bucketKey !== 'ready_to_review' ? (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                asChild
+                                className="h-7 w-7 text-text-muted hover:text-state-info opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="Resend Invite Email"
+                            >
+                                <a href={buildResendMailto() || '#'} target="_blank" rel="noopener noreferrer">
+                                    <Mail className="h-3.5 w-3.5" />
+                                </a>
+                            </Button>
+                        ) : null}
+                    </div>
+                    <a
+                        href={`/recruiter/sessions/${session.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="h-7 w-7 flex items-center justify-center rounded-md text-text-muted hover:text-state-info hover:bg-surface-subtle opacity-0 group-hover:opacity-100 transition-all"
+                        title="Open in New Tab"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                </div>
             </div>
         </div>
     );
 }
 
-function BucketSection({ bucket, recruiterProfile }: { bucket: WidgetBucket; recruiterProfile?: RecruiterProfile }) {
+function BucketSection({ bucket, recruiterProfile, recruiterTimezone }: { bucket: WidgetBucket; recruiterProfile?: RecruiterProfile; recruiterTimezone?: string }) {
     const config = BUCKET_CONFIG[bucket.key];
     const MAX_VISIBLE = 5;
     const [showAll, setShowAll] = useState(false);
@@ -181,16 +189,27 @@ function BucketSection({ bucket, recruiterProfile }: { bucket: WidgetBucket; rec
     const visibleSessions = showAll ? bucket.sessions : bucket.sessions.slice(0, MAX_VISIBLE);
     const hasMore = bucket.count > MAX_VISIBLE;
 
+    const col2Header = (bucket.key === 'needs_followup' || bucket.key === 'recently_active') ? "Status" : "";
+    const col3Header = bucket.key === 'ready_to_review' ? "Session Completed" :
+                       bucket.key === 'awaiting_action' ? "Delivered" : "Last Activity";
+
     return (
         <div>
             <BucketHeader bucket={bucket} />
-            <div className="mt-2">
+            <div className="mt-4">
                 {bucket.count === 0 ? (
                     <p className="text-xs text-text-muted italic py-2">
                         {config.emptyMessage}
                     </p>
                 ) : (
                     <>
+                        {/* Headers */}
+                        <div className="grid grid-cols-12 gap-3 px-3 mb-1 text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                            <div className="col-span-5">Candidate</div>
+                            <div className="col-span-3">{col2Header}</div>
+                            <div className="col-span-4">{col3Header}</div>
+                        </div>
+
                         <div className="space-y-0.5 overflow-x-auto custom-scrollbar pb-1">
                             {visibleSessions.map((session) => (
                                 <SessionRow
@@ -198,6 +217,7 @@ function BucketSection({ bucket, recruiterProfile }: { bucket: WidgetBucket; rec
                                     session={session}
                                     bucketKey={bucket.key}
                                     recruiterProfile={recruiterProfile}
+                                    recruiterTimezone={recruiterTimezone}
                                 />
                             ))}
                         </div>
@@ -227,9 +247,10 @@ function BucketSection({ bucket, recruiterProfile }: { bucket: WidgetBucket; rec
 interface InviteProgressWidgetProps {
     sessions: SessionSummary[];
     recruiterProfile?: RecruiterProfile;
+    recruiterTimezone?: string;
 }
 
-export function InviteProgressWidget({ sessions, recruiterProfile }: InviteProgressWidgetProps) {
+export function InviteProgressWidget({ sessions, recruiterProfile, recruiterTimezone }: InviteProgressWidgetProps) {
     const buckets = useMemo(() => computeWidgetBuckets(sessions), [sessions]);
 
     const totalSessions = sessions.length;
@@ -254,7 +275,11 @@ export function InviteProgressWidget({ sessions, recruiterProfile }: InviteProgr
                             className="border-none shadow-flat bg-surface-base overflow-hidden rounded-2xl"
                         >
                             <CardContent className="p-5">
-                                <BucketSection bucket={bucket} recruiterProfile={recruiterProfile} />
+                                <BucketSection 
+                                    bucket={bucket} 
+                                    recruiterProfile={recruiterProfile}
+                                    recruiterTimezone={recruiterTimezone}
+                                />
                             </CardContent>
                         </Card>
                     ))}

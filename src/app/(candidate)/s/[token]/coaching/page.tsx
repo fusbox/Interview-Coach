@@ -37,7 +37,7 @@ export default function CoachingPage({ params }: { params: { token: string } }) 
                         <ArrowLeft className="w-4 h-4 mr-2" /> Back to Practice
                     </Button>
                 </Link>
-                <h1 className="text-3xl font-bold tracking-tight text-primary">Coaching Insight</h1>
+                <h1 className="text-3xl font-bold text-primary">Coaching Insight</h1>
             </div>
 
             {/* 1. Baseline Block */}

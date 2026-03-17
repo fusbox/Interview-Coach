@@ -98,7 +98,7 @@ export function PlatformTrustChart({ feedback }: TrustChartProps) {
                         <div className="flex items-baseline gap-2">
                             {npsScore !== null ? (
                                 <>
-                                    <span className="text-5xl font-black text-foreground tracking-tight">{npsScore > 0 ? `+${npsScore}` : npsScore}</span>
+                                    <span className="text-5xl font-black text-foreground">{npsScore > 0 ? `+${npsScore}` : npsScore}</span>
                                     <span className="text-sm font-bold text-muted-foreground">NPS</span>
                                 </>
                             ) : (

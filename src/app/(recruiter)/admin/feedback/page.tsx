@@ -169,7 +169,7 @@ export default async function AdminFeedbackPage() {
         <div className="max-w-6xl mx-auto space-y-8 pb-12">
             <SectionHeader
                 title="User Feedback"
-                size="lg"
+                isPageHeader
                 description="Aggregated insights from candidates and recruiters."
             />
 
@@ -251,7 +251,7 @@ export default async function AdminFeedbackPage() {
                                                     {getCandidateName(f)}
                                                 </span>
                                                 {f.sessions?.target_role && (
-                                                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">
+                                                    <span className="text-[10px] text-muted-foreground font-bold uppercase">
                                                         {f.sessions.target_role}
                                                     </span>
                                                 )}

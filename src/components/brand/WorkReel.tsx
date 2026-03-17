@@ -10,7 +10,7 @@ const fonts = [
     { className: `${academic.variable} font-academic`, label: 'Work', scale: 1.25, yOffset: '-0.103em' },
     { className: `${industrial.variable} font-industrial pl-[0.05em]`, label: 'Work', scale: 1.02, yOffset: '-0.105em' },
     { className: `${signage.variable} font-signage`, label: 'Work', scale: 1.03, yOffset: '0.04em' },
-    { className: 'font-display font-bold tracking-tighter', label: 'Work', scale: 1.0, yOffset: '-0.07em' },
+    { className: 'font-display font-bold tracking-tight', label: 'Work', scale: 1.0, yOffset: '-0.07em' },
 ];
 
 export default function WorkReel() {

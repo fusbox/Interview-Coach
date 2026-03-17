@@ -57,7 +57,7 @@ export function RecruiterSidebar({ className, onNavigate, user, profile }: Recru
                             priority
                         />
                     </div>
-                    <h1 className="font-bold text-xl tracking-tight font-display select-none">
+                    <h1 className="font-bold text-xl font-display select-none">
                         <span className="text-primary">Ready</span>
                         <span className="text-brand-orange">2</span>
                         <span className="text-brand-deep">Work</span>
@@ -100,7 +100,7 @@ export function RecruiterSidebar({ className, onNavigate, user, profile }: Recru
                             )}>
                                 <Plus size={18} strokeWidth={2.5} className={cn(isActive('/recruiter/create') ? "text-primary" : "text-primary/70 group-hover:text-primary")} />
                             </div>
-                            <span className="font-bold tracking-tight">Create Invite</span>
+                            <span className="font-bold">Create Invite</span>
                             <ChevronRight size={14} className="ml-auto opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-primary/40" />
                         </Link>
                     </motion.div>

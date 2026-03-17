@@ -85,7 +85,7 @@ export default async function SessionDetailsPage({ params }: { params: { id: str
 
             {/* Question Set */}
             <div className="space-y-6">
-                <h2 className="text-xl font-bold tracking-tight text-text-primary">Question Set</h2>
+                <h2 className="text-xl font-bold text-text-primary">Question Set</h2>
 
                 {session.questions.map((question, index) => {
                     const answer = session.answers[question.id];

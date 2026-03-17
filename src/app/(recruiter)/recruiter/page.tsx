@@ -3,9 +3,9 @@ import { getRecruiterSessions } from "./actions";
 import Link from "next/link";
 import { isAdmin } from "@/lib/auth/rbac";
 import { Plus } from "lucide-react";
-import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { createClient, getCachedUser } from "@/lib/supabase/server";
 import { RecruiterSessionsTable } from "./components/RecruiterSessionsTable";
+import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { DashboardStats } from "./components/DashboardStats";
 import { InviteProgressWidget } from "./components/InviteProgressWidget";
 import { CollapsibleSection } from "./components/CollapsibleSection";
@@ -36,40 +36,48 @@ export default async function RecruiterDashboard() {
 
     return (
         <div className="space-y-10">
-            <SectionHeader
-                title="Dashboard"
-                size="lg"
-                description="At-a-glance view of your hiring pipeline."
-                actions={
+            {/* Custom Header with Inline Stats */}
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <SectionHeader
+                    title="Dashboard"
+                    description="At-a-glance view of your hiring pipeline."
+                    isPageHeader
+                />
+
+                {/* Header Metrics Row */}
+                <div className="flex-1 md:flex md:justify-center">
+                    <DashboardStats metrics={basicStats} variant="header" />
+                </div>
+
+                {/* Desktop Only Action */}
+                <div className="hidden md:block shrink-0">
                     <Button asChild className="h-11 shadow-raised-1 rounded-2xl font-semibold">
                         <Link href="/recruiter/create">
                             <Plus className="w-4 h-4 mr-2" />
                             New Invite
                         </Link>
                     </Button>
-                }
-            />
-
-            {/* High Level Stats */}
-            <DashboardStats metrics={basicStats} />
+                </div>
+            </div>
 
             {/* Invite Progress — collapsible, persisted */}
             <CollapsibleSection
                 storageKey="invite_progress"
                 title="Invite Progress"
+                description="Aggregated pipeline summary"
             >
-                <InviteProgressWidget sessions={sessions} recruiterProfile={recruiterProfile} />
+                <InviteProgressWidget 
+                    sessions={sessions} 
+                    recruiterProfile={recruiterProfile} 
+                    recruiterTimezone={recruiterTimezone}
+                />
             </CollapsibleSection>
 
             {/* Manage Invites — collapsible, persisted */}
             <CollapsibleSection
                 storageKey="manage_invites"
                 title="Manage Invites"
-                trailing={
-                    <span className="text-sm text-text-secondary">
-                        Track individual candidate progress.
-                    </span>
-                }
+                description="Detailed candidate-level tracking"
             >
                 <RecruiterSessionsTable
                     initialSessions={sessions}

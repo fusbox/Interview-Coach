@@ -132,7 +132,7 @@ export function CandidateEfficacyChart({ feedback }: EfficacyChartProps) {
                     </CardHeader>
                     <CardContent>
                         <div className="flex items-baseline gap-2">
-                            <span className="text-5xl font-black text-primary tracking-tight">{kpis.averageDelta}</span>
+                            <span className="text-5xl font-black text-primary">{kpis.averageDelta}</span>
                             <span className="text-xl font-bold text-muted-foreground">/ 5.0</span>
                         </div>
                         {Number(kpis.percentageLift) > 0 && (
@@ -151,7 +151,7 @@ export function CandidateEfficacyChart({ feedback }: EfficacyChartProps) {
                     <CardHeader className="pb-4">
                         <div className="flex items-center justify-between">
                             <SectionHeader title="Confidence Trend (1-5 Scale)" size="sm" className="mb-0" />
-                            <div className="flex items-center gap-4 text-xs font-bold text-muted-foreground uppercase tracking-tight">
+                            <div className="flex items-center gap-4 text-xs font-bold text-muted-foreground uppercase">
                                 <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-muted-foreground/30" /> Baseline</div>
                                 <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-primary" /> Post-Session</div>
                             </div>

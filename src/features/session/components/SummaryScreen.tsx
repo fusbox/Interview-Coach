@@ -100,7 +100,7 @@ export default function SummaryScreen() {
                         transition={{ delay: 0.2, duration: 0.8 }}
                         className="w-full space-y-4 text-left"
                     >
-                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-primary leading-tight font-display">
+                        <h1 className="text-2xl md:text-3xl font-bold text-primary leading-tight font-display">
                             {titleText}
                         </h1>
                         <p className="text-lg text-text-secondary leading-relaxed">

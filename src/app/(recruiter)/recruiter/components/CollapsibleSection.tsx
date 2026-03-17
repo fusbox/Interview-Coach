@@ -39,6 +39,8 @@ interface CollapsibleSectionProps {
     title: string;
     /** Optional trailing element next to the title (e.g. badge or count). */
     trailing?: React.ReactNode;
+    /** Optional secondary text next to the title. */
+    description?: string;
     /** Whether the section starts open when no persisted state exists. Default: true. */
     defaultOpen?: boolean;
     children: React.ReactNode;
@@ -48,6 +50,7 @@ export function CollapsibleSection({
     storageKey,
     title,
     trailing,
+    description,
     defaultOpen = true,
     children,
 }: CollapsibleSectionProps) {
@@ -80,13 +83,18 @@ export function CollapsibleSection({
         >
             <summary className="flex items-center justify-between cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden group/section">
                 <div className="flex items-center gap-3">
-                    <h2 className="text-xl font-bold text-slate-800 tracking-tight font-display">
+                    <h2 className="text-xl font-bold text-slate-800">
                         {title}
                     </h2>
                     <ChevronDown
                         className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""
                             }`}
                     />
+                    {description && (
+                        <span className="text-md font-medium text-text-muted/60 mt-0.5 ml-3 border-l border-border/40 pl-3 leading-none">
+                            {description}
+                        </span>
+                    )}
                 </div>
                 {trailing && (
                     <div className="flex items-center">{trailing}</div>

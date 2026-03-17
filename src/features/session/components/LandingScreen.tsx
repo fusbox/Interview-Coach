@@ -114,7 +114,7 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
 
                 {/* 2. Welcome Message & Intro Copy */}
                 <motion.div variants={fadeUp} className="space-y-4 text-left">
-                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-primary leading-tight font-display">
+                    <h1 className="text-2xl md:text-3xl font-bold text-primary leading-tight font-display">
                         {welcomeText}
                     </h1>
                     <p className="text-lg text-text-secondary leading-relaxed">
@@ -212,7 +212,7 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                                 </div>
                             ))}
                         </div>
-                        <div className="flex justify-between w-full px-1 text-micro font-bold uppercase tracking-tighter text-text-muted">
+                        <div className="flex justify-between w-full px-1 text-micro font-bold uppercase tracking-tight text-text-muted">
                             <span>Not prepared</span>
                             <span>Very prepared</span>
                         </div>

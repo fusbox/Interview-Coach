@@ -218,7 +218,7 @@ export function DevEvalTable({ sessions }: DevEvalTableProps) {
                                                 <div className="flex flex-col">
                                                     <span>{session.candidateName}</span>
                                                     {session.attemptNumber && session.attemptNumber > 1 && (
-                                                        <span className="text-[10px] font-bold text-violet-500 uppercase tracking-tight">
+                                                        <span className="text-[10px] font-bold text-violet-500 uppercase">
                                                             Attempt #{session.attemptNumber}
                                                         </span>
                                                     )}

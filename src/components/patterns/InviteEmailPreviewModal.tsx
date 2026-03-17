@@ -76,7 +76,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                 </div>
                                 
                                 <div className="space-y-4">
-                                    <h2 className="text-4xl font-black text-text-primary tracking-tight">Delivered!</h2>
+                                    <h2 className="text-4xl font-black text-text-primary">Delivered!</h2>
                                     <p className="text-sm font-medium text-text-secondary leading-relaxed max-w-[280px] mx-auto">
                                         Your invitations have been sent successfully.
                                     </p>
@@ -180,7 +180,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
 
                                             {/* Main Copy */}
                                             <div className="px-10 pb-12 space-y-6">
-                                                <h1 className="text-2xl font-black text-text-primary leading-[1.15] tracking-tight">
+                                                <h1 className="text-2xl font-bold text-text-primary leading-[1.15]">
                                                     Interview Invitation: {data.role}
                                                 </h1>
                                                 

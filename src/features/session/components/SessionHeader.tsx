@@ -23,7 +23,7 @@ export function SessionHeader() {
                 <div className="flex justify-between items-end gap-4 mb-3">
                     {/* Left: Session Info */}
                     <div className="flex flex-col items-start gap-1 max-w-[50%] md:max-w-[60%]">
-                        <h1 className="text-sm md:text-base font-black text-text-primary leading-none tracking-tight truncate w-full">
+                        <h1 className="text-sm md:text-base font-black text-text-primary leading-none truncate w-full">
                             {session.role}
                         </h1>
                         <span className="text-xs font-bold text-text-secondary tabular-nums uppercase tracking-widest">
@@ -33,7 +33,7 @@ export function SessionHeader() {
 
                     {/* Right: Percent & Exit */}
                     <div className="flex items-center gap-3 md:gap-6">
-                        <span className="text-xs md:text-sm font-bold text-primary tracking-tight whitespace-nowrap">
+                        <span className="text-xs md:text-sm font-bold text-primary whitespace-nowrap">
                             {percentage}% Complete
                         </span>
                         <div className="w-px h-4 bg-border" />

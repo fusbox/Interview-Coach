@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { deleteSession } from "../actions";
 import { StatusBadge, AttemptBadge, InitialsMatchBadge } from "./session-badges";
 import { DataTable } from "@/components/patterns/DataTable";
+import { formatTimestamp, formatDuration } from "@/lib/utils/format";
 
 export interface RecruiterProfile {
     name: string;
@@ -92,37 +93,6 @@ E: ${recruiterProfile?.email || ''}`;
         }
     };
 
-    const formatDuration = (seconds?: number) => {
-        if (!seconds || seconds <= 0) return "0s";
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        const s = seconds % 60;
-
-        if (h > 0) return `${h}h ${m}m`;
-        if (m > 0) return `${m}m ${s}s`;
-        return `${s}s`;
-    };
-
-    const formatTimestamp = (timestamp: number) => {
-        const date = new Date(timestamp);
-        try {
-            const timeStr = date.toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true,
-                timeZone: recruiterTimezone || undefined
-            });
-
-            const tzName = new Intl.DateTimeFormat('en-US', {
-                timeZoneName: 'short',
-                timeZone: recruiterTimezone || undefined
-            }).formatToParts(date).find(p => p.type === 'timeZoneName')?.value || "";
-
-            return `${date.toLocaleDateString()} ${timeStr} ${tzName}`;
-        } catch {
-            return date.toLocaleString();
-        }
-    };
 
     const filteredAndSortedSessions = useMemo(() => {
         let result = [...initialSessions];
@@ -240,7 +210,7 @@ E: ${recruiterProfile?.email || ''}`;
                         ),
                         cell: (session) => (
                             <span className="text-text-secondary whitespace-nowrap text-sm">
-                                {formatTimestamp(session.updatedAt || session.createdAt)}
+                                {formatTimestamp(session.updatedAt || session.createdAt, recruiterTimezone)}
                             </span>
                         )
                     },
@@ -252,7 +222,7 @@ E: ${recruiterProfile?.email || ''}`;
                         ),
                         cell: (session) => (
                             <span className="text-text-secondary whitespace-nowrap text-sm">
-                                {formatTimestamp(session.invitationSentAt || session.createdAt)}
+                                {formatTimestamp(session.invitationSentAt || session.createdAt, recruiterTimezone)}
                             </span>
                         )
                     },

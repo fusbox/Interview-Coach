@@ -162,7 +162,10 @@ export function StepJobAndQuestions({
                 {/* Job Details Section */}
                 <Card className="border-border/50 shadow-raised-1">
                     <CardHeader className="flex flex-row items-center justify-between pb-4">
-                        <CardTitle className="text-base font-bold tracking-tight">Job Details</CardTitle>
+                        <CardTitle className="text-base font-bold font-sans flex items-center gap-2.5">
+                            <div className="w-1 h-4 bg-primary rounded-full" />
+                            Job Details
+                        </CardTitle>
 
                         {/* Template Select */}
                         <div className="flex items-center gap-2">
@@ -227,7 +230,10 @@ export function StepJobAndQuestions({
                     {/* STAR Section */}
                     <Card className="border-border/50 shadow-raised-1">
                         <CardHeader className="pb-4">
-                            <CardTitle className="text-base font-bold tracking-tight">STAR Questions (Behavioral)</CardTitle>
+                            <CardTitle className="text-base font-bold font-sans flex items-center gap-2.5">
+                                <div className="w-1 h-4 bg-primary rounded-full" />
+                                STAR Questions (Behavioral)
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {star.map((q, idx) => (
@@ -256,7 +262,10 @@ export function StepJobAndQuestions({
                     {/* PERMA Section */}
                     <Card className="border-border/50 shadow-raised-1">
                         <CardHeader className="pb-4">
-                            <CardTitle className="text-base font-bold tracking-tight">PERMA Questions (Culture/Fit)</CardTitle>
+                            <CardTitle className="text-base font-bold font-sans flex items-center gap-2.5">
+                                <div className="w-1 h-4 bg-primary rounded-full" />
+                                PERMA Questions (Culture/Fit)
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {perma.map(q => (
@@ -285,13 +294,16 @@ export function StepJobAndQuestions({
                     {/* Technical Section */}
                     <Card className="border-border/50 shadow-raised-1 overflow-hidden transition-all duration-base">
                         <CardHeader className="flex flex-row items-center justify-between pb-4 bg-surface-base border-b border-border/30">
-                            <CardTitle className="text-base font-bold tracking-tight">Technical Questions</CardTitle>
+                            <CardTitle className="text-base font-bold font-sans flex items-center gap-2.5">
+                                <div className="w-1 h-4 bg-primary rounded-full" />
+                                Technical Questions
+                            </CardTitle>
                             <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={addTechnical}
                                 type="button"
-                                className="hidden sm:flex text-state-success border-state-success/30 hover:bg-state-success/5 hover:border-state-success/50 transition-all rounded-xl"
+                                className="hidden sm:flex text-state-success border-state-success/30 hover:bg-state-success/5 hover:border-state-success/50 hover:text-state-success transition-all rounded-xl"
                             >
                                 <Plus className="w-4 h-4 mr-1" /> Add
                             </Button>
@@ -359,7 +371,7 @@ export function StepJobAndQuestions({
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 glass-overlay animate-in fade-in duration-slow">
                     <Card className="shadow-floating border-border/50 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-base ease-emphasized">
                         <div className="flex items-center justify-between p-6 border-b border-border/50 bg-surface-base">
-                            <h3 className="font-bold text-lg tracking-tight text-text-primary">Save Interview Template</h3>
+                            <h3 className="font-bold text-lg text-text-primary font-sans">Save Interview Template</h3>
                             <button onClick={() => setShowSaveModal(false)} className="text-text-disabled hover:text-text-secondary transition-colors">
                                 <X className="w-5 h-5" />
                             </button>

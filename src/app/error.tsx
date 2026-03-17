@@ -19,7 +19,7 @@ export default function Error({
     return (
         <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center bg-background">
             <div className="max-w-md space-y-4">
-                <h2 className="text-2xl font-bold text-destructive tracking-tight">Something went wrong!</h2>
+                <h2 className="text-2xl font-bold text-destructive">Something went wrong!</h2>
                 <p className="text-muted-foreground">
                     We apologize for the inconvenience. An unexpected error has occurred.
                 </p>

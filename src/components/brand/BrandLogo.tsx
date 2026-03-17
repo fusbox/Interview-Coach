@@ -5,7 +5,7 @@ import WorkReel from './WorkReel';
 
 export default function BrandLogo() {
     return (
-        <h1 className="text-6xl md:text-8xl font-bold tracking-tighter font-display py-8 leading-none select-none flex items-baseline justify-center">
+        <h1 className="text-6xl md:text-8xl font-bold tracking-tight font-display py-8 leading-none select-none flex items-baseline justify-center">
             <motion.span
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -29,7 +29,7 @@ export default function BrandLogo() {
                 className="relative inline-flex items-baseline text-left translate-y-[0]"
             >
                 {/* Phantom text to set stable layout width and baseline anchor */}
-                <span className="invisible pointer-events-none font-display font-bold tracking-tighter">Work</span>
+                <span className="invisible pointer-events-none font-display font-bold tracking-tight">Work</span>
 
                 {/* Actual reel positioned over the phantom baseline */}
                 <div className="absolute left-0 top-0 w-[20rem] overflow-visible">

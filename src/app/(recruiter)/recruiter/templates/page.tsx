@@ -54,7 +54,7 @@ function EditableTemplateTitle({ template, onUpdate, isEditable }: EditableTempl
             <div className="flex items-center gap-2 w-full animate-in fade-in slide-in-from-left-1 duration-200">
                 <input
                     autoFocus
-                    className="flex-1 h-8 bg-surface-subtle border border-primary/30 rounded-lg px-3 text-sm font-bold tracking-tight text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                    className="flex-1 h-8 bg-surface-subtle border border-primary/30 rounded-lg px-3 text-sm font-bold text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     onKeyDown={(e) => {
@@ -89,7 +89,7 @@ function EditableTemplateTitle({ template, onUpdate, isEditable }: EditableTempl
 
     return (
         <div className="flex items-center justify-between gap-4 w-full group/title">
-            <h3 className="font-bold text-text-primary text-lg line-clamp-1 tracking-tight">{template.name}</h3>
+            <h3 className="font-bold text-text-primary text-lg line-clamp-1">{template.name}</h3>
             {isEditable && (
                 <Button 
                     variant="outline" 
@@ -177,7 +177,7 @@ export default function TemplatesPage() {
         <div className="max-w-6xl mx-auto pb-12 px-6 space-y-10 animate-in fade-in duration-slow">
             <SectionHeader
                 title="Interview Templates"
-                size="lg"
+                isPageHeader
                 description="Manage and reuse your question sets for consistent interviews."
                 actions={
                     <Link href="/recruiter/create">

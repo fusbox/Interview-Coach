@@ -79,31 +79,36 @@ export function StepPreviewCombined({
         if (!results.length) return;
         setIsSending(true);
         try {
-            const response = await fetch('/api/invite/send', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    recipientEmails: results.map(r => r.email),
-                    recipientFirstName: results.length === 1 ? results[0].firstName : "Candidate",
-                    role: details.role,
-                    inviteLink: results.length === 1 ? results[0].link : "https://coach.rangam.com/dashboard",
-                    recruiterName: recruiterProfile.name,
-                    recruiterTitle: recruiterProfile.title,
-                    recruiterCompany: recruiterProfile.company,
-                    recruiterPhone: recruiterProfile.phone,
-                    recruiterEmail: recruiterProfile.email,
-                    sessionIds: results.map(r => r.id)
-                })
+            // Send individually to ensure personalized tokens and greeting
+            const sendPromises = results.map(async (result) => {
+                const response = await fetch('/api/invite/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        recipientEmail: result.email,
+                        recipientFirstName: result.firstName,
+                        role: details.role,
+                        inviteLink: result.link,
+                        recruiterName: recruiterProfile.name,
+                        recruiterTitle: recruiterProfile.title,
+                        recruiterCompany: recruiterProfile.company,
+                        recruiterPhone: recruiterProfile.phone,
+                        recruiterEmail: recruiterProfile.email,
+                        sessionIds: [result.id]
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to send invite to ${result.email}`);
+                }
+                return response.json();
             });
-            
-            if (response.ok) {
-                setSendSuccess(true);
-                // Keep modal open to show the internal success screen (Option A)
-            } else {
-                throw new Error("Failed to send invites");
-            }
+
+            await Promise.all(sendPromises);
+            setSendSuccess(true);
         } catch (err) {
             console.error("Failed to send invites:", err);
+            // In a production app, we might want to track which ones failed
         } finally {
             setIsSending(false);
         }
@@ -123,14 +128,17 @@ export function StepPreviewCombined({
                         <div className="p-8 space-y-8">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <h3 className="text-xl font-bold text-text-primary tracking-tight">Job Details</h3>
+                                    <h3 className="text-base font-bold text-text-primary font-sans flex items-center gap-2.5">
+                                        <div className="w-1 h-4 bg-primary rounded-full" />
+                                        Job Details
+                                    </h3>
                                 </div>
                                 {setDetailStep && (
                                     <Button 
                                         variant="ghost" 
                                         size="sm" 
                                         onClick={setDetailStep} 
-                                        className="h-9 px-4 text-primary hover:bg-primary/10 font-bold text-xs uppercase tracking-widest rounded-xl transition-all active:scale-95"
+                                        className="h-9 px-4 text-primary hover:bg-brand-glass-start hover:text-primary font-bold text-xs uppercase tracking-widest rounded-xl transition-all active:scale-95"
                                     >
                                         <Edit className="w-4 h-4 mr-2" /> Edit
                                     </Button>
@@ -139,17 +147,17 @@ export function StepPreviewCombined({
 
                             <div className="space-y-6">
                                 <div className="space-y-1">
-                                    <p className="text-[10px] font-bold text-text-disabled uppercase tracking-widest">Role</p>
-                                    <p className="text-lg font-bold text-text-primary leading-tight">{details.role || "Not Specified"}</p>
+                                    <p className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Role</p>
+                                    <p className="text-sm font-bold text-text-primary font-sans">{details.role || "Not Specified"}</p>
                                 </div>
 
                                 <div className="space-y-1">
-                                    <p className="text-[10px] font-bold text-text-disabled uppercase tracking-widest">Req ID</p>
-                                    <p className="text-sm font-mono font-bold text-text-secondary">{details.reqId || "N/A"}</p>
+                                    <p className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Req ID</p>
+                                    <p className="text-sm font-bold text-text-primary font-sans">{details.reqId || "N/A"}</p>
                                 </div>
 
                                 <div className="pt-2 space-y-3">
-                                    <p className="text-[10px] font-bold text-text-disabled uppercase tracking-widest mb-2 flex items-center gap-2">
+                                    <p className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1 mb-2 flex items-center gap-2">
                                         Configuration
                                     </p>
                                     <div className="space-y-2">
@@ -168,7 +176,7 @@ export function StepPreviewCombined({
                                                 )}>
                                                     {cat.count}
                                                 </span>
-                                                <span className="text-sm font-bold tracking-tight">{cat.label}</span>
+                                                <span className="text-sm font-bold font-sans">{cat.label}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -180,14 +188,17 @@ export function StepPreviewCombined({
                         <div className="p-8 space-y-8 bg-surface-subtle/30">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <h3 className="text-xl font-bold text-text-primary tracking-tight">Candidates</h3>
+                                    <h3 className="text-base font-bold text-text-primary font-sans flex items-center gap-2.5">
+                                        <div className="w-1 h-4 bg-primary rounded-full" />
+                                        Candidates
+                                    </h3>
                                 </div>
                                 {setCandidateStep && (
                                     <Button 
                                         variant="ghost" 
                                         size="sm" 
                                         onClick={setCandidateStep} 
-                                        className="h-9 px-4 text-primary hover:bg-primary/10 font-bold text-xs uppercase tracking-widest rounded-xl transition-all active:scale-95"
+                                        className="h-9 px-4 text-primary hover:bg-brand-glass-start hover:text-primary font-bold text-xs uppercase tracking-widest rounded-xl transition-all active:scale-95"
                                     >
                                         <Edit className="w-4 h-4 mr-2" /> Edit
                                     </Button>
@@ -201,7 +212,7 @@ export function StepPreviewCombined({
                                             <div className="text-xs font-bold text-text-disabled min-w-[12px] text-left group-hover:text-primary transition-colors">
                                                 {i + 1}
                                             </div>
-                                            <div className="font-bold text-text-primary tracking-tight">{c.firstName} {c.lastName}</div>
+                                            <div className="text-sm font-bold text-text-primary font-sans">{c.firstName} {c.lastName}</div>
                                         </div>
                                         <div className="text-xs font-medium text-text-secondary font-mono bg-surface-subtle/80 px-2 py-1 rounded-lg truncate max-w-[160px] md:max-w-none">
                                             {c.email}
@@ -210,7 +221,7 @@ export function StepPreviewCombined({
                                 ))}
                                 {candidates.length === 0 && (
                                     <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-border/50 rounded-3xl text-text-disabled space-y-2">
-                                        <p className="font-bold text-sm tracking-tight uppercase">No candidates added</p>
+                                        <p className="font-bold text-sm uppercase">No candidates added</p>
                                     </div>
                                 )}
                             </div>
@@ -268,7 +279,7 @@ export function StepPreviewCombined({
                         recipientEmails: candidates.length > 0 ? candidates.map(c => c.email) : results.map(r => r.email),
                         recipientFirstName: candidates.length === 1 ? candidates[0].firstName : (results.length === 1 ? results[0].firstName : "Candidate"),
                         role: details.role,
-                        inviteLink: results.length > 0 ? results[0].link : "https://coach.rangam.com/...",
+                        inviteLink: results.length > 0 ? results[0].link : "",
                         recruiterName: recruiterProfile.name,
                         recruiterTitle: recruiterProfile.title,
                         recruiterCompany: recruiterProfile.company,

@@ -10,7 +10,7 @@ export interface MetricCardProps extends React.HTMLAttributes<HTMLDivElement> {
         value: string
         positive?: boolean
     }
-    variant?: "default" | "glass"
+    variant?: "default" | "glass" | "pill"
     valueClassName?: string
 }
 
@@ -24,6 +24,25 @@ export function MetricCard({
     valueClassName,
     ...props
 }: MetricCardProps) {
+    if (variant === "pill") {
+        return (
+            <div 
+                className={cn(
+                    "flex flex-col items-center justify-center py-2 px-3 md:px-4 rounded-xl border border-border/10 shadow-sm w-full",
+                    className
+                )}
+                {...props}
+            >
+                <span className="text-[10px] font-bold text-text-muted uppercase leading-none mb-0.5 whitespace-nowrap">
+                    {title}
+                </span>
+                <span className={cn("text-sm font-black", valueClassName || "text-foreground")}>
+                    {value}
+                </span>
+            </div>
+        )
+    }
+
     return (
         <Card variant={variant} className={cn("overflow-hidden border-none shadow-none", className)} {...props}>
             <CardHeader className="flex flex-col items-start justify-between space-y-0 p-5 pb-2">
@@ -33,7 +52,7 @@ export function MetricCard({
                 </div>
             </CardHeader>
             <CardContent className="p-5 pt-0">
-                <div className={cn("text-3xl font-black tracking-tight", valueClassName || "text-foreground")}>{value}</div>
+                <div className={cn("text-3xl font-black", valueClassName || "text-foreground")}>{value}</div>
                 {trend && (
                     <p className={cn(
                         "mt-1 text-xs font-semibold flex items-center gap-1",

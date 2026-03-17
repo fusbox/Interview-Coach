@@ -92,7 +92,7 @@ const TranscriptPanel: React.FC<{
                                 togglePlayback();
                             }}
                             className={cn(
-                                'inline-flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all text-xs font-black uppercase tracking-tight',
+                                'inline-flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all text-xs font-black uppercase',
                                 isPlaying
                                     ? 'bg-primary text-primary-foreground'
                                     : 'bg-primary/10 text-primary hover:bg-primary/20'
@@ -492,7 +492,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                             >
                                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-deep/20 to-brand-deep opacity-100" />
                                 <div className="w-full flex flex-col items-center my-auto py-8">
-                                    <h2 className="text-4xl md:text-5xl lg:text-5xl font-bold text-text-primary leading-[1.1] font-display">
+                                    <h2 className="text-4xl md:text-5xl lg:text-5xl font-bold text-text-primary leading-[1.1]">
                                         {analysis?.ack || 'Reviewing your answer…'}
                                     </h2>
                                     <div className="mt-12 flex flex-col md:flex-row items-center gap-4 justify-center w-full">
@@ -617,7 +617,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                             <p className="text-xs font-black text-text-muted uppercase tracking-[0.2em]">
                                                 The Next Step
                                             </p>
-                                            <h3 className="text-4xl md:text-6xl font-bold text-text-primary leading-tight tracking-tight">
+                                            <h3 className="text-4xl md:text-6xl font-bold text-text-primary leading-tight">
                                                 Ready to Continue?
                                             </h3>
                                             <div className="pt-8">

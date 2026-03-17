@@ -42,7 +42,7 @@ export function ComponentGallery() {
                             </div>
                             <div className="space-y-1">
                                 <p className="text-micro font-bold text-muted-foreground uppercase tracking-widest">H1 / Heading-lg</p>
-                                <p className="text-3xl font-bold tracking-tight">Canonical Baseline</p>
+                                <p className="text-3xl font-bold">Canonical Baseline</p>
                             </div>
                             <div className="space-y-1">
                                 <p className="text-micro font-bold text-muted-foreground uppercase tracking-widest">H2 / Heading-md</p>
