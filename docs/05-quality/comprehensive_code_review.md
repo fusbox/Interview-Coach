@@ -9,14 +9,21 @@ Reviewer stance: **Sr Architect/Engineer (production gate)** + **Mentor (Jr grow
 - `P0-2` is complete: `/api/recruiter/invites` no longer contains a runtime development bypass and now includes authenticated recruiter-only execution, invite-create throttling, `Idempotency-Key` replay handling, and regression coverage.
 - `1.4` is complete: the shared API error contract now standardizes public error responses to `code`, `message`, `correlationId`, and `retryable`, and removes raw `details` and stack leakage from the reviewed API routes.
 - Remaining Phase 1 public endpoint abuse gaps are closed: recruiter-only question generation is authenticated, candidate assist routes are bound to magic-link token ownership, and practice-again token issuance now requires the active candidate token for the parent session.
-- Production status remains **NO-GO** because the candidate/session mutation concurrency issues and broader operability gaps described below are still open.
+- `2.1` is complete: session status transitions are now defined in a shared domain module and enforced on the server mutation paths, with unit coverage for allowed and rejected transitions.
+- `2.2` is complete: session mutations now use an explicit single-flight command gate so overlapping `submit`, `next`, and `retry` attempts are ignored deterministically instead of issuing duplicate mutations.
+- `2.3` is complete: engagement time deltas now persist through a database-side atomic increment path, removing the lost-update risk from concurrent client engagement pings.
+- `2.4` is complete: submit mutations now participate in the shared idempotency ledger, and the client sends deterministic submit keys so retries/timeouts replay the same response instead of duplicating submit side effects.
+- `3.1` is complete: the remaining mutable routes now reject malformed JSON/body shapes with explicit request schemas and the standardized `400 INVALID_REQUEST` envelope.
+- `3.2` is complete: AI and email provider responses now undergo runtime schema validation, and malformed provider payloads fail as typed provider-response errors instead of being trusted after raw JSON parsing.
+- `3.3` is complete: repository reads now defensively normalize malformed DB rows, translate storage-only enum variants, and drop persisted analysis blobs that fail the runtime domain schema.
+- Production status remains **NO-GO** because broader testing depth, CI gating, and operability gaps described below are still open.
 
 ## Executive Summary
 
 This codebase shows strong momentum (typed domain model, schema usage in several APIs, modular UI primitives, and meaningful business intent), but it is **not yet production-ready** at high-assurance standards. The top gaps are:
 
-1. **Correctness and concurrency remain the primary blocker** (the Phase 1 recruiter/public endpoint security gaps are materially remediated, but session mutation integrity issues remain).
-2. **Concurrency and state integrity defects** exist in core interview session flows.
+1. **Correctness and concurrency have improved materially**, but end-to-end reliability still depends on deeper integration coverage and the remaining operability work.
+2. **Validation and contract hardening** has improved materially across request, provider, and mapper boundaries; the remaining gap is broader integration depth and regression coverage.
 3. **Test suite is too thin and currently failing on race-condition scenarios.**
 4. **Observability is still incomplete** (although the public error contract is now standardized, structured operational telemetry remains partial).
 5. **Repo hygiene and docs lag implementation reality** (README status/scripts mismatch).
@@ -111,15 +118,12 @@ Concern: current boundaries leak:
 
 ### Current state
 
-- Good use of Zod in several flows.
-- Gaps remain in some route payloads and external outputs.
+- Inbound mutable route validation is now covered consistently.
+- Remaining gaps are concentrated in end-to-end integration depth, CI enforcement, and operational visibility.
 
 ### Recommendations
 
-- Enforce schema validation for **all** mutable API endpoints.
 - Adopt discriminated union for API error contracts (`code`, `message`, `retryable`).
-- Type repository mapping outputs with stricter non-nullable contracts to avoid silent `undefined` drift.
-- Add runtime validation wrappers for AI/email provider responses.
 
 ---
 

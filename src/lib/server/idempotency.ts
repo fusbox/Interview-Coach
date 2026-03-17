@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { createHash } from "crypto";
 
 const IDEMPOTENCY_SCOPE_TABLE = "api_idempotency_keys";
@@ -55,7 +55,7 @@ export async function beginIdempotentRequest(params: {
     payload: unknown;
     ttlMs?: number;
 }): Promise<IdempotencyReservation> {
-    const supabase = createClient();
+    const supabase = createAdminClient();
     const hashedKey = keyHash(params.scope, params.key);
     const hashedPayload = requestHash(params.payload);
     const expiresAt = new Date(Date.now() + (params.ttlMs ?? DEFAULT_TTL_MS)).toISOString();
@@ -110,7 +110,7 @@ export async function completeIdempotentRequest(params: {
     statusCode: number;
     body: unknown;
 }): Promise<void> {
-    const supabase = createClient();
+    const supabase = createAdminClient();
     const hashedKey = keyHash(params.scope, params.key);
 
     const { error } = await supabase
@@ -134,7 +134,7 @@ export async function releaseIdempotentRequest(params: {
     actorId: string;
     key: string;
 }): Promise<void> {
-    const supabase = createClient();
+    const supabase = createAdminClient();
     const hashedKey = keyHash(params.scope, params.key);
 
     await supabase

@@ -19,6 +19,36 @@ export const QuestionTipsSchema = z.object({
     avoidThis: z.string(),
 });
 
+export const StrongResponseResultSchema = z.object({
+    strongResponse: z.string().min(1),
+    whyThisWorks: z.string().min(1),
+});
+
+export const GeneratedInterviewQuestionsSchema = z.object({
+    behavioral: z.object({
+        "Conflict/Resolution": z.string().min(1),
+        "Adaptability": z.string().min(1),
+        "Initiative/Growth": z.string().min(1),
+        "Role-Specific Scenario": z.string().min(1),
+    }),
+    culture: z.object({
+        "Positive Emotion": z.string().min(1),
+        "Engagement": z.string().min(1),
+        "Relationships": z.string().min(1),
+        "Meaning": z.string().min(1),
+        "Accomplishment": z.string().min(1),
+    }),
+    technical: z.array(
+        z.object({
+            text: z.string().min(1),
+        })
+    ).min(1).max(2),
+});
+
+export const ResendEmailSendResultSchema = z.object({
+    id: z.string().min(1),
+});
+
 export const QuestionSchema = z.object({
     id: z.string(),
     text: z.string(),

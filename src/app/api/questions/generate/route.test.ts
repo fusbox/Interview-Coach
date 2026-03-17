@@ -45,4 +45,24 @@ describe("POST /api/questions/generate", () => {
         expect(res.status).toBe(401);
         expect(body.code).toBe("UNAUTHORIZED");
     });
+
+    it("returns 400 when the request body is missing a valid role", async () => {
+        getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
+        const { POST } = await import("./route");
+
+        const req = new Request("http://localhost/api/questions/generate", {
+            method: "POST",
+            body: JSON.stringify({ role: "" })
+        });
+
+        const res = await POST(req as never);
+        const body = await res.json();
+
+        expect(res.status).toBe(400);
+        expect(body).toMatchObject({
+            code: "INVALID_REQUEST",
+            message: "Invalid request",
+            retryable: false
+        });
+    });
 });

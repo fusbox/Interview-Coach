@@ -1,6 +1,8 @@
 "use server";
 
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { GeneratedInterviewQuestionsSchema } from "@/lib/domain/schemas";
 import { Logger } from "@/lib/logger";
 import { ai, AI_MODELS } from "@/lib/server/services/ai-config";
 import { getReadingLevelContext } from "@/lib/ai/prompts";
@@ -12,9 +14,15 @@ import {
 } from "@/lib/server/api-errors";
 import { enforceIpRateLimit } from "@/lib/server/abuse-protection";
 import { createClient } from "@/lib/supabase/server";
+import { parseProviderJson } from "@/lib/server/provider-response";
 
 const WINDOW_MS = 5 * 60 * 1000;
 const MAX_QUESTION_GENERATION_REQUESTS = 15;
+const GenerateQuestionsRequestSchema = z.object({
+    role: z.string().trim().min(1, "Role is required"),
+    jobDescription: z.string().trim().optional(),
+    resume: z.string().trim().optional()
+});
 
 export async function POST(req: NextRequest) {
     const correlationId = createCorrelationId();
@@ -37,11 +45,13 @@ export async function POST(req: NextRequest) {
             return unauthorizedResponse(correlationId, "Authentication required");
         }
 
-        const { role, jobDescription, resume } = await req.json();
-
-        if (!role) {
-            return validationErrorResponse(correlationId, "Role is required");
+        const body = await req.json().catch(() => null);
+        const parseResult = GenerateQuestionsRequestSchema.safeParse(body);
+        if (!parseResult.success) {
+            return validationErrorResponse(correlationId);
         }
+
+        const { role, jobDescription, resume } = parseResult.data;
 
         if (!ai) {
             Logger.warn("[AI] No API key, returning mock questions");
@@ -116,10 +126,10 @@ RULES:
             config: { responseMimeType: 'application/json' },
         });
 
-        const text = response.text;
-        if (!text) throw new Error("Empty AI response");
-
-        const result = JSON.parse(text);
+        const result = parseProviderJson(response.text, GeneratedInterviewQuestionsSchema, {
+            provider: "gemini",
+            operation: "generateQuestions"
+        });
         
         Logger.info("[AI] Questions generated successfully", { role });
         

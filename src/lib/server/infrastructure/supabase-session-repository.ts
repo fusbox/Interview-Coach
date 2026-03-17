@@ -1,5 +1,6 @@
 import { SessionRepository } from "@/lib/domain/repository";
 import { InterviewSession, Answer, Question, SessionSummary, SessionStatus, AnalysisResult } from "@/lib/domain/types";
+import { AnalysisResultSchema } from "@/lib/domain/schemas";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { Logger } from "@/lib/logger";
 import { decrypt } from "@/lib/server/encryption";
@@ -49,11 +50,98 @@ interface DbAnswer {
 interface DbEval {
     question_id: string;
     session_id: string;
-    feedback_json: AnalysisResult | null;
+    feedback_json: unknown;
     attempt_number: number;
 }
 
 export class SupabaseSessionRepository implements SessionRepository {
+    private asObject(value: unknown): Record<string, unknown> {
+        return value && typeof value === "object" && !Array.isArray(value)
+            ? value as Record<string, unknown>
+            : {};
+    }
+
+    private asString(value: unknown): string | undefined {
+        return typeof value === "string" && value.trim().length > 0 ? value : undefined;
+    }
+
+    private asNumber(value: unknown): number | undefined {
+        return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+    }
+
+    private asTimestamp(value: unknown): number | undefined {
+        if (typeof value === "number" && Number.isFinite(value)) {
+            return value;
+        }
+
+        if (typeof value === "string" && value.trim().length > 0) {
+            const parsed = new Date(value).getTime();
+            return Number.isFinite(parsed) ? parsed : undefined;
+        }
+
+        return undefined;
+    }
+
+    private asAttemptNumber(value: unknown): number | undefined {
+        return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : undefined;
+    }
+
+    private normalizeCandidate(rawCandidate: unknown) {
+        const candidate = this.asObject(rawCandidate);
+        const firstName = this.asString(candidate.firstName) || "";
+        const lastName = this.asString(candidate.lastName) || "";
+        const fullName = this.asString(candidate.name);
+        const email = this.asString(candidate.email) || "";
+        const resumeText = this.asString(candidate.resumeText);
+
+        return {
+            firstName,
+            lastName,
+            fullName,
+            email,
+            resumeText
+        };
+    }
+
+    private normalizeDbStatus(status: string): SessionStatus {
+        if (status === "AWAITING_EVAL") {
+            return "AWAITING_EVALUATION";
+        }
+
+        return status as SessionStatus;
+    }
+
+    private parseAnalysisResult(feedbackJson: unknown, sessionId: string, questionId: string): AnalysisResult | undefined {
+        if (!feedbackJson) {
+            return undefined;
+        }
+
+        const result = AnalysisResultSchema.safeParse(feedbackJson);
+        if (!result.success) {
+            Logger.warn("[Repo] Dropping invalid persisted analysis payload", {
+                sessionId,
+                questionId,
+                issues: result.error.issues.map(issue => issue.message)
+            });
+            return undefined;
+        }
+
+        return result.data;
+    }
+
+    private async incrementEngagementTime(sessionId: string, deltaSeconds: number): Promise<void> {
+        const supabase = createAdminClient();
+        const { error } = await supabase.rpc('increment_session_engagement', {
+            p_session_id: sessionId,
+            p_delta_seconds: deltaSeconds
+        });
+
+        if (error) {
+            Logger.error("[Repo] incrementEngagementTime Failed", error);
+            throw new Error(error.message);
+        }
+    }
+
     async create(session: InterviewSession): Promise<void> {
         await this.update(session);
     }
@@ -80,8 +168,8 @@ export class SupabaseSessionRepository implements SessionRepository {
                 invitation_sent_at
             `)
             .eq('recruiter_id', recruiterId)
-            .not('invitation_sent_at', 'is', null) // Only show delivered sessions
-            .order('invitation_sent_at', { ascending: false });
+            .or('invitation_sent_at.not.is.null,parent_session_id.not.is.null')
+            .order('updated_at', { ascending: false });
 
         if (error) {
             Logger.error("[SupabaseSessionRepo] List Failed", error);
@@ -94,30 +182,31 @@ export class SupabaseSessionRepository implements SessionRepository {
 
     private mapSessions(sessions: DbSession[]): SessionSummary[] {
         return sessions.map((s: DbSession) => {
-            const intake = s.intake_json || {};
-            const c = intake.candidate || {};
-            const candidateName = (c.firstName && c.lastName)
-                ? `${c.firstName} ${c.lastName}`
-                : (c.name || "Anonymous Candidate");
+            const intake = this.asObject(s.intake_json);
+            const candidate = this.normalizeCandidate(intake.candidate);
+            const candidateName = (candidate.firstName && candidate.lastName)
+                ? `${candidate.firstName} ${candidate.lastName}`
+                : (candidate.fullName || "Anonymous Candidate");
 
             let inviteToken: string | undefined = undefined;
-            if (intake.invite_token) {
+            const encryptedInviteToken = this.asString(intake.invite_token);
+            if (encryptedInviteToken) {
                 try {
-                    inviteToken = decrypt(intake.invite_token);
+                    inviteToken = decrypt(encryptedInviteToken);
                 } catch {
                     Logger.error("[Repo] Failed to decrypt invite token", { sessionId: s.session_id });
                 }
             }
-            const viewedAt = intake.viewed_at as number | undefined;
+            const viewedAt = this.asTimestamp(intake.viewed_at);
 
             // Extract counts correctly from Supabase response
-            const questionCount = s.questions?.[0]?.count || 0;
+            const questionCount = this.asNumber(s.questions?.[0]?.count) || 0;
             const answers = s.answers || [];
             const answerCount = answers.length;
             const submittedCount = answers.filter((a: { submitted_at: string | null }) => !!a.submitted_at).length;
 
             // Derived Status for consistency
-            let derivedStatus = s.status as SessionStatus;
+            let derivedStatus = this.normalizeDbStatus(s.status);
             if (s.status === 'NOT_STARTED' && answerCount > 0) {
                 derivedStatus = 'IN_SESSION';
             } else if (s.status === 'IN_SESSION' && submittedCount === questionCount && questionCount > 0) {
@@ -129,22 +218,22 @@ export class SupabaseSessionRepository implements SessionRepository {
                 candidateName,
                 role: s.target_role,
                 status: derivedStatus,
-                createdAt: new Date(s.created_at).getTime(),
-                updatedAt: new Date(s.updated_at).getTime(),
+                createdAt: this.asTimestamp(s.created_at) || 0,
+                updatedAt: this.asTimestamp(s.updated_at) || this.asTimestamp(s.created_at) || 0,
                 questionCount,
                 answerCount,
                 submittedCount,
                 viewedAt,
-                enteredInitials: intake.entered_initials as string | undefined,
+                enteredInitials: this.asString(intake.entered_initials),
                 inviteToken,
                 parentSessionId: s.parent_session_id || undefined,
-                attemptNumber: s.attempt_number || undefined,
-                clientName: s.client_name || undefined,
-                candidateEmail: c.email || undefined,
-                candidateFirstName: c.firstName || undefined,
-                candidateLastName: c.lastName || undefined,
-                engagedTimeSeconds: intake.engaged_time_seconds as number | undefined,
-                invitationSentAt: s.invitation_sent_at ? new Date(s.invitation_sent_at).getTime() : undefined
+                attemptNumber: this.asAttemptNumber(s.attempt_number),
+                clientName: this.asString(s.client_name),
+                candidateEmail: candidate.email || undefined,
+                candidateFirstName: candidate.firstName || undefined,
+                candidateLastName: candidate.lastName || undefined,
+                engagedTimeSeconds: this.asNumber(intake.engaged_time_seconds),
+                invitationSentAt: this.asTimestamp(s.invitation_sent_at)
             };
         });
     }
@@ -230,22 +319,25 @@ export class SupabaseSessionRepository implements SessionRepository {
                 transcript: a.final_text || "",
                 draft: a.draft_text || "",
                 submittedAt: a.submitted_at ? new Date(a.submitted_at).getTime() : undefined,
-                analysis: myEval ? (myEval.feedback_json as AnalysisResult) : undefined
+                analysis: myEval
+                    ? this.parseAnalysisResult(myEval.feedback_json, id, a.question_id)
+                    : undefined
             };
         });
 
-        const intake = sData.intake_json || {};
-        const c = intake.candidate || {};
-        const candidateName = (c.firstName && c.lastName)
-            ? `${c.firstName} ${c.lastName}`
-            : c.name;
+        const intake = this.asObject(sData.intake_json);
+        const candidate = this.normalizeCandidate(intake.candidate);
+        const candidateName = (candidate.firstName && candidate.lastName)
+            ? `${candidate.firstName} ${candidate.lastName}`
+            : candidate.fullName;
 
-        const enteredInitials = intake.entered_initials;
+        const enteredInitials = this.asString(intake.entered_initials);
+        const encryptedInviteToken = this.asString(intake.invite_token);
 
         return {
             id: sData.session_id,
             recruiterId: sData.recruiter_id,
-            status: sData.status as SessionStatus,
+            status: this.normalizeDbStatus(sData.status),
             role: sData.target_role,
             jobDescription: sData.job_description,
             currentQuestionIndex: sData.current_question_index,
@@ -254,23 +346,23 @@ export class SupabaseSessionRepository implements SessionRepository {
             initialsRequired: !!candidateName && !enteredInitials,
             candidateName,
             enteredInitials,
-            viewedAt: intake.viewed_at,
-            updatedAt: sData.updated_at ? new Date(sData.updated_at).getTime() : undefined,
+            viewedAt: this.asTimestamp(intake.viewed_at),
+            updatedAt: this.asTimestamp(sData.updated_at),
             candidate: {
-                firstName: c.firstName || "",
-                lastName: c.lastName || "",
-                email: c.email || "",
-                resumeText: c.resumeText || undefined
+                firstName: candidate.firstName,
+                lastName: candidate.lastName,
+                email: candidate.email,
+                resumeText: candidate.resumeText
             },
-            engagedTimeSeconds: intake.engaged_time_seconds || 0,
+            engagedTimeSeconds: this.asNumber(intake.engaged_time_seconds) || 0,
             intakeData: intake,
-            inviteToken: intake.invite_token ? ((): string | undefined => {
-                try { return decrypt(intake.invite_token); }
+            inviteToken: encryptedInviteToken ? ((): string | undefined => {
+                try { return decrypt(encryptedInviteToken); }
                 catch { return undefined; }
             })() : undefined,
             parentSessionId: sData.parent_session_id,
-            attemptNumber: sData.attempt_number,
-            clientName: sData.client_name,
+            attemptNumber: this.asAttemptNumber(sData.attempt_number),
+            clientName: this.asString(sData.client_name),
             readinessBand: sData.readiness_band,
             summaryNarrative: sData.summary_narrative
         };
@@ -383,7 +475,11 @@ export class SupabaseSessionRepository implements SessionRepository {
         if (updates.summaryNarrative) dbUpdates.summary_narrative = updates.summaryNarrative;
 
         // Handle intake_json updates (Initials, Engagement)
-        if (updates.enteredInitials !== undefined || updates.engagedTimeDelta !== undefined || updates.engagedTimeSeconds !== undefined) {
+        const shouldPatchIntake =
+            updates.enteredInitials !== undefined ||
+            updates.engagedTimeSeconds !== undefined;
+
+        if (shouldPatchIntake) {
             const { data: current } = await supabase
                 .from('sessions')
                 .select('intake_json')
@@ -397,9 +493,7 @@ export class SupabaseSessionRepository implements SessionRepository {
                 newIntake.entered_initials = updates.enteredInitials;
             }
 
-            if (updates.engagedTimeDelta !== undefined) {
-                newIntake.engaged_time_seconds = (newIntake.engaged_time_seconds || 0) + updates.engagedTimeDelta;
-            } else if (updates.engagedTimeSeconds !== undefined) {
+            if (updates.engagedTimeSeconds !== undefined) {
                 // Absolute update (ensure it never goes backwards)
                 newIntake.engaged_time_seconds = Math.max(newIntake.engaged_time_seconds || 0, updates.engagedTimeSeconds);
             }
@@ -413,6 +507,10 @@ export class SupabaseSessionRepository implements SessionRepository {
             if (patchError) {
                 Logger.error("[Repo] updatePartial Failed", patchError);
             }
+        }
+
+        if (updates.engagedTimeDelta !== undefined) {
+            await this.incrementEngagementTime(id, updates.engagedTimeDelta);
         }
 
         // Similar logic for questions/answers if provided in updates... 

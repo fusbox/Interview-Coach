@@ -1,22 +1,29 @@
 import { NextResponse } from "next/server";
 import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-session-repository";
 import { validatedSessionHandler } from "@/lib/server/api-handler-utils";
+import { transitionSessionStatus } from "@/lib/domain/session-state-machine";
+import { validationErrorResponse } from "@/lib/server/api-errors";
+import { z } from "zod";
 
 const repository = new SupabaseSessionRepository();
+const RetryRequestSchema = z.object({
+    retryContext: z.object({
+        trigger: z.enum(["user", "coach"]),
+        focus: z.string().optional()
+    }).optional()
+});
 
 export async function POST(
     request: Request,
     { params }: { params: { session_id: string; question_id: string } }
 ) {
-    return validatedSessionHandler(request, params, async (req, { session }) => {
-        // Parse retryContext from body if present
-        let retryContext;
-        try {
-            const body = await req.json();
-            retryContext = body.retryContext;
-        } catch {
-            // No body or invalid JSON, ignore
+    return validatedSessionHandler(request, params, async (req, { session, correlationId }) => {
+        const body = await req.json().catch(() => ({}));
+        const parseResult = RetryRequestSchema.safeParse(body);
+        if (!parseResult.success) {
+            return validationErrorResponse(correlationId);
         }
+        const retryContext = parseResult.data.retryContext;
 
         const currentAns = session.answers[params.question_id];
         if (currentAns) {
@@ -32,7 +39,7 @@ export async function POST(
             // but the selector derives it.
             // Update: We MUST force it, because Selector logic for REVIEW_FEEDBACK relies on status being 'REVIEWING'
             // if we are clearing analysis. So we must revert to 'IN_SESSION'.
-            session.status = "IN_SESSION";
+            session.status = transitionSessionStatus(session, "IN_SESSION").status;
         }
 
         await repository.update(session);

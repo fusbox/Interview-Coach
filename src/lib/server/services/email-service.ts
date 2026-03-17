@@ -1,8 +1,10 @@
 import { Resend } from 'resend';
+import { ResendEmailSendResultSchema } from '@/lib/domain/schemas';
 import { InterviewSession } from '@/lib/domain/types';
 import { Logger } from '@/lib/logger';
 import { renderSessionDebriefEmail } from '../emails/SessionDebriefEmail';
 import { renderCandidateInviteEmail } from '../emails/CandidateInviteEmail';
+import { parseProviderValue } from '@/lib/server/provider-response';
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://coach.rangam.com';
 
@@ -73,13 +75,18 @@ export class EmailService {
                 throw error;
             }
 
+            const parsedData = parseProviderValue(data, ResendEmailSendResultSchema, {
+                provider: "resend",
+                operation: "sendDebriefEmail"
+            });
+
             Logger.info("[EmailService] Email dispatched successfully", { 
                 sessionId: session.id, 
-                resendResponse: data,
+                resendResponse: parsedData,
                 status: 'Check Resend Dashboard for delivery updates'
             }, "EmailService");
 
-            return data;
+            return parsedData;
         } catch (error) {
             Logger.error("[EmailService] Failed to send email", error, "EmailService");
             throw error;
@@ -159,12 +166,17 @@ export class EmailService {
                 throw error;
             }
 
+            const parsedData = parseProviderValue(data, ResendEmailSendResultSchema, {
+                provider: "resend",
+                operation: "sendInviteEmail"
+            });
+
             Logger.info("[EmailService] Invite email dispatched", { 
                 recipientEmails: params.recipientEmails,
-                resendResponse: data 
+                resendResponse: parsedData 
             }, "EmailService");
 
-            return data;
+            return parsedData;
         } catch (error) {
             Logger.error("[EmailService] Failed to send invite email", error, "EmailService");
             throw error;

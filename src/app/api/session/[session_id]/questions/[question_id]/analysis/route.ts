@@ -8,8 +8,16 @@ import {
     notFoundResponse,
     validationErrorResponse
 } from "@/lib/server/api-errors";
+import { transitionSessionStatus } from "@/lib/domain/session-state-machine";
+import { z } from "zod";
 
 const repository = new SupabaseSessionRepository();
+const QuestionAnalysisRequestSchema = z.object({
+    audioData: z.object({
+        base64: z.string().min(1),
+        mimeType: z.string().min(1)
+    }).nullable().optional()
+});
 
 export async function POST(
     request: Request,
@@ -31,7 +39,11 @@ export async function POST(
         }
 
         const body = await req.json().catch(() => ({}));
-        const { audioData } = body;
+        const parseResult = QuestionAnalysisRequestSchema.safeParse(body);
+        if (!parseResult.success) {
+            return validationErrorResponse(correlationId);
+        }
+        const { audioData } = parseResult.data;
 
         const questionIndex = session.questions.findIndex(q => q.id === params.question_id);
         const progress = {
@@ -51,7 +63,7 @@ export async function POST(
 
         const updatedSession = {
             ...session,
-            status: "REVIEWING" as SessionStatus,
+            status: transitionSessionStatus(session, "REVIEWING").status as SessionStatus,
             answers: {
                 ...session.answers,
                 [params.question_id]: {

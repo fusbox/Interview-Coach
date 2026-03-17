@@ -8,9 +8,13 @@ import {
 } from "@/lib/server/api-errors";
 import { enforceIpRateLimit } from "@/lib/server/abuse-protection";
 import { authorizeCandidateSessionRequest } from "@/lib/server/candidate-route-auth";
+import { z } from "zod";
 
 const WINDOW_MS = 5 * 60 * 1000;
 const MAX_TTS_REQUESTS = 15;
+const TtsRequestSchema = z.object({
+    text: z.string().trim().min(1, "Missing text")
+});
 
 // export const runtime = 'edge'; // Optional: Use edge if compatible, otherwise default to node
 // GenAI SDK might rely on Node built-ins, so keeping standard runtime for safety initially.
@@ -40,12 +44,12 @@ export async function POST(request: Request) {
             return authResponse;
         }
 
-        const body = await request.json();
-        const { text } = body;
-
-        if (!text) {
-            return validationErrorResponse(correlationId, "Missing text");
+        const body = await request.json().catch(() => null);
+        const parseResult = TtsRequestSchema.safeParse(body);
+        if (!parseResult.success) {
+            return validationErrorResponse(correlationId);
         }
+        const { text } = parseResult.data;
 
         const { audioData, mimeType } = await TTSService.generateSpeech(text);
 

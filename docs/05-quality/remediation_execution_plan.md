@@ -13,6 +13,13 @@ Source inputs synthesized:
 - `1.4` completed and merged: shared API error helpers and candidate-session validation wrappers now normalize error responses to `code`, `message`, `correlationId`, and `retryable`, removing raw `details` and stack leakage from public routes.
 - Remaining public compute/session abuse controls are implemented: recruiter-only AI generation is authenticated, candidate assist routes are bound to the magic-link token plus session context, and practice-again token generation now requires the current candidate token for the parent session.
 - Gate A scope is now materially complete; remaining next work shifts to Phase 2 concurrency and data-integrity stabilization.
+- `2.1` completed and merged: a shared session status transition table now lives in the domain layer, state-transition unit tests are green, and invalid status changes are rejected centrally on the server mutation paths.
+- `2.2` completed and merged: session mutations now enforce one in-flight command per session for `start`, `submit`, `next`, and `retry`, with overlapping commands ignored deterministically and optimistic state rolled back on failure.
+- `2.3` completed and merged: engagement tracking now uses a database-side atomic increment function instead of read-modify-write JSON merging, eliminating lost updates under concurrent pings.
+- `2.4` completed and merged: submit mutations now support `Idempotency-Key` replay semantics, and the candidate client sends deterministic submit keys so duplicate retries do not create duplicate submit side effects.
+- `3.1` completed and merged: all remaining mutable routes now use explicit request schemas, so malformed JSON and invalid body shapes fail fast with the standardized `400 INVALID_REQUEST` envelope.
+- `3.2` completed and merged: AI/email provider outputs now pass through runtime schema validation, and malformed provider responses fail as typed provider-response errors instead of flowing into domain objects unchecked.
+- `3.3` completed and merged: Supabase session mappers now normalize malformed/nullable DB fields into safe domain defaults, drop invalid persisted analysis blobs, and translate DB-only enum/status values before they reach client schemas.
 
 ### Objective
 Execute a sequenced remediation program that moves the project from "not production-ready" to "production-capable" with measurable quality gates.
@@ -150,6 +157,12 @@ Goal: stabilize high-risk interview session state transitions.
 - Transition table exists and is enforced on mutation paths.
 - 100% transition rules covered by unit tests.
 
+**Execution Status**
+- Completed 2026-03-17.
+- Transition table added in `src/lib/domain/session-state-machine.ts`.
+- Server-side mutation enforcement added in orchestrator helpers and session mutation routes.
+- Unit tests added in `src/lib/domain/session-state-machine.test.ts`.
+
 ### Step 2.2 — Introduce Command Mutex / Single-Flight in Session Mutations
 - Implement one in-flight command policy per session for submit/next/retry/start.
 - Add cancellation/ignore semantics for stale commands.
@@ -159,6 +172,12 @@ Goal: stabilize high-risk interview session state transitions.
 - Race-condition tests for submit/next overlap pass repeatedly.
 - No duplicate network mutation for repeated user click during lock window.
 
+**Execution Status**
+- Completed 2026-03-17.
+- `useSessionMutations` now uses an explicit per-session command gate instead of a generic busy flag.
+- Overlapping `submit`, `next`, and `retry` attempts are ignored deterministically while the active command remains in flight.
+- Existing race tests and new overlap coverage are green in `src/features/session/hooks/useDomainSession.test.tsx`.
+
 ### Step 2.3 — Atomic Engagement Tracking
 - Replace read-modify-write JSON merge with DB atomic increment strategy.
 - Add conflict-safe persistence method (SQL update expression or RPC).
@@ -167,6 +186,12 @@ Goal: stabilize high-risk interview session state transitions.
 - Concurrent engagement updates do not lose increments.
 - Integration test validates final total under parallel calls.
 
+**Execution Status**
+- Completed 2026-03-17.
+- Database function added in `supabase/migrations/20260317_add_atomic_engagement_increment.sql`.
+- Repository `updatePartial` now routes `engagedTimeDelta` through an atomic RPC instead of session JSON read-modify-write.
+- Repository regression tests added in `src/lib/server/infrastructure/supabase-session-repository.test.ts`.
+
 ### Step 2.4 — Idempotency for Critical Mutations
 - Add `Idempotency-Key` support to invite creation and submit flows.
 - Persist short-lived key ledger with response replay semantics.
@@ -174,6 +199,12 @@ Goal: stabilize high-risk interview session state transitions.
 **Acceptance Criteria**
 - Duplicate requests with same key return same result.
 - No duplicate side effects across retries/timeouts.
+
+**Execution Status**
+- Completed 2026-03-17.
+- Shared idempotency ledger reused for candidate submit flows in `src/app/api/session/[session_id]/questions/[question_id]/submit/route.ts`.
+- Candidate submit requests now send deterministic `Idempotency-Key` headers from `src/features/session/hooks/useSessionMutations.ts`.
+- Submit route regression tests verify replay, conflict, and first-write persistence behavior.
 
 ---
 
@@ -184,13 +215,32 @@ Goal: remove undefined behavior and schema drift.
 - Add schema parse/guard for every mutable route.
 - Fail fast with 400 + structured validation errors.
 
+**Execution Status**
+- Completed 2026-03-17.
+- Added route-local request schemas to `src/app/api/questions/generate/route.ts`, `src/app/api/tts/route.ts`, `src/app/api/session/[session_id]/questions/[question_id]/analysis/route.ts`, and `src/app/api/session/[session_id]/questions/[question_id]/retry/route.ts`.
+- Invalid JSON and malformed payloads now return the sanitized `400 INVALID_REQUEST` envelope instead of implicit parsing behavior.
+- Regression tests added for malformed request handling on each remediated route.
+
 ### Step 3.2 — Response Validation for External Providers
 - Wrap AI/email provider outputs with runtime schema checks.
 - Convert provider failures into typed domain errors.
 
+**Execution Status**
+- Completed 2026-03-17.
+- Added shared provider parsing helpers in `src/lib/server/provider-response.ts` and typed provider failure class in `src/lib/server/provider-errors.ts`.
+- Gemini outputs for recruiter question generation, candidate analysis, strong-response generation, tips generation, and session summarization now validate against runtime schemas before entering the domain layer.
+- Resend email send results now validate before invite/debrief flows treat the send as a successful provider response.
+- Regression tests cover malformed Gemini JSON/schema drift and invalid Resend success payloads.
+
 ### Step 3.3 — Repository Mapper Hardening
 - Add defensive mappers for nullable DB fields.
 - Introduce mapper tests with malformed/partial rows.
+
+**Execution Status**
+- Completed 2026-03-17.
+- Hardened `src/lib/server/infrastructure/supabase-session-repository.ts` with explicit coercion helpers for timestamps, attempt numbers, candidate intake objects, and optional strings/numbers.
+- Session summary/session detail reads now normalize DB-only status values, tolerate malformed intake JSON, and drop invalid persisted `feedback_json` payloads instead of returning domain-invalid session objects.
+- Regression tests now cover malformed summary rows, malformed session metadata, invalid persisted analysis, and repeat-practice lineage visibility.
 
 **Acceptance Criteria (Phase 3)**
 - 100% mutating endpoints have request schema.
@@ -339,10 +389,11 @@ Use this template for each remediation task:
 4. Add rate limiting middleware for mutation routes.
 5. Completed 2026-03-17: Implement standardized API error envelope and correlation IDs across API routes.
 6. Completed 2026-03-17: Bind remaining public AI/session routes to recruiter auth or candidate magic-link tokens and add baseline fixed-window throttling.
-7. Define and codify session state transition table.
-8. Fix submit/next mutex behavior and add deterministic tests.
-9. Implement atomic engagement increment strategy.
-10. Add idempotency key support for submit and related candidate mutations.
+7. Completed 2026-03-17: Define and codify session state transition table.
+8. Completed 2026-03-17: Fix submit/next/retry/start single-flight behavior and add deterministic overlap tests.
+9. Completed 2026-03-17: Implement atomic engagement increment strategy.
+10. Completed 2026-03-17: Add idempotency key support for submit and related candidate mutations.
+11. Completed 2026-03-17: Close the remaining mutable-route request validation gaps with explicit schemas and malformed-payload regression tests.
 
 ---
 

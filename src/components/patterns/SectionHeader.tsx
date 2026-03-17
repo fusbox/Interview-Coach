@@ -33,7 +33,7 @@ export function SectionHeader({
                     className={cn(
                         "text-text-primary",
                         isPageHeader
-                            ? "text-3xl font-semibold text-text-muted tracking-wider font-display"
+                            ? "text-3xl font-semibold text-text-muted tracking-wide font-display"
                             : cn("font-semibold", {
                                 "text-lg": size === "sm",
                                 "text-xl": size === "md",

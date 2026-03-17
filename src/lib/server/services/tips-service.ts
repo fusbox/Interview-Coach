@@ -1,9 +1,11 @@
 import { Type } from "@google/genai";
 import { Blueprint, Competency, QuestionTips } from "@/lib/domain/types";
+import { QuestionTipsSchema } from "@/lib/domain/schemas";
 import { Logger } from "@/lib/logger";
 import { z } from "zod";
 import { ai, AI_MODELS } from "./ai-config";
 import { getReadingLevelContext } from "@/lib/ai/prompts";
+import { parseProviderJson } from "@/lib/server/provider-response";
 
 // --- Schema Definition ---
 export const GenerateTipsSchema = z.object({
@@ -135,10 +137,10 @@ Return strictly JSON.
                 },
             });
 
-            const text = response.text;
-            if (!text) throw new Error('No text returned from Gemini for tips');
-
-            const parsedData = JSON.parse(text) as QuestionTips;
+            const parsedData: QuestionTips = parseProviderJson(response.text, QuestionTipsSchema, {
+                provider: "gemini",
+                operation: "generateTips"
+            });
             parsedData.__debugPrompt = prompt;
 
             return parsedData;

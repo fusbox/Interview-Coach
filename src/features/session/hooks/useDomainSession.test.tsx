@@ -55,7 +55,31 @@ describe('useDomainSession', () => {
         mockFetch.mockImplementation(async (url) => {
             if (url.includes('/submit')) {
                 await new Promise(res => setTimeout(res, 100)); // Delay
-                return { ok: true, json: async () => ({ ...mockSession, answers: { q1: { questionId: 'q1', transcript: 'A1' } } }) };
+                return {
+                    ok: true,
+                    json: async () => ({
+                        ...mockSession,
+                        status: 'AWAITING_EVALUATION',
+                        answers: { q1: { questionId: 'q1', transcript: 'A1', submittedAt: Date.now() } }
+                    })
+                };
+            }
+            if (url.includes('/analysis')) {
+                return {
+                    ok: true,
+                    json: async () => ({
+                        ...mockSession,
+                        status: 'REVIEWING',
+                        answers: {
+                            q1: {
+                                questionId: 'q1',
+                                transcript: 'A1',
+                                submittedAt: Date.now(),
+                                analysis: { ack: 'ok' }
+                            }
+                        }
+                    })
+                };
             }
             return { ok: true, json: async () => ({}) };
         });
@@ -68,7 +92,7 @@ describe('useDomainSession', () => {
         });
 
         // 4. Expectation: guarded by isSubmittingRef
-        expect(mockFetch).toHaveBeenCalledTimes(2); // 1 for init, 1 for FIRST submit. 
+        expect(mockFetch).toHaveBeenCalledTimes(3); // 1 for init, 1 for first submit, 1 for follow-up analysis.
     });
 
     // Verification Test for Cross-Action Race Class
@@ -101,7 +125,31 @@ describe('useDomainSession', () => {
         mockFetch.mockImplementation(async (url) => {
             if (url.includes('/submit')) {
                 await new Promise(res => setTimeout(res, 100));
-                return { ok: true, json: async () => ({ ...mockSession }) };
+                return {
+                    ok: true,
+                    json: async () => ({
+                        ...mockSession,
+                        status: 'AWAITING_EVALUATION',
+                        answers: { q1: { questionId: 'q1', transcript: 'A1', submittedAt: Date.now() } }
+                    })
+                };
+            }
+            if (url.includes('/analysis')) {
+                return {
+                    ok: true,
+                    json: async () => ({
+                        ...mockSession,
+                        status: 'REVIEWING',
+                        answers: {
+                            q1: {
+                                questionId: 'q1',
+                                transcript: 'A1',
+                                submittedAt: Date.now(),
+                                analysis: { ack: 'ok' }
+                            }
+                        }
+                    })
+                };
             }
             if (url.includes('/session/123')) { // PATCH for next
                 return { ok: true, json: async () => ({ ...mockSession, currentQuestionIndex: 1 }) };
@@ -117,6 +165,76 @@ describe('useDomainSession', () => {
         });
 
         // 5. Expectation: The second call should be BLOCKED by the mutex.
-        expect(mockFetch).toHaveBeenCalledTimes(1);
+        expect(mockFetch).toHaveBeenCalledTimes(2); // submit + follow-up analysis; next remains blocked.
+    });
+
+    it('should ignore retry while a submit command is already in flight', async () => {
+        const mockSession: InterviewSession = {
+            id: '123',
+            status: 'IN_SESSION',
+            role: 'PM',
+            currentQuestionIndex: 0,
+            questions: [{ id: 'q1', text: 'Q1', index: 0, category: 'Tech' }],
+            answers: {
+                q1: {
+                    questionId: 'q1',
+                    draft: 'Draft answer'
+                }
+            },
+            initialsRequired: false,
+        };
+
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            json: async () => mockSession,
+        });
+
+        const { result } = renderHook(() => useDomainSession('123'));
+        await waitFor(() => expect(result.current.session).toBeDefined());
+
+        mockFetch.mockClear();
+
+        mockFetch.mockImplementation(async (url) => {
+            if (url.includes('/submit')) {
+                await new Promise(res => setTimeout(res, 100));
+                return {
+                    ok: true,
+                    json: async () => ({
+                        ...mockSession,
+                        status: 'AWAITING_EVALUATION',
+                        answers: { q1: { questionId: 'q1', transcript: 'A1', submittedAt: Date.now() } }
+                    })
+                };
+            }
+            if (url.includes('/analysis')) {
+                return {
+                    ok: true,
+                    json: async () => ({
+                        ...mockSession,
+                        status: 'REVIEWING',
+                        answers: {
+                            q1: {
+                                questionId: 'q1',
+                                transcript: 'A1',
+                                submittedAt: Date.now(),
+                                analysis: { ack: 'ok' }
+                            }
+                        }
+                    })
+                };
+            }
+            if (url.includes('/retry')) {
+                return { ok: true, json: async () => ({ ...mockSession, status: 'IN_SESSION' }) };
+            }
+            return { ok: true, json: async () => ({}) };
+        });
+
+        await act(async () => {
+            const p1 = result.current.actions.submit('Answer 1');
+            const p2 = result.current.actions.retry({ trigger: 'user' });
+            await Promise.all([p1, p2]);
+        });
+
+        expect(mockFetch).toHaveBeenCalledTimes(2); // submit + follow-up analysis; retry remains ignored.
     });
 });

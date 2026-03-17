@@ -2,6 +2,7 @@ import { InterviewSession, Question, AnalysisResult } from "@/lib/domain/types";
 import { uuidv7 } from "uuidv7";
 import { InitSessionSchema } from "@/lib/domain/schemas";
 import { z } from "zod";
+import { transitionSessionStatus } from "@/lib/domain/session-state-machine";
 
 // --- Pure Domain Functions ---
 
@@ -33,14 +34,7 @@ export function addQuestions(session: InterviewSession, questions: Question[]): 
 }
 
 export function startSession(session: InterviewSession): InterviewSession {
-    if (session.status !== "NOT_STARTED") {
-        throw new Error("Session has already started");
-    }
-
-    return {
-        ...session,
-        status: "IN_SESSION",
-    };
+    return transitionSessionStatus(session, "IN_SESSION");
 }
 
 export function nextQuestion(session: InterviewSession): InterviewSession {
@@ -48,17 +42,12 @@ export function nextQuestion(session: InterviewSession): InterviewSession {
     const isComplete = nextIndex >= session.questions.length;
 
     if (isComplete) {
-        return {
-            ...session,
-            status: "COMPLETED"
-        }
+        return transitionSessionStatus(session, "COMPLETED");
     }
 
     return {
-        ...session,
+        ...transitionSessionStatus(session, "IN_SESSION"),
         currentQuestionIndex: nextIndex,
-        // Status stays IN_SESSION unless we have logic to pause/review between questions
-        // For V1, we assume continuous flow or client-driven pause
     };
 }
 
@@ -82,7 +71,7 @@ export function submitAnswer(
     return {
         ...session,
         answers: updatedAnswers,
-        status: analysis ? "REVIEWING" : "AWAITING_EVALUATION"
+        status: transitionSessionStatus(session, analysis ? "REVIEWING" : "AWAITING_EVALUATION").status
     };
 }
 

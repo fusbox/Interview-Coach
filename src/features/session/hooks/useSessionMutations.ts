@@ -6,13 +6,29 @@ import { ApiClient } from "@/lib/api-client";
 import { InterviewSessionSchema } from "@/lib/domain/schemas";
 import { Logger } from "@/lib/logger";
 
+type ExclusiveCommandName = "start" | "submit" | "next" | "retry";
+type CommandState = {
+    name: ExclusiveCommandName;
+    sessionId: string;
+};
+
+function buildSubmitIdempotencyKey(sessionId: string, questionId: string, answerText: string): string {
+    let hash = 0;
+    const input = `${sessionId}:${questionId}:${answerText}`;
+    for (let index = 0; index < input.length; index += 1) {
+        hash = ((hash << 5) - hash + input.charCodeAt(index)) | 0;
+    }
+
+    return `submit:${sessionId}:${questionId}:${Math.abs(hash)}`;
+}
+
 export function useSessionMutations(
     session: InterviewSession | null | undefined,
     setSession: Dispatch<SetStateAction<InterviewSession | null | undefined>>,
     candidateToken?: string
 ) {
     const now = useMemo(() => selectNow(session), [session]);
-    const isBusyRef = useRef(false);
+    const activeCommandRef = useRef<CommandState | null>(null);
     const activeInitPromiseRef = useRef<Promise<{ sessionId: string; candidateToken: string } | undefined> | null>(null);
 
     /**
@@ -28,6 +44,28 @@ export function useSessionMutations(
             };
         });
     }, [setSession]);
+
+    const tryBeginCommand = useCallback((command: ExclusiveCommandName, sessionId: string) => {
+        const active = activeCommandRef.current;
+        if (active && active.sessionId === sessionId) {
+            Logger.info("Ignored overlapping session command", {
+                activeCommand: active.name,
+                ignoredCommand: command,
+                sessionId
+            }, "SessionMutations");
+            return false;
+        }
+
+        activeCommandRef.current = { name: command, sessionId };
+        return true;
+    }, []);
+
+    const finishCommand = useCallback((command: ExclusiveCommandName, sessionId: string) => {
+        const active = activeCommandRef.current;
+        if (active?.name === command && active.sessionId === sessionId) {
+            activeCommandRef.current = null;
+        }
+    }, []);
 
     const init = useCallback(async (role: string, parentId?: string) => {
         if (activeInitPromiseRef.current) return activeInitPromiseRef.current;
@@ -58,18 +96,23 @@ export function useSessionMutations(
 
     const start = useCallback(async () => {
         if (!session) return;
-        if (isBusyRef.current) return;
-        isBusyRef.current = true;
+        if (!tryBeginCommand("start", session.id)) return;
+
+        const previousSessionSnapshot = session;
 
         try {
             setSession((prev: InterviewSession | null | undefined) => prev ? { ...prev, status: "IN_SESSION" } : undefined);
 
             const updated = await ApiClient.patch<InterviewSession>(`/api/session/${session.id}`, { status: "IN_SESSION" }, { token: candidateToken, schema: InterviewSessionSchema });
             mergeSession(updated);
+        } catch (e) {
+            Logger.error("Session start failed", e);
+            setSession(previousSessionSnapshot);
+            throw e;
         } finally {
-            isBusyRef.current = false;
+            finishCommand("start", session.id);
         }
-    }, [session, candidateToken, setSession, mergeSession]);
+    }, [session, candidateToken, setSession, mergeSession, tryBeginCommand, finishCommand]);
 
     const analyzeCurrentQuestion = useCallback(async (audioData?: { base64: string; mimeType: string }) => {
         if (!session || !now.currentQuestionId) return;
@@ -88,8 +131,7 @@ export function useSessionMutations(
 
     const submit = useCallback(async (answerText: string, audioBlob?: Blob | null) => {
         if (!session || !now.currentQuestionId) return;
-        if (isBusyRef.current) return;
-        isBusyRef.current = true;
+        if (!tryBeginCommand("submit", session.id)) return;
 
         const previousSessionSnapshot = session; // Snapshot for rollback
 
@@ -118,7 +160,13 @@ export function useSessionMutations(
             const updated = await ApiClient.post<InterviewSession>(
                 `/api/session/${session.id}/questions/${now.currentQuestionId}/submit`,
                 { text: answerText },
-                { token: candidateToken, schema: InterviewSessionSchema }
+                {
+                    token: candidateToken,
+                    schema: InterviewSessionSchema,
+                    headers: {
+                        "Idempotency-Key": buildSubmitIdempotencyKey(session.id, now.currentQuestionId, answerText)
+                    }
+                }
             );
 
             Logger.info("Submit success", { updatedStatus: updated.status });
@@ -146,9 +194,9 @@ export function useSessionMutations(
             setSession(previousSessionSnapshot);
             alert("Network error: Failed to submit your answer. Please check your connection and try again.");
         } finally {
-            isBusyRef.current = false;
+            finishCommand("submit", session.id);
         }
-    }, [session, now.currentQuestionId, candidateToken, setSession, mergeSession, analyzeCurrentQuestion]);
+    }, [session, now.currentQuestionId, candidateToken, setSession, mergeSession, analyzeCurrentQuestion, tryBeginCommand, finishCommand]);
 
     const submitInitials = useCallback(async (initials: string) => {
         if (!session) return;
@@ -197,8 +245,9 @@ export function useSessionMutations(
 
     const next = useCallback(async () => {
         if (!session) return;
-        if (isBusyRef.current) return;
-        isBusyRef.current = true;
+        if (!tryBeginCommand("next", session.id)) return;
+
+        const previousSessionSnapshot = session;
 
         try {
             const nextIdx = session.currentQuestionIndex + 1;
@@ -221,14 +270,20 @@ export function useSessionMutations(
                 { token: candidateToken, schema: InterviewSessionSchema }
             );
             mergeSession(updated);
+        } catch (e) {
+            Logger.error("Next question failed", e);
+            setSession(previousSessionSnapshot);
+            throw e;
         } finally {
-            isBusyRef.current = false;
+            finishCommand("next", session.id);
         }
-    }, [session, candidateToken, setSession, mergeSession]);
+    }, [session, candidateToken, setSession, mergeSession, tryBeginCommand, finishCommand]);
 
     const retry = useCallback(async (retryContext?: { trigger: 'user' | 'coach'; focus?: string }) => {
         if (!session || !now.currentQuestionId) return;
+        if (!tryBeginCommand("retry", session.id)) return;
         const qid = now.currentQuestionId;
+        const previousSessionSnapshot = session;
 
         // Optimistic
         setSession((prev: InterviewSession | null | undefined) => {
@@ -251,13 +306,21 @@ export function useSessionMutations(
             };
         });
 
-        const updated = await ApiClient.post<InterviewSession>(
-            `/api/session/${session.id}/questions/${qid}/retry`,
-            { retryContext },
-            { token: candidateToken, schema: InterviewSessionSchema }
-        );
-        mergeSession(updated);
-    }, [session, now.currentQuestionId, candidateToken, setSession, mergeSession]);
+        try {
+            const updated = await ApiClient.post<InterviewSession>(
+                `/api/session/${session.id}/questions/${qid}/retry`,
+                { retryContext },
+                { token: candidateToken, schema: InterviewSessionSchema }
+            );
+            mergeSession(updated);
+        } catch (e) {
+            Logger.error("Retry question failed", e);
+            setSession(previousSessionSnapshot);
+            throw e;
+        } finally {
+            finishCommand("retry", session.id);
+        }
+    }, [session, now.currentQuestionId, candidateToken, setSession, mergeSession, tryBeginCommand, finishCommand]);
 
     const goToQuestion = useCallback(async (index: number) => {
         if (!session) return;

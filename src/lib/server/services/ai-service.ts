@@ -1,9 +1,11 @@
 import { Part } from "@google/genai";
 import { Question, Blueprint, AnalysisResult, InterviewSession, Answer, Dimension, DimensionScore } from "@/lib/domain/types";
+import { AnalysisResultSchema } from "@/lib/domain/schemas";
 import { buildAnalysisContext, getReadingLevelContext } from "@/lib/ai/prompts";
 import { Logger } from "@/lib/logger";
 import { ai, AI_MODELS } from "./ai-config";
 import { FEEDBACK_DIMENSIONS } from "@/lib/constants";
+import { NonEmptyProviderTextSchema, parseProviderJson, parseProviderValue } from "@/lib/server/provider-response";
 
 export class AIService {
     /**
@@ -12,7 +14,7 @@ export class AIService {
      * Middle: specificity_concreteness, outcome_explicitness, pace, clarity
      * Advanced: decision_rationale, energy
      */
-    private static calculateReadiness(scores: Record<string, number>): string {
+    private static calculateReadiness(scores: Record<string, number>): "RL1" | "RL2" | "RL3" | "RL4" {
         const foundational = ['focus_relevance', 'structural_clarity', 'confidence'];
         const middle = ['specificity_concreteness', 'outcome_explicitness', 'pace', 'clarity'];
 
@@ -153,9 +155,10 @@ Generate feedback as strict JSON matching this schema:
 
             const text = response.text;
             Logger.info("AI Raw Response", { textLength: text?.length, textPreview: text?.substring(0, 100) });
-            if (!text) throw new Error("Empty AI Response");
-
-            const result = JSON.parse(text);
+            const result = parseProviderJson(text, AnalysisResultSchema, {
+                provider: "gemini",
+                operation: "analyzeAnswer"
+            });
             Logger.info("AI Parsed Result", { hasScores: !!result.scores, hasAck: !!result.ack });
 
             // 1. Extract raw scores for Algorithm
@@ -176,6 +179,8 @@ Generate feedback as strict JSON matching this schema:
                 ...result,
                 transcript: finalTranscript,
                 meta: {
+                    tier: result.meta?.tier ?? 1,
+                    modality: result.meta?.modality ?? (audioData ? "voice" : "text"),
                     ...result.meta,
                     readinessLevel: calculatedRL,
                     confidence: scoreValues.confidence <= 2 ? 'low' : scoreValues.confidence >= 4 ? 'high' : 'medium'
@@ -280,7 +285,10 @@ ${session.jobDescription || "No specific job description provided."}
                 contents: [{ text: prompt }]
             });
 
-            return response.text || "No summary generated.";
+            return parseProviderValue(response.text, NonEmptyProviderTextSchema, {
+                provider: "gemini",
+                operation: "summarizeSession"
+            });
         } catch (error) {
             Logger.error("Session Summarization Failed", error);
             return `### Executive Summary\nThe candidate completed the interview for the ${session.role} position. They demonstrated consistent effort across all questions.`;

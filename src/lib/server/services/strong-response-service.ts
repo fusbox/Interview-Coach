@@ -1,8 +1,10 @@
 import { Type } from "@google/genai";
 import { StrongResponseResult } from "@/lib/domain/types";
+import { StrongResponseResultSchema } from "@/lib/domain/schemas";
 import { Logger } from "@/lib/logger";
 import { ai, AI_MODELS } from "./ai-config";
 import { getReadingLevelContext } from "@/lib/ai/prompts";
+import { parseProviderJson } from "@/lib/server/provider-response";
 
 export class StrongResponseService {
     static async generateStrongResponse(
@@ -82,10 +84,10 @@ Return strictly JSON matching this structure:
                 },
             });
 
-            const text = response.text;
-            if (!text) throw new Error('No text returned from Gemini for strong response');
-
-            const parsedData = JSON.parse(text) as StrongResponseResult;
+            const parsedData: StrongResponseResult = parseProviderJson(response.text, StrongResponseResultSchema, {
+                provider: "gemini",
+                operation: "generateStrongResponse"
+            });
             parsedData.__debugPrompt = prompt;
 
             return parsedData;

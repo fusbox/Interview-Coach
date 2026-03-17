@@ -5,6 +5,7 @@ import { UpdateSessionSchema } from "@/lib/domain/schemas";
 import { AIService } from "@/lib/server/services/ai-service";
 import { EmailService } from "@/lib/server/services/email-service";
 import { Logger } from "@/lib/logger";
+import { canTransitionSessionStatus } from "@/lib/domain/session-state-machine";
 import {
     createCorrelationId,
     forbiddenResponse,
@@ -64,6 +65,16 @@ export async function PATCH(
         const updates = parseResult.data;
 
         // Atomic Partial Update
+        const currentSession = await repository.get(session_id);
+        if (!currentSession) return notFoundResponse(correlationId, "Session not found");
+
+        if (updates.status && !canTransitionSessionStatus(currentSession.status, updates.status)) {
+            return validationErrorResponse(
+                correlationId,
+                `Invalid session status transition: ${currentSession.status} -> ${updates.status}`
+            );
+        }
+
         await repository.updatePartial(session_id, updates);
 
         // Fetch Fresh State
