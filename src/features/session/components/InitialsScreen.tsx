@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useSession } from '../context/SessionContext';
 
 export default function InitialsScreen() {
-    const { session, submitInitials } = useSession();
+    const { session, candidateToken, submitInitials } = useSession();
     const firstQuestion = session?.questions?.[0];
     const [initials, setInitials] = useState('');
     const [isFocused, setIsFocused] = useState(false);
@@ -29,7 +29,7 @@ export default function InitialsScreen() {
             // so audio is buffered before the session screen mounts.
             audioEngine.unlock().then(() => {
                 if (firstQuestion) {
-                    audioEngine.prefetch(firstQuestion.id, firstQuestion.text);
+                    audioEngine.prefetch(firstQuestion.id, firstQuestion.text, { candidateToken, sessionId: session?.id });
                 }
             });
             try {

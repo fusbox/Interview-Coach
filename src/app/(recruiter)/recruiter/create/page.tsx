@@ -46,6 +46,7 @@ export default function CreateInviteWizard() {
     const [inviteResults, setInviteResults] = useState<InviteResult[]>([]);
 
     const [error, setError] = useState<string | null>(null);
+    const [createInviteKey, setCreateInviteKey] = useState(() => crypto.randomUUID());
 
     const [recruiterProfile, setRecruiterProfile] = useState<RecruiterProfile>({
         name: "",
@@ -113,6 +114,10 @@ export default function CreateInviteWizard() {
         }
     }, [details.role, details.jd, candidates]); // Only clear if inputs change
 
+    useEffect(() => {
+        setCreateInviteKey(crypto.randomUUID());
+    }, [details.role, details.jd, details.reqId, candidates, star, perma, technical]);
+
     const handleSaveTemplate = async (name: string, isShared: boolean) => {
         const res = await saveTemplateAction({
             name,
@@ -174,6 +179,10 @@ export default function CreateInviteWizard() {
 
             const res = await fetch("/api/recruiter/invites", {
                 method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Idempotency-Key": createInviteKey
+                },
                 body: JSON.stringify(payload)
             });
 
@@ -348,6 +357,7 @@ export default function CreateInviteWizard() {
                     error={error}
                     recruiterProfile={recruiterProfile}
                     onNewInvite={() => {
+                        setCreateInviteKey(crypto.randomUUID());
                         setInviteResults([]);
                         setStep(1);
                         setDetails({ role: "", jd: "", firstName: "", lastName: "", candidateEmail: "", reqId: "" });

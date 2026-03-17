@@ -24,7 +24,7 @@ interface LandingScreenProps {
 }
 
 export default function LandingScreen({ onStart, role = "Candidate" }: LandingScreenProps) {
-    const { session } = useSession();
+    const { session, candidateToken } = useSession();
     const firstQuestion = session?.questions?.[0];
     const [rating, setRating] = useState<number | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,9 +50,9 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
     // fetches and caches Q1's audio while the user reads the landing screen.
     useEffect(() => {
         if (firstQuestion) {
-            audioEngine.prefetch(firstQuestion.id, firstQuestion.text);
+            audioEngine.prefetch(firstQuestion.id, firstQuestion.text, { candidateToken, sessionId: session?.id });
         }
-    }, [firstQuestion]);
+    }, [firstQuestion, candidateToken, session?.id]);
 
     const handleRatingSelect = async (val: number) => {
         setRating(val);
@@ -76,7 +76,7 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
         setIsSubmitting(true);
         audioEngine.unlock().then(() => {
             if (firstQuestion) {
-                audioEngine.prefetch(firstQuestion.id, firstQuestion.text);
+                audioEngine.prefetch(firstQuestion.id, firstQuestion.text, { candidateToken, sessionId: session?.id });
             }
         });
         onStart();

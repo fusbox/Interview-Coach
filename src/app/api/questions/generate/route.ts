@@ -4,13 +4,43 @@ import { NextRequest, NextResponse } from "next/server";
 import { Logger } from "@/lib/logger";
 import { ai, AI_MODELS } from "@/lib/server/services/ai-config";
 import { getReadingLevelContext } from "@/lib/ai/prompts";
+import {
+    createCorrelationId,
+    internalErrorResponse,
+    unauthorizedResponse,
+    validationErrorResponse
+} from "@/lib/server/api-errors";
+import { enforceIpRateLimit } from "@/lib/server/abuse-protection";
+import { createClient } from "@/lib/supabase/server";
+
+const WINDOW_MS = 5 * 60 * 1000;
+const MAX_QUESTION_GENERATION_REQUESTS = 15;
 
 export async function POST(req: NextRequest) {
+    const correlationId = createCorrelationId();
+
     try {
+        const rateLimitResponse = enforceIpRateLimit({
+            request: req,
+            scope: "questions_generate",
+            correlationId,
+            maxRequests: MAX_QUESTION_GENERATION_REQUESTS,
+            windowMs: WINDOW_MS
+        });
+        if (rateLimitResponse) {
+            return rateLimitResponse;
+        }
+
+        const supabase = createClient();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+            return unauthorizedResponse(correlationId, "Authentication required");
+        }
+
         const { role, jobDescription, resume } = await req.json();
 
         if (!role) {
-            return NextResponse.json({ error: "Role is required" }, { status: 400 });
+            return validationErrorResponse(correlationId, "Role is required");
         }
 
         if (!ai) {
@@ -96,11 +126,8 @@ RULES:
         return NextResponse.json(result);
 
     } catch (error) {
-        Logger.error("[AI] Question generation failed", error);
-        return NextResponse.json(
-            { error: "Failed to generate questions" },
-            { status: 500 }
-        );
+        Logger.error("[AI] Question generation failed", { correlationId, error }, "QuestionsAPI");
+        return internalErrorResponse(correlationId);
     }
 }
 

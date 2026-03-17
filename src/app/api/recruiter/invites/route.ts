@@ -1,62 +1,158 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { uuidv7 } from "uuidv7";
-import { SupabaseInviteRepository } from "@/lib/server/infrastructure/supabase-invite-repository";
-import { createClient } from "@/lib/supabase/server";
-import { Invite } from "@/lib/domain/invite";
-import { z } from "zod";
 import { randomBytes } from "crypto";
-import { SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
+import { Invite } from "@/lib/domain/invite";
+import { Logger } from "@/lib/logger";
+import { errorResponse } from "@/lib/server/api-errors";
+import {
+    beginIdempotentRequest,
+    completeIdempotentRequest,
+    releaseIdempotentRequest
+} from "@/lib/server/idempotency";
+import { SupabaseInviteRepository } from "@/lib/server/infrastructure/supabase-invite-repository";
+import { consumeRateLimit } from "@/lib/server/rate-limit";
+import { createClient } from "@/lib/supabase/server";
 
 const repository = new SupabaseInviteRepository();
+const IDEMPOTENCY_SCOPE = "recruiter_invites:create";
+const WINDOW_MS = 5 * 60 * 1000;
+const MAX_IP_REQUESTS = 10;
+const MAX_USER_REQUESTS = 20;
 
 const CreateInviteSchema = z.object({
-    role: z.string().min(1),
+    role: z.string().trim().min(1),
     jobDescription: z.string().optional(),
     candidates: z.array(z.object({
-        firstName: z.string().min(1),
-        lastName: z.string().min(1),
+        firstName: z.string().trim().min(1),
+        lastName: z.string().trim().min(1),
         email: z.string().email(),
-        reqId: z.string().min(1),
+        reqId: z.string().trim().min(1),
         resumeText: z.string().optional()
-    })).min(1),
+    })).min(1).max(50),
     questions: z.array(z.object({
-        text: z.string().min(1),
-        category: z.string(),
-        index: z.number()
-    }))
+        text: z.string().trim().min(1),
+        category: z.string().trim().min(1),
+        index: z.number().int().min(0)
+    })).min(1)
 });
 
-export async function POST(request: Request) {
+function requestIp(req: NextRequest): string {
+    const forwarded = req.headers.get("x-forwarded-for");
+    return forwarded?.split(",")[0].trim() || "unknown";
+}
+
+function baseUrl(req: NextRequest): string {
+    return process.env.NEXT_PUBLIC_APP_URL?.trim() || new URL(req.url).origin;
+}
+
+export async function POST(request: NextRequest) {
+    const correlationId = crypto.randomUUID();
+    let idempotencyKey: string | null = null;
+    let userId: string | null = null;
+    let idempotencyReserved = false;
+
     try {
         const supabase = createClient();
-        const { data: { user }, error } = await supabase.auth.getUser();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-        let userId = user?.id;
+        if (authError || !user) {
+            return errorResponse(401, {
+                code: "UNAUTHORIZED",
+                message: "Authentication required",
+                correlationId,
+                retryable: false
+            });
+        }
 
-        if (error || !userId) {
-            // Dev Bypass for mobile testing
-            if (process.env.NODE_ENV === 'development') {
-                console.warn("⚠️ Bypass Auth for Dev Environment");
-                userId = "00000000-0000-0000-0000-000000000000";
-            } else {
-                return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        userId = user.id;
+
+        const rawBody = await request.json();
+        const parseResult = CreateInviteSchema.safeParse(rawBody);
+        if (!parseResult.success) {
+            return errorResponse(400, {
+                code: "INVALID_REQUEST",
+                message: "Invalid invite payload",
+                correlationId,
+                retryable: false
+            });
+        }
+
+        idempotencyKey = request.headers.get("Idempotency-Key")?.trim() || null;
+        if (idempotencyKey) {
+            const reservation = await beginIdempotentRequest({
+                scope: IDEMPOTENCY_SCOPE,
+                actorId: user.id,
+                key: idempotencyKey,
+                payload: parseResult.data
+            });
+
+            if (reservation.kind === "replay") {
+                return NextResponse.json(reservation.body, { status: reservation.statusCode });
             }
+
+            if (reservation.kind === "pending") {
+                return errorResponse(409, {
+                    code: "REQUEST_IN_PROGRESS",
+                    message: "An identical invite creation request is already in progress",
+                    correlationId,
+                    retryable: true
+                });
+            }
+
+            if (reservation.kind === "conflict") {
+                return errorResponse(409, {
+                    code: "IDEMPOTENCY_MISMATCH",
+                    message: "Idempotency key cannot be reused with a different payload",
+                    correlationId,
+                    retryable: false
+                });
+            }
+
+            idempotencyReserved = true;
         }
 
-        const body = await request.json();
-        const { role, jobDescription, candidates, questions } = CreateInviteSchema.parse(body);
+        const ip = requestIp(request);
+        const ipDecision = consumeRateLimit(`recruiter_invites:ip:${ip}`, MAX_IP_REQUESTS, WINDOW_MS);
+        const userDecision = consumeRateLimit(`recruiter_invites:user:${user.id}`, MAX_USER_REQUESTS, WINDOW_MS);
 
-        const results: { id: string, firstName: string, lastName: string, email: string, link: string }[] = [];
+        if (!ipDecision.allowed || !userDecision.allowed) {
+            if (idempotencyReserved && idempotencyKey) {
+                await releaseIdempotentRequest({
+                    scope: IDEMPOTENCY_SCOPE,
+                    actorId: user.id,
+                    key: idempotencyKey
+                });
+                idempotencyReserved = false;
+            }
 
-        // Use Admin Client if bypassing auth (RLS Bypass)
-        let adminClient: SupabaseClient | null = null;
-        if (userId === "00000000-0000-0000-0000-000000000000") {
-            const { createAdminClient } = await import("@/lib/supabase/server");
-            adminClient = createAdminClient();
+            Logger.warn("[RecruiterInvitesAPI] Rate limit exceeded", {
+                correlationId,
+                actorId: user.id,
+                ip
+            }, "RecruiterInvitesAPI");
+
+            return errorResponse(429, {
+                code: "RATE_LIMITED",
+                message: "Rate limit exceeded. Please retry later.",
+                correlationId,
+                retryable: true
+            });
         }
+
+        const { role, jobDescription, candidates, questions } = parseResult.data;
+        const results: { id: string; firstName: string; lastName: string; email: string; link: string }[] = [];
+        const appBaseUrl = baseUrl(request);
+
+        Logger.info("[RecruiterInvitesAPI] Creating invites", {
+            correlationId,
+            actorId: user.id,
+            candidateCount: candidates.length,
+            outcome: "start"
+        }, "RecruiterInvitesAPI");
 
         for (const candidate of candidates) {
-            const token = randomBytes(16).toString('hex');
+            const token = randomBytes(16).toString("hex");
             const sessionId = uuidv7();
 
             const invite: Invite = {
@@ -66,36 +162,61 @@ export async function POST(request: Request) {
                 jobDescription,
                 candidate,
                 questions,
-                createdBy: userId,
+                createdBy: user.id,
                 createdAt: Date.now()
             };
 
-            if (adminClient) {
-                await repository.create(invite, adminClient);
-            } else {
-                await repository.create(invite);
-            }
-
-            // Derive Base URL: Prioritize Env Var, fallback to Request Headers
-            const host = request.headers.get("host") || "localhost:3000";
-            const protocol = request.headers.get("x-forwarded-proto") || "http";
-            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
+            await repository.create(invite);
 
             results.push({
                 id: sessionId,
                 firstName: candidate.firstName,
                 lastName: candidate.lastName,
                 email: candidate.email,
-                link: `${baseUrl}/s/${token}`
+                link: `${appBaseUrl}/s/${token}`
             });
         }
 
-        return NextResponse.json({ results });
+        const responseBody = { results, correlationId };
 
-    } catch (error: unknown) {
-        console.error("Invite Create Error:", error);
-        return NextResponse.json({
-            error: error instanceof z.ZodError ? error.issues : (error instanceof Error ? error.message : "Failed to create invite")
-        }, { status: 500 });
+        if (idempotencyReserved && idempotencyKey) {
+            await completeIdempotentRequest({
+                scope: IDEMPOTENCY_SCOPE,
+                actorId: user.id,
+                key: idempotencyKey,
+                statusCode: 200,
+                body: responseBody
+            });
+        }
+
+        Logger.info("[RecruiterInvitesAPI] Invite creation completed", {
+            correlationId,
+            actorId: user.id,
+            candidateCount: candidates.length,
+            outcome: "success"
+        }, "RecruiterInvitesAPI");
+
+        return NextResponse.json(responseBody);
+    } catch (error) {
+        Logger.error("[RecruiterInvitesAPI] Failed to create invites", {
+            correlationId,
+            actorId: userId,
+            error
+        }, "RecruiterInvitesAPI");
+
+        if (idempotencyReserved && idempotencyKey && userId) {
+            await releaseIdempotentRequest({
+                scope: IDEMPOTENCY_SCOPE,
+                actorId: userId,
+                key: idempotencyKey
+            });
+        }
+
+        return errorResponse(500, {
+            code: "INTERNAL_ERROR",
+            message: "Internal server error",
+            correlationId,
+            retryable: true
+        });
     }
 }

@@ -3,7 +3,7 @@
 Date: 2026-03-17  
 Source: `docs/05-quality/security_endpoint_matrix.md`
 
-## P0-1 — Unauthenticated Email Send Surface (`/api/invite/send`)
+## P0-1 - Unauthenticated Email Send Surface (`/api/invite/send`)
 
 - **Severity:** P0 / Critical
 - **Owner:** Backend Lead (primary), Product Security (review), SRE (rate-limit implementation)
@@ -25,7 +25,6 @@ Source: `docs/05-quality/security_endpoint_matrix.md`
 - Rate-limit breach returns 429.
 - Integration tests cover auth failure, validation failure, rate-limit hit, success path.
 
-
 ### Status
 - **State:** Completed
 - **Completed On:** 2026-03-17
@@ -39,12 +38,12 @@ Source: `docs/05-quality/security_endpoint_matrix.md`
 
 ---
 
-## P0-2 — Recruiter Invite Creation Dev Bypass (`/api/recruiter/invites`)
+## P0-2 - Recruiter Invite Creation Dev Bypass (`/api/recruiter/invites`)
 
 - **Severity:** P0 / Critical
 - **Owner:** Backend Lead (primary), Tech Lead (code review), QA/SET Lead (regression tests)
 - **Deadline:** 2026-03-21
-- **Why P0:** Runtime path contains a development bypass that substitutes a static UUID when authentication is absent in development mode.
+- **Why P0:** Runtime path contained a development bypass that substituted a static UUID when authentication was absent in development mode.
 - **Current Risk:** Elevated chance of bypass misuse, accidental promotion patterns, and fragile auth guarantees in mutation flow.
 
 ### Required Remediation Tasks
@@ -60,6 +59,17 @@ Source: `docs/05-quality/security_endpoint_matrix.md`
 - Duplicate retries with same idempotency key do not create duplicate invites.
 - Endpoint returns 429 on configured throttle thresholds.
 - Regression test fails if bypass logic is reintroduced.
+
+### Status
+- **State:** Completed
+- **Completed On:** 2026-03-17
+- **Evidence:**
+  - Runtime auth bypass removed from `POST /api/recruiter/invites`; unauthenticated callers now receive a sanitized `401` in every environment.
+  - Invite creation is bound to the authenticated recruiter principal and persisted through the standard recruiter-scoped repository path only.
+  - Per-IP and per-user fixed-window rate limits added to the route.
+  - `Idempotency-Key` support added with a server-side ledger and replay semantics for duplicate invite-create retries.
+  - Recruiter create flow now sends an `Idempotency-Key` header so UI retries and double-submits reuse the same server request identity.
+  - Regression and success-path route tests added for 401, 400, 429, replayed 200, and fresh 200 execution paths.
 
 ---
 

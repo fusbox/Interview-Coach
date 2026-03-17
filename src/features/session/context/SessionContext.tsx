@@ -13,6 +13,7 @@ export interface OnboardingIntakeV1 {
 
 export interface SessionContextType {
     session?: InterviewSession | null;
+    candidateToken?: string;
     startSession: (
         role: string,
         jobDescription?: string,
@@ -171,6 +172,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
 
     const contextValue: SessionContextType = {
         session,
+        candidateToken,
         now,
         screen: now.screen,
         startSession,

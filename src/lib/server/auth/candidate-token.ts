@@ -1,5 +1,6 @@
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { hashToken } from "@/lib/server/crypto";
+import { Logger } from "@/lib/logger";
 
 const TOKEN_HEADER = "x-candidate-token";
 
@@ -52,7 +53,7 @@ export async function issueCandidateToken(sessionId: string): Promise<string> {
         });
 
     if (error) {
-        console.error("Token Issuance Failed", error);
+        Logger.error("Token Issuance Failed", error, "CandidateToken");
         throw new Error("Failed to issue token");
     }
 

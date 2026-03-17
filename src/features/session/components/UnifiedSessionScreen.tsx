@@ -33,6 +33,7 @@ import { TRANSITION_DURATION, AUDIO_BUFFER_MULTIPLIER } from '@/lib/constants';
 export default function UnifiedSessionScreen() {
     const {
         session,
+        candidateToken,
         saveAnswer,
         nextQuestion,
         retryQuestion,
@@ -83,6 +84,8 @@ export default function UnifiedSessionScreen() {
     const resumeText = session?.candidate?.resumeText;
     const { hints, isLoading: isHintLoading, fetchHints } = useSmartHints(
         currentQuestion!,
+        session?.id,
+        candidateToken,
         session?.role || "Product Manager",
         undefined,
         resumeText
@@ -90,6 +93,8 @@ export default function UnifiedSessionScreen() {
     const { data: strongResponseData, isLoading: isStrongResponseLoading, fetchStrongResponse } = useStrongResponse(
         currentQuestionId!,
         currentQuestion?.text ?? "",
+        session?.id,
+        candidateToken,
         session?.role || "Product Manager",
         resumeText
     );
@@ -156,19 +161,19 @@ export default function UnifiedSessionScreen() {
         if (!currentQuestion || hasSubmitted) return;
 
         // Mask latency: prefetch immediately in the background
-        prefetch(currentQuestion.id, currentQuestion.text);
+        prefetch(currentQuestion.id, currentQuestion.text, { candidateToken, sessionId: session?.id });
 
         const isFirstEntry = currentQuestionIndex === 0;
         if (isFirstEntry) {
             const lagMs = TRANSITION_DURATION * AUDIO_BUFFER_MULTIPLIER * 1000;
             const timer = setTimeout(() => {
-                speak(currentQuestion.text, currentQuestion.id);
+                speak(currentQuestion.text, currentQuestion.id, { candidateToken, sessionId: session?.id });
             }, lagMs);
             return () => clearTimeout(timer);
         } else {
-            speak(currentQuestion.text, currentQuestion.id);
+            speak(currentQuestion.text, currentQuestion.id, { candidateToken, sessionId: session?.id });
         }
-    }, [currentQuestionIndex, currentQuestionId, currentQuestion, hasSubmitted, prefetch, speak]);
+    }, [currentQuestionIndex, currentQuestionId, currentQuestion, hasSubmitted, prefetch, speak, candidateToken, session?.id]);
 
     // Prefetch next question audio
     useEffect(() => {
@@ -176,9 +181,9 @@ export default function UnifiedSessionScreen() {
         const nextIdx = currentQuestionIndex + 1;
         if (nextIdx < questions.length) {
             const nextQ = questions[nextIdx];
-            prefetch(nextQ.id, nextQ.text);
+            prefetch(nextQ.id, nextQ.text, { candidateToken, sessionId: session?.id });
         }
-    }, [currentQuestionIndex, session?.questions, prefetch]);
+    }, [currentQuestionIndex, session?.questions, prefetch, candidateToken, session?.id]);
 
     // Handlers
     const handleTogglePlayback = async () => {
@@ -191,7 +196,7 @@ export default function UnifiedSessionScreen() {
             stopSpeaking();
             trackEvent('tier2', 'playback_stop');
         } else {
-            speak(currentQuestion.text, currentQuestion.id);
+            speak(currentQuestion.text, currentQuestion.id, { candidateToken, sessionId: session?.id });
             trackEvent('tier2', 'playback_start');
         }
     };
@@ -545,7 +550,7 @@ export default function UnifiedSessionScreen() {
                                                 )}
 
                                                 <p className="text-sm font-semibold text-text-secondary tracking-wide">
-                                                    {isRecording ? "Listening..." : transcript ? "Ready to Submit" : audioBlob ? "Audio Captured" : "Tap to Record; Tap Again to Stop"}
+                                                    {isRecording ? "Listening..." : transcript ? "Ready to Submit" : audioBlob ? "Audio Captured" : "Tap to record; tap again to stop"}
                                                 </p>
                                             </div>
 

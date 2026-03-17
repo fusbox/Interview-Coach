@@ -10,6 +10,11 @@ import {
 } from "@/app/(recruiter)/recruiter/dev-eval/types";
 
 import { showDemoTools } from "@/lib/feature-flags";
+import {
+    createCorrelationId,
+    internalErrorResponse,
+    notFoundResponse
+} from "@/lib/server/api-errors";
 
 const sessionRepo = new SupabaseSessionRepository();
 
@@ -17,15 +22,17 @@ export async function GET(
     req: NextRequest,
     { params }: { params: { sessionId: string } }
 ) {
+    const correlationId = createCorrelationId();
+
     // Demo-mode gate
     if (!showDemoTools()) {
-        return NextResponse.json({ error: "Not available" }, { status: 404 });
+        return notFoundResponse(correlationId, "Not available");
     }
 
     try {
         const session = await sessionRepo.get(params.sessionId);
         if (!session) {
-            return NextResponse.json({ error: "Session not found" }, { status: 404 });
+            return notFoundResponse(correlationId, "Session not found");
         }
 
         // Build export payload
@@ -88,10 +95,7 @@ export async function GET(
         return NextResponse.json(payload);
 
     } catch (error) {
-        Logger.error("[Dev] Export session failed", error);
-        return NextResponse.json(
-            { error: "Failed to export session" },
-            { status: 500 }
-        );
+        Logger.error("[Dev] Export session failed", { correlationId, error }, "DevExportAPI");
+        return internalErrorResponse(correlationId);
     }
 }

@@ -4,6 +4,15 @@ import { requireCandidateToken } from "@/lib/server/auth/candidate-token";
 import { UpdateSessionSchema } from "@/lib/domain/schemas";
 import { AIService } from "@/lib/server/services/ai-service";
 import { EmailService } from "@/lib/server/services/email-service";
+import { Logger } from "@/lib/logger";
+import {
+    createCorrelationId,
+    forbiddenResponse,
+    internalErrorResponse,
+    notFoundResponse,
+    unauthorizedResponse,
+    validationErrorResponse
+} from "@/lib/server/api-errors";
 
 const repository = new SupabaseSessionRepository();
 
@@ -11,17 +20,22 @@ export async function GET(
     request: Request,
     { params }: { params: { session_id: string } }
 ) {
+    const correlationId = createCorrelationId();
     const auth = await requireCandidateToken(request, params.session_id);
     if (!auth.ok) {
-        return NextResponse.json({ error: auth.error }, { status: auth.status });
+        if (auth.status === 401) {
+            return unauthorizedResponse(correlationId, auth.error);
+        }
+
+        return forbiddenResponse(correlationId, auth.error);
     }
 
     const session = await repository.get(params.session_id);
-    if (!session) return NextResponse.json({ error: "Session not found" }, { status: 404 });
+    if (!session) return notFoundResponse(correlationId, "Session not found");
 
     // Mark as viewed asynchronously (don't block the response)
     // We only mark viewed if it's the candidate fetching it (verified by auth above)
-    repository.markViewed(params.session_id).catch(err => console.error("Mark Viewed Failed:", err));
+    repository.markViewed(params.session_id).catch(err => Logger.warn("Mark Viewed Failed", { correlationId, error: err }, "SessionAPI"));
 
     return NextResponse.json(session);
 }
@@ -30,20 +44,22 @@ export async function PATCH(
     request: Request,
     { params }: { params: { session_id: string } }
 ) {
+    const correlationId = createCorrelationId();
     const { session_id } = params;
     const auth = await requireCandidateToken(request, session_id);
     if (!auth.ok) {
-        return NextResponse.json({ error: auth.error }, { status: auth.status });
+        if (auth.status === 401) {
+            return unauthorizedResponse(correlationId, auth.error);
+        }
+
+        return forbiddenResponse(correlationId, auth.error);
     }
 
     try {
         const body = await request.json();
         const parseResult = UpdateSessionSchema.safeParse(body);
         if (!parseResult.success) {
-            return NextResponse.json(
-                { error: "Invalid request", details: parseResult.error.format() },
-                { status: 400 }
-            );
+            return validationErrorResponse(correlationId);
         }
         const updates = parseResult.data;
 
@@ -52,11 +68,11 @@ export async function PATCH(
 
         // Fetch Fresh State
         const session = await repository.get(session_id);
-        if (!session) return NextResponse.json({ error: "Session not found" }, { status: 404 });
+        if (!session) return notFoundResponse(correlationId, "Session not found");
 
         // Trigger Summarization if newly completed
         if (updates.status === 'COMPLETED' && !session.summaryNarrative) {
-            console.log(`[API] Triggering summarization for session ${session_id}`);
+            Logger.info("Triggering summarization for completed session", { correlationId, sessionId: session_id }, "SessionAPI");
             try {
                 const narrative = await AIService.summarizeSession(session);
                 await repository.updatePartial(session_id, { summaryNarrative: narrative });
@@ -65,11 +81,11 @@ export async function PATCH(
                 // Trigger Email Debrief
                 if (session.candidate?.email) {
                     await EmailService.sendDebriefEmail(session).catch(err => 
-                        console.error("[API] Email send failed:", err)
+                        Logger.error("Debrief email send failed", { correlationId, error: err, sessionId: session_id }, "SessionAPI")
                     );
                 }
             } catch (summaryError) {
-                console.error("[API] Summarization failed:", summaryError);
+                Logger.error("Summarization failed", { correlationId, error: summaryError, sessionId: session_id }, "SessionAPI");
                 // We still return the session even if summarization fails; polling will try again or show fallback
             }
         }
@@ -77,7 +93,7 @@ export async function PATCH(
         return NextResponse.json(session);
 
     } catch (error) {
-        console.error("[API] Session Update PATCH Error:", error);
-        return NextResponse.json({ error: "Update failed", details: String(error) }, { status: 500 });
+        Logger.error("Session Update PATCH Error", { correlationId, error }, "SessionAPI");
+        return internalErrorResponse(correlationId);
     }
 }

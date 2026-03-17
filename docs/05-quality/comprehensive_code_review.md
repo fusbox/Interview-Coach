@@ -3,14 +3,22 @@
 Date: 2026-03-17  
 Reviewer stance: **Sr Architect/Engineer (production gate)** + **Mentor (Jr growth feedback)**
 
+## Remediation Update (2026-03-17)
+
+- `P0-1` is complete: `/api/invite/send` is now authenticated, recruiter-scoped, rate-limited, schema-validated, and returns a sanitized error envelope.
+- `P0-2` is complete: `/api/recruiter/invites` no longer contains a runtime development bypass and now includes authenticated recruiter-only execution, invite-create throttling, `Idempotency-Key` replay handling, and regression coverage.
+- `1.4` is complete: the shared API error contract now standardizes public error responses to `code`, `message`, `correlationId`, and `retryable`, and removes raw `details` and stack leakage from the reviewed API routes.
+- Remaining Phase 1 public endpoint abuse gaps are closed: recruiter-only question generation is authenticated, candidate assist routes are bound to magic-link token ownership, and practice-again token issuance now requires the active candidate token for the parent session.
+- Production status remains **NO-GO** because the candidate/session mutation concurrency issues and broader operability gaps described below are still open.
+
 ## Executive Summary
 
 This codebase shows strong momentum (typed domain model, schema usage in several APIs, modular UI primitives, and meaningful business intent), but it is **not yet production-ready** at high-assurance standards. The top gaps are:
 
-1. **Security controls are incomplete** (unprotected mutation endpoints and risky dev bypasses).
+1. **Correctness and concurrency remain the primary blocker** (the Phase 1 recruiter/public endpoint security gaps are materially remediated, but session mutation integrity issues remain).
 2. **Concurrency and state integrity defects** exist in core interview session flows.
 3. **Test suite is too thin and currently failing on race-condition scenarios.**
-4. **Observability/error-handling are inconsistent** (mixed `console.*`, weak error taxonomy, PII logging risk).
+4. **Observability is still incomplete** (although the public error contract is now standardized, structured operational telemetry remains partial).
 5. **Repo hygiene and docs lag implementation reality** (README status/scripts mismatch).
 
 Recommended release decision today: **NO-GO for production**, **GO for controlled internal staging after critical fixes**.
@@ -230,10 +238,8 @@ Current state is early-stage: logs exist but are not fully structured, severity 
 
 ### Critical (fix before production)
 
-- Endpoint auth/rate-limit hardening for invite/email mutation surfaces.
-- Remove dev auth bypass from runtime route paths.
 - Fix concurrency defects and failing race-condition tests.
-- Standardize safe error handling to prevent leakage.
+- Phase 2 concurrency and data-integrity fixes remain the next production gate.
 
 ### High
 

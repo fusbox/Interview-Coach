@@ -13,6 +13,8 @@ export interface SmartHintsState {
 
 export function useSmartHints(
     question: Question | undefined | null,
+    sessionId: string | undefined | null,
+    candidateToken: string | undefined,
     role: string,
     blueprint?: Blueprint,
     resumeText?: string
@@ -27,7 +29,7 @@ export function useSmartHints(
     const cacheKey = question ? `${CACHE_KEY_PREFIX}${question.id}` : '';
 
     const fetchHints = useCallback(async () => {
-        if (!question || isFetchingRef.current) return;
+        if (!question || !sessionId || !candidateToken || isFetchingRef.current) return;
 
         // If already cached, don't fetch.
         const cached = sessionStorage.getItem(cacheKey);
@@ -42,8 +44,12 @@ export function useSmartHints(
         try {
             const response = await fetch('/api/tips/generate', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-candidate-token': candidateToken,
+                },
                 body: JSON.stringify({
+                    sessionId,
                     question: question.text,
                     role: role,
                     competency: question.competencyId ? { name: question.competencyId } : undefined,
@@ -69,7 +75,7 @@ export function useSmartHints(
         } finally {
             isFetchingRef.current = false;
         }
-    }, [question, role, blueprint, resumeText, cacheKey]);
+    }, [question, sessionId, candidateToken, role, blueprint, resumeText, cacheKey]);
 
     // Reset state explicitly when question changes to prevent content flashing from the prior question
     useEffect(() => {

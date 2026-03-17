@@ -14,19 +14,19 @@ export const useTextToSpeech = () => {
         return unsubscribe;
     }, []);
 
-    const speak = useCallback(async (text: string, id?: string) => {
+    const speak = useCallback(async (text: string, id?: string, auth?: { candidateToken?: string; sessionId?: string }) => {
         if (!text) return;
         // Use text hash as fallback ID if none provided
         const audioId = id || text.slice(0, 50);
-        await audioEngine.play(audioId, text);
+        await audioEngine.play(audioId, text, auth);
     }, []);
 
     const stop = useCallback(() => {
         audioEngine.stop();
     }, []);
 
-    const prefetch = useCallback((id: string, text: string) => {
-        audioEngine.prefetch(id, text);
+    const prefetch = useCallback((id: string, text: string, auth?: { candidateToken?: string; sessionId?: string }) => {
+        audioEngine.prefetch(id, text, auth);
     }, []);
 
     return {

@@ -37,7 +37,7 @@ export function useSessionMutations(
                 const { data: newSession, headers } = await ApiClient.postWithHeaders<InterviewSession>(
                     '/api/session/start',
                     { role, parentId },
-                    { schema: InterviewSessionSchema }
+                    { token: candidateToken, schema: InterviewSessionSchema }
                 );
                 setSession(newSession);
                 localStorage.setItem(STORAGE_KEYS.CURRENT_SESSION_ID, newSession.id);

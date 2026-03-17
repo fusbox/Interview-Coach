@@ -7,6 +7,13 @@ Source inputs synthesized:
 
 ## 0) Objective, Scope, and Exit Criteria
 
+### Phase 1 Execution Status (2026-03-17)
+- `P0-1` completed and merged: `/api/invite/send` now enforces recruiter auth, ownership checks, schema validation, rate limiting, and sanitized error responses.
+- `P0-2` completed and merged: `/api/recruiter/invites` no longer contains a runtime dev auth bypass and now enforces authenticated invite creation, fixed-window rate limits, `Idempotency-Key` replay support, and regression coverage.
+- `1.4` completed and merged: shared API error helpers and candidate-session validation wrappers now normalize error responses to `code`, `message`, `correlationId`, and `retryable`, removing raw `details` and stack leakage from public routes.
+- Remaining public compute/session abuse controls are implemented: recruiter-only AI generation is authenticated, candidate assist routes are bound to the magic-link token plus session context, and practice-again token generation now requires the current candidate token for the parent session.
+- Gate A scope is now materially complete; remaining next work shifts to Phase 2 concurrency and data-integrity stabilization.
+
 ### Objective
 Execute a sequenced remediation program that moves the project from "not production-ready" to "production-capable" with measurable quality gates.
 
@@ -122,6 +129,12 @@ Goal: eliminate immediate exploit/reliability risks before broader refactor.
 **Acceptance Criteria**
 - All API errors conform to envelope.
 - Security review confirms no sensitive details in responses.
+
+**Execution Status**
+- Completed 2026-03-17.
+- Shared helpers added in `src/lib/server/api-errors.ts` and applied across the remaining public-facing API routes.
+- Candidate-token-authenticated question routes now inherit envelope handling through `validatedSessionHandler`.
+- Regression tests verify malformed requests and unexpected exceptions no longer expose internal details.
 
 ---
 
@@ -321,15 +334,15 @@ Use this template for each remediation task:
 ## 6) Immediate Next 10 Actions (Start Tomorrow)
 
 1. Create security endpoint matrix.
-2. Remove runtime dev auth bypass.
+2. Completed 2026-03-17: Remove runtime dev auth bypass on `/api/recruiter/invites`, add invite-create rate limits, and add idempotent replay support.
 3. Add auth guard to invite/email mutation routes.
 4. Add rate limiting middleware for mutation routes.
-5. Implement standardized API error envelope.
-6. Define and codify session state transition table.
-7. Fix submit/next mutex behavior and add deterministic tests.
-8. Implement atomic engagement increment strategy.
-9. Add idempotency key support for invite and submit endpoints.
-10. Turn CI into required merge gate with lint/typecheck/tests.
+5. Completed 2026-03-17: Implement standardized API error envelope and correlation IDs across API routes.
+6. Completed 2026-03-17: Bind remaining public AI/session routes to recruiter auth or candidate magic-link tokens and add baseline fixed-window throttling.
+7. Define and codify session state transition table.
+8. Fix submit/next mutex behavior and add deterministic tests.
+9. Implement atomic engagement increment strategy.
+10. Add idempotency key support for submit and related candidate mutations.
 
 ---
 

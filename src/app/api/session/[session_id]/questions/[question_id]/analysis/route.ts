@@ -4,6 +4,10 @@ import { AIService } from "@/lib/server/services/ai-service";
 import { getAnalysisContext } from "@/lib/server/session/orchestrator";
 import { SessionStatus } from "@/lib/domain/types";
 import { validatedSessionHandler } from "@/lib/server/api-handler-utils";
+import {
+    notFoundResponse,
+    validationErrorResponse
+} from "@/lib/server/api-errors";
 
 const repository = new SupabaseSessionRepository();
 
@@ -11,10 +15,10 @@ export async function POST(
     request: Request,
     { params }: { params: { session_id: string; question_id: string } }
 ) {
-    return validatedSessionHandler(request, params, async (req, { session }) => {
+    return validatedSessionHandler(request, params, async (req, { session, correlationId }) => {
         const answer = session.answers[params.question_id];
         if (!answer?.submittedAt) {
-            return NextResponse.json({ error: "Answer not submitted" }, { status: 400 });
+            return validationErrorResponse(correlationId, "Answer not submitted");
         }
 
         if (answer.analysis) {
@@ -23,7 +27,7 @@ export async function POST(
 
         const context = getAnalysisContext(session, params.question_id);
         if (!context) {
-            return NextResponse.json({ error: "Question context missing" }, { status: 404 });
+            return notFoundResponse(correlationId, "Question context missing");
         }
 
         const body = await req.json().catch(() => ({}));

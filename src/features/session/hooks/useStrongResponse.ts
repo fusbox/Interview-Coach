@@ -14,6 +14,8 @@ export interface StrongResponseState {
 export function useStrongResponse(
     questionId: string | undefined | null,
     questionText: string | undefined | null,
+    sessionId: string | undefined | null,
+    candidateToken: string | undefined,
     role: string,
     resumeText?: string
 ) {
@@ -26,7 +28,7 @@ export function useStrongResponse(
     const isFetchingRef = useRef(false);
 
     const fetchStrongResponse = useCallback(async () => {
-        if (!questionId || !questionText || isFetchingRef.current) return;
+        if (!questionId || !questionText || !sessionId || !candidateToken || isFetchingRef.current) return;
 
         // Check Cache
         const cacheKey = `${CACHE_KEY_PREFIX}${questionId}`;
@@ -49,8 +51,11 @@ export function useStrongResponse(
         try {
             const response = await fetch('/api/response/generate', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question: questionText, role, resumeText: resumeText || undefined }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-candidate-token': candidateToken,
+                },
+                body: JSON.stringify({ question: questionText, role, resumeText: resumeText || undefined, sessionId }),
             });
 
             if (!response.ok) {
@@ -80,7 +85,7 @@ export function useStrongResponse(
         } finally {
             isFetchingRef.current = false;
         }
-    }, [questionId, questionText, role, resumeText]);
+    }, [questionId, questionText, sessionId, candidateToken, role, resumeText]);
 
     // Reset when question changes
     useEffect(() => {

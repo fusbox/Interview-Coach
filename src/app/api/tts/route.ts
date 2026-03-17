@@ -1,18 +1,50 @@
 import { NextResponse } from "next/server";
 import { TTSService } from "@/lib/server/services/tts-service";
+import { Logger } from "@/lib/logger";
+import {
+    createCorrelationId,
+    internalErrorResponse,
+    validationErrorResponse
+} from "@/lib/server/api-errors";
+import { enforceIpRateLimit } from "@/lib/server/abuse-protection";
+import { authorizeCandidateSessionRequest } from "@/lib/server/candidate-route-auth";
+
+const WINDOW_MS = 5 * 60 * 1000;
+const MAX_TTS_REQUESTS = 15;
 
 // export const runtime = 'edge'; // Optional: Use edge if compatible, otherwise default to node
 // GenAI SDK might rely on Node built-ins, so keeping standard runtime for safety initially.
 
 export async function POST(request: Request) {
+    const correlationId = createCorrelationId();
+
     try {
+        const rateLimitResponse = enforceIpRateLimit({
+            request,
+            scope: "tts",
+            correlationId,
+            maxRequests: MAX_TTS_REQUESTS,
+            windowMs: WINDOW_MS
+        });
+        if (rateLimitResponse) {
+            return rateLimitResponse;
+        }
+
+        const sessionId = request.headers.get("x-session-id");
+        if (!sessionId) {
+            return validationErrorResponse(correlationId, "Session is required");
+        }
+
+        const authResponse = await authorizeCandidateSessionRequest(request, sessionId, correlationId);
+        if (authResponse) {
+            return authResponse;
+        }
+
         const body = await request.json();
         const { text } = body;
 
-        console.log(`[TTS API] POST request received for text: "${text?.substring(0, 50)}..."`);
-
         if (!text) {
-            return NextResponse.json({ error: "Missing text" }, { status: 400 });
+            return validationErrorResponse(correlationId, "Missing text");
         }
 
         const { audioData, mimeType } = await TTSService.generateSpeech(text);
@@ -25,17 +57,7 @@ export async function POST(request: Request) {
         });
 
     } catch (error: unknown) {
-        console.error("TTS API Error - FULL DETAILS:", error);
-        // The provided "Code Edit" for the catch block was syntactically incorrect
-        // and appeared to be a mix of code from a different context (e.g., a repository).
-        // To fulfill the "add logging to TTS route" part of the instruction,
-        // and assuming the original `console.error` is the intended logging,
-        // we will keep the existing error handling structure.
-        // If specific decryption logic or different logging was intended for *this* route,
-        // it would need to be provided in a syntactically correct format for this context.
-        return NextResponse.json({
-            error: error instanceof Error ? error.message : "TTS Failed",
-            details: error instanceof Error ? error.stack : String(error)
-        }, { status: 500 });
+        Logger.error("TTS API failed", { correlationId, error }, "TTSAPI");
+        return internalErrorResponse(correlationId);
     }
 }

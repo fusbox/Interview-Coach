@@ -16,6 +16,10 @@ interface WebkitWindow extends Window {
 
 type EngineState = 'locked' | 'unlocked';
 type PlaybackState = 'idle' | 'loading' | 'playing';
+type CandidateAudioAuth = {
+    candidateToken?: string;
+    sessionId?: string;
+};
 
 class AudioEngine {
     private ctx: AudioContext | null = null;
@@ -65,7 +69,7 @@ class AudioEngine {
     }
 
     /** Fetch TTS audio (or use cache) and play it. */
-    async play(id: string, text: string): Promise<void> {
+    async play(id: string, text: string, auth?: CandidateAudioAuth): Promise<void> {
         if (this.state !== 'unlocked' || !this.ctx) {
             console.warn('[AudioEngine] Not unlocked. Call unlock() first.');
             return;
@@ -76,7 +80,7 @@ class AudioEngine {
 
         try {
             this.setPlaybackState('loading');
-            const buffer = await this.getOrFetch(id, text);
+            const buffer = await this.getOrFetch(id, text, auth);
 
             // Check if we were stopped while loading
             if (this.playbackState !== 'loading') return;
@@ -116,12 +120,12 @@ class AudioEngine {
     }
 
     /** Prefetch audio for a question (fire-and-forget). */
-    prefetch(id: string, text: string): void {
+    prefetch(id: string, text: string, auth?: CandidateAudioAuth): void {
         if (!this.ctx || this.cache.has(id) || this.pending.has(id)) return;
         
         console.log(`[AudioEngine] Pre-fetching audio for: "${id}"`);
         // Fire-and-forget — just populate cache
-        this.getOrFetch(id, text).catch(() => { /* swallow */ });
+        this.getOrFetch(id, text, auth).catch(() => { /* swallow */ });
     }
 
     /** Whether audio is currently playing. */
@@ -148,7 +152,7 @@ class AudioEngine {
         this.listeners.forEach(fn => fn());
     }
 
-    private async getOrFetch(id: string, text: string): Promise<AudioBuffer> {
+    private async getOrFetch(id: string, text: string, auth?: CandidateAudioAuth): Promise<AudioBuffer> {
         // Cache hit
         if (this.cache.has(id)) {
             return this.cache.get(id)!;
@@ -160,7 +164,7 @@ class AudioEngine {
         }
 
         // Fetch, decode, cache
-        const promise = this.fetchAndDecode(id, text);
+        const promise = this.fetchAndDecode(id, text, auth);
         this.pending.set(id, promise);
 
         try {
@@ -172,14 +176,26 @@ class AudioEngine {
         }
     }
 
-    private async fetchAndDecode(id: string, text: string): Promise<AudioBuffer> {
+    private async fetchAndDecode(id: string, text: string, auth?: CandidateAudioAuth): Promise<AudioBuffer> {
         if (!this.ctx) throw new Error('AudioContext not initialized');
 
         console.log(`[AudioEngine] Sending text for TTS processing: "${id}"`);
         const startTime = performance.now();
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+        };
+
+        if (auth?.candidateToken) {
+            headers['x-candidate-token'] = auth.candidateToken;
+        }
+
+        if (auth?.sessionId) {
+            headers['x-session-id'] = auth.sessionId;
+        }
+
         const response = await fetch('/api/tts', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({ text }),
         });
 
