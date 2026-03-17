@@ -1,0 +1,281 @@
+# Comprehensive Production-Readiness Code Review
+
+Date: 2026-03-17  
+Reviewer stance: **Sr Architect/Engineer (production gate)** + **Mentor (Jr growth feedback)**
+
+## Executive Summary
+
+This codebase shows strong momentum (typed domain model, schema usage in several APIs, modular UI primitives, and meaningful business intent), but it is **not yet production-ready** at high-assurance standards. The top gaps are:
+
+1. **Security controls are incomplete** (unprotected mutation endpoints and risky dev bypasses).
+2. **Concurrency and state integrity defects** exist in core interview session flows.
+3. **Test suite is too thin and currently failing on race-condition scenarios.**
+4. **Observability/error-handling are inconsistent** (mixed `console.*`, weak error taxonomy, PII logging risk).
+5. **Repo hygiene and docs lag implementation reality** (README status/scripts mismatch).
+
+Recommended release decision today: **NO-GO for production**, **GO for controlled internal staging after critical fixes**.
+
+---
+
+## 1) Correctness & Edge Cases
+
+### High-risk paths
+
+- **Session mutation race/concurrency path** (`submit`, `next`, analysis trigger): lock behavior and side-effect ordering are still brittle under concurrent calls and optimistic updates.
+- **Partial update path for engagement**: read-modify-write of JSON field can lose increments under concurrent requests.
+- **Invite/session lifecycle path**: multiple asynchronous writes (create session, issue token, mark invitation sent) are not wrapped in an explicit transactional boundary.
+- **Network/error edge cases**: optimistic UI updates often rollback only on thrown exceptions, while secondary async failures are swallowed.
+
+### Hardening strategies
+
+- Introduce a **single-flight mutation queue** per session (or explicit command mutex) with cancellation semantics.
+- Move engagement delta writes to **atomic DB-side increment** (RPC or SQL update expression), not client-side read/merge.
+- Add **idempotency keys** on invitation and submission endpoints to protect against double-clicks/retries.
+- Standardize error surfaces (typed API errors) and ensure every optimistic mutation has deterministic rollback/reconciliation.
+- Add integration tests for:
+  - double submit,
+  - submit + next overlap,
+  - repeated network retry,
+  - stale tab submission.
+
+---
+
+## 2) Readability & Maintainability
+
+### Refactor suggestions to reduce cognitive load
+
+- `useSessionMutations` is functionally rich but overloaded; split by concern:
+  - lifecycle (`init/start/reset`),
+  - answering (`saveDraft/submit/retry/analyze`),
+  - navigation (`next/goToQuestion`),
+  - telemetry (`recordEngagement`).
+- Replace ad-hoc status strings with one exported enum/value object and transition helpers.
+- Replace raw `console.*` with structured logger wrapper everywhere.
+- Eliminate mixed error styles (`throw`, `alert`, silent catch) in favor of one policy.
+
+### PR-style maintainability checklist
+
+- [ ] No new endpoint without authn/authz decision documented.
+- [ ] No mutable flow without concurrency test.
+- [ ] No optimistic update without rollback or reconcile path.
+- [ ] No `console.*` in server routes (except temporary debug behind guard).
+- [ ] API schemas validated both request and external service responses.
+- [ ] README/scripts/env docs updated with behavior changes.
+
+---
+
+## 3) Architecture & Boundaries
+
+### Assessment
+
+Positive: there is a clear intent to separate domain, infrastructure, app routes, and UI.
+
+Concern: current boundaries leak:
+
+- UI hooks own too much orchestration/business behavior.
+- API routes mix transport concerns with orchestration and side effects.
+- Repository layer blends mapping, derivation, and persistence details.
+
+### Recommended project structure (incremental)
+
+- `src/domain/`
+  - Entities, value objects, state transitions, pure use cases.
+- `src/application/`
+  - Command/query services (session command handlers, invite workflows).
+- `src/infrastructure/`
+  - Supabase adapters, AI/email providers, encryption/hash utilities.
+- `src/interfaces/http/`
+  - Next route handlers mapping HTTP <-> application contracts.
+- `src/features/*`
+  - UI-only concerns, state adapters, presentational components.
+
+### Responsibility map
+
+- **Domain:** valid states and transitions.
+- **Application services:** orchestration + policies (retry/idempotency).
+- **Infrastructure:** external IO + adapters.
+- **HTTP layer:** auth, validation, serialization.
+- **UI hooks/components:** local UX state only.
+
+---
+
+## 4) Type Safety & Runtime Validation
+
+### Current state
+
+- Good use of Zod in several flows.
+- Gaps remain in some route payloads and external outputs.
+
+### Recommendations
+
+- Enforce schema validation for **all** mutable API endpoints.
+- Adopt discriminated union for API error contracts (`code`, `message`, `retryable`).
+- Type repository mapping outputs with stricter non-nullable contracts to avoid silent `undefined` drift.
+- Add runtime validation wrappers for AI/email provider responses.
+
+---
+
+## 5) Security & Privacy
+
+### Focused threat model (top risks)
+
+1. **Unauthenticated email/invite abuse**  
+   Risk: endpoint could become a relay/spam vector.  
+   Mitigation: require recruiter auth, rate limiting, origin protection, abuse detection.
+
+2. **Dev bypass logic accidentally active in non-dev workflows**  
+   Risk: unauthorized data mutation.  
+   Mitigation: remove bypass from route code; isolate in local mocks only.
+
+3. **Host header/base URL trust**  
+   Risk: crafted links/phishing via header manipulation.  
+   Mitigation: use strict server-side canonical base URL allowlist.
+
+4. **PII/log leakage**  
+   Risk: candidate/recruiter data appears in logs and error payloads.  
+   Mitigation: redact logger policy, never log raw email/token/transcript in info/error context.
+
+5. **Verbose error details returned to clients**  
+   Risk: information disclosure.  
+   Mitigation: map internal exceptions to safe public messages + correlation IDs.
+
+---
+
+## 6) Performance & UX
+
+### Prioritized optimization list
+
+1. **P0**: Reduce sequential network calls in submit flow (submit + analysis can be orchestrated server-side).
+2. **P0**: Avoid re-fetch/over-patching full session blobs; use narrower command endpoints and smaller payloads.
+3. **P1**: Debounce/aggregate engagement pings and use server-side atomic increments.
+4. **P1**: Memoize expensive derived selectors if session object churn increases.
+5. **P2**: Audit bundle for non-critical dependencies loaded in recruiter views.
+
+---
+
+## 7) Testing Strategy
+
+### Current assessment
+
+- There are only a few tests and at least one key suite currently fails in concurrency scenarios.
+- Coverage is insufficient for production confidence.
+
+### Minimum viable Phase 1 suite plan
+
+**Unit (must-have):**
+- domain state transition tests (status machine)
+- repository mapper tests (null/malformed DB rows)
+- utility tests for formatting and selectors
+
+**Component/hook:**
+- session mutation hooks under concurrent actions
+- create-invite page effect/dependency behavior
+- error rendering and retry UX states
+
+**API integration (mocked infra):**
+- auth required/forbidden cases
+- schema validation rejects malformed payloads
+- idempotency behavior for invite/send and submit
+
+**E2E smoke:**
+- recruiter creates invite
+- candidate completes session
+- recruiter sees completed summary/debrief path
+
+---
+
+## 8) Observability & Operability
+
+### Readiness assessment
+
+Current state is early-stage: logs exist but are not fully structured, severity taxonomy is inconsistent, and production alertability is not yet defined.
+
+### Operability upgrades
+
+- Define standard log envelope: `traceId`, `sessionId`, `route`, `actorType`, `errorCode`.
+- Introduce centralized error classification and incident-level metrics.
+- Add SLO-aligned telemetry:
+  - invite send success/failure rates,
+  - session completion funnel,
+  - AI call latency/error rates.
+- Add dashboards + alerts for critical failure thresholds.
+
+---
+
+## 9) Accessibility & Polish
+
+### Immediate punch list
+
+- Add explicit keyboard/focus audits for multi-step recruiter create flow.
+- Ensure all async errors are surfaced with accessible announcements (`aria-live`).
+- Validate color contrast across status badges and feedback pills.
+- Ensure loading/skeleton states preserve semantic landmarks.
+
+---
+
+## 10) Documentation & Repo Hygiene
+
+### Professional repo checklist
+
+- [ ] README reflects actual project maturity (not “pre-development” if production code exists).
+- [ ] Scripts section reflects real commands and expected outcomes.
+- [ ] Environment variable matrix documented with required/optional and security notes.
+- [ ] Contributing guide includes branching, commit conventions, and PR checklist.
+- [ ] CI gates: lint, test, typecheck, and minimal integration tests.
+- [ ] Changelog/release notes process defined.
+
+---
+
+## Severity Board (Mentor + Production Gate)
+
+### Critical (fix before production)
+
+- Endpoint auth/rate-limit hardening for invite/email mutation surfaces.
+- Remove dev auth bypass from runtime route paths.
+- Fix concurrency defects and failing race-condition tests.
+- Standardize safe error handling to prevent leakage.
+
+### High
+
+- Add atomic engagement update semantics.
+- Improve observability structure and correlation IDs.
+- Expand API and hook test coverage significantly.
+
+### Medium
+
+- Refactor large mutation hook into layered services.
+- Tighten architecture boundaries and module responsibilities.
+- A11y sweep on key recruiter/candidate flows.
+
+### Low
+
+- Documentation cleanup and repo polish tasks.
+
+---
+
+## Suggested 2-Sprint Remediation Plan
+
+**Sprint A (Stability + Security)**
+- Lock down authn/authz + rate limits.
+- Remove dev bypass logic.
+- Fix submit/next concurrency behavior.
+- Make race-condition tests green.
+- Add safe error contract.
+
+**Sprint B (Operability + Scale Readiness)**
+- Structured logs + metrics + alerts.
+- Hook/application layer refactor.
+- Add integration + E2E happy/failure paths.
+- Complete README/env/contributing cleanup.
+
+---
+
+## Final Grade (mentor framing)
+
+- **Architecture intent:** B
+- **Correctness under stress:** C-
+- **Security posture:** D+
+- **Testing maturity:** C-
+- **Production readiness today:** **Not ready**
+
+With focused remediation, this can reach production-standard quickly; the foundation is promising, but the guardrails and reliability work are not optional.
