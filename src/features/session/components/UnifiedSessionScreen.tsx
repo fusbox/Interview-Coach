@@ -545,7 +545,7 @@ export default function UnifiedSessionScreen() {
                                                 )}
 
                                                 <p className="text-sm font-semibold text-text-secondary tracking-wide">
-                                                    {isRecording ? "Listening..." : transcript ? "Ready to submit" : audioBlob ? "Audio Captured" : "Tap to Speak"}
+                                                    {isRecording ? "Listening..." : transcript ? "Ready to Submit" : audioBlob ? "Audio Captured" : "Tap to Record; Tap Again to Stop"}
                                                 </p>
                                             </div>
 

@@ -14,7 +14,6 @@ import {
     Target,
     FileText,
     X,
-    ChevronDown,
     ArrowRight
 } from 'lucide-react';
 import { FeedbackPill } from '@/components/patterns/FeedbackPill';
@@ -163,12 +162,36 @@ const HelpfulRating: React.FC<{
     );
 };
 
+const FeedbackNavButtons: React.FC<{
+    onPrimary: () => void;
+    onSkip: () => void;
+    primaryLabel?: string;
+    skipLabel: string;
+}> = ({ onPrimary, onSkip, primaryLabel = "Next", skipLabel }) => {
+    return (
+        <div className="mt-10 flex flex-col md:flex-row items-center gap-4 w-full">
+            <Button
+                onClick={onPrimary}
+                className="h-14 w-full md:w-auto rounded-full px-10 bg-primary hover:bg-primary/90 text-primary-foreground transition-all font-bold text-base"
+            >
+                {primaryLabel}
+            </Button>
+            <Button
+                variant="ghost"
+                onClick={onSkip}
+                className="h-14 w-full md:w-auto rounded-full px-8 text-text-muted hover:text-text-primary hover:bg-surface-subtle transition-all font-bold text-base"
+            >
+                {skipLabel}
+            </Button>
+        </div>
+    );
+};
+
 const ProgressDots: React.FC<{
     sections: { id: SectionKey; label: string }[];
     activeSection: SectionKey;
     onDotClick: (id: SectionKey) => void;
-    isBranded?: boolean;
-}> = ({ sections, activeSection, onDotClick, isBranded }) => {
+}> = ({ sections, activeSection, onDotClick }) => {
     return (
         <div className="hidden md:flex absolute left-6 md:left-8 top-1/2 -translate-y-1/2 z-40 flex-col gap-4">
             {sections.map((s) => (
@@ -184,12 +207,10 @@ const ProgressDots: React.FC<{
                         }}
                         transition={{ type: "spring", damping: 20, stiffness: 300 }}
                         className={cn(
-                            "w-2 h-2 rounded-full transition-colors duration-300",
+                            "w-2 h-2 rounded-full transition-colors duration-300 ring-0 group-hover:ring-1 ring-primary/20",
                             activeSection === s.id
                                 ? "bg-primary"
-                                : isBranded
-                                    ? "bg-surface-subtle"
-                                    : "bg-border group-hover:bg-border/80"
+                                : "bg-primary/30 border border-primary/10"
                         )}
                     />
                     <div className="absolute left-6 px-2 py-1 rounded bg-surface-overlay text-text-inverse text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-floating">
@@ -198,30 +219,6 @@ const ProgressDots: React.FC<{
                 </button>
             ))}
         </div>
-    );
-};
-
-const ScrollHint: React.FC<{ isVisible: boolean }> = ({ isVisible }) => {
-    return (
-        <AnimatePresence>
-            {isVisible && (
-                <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    className="absolute inset-x-0 bottom-8 z-10 flex flex-col items-center justify-center gap-2 pointer-events-none"
-                >
-                    <span className="text-[10px] font-medium text-primary uppercase tracking-[0.2em]">Scroll to Explore</span>
-                    <motion.div
-                        animate={{ y: [0, 8, 0] }}
-                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                        className="text-text-muted"
-                    >
-                        <ChevronDown size={20} />
-                    </motion.div>
-                </motion.div>
-            )}
-        </AnimatePresence>
     );
 };
 
@@ -242,7 +239,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
     const [isPlaying, setIsPlaying] = useState(false);
     const [activeSection, setActiveSection] = useState<SectionKey>('start');
     const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
-    const [hasExplored, setHasExplored] = useState(false);
+    const [, setHasExplored] = useState(false);
     const [hasScrolled, setHasScrolled] = useState(false);
     const isProgrammaticScroll = useRef(false);
     const [helpfulness, setHelpfulness] = useState<Record<string, string>>({});
@@ -467,10 +464,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                             sections={sections}
                             activeSection={activeSection}
                             onDotClick={scrollToSection}
-                            isBranded={isElevatedMode}
                         />
-
-                        <ScrollHint isVisible={hasExplored && !hasScrolled} />
 
                         {/* ── Scroll-Snap Cards ───────────────────────────────────────── */}
                         <div
@@ -480,14 +474,14 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                     setHasScrolled(true);
                                 }
                             }}
-                            className={cn('flex-1 min-w-0 scroll-snap-y-mandatory custom-scrollbar bg-transparent', hasExplored ? 'overflow-y-scroll' : 'overflow-hidden')}
+                            className={cn('flex-1 min-w-0 scroll-snap-y-mandatory custom-scrollbar bg-transparent overflow-hidden')}
                             style={{ scrollSnapType: 'y mandatory' }}
                         >
                             {/* Card 0: Start / Ack */}
                             <div
                                 ref={setCardRef('start')}
                                 data-section="start"
-                                className={cn(getCardClasses('start'), 'items-center justify-center text-center max-w-4xl mx-auto relative overflow-hidden')}
+                                className={cn(getCardClasses('start'), 'items-center justify-center text-center max-w-4xl mx-auto relative overflow-y-auto')}
                                 style={{ scrollSnapAlign: 'start', minHeight: '100%' }}
                             >
                                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-deep/20 to-brand-deep opacity-100" />
@@ -539,11 +533,11 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                             <div className="flex-1 pt-1 pr-12 md:pr-48">
                                                 <SectionHeader
                                                     title={analysis.deliveryPulse.headline}
-                                                    description={<span className="text-sm font-black text-text-muted uppercase tracking-widest leading-none mb-2 block">Delivery Insight</span>}
+                                                    description={<span className="text-sm font-black text-text-muted uppercase tracking-widest leading-none mb-2 block">Your Answer Delivery</span>}
                                                 />
                                             </div>
                                         </div>
-                                        <div className="flex-1 overflow-y-visible md:overflow-y-auto md:min-h-0 pt-8 md:pt-10 px-1 -mx-1 custom-scrollbar">
+                                        <div className="flex-1 overflow-y-auto md:min-h-0 pt-8 md:pt-10 px-1 -mx-1 custom-scrollbar">
                                             <div className="p-0 space-y-6">
                                                 <p className="text-xl md:text-2xl text-text-secondary leading-relaxed font-medium">
                                                     {analysis.deliveryPulse.body}
@@ -552,6 +546,14 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                                     onSelect={(val) => handleHelpfulnessSelect('delivery', val)}
                                                     currentVal={helpfulness.delivery || null}
                                                     showSaved={savedTypes.delivery}
+                                                />
+                                                <FeedbackNavButtons
+                                                    onPrimary={() => scrollToSection(analysis.contentPulse ? 'content' : 'next')}
+                                                    onSkip={() => {
+                                                        audioEngine.unlock();
+                                                        onNext();
+                                                    }}
+                                                    skipLabel={isLastQuestion ? 'Skip and Finish Session' : 'Skip and Continue to Next Question'}
                                                 />
                                             </div>
                                         </div>
@@ -576,11 +578,11 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                         <div className="flex-1 pt-1 pr-12 md:pr-48">
                                             <SectionHeader
                                                 title={analysis.contentPulse.headline}
-                                                description={<span className="text-sm font-black text-text-muted uppercase tracking-widest leading-none mb-2 block">Content Insight</span>}
+                                                description={<span className="text-sm font-black text-text-muted uppercase tracking-widest leading-none mb-2 block">Your Answer Content</span>}
                                             />
                                         </div>
                                     </div>
-                                    <div className="flex-1 overflow-y-visible md:overflow-y-auto md:min-h-0 pt-8 md:pt-10 px-1 -mx-1 custom-scrollbar">
+                                    <div className="flex-1 overflow-y-auto md:min-h-0 pt-8 md:pt-10 px-1 -mx-1 custom-scrollbar">
                                         <div className="p-0 space-y-6">
                                             <p className="text-xl md:text-2xl text-text-secondary leading-relaxed font-medium">
                                                 {analysis.contentPulse.body}
@@ -597,6 +599,14 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                                 currentVal={helpfulness.content || null}
                                                 showSaved={savedTypes.content}
                                             />
+                                            <FeedbackNavButtons
+                                                onPrimary={() => scrollToSection('next')}
+                                                onSkip={() => {
+                                                    audioEngine.unlock();
+                                                    onNext();
+                                                }}
+                                                skipLabel={isLastQuestion ? 'Skip and Finish Session' : 'Skip and Continue to Next Question'}
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -607,7 +617,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                 ref={setCardRef('next')}
                                 data-section="next"
                                 style={{ scrollSnapAlign: 'start', minHeight: '100%' }}
-                                className={cn(getCardClasses('next'), 'items-start text-left relative overflow-hidden')}
+                                className={cn(getCardClasses('next'), 'items-start text-left relative overflow-y-auto')}
                             >
                                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-deep/20 to-brand-deep opacity-100" />
                                 <div className="flex-1 w-full flex flex-col min-h-0">
