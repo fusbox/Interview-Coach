@@ -44,6 +44,7 @@ export default function CreateInviteWizard() {
 
     // Batch Results
     const [inviteResults, setInviteResults] = useState<InviteResult[]>([]);
+    const hasInviteResults = inviteResults.length > 0;
 
     const [error, setError] = useState<string | null>(null);
     const [createInviteKey, setCreateInviteKey] = useState(() => crypto.randomUUID());
@@ -109,10 +110,10 @@ export default function CreateInviteWizard() {
 
     // Stale State Protection: Clear results if job/candidates change
     useEffect(() => {
-        if (inviteResults.length > 0) {
+        if (hasInviteResults) {
             setInviteResults([]);
         }
-    }, [details.role, details.jd, candidates]); // Only clear if inputs change
+    }, [details.role, details.jd, candidates, hasInviteResults]); // Only clear if inputs change
 
     useEffect(() => {
         setCreateInviteKey(crypto.randomUUID());
@@ -352,7 +353,7 @@ export default function CreateInviteWizard() {
                     onBack={() => setStep(2)}
                     onHandleCreate={handleCreate}
                     isLoading={isLoading}
-                    isGenerated={inviteResults.length > 0}
+                    isGenerated={hasInviteResults}
                     results={inviteResults}
                     error={error}
                     recruiterProfile={recruiterProfile}

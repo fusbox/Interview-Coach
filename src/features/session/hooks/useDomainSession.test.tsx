@@ -3,6 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useDomainSession } from './useDomainSession';
 import { InterviewSession } from '@/lib/domain/types';
 
+const FIXED_NOW = 1_710_000_000_000;
+
 // Mock fetch
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -21,6 +23,7 @@ global.localStorage = mockLocalStorage as unknown as Storage;
 describe('useDomainSession', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        vi.spyOn(Date, 'now').mockReturnValue(FIXED_NOW);
     });
 
     it('should initialize with undefined session', () => {
@@ -60,7 +63,7 @@ describe('useDomainSession', () => {
                     json: async () => ({
                         ...mockSession,
                         status: 'AWAITING_EVALUATION',
-                        answers: { q1: { questionId: 'q1', transcript: 'A1', submittedAt: Date.now() } }
+                        answers: { q1: { questionId: 'q1', transcript: 'A1', submittedAt: FIXED_NOW } }
                     })
                 };
             }
@@ -74,7 +77,7 @@ describe('useDomainSession', () => {
                             q1: {
                                 questionId: 'q1',
                                 transcript: 'A1',
-                                submittedAt: Date.now(),
+                                submittedAt: FIXED_NOW,
                                 analysis: { ack: 'ok' }
                             }
                         }
@@ -130,7 +133,7 @@ describe('useDomainSession', () => {
                     json: async () => ({
                         ...mockSession,
                         status: 'AWAITING_EVALUATION',
-                        answers: { q1: { questionId: 'q1', transcript: 'A1', submittedAt: Date.now() } }
+                        answers: { q1: { questionId: 'q1', transcript: 'A1', submittedAt: FIXED_NOW } }
                     })
                 };
             }
@@ -144,7 +147,7 @@ describe('useDomainSession', () => {
                             q1: {
                                 questionId: 'q1',
                                 transcript: 'A1',
-                                submittedAt: Date.now(),
+                                submittedAt: FIXED_NOW,
                                 analysis: { ack: 'ok' }
                             }
                         }
@@ -202,7 +205,7 @@ describe('useDomainSession', () => {
                     json: async () => ({
                         ...mockSession,
                         status: 'AWAITING_EVALUATION',
-                        answers: { q1: { questionId: 'q1', transcript: 'A1', submittedAt: Date.now() } }
+                        answers: { q1: { questionId: 'q1', transcript: 'A1', submittedAt: FIXED_NOW } }
                     })
                 };
             }
@@ -216,7 +219,7 @@ describe('useDomainSession', () => {
                             q1: {
                                 questionId: 'q1',
                                 transcript: 'A1',
-                                submittedAt: Date.now(),
+                                submittedAt: FIXED_NOW,
                                 analysis: { ack: 'ok' }
                             }
                         }

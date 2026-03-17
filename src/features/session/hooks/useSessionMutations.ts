@@ -92,7 +92,7 @@ export function useSessionMutations(
 
         activeInitPromiseRef.current = promise;
         return promise;
-    }, [setSession]);
+    }, [candidateToken, setSession]);
 
     const start = useCallback(async () => {
         if (!session) return;

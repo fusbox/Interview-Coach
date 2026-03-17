@@ -16,7 +16,10 @@ Reviewer stance: **Sr Architect/Engineer (production gate)** + **Mentor (Jr grow
 - `3.1` is complete: the remaining mutable routes now reject malformed JSON/body shapes with explicit request schemas and the standardized `400 INVALID_REQUEST` envelope.
 - `3.2` is complete: AI and email provider responses now undergo runtime schema validation, and malformed provider payloads fail as typed provider-response errors instead of being trusted after raw JSON parsing.
 - `3.3` is complete: repository reads now defensively normalize malformed DB rows, translate storage-only enum variants, and drop persisted analysis blobs that fail the runtime domain schema.
-- Production status remains **NO-GO** because broader testing depth, CI gating, and operability gaps described below are still open.
+- `4.1` is complete: the baseline test pyramid now spans domain transitions, repository mappers, recruiter dashboard session shaping, hook-level session rehydration, public API security/error-contract cases, and session mutation concurrency.
+- `4.2` is complete: the concurrency-critical hook and repository suites now run under a deterministic clock baseline and passed a 20-iteration repeated stability run.
+- `4.3` is complete: CI quality gates now run in GitHub Actions, lint warnings are blocking, aggregate coverage thresholds are enforced, and the current baseline passes `npm run ci:quality` plus the repeated stability suite.
+- Production status remains **NO-GO** because broader operability gaps described below are still open.
 
 ## Executive Summary
 
@@ -24,9 +27,9 @@ This codebase shows strong momentum (typed domain model, schema usage in several
 
 1. **Correctness and concurrency have improved materially**, but end-to-end reliability still depends on deeper integration coverage and the remaining operability work.
 2. **Validation and contract hardening** has improved materially across request, provider, and mapper boundaries; the remaining gap is broader integration depth and regression coverage.
-3. **Test suite is too thin and currently failing on race-condition scenarios.**
+3. **The baseline test suite is now enforced in CI** with blocking lint, typecheck, coverage, and stability runs; the next gap is deeper end-to-end coverage and operational telemetry.
 4. **Observability is still incomplete** (although the public error contract is now standardized, structured operational telemetry remains partial).
-5. **Repo hygiene and docs lag implementation reality** (README status/scripts mismatch).
+5. **Repo hygiene and docs still lag implementation reality** in places (README status/scripts/environment guidance remain incomplete).
 
 Recommended release decision today: **NO-GO for production**, **GO for controlled internal staging after critical fixes**.
 
@@ -119,7 +122,7 @@ Concern: current boundaries leak:
 ### Current state
 
 - Inbound mutable route validation is now covered consistently.
-- Remaining gaps are concentrated in end-to-end integration depth, CI enforcement, and operational visibility.
+- Remaining gaps are concentrated in end-to-end integration depth and operational visibility.
 
 ### Recommendations
 
@@ -233,7 +236,7 @@ Current state is early-stage: logs exist but are not fully structured, severity 
 - [ ] Scripts section reflects real commands and expected outcomes.
 - [ ] Environment variable matrix documented with required/optional and security notes.
 - [ ] Contributing guide includes branching, commit conventions, and PR checklist.
-- [ ] CI gates: lint, test, typecheck, and minimal integration tests.
+- [x] CI gates: lint, test, typecheck, coverage threshold, and repeated stability suite.
 - [ ] Changelog/release notes process defined.
 
 ---
@@ -285,7 +288,7 @@ Current state is early-stage: logs exist but are not fully structured, severity 
 - **Architecture intent:** B
 - **Correctness under stress:** C-
 - **Security posture:** D+
-- **Testing maturity:** C-
+- **Testing maturity:** B-
 - **Production readiness today:** **Not ready**
 
 With focused remediation, this can reach production-standard quickly; the foundation is promising, but the guardrails and reliability work are not optional.
