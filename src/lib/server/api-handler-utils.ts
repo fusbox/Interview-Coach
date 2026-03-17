@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-session-repository";
 import { requireCandidateToken } from "@/lib/server/auth/candidate-token";
 import { InterviewSession } from "@/lib/domain/types";
-import { Logger } from "@/lib/logger";
 import {
     createCorrelationId,
     forbiddenResponse,
@@ -10,6 +9,7 @@ import {
     notFoundResponse,
     unauthorizedResponse
 } from "@/lib/server/api-errors";
+import { createServerLogger } from "@/lib/server/server-logger";
 
 const repository = new SupabaseSessionRepository();
 
@@ -34,6 +34,12 @@ export async function validatedSessionHandler(
     handler: ValidatedSessionHandler
 ): Promise<NextResponse> {
     const correlationId = createCorrelationId();
+    const routeLogger = createServerLogger("ValidatedHandler", {
+        correlationId,
+        route: new URL(request.url).pathname,
+        actorType: "candidate",
+        sessionId: params.session_id
+    });
 
     try {
         // 1. Authentication
@@ -62,7 +68,10 @@ export async function validatedSessionHandler(
         return await handler(request, { params, session, correlationId });
 
     } catch (error) {
-        Logger.error(`[ValidatedHandler] Error in route ${request.url}:`, error);
+        routeLogger.error("Validated session route failed", {
+            error,
+            errorCode: "VALIDATED_SESSION_ROUTE_FAILED"
+        });
         return internalErrorResponse(correlationId);
     }
 }

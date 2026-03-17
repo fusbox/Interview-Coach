@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { AnalyzeAnswerSchema } from "@/lib/domain/schemas";
 import { AIService } from "@/lib/server/services/ai-service";
 import { Question, Blueprint } from "@/lib/domain/types";
-import { Logger } from "@/lib/logger";
 import { z } from "zod";
 import {
     createCorrelationId,
@@ -11,6 +10,7 @@ import {
 } from "@/lib/server/api-errors";
 import { enforceIpRateLimit } from "@/lib/server/abuse-protection";
 import { authorizeCandidateSessionRequest } from "@/lib/server/candidate-route-auth";
+import { createServerLogger } from "@/lib/server/server-logger";
 
 const WINDOW_MS = 5 * 60 * 1000;
 const MAX_ANALYSIS_REQUESTS = 30;
@@ -20,6 +20,13 @@ const AnalyzeAnswerRequestSchema = AnalyzeAnswerSchema.extend({
 
 export async function POST(request: Request) {
     const correlationId = createCorrelationId();
+    let sessionId: string | undefined;
+    const routeLogger = createServerLogger("AnalysisAPI", {
+        correlationId,
+        route: "/api/analysis",
+        actorType: "candidate",
+        method: request.method
+    });
 
     try {
         const rateLimitResponse = enforceIpRateLimit({
@@ -41,7 +48,8 @@ export async function POST(request: Request) {
             return validationErrorResponse(correlationId);
         }
 
-        const { question, input, blueprint, intakeData, sessionId } = parseResult.data;
+        const { question, input, blueprint, intakeData } = parseResult.data;
+        sessionId = parseResult.data.sessionId;
         const authResponse = await authorizeCandidateSessionRequest(request, sessionId, correlationId);
         if (authResponse) {
             return authResponse;
@@ -81,7 +89,11 @@ export async function POST(request: Request) {
         return NextResponse.json(analysis);
 
     } catch (error) {
-        Logger.error("Analysis API Error", { correlationId, error }, "AnalysisAPI");
+        routeLogger.error("Analysis route failed", {
+            error,
+            sessionId,
+            errorCode: "ANALYSIS_ROUTE_FAILED"
+        });
         return internalErrorResponse(correlationId);
     }
 }

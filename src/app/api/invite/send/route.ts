@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { EmailService } from "@/lib/server/services/email-service";
-import { Logger } from "@/lib/logger";
 import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-session-repository";
 import { createClient } from "@/lib/supabase/server";
 import { errorResponse } from "@/lib/server/api-errors";
+import { incrementMetric, observeMetric, recordAuthDenial, recordRateLimitDenial } from "@/lib/server/metrics";
 import { consumeRateLimit } from "@/lib/server/rate-limit";
+import { createServerLogger } from "@/lib/server/server-logger";
 
 const sessionRepo = new SupabaseSessionRepository();
 
@@ -40,12 +41,26 @@ function requestIp(req: NextRequest): string {
 
 export async function POST(req: NextRequest) {
     const correlationId = crypto.randomUUID();
+    const startedAt = Date.now();
+    const routeLogger = createServerLogger("InviteAPI", {
+        correlationId,
+        route: "/api/invite/send",
+        actorType: "recruiter",
+        method: req.method
+    });
 
     try {
         const supabase = createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
 
         if (authError || !user) {
+            recordAuthDenial({
+                actorType: "recruiter",
+                route: "/api/invite/send",
+                reason: "missing_supabase_user"
+            });
+            incrementMetric("invite_send_total", { outcome: "unauthorized" });
+            observeMetric("invite_send_duration_ms", Date.now() - startedAt, { outcome: "unauthorized" });
             return errorResponse(401, {
                 code: 'UNAUTHORIZED',
                 message: 'Authentication required',
@@ -58,11 +73,18 @@ export async function POST(req: NextRequest) {
         const userDecision = consumeRateLimit(`invite_send:user:${user.id}`, MAX_USER_REQUESTS, WINDOW_MS);
 
         if (!ipDecision.allowed || !userDecision.allowed) {
-            Logger.warn("[InviteAPI] Rate limit exceeded", {
-                correlationId,
+            recordRateLimitDenial({
+                actorType: "recruiter",
+                route: "/api/invite/send",
+                scope: "invite_send"
+            });
+            routeLogger.warn("Rate limit exceeded", {
                 actorId: user.id,
-                ip: requestIp(req)
-            }, "InviteAPI");
+                ip: requestIp(req),
+                errorCode: "RATE_LIMITED"
+            });
+            incrementMetric("invite_send_total", { outcome: "rate_limited" });
+            observeMetric("invite_send_duration_ms", Date.now() - startedAt, { outcome: "rate_limited" });
 
             return errorResponse(429, {
                 code: 'RATE_LIMITED',
@@ -75,6 +97,8 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
         const parseResult = InviteSendSchema.safeParse(body);
         if (!parseResult.success) {
+            incrementMetric("invite_send_total", { outcome: "invalid_request" });
+            observeMetric("invite_send_duration_ms", Date.now() - startedAt, { outcome: "invalid_request" });
             return errorResponse(400, {
                 code: 'INVALID_REQUEST',
                 message: 'Invalid invite payload',
@@ -106,6 +130,8 @@ export async function POST(req: NextRequest) {
             for (const sessionId of sessionIds) {
                 const session = await sessionRepo.get(sessionId);
                 if (!session || session.recruiterId !== user.id) {
+                    incrementMetric("invite_send_total", { outcome: "forbidden" });
+                    observeMetric("invite_send_duration_ms", Date.now() - startedAt, { outcome: "forbidden" });
                     return errorResponse(403, {
                         code: 'FORBIDDEN',
                         message: 'Session access denied',
@@ -116,12 +142,11 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        Logger.info("[InviteAPI] Triggering candidate invite email", {
-            correlationId,
+        routeLogger.info("Triggering candidate invite email", {
             actorId: user.id,
             recipientCount: finalRecipientEmails.length,
             outcome: 'start'
-        }, "InviteAPI");
+        });
 
         const result = await EmailService.sendInviteEmail({
             recipientEmails: finalRecipientEmails,
@@ -139,19 +164,22 @@ export async function POST(req: NextRequest) {
             await Promise.all(sessionIds.map(id => sessionRepo.markInvitationSent(id)));
         }
 
-        Logger.info("[InviteAPI] Invite flow completed", {
-            correlationId,
+        routeLogger.info("Invite flow completed", {
             actorId: user.id,
             recipientCount: finalRecipientEmails.length,
             outcome: 'success'
-        }, "InviteAPI");
+        });
+        incrementMetric("invite_send_total", { outcome: "success" });
+        observeMetric("invite_send_duration_ms", Date.now() - startedAt, { outcome: "success" });
 
         return NextResponse.json({ success: true, data: result, correlationId });
     } catch (error) {
-        Logger.error("[InviteAPI] Failed to trigger invite email", {
-            correlationId,
-            error
-        }, "InviteAPI");
+        routeLogger.error("Failed to trigger invite email", {
+            error,
+            errorCode: "INVITE_SEND_FAILED"
+        });
+        incrementMetric("invite_send_total", { outcome: "error" });
+        observeMetric("invite_send_duration_ms", Date.now() - startedAt, { outcome: "error" });
         return errorResponse(500, {
             code: 'INTERNAL_ERROR',
             message: 'Internal server error',

@@ -3,7 +3,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { GeneratedInterviewQuestionsSchema } from "@/lib/domain/schemas";
-import { Logger } from "@/lib/logger";
 import { ai, AI_MODELS } from "@/lib/server/services/ai-config";
 import { getReadingLevelContext } from "@/lib/ai/prompts";
 import {
@@ -13,8 +12,10 @@ import {
     validationErrorResponse
 } from "@/lib/server/api-errors";
 import { enforceIpRateLimit } from "@/lib/server/abuse-protection";
+import { incrementMetric, observeMetric, recordAuthDenial } from "@/lib/server/metrics";
 import { createClient } from "@/lib/supabase/server";
 import { parseProviderJson } from "@/lib/server/provider-response";
+import { createServerLogger } from "@/lib/server/server-logger";
 
 const WINDOW_MS = 5 * 60 * 1000;
 const MAX_QUESTION_GENERATION_REQUESTS = 15;
@@ -26,6 +27,13 @@ const GenerateQuestionsRequestSchema = z.object({
 
 export async function POST(req: NextRequest) {
     const correlationId = createCorrelationId();
+    const startedAt = Date.now();
+    const routeLogger = createServerLogger("QuestionsAPI", {
+        correlationId,
+        route: "/api/questions/generate",
+        actorType: "recruiter",
+        method: req.method
+    });
 
     try {
         const rateLimitResponse = enforceIpRateLimit({
@@ -33,7 +41,9 @@ export async function POST(req: NextRequest) {
             scope: "questions_generate",
             correlationId,
             maxRequests: MAX_QUESTION_GENERATION_REQUESTS,
-            windowMs: WINDOW_MS
+            windowMs: WINDOW_MS,
+            route: "/api/questions/generate",
+            actorType: "recruiter"
         });
         if (rateLimitResponse) {
             return rateLimitResponse;
@@ -42,6 +52,11 @@ export async function POST(req: NextRequest) {
         const supabase = createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) {
+            recordAuthDenial({
+                actorType: "recruiter",
+                route: "/api/questions/generate",
+                reason: "missing_supabase_user"
+            });
             return unauthorizedResponse(correlationId, "Authentication required");
         }
 
@@ -54,7 +69,17 @@ export async function POST(req: NextRequest) {
         const { role, jobDescription, resume } = parseResult.data;
 
         if (!ai) {
-            Logger.warn("[AI] No API key, returning mock questions");
+            routeLogger.warn("AI API key missing; returning mock questions", {
+                outcome: "mock_fallback"
+            });
+            incrementMetric("ai_requests_total", {
+                operation: "question_generation",
+                outcome: "mock_fallback"
+            });
+            observeMetric("ai_request_duration_ms", Date.now() - startedAt, {
+                operation: "question_generation",
+                outcome: "mock_fallback"
+            });
             return NextResponse.json(getMockQuestions(role));
         }
 
@@ -118,7 +143,10 @@ RULES:
 - Do not mention the word "STAR" or "PERMA" in the question text.
 - Output ONLY valid JSON.`;
 
-        Logger.info("[AI] Generating questions", { role });
+        routeLogger.info("Generating questions", {
+            actorId: user.id,
+            role
+        });
 
         const response = await ai.models.generateContent({
             model: AI_MODELS.QUESTION_GEN,
@@ -131,12 +159,35 @@ RULES:
             operation: "generateQuestions"
         });
         
-        Logger.info("[AI] Questions generated successfully", { role });
+        routeLogger.info("Questions generated successfully", {
+            actorId: user.id,
+            outcome: "success",
+            role
+        });
+        incrementMetric("ai_requests_total", {
+            operation: "question_generation",
+            outcome: "success"
+        });
+        observeMetric("ai_request_duration_ms", Date.now() - startedAt, {
+            operation: "question_generation",
+            outcome: "success"
+        });
         
         return NextResponse.json(result);
 
     } catch (error) {
-        Logger.error("[AI] Question generation failed", { correlationId, error }, "QuestionsAPI");
+        routeLogger.error("Question generation failed", {
+            error,
+            errorCode: "QUESTION_GENERATION_FAILED"
+        });
+        incrementMetric("ai_requests_total", {
+            operation: "question_generation",
+            outcome: "error"
+        });
+        observeMetric("ai_request_duration_ms", Date.now() - startedAt, {
+            operation: "question_generation",
+            outcome: "error"
+        });
         return internalErrorResponse(correlationId);
     }
 }

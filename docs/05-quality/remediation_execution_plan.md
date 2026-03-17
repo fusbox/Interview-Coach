@@ -23,6 +23,9 @@ Source inputs synthesized:
 - `4.1` completed and merged: the test pyramid baseline now covers unit, repository/mapper, hook rehydration, recruiter dashboard action shaping, and the earlier API integration/security/concurrency suites as an explicit baseline for subsequent CI gating.
 - `4.2` completed and merged: race-condition suites now run with deterministic clock values where applicable, and the new repo-native stability runner completed 20/20 successful iterations for the concurrency-critical hook and repository mapper suites.
 - `4.3` completed and merged: GitHub Actions now enforces lint, typecheck, coverage-gated Vitest runs, and the repeated stability suite; lint warnings are merge-blocking, and the current baseline is green at 59.82% statements / 50.87% branches / 64.48% functions / 62.38% lines against the configured minimum thresholds.
+- `5.1` completed and merged: the shared logger now emits structured JSON entries with standard server fields, request-scoped route loggers stamp `correlationId`/`route`/`actorType`/`sessionId` consistently on the main API flows, and raw `console.*` usage has been removed from the server route/service/repository/middleware surface.
+- `5.2` completed and merged: an in-process server metrics collector now records invite/send outcomes, session start/completion funnel counts, AI latency/error metrics, and auth/rate-limit denials; a recruiter-protected ops snapshot endpoint now exposes the current metrics payload and dashboard summary.
+- `5.3` completed and merged: alert rules now evaluate against the ops metrics snapshot, recruiter ops payloads include current alert state and routing metadata, and operational policy/runbook docs now cover the top five incident classes.
 
 ### Objective
 Execute a sequenced remediation program that moves the project from "not production-ready" to "production-capable" with measurable quality gates.
@@ -304,6 +307,14 @@ Goal: make production failures detectable, diagnosable, and actionable.
 - Standard fields: `timestamp`, `level`, `correlationId`, `route`, `actorType`, `sessionId`, `errorCode`.
 - Replace ad-hoc `console.*` in server routes with logger wrapper.
 
+**Execution Status**
+- Completed 2026-03-17.
+- Reworked `src/lib/logger.ts` into a structured JSON logger that normalizes nested `Error` objects and lifts standard server fields to the top level.
+- Added `src/lib/server/server-logger.ts` so request handlers can declare route metadata once and merge per-event fields consistently.
+- Updated the key API routes, shared validated-session wrapper, TTS service, Supabase middleware, and server repositories to emit the standardized envelope.
+- Removed all remaining raw `console.*` calls under `src/app/api`, `src/lib/server`, and `src/lib/supabase`.
+- Added logger contract coverage in `src/lib/logger.test.ts`.
+
 ### Step 5.2 — Metrics and Dashboards
 - Emit counters/latencies for:
   - invite send success/failure
@@ -311,9 +322,23 @@ Goal: make production failures detectable, diagnosable, and actionable.
   - AI call error/latency
   - auth/rate-limit denials
 
+**Execution Status**
+- Completed 2026-03-17.
+- Added `src/lib/server/metrics.ts` as the shared in-process telemetry collector with counters, timing observations, snapshot export, and derived dashboard shaping.
+- Instrumented invite send/create routes, session start/completion paths, shared auth/rate-limit denial helpers, and the AI provider call surfaces (`analysis`, `question_generation`, `session_summary`, `strong_response`, `tips`, `tts`).
+- Added recruiter-protected snapshot endpoint `src/app/api/recruiter/ops/metrics/route.ts` to expose both the raw metrics snapshot and a dashboard-friendly aggregate summary.
+- Added regression coverage in `src/lib/server/metrics.test.ts` and `src/app/api/recruiter/ops/metrics/route.test.ts`.
+
 ### Step 5.3 — Alert Rules and Runbooks
 - Define alert thresholds and on-call routing.
 - Add runbook for top 5 incident classes.
+
+**Execution Status**
+- Completed 2026-03-17.
+- Added `src/lib/server/alerts.ts` to derive alert state, severity, routing, and runbook linkage from the metrics snapshot.
+- Extended `src/app/api/recruiter/ops/metrics/route.ts` so ops consumers now receive the current alert list alongside the raw snapshot and dashboard summary.
+- Added regression coverage in `src/lib/server/alerts.test.ts` and expanded `src/app/api/recruiter/ops/metrics/route.test.ts` to verify triggered alerts.
+- Added operational docs: `docs/05-quality/ops_alert_policy.md` and `docs/05-quality/incident_runbook.md`.
 
 **Acceptance Criteria (Phase 5)**
 - Dashboard available for core SLIs.

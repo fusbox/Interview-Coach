@@ -2,6 +2,7 @@ import { Invite, InviteRepository } from "@/lib/domain/invite";
 import { createClient } from "@/lib/supabase/server";
 import { hashToken } from "@/lib/server/crypto";
 import { encrypt } from "@/lib/server/encryption";
+import { Logger } from "@/lib/logger";
 
 import { SupabaseClient } from "@supabase/supabase-js";
 
@@ -82,7 +83,10 @@ export class SupabaseInviteRepository implements InviteRepository {
             .single();
 
         if (sessionError || !sessionData) {
-            console.error("[Repo] Session Lookup Failed (Likely RLS 'public_read_sessions' missing):", sessionError);
+            Logger.error("Invite session lookup failed", {
+                error: sessionError,
+                errorCode: "INVITE_SESSION_LOOKUP_FAILED"
+            }, "InviteRepository");
             return null;
         }
 

@@ -1,6 +1,7 @@
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { hashToken } from "@/lib/server/crypto";
 import { Logger } from "@/lib/logger";
+import { recordAuthDenial } from "@/lib/server/metrics";
 
 const TOKEN_HEADER = "x-candidate-token";
 
@@ -13,6 +14,11 @@ interface CandidateTokenResult {
 export async function requireCandidateToken(request: Request, sessionId: string): Promise<CandidateTokenResult> {
     const token = request.headers.get(TOKEN_HEADER);
     if (!token) {
+        recordAuthDenial({
+            actorType: "candidate",
+            route: new URL(request.url).pathname,
+            reason: "missing_candidate_token"
+        });
         return { ok: false, status: 401, error: "Missing candidate token" };
     }
 
@@ -26,10 +32,20 @@ export async function requireCandidateToken(request: Request, sessionId: string)
         .single();
 
     if (error || !data) {
+        recordAuthDenial({
+            actorType: "candidate",
+            route: new URL(request.url).pathname,
+            reason: "invalid_candidate_token"
+        });
         return { ok: false, status: 403, error: "Invalid candidate token" };
     }
 
     if (data.session_id !== sessionId) {
+        recordAuthDenial({
+            actorType: "candidate",
+            route: new URL(request.url).pathname,
+            reason: "candidate_token_session_mismatch"
+        });
         return { ok: false, status: 403, error: "Token does not match session" };
     }
 

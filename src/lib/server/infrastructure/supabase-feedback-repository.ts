@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { Logger } from "@/lib/logger";
 
 export interface FeedbackRecord {
     sessionId?: string;
@@ -34,7 +35,10 @@ export class SupabaseFeedbackRepository {
             if (!error) return;
 
             // Fallback to insert if upsert fails (e.g. missing unique constraint in DB)
-            console.warn('[FeedbackRepository] Upsert failed, falling back to insert:', error.message);
+            Logger.warn("Feedback upsert failed; falling back to insert", {
+                error,
+                errorCode: "FEEDBACK_UPSERT_FALLBACK"
+            }, "FeedbackRepository");
         }
 
         const { error: insertError } = await this.supabase
@@ -42,7 +46,10 @@ export class SupabaseFeedbackRepository {
             .insert(payload);
 
         if (insertError) {
-            console.error('[FeedbackRepository] Failed to capture feedback:', insertError);
+            Logger.error("Failed to capture feedback", {
+                error: insertError,
+                errorCode: "FEEDBACK_INSERT_FAILED"
+            }, "FeedbackRepository");
             throw new Error('Failed to save feedback');
         }
     }

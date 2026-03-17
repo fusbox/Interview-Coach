@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { Logger } from '@/lib/logger'
 
 export async function updateSession(request: NextRequest) {
     const isRecruiter = request.nextUrl.pathname.startsWith('/recruiter');
@@ -45,7 +46,14 @@ export async function updateSession(request: NextRequest) {
         await supabase.auth.getUser();
     }
 
-    if (isRecruiter) console.log(`[Middleware] ${request.nextUrl.pathname} took ${Date.now() - start}ms`);
+    if (isRecruiter) {
+        Logger.info("Recruiter middleware request processed", {
+            route: request.nextUrl.pathname,
+            actorType: 'recruiter',
+            durationMs: Date.now() - start,
+            method: request.method
+        }, "SupabaseMiddleware");
+    }
 
     return supabaseResponse
 }

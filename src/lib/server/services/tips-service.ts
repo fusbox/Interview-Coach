@@ -6,6 +6,7 @@ import { z } from "zod";
 import { ai, AI_MODELS } from "./ai-config";
 import { getReadingLevelContext } from "@/lib/ai/prompts";
 import { parseProviderJson } from "@/lib/server/provider-response";
+import { incrementMetric, observeMetric } from "@/lib/server/metrics";
 
 // --- Schema Definition ---
 export const GenerateTipsSchema = z.object({
@@ -26,9 +27,12 @@ export class TipsService {
         blueprint?: Blueprint,
         resumeText?: string
     ): Promise<QuestionTips> {
+        const startedAt = Date.now();
 
         if (!ai) {
             Logger.warn("[TipsService] No API Key, returning mock tips.");
+            incrementMetric("ai_requests_total", { operation: "tips", outcome: "mock_fallback" });
+            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "tips", outcome: "mock_fallback" });
             return {
                 doThis: "Pick one specific moment from your experience and describe the exact action you took, with the result.",
                 avoidThis: "Don't just say you 'stayed positive' — the interviewer wants to see what you did, not how you felt.",
@@ -142,11 +146,15 @@ Return strictly JSON.
                 operation: "generateTips"
             });
             parsedData.__debugPrompt = prompt;
+            incrementMetric("ai_requests_total", { operation: "tips", outcome: "success" });
+            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "tips", outcome: "success" });
 
             return parsedData;
 
         } catch (error) {
             Logger.error("[TipsService] Generation Failed", error);
+            incrementMetric("ai_requests_total", { operation: "tips", outcome: "error" });
+            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "tips", outcome: "error" });
             throw error;
         }
     }

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { TTSService } from "@/lib/server/services/tts-service";
-import { Logger } from "@/lib/logger";
 import {
     createCorrelationId,
     internalErrorResponse,
@@ -9,6 +8,7 @@ import {
 import { enforceIpRateLimit } from "@/lib/server/abuse-protection";
 import { authorizeCandidateSessionRequest } from "@/lib/server/candidate-route-auth";
 import { z } from "zod";
+import { createServerLogger } from "@/lib/server/server-logger";
 
 const WINDOW_MS = 5 * 60 * 1000;
 const MAX_TTS_REQUESTS = 15;
@@ -21,6 +21,12 @@ const TtsRequestSchema = z.object({
 
 export async function POST(request: Request) {
     const correlationId = createCorrelationId();
+    const routeLogger = createServerLogger("TTSAPI", {
+        correlationId,
+        route: "/api/tts",
+        actorType: "candidate",
+        method: request.method
+    });
 
     try {
         const rateLimitResponse = enforceIpRateLimit({
@@ -38,6 +44,13 @@ export async function POST(request: Request) {
         if (!sessionId) {
             return validationErrorResponse(correlationId, "Session is required");
         }
+        const sessionLogger = createServerLogger("TTSAPI", {
+            correlationId,
+            route: "/api/tts",
+            actorType: "candidate",
+            sessionId,
+            method: request.method
+        });
 
         const authResponse = await authorizeCandidateSessionRequest(request, sessionId, correlationId);
         if (authResponse) {
@@ -51,6 +64,10 @@ export async function POST(request: Request) {
         }
         const { text } = parseResult.data;
 
+        sessionLogger.info("Generating candidate TTS audio", {
+            outcome: "start"
+        });
+
         const { audioData, mimeType } = await TTSService.generateSpeech(text);
 
         return new NextResponse(new Uint8Array(audioData), {
@@ -61,7 +78,10 @@ export async function POST(request: Request) {
         });
 
     } catch (error: unknown) {
-        Logger.error("TTS API failed", { correlationId, error }, "TTSAPI");
+        routeLogger.error("TTS route failed", {
+            error,
+            errorCode: "TTS_ROUTE_FAILED"
+        });
         return internalErrorResponse(correlationId);
     }
 }

@@ -5,6 +5,7 @@ import { Logger } from "@/lib/logger";
 import { ai, AI_MODELS } from "./ai-config";
 import { getReadingLevelContext } from "@/lib/ai/prompts";
 import { parseProviderJson } from "@/lib/server/provider-response";
+import { incrementMetric, observeMetric } from "@/lib/server/metrics";
 
 export class StrongResponseService {
     static async generateStrongResponse(
@@ -12,9 +13,12 @@ export class StrongResponseService {
         role: string,
         resumeText?: string
     ): Promise<StrongResponseResult> {
+        const startedAt = Date.now();
 
         if (!ai) {
             Logger.warn("[StrongResponseService] No API Key, returning mock response.");
+            incrementMetric("ai_requests_total", { operation: "strong_response", outcome: "mock_fallback" });
+            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "strong_response", outcome: "mock_fallback" });
             return {
                 strongResponse: "This is a mock strong response because the API key is missing. It would usually be a comprehensive answer following best practices for this role.",
                 whyThisWorks: "This response demonstrates specificity, clear ownership of actions, and a measurable outcome — the three key differentiators that separate top-20% answers from the rest."
@@ -89,11 +93,15 @@ Return strictly JSON matching this structure:
                 operation: "generateStrongResponse"
             });
             parsedData.__debugPrompt = prompt;
+            incrementMetric("ai_requests_total", { operation: "strong_response", outcome: "success" });
+            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "strong_response", outcome: "success" });
 
             return parsedData;
 
         } catch (error) {
             Logger.error("[StrongResponseService] Generation Failed", error);
+            incrementMetric("ai_requests_total", { operation: "strong_response", outcome: "error" });
+            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "strong_response", outcome: "error" });
             throw error;
         }
     }

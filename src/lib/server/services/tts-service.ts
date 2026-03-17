@@ -1,8 +1,10 @@
 import { Logger } from "@/lib/logger";
+import { incrementMetric, observeMetric } from "@/lib/server/metrics";
 import { ai, AI_MODELS } from "./ai-config";
 
 export class TTSService {
     static async generateSpeech(text: string): Promise<{ audioData: Buffer; mimeType: string }> {
+        const startedAt = Date.now();
         if (!ai) throw new Error("Missing GEMINI_API_KEY");
         if (!text) throw new Error("Missing text");
 
@@ -14,7 +16,10 @@ export class TTSService {
 
         try {
             // 1. Call Gemini for Audio
-            console.log(`[TTSService] Generating speech for text: "${text.substring(0, 50)}..."`);
+            Logger.info("Generating speech", {
+                actorType: "service",
+                textPreview: `${text.substring(0, 50)}...`
+            }, "TTSService");
             const wrapped = `Instruction: Read the following interview question as a hiring manager addressing a candidate. Tone: Professional, clear, slightly encouraging.\n${text}`;
 
             const response = await ai.models.generateContent({
@@ -40,16 +45,26 @@ export class TTSService {
 
             // SAFETY CHECK: If audio is > 5MB, reject it to prevent OOM
             if (base64Audio.length > 5 * 1024 * 1024) {
-                console.error("[TTSService] Audio too large:", base64Audio.length);
+                Logger.error("Generated audio rejected for size", {
+                    actorType: "service",
+                    errorCode: "TTS_AUDIO_TOO_LARGE",
+                    audioSize: base64Audio.length
+                }, "TTSService");
                 throw new Error("Generated audio is too large");
             }
 
-            console.error(`[TTSService] Processing audio size: ${base64Audio.length} bytes`);
+            Logger.debug("Processing generated audio", {
+                actorType: "service",
+                audioSize: base64Audio.length,
+                mimeType
+            }, "TTSService");
 
             const audioBuffer = Buffer.from(base64Audio, 'base64');
 
             // Case A: MP3 (send as is)
             if (mimeType === 'audio/mpeg' || mimeType === 'audio/mp3') {
+                incrementMetric("ai_requests_total", { operation: "tts", outcome: "success" });
+                observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "tts", outcome: "success" });
                 return {
                     audioData: audioBuffer,
                     mimeType: 'audio/mpeg'
@@ -61,7 +76,12 @@ export class TTSService {
                 const wavHeader = createWavHeader(audioBuffer.length);
                 const wavBuffer = Buffer.concat([wavHeader, audioBuffer]);
                 const finalBase64 = wavBuffer.toString('base64');
-                console.error(`[TTSService] Final WAV base64 size: ${finalBase64.length}`);
+                Logger.debug("Generated WAV wrapper", {
+                    actorType: "service",
+                    finalAudioSize: finalBase64.length
+                }, "TTSService");
+                incrementMetric("ai_requests_total", { operation: "tts", outcome: "success" });
+                observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "tts", outcome: "success" });
                 return {
                     audioData: wavBuffer,
                     mimeType: 'audio/wav'
@@ -70,6 +90,8 @@ export class TTSService {
 
             // Case C: Fallback
             Logger.info(`[TTSService] Generated audio size: ${base64Audio.length} bytes`);
+            incrementMetric("ai_requests_total", { operation: "tts", outcome: "success" });
+            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "tts", outcome: "success" });
             return {
                 audioData: audioBuffer,
                 mimeType: mimeType
@@ -77,6 +99,8 @@ export class TTSService {
 
         } catch (error) {
             Logger.error("[TTSService] Error", error);
+            incrementMetric("ai_requests_total", { operation: "tts", outcome: "error" });
+            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "tts", outcome: "error" });
             throw error;
         }
     }

@@ -1,5 +1,6 @@
 import { Logger } from "@/lib/logger";
 import { errorResponse } from "@/lib/server/api-errors";
+import { recordRateLimitDenial } from "@/lib/server/metrics";
 import { consumeRateLimit } from "@/lib/server/rate-limit";
 
 export function requestIp(request: Request): string {
@@ -14,6 +15,8 @@ export function enforceIpRateLimit(params: {
     maxRequests: number;
     windowMs: number;
     context?: Record<string, unknown>;
+    route?: string;
+    actorType?: "anonymous" | "candidate" | "recruiter" | "service" | "system";
 }) {
     const ip = requestIp(params.request);
     const decision = consumeRateLimit(`${params.scope}:ip:${ip}`, params.maxRequests, params.windowMs);
@@ -21,6 +24,12 @@ export function enforceIpRateLimit(params: {
     if (decision.allowed) {
         return null;
     }
+
+    recordRateLimitDenial({
+        actorType: params.actorType || "anonymous",
+        route: params.route || params.scope,
+        scope: params.scope
+    });
 
     Logger.warn("Rate limit exceeded", {
         correlationId: params.correlationId,

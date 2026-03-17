@@ -6,6 +6,7 @@ import { Logger } from "@/lib/logger";
 import { ai, AI_MODELS } from "./ai-config";
 import { FEEDBACK_DIMENSIONS } from "@/lib/constants";
 import { NonEmptyProviderTextSchema, parseProviderJson, parseProviderValue } from "@/lib/server/provider-response";
+import { incrementMetric, observeMetric } from "@/lib/server/metrics";
 
 export class AIService {
     /**
@@ -38,6 +39,7 @@ export class AIService {
         retryContext?: { trigger: 'user' | 'coach'; focus?: string },
         progress?: { current: number; total: number }
     ): Promise<AnalysisResult> {
+        const startedAt = Date.now();
 
         // 1. Context Construction
         const contextPrompt = buildAnalysisContext(question, blueprint, intakeData, retryContext);
@@ -123,6 +125,8 @@ Generate feedback as strict JSON matching this schema:
         if (!ai) {
             Logger.warn("AI Service: No API Key, returning mock analysis.");
             await new Promise(r => setTimeout(r, 800));
+            incrementMetric("ai_requests_total", { operation: "analysis", outcome: "mock_fallback" });
+            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "analysis", outcome: "mock_fallback" });
             return {
                 ack: "I noted your answer. (No API Key)",
                 meta: { tier: 1, modality: audioData ? "voice" : "text", signalQuality: "insufficient", confidence: "medium", readinessLevel: "RL4" },
@@ -190,10 +194,15 @@ Generate feedback as strict JSON matching this schema:
                 __debugPrompt: combinedPrompt
             };
 
+            incrementMetric("ai_requests_total", { operation: "analysis", outcome: "success" });
+            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "analysis", outcome: "success" });
+
             return mappedResult;
 
         } catch (error) {
             Logger.error("AI Analysis Failed", error);
+            incrementMetric("ai_requests_total", { operation: "analysis", outcome: "error" });
+            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "analysis", outcome: "error" });
             return {
                 ack: "I noted your answer.",
                 meta: { tier: 1, modality: audioData ? "voice" : "text", signalQuality: "insufficient", confidence: "medium", readinessLevel: "RL4" },
@@ -212,7 +221,12 @@ Generate feedback as strict JSON matching this schema:
     static async summarizeSession(
         session: InterviewSession
     ): Promise<string> {
-        if (!ai) return "Session completed. No automated debrief available.";
+        const startedAt = Date.now();
+        if (!ai) {
+            incrementMetric("ai_requests_total", { operation: "session_summary", outcome: "mock_fallback" });
+            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "session_summary", outcome: "mock_fallback" });
+            return "Session completed. No automated debrief available.";
+        }
 
         const answersContext = Object.values(session.answers as Record<string, Answer> || {})
             .map((a: Answer, i: number) => {
@@ -285,12 +299,17 @@ ${session.jobDescription || "No specific job description provided."}
                 contents: [{ text: prompt }]
             });
 
-            return parseProviderValue(response.text, NonEmptyProviderTextSchema, {
+            const summary = parseProviderValue(response.text, NonEmptyProviderTextSchema, {
                 provider: "gemini",
                 operation: "summarizeSession"
             });
+            incrementMetric("ai_requests_total", { operation: "session_summary", outcome: "success" });
+            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "session_summary", outcome: "success" });
+            return summary;
         } catch (error) {
             Logger.error("Session Summarization Failed", error);
+            incrementMetric("ai_requests_total", { operation: "session_summary", outcome: "error" });
+            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "session_summary", outcome: "error" });
             return `### Executive Summary\nThe candidate completed the interview for the ${session.role} position. They demonstrated consistent effort across all questions.`;
         }
     }

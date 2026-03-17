@@ -3,7 +3,6 @@ import { uuidv7 } from "uuidv7";
 import { randomBytes } from "crypto";
 import { z } from "zod";
 import { Invite } from "@/lib/domain/invite";
-import { Logger } from "@/lib/logger";
 import { errorResponse } from "@/lib/server/api-errors";
 import {
     beginIdempotentRequest,
@@ -12,7 +11,9 @@ import {
 } from "@/lib/server/idempotency";
 import { SupabaseInviteRepository } from "@/lib/server/infrastructure/supabase-invite-repository";
 import { consumeRateLimit } from "@/lib/server/rate-limit";
+import { incrementMetric, observeMetric, recordAuthDenial, recordRateLimitDenial } from "@/lib/server/metrics";
 import { createClient } from "@/lib/supabase/server";
+import { createServerLogger } from "@/lib/server/server-logger";
 
 const repository = new SupabaseInviteRepository();
 const IDEMPOTENCY_SCOPE = "recruiter_invites:create";
@@ -48,6 +49,13 @@ function baseUrl(req: NextRequest): string {
 
 export async function POST(request: NextRequest) {
     const correlationId = crypto.randomUUID();
+    const startedAt = Date.now();
+    const routeLogger = createServerLogger("RecruiterInvitesAPI", {
+        correlationId,
+        route: "/api/recruiter/invites",
+        actorType: "recruiter",
+        method: request.method
+    });
     let idempotencyKey: string | null = null;
     let userId: string | null = null;
     let idempotencyReserved = false;
@@ -57,6 +65,13 @@ export async function POST(request: NextRequest) {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
 
         if (authError || !user) {
+            recordAuthDenial({
+                actorType: "recruiter",
+                route: "/api/recruiter/invites",
+                reason: "missing_supabase_user"
+            });
+            incrementMetric("recruiter_invite_create_total", { outcome: "unauthorized" });
+            observeMetric("recruiter_invite_create_duration_ms", Date.now() - startedAt, { outcome: "unauthorized" });
             return errorResponse(401, {
                 code: "UNAUTHORIZED",
                 message: "Authentication required",
@@ -70,6 +85,8 @@ export async function POST(request: NextRequest) {
         const rawBody = await request.json();
         const parseResult = CreateInviteSchema.safeParse(rawBody);
         if (!parseResult.success) {
+            incrementMetric("recruiter_invite_create_total", { outcome: "invalid_request" });
+            observeMetric("recruiter_invite_create_duration_ms", Date.now() - startedAt, { outcome: "invalid_request" });
             return errorResponse(400, {
                 code: "INVALID_REQUEST",
                 message: "Invalid invite payload",
@@ -126,11 +143,18 @@ export async function POST(request: NextRequest) {
                 idempotencyReserved = false;
             }
 
-            Logger.warn("[RecruiterInvitesAPI] Rate limit exceeded", {
-                correlationId,
+            recordRateLimitDenial({
+                actorType: "recruiter",
+                route: "/api/recruiter/invites",
+                scope: "recruiter_invites"
+            });
+            routeLogger.warn("Rate limit exceeded", {
                 actorId: user.id,
-                ip
-            }, "RecruiterInvitesAPI");
+                ip,
+                errorCode: "RATE_LIMITED"
+            });
+            incrementMetric("recruiter_invite_create_total", { outcome: "rate_limited" });
+            observeMetric("recruiter_invite_create_duration_ms", Date.now() - startedAt, { outcome: "rate_limited" });
 
             return errorResponse(429, {
                 code: "RATE_LIMITED",
@@ -144,12 +168,11 @@ export async function POST(request: NextRequest) {
         const results: { id: string; firstName: string; lastName: string; email: string; link: string }[] = [];
         const appBaseUrl = baseUrl(request);
 
-        Logger.info("[RecruiterInvitesAPI] Creating invites", {
-            correlationId,
+        routeLogger.info("Creating invites", {
             actorId: user.id,
             candidateCount: candidates.length,
             outcome: "start"
-        }, "RecruiterInvitesAPI");
+        });
 
         for (const candidate of candidates) {
             const token = randomBytes(16).toString("hex");
@@ -189,20 +212,23 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        Logger.info("[RecruiterInvitesAPI] Invite creation completed", {
-            correlationId,
+        routeLogger.info("Invite creation completed", {
             actorId: user.id,
             candidateCount: candidates.length,
             outcome: "success"
-        }, "RecruiterInvitesAPI");
+        });
+        incrementMetric("recruiter_invite_create_total", { outcome: "success" });
+        observeMetric("recruiter_invite_create_duration_ms", Date.now() - startedAt, { outcome: "success" });
 
         return NextResponse.json(responseBody);
     } catch (error) {
-        Logger.error("[RecruiterInvitesAPI] Failed to create invites", {
-            correlationId,
-            actorId: userId,
-            error
-        }, "RecruiterInvitesAPI");
+        routeLogger.error("Failed to create invites", {
+            actorId: userId ?? undefined,
+            error,
+            errorCode: "RECRUITER_INVITE_CREATE_FAILED"
+        });
+        incrementMetric("recruiter_invite_create_total", { outcome: "error" });
+        observeMetric("recruiter_invite_create_duration_ms", Date.now() - startedAt, { outcome: "error" });
 
         if (idempotencyReserved && idempotencyKey && userId) {
             await releaseIdempotentRequest({

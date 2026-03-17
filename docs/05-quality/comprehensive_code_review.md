@@ -19,6 +19,9 @@ Reviewer stance: **Sr Architect/Engineer (production gate)** + **Mentor (Jr grow
 - `4.1` is complete: the baseline test pyramid now spans domain transitions, repository mappers, recruiter dashboard session shaping, hook-level session rehydration, public API security/error-contract cases, and session mutation concurrency.
 - `4.2` is complete: the concurrency-critical hook and repository suites now run under a deterministic clock baseline and passed a 20-iteration repeated stability run.
 - `4.3` is complete: CI quality gates now run in GitHub Actions, lint warnings are blocking, aggregate coverage thresholds are enforced, and the current baseline passes `npm run ci:quality` plus the repeated stability suite.
+- `5.1` is complete: the server logger now emits structured JSON entries with normalized error payloads, request-scoped route loggers stamp route metadata consistently, and raw `console.*` usage has been removed from the server route/service/repository/middleware surface.
+- `5.2` is complete: the server now records invite/session/security/AI metrics through a shared in-process collector, and recruiter-authenticated ops snapshots are available from `/api/recruiter/ops/metrics` for dashboard consumption.
+- `5.3` is complete: alert rules now evaluate against the ops metrics snapshot, the ops endpoint exposes current alert state with routing metadata, and the incident policy/runbook docs cover the top five operational failure classes.
 - Production status remains **NO-GO** because broader operability gaps described below are still open.
 
 ## Executive Summary
@@ -28,7 +31,7 @@ This codebase shows strong momentum (typed domain model, schema usage in several
 1. **Correctness and concurrency have improved materially**, but end-to-end reliability still depends on deeper integration coverage and the remaining operability work.
 2. **Validation and contract hardening** has improved materially across request, provider, and mapper boundaries; the remaining gap is broader integration depth and regression coverage.
 3. **The baseline test suite is now enforced in CI** with blocking lint, typecheck, coverage, and stability runs; the next gap is deeper end-to-end coverage and operational telemetry.
-4. **Observability is still incomplete** (although the public error contract is now standardized, structured operational telemetry remains partial).
+4. **Observability is materially improved**: structured logging, baseline metrics, and alert/runbook definitions are now in place; the remaining gap is durable external alert delivery and historical telemetry retention.
 5. **Repo hygiene and docs still lag implementation reality** in places (README status/scripts/environment guidance remain incomplete).
 
 Recommended release decision today: **NO-GO for production**, **GO for controlled internal staging after critical fixes**.
@@ -203,16 +206,12 @@ Concern: current boundaries leak:
 
 ### Readiness assessment
 
-Current state is early-stage: logs exist but are not fully structured, severity taxonomy is inconsistent, and production alertability is not yet defined.
+Current state is improved: structured server logging, baseline operational metrics, and rule-based alert definitions now exist, but production paging integration and durable external reporting are still not yet defined.
 
 ### Operability upgrades
 
-- Define standard log envelope: `traceId`, `sessionId`, `route`, `actorType`, `errorCode`.
-- Introduce centralized error classification and incident-level metrics.
-- Add SLO-aligned telemetry:
-  - invite send success/failure rates,
-  - session completion funnel,
-  - AI call latency/error rates.
+- Integrate the current alert rules with a durable paging/notification target.
+- Persist metrics outside process memory so trend analysis survives restarts and redeploys.
 - Add dashboards + alerts for critical failure thresholds.
 
 ---
