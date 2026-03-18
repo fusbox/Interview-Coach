@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { Button } from "@/components/ui/button";
@@ -18,10 +18,18 @@ import { RecruiterTemplate } from "@/lib/domain/template";
 
 export default function CreateInviteWizard() {
     const [step, setStep] = useState<1 | 2 | 3>(1);
+    const [statusMessage, setStatusMessage] = useState("");
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const stepRegionRef = useRef<HTMLDivElement>(null);
 
     // Reset scroll on step change (Wizard flow)
     useEffect(() => {
         window.scrollTo(0, 0);
+    }, [step]);
+
+    useEffect(() => {
+        stepRegionRef.current?.focus();
+        setStatusMessage(`Step ${step} loaded.`);
     }, [step]);
 
     const [details, setDetails] = useState<Details>({
@@ -45,6 +53,7 @@ export default function CreateInviteWizard() {
     // Batch Results
     const [inviteResults, setInviteResults] = useState<InviteResult[]>([]);
     const hasInviteResults = inviteResults.length > 0;
+    const previousDraftSignatureRef = useRef<string | null>(null);
 
     const [error, setError] = useState<string | null>(null);
     const [createInviteKey, setCreateInviteKey] = useState(() => crypto.randomUUID());
@@ -108,12 +117,30 @@ export default function CreateInviteWizard() {
         }
     }, [templateIdFromUrl, templates]);
 
-    // Stale State Protection: Clear results if job/candidates change
+    const draftSignature = useMemo(() => JSON.stringify({
+        role: details.role,
+        jd: details.jd,
+        reqId: details.reqId,
+        candidates: candidates.map((candidate) => ({
+            firstName: candidate.firstName,
+            lastName: candidate.lastName,
+            email: candidate.email,
+            resumeText: candidate.resumeText || ""
+        })),
+        star: star.map(({ id, text, category, label }) => ({ id, text, category, label })),
+        perma: perma.map(({ id, text, category, label }) => ({ id, text, category, label })),
+        technical: technical.map(({ id, text, category, label }) => ({ id, text, category, label }))
+    }), [details.role, details.jd, details.reqId, candidates, star, perma, technical]);
+
+    // Stale State Protection: Clear results only when the underlying draft changes after generation.
     useEffect(() => {
-        if (hasInviteResults) {
+        const previousSignature = previousDraftSignatureRef.current;
+        previousDraftSignatureRef.current = draftSignature;
+
+        if (previousSignature && previousSignature !== draftSignature && inviteResults.length > 0) {
             setInviteResults([]);
         }
-    }, [details.role, details.jd, candidates, hasInviteResults]); // Only clear if inputs change
+    }, [draftSignature, inviteResults.length]);
 
     useEffect(() => {
         setCreateInviteKey(crypto.randomUUID());
@@ -141,6 +168,8 @@ export default function CreateInviteWizard() {
     const handleCreate = async () => {
         setIsLoading(true);
         setError(null);
+        setErrorMessage(null);
+        setStatusMessage("Generating invitations.");
         try {
             const allQuestions = [
                 ...star,
@@ -154,13 +183,17 @@ export default function CreateInviteWizard() {
                 }));
 
             if (allQuestions.length === 0) {
-                setError("Please add at least one question.");
+                const message = "Please add at least one question.";
+                setError(message);
+                setErrorMessage(message);
                 setIsLoading(false);
                 return;
             }
 
             if (candidates.length === 0) {
-                setError("Please add at least one candidate.");
+                const message = "Please add at least one candidate.";
+                setError(message);
+                setErrorMessage(message);
                 setIsLoading(false);
                 return;
             }
@@ -189,15 +222,18 @@ export default function CreateInviteWizard() {
 
             const data = await res.json();
 
-            if (!res.ok) throw new Error(data.error || "Failed to create invites");
+            if (!res.ok) throw new Error(data.message || data.error || "Failed to create invites");
 
             if (data.results) {
                 setInviteResults(data.results);
+                setStatusMessage("Invitation preview is ready.");
                 // No longer advancing to step 4
             }
         } catch (e: unknown) {
             console.error(e);
-            setError(e instanceof Error ? e.message : "Failed to create invites");
+            const message = e instanceof Error ? e.message : "Failed to create invites";
+            setError(message);
+            setErrorMessage(message);
         } finally {
             setIsLoading(false);
         }
@@ -256,6 +292,8 @@ export default function CreateInviteWizard() {
     const generateQuestionsAI = async () => {
         if (!details.role) return;
         setIsGeneratingQuestions(true);
+        setErrorMessage(null);
+        setStatusMessage("Generating interview questions.");
         try {
             const res = await fetch("/api/questions/generate", {
                 method: "POST",
@@ -282,8 +320,10 @@ export default function CreateInviteWizard() {
                     id: `tech-${i + 1}`, text: q.text, category: 'Technical', label: `Technical Q${i + 1}`
                 })));
             }
+            setStatusMessage("AI-generated questions are ready.");
         } catch (e) {
             console.error("AI question generation failed:", e);
+            setErrorMessage("AI question generation failed. Please review the job details and try again.");
         } finally {
             setIsGeneratingQuestions(false);
         }
@@ -291,6 +331,12 @@ export default function CreateInviteWizard() {
 
     return (
         <div className="max-w-4xl mx-auto pb-8 pt-24 md:py-8 transition-all duration-300">
+            <div className="sr-only" aria-live="polite" aria-atomic="true">
+                {statusMessage}
+            </div>
+            <div className="sr-only" role="alert" aria-live="assertive" aria-atomic="true">
+                {errorMessage || ""}
+            </div>
             {/* Stepper Header */}
             {step <= 3 && (
                 <div className="fixed top-0 left-0 right-0 z-30 bg-surface-base/95 backdrop-blur-md px-4 py-3 border-b border-border/50 md:static md:bg-transparent md:border-none md:p-0 md:m-0 md:mb-10 transition-all duration-base ease-standard">
@@ -316,6 +362,7 @@ export default function CreateInviteWizard() {
                 </div>
             )}
 
+            <div ref={stepRegionRef} tabIndex={-1}>
             {step === 1 && (
                 <StepJobAndQuestions
                     details={details} setDetails={setDetails}
@@ -370,6 +417,7 @@ export default function CreateInviteWizard() {
                     onDashboard={() => window.location.href = '/recruiter'}
                 />
             )}
+            </div>
         </div>
     );
 }

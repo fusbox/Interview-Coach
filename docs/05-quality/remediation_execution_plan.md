@@ -357,15 +357,36 @@ Goal: reduce long-term maintenance burden and improve developer onboarding.
   - telemetry module
 - Keep UI hooks thin; move business rules to application/domain layer.
 
+**Execution Status**
+- Completed 2026-03-17.
+- `src/features/session/hooks/useSessionMutations.ts` now composes focused internal modules under `src/features/session/hooks/session-mutations/` for lifecycle, answering, navigation, telemetry, and shared command/idempotency helpers.
+- The external `useDomainSession` action contract remains unchanged, so existing UI consumers keep the same interface while mutation orchestration is separated by concern.
+- Verification passed: `npx vitest run src/features/session/hooks/useDomainSession.test.tsx src/features/session/hooks/useSessionQuery.test.tsx`
+- Verification passed: `npx tsc --noEmit`
+
 ### Step 6.2 — Accessibility Pass
 - Keyboard-only workflow audit for recruiter create and candidate session.
 - Add/verify `aria-live` for async errors.
 - Validate focus management after async actions and modal transitions.
 
+**Execution Status**
+- Completed 2026-03-17.
+- Recruiter create and candidate session flows now announce async status/errors through live regions.
+- Key overlays now expose dialog semantics, and focus is restored or advanced predictably on step changes and modal transitions.
+- Verification passed: `npm run lint`
+- Verification passed: `npx tsc --noEmit`
+
 ### Step 6.3 — Documentation and Standards
 - Update README status and accurate scripts.
 - Add env var matrix and security notes.
 - Add CONTRIBUTING.md with commit/PR conventions and checklist.
+
+**Execution Status**
+- Completed 2026-03-17.
+- Updated `README.md` to reflect the actual application status, current quality scripts, and current repo guide links instead of the original pre-development placeholder language.
+- Added `docs/05-quality/environment_variable_matrix.md` documenting active env vars, required/optional status, fallback behavior, and security handling notes.
+- Added `CONTRIBUTING.md` with setup expectations, required quality gates, contribution guidelines, and a PR checklist aligned to the remediated codebase.
+- Verification passed: manual doc consistency review against `package.json`, `.github/workflows/quality-gates.yml`, and current env/config entry points.
 
 **Acceptance Criteria (Phase 6)**
 - A11y punch-list items closed.

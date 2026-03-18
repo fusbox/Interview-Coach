@@ -22,6 +22,9 @@ Reviewer stance: **Sr Architect/Engineer (production gate)** + **Mentor (Jr grow
 - `5.1` is complete: the server logger now emits structured JSON entries with normalized error payloads, request-scoped route loggers stamp route metadata consistently, and raw `console.*` usage has been removed from the server route/service/repository/middleware surface.
 - `5.2` is complete: the server now records invite/session/security/AI metrics through a shared in-process collector, and recruiter-authenticated ops snapshots are available from `/api/recruiter/ops/metrics` for dashboard consumption.
 - `5.3` is complete: alert rules now evaluate against the ops metrics snapshot, the ops endpoint exposes current alert state with routing metadata, and the incident policy/runbook docs cover the top five operational failure classes.
+- `6.1` is complete: `useSessionMutations` now composes focused lifecycle, answering, navigation, telemetry, and shared-helper modules while preserving the existing `useDomainSession` action contract, and the hook suites remain green against the refactor.
+- `6.2` is complete: recruiter create and candidate session UIs now expose accessible live-region feedback for async states, the main invite/session overlays declare dialog semantics, and focus recovery is handled explicitly on step and modal transitions.
+- `6.3` is complete: repo-facing documentation now reflects the real application state, current quality scripts, environment/security requirements, and contributor expectations via `README.md`, `docs/05-quality/environment_variable_matrix.md`, and `CONTRIBUTING.md`.
 - Production status remains **NO-GO** because broader operability gaps described below are still open.
 
 ## Executive Summary
@@ -32,7 +35,7 @@ This codebase shows strong momentum (typed domain model, schema usage in several
 2. **Validation and contract hardening** has improved materially across request, provider, and mapper boundaries; the remaining gap is broader integration depth and regression coverage.
 3. **The baseline test suite is now enforced in CI** with blocking lint, typecheck, coverage, and stability runs; the next gap is deeper end-to-end coverage and operational telemetry.
 4. **Observability is materially improved**: structured logging, baseline metrics, and alert/runbook definitions are now in place; the remaining gap is durable external alert delivery and historical telemetry retention.
-5. **Repo hygiene and docs still lag implementation reality** in places (README status/scripts/environment guidance remain incomplete).
+5. **Repo hygiene and docs still lag implementation reality** in places (README status/scripts/environment guidance remain incomplete), though the priority a11y issues in the recruiter create and candidate session flows are now materially improved.
 
 Recommended release decision today: **NO-GO for production**, **GO for controlled internal staging after critical fixes**.
 
@@ -42,7 +45,7 @@ Recommended release decision today: **NO-GO for production**, **GO for controlle
 
 ### High-risk paths
 
-- **Session mutation race/concurrency path** (`submit`, `next`, analysis trigger): lock behavior and side-effect ordering are still brittle under concurrent calls and optimistic updates.
+- **Session mutation race/concurrency path** (`submit`, `next`, analysis trigger): the command gate and mutation-layer split materially reduce local hook complexity, but the path still depends on hook-level orchestration rather than a deeper application-service boundary.
 - **Partial update path for engagement**: read-modify-write of JSON field can lose increments under concurrent requests.
 - **Invite/session lifecycle path**: multiple asynchronous writes (create session, issue token, mark invitation sent) are not wrapped in an explicit transactional boundary.
 - **Network/error edge cases**: optimistic UI updates often rollback only on thrown exceptions, while secondary async failures are swallowed.
@@ -65,11 +68,7 @@ Recommended release decision today: **NO-GO for production**, **GO for controlle
 
 ### Refactor suggestions to reduce cognitive load
 
-- `useSessionMutations` is functionally rich but overloaded; split by concern:
-  - lifecycle (`init/start/reset`),
-  - answering (`saveDraft/submit/retry/analyze`),
-  - navigation (`next/goToQuestion`),
-  - telemetry (`recordEngagement`).
+- `useSessionMutations` was split by concern into lifecycle, answering, navigation, and telemetry modules; continue pushing business rules downward so the top-level hook remains a thin composition layer.
 - Replace ad-hoc status strings with one exported enum/value object and transition helpers.
 - Replace raw `console.*` with structured logger wrapper everywhere.
 - Eliminate mixed error styles (`throw`, `alert`, silent catch) in favor of one policy.

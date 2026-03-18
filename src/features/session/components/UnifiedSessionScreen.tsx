@@ -64,6 +64,8 @@ export default function UnifiedSessionScreen() {
     const [strongResponseOpen, setStrongResponseOpen] = useState(false);
     const [showDebug, setShowDebug] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [liveMessage, setLiveMessage] = useState('');
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     // Multistep Loader State
     const [showLoader, setShowLoader] = useState(false);
@@ -72,6 +74,7 @@ export default function UnifiedSessionScreen() {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const mobilePanelRef = useRef<HTMLDivElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const questionRegionRef = useRef<HTMLDivElement>(null);
 
     // Mobile Panel Auto-Scroll
     useEffect(() => {
@@ -123,6 +126,7 @@ export default function UnifiedSessionScreen() {
         if (isThinking) {
             setShowLoader(true);
             setIsDrawerOpen(false);
+            setLiveMessage('Answer submitted. Coach analysis is in progress.');
         }
     }, [isThinking]);
 
@@ -132,6 +136,7 @@ export default function UnifiedSessionScreen() {
             // If we load into REVIEWING state with analysis, skip loader and open drawer
             setIsDrawerOpen(true);
             setShowLoader(false);
+            setLiveMessage('Coach feedback is ready.');
         }
     }, [isReviewing, analysis]);
 
@@ -141,6 +146,14 @@ export default function UnifiedSessionScreen() {
         setHintOpen(false);
         setStrongResponseOpen(false);
     }, [currentQuestionId]);
+
+    useEffect(() => {
+        setErrorMessage(null);
+        if (currentQuestion?.text) {
+            setLiveMessage(`Question ${currentQuestionIndex + 1} loaded.`);
+            questionRegionRef.current?.focus();
+        }
+    }, [currentQuestion?.id, currentQuestion?.text, currentQuestionIndex]);
 
     // Mic Warm-up Optimization
     useEffect(() => {
@@ -223,14 +236,17 @@ export default function UnifiedSessionScreen() {
 
         if (!finalAnswer.trim() && !canSubmitAudio) {
             trackEvent('tier2', 'submit_blocked_empty');
-            // Show a simple alert if in voice mode and transcript is missing
-            if (mode === 'voice') {
-                alert("We couldn't hear your response clearly. Please try speaking again or use Text Mode.");
-            }
+            const message = mode === 'voice'
+                ? "We couldn't hear your response clearly. Please try speaking again or switch to text mode."
+                : "Enter an answer before submitting.";
+            setErrorMessage(message);
+            setLiveMessage(message);
             return;
         }
 
         setIsSubmitting(true);
+        setErrorMessage(null);
+        setLiveMessage('Submitting your answer.');
         trackEvent('tier3', 'answer_submit');
 
         try {
@@ -252,7 +268,9 @@ export default function UnifiedSessionScreen() {
             }
         } catch (err) {
             console.error("[UnifiedSessionScreen] Submission error:", err);
-            alert("There was an error submitting your answer. Please try again.");
+            const message = "There was an error submitting your answer. Please try again.";
+            setErrorMessage(message);
+            setLiveMessage(message);
         } finally {
             setIsSubmitting(false);
         }
@@ -263,6 +281,8 @@ export default function UnifiedSessionScreen() {
         setAnswerText('');
         resetTranscript();
         resetAudio();
+        setErrorMessage(null);
+        setLiveMessage('Retrying the current question.');
         retryQuestion({ trigger: 'user' });
         trackEvent('tier2', 'session_retry_question');
     };
@@ -272,6 +292,8 @@ export default function UnifiedSessionScreen() {
         setAnswerText('');
         resetTranscript();
         resetAudio();
+        setErrorMessage(null);
+        setLiveMessage('Moving to the next question.');
         nextQuestion();
     };
 
@@ -298,6 +320,12 @@ export default function UnifiedSessionScreen() {
     return (
         <div className="flex flex-col h-screen bg-background relative">
             <SessionHeader />
+            <div className="sr-only" aria-live="polite" aria-atomic="true">
+                {liveMessage}
+            </div>
+            <div className="sr-only" role="alert" aria-live="assertive" aria-atomic="true">
+                {errorMessage || ''}
+            </div>
 
             <main className="flex-1 w-full flex flex-row overflow-hidden relative">
                 {/* LEFT: Main Workspace */}
@@ -305,10 +333,13 @@ export default function UnifiedSessionScreen() {
                     <div className="w-full max-w-4xl flex flex-col">
                         {/* 1. TOP: Question Card Area */}
                         <div
+                            ref={questionRegionRef}
                             className={cn(
                                 "grow-0 shrink-0 p-4 md:p-6 lg:p-10 w-full transition-all duration-500 ease-in-out cursor-default",
                                 isReviewing ? "opacity-30 scale-[0.98] pointer-events-none blur-sm" : "opacity-100 scale-100"
-                            )}>
+                            )}
+                            tabIndex={-1}
+                        >
                             <div className="glass-card text-text-primary rounded-3xl p-6 md:p-10 w-full relative transition-all duration-300 ring-1 ring-border/50 overflow-hidden">
                                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-deep/20 to-brand-deep" />
 
@@ -334,6 +365,15 @@ export default function UnifiedSessionScreen() {
                                         />
                                     </motion.div>
                                 </AnimatePresence>
+
+                                {errorMessage && (
+                                    <div
+                                        className="mb-6 rounded-2xl border border-state-critical/20 bg-state-critical/10 px-4 py-3 text-sm font-semibold text-state-critical"
+                                        role="alert"
+                                    >
+                                        {errorMessage}
+                                    </div>
+                                )}
 
                                 <div className="flex items-center gap-2 md:gap-4 min-h-12 md:min-h-10 w-auto pt-4 md:pt-6 pb-4 md:pb-10 -mx-6 md:-mx-10 -mb-6 md:-mb-10 px-6 md:px-10 border-t-2 border-border/50 bg-surface-platinum/5 shadow-flat">
                                     <div className="flex-1 flex justify-start gap-4">

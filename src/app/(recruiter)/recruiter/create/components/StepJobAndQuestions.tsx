@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Loader2, Save, X } from "lucide-react";
 import { Details, QuestionInput, StepFooterProps } from "../constants";
-import { useState, useLayoutEffect, useRef } from "react";
+import { useState, useLayoutEffect, useRef, useEffect, useId } from "react";
 import { ChevronRight } from "lucide-react";
 import { showDemoTools } from "@/lib/feature-flags";
 import { RecruiterTemplate } from "@/lib/domain/template";
@@ -80,6 +80,19 @@ export function StepJobAndQuestions({
     const [showSaveModal, setShowSaveModal] = useState(false);
     const [templateName, setTemplateName] = useState("");
     const [isShared, setIsShared] = useState(true);
+    const saveTemplateInputRef = useRef<HTMLInputElement>(null);
+    const lastFocusedElementRef = useRef<HTMLElement | null>(null);
+    const saveDialogTitleId = useId();
+
+    useEffect(() => {
+        if (showSaveModal) {
+            lastFocusedElementRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+            saveTemplateInputRef.current?.focus();
+            return;
+        }
+
+        lastFocusedElementRef.current?.focus();
+    }, [showSaveModal]);
 
     const addTechnical = () => {
         setTechnical([...technical, {
@@ -369,10 +382,15 @@ export function StepJobAndQuestions({
             {/* Save Template Modal */}
             {showSaveModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 glass-overlay animate-in fade-in duration-slow">
-                    <Card className="shadow-floating border-border/50 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-base ease-emphasized">
+                    <Card
+                        className="shadow-floating border-border/50 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-base ease-emphasized"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby={saveDialogTitleId}
+                    >
                         <div className="flex items-center justify-between p-6 border-b border-border/50 bg-surface-base">
-                            <h3 className="font-bold text-lg text-text-primary font-sans">Save Interview Template</h3>
-                            <button onClick={() => setShowSaveModal(false)} className="text-text-disabled hover:text-text-secondary transition-colors">
+                            <h3 id={saveDialogTitleId} className="font-bold text-lg text-text-primary font-sans">Save Interview Template</h3>
+                            <button onClick={() => setShowSaveModal(false)} className="text-text-disabled hover:text-text-secondary transition-colors" aria-label="Close save template dialog">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -380,7 +398,7 @@ export function StepJobAndQuestions({
                             <div className="space-y-2">
                                 <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Template Name</label>
                                 <input
-                                    autoFocus
+                                    ref={saveTemplateInputRef}
                                     className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                                     value={templateName}
                                     onChange={e => setTemplateName(e.target.value)}

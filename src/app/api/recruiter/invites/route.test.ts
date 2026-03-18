@@ -175,4 +175,21 @@ describe("POST /api/recruiter/invites", () => {
             statusCode: 200
         }));
     });
+
+    it("normalizes a local 0.0.0.0 request origin to localhost when no app url is configured", async () => {
+        vi.stubEnv("NEXT_PUBLIC_APP_URL", "");
+        const { POST } = await import("./route");
+
+        const req = new Request("http://0.0.0.0:3000/api/recruiter/invites", {
+            method: "POST",
+            headers: { "Idempotency-Key": "create-key-localhost" },
+            body: JSON.stringify(validPayload)
+        });
+
+        const res = await POST(req as never);
+        const body = await res.json();
+
+        expect(res.status).toBe(200);
+        expect(body.results[0].link).toMatch(/^http:\/\/localhost:3000\/s\//);
+    });
 });

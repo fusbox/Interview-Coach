@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShieldCheck, Loader2, SendHorizontal, CheckCircle2, LayoutDashboard, PlusCircle } from 'lucide-react';
 import Image from 'next/image';
@@ -23,6 +23,7 @@ interface InviteEmailPreviewModalProps {
     onSend: () => void;
     isSending?: boolean;
     sendSuccess?: boolean;
+    errorMessage?: string | null;
     onNewInvite?: () => void;
     onDashboard?: () => void;
 }
@@ -34,6 +35,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
     onSend,
     isSending = false,
     sendSuccess = false,
+    errorMessage,
     onNewInvite,
     onDashboard
 }) => {
@@ -43,6 +45,22 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
     const cc = data.recruiterEmail || "";
     const subject = `Interview Invitation: ${data.role || 'Role'}`;
     const currentYear = new Date().getFullYear();
+    const closeButtonRef = useRef<HTMLButtonElement>(null);
+    const successPrimaryButtonRef = useRef<HTMLButtonElement>(null);
+    const lastFocusedElementRef = useRef<HTMLElement | null>(null);
+    const titleId = useId();
+    const descriptionId = useId();
+
+    useEffect(() => {
+        if (!isOpen) {
+            lastFocusedElementRef.current?.focus();
+            return;
+        }
+
+        lastFocusedElementRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        const focusTarget = sendSuccess ? successPrimaryButtonRef.current : closeButtonRef.current;
+        focusTarget?.focus();
+    }, [isOpen, sendSuccess]);
 
     return (
         <AnimatePresence>
@@ -51,6 +69,8 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                     className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8"
                     role="dialog"
                     aria-modal="true"
+                    aria-labelledby={titleId}
+                    aria-describedby={descriptionId}
                 >
                     <motion.div
                         initial={{ opacity: 0 }}
@@ -70,23 +90,24 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                         )}
                     >
                         {sendSuccess ? (
-                            <div className="p-12 flex flex-col items-center justify-center text-center space-y-8 animate-in zoom-in duration-500">
-                                <div className="w-20 h-20 rounded-full bg-state-success/10 flex items-center justify-center text-state-success ring-8 ring-state-success/5">
-                                    <CheckCircle2 size={40} />
-                                </div>
-                                
-                                <div className="space-y-4">
-                                    <h2 className="text-4xl font-black text-text-primary">Delivered!</h2>
-                                    <p className="text-sm font-medium text-text-secondary leading-relaxed max-w-[280px] mx-auto">
-                                        Your invitations have been sent successfully.
-                                    </p>
-                                </div>
+                                <div className="p-12 flex flex-col items-center justify-center text-center space-y-8 animate-in zoom-in duration-500">
+                                    <div className="w-20 h-20 rounded-full bg-state-success/10 flex items-center justify-center text-state-success ring-8 ring-state-success/5">
+                                        <CheckCircle2 size={40} />
+                                    </div>
+                                    
+                                    <div className="space-y-4">
+                                        <h2 id={titleId} className="text-4xl font-black text-text-primary">Delivered!</h2>
+                                        <p id={descriptionId} className="text-sm font-medium text-text-secondary leading-relaxed max-w-[280px] mx-auto">
+                                            Your invitations have been sent successfully.
+                                        </p>
+                                    </div>
 
-                                <div className="w-full space-y-3 pt-4">
-                                    <button
-                                        onClick={onNewInvite}
-                                        className="w-full h-14 bg-primary text-primary-foreground font-bold rounded-2xl shadow-raised-1 hover:shadow-raised-2 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
-                                    >
+                                    <div className="w-full space-y-3 pt-4">
+                                        <button
+                                            ref={successPrimaryButtonRef}
+                                            onClick={onNewInvite}
+                                            className="w-full h-14 bg-primary text-primary-foreground font-bold rounded-2xl shadow-raised-1 hover:shadow-raised-2 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+                                        >
                                         <PlusCircle size={20} />
                                         Start New Invite
                                     </button>
@@ -103,12 +124,13 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                             <>
                                 {/* Header */}
                                 <div className="px-6 py-4 border-b border-border/30 flex items-center justify-between sticky top-0 z-10 backdrop-blur-sm bg-surface-base/90">
-                                    <p className="text-[13px] font-medium text-text-secondary leading-tight text-left">
+                                    <p id={descriptionId} className="text-[13px] font-medium text-text-secondary leading-tight text-left">
                                         Verify and click <strong>Send</strong> or <strong>Cancel</strong> to edit.
                                     </p>
                                     
                                     <div className="flex items-center gap-2">
                                         <button
+                                            ref={closeButtonRef}
                                             onClick={onClose}
                                             className="px-4 py-2 text-xs font-bold text-text-secondary hover:bg-surface-subtle rounded-xl transition-colors"
                                         >
@@ -126,6 +148,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                         <button
                                             onClick={onClose}
                                             className="p-2 hover:bg-surface-muted rounded-full transition-colors flex items-center justify-center"
+                                            aria-label="Close invite preview"
                                         >
                                             <X size={20} className="text-text-disabled hover:text-text-secondary" />
                                         </button>
@@ -134,6 +157,17 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
 
                                 {/* Body - Scrollable Content */}
                                 <div className="flex-1 overflow-y-auto bg-surface-subtle/20 custom-scrollbar">
+                                    {errorMessage && (
+                                        <div className="px-8 pt-6">
+                                            <div
+                                                className="rounded-2xl border border-state-critical/20 bg-state-critical/10 px-4 py-3 text-sm font-semibold text-state-critical"
+                                                role="alert"
+                                                aria-live="assertive"
+                                            >
+                                                {errorMessage}
+                                            </div>
+                                        </div>
+                                    )}
                                     {/* Translation from old InviteEmailContent logic */}
                                     <div className="px-8 py-6 space-y-3 bg-surface-base border-b border-border/30">
                                         <div className="flex flex-wrap gap-y-1">
@@ -180,7 +214,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
 
                                             {/* Main Copy */}
                                             <div className="px-10 pb-12 space-y-6">
-                                                <h1 className="text-2xl font-bold text-text-primary leading-[1.15]">
+                                                <h1 id={titleId} className="text-2xl font-bold text-text-primary leading-[1.15]">
                                                     Interview Invitation: {data.role}
                                                 </h1>
                                                 

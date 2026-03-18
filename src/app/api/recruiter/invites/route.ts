@@ -43,8 +43,23 @@ function requestIp(req: NextRequest): string {
     return forwarded?.split(",")[0].trim() || "unknown";
 }
 
+function normalizeAppOrigin(origin: string): string {
+    const url = new URL(origin);
+
+    if (url.hostname === "0.0.0.0" || url.hostname === "::" || url.hostname === "[::]") {
+        url.hostname = "localhost";
+    }
+
+    return url.origin;
+}
+
 function baseUrl(req: NextRequest): string {
-    return process.env.NEXT_PUBLIC_APP_URL?.trim() || new URL(req.url).origin;
+    const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
+    if (configured) {
+        return configured;
+    }
+
+    return normalizeAppOrigin(new URL(req.url).origin);
 }
 
 export async function POST(request: NextRequest) {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useId } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { AnalysisResult } from '@/lib/domain/types';
@@ -144,6 +144,7 @@ const HelpfulRating: React.FC<{
                     <div key={opt.val} className="relative">
                         <button
                             onClick={() => onSelect(opt.val)}
+                            aria-pressed={currentVal === opt.val}
                             className={cn(
                                 "px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 border flex items-center gap-2",
                                 currentVal === opt.val
@@ -244,12 +245,15 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
     const isProgrammaticScroll = useRef(false);
     const [helpfulness, setHelpfulness] = useState<Record<string, string>>({});
     const [savedTypes, setSavedTypes] = useState<Record<string, boolean>>({});
-
-
-
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+    const drawerRef = useRef<HTMLDivElement>(null);
+    const transcriptCloseButtonRef = useRef<HTMLButtonElement>(null);
+    const lastFocusedElementRef = useRef<HTMLElement | null>(null);
+    const dialogTitleId = useId();
+    const dialogDescriptionId = useId();
+    const transcriptTitleId = useId();
 
     const sections: { id: SectionKey; label: string }[] = [
         { id: 'start', label: 'Summary' },
@@ -324,6 +328,16 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
         }
     };
 
+    useEffect(() => {
+        if (isOpen) {
+            lastFocusedElementRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+            drawerRef.current?.focus();
+            return;
+        }
+
+        lastFocusedElementRef.current?.focus();
+    }, [isOpen]);
+
     // Reset on close; cleanup on unmount
     useEffect(() => {
         if (!isOpen) {
@@ -344,6 +358,14 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
             isProgrammaticScroll.current = false;
         }
     }, [isOpen]);
+
+    useEffect(() => {
+        if (isTranscriptOpen) {
+            transcriptCloseButtonRef.current?.focus();
+        } else if (isOpen) {
+            drawerRef.current?.focus();
+        }
+    }, [isTranscriptOpen, isOpen]);
 
     useEffect(() => {
         if (!audioBlob && audioRef.current) {
@@ -446,6 +468,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                 {/* Modal shell */}
                 <motion.div
                     key="modal"
+                    ref={drawerRef}
                     initial={{ opacity: 0, scale: 0.97, y: 16 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.97, y: 16 }}
@@ -456,7 +479,20 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                             ? "bg-gradient-to-br from-brand-glass-start to-brand-glass-end md:shadow-[0_24px_60px_-15px_rgba(0,0,0,0.12)]"
                             : "bg-surface-base md:shadow-lg"
                     )}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby={dialogTitleId}
+                    aria-describedby={dialogDescriptionId}
+                    tabIndex={-1}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Escape' && isTranscriptOpen) {
+                            setIsTranscriptOpen(false);
+                        }
+                    }}
                 >
+                    <div id={dialogDescriptionId} className="sr-only">
+                        Review your coach feedback and choose whether to continue or retry this answer.
+                    </div>
                     {/* ── Main Layout (Vertical Split: Header + Content) ─────────────────── */}
                     <div className="flex-1 flex flex-col min-w-0 bg-transparent relative">
                         {/* Progress Nav */}
@@ -486,7 +522,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                             >
                                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-deep/20 to-brand-deep opacity-100" />
                                 <div className="w-full flex flex-col items-center my-auto py-8">
-                                    <h2 className="text-4xl md:text-5xl lg:text-5xl font-bold text-text-primary leading-[1.1]">
+                                    <h2 id={dialogTitleId} className="text-4xl md:text-5xl lg:text-5xl font-bold text-text-primary leading-[1.1]">
                                         {analysis?.ack || 'Reviewing your answer…'}
                                     </h2>
                                     <div className="mt-12 flex flex-col md:flex-row items-center gap-4 justify-center w-full">
@@ -750,7 +786,20 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                     exit={{ y: '-100%', opacity: 0 }}
                                     transition={{ type: 'spring', damping: 28, stiffness: 280 }}
                                     className="absolute inset-x-0 md:left-auto md:right-0 top-0 h-[78%] md:h-full md:w-96 z-50 bg-surface-base/90 rounded-b-[2rem] md:rounded-none md:border-l border-b md:border-b-0 border-border p-6 flex flex-col shadow-2xl backdrop-blur-xl"
+                                    role="dialog"
+                                    aria-modal="true"
+                                    aria-labelledby={transcriptTitleId}
                                 >
+                                    <div id={transcriptTitleId} className="sr-only">
+                                        Transcript panel
+                                    </div>
+                                    <button
+                                        ref={transcriptCloseButtonRef}
+                                        onClick={() => setIsTranscriptOpen(false)}
+                                        className="sr-only"
+                                    >
+                                        Close transcript panel
+                                    </button>
                                     <div className="pt-2 flex-1 min-h-0">
                                         <TranscriptPanel
                                             transcript={transcript}

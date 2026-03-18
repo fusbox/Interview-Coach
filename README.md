@@ -1,82 +1,82 @@
 # Interview Coach for Recruiters
- 
+
 AI-powered interview practice platform for staffing recruiters and their candidates.
- 
-## Overview
- 
-This application enables recruiters to invite job candidates to complete mock screening interviews. Candidates practice answering competency-based questions and receive AI-generated feedback, while recruiters gain visibility into candidate preparation.
- 
-## Project Status
- 
-🚧 **Pre-Development** — Currently in requirements and design phase.
- 
-## Documentation
- 
-All project documentation lives in the `/docs` folder:
- 
-| Phase | Documents | Status |
-|-------|-----------|--------|
-| **Discovery** | [Project Charter](docs/01-discovery/project-charter.md), [Stakeholder Map](docs/01-discovery/stakeholder-map.md) | ✅ Draft |
-| **Requirements** | [Personas](docs/02-requirements/personas/), [User Stories](docs/02-requirements/user-stories.md), Use Cases | 🔄 In Progress |
-| **Design** | User Flows, Wireframes, Design System | ⏳ Pending |
-| **Architecture** | System Design, Data Model, API Spec, Security | ⏳ Pending |
-| **Quality** | Test Strategy, AI Eval Strategy | ⏳ Pending |
-| **Project** | Roadmap, Risk Register, Decision Log | ⏳ Pending |
- 
-## Quick Links
- 
-- [Project Charter](docs/01-discovery/project-charter.md) — Why we're building this
-- [Recruiter Persona](docs/02-requirements/personas/recruiter-persona.md) — Who recruiters are
-- [Candidate Persona](docs/02-requirements/personas/candidate-persona.md) — Who candidates are
-- [User Stories](docs/02-requirements/user-stories.md) — What users need to do
- 
-## Tech Stack (Planned)
- 
+
+## Status
+
+This repository contains an active Next.js application, not a pre-development placeholder. The quality remediation program through Phase 6 has been executed, with final production sign-off still tracked separately in the quality docs.
+
+Current characteristics:
+- Recruiter-authenticated invite creation and email delivery
+- Magic-link candidate practice sessions with token-bound API access
+- Structured API errors, rate limiting, idempotency, and baseline observability
+- CI quality gates for lint, typecheck, coverage, and stability
+
+## Stack
+
 | Layer | Technology |
-|-------|------------|
-| Frontend | React, TypeScript, Tailwind CSS |
-| Backend | Vercel Serverless Functions |
-| Database | Supabase (PostgreSQL) |
-| AI | Google Gemini 2.5 Flash |
-| Auth | Supabase Auth |
-| Hosting | Vercel |
+|---|---|
+| App framework | Next.js 14 App Router |
+| UI | React 18, TypeScript, Tailwind CSS, Framer Motion |
+| Auth + data | Supabase |
+| AI | Google Gemini |
+| Email | Resend |
+| Testing | Vitest, Testing Library |
 
-## Directory Structure
+## Local Setup
 
-```text
-/
-├── app/                  # Next.js App Router
-│   ├── (candidate)/      # Candidate-facing routes
-│   ├── (recruiter)/      # Recruiter-facing routes
-│   └── api/              # API Routes
-├── docs/                 # Documentation
-├── lib/                  # Shared Business Logic & Utilities
-│   ├── ai/               # AI Service Integration
-│   ├── client/           # Client-side utilities
-│   ├── db/               # Database access / repositories
-│   ├── domain/           # Core Domain Logic (Framework Agnostic)
-│   ├── security/         # Security & Auth utils
-│   ├── server/           # Server-side utilities
-│   └── stream/           # Streaming utilities
-└── openspec/             # OpenSpec artifacts
-```
- 
-## Development
- 
+1. Install dependencies:
+
 ```bash
-# Install dependencies
 npm install
- 
-# Run development server
-npm run dev
- 
-# Run tests
-npm test
- 
-# Build for production
-npm run build
 ```
- 
+
+2. Configure environment variables in `.env.local` using [Environment Variable Matrix](docs/05-quality/environment_variable_matrix.md).
+
+3. Start the app:
+
+```bash
+npm run dev
+```
+
+4. Open `http://localhost:3000`.
+
+## Quality Commands
+
+```bash
+npm run lint
+npm run typecheck
+npm run test
+npm run test:run
+npm run test:coverage
+npm run test:stability
+npm run ci:quality
+```
+
+What they do:
+- `npm run lint`: ESLint with warnings treated as failures
+- `npm run typecheck`: TypeScript no-emit validation
+- `npm run test`: default Vitest command
+- `npm run test:run`: single-pass Vitest run
+- `npm run test:coverage`: coverage-gated Vitest run
+- `npm run test:stability`: repeated concurrency/stability suite
+- `npm run ci:quality`: local combined quality gate
+
+## Repo Guide
+
+- [Remediation Execution Plan](docs/05-quality/remediation_execution_plan.md)
+- [Comprehensive Code Review](docs/05-quality/comprehensive_code_review.md)
+- [Security Endpoint Matrix](docs/05-quality/security_endpoint_matrix.md)
+- [Environment Variable Matrix](docs/05-quality/environment_variable_matrix.md)
+- [QA Checklist](docs/05-quality/QA-checklist.md)
+- [Contributing Guide](CONTRIBUTING.md)
+
+## Notes
+
+- Candidate access is through a unique magic link at `/s/[token]`.
+- Invite tokens are treated as bearer secrets and are validated server-side against stored hashes.
+- Some provider integrations degrade in local/dev environments when optional keys are absent; see the environment matrix for exact behavior.
+
 ## License
- 
-Proprietary — [Company Name]
+
+Proprietary. Internal use only unless explicitly approved.

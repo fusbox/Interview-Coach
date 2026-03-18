@@ -46,6 +46,7 @@ export function StepPreviewCombined({
     const [hasUserManuallyClosed, setHasUserManuallyClosed] = useState(false);
     const [isSending, setIsSending] = useState(false);
     const [sendSuccess, setSendSuccess] = useState(false);
+    const [sendError, setSendError] = useState<string | null>(null);
 
     const activeStar = star.filter(q => q.text.trim());
     const activePerma = perma.filter(q => q.text.trim());
@@ -58,6 +59,7 @@ export function StepPreviewCombined({
     }, [isGenerated, localIsGenerated]);
 
     const handleAction = async () => {
+        setSendError(null);
         if (!isGenerated) {
             setHasUserManuallyClosed(false); // Reset on new attempt if needed
             await onHandleCreate();
@@ -76,8 +78,13 @@ export function StepPreviewCombined({
     }, [isGenerated, isLoading, isPreviewOpen, sendSuccess, hasUserManuallyClosed]);
 
     const handleSendAll = async () => {
-        if (!results.length) return;
+        if (!results.length) {
+            setSendError("No generated invites are available to send yet.");
+            return;
+        }
+
         setIsSending(true);
+        setSendError(null);
         try {
             // Send individually to ensure personalized tokens and greeting
             const sendPromises = results.map(async (result) => {
@@ -99,7 +106,12 @@ export function StepPreviewCombined({
                 });
                 
                 if (!response.ok) {
-                    throw new Error(`Failed to send invite to ${result.email}`);
+                    const errorBody = await response.json().catch(() => null);
+                    throw new Error(
+                        errorBody?.message ||
+                        errorBody?.error ||
+                        `Failed to send invite to ${result.email}`
+                    );
                 }
                 return response.json();
             });
@@ -108,7 +120,7 @@ export function StepPreviewCombined({
             setSendSuccess(true);
         } catch (err) {
             console.error("Failed to send invites:", err);
-            // In a production app, we might want to track which ones failed
+            setSendError(err instanceof Error ? err.message : "Failed to send invites.");
         } finally {
             setIsSending(false);
         }
@@ -231,7 +243,7 @@ export function StepPreviewCombined({
             </Card>
 
             {error && (
-                <div className="p-4 bg-state-critical/10 text-state-critical rounded-2xl text-sm border border-state-critical/20 font-bold flex items-center gap-3 animate-in shake-in">
+                <div className="p-4 bg-state-critical/10 text-state-critical rounded-2xl text-sm border border-state-critical/20 font-bold flex items-center gap-3 animate-in shake-in" role="alert" aria-live="assertive">
                     <div className="w-8 h-8 rounded-xl bg-state-critical/20 flex items-center justify-center shrink-0">
                         <X size={16} />
                     </div>
@@ -289,6 +301,7 @@ export function StepPreviewCombined({
                     onSend={handleSendAll}
                     isSending={isSending}
                     sendSuccess={sendSuccess}
+                    errorMessage={sendError}
                     onNewInvite={onNewInvite}
                     onDashboard={onDashboard}
                 />
