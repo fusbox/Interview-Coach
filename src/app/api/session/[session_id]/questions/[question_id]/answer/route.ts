@@ -13,9 +13,10 @@ const DraftSchema = z.object({
 
 export async function PUT(
     request: Request,
-    { params }: { params: { session_id: string; question_id: string } }
+    { params }: { params: Promise<{ session_id: string; question_id: string }> }
 ) {
-    return validatedSessionHandler(request, params, async (req, { correlationId }) => {
+    const resolvedParams = await params;
+    return validatedSessionHandler(request, resolvedParams, async (req, { correlationId }) => {
         const body = await req.json();
         const parseResult = DraftSchema.safeParse(body);
 
@@ -27,7 +28,7 @@ export async function PUT(
 
         // ATOMIC DRAFT SAVE (Fixes race condition with Submit/Analyze)
         // We do NOT fetch the whole session to avoid overwriting status with stale data.
-        await repository.saveDraft(params.session_id, params.question_id, text);
+        await repository.saveDraft(resolvedParams.session_id, resolvedParams.question_id, text);
 
         return NextResponse.json({ success: true });
     });

@@ -21,10 +21,11 @@ const QuestionAnalysisRequestSchema = z.object({
 
 export async function POST(
     request: Request,
-    { params }: { params: { session_id: string; question_id: string } }
+    { params }: { params: Promise<{ session_id: string; question_id: string }> }
 ) {
-    return validatedSessionHandler(request, params, async (req, { session, correlationId }) => {
-        const answer = session.answers[params.question_id];
+    const resolvedParams = await params;
+    return validatedSessionHandler(request, resolvedParams, async (req, { session, correlationId }) => {
+        const answer = session.answers[resolvedParams.question_id];
         if (!answer?.submittedAt) {
             return validationErrorResponse(correlationId, "Answer not submitted");
         }
@@ -33,7 +34,7 @@ export async function POST(
             return NextResponse.json(session);
         }
 
-        const context = getAnalysisContext(session, params.question_id);
+        const context = getAnalysisContext(session, resolvedParams.question_id);
         if (!context) {
             return notFoundResponse(correlationId, "Question context missing");
         }
@@ -45,7 +46,7 @@ export async function POST(
         }
         const { audioData } = parseResult.data;
 
-        const questionIndex = session.questions.findIndex(q => q.id === params.question_id);
+        const questionIndex = session.questions.findIndex(q => q.id === resolvedParams.question_id);
         const progress = {
             current: questionIndex + 1,
             total: session.questions.length
@@ -66,7 +67,7 @@ export async function POST(
             status: transitionSessionStatus(session, "REVIEWING").status as SessionStatus,
             answers: {
                 ...session.answers,
-                [params.question_id]: {
+                [resolvedParams.question_id]: {
                     ...answer,
                     transcript: analysis.transcript || answer.transcript,
                     analysis

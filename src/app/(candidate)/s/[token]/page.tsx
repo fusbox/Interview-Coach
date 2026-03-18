@@ -3,21 +3,22 @@ import { SupabaseInviteRepository } from "@/lib/server/infrastructure/supabase-i
 import InterviewSessionScreen from "@/features/session/components/InterviewSessionScreen";
 
 interface PageProps {
-    params: {
+    params: Promise<{
         token: string;
-    };
+    }>;
 }
 
 // Disable static generation for this dynamic route
 export const dynamic = 'force-dynamic';
 
 export default async function CandidateSessionPage({ params }: PageProps) {
+    const { token } = await params;
     const repository = new SupabaseInviteRepository();
-    const invite = await repository.getByToken(params.token);
+    const invite = await repository.getByToken(token);
 
     if (!invite) {
         // Fallback for "demo-invite-token" for dev convenience if not in repo
-        if (params.token === 'demo-invite-token') {
+        if (token === 'demo-invite-token') {
             return <InterviewSessionScreen initialConfig={{ role: 'Product Manager' }} />;
         }
         notFound();
@@ -26,7 +27,7 @@ export default async function CandidateSessionPage({ params }: PageProps) {
     return (
         <InterviewSessionScreen
             sessionId={invite.id}
-            candidateToken={params.token}
+            candidateToken={token}
             initialConfig={{
                 role: invite.role,
                 jobDescription: invite.jobDescription

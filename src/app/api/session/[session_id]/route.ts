@@ -20,17 +20,18 @@ const repository = new SupabaseSessionRepository();
 
 export async function GET(
     request: Request,
-    { params }: { params: { session_id: string } }
+    { params }: { params: Promise<{ session_id: string }> }
 ) {
+    const { session_id } = await params;
     const correlationId = createCorrelationId();
     const routeLogger = createServerLogger("SessionAPI", {
         correlationId,
         route: "/api/session/[session_id]",
         actorType: "candidate",
-        sessionId: params.session_id,
+        sessionId: session_id,
         method: request.method
     });
-    const auth = await requireCandidateToken(request, params.session_id);
+    const auth = await requireCandidateToken(request, session_id);
     if (!auth.ok) {
         if (auth.status === 401) {
             return unauthorizedResponse(correlationId, auth.error);
@@ -39,12 +40,12 @@ export async function GET(
         return forbiddenResponse(correlationId, auth.error);
     }
 
-    const session = await repository.get(params.session_id);
+    const session = await repository.get(session_id);
     if (!session) return notFoundResponse(correlationId, "Session not found");
 
     // Mark as viewed asynchronously (don't block the response)
     // We only mark viewed if it's the candidate fetching it (verified by auth above)
-    repository.markViewed(params.session_id).catch(err => routeLogger.warn("Mark viewed failed", {
+    repository.markViewed(session_id).catch(err => routeLogger.warn("Mark viewed failed", {
         error: err,
         errorCode: "SESSION_MARK_VIEWED_FAILED"
     }));
@@ -54,10 +55,10 @@ export async function GET(
 
 export async function PATCH(
     request: Request,
-    { params }: { params: { session_id: string } }
+    { params }: { params: Promise<{ session_id: string }> }
 ) {
     const correlationId = createCorrelationId();
-    const { session_id } = params;
+    const { session_id } = await params;
     const routeLogger = createServerLogger("SessionAPI", {
         correlationId,
         route: "/api/session/[session_id]",

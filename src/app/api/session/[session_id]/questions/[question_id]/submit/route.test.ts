@@ -62,7 +62,7 @@ describe("POST /api/session/[session_id]/questions/[question_id]/submit", () => 
             body: JSON.stringify({ text: "Answer 1" })
         });
 
-        const res = await POST(req, { params: { session_id: "session-1", question_id: "question-1" } });
+        const res = await POST(req, { params: Promise.resolve({ session_id: "session-1", question_id: "question-1" }) });
         const body = await res.json();
 
         expect(res.status).toBe(200);
@@ -80,7 +80,7 @@ describe("POST /api/session/[session_id]/questions/[question_id]/submit", () => 
             body: JSON.stringify({ text: "Different answer" })
         });
 
-        const res = await POST(req, { params: { session_id: "session-1", question_id: "question-1" } });
+        const res = await POST(req, { params: Promise.resolve({ session_id: "session-1", question_id: "question-1" }) });
         const body = await res.json();
 
         expect(res.status).toBe(409);
@@ -96,7 +96,7 @@ describe("POST /api/session/[session_id]/questions/[question_id]/submit", () => 
             body: JSON.stringify({ text: "Answer 1" })
         });
 
-        const res = await POST(req, { params: { session_id: "session-1", question_id: "question-1" } });
+        const res = await POST(req, { params: Promise.resolve({ session_id: "session-1", question_id: "question-1" }) });
         const body = await res.json();
 
         expect(res.status).toBe(200);

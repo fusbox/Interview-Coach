@@ -11,7 +11,8 @@ const sessionRepo = new SupabaseSessionRepository();
 
 export const dynamic = 'force-dynamic';
 
-export default async function DevEvalDetailPage({ params }: { params: { id: string } }) {
+export default async function DevEvalDetailPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     // Demo-mode gate
     if (!showDemoTools()) {
         redirect("/recruiter");
@@ -20,7 +21,7 @@ export default async function DevEvalDetailPage({ params }: { params: { id: stri
     const user = await getCachedUser();
     if (!user) redirect("/login");
 
-    const session = await sessionRepo.get(params.id);
+    const session = await sessionRepo.get(id);
     if (!session) notFound();
 
     return (

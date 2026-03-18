@@ -95,8 +95,8 @@ class AudioEngine {
 
             this.activeSource = source;
             // Look-ahead rendering: Delay start by 150ms to give hardware/drivers time to fully engage.
-            // This prevents the "clipped start" issue in production environments.
-            const lookAheadTime = this.ctx.currentTime + 3;
+            // This prevents the "clipped start" issue in production environments without making playback feel stalled.
+            const lookAheadTime = this.ctx.currentTime + 0.15;
             source.start(lookAheadTime);
             this.setPlaybackState('playing');
         } catch (err) {

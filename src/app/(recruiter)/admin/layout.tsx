@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { RecruiterSidebar } from "@/components/layout/RecruiterSidebar";
 import { RecruiterMobileDock } from "@/components/layout/RecruiterMobileDock";
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminLayout({
     children,
 }: {

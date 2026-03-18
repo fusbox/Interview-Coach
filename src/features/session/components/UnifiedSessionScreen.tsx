@@ -55,6 +55,7 @@ export default function UnifiedSessionScreen() {
     const analysis = currentQuestionId ? session?.answers[currentQuestionId]?.analysis : undefined;
     const hasSubmitted = currentQuestionId ? !!session?.answers[currentQuestionId]?.submittedAt : false;
     const currentQuestion = session?.questions[currentQuestionIndex];
+    const currentQuestionText = currentQuestion?.text ?? '';
 
     // Input States
     const [mode, setMode] = useState<'voice' | 'text'>('voice');
@@ -149,11 +150,11 @@ export default function UnifiedSessionScreen() {
 
     useEffect(() => {
         setErrorMessage(null);
-        if (currentQuestion?.text) {
+        if (currentQuestionText) {
             setLiveMessage(`Question ${currentQuestionIndex + 1} loaded.`);
             questionRegionRef.current?.focus();
         }
-    }, [currentQuestion?.id, currentQuestion?.text, currentQuestionIndex]);
+    }, [currentQuestionId, currentQuestionText, currentQuestionIndex]);
 
     // Mic Warm-up Optimization
     useEffect(() => {
@@ -171,22 +172,22 @@ export default function UnifiedSessionScreen() {
 
     // Auto-play question audio on entry
     useEffect(() => {
-        if (!currentQuestion || hasSubmitted) return;
+        if (!currentQuestionId || !currentQuestionText || hasSubmitted) return;
 
         // Mask latency: prefetch immediately in the background
-        prefetch(currentQuestion.id, currentQuestion.text, { candidateToken, sessionId: session?.id });
+        prefetch(currentQuestionId, currentQuestionText, { candidateToken, sessionId: session?.id });
 
         const isFirstEntry = currentQuestionIndex === 0;
         if (isFirstEntry) {
             const lagMs = TRANSITION_DURATION * AUDIO_BUFFER_MULTIPLIER * 1000;
             const timer = setTimeout(() => {
-                speak(currentQuestion.text, currentQuestion.id, { candidateToken, sessionId: session?.id });
+                speak(currentQuestionText, currentQuestionId, { candidateToken, sessionId: session?.id });
             }, lagMs);
             return () => clearTimeout(timer);
         } else {
-            speak(currentQuestion.text, currentQuestion.id, { candidateToken, sessionId: session?.id });
+            speak(currentQuestionText, currentQuestionId, { candidateToken, sessionId: session?.id });
         }
-    }, [currentQuestionIndex, currentQuestionId, currentQuestion, hasSubmitted, prefetch, speak, candidateToken, session?.id]);
+    }, [currentQuestionIndex, currentQuestionId, currentQuestionText, hasSubmitted, prefetch, speak, candidateToken, session?.id]);
 
     // Prefetch next question audio
     useEffect(() => {

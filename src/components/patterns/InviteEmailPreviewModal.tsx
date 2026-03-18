@@ -259,7 +259,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                                 </div>
 
                                                 <p className="text-[10px] text-text-disabled font-medium pt-8">
-                                                    &copy; {currentYear} Rangam. All rights reserved. Registered address here.
+                                                    &copy; {currentYear} Rangam. All rights reserved.
                                                 </p>
                                             </div>
                                         </div>

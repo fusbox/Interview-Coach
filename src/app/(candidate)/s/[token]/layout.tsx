@@ -6,10 +6,11 @@ export default async function CandidateTokenLayout({
     params
 }: {
     children: React.ReactNode;
-    params: { token: string };
+    params: Promise<{ token: string }>;
 }) {
+    const { token } = await params;
     const repository = new SupabaseInviteRepository();
-    const invite = await repository.getByToken(params.token);
+    const invite = await repository.getByToken(token);
 
     // For "demo-invite-token" fallback:
     let initialConfig = undefined;
@@ -22,14 +23,14 @@ export default async function CandidateTokenLayout({
             jobDescription: invite.jobDescription,
             candidate: invite.candidate
         };
-    } else if (params.token === 'demo-invite-token') {
+    } else if (token === 'demo-invite-token') {
         initialConfig = { role: 'Product Manager' };
     }
 
     return (
         <CandidateLayoutClient
             sessionId={sessionId}
-            candidateToken={params.token}
+            candidateToken={token}
             initialConfig={initialConfig}
         >
             {children}

@@ -5,11 +5,12 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo } from 'react';
+import { use, useMemo } from 'react';
 import { computeMetrics, generateSignals, SignalQuality } from '@/lib/services/dashboard-constitution';
 
-export default function CoachingPage({ params }: { params: { token: string } }) {
+export default function CoachingPage({ params }: { params: Promise<{ token: string }> }) {
     const { session, isLoading } = useSession();
+    const { token } = use(params);
 
     const signals = useMemo(() => {
         if (!session) return null;
@@ -32,7 +33,7 @@ export default function CoachingPage({ params }: { params: { token: string } }) 
     return (
         <div className="max-w-4xl mx-auto space-y-8">
             <div className="flex items-center gap-4">
-                <Link href={`/s/${params.token}`} passHref>
+                <Link href={`/s/${token}`} passHref>
                     <Button variant="ghost" size="sm">
                         <ArrowLeft className="w-4 h-4 mr-2" /> Back to Practice
                     </Button>

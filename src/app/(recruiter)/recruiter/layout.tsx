@@ -4,6 +4,8 @@ import { RecruiterMobileDock } from '@/components/layout/RecruiterMobileDock'; /
 import { ProfileGuard } from '@/components/auth/ProfileGuard';
 import { redirect } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+
 export default async function RecruiterLayout({
     children,
 }: {

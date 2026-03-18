@@ -18,9 +18,10 @@ const SUBMIT_SCOPE_PREFIX = "session_submit";
 
 export async function POST(
     request: Request,
-    { params }: { params: { session_id: string; question_id: string } }
+    { params }: { params: Promise<{ session_id: string; question_id: string }> }
 ) {
-    return validatedSessionHandler(request, params, async (req, { session, correlationId }) => {
+    const resolvedParams = await params;
+    return validatedSessionHandler(request, resolvedParams, async (req, { session, correlationId }) => {
         const idempotencyKey = req.headers.get("Idempotency-Key")?.trim() || null;
         const body = await req.json();
         const parseResult = z.object({
@@ -33,13 +34,13 @@ export async function POST(
         }
 
         const { text, analysis } = parseResult.data;
-        const scope = `${SUBMIT_SCOPE_PREFIX}:${params.question_id}`;
+        const scope = `${SUBMIT_SCOPE_PREFIX}:${resolvedParams.question_id}`;
         let idempotencyReserved = false;
 
         if (idempotencyKey) {
             const reservation = await beginIdempotentRequest({
                 scope,
-                actorId: params.session_id,
+                actorId: resolvedParams.session_id,
                 key: idempotencyKey,
                 payload: parseResult.data
             });
@@ -71,13 +72,13 @@ export async function POST(
 
         const answer = text;
 
-        const existingAnswer = session.answers[params.question_id];
+        const existingAnswer = session.answers[resolvedParams.question_id];
         if (existingAnswer?.submittedAt) {
             const responseBody = session;
             if (idempotencyReserved && idempotencyKey) {
                 await completeIdempotentRequest({
                     scope,
-                    actorId: params.session_id,
+                    actorId: resolvedParams.session_id,
                     key: idempotencyKey,
                     statusCode: 200,
                     body: responseBody
@@ -87,16 +88,16 @@ export async function POST(
         }
 
         try {
-            const updatedSession = submitAnswer(session, params.question_id, answer, analysis || undefined);
+            const updatedSession = submitAnswer(session, resolvedParams.question_id, answer, analysis || undefined);
 
             // Ensure atomic state by clearing existing analysis before update
-            await repository.deleteAnalysis(params.session_id, params.question_id);
+            await repository.deleteAnalysis(resolvedParams.session_id, resolvedParams.question_id);
             await repository.update(updatedSession);
 
             if (idempotencyReserved && idempotencyKey) {
                 await completeIdempotentRequest({
                     scope,
-                    actorId: params.session_id,
+                    actorId: resolvedParams.session_id,
                     key: idempotencyKey,
                     statusCode: 200,
                     body: updatedSession
@@ -108,7 +109,7 @@ export async function POST(
             if (idempotencyReserved && idempotencyKey) {
                 await releaseIdempotentRequest({
                     scope,
-                    actorId: params.session_id,
+                    actorId: resolvedParams.session_id,
                     key: idempotencyKey
                 });
             }

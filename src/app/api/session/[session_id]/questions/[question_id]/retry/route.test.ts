@@ -53,7 +53,7 @@ describe("POST /api/session/[session_id]/questions/[question_id]/retry", () => {
             body: JSON.stringify({ retryContext: { trigger: "coach", focus: ["clarity"] } })
         });
 
-        const res = await POST(req, { params: { session_id: "session-1", question_id: "question-1" } });
+        const res = await POST(req, { params: Promise.resolve({ session_id: "session-1", question_id: "question-1" }) });
         const body = await res.json();
 
         expect(res.status).toBe(400);

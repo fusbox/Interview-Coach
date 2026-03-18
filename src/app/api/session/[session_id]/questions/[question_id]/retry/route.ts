@@ -15,9 +15,10 @@ const RetryRequestSchema = z.object({
 
 export async function POST(
     request: Request,
-    { params }: { params: { session_id: string; question_id: string } }
+    { params }: { params: Promise<{ session_id: string; question_id: string }> }
 ) {
-    return validatedSessionHandler(request, params, async (req, { session, correlationId }) => {
+    const resolvedParams = await params;
+    return validatedSessionHandler(request, resolvedParams, async (req, { session, correlationId }) => {
         const body = await req.json().catch(() => ({}));
         const parseResult = RetryRequestSchema.safeParse(body);
         if (!parseResult.success) {
@@ -25,10 +26,10 @@ export async function POST(
         }
         const retryContext = parseResult.data.retryContext;
 
-        const currentAns = session.answers[params.question_id];
+        const currentAns = session.answers[resolvedParams.question_id];
         if (currentAns) {
             // Clear submission state but keep draft
-            session.answers[params.question_id] = {
+            session.answers[resolvedParams.question_id] = {
                 ...currentAns,
                 submittedAt: undefined,
                 analysis: undefined,

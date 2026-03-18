@@ -14,11 +14,12 @@ const sessionRepo = new SupabaseSessionRepository();
 
 export const dynamic = 'force-dynamic';
 
-export default async function SessionDetailsPage({ params }: { params: { id: string } }) {
+export default async function SessionDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     const user = await getCachedUser();
     if (!user) redirect("/login");
 
-    const session: InterviewSession | null = await sessionRepo.get(params.id);
+    const session: InterviewSession | null = await sessionRepo.get(id);
 
     if (!session) {
         notFound();

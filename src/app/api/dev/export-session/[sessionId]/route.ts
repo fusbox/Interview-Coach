@@ -20,9 +20,10 @@ const sessionRepo = new SupabaseSessionRepository();
 
 export async function GET(
     req: NextRequest,
-    { params }: { params: { sessionId: string } }
+    { params }: { params: Promise<{ sessionId: string }> }
 ) {
     const correlationId = createCorrelationId();
+    const { sessionId } = await params;
 
     // Demo-mode gate
     if (!showDemoTools()) {
@@ -30,7 +31,7 @@ export async function GET(
     }
 
     try {
-        const session = await sessionRepo.get(params.sessionId);
+        const session = await sessionRepo.get(sessionId);
         if (!session) {
             return notFoundResponse(correlationId, "Session not found");
         }
