@@ -31,12 +31,10 @@ export default async function RecruiterDashboard() {
         email: profileData.data?.email || user.email || '',
     };
 
-    // Derive basic stats from the already-fetched sessions
     const basicStats = computeDashboardStats(sessions);
 
     return (
         <div className="space-y-10">
-            {/* Custom Header with Inline Stats */}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <SectionHeader
                     title="Dashboard"
@@ -44,12 +42,10 @@ export default async function RecruiterDashboard() {
                     isPageHeader
                 />
 
-                {/* Header Metrics Row */}
                 <div className="flex-1 md:flex md:justify-center">
                     <DashboardStats metrics={basicStats} variant="header" />
                 </div>
 
-                {/* Desktop Only Action */}
                 <div className="hidden md:block shrink-0">
                     <Button asChild className="h-11 shadow-raised-1 rounded-2xl font-semibold">
                         <Link href="/recruiter/create">
@@ -60,7 +56,6 @@ export default async function RecruiterDashboard() {
                 </div>
             </div>
 
-            {/* Invite Progress — collapsible, persisted */}
             <CollapsibleSection
                 storageKey="invite_progress"
                 title="Invite Progress"
@@ -73,7 +68,6 @@ export default async function RecruiterDashboard() {
                 />
             </CollapsibleSection>
 
-            {/* Manage Invites — collapsible, persisted */}
             <CollapsibleSection
                 storageKey="manage_invites"
                 title="Manage Invites"

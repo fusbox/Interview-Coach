@@ -102,8 +102,9 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
 
     // Adapter Logic
     const startSession = async (role: string, jobDescription?: string, intakeData?: OnboardingIntakeV1) => {
-        // Log for debugging (and to satisfy linter about unused vars)
-        console.log("SessionContext: startSession called", { role, jobDescription, intakeData });
+        void role;
+        void jobDescription;
+        void intakeData;
         // Transition to IN_SESSION
         actions.start();
     };
@@ -138,10 +139,10 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
         actions.goToQuestion(index);
     };
 
-    const loadTipsForQuestion = async () => console.log("loadTips not impl in V1");
-    const clearAnswer = () => console.log("clearAnswer not impl");
-    const updateAnswerAnalysis = () => console.log("updateAnswerAnalysis not impl");
-    const finishSession = async () => console.log("finishSession handled by Orchestrator");
+    const loadTipsForQuestion = async () => { };
+    const clearAnswer = () => { };
+    const updateAnswerAnalysis = () => { };
+    const finishSession = async () => { };
     const cacheAudioUrl = () => { };
     const updateSession = async (sessionId: string, updates: Partial<InterviewSession>) => {
         if (sessionId !== session?.id) console.warn("Context updateSession ID mismatch - updating current anyway");

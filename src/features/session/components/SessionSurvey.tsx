@@ -39,8 +39,7 @@ export function SessionSurvey({ sessionId }: SessionSurveyProps) {
             setTimeout(() => {
                 setJustSaved(prev => ({ ...prev, [key]: false }));
             }, 2000);
-        } catch (err) {
-            console.error(`[SessionSurvey] FAILED to capture ${key}:`, err);
+        } catch {
             setSubmitError(prev => ({ ...prev, [key]: true }));
             setSurvey(prev => {
                 const next = { ...prev };

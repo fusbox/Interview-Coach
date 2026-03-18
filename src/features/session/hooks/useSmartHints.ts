@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Question, Blueprint, QuestionTips } from '@/lib/domain/types';
 import { Logger } from '@/lib/logger';
 
-// Caching Key Prefix
 const CACHE_KEY_PREFIX = 'smart_hints_';
 
 export interface SmartHintsState {
@@ -31,7 +30,6 @@ export function useSmartHints(
     const fetchHints = useCallback(async () => {
         if (!question || !sessionId || !candidateToken || isFetchingRef.current) return;
 
-        // If already cached, don't fetch.
         const cached = sessionStorage.getItem(cacheKey);
         if (cached) {
             setState(prev => ({ ...prev, hints: JSON.parse(cached) }));
@@ -64,7 +62,6 @@ export function useSmartHints(
 
             const data = await response.json();
 
-            // Cache it
             sessionStorage.setItem(cacheKey, JSON.stringify(data));
 
             setState({ hints: data, isLoading: false, error: null });
@@ -77,13 +74,11 @@ export function useSmartHints(
         }
     }, [question, sessionId, candidateToken, role, blueprint, resumeText, cacheKey]);
 
-    // Reset state explicitly when question changes to prevent content flashing from the prior question
     useEffect(() => {
         isFetchingRef.current = false;
         setState({ hints: null, isLoading: false, error: null });
     }, [question?.id]);
 
-    // Load from cache on mount or question change + Auto-fetch
     useEffect(() => {
         if (!question) return;
         const cached = sessionStorage.getItem(cacheKey);
@@ -94,10 +89,9 @@ export function useSmartHints(
             } catch (e) {
                 console.error("Failed to parse cached hints", e);
                 sessionStorage.removeItem(cacheKey);
-                fetchHints(); // Fetch if cache corrupted
+                fetchHints();
             }
         } else {
-            // Proactively fetch if not cached
             fetchHints();
         }
     }, [question?.id, question, cacheKey, fetchHints]);

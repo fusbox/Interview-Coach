@@ -9,7 +9,6 @@ import { Loader2, Save, CheckCircle2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { SectionHeader } from "@/components/patterns/SectionHeader";
 
-// --- Types ---
 interface RecruiterProfile {
     recruiter_id: string;
     first_name: string;
@@ -19,7 +18,6 @@ interface RecruiterProfile {
     timezone: string;
 }
 
-// --- Timezone Helper ---
 const getTimezones = () => {
     try {
         const zones = Intl.supportedValuesOf('timeZone');
@@ -28,7 +26,6 @@ const getTimezones = () => {
                 const short = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'shortOffset' }).formatToParts().find(p => p.type === 'timeZoneName')?.value || 'GMT';
                 const long = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'long' }).formatToParts().find(p => p.type === 'timeZoneName')?.value || zone;
 
-                // Calculate offset for sorting
                 let offset = 0;
                 if (short !== 'GMT') {
                     const match = short.match(/GMT([+-])(\d+)(?::(\d+))?/);
@@ -52,7 +49,6 @@ const getTimezones = () => {
             return a.label.localeCompare(b.label);
         }).map(({ value, label }) => ({ value, label }));
     } catch {
-        // Fallback for older environments
         return [
             { value: "UTC", label: "UTC" },
             { value: "America/New_York", label: "Eastern Time (US & Canada)" },
@@ -60,7 +56,6 @@ const getTimezones = () => {
             { value: "America/Denver", label: "Mountain Time (US & Canada)" },
             { value: "America/Los_Angeles", label: "Pacific Time (US & Canada)" },
             { value: "Europe/London", label: "London" },
-            // Add more as needed
         ];
     }
 };
@@ -74,10 +69,7 @@ export default function SettingsPage() {
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-    // Initial state (from DB)
     const [initialProfile, setInitialProfile] = useState<RecruiterProfile | null>(null);
-
-    // Working state (User inputs)
     const [profile, setProfile] = useState<RecruiterProfile>({
         recruiter_id: "",
         first_name: "",
@@ -92,7 +84,6 @@ export default function SettingsPage() {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    // --- Fetch Logic ---
     useEffect(() => {
         const fetchProfile = async () => {
             setIsLoading(true);
@@ -103,7 +94,6 @@ export default function SettingsPage() {
                 return;
             }
 
-            // Fetch existing profile
             const { data, error } = await supabase
                 .from('recruiter_profiles')
                 .select('*')
@@ -111,10 +101,8 @@ export default function SettingsPage() {
                 .single();
 
             if (error && error.code !== 'PGRST116') { // PGRST116 = JSON object requested, multiple (or no) rows returned
-                console.error("Error fetching profile:", error);
                 setError("Failed to load profile.");
             } else if (data) {
-                // Found
                 const cleanData = {
                     recruiter_id: user.id,
                     first_name: data.first_name || "",
@@ -126,10 +114,6 @@ export default function SettingsPage() {
                 setInitialProfile(cleanData);
                 setProfile(cleanData);
             } else {
-                // Not found (First Run)
-                // We initialize with empty strings but valid ID
-                // No existing initialProfile to compare against yet? Or treat as empty?
-                // Let's treat initial as empty so "Save" is active if they typed anything.
                 const emptyProfile = {
                     recruiter_id: user.id,
                     first_name: "",
@@ -140,8 +124,6 @@ export default function SettingsPage() {
                 };
                 setInitialProfile(emptyProfile);
                 setProfile(emptyProfile);
-
-                // Pre-fill email from auth? Profile doesn't store email, Sidebar uses auth email.
             }
             setIsLoading(false);
         };
@@ -150,10 +132,7 @@ export default function SettingsPage() {
     }, [router, supabase]);
 
 
-    // --- Dirty Check ---
     const isDirty = initialProfile && JSON.stringify(profile) !== JSON.stringify(initialProfile);
-
-    // --- Actions ---
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -164,7 +143,6 @@ export default function SettingsPage() {
         setSuccessMessage(null);
 
         try {
-            // Upsert
             const { error } = await supabase
                 .from('recruiter_profiles')
                 .upsert({
@@ -179,14 +157,11 @@ export default function SettingsPage() {
 
             if (error) throw error;
 
-            // Update initial state to match new state
             setInitialProfile({ ...profile });
             setSuccessMessage("Profile updated successfully.");
 
-            // Clear success message after 3s
             setTimeout(() => setSuccessMessage(null), 3000);
         } catch (err: unknown) {
-            console.error(err);
             const message = err instanceof Error ? err.message : "Failed to save profile.";
             setError(message);
         } finally {
@@ -201,8 +176,6 @@ export default function SettingsPage() {
             setSuccessMessage(null);
         }
     };
-
-    // --- Render ---
 
     if (isLoading) {
         return (

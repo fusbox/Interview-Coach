@@ -7,18 +7,15 @@ import { InterviewSessionSchema } from "@/lib/domain/schemas";
 export function useSessionQuery(initialSessionId?: string, candidateToken?: string) {
     const [session, setSession] = useState<InterviewSession | null | undefined>(undefined);
 
-    // Rehydrate on Mount
     useEffect(() => {
         const storedId = localStorage.getItem(STORAGE_KEYS.CURRENT_SESSION_ID);
         const targetId = initialSessionId || storedId;
 
         if (targetId) {
-            // If explicit ID provided and differs from stored, update storage
             if (initialSessionId && initialSessionId !== storedId) {
                 localStorage.setItem(STORAGE_KEYS.CURRENT_SESSION_ID, initialSessionId);
             }
 
-            // If we have a session but it's the WRONG one, clear it to trigger loading state
             if (session && session.id !== targetId) {
                 setSession(undefined);
                 return;
@@ -29,7 +26,6 @@ export function useSessionQuery(initialSessionId?: string, candidateToken?: stri
                     .then((data: InterviewSession) => setSession(data))
                     .catch((err: unknown) => {
                         console.warn("Rehydration failed:", err);
-                        // Critical: set session to null to indicate it's NOT loading anymore, it's failed
                         setSession(null);
                         if (!initialSessionId) {
                             localStorage.removeItem(STORAGE_KEYS.CURRENT_SESSION_ID);

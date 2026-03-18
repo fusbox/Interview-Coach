@@ -1,8 +1,6 @@
 import { z } from 'zod';
 import { FEEDBACK_DIMENSIONS } from '../constants';
 
-// --- Domain Entity Schemas ---
-
 export const SessionStatusSchema = z.enum([
     'NOT_STARTED',
     'GENERATING_QUESTIONS',
@@ -180,7 +178,6 @@ export const UpdateSessionSchema = z.object({
     engagedTimeDelta: z.number().int().min(0).optional(),
 }).strict();
 
-// QuestionPlan schema (minimal validation for structural integrity)
 export const QuestionPlanSchema = z
     .object({
         questions: z.array(
@@ -195,7 +192,6 @@ export const QuestionPlanSchema = z
     })
     .optional();
 
-// Blueprint schema 
 export const BlueprintSchema = z
     .object({
         role: z
@@ -217,7 +213,7 @@ export const BlueprintSchema = z
                 ratingBands: z.any().optional(),
             })
             .optional()
-            .or(z.any()), // Allow loose structure for complex nested objects
+            .or(z.any()),
         competencies: z
             .array(
                 z.object({
@@ -239,7 +235,7 @@ export const CoachPrepSchema = z.object({
 export const GenerateTipsSchema = z.object({
     question: z.string().min(1, 'Question is required'),
     role: z.string().min(1, 'Role is required'),
-    competency: z.any().optional(), // Flexible for now
+    competency: z.any().optional(),
     intakeData: IntakeDataSchema,
     blueprint: BlueprintSchema,
 });
@@ -256,7 +252,7 @@ export const GenerateBlueprintSchema = z.object({
 });
 
 export const GenerateQuestionPlanSchema = z.object({
-    blueprint: BlueprintSchema.unwrap(), // Logic requires blueprint to be present
+    blueprint: BlueprintSchema.unwrap(),
 });
 
 export const GenerateQuestionsSchema = z.object({
@@ -271,9 +267,8 @@ export const GenerateQuestionsSchema = z.object({
 export const AnalyzeAnswerSchema = z.object({
     question: z.string().min(1, 'Question is required'),
     input: z.union([
-        z.string().min(1), // Text input
+        z.string().min(1),
         z.object({
-            // Audio input
             data: z.string().min(1),
             mimeType: z.string().optional(),
         }),

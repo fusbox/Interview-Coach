@@ -11,7 +11,7 @@ export function selectNow(session?: InterviewSession | null): NowState {
             isComplete: false,
             currentQuestionIndex: 0,
             totalQuestions: 0,
-            screen: "LANDING", // Optimistic default while loading
+            screen: "LANDING",
         };
     }
 
@@ -34,7 +34,6 @@ export function selectNow(session?: InterviewSession | null): NowState {
     const currentQ = questions[currentQuestionIndex];
     const currentAns = currentQ ? answers[currentQ.id] : undefined;
 
-    // Screen Selection Logic (Deterministic Priority)
     let screen: ScreenId = "ERROR";
 
     if (status === "ERROR") {
@@ -46,18 +45,13 @@ export function selectNow(session?: InterviewSession | null): NowState {
     } else if (status === "COMPLETED") {
         screen = "SUMMARY";
     } else {
-        // In-Session Logic
-        // In-Session Logic
-        // Determine sub-state based on Data, not just Status Enum (which is limited in DB)
         if (currentAns?.analysis) {
             screen = "REVIEW_FEEDBACK";
         } else if (status === "AWAITING_EVALUATION" || (currentAns?.submittedAt && !currentAns.analysis)) {
-            // Transient state or submitted but not yet analyzed
             screen = "PENDING_EVALUATION";
         } else if (status === "REVIEWING") {
             screen = "REVIEW_FEEDBACK";
         } else {
-            // Default: User needs to answer
             screen = "ACTIVE_QUESTION";
         }
     }

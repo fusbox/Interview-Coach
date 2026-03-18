@@ -80,6 +80,7 @@ export function StepJobAndQuestions({
     const [showSaveModal, setShowSaveModal] = useState(false);
     const [templateName, setTemplateName] = useState("");
     const [isShared, setIsShared] = useState(true);
+    const [saveError, setSaveError] = useState<string | null>(null);
     const saveTemplateInputRef = useRef<HTMLInputElement>(null);
     const lastFocusedElementRef = useRef<HTMLElement | null>(null);
     const saveDialogTitleId = useId();
@@ -130,12 +131,13 @@ export function StepJobAndQuestions({
         if (!templateName.trim()) return;
 
         setIsSaving(true);
+        setSaveError(null);
         try {
             await onSaveTemplate(templateName, isShared);
             setShowSaveModal(false);
             setTemplateName("");
-        } catch (err) {
-            console.error("Save template failed:", err);
+        } catch {
+            setSaveError("Failed to save template. Please try again.");
         } finally {
             setIsSaving(false);
         }
@@ -395,6 +397,11 @@ export function StepJobAndQuestions({
                             </button>
                         </div>
                         <form onSubmit={handleSaveSubmit} className="p-6 space-y-6">
+                            {saveError && (
+                                <div className="rounded-2xl border border-state-critical/20 bg-state-critical/5 px-4 py-3 text-sm font-medium text-state-critical">
+                                    {saveError}
+                                </div>
+                            )}
                             <div className="space-y-2">
                                 <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Template Name</label>
                                 <input

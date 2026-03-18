@@ -21,9 +21,8 @@ export function SessionHeader() {
         <header className="border-b bg-white/50 dark:bg-neutral-900/50 backdrop-blur-md sticky top-0 z-20 shrink-0 overflow-hidden">
             <div className="w-full max-w-4xl mx-auto px-4 md:px-6 lg:px-10 py-4 pb-3">
                 <div className="flex justify-between items-end gap-4 mb-3">
-                    {/* Left: Session Info */}
                     <div className="flex flex-col items-start gap-1 max-w-[50%] md:max-w-[60%]">
-                        <h1 className="text-sm md:text-base font-black text-text-primary leading-none truncate w-full">
+                        <h1 className="text-sm md:text-base font-semibold text-text-primary leading-none truncate w-full">
                             {session.role}
                         </h1>
                         <span className="text-xs font-bold text-text-secondary tabular-nums uppercase tracking-widest">
@@ -31,7 +30,6 @@ export function SessionHeader() {
                         </span>
                     </div>
 
-                    {/* Right: Percent & Exit */}
                     <div className="flex items-center gap-3 md:gap-6">
                         <span className="text-xs md:text-sm font-bold text-primary whitespace-nowrap">
                             {percentage}% Complete
@@ -48,7 +46,6 @@ export function SessionHeader() {
                     </div>
                 </div>
 
-                {/* Bottom: Progress Bar */}
                 <div className="h-1.5 w-full bg-surface-subtle rounded-full overflow-hidden shadow-inner">
                     <div
                         className="bg-primary h-full transition-all duration-700 ease-standard rounded-full shadow-raised-1"

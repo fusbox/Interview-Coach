@@ -32,7 +32,6 @@ export function ProfileGuard() {
                 .single();
 
             if (error?.code === 'PGRST116' || !data) {
-                console.log("No profile found, redirecting to settings...");
                 router.push('/recruiter/settings');
             }
             setChecked(true);

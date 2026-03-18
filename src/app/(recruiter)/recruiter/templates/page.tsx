@@ -111,6 +111,8 @@ export default function TemplatesPage() {
     const [loading, setLoading] = useState(true);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
     useEffect(() => {
         loadTemplates();
@@ -123,13 +125,14 @@ export default function TemplatesPage() {
 
     const loadTemplates = async () => {
         setLoading(true);
+        setErrorMessage(null);
         try {
             const { templates: t, recruiterId: rId, isAdmin: admin } = await fetchTemplates();
             setTemplates(t);
             setRecruiterId(rId || null);
             setIsAdmin(admin || false);
-        } catch (error) {
-            console.error("Failed to load templates:", error);
+        } catch {
+            setErrorMessage("Failed to load templates. Please refresh and try again.");
         } finally {
             setLoading(false);
         }
@@ -144,13 +147,14 @@ export default function TemplatesPage() {
             const res = await updateTemplateNameAction(id, newName);
             if (!res.success) {
                 setTemplates(originalTemplates);
-                alert(res.error || "Failed to update template name");
+                setErrorMessage(res.error || "Failed to update template name.");
                 return false;
             }
+            setStatusMessage("Template name updated.");
             return true;
-        } catch (error) {
+        } catch {
             setTemplates(originalTemplates);
-            console.error("Update name error:", error);
+            setErrorMessage("Failed to update template name.");
             return false;
         }
     };
@@ -163,11 +167,12 @@ export default function TemplatesPage() {
             const res = await deleteTemplateAction(id);
             if (res.success) {
                 setTemplates(prev => prev.filter(t => t.id !== id));
+                setStatusMessage("Template deleted.");
             } else {
-                alert(res.error || "Failed to delete template");
+                setErrorMessage(res.error || "Failed to delete template.");
             }
-        } catch (error) {
-            console.error("Delete template error:", error);
+        } catch {
+            setErrorMessage("Failed to delete template.");
         } finally {
             setDeletingId(null);
         }
@@ -187,6 +192,17 @@ export default function TemplatesPage() {
                     </Link>
                 }
             />
+
+            {errorMessage && (
+                <div className="rounded-2xl border border-state-critical/20 bg-state-critical/5 px-4 py-3 text-sm font-medium text-state-critical">
+                    {errorMessage}
+                </div>
+            )}
+            {statusMessage && !errorMessage && (
+                <div className="rounded-2xl border border-state-success/20 bg-state-success/5 px-4 py-3 text-sm font-medium text-state-success">
+                    {statusMessage}
+                </div>
+            )}
 
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-32 bg-surface-subtle/30 rounded-2xl border border-border/10 shadow-flat-2">

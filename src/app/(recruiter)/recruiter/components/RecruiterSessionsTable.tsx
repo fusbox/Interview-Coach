@@ -50,7 +50,9 @@ export function RecruiterSessionsTable({ initialSessions, recruiterTimezone, rec
 
     const buildResendMailto = (session: SessionSummary) => {
         if (!session.inviteToken) return null;
-        const link = `${window.location.origin}/s/${session.inviteToken}`;
+        const origin = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || '');
+        if (!origin) return null;
+        const link = `${origin}/s/${session.inviteToken}`;
         const subject = `Interview Invitation: ${session.role}`;
         const body = `Hi ${session.candidateName},
 
@@ -244,7 +246,7 @@ E: ${recruiterProfile?.email || ''}`;
                                 </Button>
 
                                 <div className="w-8 h-8 flex items-center justify-center">
-                                    {session.inviteToken ? (
+                                    {buildResendMailto(session) ? (
                                         <Button
                                             variant="ghost"
                                             size="icon"
@@ -252,7 +254,7 @@ E: ${recruiterProfile?.email || ''}`;
                                             className="h-8 w-8 text-text-muted hover:text-state-info hover:bg-state-info/5 transition-colors rounded-2xl"
                                             title="Resend Invite Email"
                                         >
-                                            <a href={buildResendMailto(session) || '#'} target="_blank" rel="noopener noreferrer">
+                                            <a href={buildResendMailto(session)!} target="_blank" rel="noopener noreferrer">
                                                 <Mail className="h-4 w-4" />
                                             </a>
                                         </Button>

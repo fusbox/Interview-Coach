@@ -122,7 +122,6 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                             </div>
                         ) : (
                             <>
-                                {/* Header */}
                                 <div className="px-6 py-4 border-b border-border/30 flex items-center justify-between sticky top-0 z-10 backdrop-blur-sm bg-surface-base/90">
                                     <p id={descriptionId} className="text-[13px] font-medium text-text-secondary leading-tight text-left">
                                         Verify and click <strong>Send</strong> or <strong>Cancel</strong> to edit.
@@ -155,7 +154,6 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                     </div>
                                 </div>
 
-                                {/* Body - Scrollable Content */}
                                 <div className="flex-1 overflow-y-auto bg-surface-subtle/20 custom-scrollbar">
                                     {errorMessage && (
                                         <div className="px-8 pt-6">
@@ -168,7 +166,6 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                             </div>
                                         </div>
                                     )}
-                                    {/* Translation from old InviteEmailContent logic */}
                                     <div className="px-8 py-6 space-y-3 bg-surface-base border-b border-border/30">
                                         <div className="flex flex-wrap gap-y-1">
                                             <span className="w-16 text-[11px] font-bold text-text-disabled uppercase tracking-wider">From:</span>
@@ -198,10 +195,8 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                         </div>
                                     </div>
 
-                                    {/* Email Content Frame */}
                                     <div className="p-4 md:p-12">
                                         <div className="max-w-[600px] mx-auto bg-white shadow-card-1 rounded-2xl overflow-hidden border border-border/10">
-                                            {/* Brand Header */}
                                             <div className="px-10 py-10 pb-6">
                                                 <Image 
                                                     src="/rangam-logo.png" 
@@ -212,7 +207,6 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                                 />
                                             </div>
 
-                                            {/* Main Copy */}
                                             <div className="px-10 pb-12 space-y-6">
                                                 <h1 id={titleId} className="text-2xl font-bold text-text-primary leading-[1.15]">
                                                     Interview Invitation: {data.role}
@@ -266,7 +260,6 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                     </div>
                                 </div>
 
-                                {/* Footer Security Badge */}
                                 <div className="px-8 py-4 bg-surface-subtle/50 border-t border-border/30 flex items-center gap-2">
                                     <ShieldCheck size={14} className="text-state-success" />
                                     <span className="text-[10px] font-bold text-text-disabled uppercase tracking-widest">

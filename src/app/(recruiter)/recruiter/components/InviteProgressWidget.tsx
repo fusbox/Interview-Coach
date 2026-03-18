@@ -21,10 +21,6 @@ import { formatTimestamp } from "@/lib/utils/format";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
-// ---------------------------------------------------------------------------
-// Bucket visual config
-// ---------------------------------------------------------------------------
-
 const BUCKET_CONFIG: Record<string, {
     icon: React.ElementType;
     accentColor: string;
@@ -66,10 +62,6 @@ const BUCKET_CONFIG: Record<string, {
         emptyMessage: "No invites waiting to be started",
     },
 };
-
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
 
 function BucketHeader({ bucket }: { bucket: WidgetBucket }) {
     const config = BUCKET_CONFIG[bucket.key];
@@ -116,7 +108,6 @@ function SessionRow({ session, bucketKey, recruiterProfile, recruiterTimezone }:
             className="group grid grid-cols-12 gap-3 py-2.5 px-3 rounded-lg hover:bg-surface-subtle transition-all duration-base ease-standard cursor-pointer items-center"
             onClick={handleRowClick}
         >
-            {/* Col 1: Candidate (5 cols) */}
             <div className="col-span-5 min-w-0">
                 <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-text-primary truncate">
@@ -130,14 +121,12 @@ function SessionRow({ session, bucketKey, recruiterProfile, recruiterTimezone }:
                 </div>
             </div>
 
-            {/* Col 2: Status (3 cols) */}
             <div className="col-span-3 flex items-center min-w-0">
                 {(bucketKey === 'needs_followup' || bucketKey === 'recently_active') ? (
                     <StatusBadge session={session} />
                 ) : null}
             </div>
 
-            {/* Col 3: Timestamp + Actions (4 cols) */}
             <div className="col-span-4 flex items-center justify-between min-w-0 gap-2">
                 <span className="text-xs text-text-secondary truncate">
                     {bucketKey === 'ready_to_review' && formatTimestamp(session.updatedAt || session.createdAt, recruiterTimezone)}
@@ -145,7 +134,6 @@ function SessionRow({ session, bucketKey, recruiterProfile, recruiterTimezone }:
                     {bucketKey === 'awaiting_action' && formatTimestamp(session.invitationSentAt || session.createdAt, recruiterTimezone)}
                 </span>
 
-                {/* Actions (visible on hover) */}
                 <div
                     className="flex items-center gap-0.5 shrink-0"
                     onClick={(e) => e.stopPropagation()}
@@ -203,7 +191,6 @@ function BucketSection({ bucket, recruiterProfile, recruiterTimezone }: { bucket
                     </p>
                 ) : (
                     <>
-                        {/* Headers */}
                         <div className="grid grid-cols-12 gap-3 px-3 mb-1 text-[10px] font-bold text-text-muted uppercase tracking-wider">
                             <div className="col-span-5">Candidate</div>
                             <div className="col-span-3">{col2Header}</div>
@@ -239,10 +226,6 @@ function BucketSection({ bucket, recruiterProfile, recruiterTimezone }: { bucket
         </div>
     );
 }
-
-// ---------------------------------------------------------------------------
-// Main Widget
-// ---------------------------------------------------------------------------
 
 interface InviteProgressWidgetProps {
     sessions: SessionSummary[];

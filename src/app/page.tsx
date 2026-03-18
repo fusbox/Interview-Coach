@@ -11,17 +11,10 @@ import BrandLogo from '@/components/brand/BrandLogo';
 export default function Home() {
     return (
         <div className="flex flex-col items-center justify-between min-h-[100dvh] bg-background font-sans p-6 md:p-12">
-
-            {/* Top Spacer / decorative (optional, can be empty) */}
             <div className="flex-1" />
 
-            {/* Main Content */}
             <div className="w-full max-w-2xl flex flex-col items-center text-center space-y-12">
-
-                {/* Brand Lockup */}
                 <div className="flex flex-col items-center gap-1">
-
-                    {/* Hero Logo (Orb) */}
                     <motion.div
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -38,10 +31,6 @@ export default function Home() {
                     </motion.div>
 
                     <BrandLogo />
-
-
-
-                    {/* Tagline Lockup */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -62,7 +51,6 @@ export default function Home() {
                     </motion.div>
                 </div>
 
-                {/* Actions */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -88,9 +76,7 @@ export default function Home() {
                 </motion.div>
             </div>
 
-            {/* Bottom Spacer */}
             <div className="flex-1" />
-
         </div>
     );
 }

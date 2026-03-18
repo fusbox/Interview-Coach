@@ -12,6 +12,7 @@ export default function InitialsScreen() {
     const [initials, setInitials] = useState('');
     const [isFocused, setIsFocused] = useState(false);
     const [isStarting, setIsStarting] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         // Only allow letters, max 2 chars
@@ -25,6 +26,7 @@ export default function InitialsScreen() {
     const handleBegin = async () => {
         if (initials.length > 0) {
             setIsStarting(true);
+            setErrorMessage(null);
             // Unlock AudioContext on this user gesture, then immediately prefetch Q1
             // so audio is buffered before the session screen mounts.
             audioEngine.unlock().then(() => {
@@ -34,8 +36,8 @@ export default function InitialsScreen() {
             });
             try {
                 await submitInitials(initials);
-            } catch (err) {
-                console.error('Failed to submit initials', err);
+            } catch {
+                setErrorMessage("We couldn't start the session right now. Please try again.");
                 setIsStarting(false);
             }
         }
@@ -104,6 +106,11 @@ export default function InitialsScreen() {
                     <label htmlFor="initials-input" className="block text-lg font-medium text-foreground">
                         Enter your initials to begin
                     </label>
+                    {errorMessage && (
+                        <div className="rounded-2xl border border-state-critical/20 bg-state-critical/5 px-4 py-3 text-sm font-medium text-state-critical">
+                            {errorMessage}
+                        </div>
+                    )}
                     <div className="relative group">
                         <input
                             id="initials-input"

@@ -12,8 +12,8 @@ export interface Competency {
     id: string;
     title: string;
     description: string;
-    name?: string; // Compatibility alias for title
-    definition?: string; // Compatibility alias for description
+    name?: string;
+    definition?: string;
 }
 
 export interface Blueprint {
@@ -26,39 +26,32 @@ export interface Blueprint {
     };
 }
 
-/**
- * Canonical Question Entity
- */
 export interface Question {
     id: string;
     text: string;
-    category: string; // e.g. "Behavioral", "Technical"
-    framework?: string; // e.g. "STAR", "Problem-Solving"
+    category: string;
+    framework?: string;
     competencyId?: string;
     difficulty?: string;
-    index: number; // 0-based index
+    index: number;
     tips?: QuestionTips;
 }
 
 export interface QuestionTips {
-    doThis: string;    // 1-2 sentences: the key differentiator action
-    avoidThis: string; // 1-2 sentences: the most common trap
-    __debugPrompt?: string; // Captured LLM payload for runtime AI introspection
+    doThis: string;
+    avoidThis: string;
+    __debugPrompt?: string;
 }
 
 export interface StrongResponseResult {
     strongResponse: string;
     whyThisWorks: string;
-    __debugPrompt?: string; // Captured LLM payload for runtime AI introspection
+    __debugPrompt?: string;
 }
-
-/**
- * Canonical Answer Entity
- */
 export interface Answer {
     questionId: string;
-    transcript?: string; // Final text
-    audioUrl?: string; // Optional audio ref
+    transcript?: string;
+    audioUrl?: string;
     submittedAt?: number;
     analysis?: AnalysisResult;
     draft?: string;
@@ -72,8 +65,8 @@ import { Dimension } from '../constants';
 export type { Dimension };
 
 export interface DimensionScore {
-    score: number; // 1-5
-    label: string; // The LLM's brief reasoning for this specific score
+    score: number;
+    label: string;
 }
 
 export interface TaggedObservation {
@@ -87,47 +80,37 @@ export interface CoachingPulse {
     dimension: Dimension;
     headline: string;
     body: string;
-    quote?: string; // Required for content, forbidden for delivery (prompt enforced)
+    quote?: string;
 }
-
-/**
- * Analysis Result (Model Output)
- */
 export interface AnalysisResult {
-    // New Feedback Schema V2
     ack?: string;
     scores?: Record<Dimension, DimensionScore>;
 
-    // The "Pulse" (In-Session High-Impact Coaching)
     contentPulse?: CoachingPulse;
-    deliveryPulse?: CoachingPulse; // Optional: Only triggered on exception (high/low signal)
+    deliveryPulse?: CoachingPulse;
 
     nextAction?: {
         label: string;
         actionType: 'redo_answer' | 'next_question' | 'practice_example' | 'stop_for_now';
     };
-    recommendation?: string; // Narrative summary for the "Next Step" slide
+    recommendation?: string;
     meta?: {
         tier: 0 | 1 | 2;
         modality: 'text' | 'voice';
         signalQuality?: 'insufficient' | 'emerging' | 'reliable' | 'strong';
         confidence?: 'low' | 'medium' | 'high';
-        readinessLevel?: string; // RL1..RL4
+        readinessLevel?: string;
     };
 
     transcript?: string;
-    __debugPrompt?: string; // Captured LLM payload for runtime AI introspection
+    __debugPrompt?: string;
 
     readinessBand?: 'RL1' | 'RL2' | 'RL3' | 'RL4';
     coachReaction?: string;
 }
-
-/**
- * Canonical Interview Session
- */
 export interface InterviewSession {
     id: string;
-    recruiterId?: string; // Added for ownership check
+    recruiterId?: string;
     candidateName?: string;
     role: string;
     jobDescription?: string;
@@ -135,34 +118,30 @@ export interface InterviewSession {
     readinessBand?: string | null;
     summaryNarrative?: string | null;
 
-    // The Data
     questions: Question[];
     currentQuestionIndex: number;
-    answers: Record<string, Answer>; // Keyed by questionId
+    answers: Record<string, Answer>;
 
-    // Minimal config truth
     initialsRequired: boolean;
     enteredInitials?: string;
     coachingPreference?: 'tier0' | 'tier1' | 'tier2';
 
-    // Identity
     candidate?: {
         firstName: string;
         lastName: string;
         email: string;
         resumeText?: string;
     };
-    inviteToken?: string; // Persisted plain token for "Copy Link"
+    inviteToken?: string;
     viewedAt?: number;
     updatedAt?: number;
     engagedTimeSeconds?: number;
     engagedTimeDelta?: number;
-    intakeData?: Record<string, unknown>; // Full intake JSON for context
+    intakeData?: Record<string, unknown>;
 
-    // Lineage & Metadata
     parentSessionId?: string;
-    attemptNumber?: number; // 1-based index (default 1)
-    clientName?: string; // For future filtering
+    attemptNumber?: number;
+    clientName?: string;
 }
 
 export interface SessionSummary {

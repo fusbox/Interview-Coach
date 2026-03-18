@@ -30,6 +30,7 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
     const [showCopySuccess, setShowCopySuccess] = useState(false);
+    const [feedbackError, setFeedbackError] = useState<string | null>(null);
 
     // Dynamic Greeting Logic
     const welcomeText = useMemo(() => {
@@ -57,6 +58,7 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
     const handleRatingSelect = async (val: number) => {
         setRating(val);
         setShowSuccess(false);
+        setFeedbackError(null);
         // Auto-capture on tap
         try {
             await captureFeedbackAction({
@@ -67,8 +69,8 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
             });
             setShowSuccess(true);
             setTimeout(() => setShowSuccess(false), 2000);
-        } catch (err) {
-            console.error('Failed to capture baseline feedback', err);
+        } catch {
+            setFeedbackError("We couldn't save that response right now. You can still continue.");
         }
     };
 
@@ -192,6 +194,12 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                                 <p className="text-lg font-medium text-text-primary text-left">How prepared do you feel for your upcoming interview?</p>
                             </div>
                         </div>
+
+                        {feedbackError && (
+                            <div className="rounded-2xl border border-state-critical/20 bg-state-critical/5 px-4 py-3 text-sm font-medium text-state-critical">
+                                {feedbackError}
+                            </div>
+                        )}
 
                         <div className="flex items-center justify-between gap-2 w-full">
                             {EMOJI_SCALE.map(({ val, emoji }) => (

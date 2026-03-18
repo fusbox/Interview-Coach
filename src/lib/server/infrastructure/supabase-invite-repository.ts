@@ -10,7 +10,6 @@ export class SupabaseInviteRepository implements InviteRepository {
     async create(invite: Invite, client?: SupabaseClient): Promise<void> {
         const supabase = client || createClient();
 
-        // 1. Create Session
         const { data: sessionData, error: sessionError } = await supabase
             .from('sessions')
             .insert({
@@ -19,7 +18,6 @@ export class SupabaseInviteRepository implements InviteRepository {
                 target_role: invite.role,
                 job_description: invite.jobDescription,
                 status: 'NOT_STARTED',
-                // Store candidate info in intake_json
                 intake_json: {
                     candidate: invite.candidate,
                     invite_token: encrypt(invite.token)
@@ -32,7 +30,6 @@ export class SupabaseInviteRepository implements InviteRepository {
             throw new Error(`Supabase Session Create Error: ${sessionError.message}`);
         }
 
-        // 2. Insert Questions
         if (invite.questions && invite.questions.length > 0) {
             const qRows = invite.questions.map(q => ({
                 session_id: invite.id,
@@ -45,7 +42,6 @@ export class SupabaseInviteRepository implements InviteRepository {
             if (qError) throw new Error(`Supabase Questions Create Error: ${qError.message}`);
         }
 
-        // 3. Create Candidate Token
         const tokenHash = hashToken(invite.token);
 
         const { error: tokenError } = await supabase
@@ -64,7 +60,6 @@ export class SupabaseInviteRepository implements InviteRepository {
         const supabase = createClient();
         const tokenHash = hashToken(token);
 
-        // Debug: Separate queries to isolate RLS issues
         const { data: tokenData, error: tokenError } = await supabase
             .from('candidate_tokens')
             .select('session_id')
@@ -74,8 +69,6 @@ export class SupabaseInviteRepository implements InviteRepository {
         if (tokenError || !tokenData) {
             return null;
         }
-
-
         const { data: sessionData, error: sessionError } = await supabase
             .from('sessions')
             .select('session_id, target_role, job_description, recruiter_id, created_at, intake_json')
@@ -90,14 +83,8 @@ export class SupabaseInviteRepository implements InviteRepository {
             return null;
         }
 
-        const data = { sessions: sessionData }; // Shim for existing logic below
+        const data = { sessions: sessionData };
 
-        // Skip the original join query
-        /* 
-        const { data, error } = await supabase ...
-        */
-
-        // Define row shapes for Supabase data
         interface SessionRow {
             session_id: string;
             target_role: string;
@@ -125,7 +112,6 @@ export class SupabaseInviteRepository implements InviteRepository {
 
         const session = data.sessions as SessionRow;
 
-        // Fetch questions separately to ensure order
         const { data: qData } = await supabase
             .from('questions')
             .select('*')
@@ -138,7 +124,6 @@ export class SupabaseInviteRepository implements InviteRepository {
             category: q.category || q.competencies?.category || "General"
         }));
 
-        // Extract candidate from intake_json
         const rawCandidate = session.intake_json?.candidate || {};
         const candidate = {
             firstName: rawCandidate.firstName || rawCandidate.name?.split(' ')[0] || "",
@@ -153,8 +138,8 @@ export class SupabaseInviteRepository implements InviteRepository {
             token: token,
             role: session.target_role,
             jobDescription: session.job_description,
-            candidate: candidate, // Add candidate
-            questions: questions, // Add questions
+            candidate: candidate,
+            questions: questions,
             createdBy: session.recruiter_id,
             createdAt: new Date(session.created_at).getTime()
         };

@@ -86,10 +86,7 @@ const TranscriptPanel: React.FC<{
                 <div className="flex items-center gap-2">
                     {audioBlob && (
                         <button
-                            onClick={() => {
-                                console.log("[TranscriptPanel] Listen button clicked", { isPlaying });
-                                togglePlayback();
-                            }}
+                            onClick={togglePlayback}
                             className={cn(
                                 'inline-flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all text-xs font-black uppercase',
                                 isPlaying
@@ -238,6 +235,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
 }) => {
     const { session } = useSession();
     const [isPlaying, setIsPlaying] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [activeSection, setActiveSection] = useState<SectionKey>('start');
     const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
     const [, setHasExplored] = useState(false);
@@ -279,12 +277,13 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                 audioRef.current.onended = () => {
                     setIsPlaying(false);
                 };
-                audioRef.current.onerror = (e) => {
-                    console.error("[Audio] Playback error:", e);
+                audioRef.current.onerror = () => {
+                    setErrorMessage("We couldn't play back your recorded answer.");
                     setIsPlaying(false);
                 };
             } catch (err) {
                 console.error("[Audio] Failed to create Audio object:", err);
+                setErrorMessage("We couldn't prepare your recorded answer for playback.");
                 return;
             }
         }
@@ -295,10 +294,12 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
         } else {
             audioRef.current.play()
                 .then(() => {
+                    setErrorMessage(null);
                     setIsPlaying(true);
                 })
                 .catch(err => {
                     console.error("[Audio] Playback failed:", err);
+                    setErrorMessage("We couldn't play back your recorded answer.");
                     setIsPlaying(false);
                 });
         }
@@ -309,6 +310,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
         audioEngine.unlock();
         setHelpfulness(prev => ({ ...prev, [type]: val }));
         setSavedTypes(prev => ({ ...prev, [type]: false }));
+        setErrorMessage(null);
         try {
             await captureFeedbackAction({
                 sessionId: session?.id,
@@ -325,6 +327,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
             }, 2000);
         } catch (err) {
             console.error('Failed to capture helpfulness', err);
+            setErrorMessage("We couldn't save that feedback right now. Please try again.");
         }
     };
 
@@ -344,6 +347,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
             setActiveSection('start');
             setIsTranscriptOpen(false);
             setHelpfulness({});
+            setErrorMessage(null);
             if (audioRef.current) {
                 audioRef.current.pause();
                 audioRef.current = null;
@@ -369,7 +373,6 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
 
     useEffect(() => {
         if (!audioBlob && audioRef.current) {
-            console.log("[FeedbackDrawer] Clearing audioRef because audioBlob became null");
             audioRef.current.pause();
             audioRef.current = null;
             setIsPlaying(false);
@@ -493,6 +496,11 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                     <div id={dialogDescriptionId} className="sr-only">
                         Review your coach feedback and choose whether to continue or retry this answer.
                     </div>
+                    {errorMessage && (
+                        <div className="absolute top-4 left-4 right-4 z-50 rounded-2xl border border-state-critical/20 bg-state-critical/5 px-4 py-3 text-sm font-medium text-state-critical md:left-8 md:right-8">
+                            {errorMessage}
+                        </div>
+                    )}
                     {/* ── Main Layout (Vertical Split: Header + Content) ─────────────────── */}
                     <div className="flex-1 flex flex-col min-w-0 bg-transparent relative">
                         {/* Progress Nav */}

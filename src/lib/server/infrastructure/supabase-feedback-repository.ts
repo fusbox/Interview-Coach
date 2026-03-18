@@ -23,7 +23,6 @@ export class SupabaseFeedbackRepository {
             metadata: record.metadata || {}
         };
 
-        // If we have a sessionId, we should upsert to avoid duplicate feedback for the same type
         if (record.sessionId) {
             const { error } = await this.supabase
                 .from('user_feedback')
@@ -34,7 +33,6 @@ export class SupabaseFeedbackRepository {
 
             if (!error) return;
 
-            // Fallback to insert if upsert fails (e.g. missing unique constraint in DB)
             Logger.warn("Feedback upsert failed; falling back to insert", {
                 error,
                 errorCode: "FEEDBACK_UPSERT_FALLBACK"

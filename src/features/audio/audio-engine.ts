@@ -45,7 +45,6 @@ class AudioEngine {
                 (window as unknown as WebkitWindow).webkitAudioContext;
 
             if (!AudioCtx) {
-                console.warn('[AudioEngine] AudioContext not supported');
                 return;
             }
 
@@ -61,7 +60,6 @@ class AudioEngine {
             // Verify state after resume attempt
             if (this.ctx.state === 'running') {
                 this.state = 'unlocked';
-                console.log('[AudioEngine] Unlocked');
             }
         } catch (err) {
             console.error('[AudioEngine] Unlock failed:', err);
@@ -71,7 +69,6 @@ class AudioEngine {
     /** Fetch TTS audio (or use cache) and play it. */
     async play(id: string, text: string, auth?: CandidateAudioAuth): Promise<void> {
         if (this.state !== 'unlocked' || !this.ctx) {
-            console.warn('[AudioEngine] Not unlocked. Call unlock() first.');
             return;
         }
 
@@ -122,8 +119,7 @@ class AudioEngine {
     /** Prefetch audio for a question (fire-and-forget). */
     prefetch(id: string, text: string, auth?: CandidateAudioAuth): void {
         if (!this.ctx || this.cache.has(id) || this.pending.has(id)) return;
-        
-        console.log(`[AudioEngine] Pre-fetching audio for: "${id}"`);
+
         // Fire-and-forget — just populate cache
         this.getOrFetch(id, text, auth).catch(() => { /* swallow */ });
     }
@@ -179,7 +175,6 @@ class AudioEngine {
     private async fetchAndDecode(id: string, text: string, auth?: CandidateAudioAuth): Promise<AudioBuffer> {
         if (!this.ctx) throw new Error('AudioContext not initialized');
 
-        console.log(`[AudioEngine] Sending text for TTS processing: "${id}"`);
         const startTime = performance.now();
         const headers: Record<string, string> = {
             'Content-Type': 'application/json',
@@ -205,12 +200,11 @@ class AudioEngine {
 
         const arrayBuffer = await response.arrayBuffer();
         const networkTime = performance.now() - startTime;
-        
+
         const decodeStartTime = performance.now();
         const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
-        const decodeTime = performance.now() - decodeStartTime;
-
-        console.log(`[AudioEngine] Cached audio for "${id}" (Duration: ${audioBuffer.duration.toFixed(1)}s, Network: ${networkTime.toFixed(0)}ms, Decode: ${decodeTime.toFixed(0)}ms)`);
+        void networkTime;
+        void decodeStartTime;
         return audioBuffer;
     }
 }

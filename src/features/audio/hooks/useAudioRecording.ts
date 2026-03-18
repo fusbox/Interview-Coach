@@ -6,14 +6,16 @@ export const useAudioRecording = () => {
     const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
     const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
     const [permissionError, setPermissionError] = useState<boolean>(false);
+    const [permissionMessage, setPermissionMessage] = useState<string | null>(null);
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
 
     const warmUp = useCallback(async () => {
-        if (mediaStream) return mediaStream; // Already warmed up
+        if (mediaStream) return mediaStream;
 
         setPermissionError(false);
+        setPermissionMessage(null);
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             setMediaStream(stream);
@@ -21,6 +23,7 @@ export const useAudioRecording = () => {
         } catch (err) {
             console.error('Error warming up microphone:', err);
             setPermissionError(true);
+            setPermissionMessage("Microphone access is blocked or unavailable. Check browser permissions or switch to text mode.");
             return null;
         }
     }, [mediaStream]);
@@ -28,9 +31,9 @@ export const useAudioRecording = () => {
     const startRecording = useCallback(async () => {
         setIsInitializing(true);
         setPermissionError(false);
+        setPermissionMessage(null);
 
         try {
-            // Use existing stream if available (warmUp), otherwise get new one
             let stream = mediaStream;
             if (!stream || !stream.active) {
                 stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -50,11 +53,6 @@ export const useAudioRecording = () => {
             mediaRecorder.onstop = () => {
                 const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
                 setAudioBlob(blob);
-
-                // Stop the stream tracks only on total stop, or let stopRecording handle it
-                // Actually, if we want to "keep it warm", we might NOT stop the tracks immediately
-                // but for security and battery we usually should if we aren't planning to record again soon.
-                // For now, we follow the previous logic of stopping it on stop.
             };
 
             mediaRecorder.start();
@@ -63,6 +61,7 @@ export const useAudioRecording = () => {
         } catch (err) {
             console.error('Error accessing microphone:', err);
             setPermissionError(true);
+            setPermissionMessage("We couldn't access your microphone. Check permissions or switch to text mode.");
             setIsRecording(false);
             return null;
         } finally {
@@ -87,7 +86,6 @@ export const useAudioRecording = () => {
                 };
                 mediaRecorderRef.current.stop();
             } else {
-                // Safe cleanup if stream exists but recorder didn't start
                 if (mediaStream) {
                     mediaStream.getTracks().forEach((track) => track.stop());
                     setMediaStream(null);
@@ -118,5 +116,6 @@ export const useAudioRecording = () => {
         resetAudio,
         mediaStream,
         permissionError,
+        permissionMessage,
     };
 };

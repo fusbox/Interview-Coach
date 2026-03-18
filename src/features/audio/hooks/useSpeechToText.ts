@@ -57,7 +57,6 @@ export const useSpeechToText = () => {
             recognitionRef.current.lang = 'en-US';
 
             recognitionRef.current.onstart = () => {
-                console.log("[STT] Speech Recognition Started");
                 setIsListening(true);
             };
 
@@ -70,7 +69,6 @@ export const useSpeechToText = () => {
                 for (let i = 0; i < event.results.length; ++i) {
                     currentTranscript += event.results[i][0].transcript;
                 }
-                console.log(`[STT] Result received: "${currentTranscript.slice(0, 20)}..."`);
                 setTranscript(currentTranscript);
             };
 
@@ -89,12 +87,10 @@ export const useSpeechToText = () => {
             };
 
             recognitionRef.current.onend = () => {
-                console.log("[STT] Speech Recognition Ended");
                 setIsListening(false);
                 acceptResultsRef.current = false;
             };
         } else {
-            console.warn('[STT] Browser does not support speech recognition');
             setError('Browser does not support speech recognition');
         }
 
@@ -112,7 +108,6 @@ export const useSpeechToText = () => {
             return;
         }
 
-        console.log("[STT] Requesting Start");
         setError(null);
         setTranscript('');
         acceptResultsRef.current = true;
@@ -126,7 +121,6 @@ export const useSpeechToText = () => {
 
     const stopListening = useCallback(() => {
         if (recognitionRef.current) {
-            console.log("[STT] Requesting Stop");
             recognitionRef.current.stop();
         }
     }, []);
@@ -138,7 +132,6 @@ export const useSpeechToText = () => {
         }
 
         if (recognitionRef.current) {
-            console.log("[STT] Requesting Abort");
             recognitionRef.current.abort();
         }
 

@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { StrongResponseResult } from '@/lib/domain/types';
 import { Logger } from '@/lib/logger';
 
-// Caching Key Prefix
 const CACHE_KEY_PREFIX = 'strong_response_';
 
 export interface StrongResponseState {
@@ -30,7 +29,6 @@ export function useStrongResponse(
     const fetchStrongResponse = useCallback(async () => {
         if (!questionId || !questionText || !sessionId || !candidateToken || isFetchingRef.current) return;
 
-        // Check Cache
         const cacheKey = `${CACHE_KEY_PREFIX}${questionId}`;
         const cached = sessionStorage.getItem(cacheKey);
 
@@ -65,7 +63,6 @@ export function useStrongResponse(
 
             const data: StrongResponseResult = await response.json();
 
-            // Update Cache
             try {
                 sessionStorage.setItem(cacheKey, JSON.stringify(data));
             } catch (e) {
@@ -87,7 +84,6 @@ export function useStrongResponse(
         }
     }, [questionId, questionText, sessionId, candidateToken, role, resumeText]);
 
-    // Reset when question changes
     useEffect(() => {
         isFetchingRef.current = false;
         setState({ data: null, isLoading: false, error: null });

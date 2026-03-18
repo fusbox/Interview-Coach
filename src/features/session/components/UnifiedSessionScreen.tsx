@@ -102,7 +102,7 @@ export default function UnifiedSessionScreen() {
         session?.role || "Product Manager",
         resumeText
     );
-    const { transcript, startListening, stopListening, abortListening } = useSpeechToText();
+    const { transcript, startListening, stopListening, abortListening, error: speechError } = useSpeechToText();
     const {
         isRecording,
         isInitializing: isRecordingInitializing,
@@ -111,7 +111,9 @@ export default function UnifiedSessionScreen() {
         warmUp,
         resetAudio,
         mediaStream,
-        audioBlob
+        audioBlob,
+        permissionError,
+        permissionMessage
     } = useAudioRecording();
 
     const {
@@ -157,6 +159,20 @@ export default function UnifiedSessionScreen() {
             questionRegionRef.current?.focus();
         }
     }, [currentQuestionId, currentQuestionText, currentQuestionIndex, abortListening]);
+
+    useEffect(() => {
+        if (permissionError && permissionMessage) {
+            setErrorMessage(permissionMessage);
+            setLiveMessage(permissionMessage);
+        }
+    }, [permissionError, permissionMessage]);
+
+    useEffect(() => {
+        if (speechError) {
+            setErrorMessage(speechError);
+            setLiveMessage(speechError);
+        }
+    }, [speechError]);
 
     // Mic Warm-up Optimization
     useEffect(() => {
