@@ -102,7 +102,7 @@ export default function UnifiedSessionScreen() {
         session?.role || "Product Manager",
         resumeText
     );
-    const { transcript, resetTranscript, startListening, stopListening } = useSpeechToText();
+    const { transcript, startListening, stopListening, abortListening } = useSpeechToText();
     const {
         isRecording,
         isInitializing: isRecordingInitializing,
@@ -149,12 +149,14 @@ export default function UnifiedSessionScreen() {
     }, [currentQuestionId]);
 
     useEffect(() => {
+        abortListening({ resetTranscript: true });
+        setAnswerText('');
         setErrorMessage(null);
         if (currentQuestionText) {
             setLiveMessage(`Question ${currentQuestionIndex + 1} loaded.`);
             questionRegionRef.current?.focus();
         }
-    }, [currentQuestionId, currentQuestionText, currentQuestionIndex]);
+    }, [currentQuestionId, currentQuestionText, currentQuestionIndex, abortListening]);
 
     // Mic Warm-up Optimization
     useEffect(() => {
@@ -164,11 +166,11 @@ export default function UnifiedSessionScreen() {
         return () => {
             // Reset audio and speech-to-text when switching modes
             if (mode !== 'voice') {
-                stopListening();
+                abortListening({ resetTranscript: true });
                 resetAudio();
             }
         };
-    }, [mode, isRecording, warmUp, hasSubmitted, resetAudio, stopListening]);
+    }, [mode, isRecording, warmUp, hasSubmitted, resetAudio, abortListening]);
 
     // Auto-play question audio on entry
     useEffect(() => {
@@ -262,8 +264,7 @@ export default function UnifiedSessionScreen() {
 
             // Reset local state buffers
             if (mode === 'voice') {
-                stopListening();
-                resetTranscript();
+                abortListening({ resetTranscript: true });
             } else {
                 setAnswerText('');
             }
@@ -280,7 +281,7 @@ export default function UnifiedSessionScreen() {
     const handleRetry = () => {
         setIsDrawerOpen(false);
         setAnswerText('');
-        resetTranscript();
+        abortListening({ resetTranscript: true });
         resetAudio();
         setErrorMessage(null);
         setLiveMessage('Retrying the current question.');
@@ -291,7 +292,7 @@ export default function UnifiedSessionScreen() {
     const handleNext = () => {
         setIsDrawerOpen(false);
         setAnswerText('');
-        resetTranscript();
+        abortListening({ resetTranscript: true });
         resetAudio();
         setErrorMessage(null);
         setLiveMessage('Moving to the next question.');
@@ -452,8 +453,7 @@ export default function UnifiedSessionScreen() {
                                                     onClick={() => {
                                                         audioEngine.unlock();
                                                         setMode('text');
-                                                        stopListening();
-                                                        resetTranscript();
+                                                        abortListening({ resetTranscript: true });
                                                         resetAudio();
                                                         trackEvent('tier2', 'mode_text');
                                                     }}
@@ -554,7 +554,7 @@ export default function UnifiedSessionScreen() {
                                                     {!isRecording && audioBlob && (
                                                         <div className="flex gap-4 items-center animate-in fade-in zoom-in duration-300">
                                                             <Button
-                                                                onClick={() => { resetTranscript(); resetAudio(); }}
+                                                                onClick={() => { abortListening({ resetTranscript: true }); resetAudio(); }}
                                                                 variant="outline"
                                                                 className="px-8 h-14 rounded-2xl bg-surface-base border-border text-text-secondary hover:bg-surface-subtle"
                                                             >

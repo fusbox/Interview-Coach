@@ -40,6 +40,7 @@ export const useSpeechToText = () => {
     const [transcript, setTranscript] = useState('');
     const [error, setError] = useState<string | null>(null);
     const recognitionRef = useRef<SpeechRecognition | null>(null);
+    const acceptResultsRef = useRef(false);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -61,6 +62,10 @@ export const useSpeechToText = () => {
             };
 
             recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+                if (!acceptResultsRef.current) {
+                    return;
+                }
+
                 let currentTranscript = '';
                 for (let i = 0; i < event.results.length; ++i) {
                     currentTranscript += event.results[i][0].transcript;
@@ -86,6 +91,7 @@ export const useSpeechToText = () => {
             recognitionRef.current.onend = () => {
                 console.log("[STT] Speech Recognition Ended");
                 setIsListening(false);
+                acceptResultsRef.current = false;
             };
         } else {
             console.warn('[STT] Browser does not support speech recognition');
@@ -94,6 +100,7 @@ export const useSpeechToText = () => {
 
         return () => {
             if (recognitionRef.current) {
+                acceptResultsRef.current = false;
                 recognitionRef.current.abort();
             }
         };
@@ -108,6 +115,7 @@ export const useSpeechToText = () => {
         console.log("[STT] Requesting Start");
         setError(null);
         setTranscript('');
+        acceptResultsRef.current = true;
 
         try {
             recognitionRef.current.start();
@@ -123,8 +131,18 @@ export const useSpeechToText = () => {
         }
     }, []);
 
-    const resetTranscript = useCallback(() => {
-        setTranscript('');
+    const abortListening = useCallback((options?: { resetTranscript?: boolean }) => {
+        acceptResultsRef.current = false;
+        if (options?.resetTranscript) {
+            setTranscript('');
+        }
+
+        if (recognitionRef.current) {
+            console.log("[STT] Requesting Abort");
+            recognitionRef.current.abort();
+        }
+
+        setIsListening(false);
     }, []);
 
     return {
@@ -132,7 +150,7 @@ export const useSpeechToText = () => {
         transcript,
         startListening,
         stopListening,
-        resetTranscript,
+        abortListening,
         error,
         isSupported: !!recognitionRef.current
     };
