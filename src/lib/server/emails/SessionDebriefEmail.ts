@@ -64,7 +64,7 @@ export function renderSessionDebriefEmail({
     </table>
 
     <h1 style="font-size: 24px; font-weight: bold; line-height: 1.2; margin-bottom: 24px; color: #1a1a1a;">
-      Your Interview Prep Debrief is Ready
+      Your Interview Prep Summary is Ready
     </h1>
 
     <p style="font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
