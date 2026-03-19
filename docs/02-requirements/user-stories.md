@@ -25,13 +25,13 @@ User stories organized by persona, prioritized using MoSCoW (Must/Should/Could/W
 #### Acceptance Criteria
 
 - [x] Recruiter can paste the job description
-- [x] Recruiter can optionally select the job role from a predefined list
-  *(NOTE: Implemented template creation for easy reuse of question sets by role)*
-- [x] Recruiter can optionally customize session settings (question count, difficulty)
-  *(NOTE: Difficulty config now out of scope for this phase)*
+- [x] Recruiter can optionally select the job role from a predefined list*
+> *\*NOTE: We've implemented **template creation** for easy reuse of question sets by role*
+- [x] Recruiter can optionally customize session settings (question count, difficulty)*
+> *\*NOTE: Difficulty config now **out of scope** for this phase*
 - [x] System generates a unique, shareable link
 - [x] Link is easy to copy to clipboard
-  *(NOTE: Now addressed with in-app email service for send/resend)*
+> *\*NOTE: Now addressed with **in-app email service** for send/resend*
 - [x] Invite is saved to recruiter's invite list
 
 ---
@@ -45,7 +45,7 @@ User stories organized by persona, prioritized using MoSCoW (Must/Should/Could/W
 - [x] Recruiter sees a list of all invites they've created
 - [x] Each invite shows: role, creation date, status (pending/completed/expired)
 - [x] List is sorted by most recent first
-  *(NOTE: All table columns fully sortable)*
+> *\*NOTE: All table columns fully sortable*
 
 ---
 
@@ -70,16 +70,17 @@ User stories organized by persona, prioritized using MoSCoW (Must/Should/Could/W
 
 ### US-2.1: View Completed Session Summary ⭐ MUST
 >
-> As a **Recruiter**, I want to **see the transcript of a candidate’s responses** so that **I can quickly assess readiness and decide how to proceed with screening**.
+> As a **Recruiter**, I want to **view the transcript of a candidate’s responses** so that **I can quickly assess readiness and decide how to proceed with screening**.
 
 #### Acceptance Criteria
 
-- [ ] Recruiter can open results for any completed session
-- [ ] Summary is understandable in ≤ 30 seconds
-- [ ] Summary includes exactly one primary readiness indicator
-- [ ] Summary does not display numeric scores, percentages, grades, or rankings
+- [x] Recruiter can open results for any completed session
+- [x] Session details show each question and the transcript of their voice or text answer.
+- [x] Details do not show coach feedback, which is intended as private guidance for skill development
 
-**Primary Readiness Indicator**
+
+**OUT OF SCOPE**
+~~**Primary Readiness Indicator**~~
 
 - [ ] Displayed as a categorical band, one of:
   - Ready
@@ -89,14 +90,16 @@ User stories organized by persona, prioritized using MoSCoW (Must/Should/Could/W
 - [ ] Category definitions are consistent across all sessions
 - [ ] Indicator language emphasizes preparation, not assessment or hiring decisions
 
-**Supporting Signals (Structured, Non-Numeric)**
+**OUT OF SCOPE**
+~~**Supporting Signals (Structured, Non-Numeric)**~~
 
 - [ ] Display 2–3 short descriptors summarizing observed patterns
 - [ ] Descriptors are written in plain language (≤ 8 words each)
 - [ ] Descriptors reflect communication quality and preparedness, not “pass/fail”
 - [ ] Descriptors are generated using a constrained template (not free-form)
 
-**Descriptive Summary (Progressive Disclosure)**
+**OUT OF SCOPE**
+~~**Descriptive Summary (Progressive Disclosure)**~~
 
 - [ ] Recruiter can optionally expand to view a short narrative summary
 - [ ] Narrative focuses on:
@@ -110,18 +113,6 @@ User stories organized by persona, prioritized using MoSCoW (Must/Should/Could/W
 - [ ] No per-question numeric scores
 - [ ] No comparative ranking between candidates
 - [ ] No hiring recommendations or submission decisions
-
----
-
-### US-2.2: View Detailed Question Results 📋 SHOULD
->
-> As a **Recruiter**, I want to **see how a candidate answered each question** so that **I can identify specific strengths and areas to probe**.
-
----
-
-### US-2.3: Export/Share Results 💭 COULD
->
-> As a **Recruiter**, I want to **export or share session results** so that **I can include them in candidate files**.
 
 ---
 
