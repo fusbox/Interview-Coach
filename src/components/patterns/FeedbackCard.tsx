@@ -80,10 +80,10 @@ export function FeedbackCard({
     return (
         <div className={cn(
             "relative flex flex-wrap items-center justify-between gap-4 md:gap-6 p-5 md:p-6 rounded-[2rem] border transition-all duration-500",
-            "bg-purple-50/50 dark:bg-purple-900/10 border-purple-100 dark:border-purple-800/30 shadow-sm hover:shadow-md",
+            "bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-800/30 shadow-sm hover:shadow-md",
             className
         )}>
-            <span className="text-base md:text-lg font-bold text-purple-900/80 dark:text-purple-100/80">
+            <span className="text-base md:text-lg font-bold text-purple-950 dark:text-purple-100">
                 {title}
             </span>
             <div className="flex flex-col items-center gap-3">
@@ -99,7 +99,7 @@ export function FeedbackCard({
                                     scaleType === 'emoji' ? "text-3xl" : "text-xl font-black font-display",
                                     rating === val
                                         ? "bg-white dark:bg-purple-900 border-purple-400/50 shadow-lg scale-110 saturate-100 opacity-100 text-purple-600"
-                                        : "bg-transparent border-transparent text-text-muted hover:border-purple-200 hover:scale-105 saturate-80 opacity-80 hover:saturate-100 hover:opacity-100",
+                                        : "bg-transparent border-purple-200 text-text-secondary hover:border-purple-300 hover:scale-105",
                                     (isSubmitting || showSuccess) && "pointer-events-none"
                                 )}
                                 title={`Rate ${val}/5`}
@@ -112,7 +112,7 @@ export function FeedbackCard({
                     </div>
                     
                     {(lowLabel || highLabel) && (
-                        <div className="flex justify-between w-full px-1 text-[10px] font-bold uppercase tracking-widest text-purple-900/40 dark:text-purple-100/40">
+                        <div className="flex justify-between w-full px-1 text-[10px] font-bold uppercase tracking-widest text-purple-950/70 dark:text-purple-100/70">
                             <span>{lowLabel}</span>
                             <span>{highLabel}</span>
                         </div>

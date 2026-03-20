@@ -18,25 +18,25 @@ const ASSESSMENT_CONFIG = {
         variant: "high",
         label: "Outstanding",
         icon: Sparkles,
-        color: "text-state-success"
+        color: "text-emerald-800 dark:text-emerald-200"
     },
     satisfactory: {
         variant: "medium",
         label: "Satisfactory",
         icon: CheckCircle2,
-        color: "text-state-info"
+        color: "text-sky-800 dark:text-sky-200"
     },
     growth: {
         variant: "low",
         label: "Growth Opportunity",
         icon: Target,
-        color: "text-state-warning"
+        color: "text-amber-900 dark:text-amber-200"
     },
     critical: {
         variant: "destructive",
         label: "Critical Issue",
         icon: AlertTriangle,
-        color: "text-state-critical"
+        color: "text-rose-800 dark:text-rose-200"
     }
 } as const
 

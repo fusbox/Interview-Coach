@@ -69,14 +69,14 @@ const LoaderCore = ({
                         <div className="shrink-0 transition-all duration-500">
                             {isFuture && <CheckIcon className="text-text-muted" />}
                             {isCurrent && <CheckFilled className="text-primary dark:text-primary-foreground animate-pulse" />}
-                            {isCompleted && <CheckFilled className="text-state-success" />}
+                            {isCompleted && <CheckFilled className="text-emerald-800 dark:text-emerald-200" />}
                         </div>
                         <span
                             className={cn(
                                 "text-lg transition-all duration-500 font-medium",
                                 isFuture && "text-text-muted",
                                 isCurrent && "text-primary dark:text-primary-foreground font-bold",
-                                isCompleted && "text-state-success dark:text-state-success"
+                                isCompleted && "text-emerald-800 dark:text-emerald-200"
                             )}
                         >
                             {loadingState.text}

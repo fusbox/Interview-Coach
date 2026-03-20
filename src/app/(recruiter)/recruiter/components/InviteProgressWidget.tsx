@@ -31,18 +31,18 @@ const BUCKET_CONFIG: Record<string, {
 }> = {
     ready_to_review: {
         icon: CheckCircle2,
-        accentColor: "text-state-success",
+        accentColor: "text-emerald-800 dark:text-emerald-200",
         bgGradient: "from-state-success/10 to-state-success/5",
         badgeBg: "bg-state-success/10",
-        badgeText: "text-state-success",
+        badgeText: "text-emerald-800 dark:text-emerald-200",
         emptyMessage: "No completed sessions yet",
     },
     needs_followup: {
         icon: Clock,
-        accentColor: "text-state-warning",
+        accentColor: "text-amber-900 dark:text-amber-200",
         bgGradient: "from-state-warning/10 to-state-warning/5",
         badgeBg: "bg-state-warning/10",
-        badgeText: "text-state-warning",
+        badgeText: "text-amber-900 dark:text-amber-200",
         emptyMessage: "No stale sessions — candidates are staying active",
     },
     recently_active: {
@@ -144,7 +144,7 @@ function SessionRow({ session, bucketKey, recruiterProfile, recruiterTimezone }:
                                 variant="ghost"
                                 size="icon"
                                 asChild
-                                className="h-7 w-7 text-text-muted hover:text-state-info opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="h-7 w-7 text-text-muted hover:text-sky-800 opacity-0 group-hover:opacity-100 transition-opacity dark:hover:text-sky-200"
                                 title="Resend Invite Email"
                             >
                                 <a href={buildResendMailto() || '#'} target="_blank" rel="noopener noreferrer">
@@ -157,7 +157,7 @@ function SessionRow({ session, bucketKey, recruiterProfile, recruiterTimezone }:
                         href={`/recruiter/sessions/${session.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="h-7 w-7 flex items-center justify-center rounded-md text-text-muted hover:text-state-info hover:bg-surface-subtle opacity-0 group-hover:opacity-100 transition-all"
+                        className="h-7 w-7 flex items-center justify-center rounded-md text-text-muted hover:text-sky-800 hover:bg-surface-subtle opacity-0 group-hover:opacity-100 transition-all dark:hover:text-sky-200"
                         title="Open in New Tab"
                         onClick={(e) => e.stopPropagation()}
                     >

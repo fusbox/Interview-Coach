@@ -251,7 +251,7 @@ export default function SummaryScreen() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.8, duration: 0.8 }}
-                    className="flex flex-row items-center justify-center gap-[0.4rem] text-muted-foreground/60 font-medium tracking-wide whitespace-nowrap pt-8"
+                    className="flex flex-row items-center justify-center gap-[0.4rem] text-muted-foreground font-medium tracking-wide whitespace-nowrap pt-8"
                 >
                     <span className="uppercase text-micro sm:text-xs tracking-widest translate-y-px">
                         Workforce Readiness Powered By
@@ -262,7 +262,7 @@ export default function SummaryScreen() {
                             alt="Rangam"
                             fill
                             sizes="(max-width: 640px) 64px, 80px"
-                            className="object-contain opacity-50"
+                            className="object-contain opacity-80"
                             unoptimized
                         />
                     </div>

@@ -111,7 +111,7 @@ It is never “locked,” but it is never rewritten.
 - Every entry includes scope, decision, rationale, and date
 
 **Current Documents**
-- `DESIGN_GATE_DECISIONS.md`
+- `gate-decisions.md`
 
 ---
 
@@ -183,4 +183,4 @@ The goal is not rigidity—it is **clarity under change**.
 - State & Streaming Contract
 - API Surface
 - Code Organization & Layering
-- Design Gate Decisions
+- Gate Decisions

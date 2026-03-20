@@ -136,7 +136,7 @@ export function CandidateEfficacyChart({ feedback }: EfficacyChartProps) {
                             <span className="text-xl font-bold text-muted-foreground">/ 5.0</span>
                         </div>
                         {Number(kpis.percentageLift) > 0 && (
-                            <div className="mt-4 flex items-center gap-1.5 text-sm font-bold text-success bg-success/10 w-fit px-2.5 py-1 rounded-md">
+                            <div className="mt-4 flex items-center gap-1.5 text-sm font-bold text-emerald-800 bg-emerald-50 dark:text-emerald-200 dark:bg-emerald-500/15 w-fit px-2.5 py-1 rounded-md">
                                 <ArrowUpRight className="w-4 h-4" />
                                 {kpis.percentageLift}% lift vs baseline ({kpis.averageBaseline})
                             </div>

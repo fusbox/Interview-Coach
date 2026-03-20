@@ -70,7 +70,7 @@ export function StepCandidates({
                             density="compact"
                             shape="pill"
                             label="chrome"
-                            className="border-state-info/20 bg-state-info/10 text-state-info hover:bg-state-info/20"
+                            className="border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100 dark:border-sky-400/30 dark:bg-sky-500/15 dark:text-sky-200 dark:hover:bg-sky-500/25"
                         >
                             Add Random
                         </Button>
@@ -132,7 +132,7 @@ export function StepCandidates({
                                 size="icon"
                                 variant="ghost"
                                 shape="square"
-                                className="mt-1 shrink-0 text-destructive hover:bg-state-critical/5"
+                                className="mt-1 shrink-0 text-destructive hover:bg-rose-50 dark:hover:bg-rose-500/10"
                                 onClick={() => removeCandidate(candidate.id)}
                             >
                                 <Trash2 className="h-4 w-4" />
@@ -146,7 +146,7 @@ export function StepCandidates({
                         shape="app"
                         label="strong"
                         onClick={addCandidate}
-                        className="mt-4 w-full gap-2 text-state-success border-state-success/30 hover:bg-state-success/5 hover:border-state-success/50 hover:text-state-success"
+                        className="mt-4 w-full gap-2 text-emerald-800 border-emerald-300 hover:bg-emerald-50 hover:border-emerald-400 hover:text-emerald-900 dark:text-emerald-200 dark:border-emerald-400/40 dark:hover:bg-emerald-500/10"
                     >
                         <UserPlus className="h-4 w-4" />
                         Add Candidate

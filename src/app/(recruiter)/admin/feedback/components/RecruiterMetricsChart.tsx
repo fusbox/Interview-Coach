@@ -124,8 +124,8 @@ export function RecruiterMetricsChart({ feedback }: RecruiterMetricsProps) {
                     </div>
                     <div className="w-1/2 flex flex-col justify-center space-y-4 pl-6">
                         <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center shrink-0">
-                                <Briefcase className="w-6 h-6 text-success" />
+                            <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-500/15 flex items-center justify-center shrink-0">
+                                <Briefcase className="w-6 h-6 text-emerald-800 dark:text-emerald-200" />
                             </div>
                             <div>
                                 <p className="text-sm font-bold text-muted-foreground uppercase">Operational Ease</p>

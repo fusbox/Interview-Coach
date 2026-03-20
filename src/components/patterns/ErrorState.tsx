@@ -15,7 +15,7 @@ export interface ErrorStateProps extends React.HTMLAttributes<HTMLDivElement> {
 export function ErrorState({
     title = "Something went wrong",
     description = "We encountered an error while loading this content. Please try again or contact support if the issue persists.",
-    icon = <AlertCircle size={48} className="text-state-critical/50" />,
+    icon = <AlertCircle size={48} className="text-rose-700 dark:text-rose-300" />,
     onRetry,
     error,
     className,

@@ -173,7 +173,7 @@ export function StepJobAndQuestions({
                                     density="compact"
                                     shape="pill"
                                     label="chrome"
-                                    className="border-state-warning/20 bg-state-warning/10 text-state-warning hover:bg-state-warning/20"
+                                    className="border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-400/30 dark:bg-amber-500/15 dark:text-amber-200 dark:hover:bg-amber-500/25"
                                 >
                                     🎲 Random Job
                                 </Button>
@@ -281,7 +281,7 @@ export function StepJobAndQuestions({
                                         <button
                                             type="button"
                                             onClick={() => clearQuestion(setStar, star, q.id)}
-                                            className="absolute right-3 top-3 p-1 text-state-critical hover:opacity-80 transition-all duration-base"
+                                            className="absolute right-3 top-3 p-1 text-rose-700 hover:text-rose-800 transition-all duration-base dark:text-rose-300 dark:hover:text-rose-200"
                                             title="Clear content"
                                             aria-label={`Clear STAR question ${idx + 1}`}
                                         >
@@ -315,7 +315,7 @@ export function StepJobAndQuestions({
                                         <button
                                             type="button"
                                             onClick={() => clearQuestion(setPerma, perma, q.id)}
-                                            className="absolute right-3 top-3 p-1 text-state-critical hover:opacity-80 transition-all duration-base"
+                                            className="absolute right-3 top-3 p-1 text-rose-700 hover:text-rose-800 transition-all duration-base dark:text-rose-300 dark:hover:text-rose-200"
                                             title="Clear content"
                                             aria-label={`Clear ${q.label} question`}
                                         >
@@ -341,7 +341,7 @@ export function StepJobAndQuestions({
                                 label="strong"
                                 onClick={addTechnical}
                                 type="button"
-                                className="hidden sm:flex rounded-xl text-state-success border-state-success/30 hover:bg-state-success/5 hover:border-state-success/50 hover:text-state-success transition-all"
+                                className="hidden sm:flex rounded-xl text-emerald-800 border-emerald-300 hover:bg-emerald-50 hover:border-emerald-400 hover:text-emerald-900 transition-all dark:text-emerald-200 dark:border-emerald-400/40 dark:hover:bg-emerald-500/10"
                             >
                                 <Plus className="w-4 h-4 mr-1" /> Add
                             </Button>
@@ -361,7 +361,7 @@ export function StepJobAndQuestions({
                                             <button
                                                 type="button"
                                                 onClick={() => clearQuestion(setTechnical, technical, q.id)}
-                                                className="absolute right-3 top-3 p-1 text-state-critical hover:opacity-80 transition-all duration-base"
+                                                className="absolute right-3 top-3 p-1 text-rose-700 hover:text-rose-800 transition-all duration-base dark:text-rose-300 dark:hover:text-rose-200"
                                                 title="Clear content"
                                                 aria-label={`Clear technical question ${idx + 1}`}
                                             >
@@ -370,7 +370,7 @@ export function StepJobAndQuestions({
                                         )}
                                     </div>
                                     {technical.length > 1 && (
-                                        <Button size="icon" variant="ghost" shape="square" className="text-state-critical hover:bg-state-critical/5 shrink-0" onClick={() => removeQuestion(setTechnical, technical, q.id)} aria-label={`Remove technical question ${idx + 1}`}>
+                                        <Button size="icon" variant="ghost" shape="square" className="text-rose-700 hover:bg-rose-50 shrink-0 dark:text-rose-300 dark:hover:bg-rose-500/10" onClick={() => removeQuestion(setTechnical, technical, q.id)} aria-label={`Remove technical question ${idx + 1}`}>
                                             <Trash2 className="w-4 h-4" />
                                         </Button>
                                     )}
@@ -383,7 +383,7 @@ export function StepJobAndQuestions({
                                 label="strong"
                                 onClick={addTechnical}
                                 type="button"
-                                className="mt-2 w-full sm:hidden border-dashed text-state-success border-state-success/30 hover:bg-state-success/5"
+                                className="mt-2 w-full sm:hidden border-dashed text-emerald-800 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-200 dark:border-emerald-400/40 dark:hover:bg-emerald-500/10"
                             >
                                 <Plus className="w-4 h-4 mr-2" /> Add Technical Question
                             </Button>

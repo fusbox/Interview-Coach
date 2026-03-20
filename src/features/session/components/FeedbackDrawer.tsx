@@ -623,7 +623,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                 >
                                     <div className="shrink-0 flex items-start gap-6 pb-6 border-b border-border/40">
                                         <div
-                                            className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-flat border border-border/30 bg-surface-base text-state-success"
+                                            className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-flat border border-border/30 bg-surface-base text-emerald-800 dark:text-emerald-200"
                                         >
                                             <Target size={32} strokeWidth={2} />
                                         </div>
@@ -780,7 +780,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                         className="flex items-center gap-2 px-5 py-3 rounded-full shadow-lg font-bold text-sm transition-all hover:scale-105 active:scale-95 bg-surface-base border border-border/50 text-primary"
                                         aria-label="View your answer"
                                     >
-                                        <FileText size={16} className="text-primary/70" />
+                                        <FileText size={16} className="text-primary" />
                                         View your answer
                                         {isPlaying && (
                                             <span className="w-2 h-2 rounded-full bg-primary animate-pulse ml-1" />

@@ -69,7 +69,7 @@ function EditableTemplateTitle({ template, onUpdate, isEditable }: EditableTempl
                     <Button 
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 rounded-lg text-state-success hover:bg-state-success/10"
+                        className="h-8 w-8 rounded-lg text-emerald-800 hover:bg-emerald-50 dark:text-emerald-200 dark:hover:bg-emerald-500/10"
                         onClick={handleSave}
                         disabled={isSaving}
                     >
@@ -251,16 +251,16 @@ export default function TemplatesPage() {
                                             <Badge variant="outline" className="bg-primary/5 text-primary border-primary/10 px-3 py-0.5 font-bold uppercase text-[9px] tracking-widest rounded-lg">
                                                 {template.questions.star?.length || 0} STAR
                                             </Badge>
-                                            <Badge variant="outline" className="bg-state-info/5 text-state-info border-state-info/10 px-3 py-0.5 font-bold uppercase text-[9px] tracking-widest rounded-lg">
+                                            <Badge variant="outline" className="bg-sky-50 text-sky-800 border-sky-200 px-3 py-0.5 font-bold uppercase text-[9px] tracking-widest rounded-lg dark:bg-sky-500/15 dark:text-sky-200 dark:border-sky-400/30">
                                                 {template.questions.perma?.length || 0} PERMA
                                             </Badge>
-                                            <Badge variant="outline" className="bg-state-warning/5 text-state-warning border-state-warning/10 px-3 py-0.5 font-bold uppercase text-[9px] tracking-widest rounded-lg">
+                                            <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-200 px-3 py-0.5 font-bold uppercase text-[9px] tracking-widest rounded-lg dark:bg-amber-500/15 dark:text-amber-200 dark:border-amber-400/30">
                                                 {template.questions.technical?.length || 0} Tech
                                             </Badge>
 
                                             <div className="ml-auto">
                                                 {template.isShared ? (
-                                                    <Badge variant="secondary" className="bg-state-success/5 text-state-success border-state-success/10 gap-1 px-3 py-1 font-bold uppercase text-[9px] tracking-wider rounded-full">
+                                                    <Badge variant="secondary" className="bg-emerald-50 text-emerald-800 border-emerald-200 gap-1 px-3 py-1 font-bold uppercase text-[9px] tracking-wider rounded-full dark:bg-emerald-500/15 dark:text-emerald-200 dark:border-emerald-400/30">
                                                         <Users className="w-3 h-3" /> Shared
                                                     </Badge>
                                                 ) : (
@@ -282,7 +282,7 @@ export default function TemplatesPage() {
                                                     variant="ghost"
                                                     size="icon"
                                                     shape="app"
-                                                    className="text-state-critical/60 hover:text-state-critical hover:bg-state-critical/5"
+                                                    className="text-rose-700 hover:text-rose-800 hover:bg-rose-50 dark:text-rose-300 dark:hover:text-rose-200 dark:hover:bg-rose-500/10"
                                                     onClick={() => handleDelete(template.id)}
                                                     disabled={deletingId === template.id}
                                                 >

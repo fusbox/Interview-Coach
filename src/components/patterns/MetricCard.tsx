@@ -56,7 +56,7 @@ export function MetricCard({
                 {trend && (
                     <p className={cn(
                         "mt-1 text-xs font-semibold flex items-center gap-1",
-                        trend.positive ? "text-state-success" : "text-state-critical"
+                        trend.positive ? "text-emerald-800 dark:text-emerald-300" : "text-rose-800 dark:text-rose-300"
                     )}>
                         {trend.positive ? "↑" : "↓"}
                         {trend.value}

@@ -16,29 +16,29 @@ export function DashboardStats({ metrics, variant = "default" }: DashboardStatsP
             label: "Invites",
             fullLabel: "Total Invites",
             value: metrics.totalInvites,
-            bgColor: "bg-state-info/10",
-            textColor: "text-state-info",
+            bgColor: "bg-sky-50 dark:bg-sky-500/10",
+            textColor: "text-sky-800 dark:text-sky-200",
         },
         {
             label: "In Progress",
             fullLabel: "In Progress",
             value: metrics.activeSessions,
-            bgColor: "bg-state-warning/10",
-            textColor: "text-state-warning",
+            bgColor: "bg-amber-50 dark:bg-amber-500/10",
+            textColor: "text-amber-900 dark:text-amber-200",
         },
         {
             label: "Completed",
             fullLabel: "Completed",
             value: metrics.completedSessions,
-            bgColor: "bg-state-success/10",
-            textColor: "text-state-success",
+            bgColor: "bg-emerald-50 dark:bg-emerald-500/10",
+            textColor: "text-emerald-800 dark:text-emerald-200",
         },
         {
             label: "Avg. Time",
             fullLabel: "Avg. Engagement",
             value: `${Math.round(metrics.averageEngagementTimeSeconds / 60)}m`,
-            bgColor: "bg-state-info/10",
-            textColor: "text-state-info",
+            bgColor: "bg-sky-50 dark:bg-sky-500/10",
+            textColor: "text-sky-800 dark:text-sky-200",
         }
     ];
 

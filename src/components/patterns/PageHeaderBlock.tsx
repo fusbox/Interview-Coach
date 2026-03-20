@@ -25,7 +25,7 @@ export function PageHeaderBlock({
             )}
             {...props}
         >
-            <div className="absolute bottom-0 left-0 top-0 w-1 bg-primary/20" />
+            <div className="absolute bottom-0 left-0 top-0 w-1 bg-primary/40" />
             <SectionHeader
                 title={title}
                 description={description}

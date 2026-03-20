@@ -40,7 +40,7 @@ export const choiceCardClassName =
     "w-full rounded-xl border-2 border-transparent bg-muted/50 p-4 text-left transition-all duration-200 hover:bg-muted hover:border-primary/50"
 
 export const largeTextInputClassName =
-    "w-full rounded-xl border bg-muted/50 px-4 py-4 text-2xl font-medium tracking-widest outline-none transition-all duration-200 placeholder:font-normal placeholder:tracking-normal placeholder:text-muted-foreground/70 uppercase"
+    "w-full rounded-xl border bg-muted/50 px-4 py-4 text-2xl font-medium tracking-widest outline-none transition-all duration-200 placeholder:font-normal placeholder:tracking-normal placeholder:text-muted-foreground uppercase"
 
 export const answerTextareaClassName =
     "flex-1 w-full resize-none rounded-3xl border border-border bg-surface-base/50 p-6 text-lg font-medium text-text-primary shadow-sm backdrop-blur-sm transition-all placeholder:text-text-muted focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-0 md:p-10 md:text-xl min-h-72"

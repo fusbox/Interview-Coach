@@ -30,7 +30,6 @@ import { CategoryTooltip } from './CategoryTooltip';
 import { EngagementDebugOverlay } from '@/components/debug/EngagementDebugOverlay';
 import { TRANSITION_DURATION, AUDIO_BUFFER_MULTIPLIER } from '@/lib/constants';
 import { AlertPanel } from '@/components/patterns/AlertPanel';
-import { ContentCard } from '@/components/patterns/ContentCard';
 import { answerTextareaClassName } from '@/components/patterns/FormField';
 import { SessionPromptShell } from '@/components/patterns/SessionPromptShell';
 import { showDemoTools } from '@/lib/feature-flags';
@@ -574,7 +573,7 @@ export default function UnifiedSessionScreen() {
                                                             className={cn(
                                                                 "relative w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl",
                                                                 isRecording
-                                                                    ? "bg-state-critical/10 text-state-critical border-4 border-state-critical/20"
+                                                                    ? "bg-rose-50 text-rose-800 border-4 border-rose-200 dark:bg-rose-500/15 dark:text-rose-200 dark:border-rose-400/30"
                                                                     : "bg-brand-deep text-text-inverse hover:bg-brand-deep/90 hover:scale-105"
                                                             )}
                                                         >
@@ -612,31 +611,14 @@ export default function UnifiedSessionScreen() {
                                                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                                                         Submitting...
                                                                     </>
-                                                                ) : (
-                                                                    transcript ? "Submit Answer" : "Submit Recording"
-                                                                )}
+                                                                ) : "Submit Recording"}
                                                             </Button>
                                                         </div>
                                                     )}
                                                 </div>
 
-                                                {/* Transcript Preview */}
-                                                {(transcript || isRecording) && (
-                                                    <ContentCard
-                                                        align="center"
-                                                        className="w-full max-w-2xl animate-in fade-in slide-in-from-bottom-2 duration-300 border-border/50 bg-surface-subtle px-6 py-4 shadow-flat"
-                                                    >
-                                                        <p className={cn(
-                                                            "text-base md:text-lg leading-relaxed text-center italic",
-                                                            isRecording ? "text-text-primary" : "text-text-primary font-medium"
-                                                        )}>
-                                                            {transcript ? `"${transcript}"` : isRecording ? "Start speaking..." : ""}
-                                                        </p>
-                                                    </ContentCard>
-                                                )}
-
                                                 <p className="text-sm font-semibold text-text-secondary tracking-wide">
-                                                    {isRecording ? "Listening..." : transcript ? "Ready to Submit" : audioBlob ? "Audio Captured" : "Tap to record; tap again to stop"}
+                                                    {isRecording ? "Listening..." : audioBlob ? "Audio Captured" : "Tap to record; tap again to stop"}
                                                 </p>
                                             </div>
 

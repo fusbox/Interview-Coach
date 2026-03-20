@@ -302,7 +302,7 @@ E: ${recruiterProfile?.email || ''}`;
                                             variant="ghost"
                                             size="icon"
                                             asChild
-                                            className="h-8 w-8 text-text-muted hover:text-state-info hover:bg-state-info/5 transition-colors rounded-2xl"
+                                            className="h-8 w-8 text-text-muted hover:text-sky-800 hover:bg-sky-50 transition-colors rounded-2xl dark:hover:text-sky-200 dark:hover:bg-sky-500/10"
                                             title="Resend Invite Email"
                                             aria-label={`Resend invite email to ${session.candidateName}`}
                                         >
@@ -317,7 +317,7 @@ E: ${recruiterProfile?.email || ''}`;
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-8 w-8 text-text-muted hover:text-state-critical hover:bg-state-critical/5 transition-colors rounded-2xl"
+                                        className="h-8 w-8 text-text-muted hover:text-rose-800 hover:bg-rose-50 transition-colors rounded-2xl dark:hover:text-rose-200 dark:hover:bg-rose-500/10"
                                         title="Delete Session"
                                         disabled={isDeleting === session.id}
                                         onClick={() => handleDelete(session.id)}

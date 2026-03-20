@@ -91,7 +91,7 @@ export function RecruiterSidebar({ className, onNavigate, user, profile }: Recru
                                 "flex items-center gap-3 p-4 rounded-2xl transition-all duration-300 border shadow-sm group relative overflow-hidden",
                                 isActive('/recruiter/create')
                                     ? "glass-card border-primary/20 text-primary shadow-md"
-                                    : "bg-surface-base border-primary/10 hover:border-primary/30 text-primary/60 hover:text-primary"
+                                    : "bg-surface-base border-primary/10 hover:border-primary/30 text-primary hover:text-primary"
                             )}
                             onClick={onNavigate}
                         >
@@ -99,10 +99,10 @@ export function RecruiterSidebar({ className, onNavigate, user, profile }: Recru
                                 "p-1.5 rounded-lg transition-colors",
                                 isActive('/recruiter/create') ? "bg-primary/10" : "bg-primary/5 group-hover:bg-primary/10"
                             )}>
-                                <Plus size={18} strokeWidth={2.5} className={cn(isActive('/recruiter/create') ? "text-primary" : "text-primary/70 group-hover:text-primary")} />
+                                <Plus size={18} strokeWidth={2.5} className={cn(isActive('/recruiter/create') ? "text-primary" : "text-primary group-hover:text-primary")} />
                             </div>
                             <span className="font-bold">Create Invite</span>
-                            <ChevronRight size={14} className="ml-auto opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-primary/40" />
+                            <ChevronRight size={14} className="ml-auto opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-primary" />
                         </Link>
                     </motion.div>
                 </div>

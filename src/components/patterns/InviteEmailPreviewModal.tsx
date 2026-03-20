@@ -135,7 +135,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                         {sendSuccess ? (
                                 <div className="p-12 flex flex-col items-center justify-center text-center space-y-8 animate-in zoom-in duration-500">
                                     <div className="flex items-center justify-center gap-3">
-                                        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-state-success/10 text-state-success ring-4 ring-state-success/5">
+                                        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-50 text-emerald-800 ring-4 ring-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-200 dark:ring-emerald-500/10">
                                             <CheckCircle2 size={24} />
                                         </div>
                                         <h2 id={titleId} className="text-4xl font-black text-text-primary">Delivered!</h2>
@@ -157,7 +157,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                                             "min-w-10 justify-center px-0",
                                                             inviteEaseRating === value
                                                                 ? "border-state-info bg-state-info text-primary-foreground shadow-md"
-                                                                : "border-border bg-surface-base text-state-info hover:border-state-info/30 hover:bg-state-info/10"
+                                                                : "border-border bg-surface-base text-sky-800 hover:border-sky-300 hover:bg-sky-50 dark:text-sky-200 dark:hover:bg-sky-500/10"
                                                         )}
                                                         aria-label={`Rate invite setup ease ${value} out of 5`}
                                                     >
@@ -348,7 +348,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                 </div>
 
                                 <div className="px-8 py-4 bg-surface-subtle/50 border-t border-border/30 flex items-center gap-2">
-                                    <ShieldCheck size={14} className="text-state-success" />
+                                    <ShieldCheck size={14} className="text-emerald-700 dark:text-emerald-300" />
                                     <span className="text-[10px] font-bold text-text-disabled uppercase tracking-widest">
                                         Secure automated delivery via Resend
                                     </span>

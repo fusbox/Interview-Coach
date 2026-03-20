@@ -52,7 +52,7 @@ function getLabelForType(type: string) {
 
 function getIconForType(type: string) {
     if (type.startsWith('recruiter_')) return <Mail className="w-4 h-4 text-primary" />;
-    return <User className="w-4 h-4 text-success" />;
+    return <User className="w-4 h-4 text-emerald-700 dark:text-emerald-300" />;
 }
 
 /**
@@ -70,8 +70,8 @@ function renderResponse(f: Record<string, unknown>) {
         return (
             <span className={cn(
                 "inline-flex items-center justify-center w-8 h-8 rounded-lg font-black",
-                val >= 4 ? "bg-success/10 text-success" :
-                    val <= 2 ? "bg-warning/10 text-warning-foreground" : "bg-muted text-muted-foreground"
+                val >= 4 ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200" :
+                    val <= 2 ? "bg-amber-50 text-amber-900 dark:bg-amber-500/15 dark:text-amber-200" : "bg-muted text-muted-foreground"
             )}>
                 {val}
             </span>
@@ -80,8 +80,8 @@ function renderResponse(f: Record<string, unknown>) {
 
     // String response (yes/somewhat/no, etc.)
     const colorMap: Record<string, string> = {
-        yes: "bg-success/10 text-success",
-        somewhat: "bg-warning/10 text-warning-foreground",
+        yes: "bg-emerald-50 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200",
+        somewhat: "bg-amber-50 text-amber-900 dark:bg-amber-500/15 dark:text-amber-200",
         no: "bg-destructive/10 text-destructive",
     };
     return (
@@ -196,8 +196,8 @@ export default async function AdminFeedbackPage() {
                 </Card>
                 <Card>
                     <CardContent className="pt-6">
-                        <p className="text-xs font-bold text-success uppercase tracking-widest mb-2">External (Candidate)</p>
-                        <p className="text-3xl font-black text-success">{externalCount}</p>
+                        <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-widest mb-2">External (Candidate)</p>
+                        <p className="text-3xl font-black text-emerald-800 dark:text-emerald-300">{externalCount}</p>
                     </CardContent>
                 </Card>
             </div>

@@ -40,7 +40,7 @@ const feedbackChoiceVariants = cva(
                 kind: "emoji",
                 selected: false,
                 tone: "primary",
-                className: "bg-transparent border-border text-text-muted saturate-80 opacity-80 hover:border-primary/30 hover:scale-105 hover:saturate-100 hover:opacity-100",
+                className: "bg-transparent border-border text-text-secondary hover:border-primary/30 hover:scale-105",
             },
             {
                 kind: "chip",
@@ -76,7 +76,7 @@ const feedbackChoiceVariants = cva(
                 kind: "compact",
                 selected: false,
                 tone: "primary",
-                className: "border-border bg-surface-base text-text-secondary hover:border-primary/30",
+                className: "border-border bg-surface-base text-text-primary hover:border-primary/30",
             },
         ],
         defaultVariants: {

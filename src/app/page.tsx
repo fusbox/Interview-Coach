@@ -36,9 +36,9 @@ export default function Home() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 2.8, duration: 0.8 }}
-                        className="flex flex-row items-center justify-center gap-[0.4rem] text-lg md:text-xl text-muted-foreground/80 font-medium tracking-wide whitespace-nowrap"
+                        className="flex flex-row items-center justify-center gap-[0.4rem] text-lg md:text-xl text-muted-foreground font-medium tracking-wide whitespace-nowrap"
                     >
-                        <span className="uppercase text-micro sm:text-xs md:text-base tracking-widest opacity-80 translate-y-px">
+                        <span className="uppercase text-micro sm:text-xs md:text-base tracking-widest translate-y-px">
                             Workforce Readiness Powered By
                         </span>
                         <div className="relative h-4 w-16 sm:h-5 sm:w-20 md:h-6 md:w-24 flex-shrink-0">
@@ -66,7 +66,7 @@ export default function Home() {
                     </Link>
 
                     <div className="space-y-4 pt-4">
-                        <div className="flex items-center gap-4 text-xs font-medium uppercase tracking-widest text-muted-foreground/60 w-full">
+                        <div className="flex items-center gap-4 text-xs font-medium uppercase tracking-widest text-muted-foreground w-full">
                             <span className="h-px bg-border flex-1" />
                             <span>Candidate Access</span>
                             <span className="h-px bg-border flex-1" />

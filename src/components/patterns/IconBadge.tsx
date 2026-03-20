@@ -9,10 +9,10 @@ const iconBadgeVariants = cva(
         variants: {
             variant: {
                 default: "bg-transparent text-muted-foreground border-none shadow-none",
-                info: "bg-state-info/10 text-state-info border-state-info/20",
-                success: "bg-state-success/10 text-state-success border-state-success/20",
-                warning: "bg-state-warning/10 text-state-warning border-state-warning/20",
-                critical: "bg-state-critical/10 text-state-critical border-state-critical/20",
+                info: "bg-sky-50 text-sky-800 border-sky-200 dark:bg-sky-500/15 dark:text-sky-200 dark:border-sky-400/30",
+                success: "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-200 dark:border-emerald-400/30",
+                warning: "bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-500/15 dark:text-amber-200 dark:border-amber-400/30",
+                critical: "bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-500/15 dark:text-rose-200 dark:border-rose-400/30",
                 primary: "bg-primary/10 text-primary border-primary/20",
                 brand: "bg-brand-deep/10 text-brand-deep border-brand-deep/20",
             },
