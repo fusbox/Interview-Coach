@@ -32,7 +32,7 @@ export function FeedbackCard({
     className,
     onSuccess,
     scaleType = 'emoji',
-    successText = 'Saved',
+    successText = '',
     lowLabel,
     highLabel
 }: FeedbackCardProps) {

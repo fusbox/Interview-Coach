@@ -246,9 +246,12 @@ export default function CreateInviteWizard() {
                 <div>
                     {onBack && (
                         <Button
-                            variant="outline"
+                            emphasis="secondary"
+                            density="comfortable"
+                            shape="app"
+                            label="strong"
                             onClick={onBack}
-                            className="w-full sm:w-auto h-12 sm:h-11 shadow-flat rounded-2xl"
+                            className="w-full sm:w-auto"
                         >
                             <ChevronLeft className="w-4 h-4 mr-2" /> Back
                         </Button>
@@ -259,7 +262,11 @@ export default function CreateInviteWizard() {
                     <Button
                         onClick={onNext}
                         disabled={isNextDisabled}
-                        className="w-full sm:w-auto h-12 sm:h-11 text-base sm:text-sm font-semibold shadow-raised-1 rounded-2xl"
+                        emphasis="primary"
+                        density="comfortable"
+                        shape="app"
+                        label="strong"
+                        className="w-full sm:w-auto"
                     >
                         {nextLabel}
                     </Button>

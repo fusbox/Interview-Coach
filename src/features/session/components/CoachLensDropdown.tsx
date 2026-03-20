@@ -2,6 +2,7 @@ import React from 'react';
 import { CheckCircle2, AlertTriangle, Loader2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { QuestionTips, StrongResponseResult } from '@/lib/domain/types';
+import { InsightCard } from '@/components/patterns/InsightCard';
 
 interface CoachLensDropdownProps {
     mode: 'hints' | 'example';
@@ -74,7 +75,7 @@ export function CoachLensDropdown({
         return (
             <div className={cn("w-full space-y-3", className)}>
                 {/* Strong Response Card */}
-                <div className="rounded-2xl border border-purple-200/60 dark:border-purple-500/20 bg-purple-50/50 dark:bg-purple-900/10 p-5">
+                <InsightCard tone="highlight">
                     <div className="flex items-center gap-2 mb-3">
                         <Sparkles size={16} className="text-purple-500" />
                         <span className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
@@ -84,11 +85,11 @@ export function CoachLensDropdown({
                     <p className="text-text-primary text-sm leading-relaxed whitespace-pre-wrap">
                         {strongResponse.strongResponse}
                     </p>
-                </div>
+                </InsightCard>
 
                 {/* Why This Works */}
                 {strongResponse.whyThisWorks && (
-                    <div className="rounded-2xl border border-border/60 bg-surface-subtle p-5">
+                    <InsightCard tone="neutral">
                         <div className="flex items-center gap-2 mb-3">
                             <CheckCircle2 size={16} className="text-emerald-500" />
                             <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
@@ -98,7 +99,7 @@ export function CoachLensDropdown({
                         <p className="text-text-secondary text-sm leading-relaxed">
                             {strongResponse.whyThisWorks}
                         </p>
-                    </div>
+                    </InsightCard>
                 )}
             </div>
         );
@@ -122,12 +123,7 @@ function HintCard({
 }) {
     const isDo = type === 'do';
     return (
-        <div className={cn(
-            "rounded-2xl border p-5 transition-colors",
-            isDo
-                ? "border-emerald-200/60 dark:border-emerald-500/20 bg-emerald-50/60 dark:bg-emerald-900/10"
-                : "border-rose-200/60 dark:border-rose-500/20 bg-rose-50/60 dark:bg-rose-900/10"
-        )}>
+        <InsightCard tone={isDo ? "positive" : "caution"} className="transition-colors">
             <div className="flex items-center gap-2 mb-2.5">
                 <span className={cn(isDo ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
                     {icon}
@@ -145,6 +141,6 @@ function HintCard({
             )}>
                 {text}
             </p>
-        </div>
+        </InsightCard>
     );
 }

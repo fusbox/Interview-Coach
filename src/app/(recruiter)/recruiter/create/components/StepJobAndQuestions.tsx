@@ -9,6 +9,8 @@ import { ChevronRight } from "lucide-react";
 import { showDemoTools } from "@/lib/feature-flags";
 import { RecruiterTemplate } from "@/lib/domain/template";
 import { SectionHeader } from "@/components/patterns/SectionHeader";
+import { AlertPanel } from "@/components/patterns/AlertPanel";
+import { FieldGroup, FieldHint, FieldLabel, textFieldClassName, textareaFieldClassName } from "@/components/patterns/FormField";
 
 interface StepJobAndQuestionsProps {
     details: Details;
@@ -159,12 +161,16 @@ export function StepJobAndQuestions({
                     actions={
                         <div className="flex gap-2 items-center">
                             {isDemo && onRandomizeJob && (
-                                <button
+                                <Button
                                     onClick={onRandomizeJob}
-                                    className="px-3 py-1.5 text-micro font-bold uppercase tracking-wider rounded-full bg-state-warning/10 text-state-warning hover:bg-state-warning/20 transition-all border border-state-warning/20"
+                                    emphasis="secondary"
+                                    density="compact"
+                                    shape="pill"
+                                    label="chrome"
+                                    className="border-state-warning/20 bg-state-warning/10 text-state-warning hover:bg-state-warning/20"
                                 >
                                     🎲 Random Job
-                                </button>
+                                </Button>
                             )}
                         </div>
                     }
@@ -200,26 +206,26 @@ export function StepJobAndQuestions({
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Req ID</label>
-                                <input className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                                    value={details.reqId} onChange={e => setDetails({ ...details, reqId: e.target.value })}
-                                    placeholder="e.g. RCI-ENG-101" />
+                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                <FieldGroup className="space-y-2">
+                                    <FieldLabel>Req ID</FieldLabel>
+                                    <input className={`${textFieldClassName} h-11 py-0`}
+                                        value={details.reqId} onChange={e => setDetails({ ...details, reqId: e.target.value })}
+                                        placeholder="e.g. RCI-ENG-101" />
+                                </FieldGroup>
+                                <FieldGroup className="space-y-2">
+                                    <FieldLabel>Target Role</FieldLabel>
+                                    <input className={`${textFieldClassName} h-11 py-0`}
+                                        value={details.role} onChange={e => setDetails({ ...details, role: e.target.value })}
+                                        placeholder="e.g. Senior Product Manager" />
+                                </FieldGroup>
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Target Role</label>
-                                <input className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                                    value={details.role} onChange={e => setDetails({ ...details, role: e.target.value })}
-                                    placeholder="e.g. Senior Product Manager" />
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Job Description <span className="text-text-disabled font-normal lowercase tracking-normal">(Optional)</span></label>
-                            <textarea className="flex min-h-[120px] w-full rounded-xl border border-border bg-surface-subtle px-4 py-3 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all leading-relaxed"
-                                value={details.jd} onChange={e => setDetails({ ...details, jd: e.target.value })}
-                                placeholder="Paste the job description here..." />
-                        </div>
+                            <FieldGroup className="space-y-2">
+                                <FieldLabel>Job Description <span className="text-text-disabled font-normal lowercase tracking-normal">(Optional)</span></FieldLabel>
+                                <textarea className={textareaFieldClassName}
+                                    value={details.jd} onChange={e => setDetails({ ...details, jd: e.target.value })}
+                                    placeholder="Paste the job description here..." />
+                            </FieldGroup>
                     </CardContent>
                 </Card>
                 
@@ -228,17 +234,21 @@ export function StepJobAndQuestions({
                     {/* AI Generator Action - Contextually placed closer to questions */}
                     {onGenerateQuestionsAI && (
                         <div className="flex justify-start">
-                            <button
+                            <Button
                                 onClick={onGenerateQuestionsAI}
                                 disabled={isGeneratingQuestions}
-                                className="px-5 py-2.5 min-w-[200px] justify-center text-micro font-bold uppercase tracking-wider rounded-full bg-brand-deep text-primary-foreground hover:bg-brand-deep/90 active:scale-95 transition-all shadow-raised-1 border border-brand-deep/20 disabled:opacity-50 flex items-center gap-2"
+                                emphasis="primary"
+                                density="comfortable"
+                                shape="pill"
+                                label="chrome"
+                                className="min-w-[200px] justify-center gap-2 border border-brand-deep/20 bg-brand-deep text-primary-foreground hover:bg-brand-deep/90 hover:text-primary-foreground"
                             >
                                 {isGeneratingQuestions ? (
                                     <><Loader2 className="w-4 h-4 animate-spin" /> Generating Questions...</>
                                 ) : (
                                     <>✨ AI Generate Questions</>
                                 )}
-                            </button>
+                            </Button>
                         </div>
                     )}
 
@@ -254,7 +264,7 @@ export function StepJobAndQuestions({
                             {star.map((q, idx) => (
                                 <div key={q.id} className="relative group/field">
                                     <AutoResizeTextarea
-                                        className="flex min-h-[44px] w-full rounded-xl border border-border bg-surface-subtle pl-4 pr-10 py-3 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                        className={`${textareaFieldClassName} min-h-[44px] pl-4 pr-10`}
                                         value={q.text}
                                         onChange={val => updateQuestion(setStar, star, q.id, val)}
                                         placeholder={`STAR Question ${idx + 1}...`}
@@ -286,7 +296,7 @@ export function StepJobAndQuestions({
                             {perma.map(q => (
                                 <div key={q.id} className="relative group/field">
                                     <AutoResizeTextarea
-                                        className="flex min-h-[44px] w-full rounded-xl border border-border bg-surface-subtle pl-4 pr-10 py-3 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                        className={`${textareaFieldClassName} min-h-[44px] pl-4 pr-10`}
                                         value={q.text}
                                         onChange={val => updateQuestion(setPerma, perma, q.id, val)}
                                         placeholder={`${q.label} Question...`}
@@ -311,14 +321,16 @@ export function StepJobAndQuestions({
                         <CardHeader className="flex flex-row items-center justify-between pb-4 bg-surface-base border-b border-border/30">
                             <CardTitle className="text-base font-bold font-sans flex items-center gap-2.5">
                                 <div className="w-1 h-4 bg-primary rounded-full" />
-                                Technical Questions
+                                Technical & Role-Specific Questions
                             </CardTitle>
                             <Button
-                                size="sm"
-                                variant="outline"
+                                emphasis="secondary"
+                                density="compact"
+                                shape="square"
+                                label="strong"
                                 onClick={addTechnical}
                                 type="button"
-                                className="hidden sm:flex text-state-success border-state-success/30 hover:bg-state-success/5 hover:border-state-success/50 hover:text-state-success transition-all rounded-xl"
+                                className="hidden sm:flex rounded-xl text-state-success border-state-success/30 hover:bg-state-success/5 hover:border-state-success/50 hover:text-state-success transition-all"
                             >
                                 <Plus className="w-4 h-4 mr-1" /> Add
                             </Button>
@@ -328,7 +340,7 @@ export function StepJobAndQuestions({
                                 <div key={q.id} className="flex gap-2 items-center animate-in fade-in slide-in-from-top-1 duration-base">
                                     <div className="flex-1 relative group/field">
                                         <AutoResizeTextarea
-                                            className="flex min-h-[44px] w-full rounded-xl border border-border bg-surface-subtle pl-4 pr-10 py-3 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                            className={`${textareaFieldClassName} min-h-[44px] pl-4 pr-10`}
                                             value={q.text}
                                             onChange={val => updateQuestion(setTechnical, technical, q.id, val)}
                                             placeholder={`Technical Question ${idx + 1}...`}
@@ -345,17 +357,20 @@ export function StepJobAndQuestions({
                                         )}
                                     </div>
                                     {technical.length > 1 && (
-                                        <Button size="icon" variant="ghost" className="text-state-critical hover:bg-state-critical/5 shrink-0" onClick={() => removeQuestion(setTechnical, technical, q.id)}>
+                                        <Button size="icon" variant="ghost" shape="square" className="text-state-critical hover:bg-state-critical/5 shrink-0" onClick={() => removeQuestion(setTechnical, technical, q.id)}>
                                             <Trash2 className="w-4 h-4" />
                                         </Button>
                                     )}
                                 </div>
                             ))}
                             <Button
-                                variant="outline"
+                                emphasis="secondary"
+                                density="comfortable"
+                                shape="app"
+                                label="strong"
                                 onClick={addTechnical}
                                 type="button"
-                                className="w-full sm:hidden border-dashed text-state-success border-state-success/30 hover:bg-state-success/5 mt-2 rounded-2xl"
+                                className="mt-2 w-full sm:hidden border-dashed text-state-success border-state-success/30 hover:bg-state-success/5"
                             >
                                 <Plus className="w-4 h-4 mr-2" /> Add Technical Question
                             </Button>
@@ -370,8 +385,11 @@ export function StepJobAndQuestions({
                 isNextDisabled={isNextDisabled}
                 customAction={
                     <Button
-                        variant="outline"
-                        className="text-text-secondary w-full h-12 sm:h-10 rounded-2xl"
+                        emphasis="secondary"
+                        density="comfortable"
+                        shape="app"
+                        label="strong"
+                        className="w-full text-text-secondary"
                         onClick={() => setShowSaveModal(true)}
                         disabled={!details.role || !hasAtLeastOneQuestion}
                     >
@@ -392,29 +410,25 @@ export function StepJobAndQuestions({
                     >
                         <div className="flex items-center justify-between p-6 border-b border-border/50 bg-surface-base">
                             <h3 id={saveDialogTitleId} className="font-bold text-lg text-text-primary font-sans">Save Interview Template</h3>
-                            <button onClick={() => setShowSaveModal(false)} className="text-text-disabled hover:text-text-secondary transition-colors" aria-label="Close save template dialog">
+                            <Button type="button" variant="ghost" size="icon" shape="pill" onClick={() => setShowSaveModal(false)} aria-label="Close save template dialog">
                                 <X className="w-5 h-5" />
-                            </button>
+                            </Button>
                         </div>
                         <form onSubmit={handleSaveSubmit} className="p-6 space-y-6">
-                            {saveError && (
-                                <div className="rounded-2xl border border-state-critical/20 bg-state-critical/5 px-4 py-3 text-sm font-medium text-state-critical">
-                                    {saveError}
-                                </div>
-                            )}
-                            <div className="space-y-2">
-                                <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Template Name</label>
+                            {saveError && <AlertPanel tone="critical">{saveError}</AlertPanel>}
+                            <FieldGroup className="space-y-2">
+                                <FieldLabel>Template Name</FieldLabel>
                                 <input
                                     ref={saveTemplateInputRef}
-                                    className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                    className={`${textFieldClassName} h-11 py-0`}
                                     value={templateName}
                                     onChange={e => setTemplateName(e.target.value)}
                                     placeholder="e.g. Senior Backend Engineer"
                                 />
-                                <p className="text-micro text-text-muted italic ml-1">
+                                <FieldHint>
                                     Includes: Role &quot;{details.role}&quot; and {star.length + perma.length + technical.length} questions.
-                                </p>
-                            </div>
+                                </FieldHint>
+                            </FieldGroup>
 
                             <div className="flex items-center gap-3 py-2 px-1">
                                 <div className="relative flex items-center justify-center">
@@ -432,10 +446,10 @@ export function StepJobAndQuestions({
                             </div>
 
                             <div className="flex gap-3 pt-4">
-                                <Button type="button" variant="ghost" className="flex-1 rounded-2xl" onClick={() => setShowSaveModal(false)}>
+                                <Button type="button" emphasis="secondary" density="comfortable" shape="app" label="strong" className="flex-1" onClick={() => setShowSaveModal(false)}>
                                     Cancel
                                 </Button>
-                                <Button type="submit" className="flex-1 shadow-raised-1 rounded-2xl" disabled={!templateName.trim() || isSaving}>
+                                <Button type="submit" emphasis="primary" density="comfortable" shape="app" label="strong" className="flex-1" disabled={!templateName.trim() || isSaving}>
                                     {isSaving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</> : "Save Template"}
                                 </Button>
                             </div>

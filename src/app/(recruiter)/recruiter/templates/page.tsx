@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Trash2, Users, Lock, ChevronRight, Loader2, Plus, Search } from "lucide-react";
+import { Trash2, Users, Lock, ChevronRight, Loader2, Plus } from "lucide-react";
 import Link from "next/link";
 import { fetchTemplates, deleteTemplateAction, updateTemplateNameAction } from "./actions";
 import { RecruiterTemplate } from "@/lib/domain/template";
 import { Badge } from "@/components/ui/badge";
-import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { EmptyState } from "@/components/patterns/EmptyState";
+import { AlertPanel } from "@/components/patterns/AlertPanel";
+import { SearchField } from "@/components/patterns/SearchField";
+import { PageHeaderBlock } from "@/components/patterns/PageHeaderBlock";
 import { Check, X as CloseIcon } from "lucide-react";
 
 interface EditableTemplateTitleProps {
@@ -65,18 +67,18 @@ function EditableTemplateTitle({ template, onUpdate, isEditable }: EditableTempl
                 />
                 <div className="flex items-center gap-1">
                     <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        className="h-8 w-8 text-state-success hover:bg-state-success/10 rounded-lg"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-lg text-state-success hover:bg-state-success/10"
                         onClick={handleSave}
                         disabled={isSaving}
                     >
                         {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-4 h-4" />}
                     </Button>
                     <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        className="h-8 w-8 text-text-disabled hover:bg-surface-subtle rounded-lg"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-lg text-text-disabled hover:bg-surface-subtle"
                         onClick={handleCancel}
                         disabled={isSaving}
                     >
@@ -92,12 +94,14 @@ function EditableTemplateTitle({ template, onUpdate, isEditable }: EditableTempl
             <h3 className="font-bold text-text-primary text-lg line-clamp-1">{template.name}</h3>
             {isEditable && (
                 <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider rounded-xl border-primary/20 text-primary hover:bg-primary/5 transition-all focus:ring-2 focus:ring-primary/20"
+                    emphasis="secondary"
+                    density="compact"
+                    shape="square"
+                    label="strong"
+                    className="h-8 border-primary/20 text-primary hover:bg-primary/5 focus:ring-2 focus:ring-primary/20"
                     onClick={() => setIsEditing(true)}
                 >
-                    Edit Name
+                    Edit name
                 </Button>
             )}
         </div>
@@ -180,29 +184,20 @@ export default function TemplatesPage() {
 
     return (
         <div className="max-w-6xl mx-auto pb-12 px-6 space-y-10 animate-in fade-in duration-slow">
-            <SectionHeader
+            <PageHeaderBlock
                 title="Interview Templates"
-                isPageHeader
                 description="Manage and reuse your question sets for consistent interviews."
                 actions={
                     <Link href="/recruiter/create">
-                        <Button className="font-semibold uppercase text-micro tracking-widest px-6 shadow-raised-1 h-11 rounded-2xl text-primary-foreground">
+                        <Button density="comfortable" shape="app" label="strong">
                             <Plus className="w-3.5 h-3.5 mr-2 text-primary-foreground" /> New Template
                         </Button>
                     </Link>
                 }
             />
 
-            {errorMessage && (
-                <div className="rounded-2xl border border-state-critical/20 bg-state-critical/5 px-4 py-3 text-sm font-medium text-state-critical">
-                    {errorMessage}
-                </div>
-            )}
-            {statusMessage && !errorMessage && (
-                <div className="rounded-2xl border border-state-success/20 bg-state-success/5 px-4 py-3 text-sm font-medium text-state-success">
-                    {statusMessage}
-                </div>
-            )}
+            {errorMessage && <AlertPanel tone="critical">{errorMessage}</AlertPanel>}
+            {statusMessage && !errorMessage && <AlertPanel tone="success">{statusMessage}</AlertPanel>}
 
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-32 bg-surface-subtle/30 rounded-2xl border border-border/10 shadow-flat-2">
@@ -215,7 +210,7 @@ export default function TemplatesPage() {
                     description="You haven't saved any templates yet. You can save your role and question sets while creating a new invite."
                     actions={
                         <Link href="/recruiter/create">
-                            <Button variant="outline" className="font-semibold uppercase text-micro tracking-widest px-8 mt-4 border-primary/20 hover:border-primary/50 text-primary rounded-2xl">
+                            <Button emphasis="primary" density="comfortable" shape="app" label="strong" className="mt-4">
                                 Create Your First Invite
                             </Button>
                         </Link>
@@ -224,16 +219,13 @@ export default function TemplatesPage() {
             ) : (
                 <div className="space-y-8">
                     {/* Search Bar */}
-                    <div className="relative group max-w-md">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-disabled group-focus-within:text-primary transition-colors" />
-                        <input
-                            type="text"
-                            placeholder="Search by template name or role..."
-                            className="w-full h-12 pl-12 pr-4 rounded-2xl border border-border bg-surface-base text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-base shadow-sm"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
+                    <SearchField
+                        wrapperClassName="max-w-md"
+                        placeholder="Search by template name or role..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="shadow-sm"
+                    />
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
                         {filteredTemplates.map((template) => {
@@ -287,9 +279,10 @@ export default function TemplatesPage() {
                                         <div className="flex items-center justify-end flex-1 gap-2">
                                             {canManage && (
                                                 <Button
-                                                    size="icon"
                                                     variant="ghost"
-                                                    className="h-10 w-10 text-state-critical/60 hover:text-state-critical hover:bg-state-critical/5 rounded-2xl transition-all"
+                                                    size="icon"
+                                                    shape="app"
+                                                    className="text-state-critical/60 hover:text-state-critical hover:bg-state-critical/5"
                                                     onClick={() => handleDelete(template.id)}
                                                     disabled={deletingId === template.id}
                                                 >
@@ -301,7 +294,7 @@ export default function TemplatesPage() {
                                                 </Button>
                                             )}
                                             <Link href={`/recruiter/create?templateId=${template.id}`}>
-                                                <Button size="sm" variant="ghost" className="h-10 text-primary font-semibold uppercase text-micro tracking-widest hover:text-primary hover:bg-primary/5 px-4 rounded-2xl transition-all flex items-center gap-2 group/btn">
+                                                <Button emphasis="tertiary" density="default" shape="app" label="strong" className="gap-2 group/btn">
                                                     Use Template <ChevronRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
                                                 </Button>
                                             </Link>

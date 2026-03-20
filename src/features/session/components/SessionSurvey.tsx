@@ -2,19 +2,12 @@ import { useState } from "react";
 import { captureFeedbackAction } from "@/app/actions/feedback";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { FeedbackPill } from "@/components/patterns/FeedbackPill";
-import { cn } from "@/lib/cn";
+import { AlertPanel } from "@/components/patterns/AlertPanel";
+import { EMOJI_SCALE, FeedbackChoiceButton } from "@/components/patterns/FeedbackChoiceButton";
 
 export interface SessionSurveyProps {
     sessionId?: string;
 }
-
-const EMOJI_SCALE = [
-    { val: 1, emoji: "🙁" },
-    { val: 2, emoji: "😐" },
-    { val: 3, emoji: "🙂" },
-    { val: 4, emoji: "😊" },
-    { val: 5, emoji: "🤩" }
-];
 
 export function SessionSurvey({ sessionId }: SessionSurveyProps) {
     const [survey, setSurvey] = useState<Record<string, string | number>>({});
@@ -30,12 +23,11 @@ export function SessionSurvey({ sessionId }: SessionSurveyProps) {
             await captureFeedbackAction({
                 sessionId,
                 type: `session_completion_${key}`,
-                rating: typeof val === 'number' ? val : undefined,
-                comment: typeof val === 'string' ? val : undefined,
-                metadata: { question: key }
+                rating: typeof val === "number" ? val : undefined,
+                comment: typeof val === "string" ? val : undefined,
+                metadata: { question: key },
             });
             setJustSaved(prev => ({ ...prev, [key]: true }));
-            // Auto-hide success after 2s
             setTimeout(() => {
                 setJustSaved(prev => ({ ...prev, [key]: false }));
             }, 2000);
@@ -49,11 +41,8 @@ export function SessionSurvey({ sessionId }: SessionSurveyProps) {
         }
     };
 
-
     return (
         <div className="bg-transparent rounded-2xl p-0 md:px-2 space-y-12">
-
-            {/* 1. Confidence Delta */}
             <div className="space-y-4">
                 <div className="flex flex-col items-center justify-center gap-1">
                     <p className="text-lg font-bold text-text-primary text-center">
@@ -63,29 +52,25 @@ export function SessionSurvey({ sessionId }: SessionSurveyProps) {
                 <div className="flex justify-center gap-2">
                     {EMOJI_SCALE.map(({ val, emoji }) => (
                         <div key={val} className="relative">
-                            <button
-                                onClick={() => handleSurveySelect('confidence_delta', val)}
-                                className={cn(
-                                    "flex-1 md:flex-none w-14 h-14 rounded-2xl border-2 flex items-center justify-center text-3xl transition-all duration-300",
-                                    survey.confidence_delta === val
-                                        ? "bg-white dark:bg-blue-900/20 border-primary/50 shadow-lg scale-110 saturate-100 opacity-100"
-                                        : "bg-transparent border-border text-text-muted hover:border-primary/30 hover:scale-105 saturate-80 opacity-80 hover:saturate-100 hover:opacity-100"
-                                )}
+                            <FeedbackChoiceButton
+                                onClick={() => handleSurveySelect("confidence_delta", val)}
+                                kind="emoji"
+                                tone="primary"
+                                selected={survey.confidence_delta === val}
                             >
                                 {emoji}
-                            </button>
-                            <FeedbackPill isVisible={justSaved['confidence_delta'] && survey.confidence_delta === val} text="" />
+                            </FeedbackChoiceButton>
+                            <FeedbackPill isVisible={justSaved.confidence_delta && survey.confidence_delta === val} text="" />
                         </div>
                     ))}
                 </div>
-                {submitError['confidence_delta'] && (
-                    <p className="text-destructive text-sm font-medium text-center animate-in fade-in slide-in-from-top-1">
+                {submitError.confidence_delta && (
+                    <AlertPanel tone="critical" size="sm" className="animate-in fade-in slide-in-from-top-1 justify-center">
                         Could not save feedback. Please try again.
-                    </p>
+                    </AlertPanel>
                 )}
             </div>
 
-            {/* 2. Psychological Safety */}
             <div className="space-y-4">
                 <div className="flex flex-col items-center justify-center gap-1">
                     <p className="text-lg font-bold text-text-primary text-center">
@@ -95,29 +80,28 @@ export function SessionSurvey({ sessionId }: SessionSurveyProps) {
                 <div className="flex justify-center gap-2">
                     {EMOJI_SCALE.map(({ val, emoji }) => (
                         <div key={val} className="relative">
-                            <button
-                                onClick={() => handleSurveySelect('psychological_safety', val)}
-                                className={cn(
-                                    "flex-1 md:flex-none w-14 h-14 rounded-2xl border-2 flex items-center justify-center text-3xl transition-all duration-300",
-                                    survey.psychological_safety === val
-                                        ? "bg-white dark:bg-blue-900/20 border-primary/50 shadow-lg scale-110 saturate-100 opacity-100"
-                                        : "bg-transparent border-border text-text-muted hover:border-primary/30 hover:scale-105 saturate-80 opacity-80 hover:saturate-100 hover:opacity-100"
-                                )}
+                            <FeedbackChoiceButton
+                                onClick={() => handleSurveySelect("psychological_safety", val)}
+                                kind="emoji"
+                                tone="primary"
+                                selected={survey.psychological_safety === val}
                             >
                                 {emoji}
-                            </button>
-                            <FeedbackPill isVisible={justSaved['psychological_safety'] && survey.psychological_safety === val} text="" />
+                            </FeedbackChoiceButton>
+                            <FeedbackPill
+                                isVisible={justSaved.psychological_safety && survey.psychological_safety === val}
+                                text=""
+                            />
                         </div>
                     ))}
                 </div>
-                {submitError['psychological_safety'] && (
-                    <p className="text-destructive text-sm font-medium text-center animate-in fade-in slide-in-from-top-1">
+                {submitError.psychological_safety && (
+                    <AlertPanel tone="critical" size="sm" className="animate-in fade-in slide-in-from-top-1 justify-center">
                         Could not save feedback. Please try again.
-                    </p>
+                    </AlertPanel>
                 )}
             </div>
 
-            {/* 3. Repeat Intent */}
             <div className="space-y-6">
                 <div className="flex flex-col items-center justify-center gap-1">
                     <p className="text-lg font-bold text-text-primary text-center">
@@ -126,41 +110,34 @@ export function SessionSurvey({ sessionId }: SessionSurveyProps) {
                 </div>
                 <div className="flex justify-center gap-4">
                     <div className="relative">
-                        <button
-                            onClick={() => handleSurveySelect('repeat_intent', 'yes')}
-                            className={cn(
-                                "px-8 py-4 rounded-2xl border-2 font-bold flex items-center justify-center gap-2 transition-all duration-300",
-                                survey.repeat_intent === 'yes'
-                                    ? "bg-green-600 border-green-600 text-white shadow-lg scale-105"
-                                    : "bg-white dark:bg-surface-subtle border-border text-text-secondary hover:border-green-300 hover:text-green-600"
-                            )}
+                        <FeedbackChoiceButton
+                            onClick={() => handleSurveySelect("repeat_intent", "yes")}
+                            kind="chip"
+                            tone="success"
+                            selected={survey.repeat_intent === "yes"}
                         >
                             <ThumbsUp size={18} /> Yes
-                        </button>
-                        <FeedbackPill isVisible={justSaved['repeat_intent'] && survey.repeat_intent === 'yes'} text="" />
+                        </FeedbackChoiceButton>
+                        <FeedbackPill isVisible={justSaved.repeat_intent && survey.repeat_intent === "yes"} text="" />
                     </div>
                     <div className="relative">
-                        <button
-                            onClick={() => handleSurveySelect('repeat_intent', 'no')}
-                            className={cn(
-                                "px-8 py-4 rounded-2xl border-2 font-bold flex items-center justify-center gap-2 transition-all duration-300",
-                                survey.repeat_intent === 'no'
-                                    ? "bg-slate-800 border-slate-800 text-white shadow-lg scale-105"
-                                    : "bg-white dark:bg-surface-subtle border-border text-text-secondary hover:border-slate-300 hover:text-slate-800"
-                            )}
+                        <FeedbackChoiceButton
+                            onClick={() => handleSurveySelect("repeat_intent", "no")}
+                            kind="chip"
+                            tone="neutral"
+                            selected={survey.repeat_intent === "no"}
                         >
                             <ThumbsDown size={18} /> No
-                        </button>
-                        <FeedbackPill isVisible={justSaved['repeat_intent'] && survey.repeat_intent === 'no'} text="" />
+                        </FeedbackChoiceButton>
+                        <FeedbackPill isVisible={justSaved.repeat_intent && survey.repeat_intent === "no"} text="" />
                     </div>
                 </div>
-                {submitError['repeat_intent'] && (
-                    <p className="text-destructive text-sm font-medium text-center animate-in fade-in slide-in-from-top-1">
+                {submitError.repeat_intent && (
+                    <AlertPanel tone="critical" size="sm" className="animate-in fade-in slide-in-from-top-1 justify-center">
                         Could not save feedback. Please try again.
-                    </p>
+                    </AlertPanel>
                 )}
             </div>
-
         </div>
     );
 }

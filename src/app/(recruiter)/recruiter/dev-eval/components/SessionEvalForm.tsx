@@ -142,7 +142,7 @@ export function SessionEvalForm({ session }: SessionEvalFormProps) {
                         <div className="flex items-center gap-2">
                             {saved && (
                                 <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 animate-in fade-in">
-                                    <CheckCircle2 className="w-3 h-3 mr-1" /> Saved
+                                    <CheckCircle2 className="w-3 h-3" />
                                 </Badge>
                             )}
                             <Button size="sm" variant="outline" onClick={handleManualSave}>

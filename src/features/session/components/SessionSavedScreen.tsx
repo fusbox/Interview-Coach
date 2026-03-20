@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useSession } from "../context/SessionContext";
 import { PlayCircle, Save } from "lucide-react";
+import { ContentCard } from "@/components/patterns/ContentCard";
+import { IconBadge } from "@/components/patterns/IconBadge";
 
 export default function SessionSavedScreen() {
     const { updateSession, session } = useSession();
@@ -22,31 +24,34 @@ export default function SessionSavedScreen() {
                 initial={{ opacity: 0, scale: 0.9, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                className="max-w-md w-full p-10 text-center space-y-8 relative z-10"
+                className="relative z-10 w-full max-w-md"
             >
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-blue-500/20">
-                    <Save className="text-white w-10 h-10" />
-                </div>
+                <ContentCard density="hero" align="center" className="space-y-8">
+                    <IconBadge icon={Save} variant="primary" size="lg" className="mx-auto h-20 w-20 rounded-3xl shadow-raised-2" />
 
-                <div className="space-y-3">
-                    <h1 className="text-[2.5rem] font-bold text-text-primary leading-none font-display">
-                        Session Saved
-                    </h1>
-                    <p className="text-text-secondary text-lg font-medium">
-                        Your progress is safely stored. Pick up right where you left off.
-                    </p>
-                </div>
+                    <div className="space-y-3">
+                        <h1 className="font-display text-[2.5rem] font-bold leading-none text-text-primary">
+                            Session Saved
+                        </h1>
+                        <p className="text-lg font-medium text-text-secondary">
+                            Your progress is safely stored. Pick up right where you left off.
+                        </p>
+                    </div>
 
-                <div className="pt-4">
-                    <Button
-                        size="lg"
-                        className="w-full h-16 rounded-2xl bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-900/20 hover:shadow-blue-900/40 font-bold text-lg gap-3 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                        onClick={handleResume}
-                    >
-                        Resume Session
-                        <PlayCircle size={24} />
-                    </Button>
-                </div>
+                    <div className="pt-4">
+                        <Button
+                            emphasis="primary"
+                            density="hero"
+                            shape="app"
+                            label="strong"
+                            className="h-16 w-full gap-3 text-lg"
+                            onClick={handleResume}
+                        >
+                            Resume Session
+                            <PlayCircle size={24} />
+                        </Button>
+                    </div>
+                </ContentCard>
             </motion.div>
         </div>
     );

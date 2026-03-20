@@ -78,19 +78,26 @@ export function renderCandidateInviteEmail({
       </a>
     </div>
 
-    <hr style="border: none; border-top: 1px solid #eeeeee; margin-bottom: 32px;" />
-
-    <div style="font-size: 14px; color: #555555; line-height: 1.6; margin-top: 24px;">
-      <p style="margin: 0; font-weight: bold; color: #1a1a1a;">${safeRecruiterName}</p>
-      <p style="margin: 0;">${safeRecruiterTitle}</p>
-      <p style="margin: 0;">${safeRecruiterCompany}</p>
-      ${safeRecruiterPhone ? `<p style="margin: 4px 0 0 0;">M: ${safeRecruiterPhone}</p>` : ''}
-      ${safeRecruiterEmail ? `<p style="margin: 0;">E: ${safeRecruiterEmail}</p>` : ''}
-      
-      <div style="margin-top: 16px;">
-        <img src="${logoUrl}" alt="Rangam" width="80" style="display: block; border: 0; outline: none; text-decoration: none;" />
-      </div>
-    </div>
+    <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin-top: 32px; border-top: 1px solid #eeeeee; padding-top: 32px; width: 100%;">
+      <tr>
+        <td style="padding: 0;">
+          <p style="margin: 0 0 10px 0; font-size: 15px; line-height: 1.2; font-weight: 700; color: #0f172a;">
+            ${safeRecruiterName}
+          </p>
+          <p style="margin: 0 0 8px 0; font-size: 13px; line-height: 1.25; font-weight: 600; color: #64748b;">
+            ${safeRecruiterTitle}
+          </p>
+          <p style="margin: 0 0 24px 0; font-size: 13px; line-height: 1.25; font-weight: 600; color: #64748b;">
+            ${safeRecruiterCompany}
+          </p>
+          ${safeRecruiterPhone ? `<p style="margin: 0 0 8px 0; font-size: 13px; line-height: 1.4; font-weight: 700; color: #0f172a;">M:&nbsp;&nbsp;${safeRecruiterPhone}</p>` : ''}
+          ${safeRecruiterEmail ? `<p style="margin: 0; font-size: 13px; line-height: 1.4; font-weight: 700; color: #0f172a;">E:&nbsp;&nbsp;${safeRecruiterEmail}</p>` : ''}
+          <div style="margin-top: 24px;">
+            <img src="${logoUrl}" alt="Rangam" width="140" style="display: block; border: 0; outline: none; text-decoration: none;" />
+          </div>
+        </td>
+      </tr>
+    </table>
     
     <p style="font-size: 12px; color: #aaaaaa; margin-top: 48px;">
       &copy; ${currentYear} Rangam. All rights reserved.

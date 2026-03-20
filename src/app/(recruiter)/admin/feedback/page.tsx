@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getCachedUser } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
+import { AlertPanel } from "@/components/patterns/AlertPanel";
+import { PageHeaderBlock } from "@/components/patterns/PageHeaderBlock";
 import { CandidateEfficacyChart } from "./components/CandidateEfficacyChart";
 import { AIFeedbackQualityChart } from "./components/AIFeedbackQualityChart";
 import { PlatformTrustChart } from "./components/PlatformTrustChart";
@@ -167,17 +169,15 @@ export default async function AdminFeedbackPage() {
 
     return (
         <div className="max-w-6xl mx-auto space-y-8 pb-12">
-            <SectionHeader
+            <PageHeaderBlock
                 title="User Feedback"
-                isPageHeader
                 description="Aggregated insights from candidates and recruiters."
             />
 
             {error && (
-                <div className="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-xl flex items-center gap-3">
-                    <AlertCircle className="w-5 h-5 shrink-0" />
+                <AlertPanel tone="critical" size="sm" icon={<AlertCircle className="w-5 h-5 shrink-0" />}>
                     <span className="font-medium text-sm">{error}</span>
-                </div>
+                </AlertPanel>
             )}
 
             {/* Summary Stats */}

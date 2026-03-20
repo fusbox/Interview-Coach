@@ -36,7 +36,7 @@ export default async function SessionDetailsPage({ params }: { params: Promise<{
                 title="Session Details"
                 description="Review candidate transcripts and session progress."
                 actions={
-                    <Button variant="outline" size="sm" asChild className="shadow-flat rounded-2xl">
+                    <Button emphasis="secondary" density="compact" shape="app" label="strong" asChild>
                         <Link href="/recruiter">
                             <ArrowLeft className="w-4 h-4 mr-2" />
                             Back to Dashboard

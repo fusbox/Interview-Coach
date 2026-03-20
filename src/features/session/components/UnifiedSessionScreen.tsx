@@ -29,6 +29,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CategoryTooltip } from './CategoryTooltip';
 import { EngagementDebugOverlay } from '@/components/debug/EngagementDebugOverlay';
 import { TRANSITION_DURATION, AUDIO_BUFFER_MULTIPLIER } from '@/lib/constants';
+import { AlertPanel } from '@/components/patterns/AlertPanel';
+import { ContentCard } from '@/components/patterns/ContentCard';
+import { answerTextareaClassName } from '@/components/patterns/FormField';
+import { SessionPromptShell } from '@/components/patterns/SessionPromptShell';
 
 export default function UnifiedSessionScreen() {
     const {
@@ -358,9 +362,140 @@ export default function UnifiedSessionScreen() {
                             )}
                             tabIndex={-1}
                         >
-                            <div className="glass-card text-text-primary rounded-3xl p-6 md:p-10 w-full relative transition-all duration-300 ring-1 ring-border/50 overflow-hidden">
-                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-deep/20 to-brand-deep" />
+                            <SessionPromptShell
+                                footer={
+                                    <div className="flex min-h-12 w-auto items-center gap-2 md:min-h-10 md:gap-4">
+                                        <div className="flex flex-1 justify-start gap-4">
+                                            {!hasSubmitted && (
+                                                <>
+                                                    <Button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            audioEngine.unlock();
+                                                            if (hintOpen) {
+                                                                setHintOpen(false);
+                                                            } else {
+                                                                setHintOpen(true);
+                                                                setStrongResponseOpen(false);
+                                                                trackEvent('tier2', 'view_hint');
+                                                                if (!hints) fetchHints();
+                                                            }
+                                                        }}
+                                                        density="compact"
+                                                        shape="square"
+                                                        label="strong"
+                                                        className={cn(
+                                                            "shrink-0 gap-2 border",
+                                                            hintOpen
+                                                                ? "border-brand-deep bg-brand-deep text-text-inverse shadow-lg hover:bg-brand-deep hover:text-text-inverse"
+                                                                : "border-state-info/20 bg-state-info/10 text-state-info hover:bg-state-info/20"
+                                                        )}
+                                                        title="Interview Hints"
+                                                    >
+                                                        <Lightbulb size={18} /> <span className="hidden sm:inline">Hints</span>
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            audioEngine.unlock();
+                                                            if (strongResponseOpen) {
+                                                                setStrongResponseOpen(false);
+                                                            } else {
+                                                                setStrongResponseOpen(true);
+                                                                setHintOpen(false);
+                                                                trackEvent('tier2', 'view_example');
+                                                                if (!strongResponseData) fetchStrongResponse();
+                                                            }
+                                                        }}
+                                                        density="compact"
+                                                        shape="square"
+                                                        label="strong"
+                                                        className={cn(
+                                                            "shrink-0 gap-2 border",
+                                                            strongResponseOpen
+                                                                ? "border-accent-alt bg-accent-alt text-text-inverse shadow-lg hover:bg-accent-alt hover:text-text-inverse"
+                                                                : "border-accent-alt/20 bg-accent-alt/10 text-accent-alt hover:bg-accent-alt/20"
+                                                        )}
+                                                        title="Example Response"
+                                                    >
+                                                        <Sparkles size={18} /> <span className="hidden sm:inline">Example</span>
+                                                    </Button>
+                                                </>
+                                            )}
+                                        </div>
 
+                                        <div className="flex flex-none items-center justify-center gap-2 md:gap-3">
+                                            {!isReviewing && !hasSubmitted && (
+                                                <div className="flex gap-1 rounded-full border border-border bg-surface-subtle/50 p-1 shadow-flat">
+                                                    <Button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            audioEngine.unlock();
+                                                            setMode('voice');
+                                                            setAnswerText('');
+                                                            trackEvent('tier2', 'mode_voice');
+                                                        }}
+                                                        density="compact"
+                                                        shape="pill"
+                                                        className={cn(
+                                                            "px-3",
+                                                            mode === 'voice'
+                                                                ? "bg-brand-deep text-text-inverse shadow-md ring-1 ring-brand-deep hover:bg-brand-deep hover:text-text-inverse"
+                                                                : "bg-surface-base text-state-info shadow-sm hover:bg-state-info hover:text-primary-foreground"
+                                                        )}
+                                                        title="Voice Mode"
+                                                    >
+                                                        <Mic size={18} />
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            audioEngine.unlock();
+                                                            setMode('text');
+                                                            abortListening({ resetTranscript: true });
+                                                            resetAudio();
+                                                            trackEvent('tier2', 'mode_text');
+                                                        }}
+                                                        density="compact"
+                                                        shape="pill"
+                                                        className={cn(
+                                                            "px-3",
+                                                            mode === 'text'
+                                                                ? "bg-brand-deep text-text-inverse shadow-md ring-1 ring-brand-deep hover:bg-brand-deep hover:text-text-inverse"
+                                                                : "bg-surface-base text-state-info shadow-sm hover:bg-state-info hover:text-primary-foreground"
+                                                        )}
+                                                        title="Text Mode"
+                                                    >
+                                                        <Keyboard size={18} />
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex flex-1 justify-end">
+                                            <Button
+                                                type="button"
+                                                onClick={handleTogglePlayback}
+                                                disabled={isTTSLoading}
+                                                size="icon"
+                                                shape="pill"
+                                                className={cn(
+                                                    isPlaying
+                                                        ? "bg-brand-deep text-text-inverse border-brand-deep scale-105 shadow-floating"
+                                                        : "bg-surface-subtle/50 text-state-info border-border/50 hover:bg-surface-subtle/80 hover:scale-105"
+                                                )}
+                                                aria-label={isPlaying ? "Stop reading" : "Read question"}
+                                            >
+                                                {isPlaying ? (
+                                                    <VolumeX size={18} className="animate-pulse" />
+                                                ) : (
+                                                    <Volume2 size={18} />
+                                                )}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                }
+                            >
                                 <div className="flex justify-start mb-6">
                                     <CategoryTooltip category={currentQuestion.category}>
                                         <span className="inline-flex items-center px-3 py-1 rounded-full bg-brand-deep text-micro font-bold uppercase tracking-wider text-text-inverse cursor-help transition-colors">
@@ -385,129 +520,11 @@ export default function UnifiedSessionScreen() {
                                 </AnimatePresence>
 
                                 {errorMessage && (
-                                    <div
-                                        className="mb-6 rounded-2xl border border-state-critical/20 bg-state-critical/10 px-4 py-3 text-sm font-semibold text-state-critical"
-                                        role="alert"
-                                    >
+                                    <AlertPanel tone="critical" weight="semibold" className="mb-6 bg-state-critical/10" role="alert">
                                         {errorMessage}
-                                    </div>
+                                    </AlertPanel>
                                 )}
-
-                                <div className="flex items-center gap-2 md:gap-4 min-h-12 md:min-h-10 w-auto pt-4 md:pt-6 pb-4 md:pb-10 -mx-6 md:-mx-10 -mb-6 md:-mb-10 px-6 md:px-10 border-t-2 border-border/50 bg-surface-platinum/5 shadow-flat">
-                                    <div className="flex-1 flex justify-start gap-4">
-                                        {!hasSubmitted && (
-                                            <>
-                                                <button
-                                                    onClick={() => {
-                                                        audioEngine.unlock();
-                                                        if (hintOpen) {
-                                                            setHintOpen(false);
-                                                        } else {
-                                                            setHintOpen(true);
-                                                            setStrongResponseOpen(false);
-                                                            trackEvent('tier2', 'view_hint');
-                                                            if (!hints) fetchHints();
-                                                        }
-                                                    }}
-                                                    className={cn(
-                                                        "inline-flex items-center justify-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm font-semibold transition-all shrink-0",
-                                                        hintOpen
-                                                            ? "bg-brand-deep text-text-inverse shadow-lg"
-                                                            : "bg-state-info/10 text-state-info hover:bg-state-info/20"
-                                                    )}
-                                                    title="Interview Hints"
-                                                >
-                                                    <Lightbulb size={18} /> <span className="hidden sm:inline">Hints</span>
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        audioEngine.unlock();
-                                                        if (strongResponseOpen) {
-                                                            setStrongResponseOpen(false);
-                                                        } else {
-                                                            setStrongResponseOpen(true);
-                                                            setHintOpen(false);
-                                                            trackEvent('tier2', 'view_example');
-                                                            if (!strongResponseData) fetchStrongResponse();
-                                                        }
-                                                    }}
-                                                    className={cn(
-                                                        "inline-flex items-center justify-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm font-semibold transition-all shrink-0",
-                                                        strongResponseOpen
-                                                            ? "bg-accent-alt text-text-inverse shadow-lg"
-                                                            : "bg-accent-alt/10 text-accent-alt hover:bg-accent-alt/20"
-                                                    )}
-                                                    title="Example Response"
-                                                >
-                                                    <Sparkles size={18} /> <span className="hidden sm:inline">Example</span>
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-
-                                    <div className="flex-none flex justify-center items-center gap-2 md:gap-3">
-                                        {!isReviewing && !hasSubmitted && (
-                                            <div className="bg-surface-subtle/50 p-1 rounded-full flex gap-1 shadow-flat border border-border">
-                                                <button
-                                                    onClick={() => {
-                                                        audioEngine.unlock();
-                                                        setMode('voice');
-                                                        setAnswerText('');
-                                                        trackEvent('tier2', 'mode_voice');
-                                                    }}
-                                                    className={cn(
-                                                        "p-2 px-3 rounded-full transition-all flex items-center justify-center gap-2",
-                                                        mode === 'voice'
-                                                            ? "bg-brand-deep text-text-inverse shadow-md ring-1 ring-brand-deep border-none outline-none"
-                                                            : "text-state-info hover:text-state-info/80"
-                                                    )}
-                                                    title="Voice Mode"
-                                                >
-                                                    <Mic size={18} />
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        audioEngine.unlock();
-                                                        setMode('text');
-                                                        abortListening({ resetTranscript: true });
-                                                        resetAudio();
-                                                        trackEvent('tier2', 'mode_text');
-                                                    }}
-                                                    className={cn(
-                                                        "p-2 px-3 rounded-full transition-all flex items-center justify-center gap-2",
-                                                        mode === 'text'
-                                                            ? "bg-brand-deep text-text-inverse shadow-md ring-1 ring-brand-deep border-none outline-none"
-                                                            : "text-state-info hover:text-state-info/80"
-                                                    )}
-                                                    title="Text Mode"
-                                                >
-                                                    <Keyboard size={18} />
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="flex-1 flex justify-end">
-                                        <button
-                                            onClick={handleTogglePlayback}
-                                            disabled={isTTSLoading}
-                                            className={cn(
-                                                "p-2.5 rounded-full transition-all duration-300 shadow-sm border flex items-center justify-center",
-                                                isPlaying
-                                                    ? "bg-brand-deep text-text-inverse border-brand-deep scale-105 shadow-floating"
-                                                    : "bg-surface-subtle/50 text-state-info border-border/50 hover:bg-surface-subtle/80 hover:scale-105"
-                                            )}
-                                            aria-label={isPlaying ? "Stop reading" : "Read question"}
-                                        >
-                                            {isPlaying ? (
-                                                <VolumeX size={18} className="animate-pulse" />
-                                            ) : (
-                                                <Volume2 size={18} />
-                                            )}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                            </SessionPromptShell>
                         </div>
 
                         {/* COACH'S LENS INLINE DROPDOWN (desktop only) */}
@@ -571,15 +588,22 @@ export default function UnifiedSessionScreen() {
                                                         <div className="flex gap-4 items-center animate-in fade-in zoom-in duration-300">
                                                             <Button
                                                                 onClick={() => { abortListening({ resetTranscript: true }); resetAudio(); }}
-                                                                variant="outline"
-                                                                className="px-8 h-14 rounded-2xl bg-surface-base border-border text-text-secondary hover:bg-surface-subtle"
+                                                                emphasis="secondary"
+                                                                density="hero"
+                                                                shape="app"
+                                                                label="strong"
+                                                                className="h-14 px-8 text-base"
                                                             >
                                                                 Retry
                                                             </Button>
                                                             <Button
                                                                 onClick={handleSubmit}
                                                                 disabled={isSubmitting}
-                                                                className="px-10 h-14 rounded-2xl bg-brand-deep hover:bg-brand-deep/90 shadow-lg font-bold min-w-40"
+                                                                emphasis="primary"
+                                                                density="hero"
+                                                                shape="app"
+                                                                label="strong"
+                                                                className="h-14 min-w-40 px-10 text-base shadow-lg"
                                                             >
                                                                 {isSubmitting ? (
                                                                     <>
@@ -596,14 +620,17 @@ export default function UnifiedSessionScreen() {
 
                                                 {/* Transcript Preview */}
                                                 {(transcript || isRecording) && (
-                                                    <div className="w-full max-w-2xl px-6 py-4 bg-surface-subtle rounded-2xl border border-border/50 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                                    <ContentCard
+                                                        align="center"
+                                                        className="w-full max-w-2xl animate-in fade-in slide-in-from-bottom-2 duration-300 border-border/50 bg-surface-subtle px-6 py-4 shadow-flat"
+                                                    >
                                                         <p className={cn(
                                                             "text-base md:text-lg leading-relaxed text-center italic",
                                                             isRecording ? "text-text-primary" : "text-text-primary font-medium"
                                                         )}>
                                                             {transcript ? `"${transcript}"` : isRecording ? "Start speaking..." : ""}
                                                         </p>
-                                                    </div>
+                                                    </ContentCard>
                                                 )}
 
                                                 <p className="text-sm font-semibold text-text-secondary tracking-wide">
@@ -625,7 +652,7 @@ export default function UnifiedSessionScreen() {
                                     ) : (
                                         <textarea
                                             ref={textareaRef}
-                                            className="flex-1 w-full bg-surface-base/50 border border-border rounded-3xl p-6 md:p-10 resize-none outline-none text-lg md:text-xl text-text-primary placeholder:text-text-muted font-medium shadow-sm min-h-72 backdrop-blur-sm focus:ring-2 focus:ring-primary/20 focus:ring-offset-0 focus:border-primary/50 transition-all"
+                                            className={answerTextareaClassName}
                                             placeholder="Type your answer here..."
                                             value={answerText}
                                             onChange={(e) => {
@@ -651,7 +678,11 @@ export default function UnifiedSessionScreen() {
                                         <Button
                                             onClick={handleSubmit}
                                             disabled={!answerText.trim()}
-                                            className="px-8 h-16 text-lg bg-brand-deep hover:bg-brand-deep/90 shadow-xl rounded-2xl font-bold"
+                                            emphasis="primary"
+                                            density="hero"
+                                            shape="app"
+                                            label="strong"
+                                            className="h-16 px-8 text-lg shadow-xl"
                                         >
                                             Submit Answer <ArrowRight className="ml-2 w-5 h-5" />
                                         </Button>
@@ -682,12 +713,16 @@ export default function UnifiedSessionScreen() {
                                 <span className="font-black text-sm uppercase tracking-[0.2em] text-text-muted">
                                     {hintOpen ? "Coach's Lens" : "Example Response"}
                                 </span>
-                                <button
+                                <Button
+                                    type="button"
                                     onClick={() => { setHintOpen(false); setStrongResponseOpen(false); }}
-                                    className="p-2 bg-surface-subtle rounded-full text-text-secondary hover:bg-surface-raised transition-colors"
+                                    variant="ghost"
+                                    size="icon"
+                                    shape="pill"
+                                    className="bg-surface-subtle text-text-secondary hover:bg-surface-raised"
                                 >
                                     <X size={18} />
-                                </button>
+                                </Button>
                             </div>
 
                             {/* Scrollable Content */}

@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Lock, Mail, UserPlus, LogIn, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { AlertPanel } from "@/components/patterns/AlertPanel";
 
 export default function LoginPage() {
     const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
@@ -103,16 +104,14 @@ export default function LoginPage() {
                 <CardContent className="px-8 pb-8 pt-6">
                     <form onSubmit={handleAuth} className="space-y-5">
                         {error && (
-                            <div className="p-3 bg-state-critical/10 text-state-critical text-sm rounded-xl border border-state-critical/20 flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
-                                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                            <AlertPanel tone="critical" size="sm" icon={<AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />} className="animate-in fade-in slide-in-from-top-2">
                                 <span className="font-medium">{error}</span>
-                            </div>
+                            </AlertPanel>
                         )}
                         {successMessage && (
-                            <div className="p-3 bg-state-success/10 text-state-success text-sm rounded-xl border border-state-success/20 flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
-                                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                            <AlertPanel tone="success" size="sm" icon={<CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />} className="animate-in fade-in slide-in-from-top-2">
                                 <span className="font-medium">{successMessage}</span>
-                            </div>
+                            </AlertPanel>
                         )}
 
                         <div className="space-y-2">

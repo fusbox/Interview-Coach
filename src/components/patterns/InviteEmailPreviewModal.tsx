@@ -1,10 +1,15 @@
 'use client';
 
-import React, { useEffect, useId, useRef } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShieldCheck, Loader2, SendHorizontal, CheckCircle2, LayoutDashboard, PlusCircle } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/cn';
+import { Button } from '@/components/ui/button';
+import { AlertPanel } from '@/components/patterns/AlertPanel';
+import { FeedbackChoiceButton } from '@/components/patterns/FeedbackChoiceButton';
+import { FeedbackPill } from '@/components/patterns/FeedbackPill';
+import { captureFeedbackAction } from '@/app/actions/feedback';
 
 interface InviteEmailPreviewModalProps {
     isOpen: boolean;
@@ -48,8 +53,20 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
     const closeButtonRef = useRef<HTMLButtonElement>(null);
     const successPrimaryButtonRef = useRef<HTMLButtonElement>(null);
     const lastFocusedElementRef = useRef<HTMLElement | null>(null);
+    const feedbackResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const titleId = useId();
     const descriptionId = useId();
+    const [inviteEaseRating, setInviteEaseRating] = useState<number | null>(null);
+    const [savedRating, setSavedRating] = useState<number | null>(null);
+    const [feedbackError, setFeedbackError] = useState<string | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (feedbackResetTimeoutRef.current) {
+                clearTimeout(feedbackResetTimeoutRef.current);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         if (!isOpen) {
@@ -61,6 +78,33 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
         const focusTarget = sendSuccess ? successPrimaryButtonRef.current : closeButtonRef.current;
         focusTarget?.focus();
     }, [isOpen, sendSuccess]);
+
+    const handleInviteEaseFeedback = async (rating: number) => {
+        setInviteEaseRating(rating);
+        setSavedRating(null);
+        setFeedbackError(null);
+
+        const result = await captureFeedbackAction({
+            type: 'recruiter_friction_invite',
+            rating,
+            metadata: {
+                role: data.role,
+                invite_count: data.recipientEmails.length,
+                recruiter_email: data.recruiterEmail,
+            },
+        });
+
+        if (!result.success) {
+            setFeedbackError("We couldn't save that response right now.");
+            return;
+        }
+
+        setSavedRating(rating);
+        if (feedbackResetTimeoutRef.current) {
+            clearTimeout(feedbackResetTimeoutRef.current);
+        }
+        feedbackResetTimeoutRef.current = setTimeout(() => setSavedRating(null), 2000);
+    };
 
     return (
         <AnimatePresence>
@@ -91,34 +135,71 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                     >
                         {sendSuccess ? (
                                 <div className="p-12 flex flex-col items-center justify-center text-center space-y-8 animate-in zoom-in duration-500">
-                                    <div className="w-20 h-20 rounded-full bg-state-success/10 flex items-center justify-center text-state-success ring-8 ring-state-success/5">
-                                        <CheckCircle2 size={40} />
-                                    </div>
-                                    
-                                    <div className="space-y-4">
+                                    <div className="flex items-center justify-center gap-3">
+                                        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-state-success/10 text-state-success ring-4 ring-state-success/5">
+                                            <CheckCircle2 size={24} />
+                                        </div>
                                         <h2 id={titleId} className="text-4xl font-black text-text-primary">Delivered!</h2>
-                                        <p id={descriptionId} className="text-sm font-medium text-text-secondary leading-relaxed max-w-[280px] mx-auto">
-                                            Your invitations have been sent successfully.
-                                        </p>
                                     </div>
 
-                                    <div className="w-full space-y-3 pt-4">
-                                        <button
+                                    <div id={descriptionId} className="w-full max-w-sm space-y-4">
+                                        <p className="text-sm font-semibold text-text-secondary">
+                                            How easy was it to set up this interview?
+                                        </p>
+                                        <div className="flex items-center justify-center gap-2">
+                                            {[1, 2, 3, 4, 5].map((value) => (
+                                                <div key={value} className="relative">
+                                                    <FeedbackChoiceButton
+                                                        onClick={() => handleInviteEaseFeedback(value)}
+                                                        kind="compact"
+                                                        tone="primary"
+                                                        selected={inviteEaseRating === value}
+                                                        className={cn(
+                                                            "min-w-10 justify-center px-0",
+                                                            inviteEaseRating === value
+                                                                ? "border-state-info bg-state-info text-primary-foreground shadow-md"
+                                                                : "border-border bg-surface-base text-state-info hover:border-state-info/30 hover:bg-state-info/10"
+                                                        )}
+                                                        aria-label={`Rate invite setup ease ${value} out of 5`}
+                                                    >
+                                                        {value}
+                                                    </FeedbackChoiceButton>
+                                                    <FeedbackPill isVisible={savedRating === value} text="" />
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {feedbackError && (
+                                            <AlertPanel tone="critical" size="sm" className="justify-center bg-state-critical/10 text-left">
+                                                {feedbackError}
+                                            </AlertPanel>
+                                        )}
+                                    </div>
+
+                                    <div className="w-full space-y-3 pt-2">
+                                        <Button
                                             ref={successPrimaryButtonRef}
                                             onClick={onNewInvite}
-                                            className="w-full h-14 bg-primary text-primary-foreground font-bold rounded-2xl shadow-raised-1 hover:shadow-raised-2 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+                                            emphasis="primary"
+                                            density="hero"
+                                            shape="app"
+                                            label="strong"
+                                            className="w-full gap-3"
                                         >
-                                        <PlusCircle size={20} />
-                                        Start New Invite
-                                    </button>
-                                    <button
-                                        onClick={onDashboard}
-                                        className="w-full h-14 bg-surface-subtle text-text-primary font-bold rounded-2xl border border-border/30 hover:bg-surface-muted transition-all flex items-center justify-center gap-3"
-                                    >
-                                        <LayoutDashboard size={20} />
-                                        Go to Dashboard
-                                    </button>
-                                </div>
+                                            <PlusCircle size={20} />
+                                            Start New Invite
+                                        </Button>
+                                        <Button
+                                            onClick={onDashboard}
+                                            emphasis="secondary"
+                                            density="hero"
+                                            shape="app"
+                                            label="strong"
+                                            className="w-full gap-3 border-border/30"
+                                        >
+                                            <LayoutDashboard size={20} />
+                                            Go to Dashboard
+                                        </Button>
+                                    </div>
                             </div>
                         ) : (
                             <>
@@ -128,42 +209,47 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                     </p>
                                     
                                     <div className="flex items-center gap-2">
-                                        <button
+                                        <Button
                                             ref={closeButtonRef}
                                             onClick={onClose}
-                                            className="px-4 py-2 text-xs font-bold text-text-secondary hover:bg-surface-subtle rounded-xl transition-colors"
+                                            emphasis="secondary"
+                                            density="compact"
+                                            shape="square"
+                                            label="strong"
                                         >
                                             Cancel
-                                        </button>
-                                        <button
+                                        </Button>
+                                        <Button
                                             onClick={onSend}
                                             disabled={isSending || data.recipientEmails.length === 0}
-                                            className="px-6 py-2 bg-primary text-primary-foreground text-xs font-bold rounded-xl shadow-raised-1 hover:shadow-raised-2 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 flex items-center gap-2"
+                                            emphasis="primary"
+                                            density="compact"
+                                            shape="square"
+                                            label="strong"
+                                            className="gap-2 disabled:scale-100"
                                         >
                                             {isSending ? <Loader2 size={14} className="animate-spin" /> : <SendHorizontal size={14} />}
                                             {isSending ? "Sending..." : "Send"}
-                                        </button>
+                                        </Button>
                                         <div className="w-[1px] h-6 bg-border/30 mx-1" />
-                                        <button
+                                        <Button
                                             onClick={onClose}
-                                            className="p-2 hover:bg-surface-muted rounded-full transition-colors flex items-center justify-center"
+                                            variant="ghost"
+                                            size="icon"
+                                            shape="pill"
                                             aria-label="Close invite preview"
                                         >
                                             <X size={20} className="text-text-disabled hover:text-text-secondary" />
-                                        </button>
+                                        </Button>
                                     </div>
                                 </div>
 
                                 <div className="flex-1 overflow-y-auto bg-surface-subtle/20 custom-scrollbar">
                                     {errorMessage && (
                                         <div className="px-8 pt-6">
-                                            <div
-                                                className="rounded-2xl border border-state-critical/20 bg-state-critical/10 px-4 py-3 text-sm font-semibold text-state-critical"
-                                                role="alert"
-                                                aria-live="assertive"
-                                            >
+                                            <AlertPanel tone="critical" weight="semibold" className="bg-state-critical/10" role="alert" aria-live="assertive">
                                                 {errorMessage}
-                                            </div>
+                                            </AlertPanel>
                                         </div>
                                     )}
                                     <div className="px-8 py-6 space-y-3 bg-surface-base border-b border-border/30">

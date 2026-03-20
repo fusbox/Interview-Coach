@@ -82,8 +82,8 @@ export function renderSessionDebriefEmail({
       </div>
     </div>
 
-    <div style="text-align: center; margin-bottom: 40px;">
-      <a href="${debriefUrl}" style="background-color: #2563eb; color: #ffffff; padding: 16px 32px; border-radius: 100px; text-decoration: none; font-weight: bold; display: inline-block; font-size: 16px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);">
+    <div style="text-align: left; margin-bottom: 40px;">
+      <a href="${debriefUrl}" style="background-color: #2563eb; color: #ffffff; padding: 18px 36px; border-radius: 12px; text-decoration: none; font-weight: bold; display: inline-block; font-size: 16px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);">
         View Your Full Debrief
       </a>
     </div>

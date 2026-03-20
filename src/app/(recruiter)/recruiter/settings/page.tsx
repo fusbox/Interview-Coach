@@ -6,8 +6,9 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
 import { Loader2, Save, CheckCircle2, AlertTriangle } from "lucide-react";
-import { cn } from "@/lib/cn";
-import { SectionHeader } from "@/components/patterns/SectionHeader";
+import { AlertPanel } from "@/components/patterns/AlertPanel";
+import { PageHeaderBlock } from "@/components/patterns/PageHeaderBlock";
+import { FieldGroup, FieldHint, FieldLabel, selectFieldClassName, textFieldClassName } from "@/components/patterns/FormField";
 
 interface RecruiterProfile {
     recruiter_id: string;
@@ -187,9 +188,8 @@ export default function SettingsPage() {
 
     return (
         <div className="max-w-2xl mx-auto space-y-10 animate-in fade-in duration-slow">
-            <SectionHeader
+            <PageHeaderBlock
                 title="Account Settings"
-                isPageHeader
                 description="Manage your profile and display preferences."
             />
 
@@ -203,65 +203,63 @@ export default function SettingsPage() {
                     </CardHeader>
                     <CardContent className="p-8 space-y-8">
                         {error && (
-                            <div className="p-4 bg-state-critical/5 text-state-critical text-sm rounded-2xl border border-state-critical/20 flex items-start gap-3 animate-in shake-in">
-                                <AlertTriangle className="w-5 h-5 shrink-0" />
+                            <AlertPanel tone="critical" icon={<AlertTriangle className="w-5 h-5 shrink-0" />} className="animate-in shake-in">
                                 <span className="font-medium">{error}</span>
-                            </div>
+                            </AlertPanel>
                         )}
                         {successMessage && !isDirty && (
-                            <div className="p-4 bg-state-success/5 text-state-success text-sm rounded-2xl border border-state-success/20 flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
-                                <CheckCircle2 className="w-5 h-5 shrink-0" />
+                            <AlertPanel tone="success" icon={<CheckCircle2 className="w-5 h-5 shrink-0" />} className="animate-in fade-in slide-in-from-top-2">
                                 <span className="font-medium">{successMessage}</span>
-                            </div>
+                            </AlertPanel>
                         )}
 
-                        <div className="space-y-3">
-                            <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Your Job Title</label>
+                        <FieldGroup>
+                            <FieldLabel>Your Job Title</FieldLabel>
                             <input
-                                className="flex h-12 w-full rounded-xl border border-border bg-surface-subtle px-4 py-2 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-base"
+                                className={textFieldClassName}
                                 value={profile.title}
                                 onChange={e => setProfile({ ...profile, title: e.target.value })}
                                 placeholder="e.g. Senior Technical Recruiter"
                             />
-                        </div>
+                        </FieldGroup>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-3">
-                                <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">First Name</label>
+                            <FieldGroup>
+                                <FieldLabel>First Name</FieldLabel>
                                 <input
                                     required
-                                    className="flex h-12 w-full rounded-xl border border-border bg-surface-subtle px-4 py-2 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-base"
+                                    className={textFieldClassName}
                                     value={profile.first_name}
                                     onChange={e => setProfile({ ...profile, first_name: e.target.value })}
                                 />
-                            </div>
-                            <div className="space-y-3">
-                                <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Last Name</label>
+                            </FieldGroup>
+                            <FieldGroup>
+                                <FieldLabel>Last Name</FieldLabel>
                                 <input
                                     required
-                                    className="flex h-12 w-full rounded-xl border border-border bg-surface-subtle px-4 py-2 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-base"
+                                    className={textFieldClassName}
                                     value={profile.last_name}
                                     onChange={e => setProfile({ ...profile, last_name: e.target.value })}
                                 />
-                            </div>
+                            </FieldGroup>
                         </div>
 
-                        <div className="space-y-3">
-                            <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Phone Number</label>
+                        <FieldGroup>
+                            <FieldLabel>Phone Number</FieldLabel>
                             <input
-                                className="flex h-12 w-full rounded-xl border border-border bg-surface-subtle px-4 py-2 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-base"
+                                className={textFieldClassName}
                                 value={profile.phone}
                                 onChange={e => setProfile({ ...profile, phone: e.target.value })}
                                 type="tel"
                                 placeholder="(555) 123-4567"
                             />
-                        </div>
+                        </FieldGroup>
 
-                        <div className="space-y-3">
-                            <label className="text-micro font-bold uppercase tracking-wider text-text-secondary ml-1">Display Time Zone</label>
+                        <FieldGroup>
+                            <FieldLabel>Display Time Zone</FieldLabel>
                             <div className="relative group">
                                 <select
-                                    className="flex h-12 w-full items-center justify-between rounded-xl border border-border bg-surface-subtle px-4 py-2 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-base cursor-pointer"
+                                    className={selectFieldClassName}
                                     value={profile.timezone}
                                     onChange={e => setProfile({ ...profile, timezone: e.target.value })}
                                 >
@@ -273,8 +271,8 @@ export default function SettingsPage() {
                                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                                 </div>
                             </div>
-                            <p className="text-micro text-text-muted italic ml-1">Used for displaying session timestamps and activity logs.</p>
-                        </div>
+                            <FieldHint>Used for displaying session timestamps and activity logs.</FieldHint>
+                        </FieldGroup>
 
                     </CardContent>
                     <CardFooter className="flex justify-between items-center bg-surface-subtle/50 p-6 border-t border-border/10">
@@ -285,9 +283,12 @@ export default function SettingsPage() {
                             {isDirty && (
                                 <Button
                                     type="button"
-                                    variant="ghost"
+                                    emphasis="secondary"
+                                    density="comfortable"
+                                    shape="app"
+                                    label="strong"
                                     onClick={handleCancel}
-                                    className="px-6 font-bold uppercase text-micro tracking-widest text-text-disabled hover:text-text-primary transition-all animate-in fade-in slide-in-from-right-1 rounded-2xl"
+                                    className="animate-in fade-in slide-in-from-right-1 text-text-disabled hover:text-text-primary"
                                 >
                                     Cancel
                                 </Button>
@@ -295,12 +296,11 @@ export default function SettingsPage() {
                             <Button
                                 type="submit"
                                 disabled={!isDirty || isSaving}
-                                className={cn(
-                                    "h-11 px-8 font-bold uppercase text-micro tracking-widest transition-all duration-base flex items-center gap-2 rounded-2xl",
-                                    isDirty
-                                        ? "bg-primary text-primary-foreground shadow-raised-1 hover:shadow-raised-2 active:scale-95"
-                                        : "bg-surface-subtle text-text-disabled border border-border/20 cursor-not-allowed"
-                                )}
+                                emphasis={isDirty ? "primary" : "secondary"}
+                                density="comfortable"
+                                shape="app"
+                                label="strong"
+                                className="gap-2"
                             >
                                 {isSaving ? (
                                     <>

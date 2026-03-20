@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { cn } from "@/lib/cn";
+import { choiceCardClassName } from "@/components/patterns/FormField";
 
 interface IntakeScreenProps {
     onComplete: (preference: 'tier0' | 'tier1' | 'tier2') => void;
@@ -39,7 +40,7 @@ export default function IntakeScreen({ onComplete }: IntakeScreenProps) {
                         onClick={() => handleSelect('tier0')}
                         disabled={isSubmitting}
                         className={cn(
-                            "w-full text-left p-4 rounded-xl border-2 border-transparent bg-muted/50 hover:bg-muted hover:border-primary/50 transition-all duration-200 group",
+                            `${choiceCardClassName} group`,
                             isSubmitting && "opacity-50 cursor-not-allowed"
                         )}
                     >
@@ -51,7 +52,7 @@ export default function IntakeScreen({ onComplete }: IntakeScreenProps) {
                         onClick={() => handleSelect('tier1')}
                         disabled={isSubmitting}
                         className={cn(
-                            "w-full text-left p-4 rounded-xl border-2 border-transparent bg-muted/50 hover:bg-muted hover:border-primary/50 transition-all duration-200 group",
+                            `${choiceCardClassName} group`,
                             isSubmitting && "opacity-50 cursor-not-allowed"
                         )}
                     >
@@ -63,7 +64,7 @@ export default function IntakeScreen({ onComplete }: IntakeScreenProps) {
                         onClick={() => handleSelect('tier2')}
                         disabled={isSubmitting}
                         className={cn(
-                            "w-full text-left p-4 rounded-xl border-2 border-transparent bg-muted/50 hover:bg-muted hover:border-primary/50 transition-all duration-200 group",
+                            `${choiceCardClassName} group`,
                             isSubmitting && "opacity-50 cursor-not-allowed"
                         )}
                     >

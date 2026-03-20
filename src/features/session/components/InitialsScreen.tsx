@@ -5,6 +5,8 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/cn';
 import { Button } from '@/components/ui/button';
 import { useSession } from '../context/SessionContext';
+import { AlertPanel } from '@/components/patterns/AlertPanel';
+import { largeTextInputClassName } from '@/components/patterns/FormField';
 
 export default function InitialsScreen() {
     const { session, candidateToken, submitInitials } = useSession();
@@ -106,11 +108,7 @@ export default function InitialsScreen() {
                     <label htmlFor="initials-input" className="block text-lg font-medium text-foreground">
                         Enter your initials to begin
                     </label>
-                    {errorMessage && (
-                        <div className="rounded-2xl border border-state-critical/20 bg-state-critical/5 px-4 py-3 text-sm font-medium text-state-critical">
-                            {errorMessage}
-                        </div>
-                    )}
+                    {errorMessage && <AlertPanel tone="critical">{errorMessage}</AlertPanel>}
                     <div className="relative group">
                         <input
                             id="initials-input"
@@ -121,8 +119,7 @@ export default function InitialsScreen() {
                             onBlur={() => setIsFocused(false)}
                             placeholder="(e.g. AB)"
                             className={cn(
-                                'w-full px-4 py-4 text-2xl tracking-widest font-medium bg-muted/50 border rounded-xl outline-none transition-all duration-200',
-                                'placeholder:text-muted-foreground/70 placeholder:font-normal placeholder:tracking-normal uppercase',
+                                largeTextInputClassName,
                                 isFocused
                                     ? 'border-primary ring-4 ring-primary/10'
                                     : 'border-border hover:border-input'

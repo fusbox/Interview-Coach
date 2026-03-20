@@ -5,12 +5,12 @@ import { isAdmin } from "@/lib/auth/rbac";
 import { Plus } from "lucide-react";
 import { createClient, getCachedUser } from "@/lib/supabase/server";
 import { RecruiterSessionsTable } from "./components/RecruiterSessionsTable";
-import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { DashboardStats } from "./components/DashboardStats";
 import { InviteProgressWidget } from "./components/InviteProgressWidget";
 import { CollapsibleSection } from "./components/CollapsibleSection";
 import { redirect } from "next/navigation";
 import { computeDashboardStats } from "@/lib/services/compute-dashboard-stats";
+import { PageHeaderBlock } from "@/components/patterns/PageHeaderBlock";
 export const dynamic = 'force-dynamic';
 
 export default async function RecruiterDashboard() {
@@ -35,26 +35,21 @@ export default async function RecruiterDashboard() {
 
     return (
         <div className="space-y-10">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <SectionHeader
-                    title="Dashboard"
-                    description="At-a-glance view of your hiring pipeline."
-                    isPageHeader
-                />
-
-                <div className="flex-1 md:flex md:justify-center">
-                    <DashboardStats metrics={basicStats} variant="header" />
-                </div>
-
-                <div className="hidden md:block shrink-0">
-                    <Button asChild className="h-11 shadow-raised-1 rounded-2xl font-semibold">
+            <PageHeaderBlock
+                title="Dashboard"
+                description="At-a-glance view of your hiring pipeline."
+                actions={
+                    <Button asChild density="comfortable" shape="app" label="strong">
                         <Link href="/recruiter/create">
                             <Plus className="w-4 h-4 mr-2" />
                             New Invite
                         </Link>
                     </Button>
-                </div>
-            </div>
+                }
+                supporting={
+                    <DashboardStats metrics={basicStats} variant="header" />
+                }
+            />
 
             <CollapsibleSection
                 storageKey="invite_progress"

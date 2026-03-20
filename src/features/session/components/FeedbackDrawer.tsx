@@ -21,6 +21,8 @@ import { cn } from '@/lib/cn';
 import { captureFeedbackAction } from '@/app/actions/feedback';
 import { useSession } from '../context/SessionContext';
 import { SectionHeader } from '@/components/patterns/SectionHeader';
+import { AlertPanel } from '@/components/patterns/AlertPanel';
+import { FeedbackChoiceButton } from '@/components/patterns/FeedbackChoiceButton';
 
 // ─────────────────────────────────────────────
 // Types
@@ -139,20 +141,17 @@ const HelpfulRating: React.FC<{
             <div className="flex items-center gap-2">
                 {options.map((opt) => (
                     <div key={opt.val} className="relative">
-                        <button
+                        <FeedbackChoiceButton
                             onClick={() => onSelect(opt.val)}
                             aria-pressed={currentVal === opt.val}
-                            className={cn(
-                                "px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 border flex items-center gap-2",
-                                currentVal === opt.val
-                                    ? "bg-primary border-primary text-primary-foreground shadow-md scale-105"
-                                    : "bg-surface-base border-border text-text-secondary hover:border-primary/30"
-                            )}
+                            kind="compact"
+                            tone="primary"
+                            selected={currentVal === opt.val}
                         >
                             <span>{opt.icon}</span>
                             <span>{opt.label}</span>
-                        </button>
-                        <FeedbackPill isVisible={!!showSaved && currentVal === opt.val} text="Saved" />
+                        </FeedbackChoiceButton>
+                        <FeedbackPill isVisible={!!showSaved && currentVal === opt.val} text="" />
                     </div>
                 ))}
             </div>
@@ -170,14 +169,21 @@ const FeedbackNavButtons: React.FC<{
         <div className="mt-10 flex flex-col md:flex-row items-center gap-4 w-full">
             <Button
                 onClick={onPrimary}
-                className="h-14 w-full md:w-auto rounded-full px-10 bg-primary hover:bg-primary/90 text-primary-foreground transition-all font-bold text-base"
+                emphasis="primary"
+                density="hero"
+                shape="app"
+                label="strong"
+                className="w-full md:w-auto"
             >
                 {primaryLabel}
             </Button>
             <Button
-                variant="ghost"
                 onClick={onSkip}
-                className="h-14 w-full md:w-auto rounded-full px-8 text-text-muted hover:text-text-primary hover:bg-surface-subtle transition-all font-bold text-base"
+                variant="ghost"
+                density="hero"
+                shape="app"
+                label="strong"
+                className="w-full md:w-auto bg-transparent text-text-muted shadow-none hover:bg-transparent hover:text-text-primary"
             >
                 {skipLabel}
             </Button>
@@ -211,7 +217,7 @@ const ProgressDots: React.FC<{
                                 : "bg-primary/30 border border-primary/10"
                         )}
                     />
-                    <div className="absolute left-6 px-2 py-1 rounded bg-surface-overlay text-text-inverse text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-floating">
+                    <div className="absolute left-6 rounded border border-border/50 bg-surface-base px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-text-primary opacity-0 shadow-floating transition-opacity pointer-events-none whitespace-nowrap group-hover:opacity-100">
                         {s.label}
                     </div>
                 </button>
@@ -497,9 +503,9 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                         Review your coach feedback and choose whether to continue or retry this answer.
                     </div>
                     {errorMessage && (
-                        <div className="absolute top-4 left-4 right-4 z-50 rounded-2xl border border-state-critical/20 bg-state-critical/5 px-4 py-3 text-sm font-medium text-state-critical md:left-8 md:right-8">
+                        <AlertPanel tone="critical" className="absolute top-4 left-4 right-4 z-50 md:left-8 md:right-8">
                             {errorMessage}
-                        </div>
+                        </AlertPanel>
                     )}
                     {/* ── Main Layout (Vertical Split: Header + Content) ─────────────────── */}
                     <div className="flex-1 flex flex-col min-w-0 bg-transparent relative">
@@ -540,17 +546,24 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                                 setHasExplored(true);
                                                 setTimeout(() => scrollToSection(analysis?.deliveryPulse ? 'delivery' : 'content'), 50);
                                             }}
-                                            className="h-14 w-full md:w-auto rounded-full px-10 bg-primary hover:bg-primary/90 text-primary-foreground transition-all font-bold text-base"
+                                            emphasis="primary"
+                                            density="hero"
+                                            shape="app"
+                                            label="strong"
+                                            className="w-full md:w-auto"
                                         >
                                             Explore Feedback
                                         </Button>
                                         <Button
-                                            variant="ghost"
                                             onClick={() => {
                                                 audioEngine.unlock();
                                                 onNext();
                                             }}
-                                            className="h-14 w-full md:w-auto rounded-full px-8 text-text-muted hover:text-text-primary hover:bg-surface-subtle transition-all font-bold text-base"
+                                            variant="ghost"
+                                            density="hero"
+                                            shape="app"
+                                            label="strong"
+                                            className="w-full md:w-auto bg-transparent text-text-muted shadow-none hover:bg-transparent hover:text-text-primary"
                                         >
                                             {isLastQuestion ? 'Skip and Finish Session' : 'Skip and Continue to Next Question'}
                                         </Button>
@@ -694,7 +707,11 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                                         audioEngine.unlock();
                                                         onRetry();
                                                     }}
-                                                    className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-bold text-base shadow-lg hover:bg-primary/90 hover:scale-[1.02] active:scale-95 transition-all"
+                                                    emphasis="primary"
+                                                    density="hero"
+                                                    shape="app"
+                                                    label="strong"
+                                                    className="w-full"
                                                 >
                                                     <RotateCcw size={18} className="mr-2" />
                                                     Retry My Answer
@@ -720,7 +737,11 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                                         audioEngine.unlock();
                                                         onNext();
                                                     }}
-                                                    className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-bold text-base shadow-lg hover:bg-primary/90 hover:scale-[1.02] active:scale-95 transition-all"
+                                                    emphasis="primary"
+                                                    density="hero"
+                                                    shape="app"
+                                                    label="strong"
+                                                    className="w-full"
                                                 >
                                                     {isLastQuestion ? 'Finish Session' : 'Continue to Next Question'}
                                                     <ArrowRight size={18} className="ml-2" />

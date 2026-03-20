@@ -11,6 +11,7 @@ import { cn } from "@/lib/cn";
 import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { IconBadge } from "@/components/patterns/IconBadge";
+import { ContentCard } from "@/components/patterns/ContentCard";
 import { useSummaryPolling } from "../hooks/useSummaryPolling";
 import { SessionSurvey } from "./SessionSurvey";
 import { getIconForTitle, parseDebrief } from "./SummaryUtilities";
@@ -118,40 +119,41 @@ export default function SummaryScreen() {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.4 + (idx * 0.1), duration: 0.8 }}
-                                className="w-full text-left bg-card rounded-3xl p-8 md:p-10 shadow-raised-2 border border-border"
                             >
-                                <div className="flex items-center gap-4 mb-3 pb-4 border-b border-border/60">
-                                    <IconBadge {...getIconForTitle(section.title)} size="sm" />
-                                    <h3 className="text-2xl font-bold text-text-primary">
-                                        {section.title}
-                                    </h3>
-                                </div>
-                                <div className="prose max-w-none prose-p:text-text-secondary prose-p:leading-relaxed prose-p:text-lg prose-li:text-lg prose-strong:text-text-primary">
-                                    <ReactMarkdown components={{
-                                        strong: ({ className, ...props }) => <strong className={cn("font-bold text-text-primary", className)} {...props} />,
-                                        p: ({ className, ...props }) => <p className={cn("mb-5 last:mb-0", className)} {...props} />,
-                                        li: ({ className, ...props }) => <li className={cn("mb-5 last:mb-0", className)} {...props} />
-                                    }}>
-                                        {section.content}
-                                    </ReactMarkdown>
-                                </div>
+                                <ContentCard density="spacious" className="w-full">
+                                    <div className="mb-3 flex items-center gap-4 border-b border-border/60 pb-4">
+                                        <IconBadge {...getIconForTitle(section.title)} size="sm" />
+                                        <h3 className="text-2xl font-bold text-text-primary">
+                                            {section.title}
+                                        </h3>
+                                    </div>
+                                    <div className="prose max-w-none prose-p:text-text-secondary prose-p:leading-relaxed prose-p:text-lg prose-li:text-lg prose-strong:text-text-primary">
+                                        <ReactMarkdown components={{
+                                            strong: ({ className, ...props }) => <strong className={cn("font-bold text-text-primary", className)} {...props} />,
+                                            p: ({ className, ...props }) => <p className={cn("mb-5 last:mb-0", className)} {...props} />,
+                                            li: ({ className, ...props }) => <li className={cn("mb-5 last:mb-0", className)} {...props} />
+                                        }}>
+                                            {section.content}
+                                        </ReactMarkdown>
+                                    </div>
+                                </ContentCard>
                             </motion.div>
                         ))}
                     </div>
                 ) : (
                     <div className="w-full flex flex-col gap-6" aria-busy="true" aria-live="polite">
                         {/* Executive Summary Skeleton */}
-                        <div className="w-full bg-card rounded-3xl p-8 md:p-10 shadow-raised-2 border border-border">
+                        <ContentCard density="spacious" className="w-full">
                             <Skeleton className="h-8 w-48 mb-6" />
                             <div className="space-y-3">
                                 <Skeleton className="h-4 w-full" />
                                 <Skeleton className="h-4 w-full" />
                                 <Skeleton className="h-4 w-2/3" />
                             </div>
-                        </div>
+                        </ContentCard>
 
                         {/* Core Strengths Skeleton */}
-                        <div className="w-full bg-card rounded-3xl p-8 md:p-10 shadow-raised-2 border border-border">
+                        <ContentCard density="spacious" className="w-full">
                             <Skeleton className="h-8 w-40 mb-6" />
                             <div className="space-y-8">
                                 <div className="space-y-3">
@@ -165,10 +167,10 @@ export default function SummaryScreen() {
                                     <Skeleton className="h-4 w-3/4" />
                                 </div>
                             </div>
-                        </div>
+                        </ContentCard>
 
                         {/* Primary Growth Area Skeleton */}
-                        <div className="w-full bg-card rounded-3xl p-8 md:p-10 shadow-raised-2 border border-border">
+                        <ContentCard density="spacious" className="w-full">
                             <Skeleton className="h-8 w-56 mb-6" />
                             <div className="space-y-3">
                                 <Skeleton className="h-5 w-1/3" />
@@ -176,13 +178,13 @@ export default function SummaryScreen() {
                                 <Skeleton className="h-4 w-full" />
                                 <Skeleton className="h-4 w-1/2" />
                             </div>
-                        </div>
+                        </ContentCard>
 
                         {/* Readiness & Next Steps Skeleton */}
-                        <div className="w-full bg-card rounded-3xl p-8 md:p-10 shadow-raised-2 border border-border">
+                        <ContentCard density="spacious" className="w-full">
                             <Skeleton className="h-8 w-52 mb-6" />
                             <Skeleton className="h-4 w-3/4" />
-                        </div>
+                        </ContentCard>
                     </div>
                 )}
 
@@ -214,10 +216,13 @@ export default function SummaryScreen() {
                 >
                     <div className="w-full">
                         <Button
-                            size="lg"
+                            emphasis="primary"
+                            density="hero"
+                            shape="app"
+                            label="strong"
                             onClick={handlePracticeAgain}
                             disabled={isCreating}
-                            className="w-full h-16 rounded-2xl bg-blue-600 text-white font-bold text-lg shadow-floating hover:bg-blue-700 hover:scale-[1.01] transition-all flex items-center justify-center gap-3"
+                            className="w-full h-16 gap-3 text-lg shadow-floating"
                         >
                             {isCreating ? <Loader2 className="animate-spin" size={24} /> : <RotateCcw size={24} />}
                             Practice Again

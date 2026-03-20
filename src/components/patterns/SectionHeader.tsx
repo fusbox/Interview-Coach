@@ -46,7 +46,9 @@ export function SectionHeader({
                 {description && (
                     <div className={cn(
                         "text-text-muted",
-                        {
+                        isPageHeader
+                            ? "text-sm italic"
+                            : {
                             "text-sm": size === "sm",
                             "text-sm sm:text-base": size === "md",
                             "text-base": size === "lg",

@@ -9,9 +9,10 @@ import { useSession } from '../context/SessionContext';
 import { cn } from '@/lib/cn';
 import { captureFeedbackAction } from '@/app/actions/feedback';
 import { FeedbackPill } from '@/components/patterns/FeedbackPill';
+import { AlertPanel } from '@/components/patterns/AlertPanel';
+import { EMOJI_SCALE, FeedbackChoiceButton } from '@/components/patterns/FeedbackChoiceButton';
 
 import { Variants } from 'framer-motion';
-import { EMOJI_SCALE } from '@/components/patterns/FeedbackCard';
 
 const fadeUp: Variants = {
     hidden: { opacity: 0, y: 30 },
@@ -195,28 +196,22 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                             </div>
                         </div>
 
-                        {feedbackError && (
-                            <div className="rounded-2xl border border-state-critical/20 bg-state-critical/5 px-4 py-3 text-sm font-medium text-state-critical">
-                                {feedbackError}
-                            </div>
-                        )}
+                        {feedbackError && <AlertPanel tone="critical">{feedbackError}</AlertPanel>}
 
                         <div className="flex items-center justify-between gap-2 w-full">
                             {EMOJI_SCALE.map(({ val, emoji }) => (
                                 <div key={val} className="relative flex-1 max-w-[64px]">
-                                    <button
+                                    <FeedbackChoiceButton
                                         onClick={() => handleRatingSelect(val)}
-                                        className={cn(
-                                            "w-full aspect-square rounded-2xl border-2 flex items-center justify-center text-3xl transition-all duration-300",
-                                            rating === val
-                                                ? "bg-surface-base dark:bg-brand-deep/10 border-primary/50 shadow-lg scale-110 saturate-100 opacity-100"
-                                                : "bg-transparent border-border text-text-muted hover:border-primary/30 hover:scale-105 saturate-80 opacity-80 hover:saturate-100 hover:opacity-100"
-                                        )}
+                                        kind="emoji"
+                                        tone="primary"
+                                        selected={rating === val}
+                                        className="h-auto w-full aspect-square"
                                         title={`Rate ${val}/5`}
                                     >
                                         {emoji}
-                                    </button>
-                                    <FeedbackPill isVisible={showSuccess && rating === val} text="Saved" />
+                                    </FeedbackChoiceButton>
+                                    <FeedbackPill isVisible={showSuccess && rating === val} text="" />
                                 </div>
                             ))}
                         </div>

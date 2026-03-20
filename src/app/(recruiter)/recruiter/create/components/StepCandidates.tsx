@@ -7,6 +7,7 @@ import { StepFooterProps } from "../constants";
 import { showDemoTools } from "@/lib/feature-flags";
 import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { EmptyState } from "@/components/patterns/EmptyState";
+import { textFieldClassName } from "@/components/patterns/FormField";
 
 export interface CandidateRow {
     id: string;
@@ -21,7 +22,7 @@ interface StepCandidatesProps {
     setCandidates: (c: CandidateRow[]) => void;
     onBack: () => void;
     onNext: () => void;
-    onRandomizeCandidate?: () => void; // Dev helper
+    onRandomizeCandidate?: () => void;
     StepFooter: React.ComponentType<StepFooterProps>;
 }
 
@@ -52,9 +53,8 @@ export function StepCandidates({
         ));
     };
 
-    // Validation: Check if all candidates have filled fields
     const isValid = candidates.every(c =>
-        c.firstName.trim() && c.lastName.trim() && c.email.trim() && c.email.includes('@')
+        c.firstName.trim() && c.lastName.trim() && c.email.trim() && c.email.includes("@")
     ) && candidates.length > 0;
 
     return (
@@ -64,22 +64,26 @@ export function StepCandidates({
                 description="Enter the details for one or more candidates."
                 actions={
                     isDemo && onRandomizeCandidate && (
-                        <button
+                        <Button
                             onClick={onRandomizeCandidate}
-                            className="px-3 py-1.5 text-micro font-bold uppercase tracking-wider rounded-full bg-state-info/10 text-state-info hover:bg-state-info/20 transition-all border border-state-info/20 shadow-sm"
+                            emphasis="secondary"
+                            density="compact"
+                            shape="pill"
+                            label="chrome"
+                            className="border-state-info/20 bg-state-info/10 text-state-info hover:bg-state-info/20"
                         >
-                            🎲 Add Random
-                        </button>
+                            Add Random
+                        </Button>
                     )
                 }
             />
 
             <Card className="border-border/50 shadow-raised-1">
-                <CardHeader className="flex flex-row items-center justify-between py-5 border-b border-border/30 bg-surface-base">
-                    <CardTitle className="text-base font-bold font-sans flex items-center gap-2.5">
-                    <div className="w-1 h-4 bg-primary rounded-full" />
-                    Candidate List
-                </CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between border-b border-border/30 bg-surface-base py-5">
+                    <CardTitle className="flex items-center gap-2.5 font-sans text-base font-bold">
+                        <div className="h-4 w-1 rounded-full bg-primary" />
+                        Candidate List
+                    </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6 pt-6">
                     {candidates.length === 0 && (
@@ -87,60 +91,65 @@ export function StepCandidates({
                             <EmptyState
                                 title="No candidates yet"
                                 description="Click the button below to start adding candidates to this batch."
-                                icon={<UserPlus className="w-10 h-10 text-muted-foreground/40" />}
+                                icon={<UserPlus className="h-10 w-10 text-muted-foreground/40" />}
                             />
                         </div>
                     )}
 
                     {candidates.map((candidate, index) => (
-                        <div key={candidate.id} className="flex gap-3 items-start animate-in fade-in slide-in-from-top-2 duration-200">
-                            <div className="pt-3 text-xs font-bold text-text-disabled w-6 text-center">
+                        <div key={candidate.id} className="animate-in slide-in-from-top-2 flex items-start gap-3 duration-200 fade-in">
+                            <div className="w-6 pt-3 text-center text-xs font-bold text-text-disabled">
                                 #{index + 1}
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1">
+                            <div className="grid flex-1 grid-cols-1 gap-3 md:grid-cols-3">
                                 <input
-                                    className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                    className={`${textFieldClassName} h-11 py-0`}
                                     value={candidate.firstName}
-                                    onChange={(e) => updateCandidate(candidate.id, 'firstName', e.target.value)}
+                                    onChange={(e) => updateCandidate(candidate.id, "firstName", e.target.value)}
                                     placeholder="First Name"
                                 />
                                 <input
-                                    className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                    className={`${textFieldClassName} h-11 py-0`}
                                     value={candidate.lastName}
-                                    onChange={(e) => updateCandidate(candidate.id, 'lastName', e.target.value)}
+                                    onChange={(e) => updateCandidate(candidate.id, "lastName", e.target.value)}
                                     placeholder="Last Name"
                                 />
                                 <input
-                                    className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                    className={`${textFieldClassName} h-11 py-0`}
                                     value={candidate.email}
-                                    onChange={(e) => updateCandidate(candidate.id, 'email', e.target.value)}
+                                    onChange={(e) => updateCandidate(candidate.id, "email", e.target.value)}
                                     placeholder="Email Address"
                                     type="email"
                                 />
                                 <input
-                                    className="flex h-11 w-full rounded-xl border border-border bg-surface-subtle px-4 text-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all md:col-span-3"
-                                    value={candidate.resumeText || ''}
-                                    onChange={(e) => updateCandidate(candidate.id, 'resumeText', e.target.value)}
+                                    className={`${textFieldClassName} h-11 py-0 md:col-span-3`}
+                                    value={candidate.resumeText || ""}
+                                    onChange={(e) => updateCandidate(candidate.id, "resumeText", e.target.value)}
                                     placeholder="Paste resume text (optional)"
                                 />
                             </div>
                             <Button
                                 size="icon"
                                 variant="ghost"
-                                className="text-destructive shrink-0 mt-1 hover:bg-state-critical/5"
+                                shape="square"
+                                className="mt-1 shrink-0 text-destructive hover:bg-state-critical/5"
                                 onClick={() => removeCandidate(candidate.id)}
                             >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="h-4 w-4" />
                             </Button>
                         </div>
                     ))}
 
                     <Button
-                        variant="outline"
+                        emphasis="secondary"
+                        density="hero"
+                        shape="app"
+                        label="strong"
                         onClick={addCandidate}
-                        className="w-full text-state-success border-state-success/30 hover:bg-state-success/5 hover:border-state-success/50 hover:text-state-success transition-all mt-4 py-6 rounded-2xl flex items-center justify-center gap-2"
+                        className="mt-4 w-full gap-2 text-state-success border-state-success/30 hover:bg-state-success/5 hover:border-state-success/50 hover:text-state-success"
                     >
-                        <UserPlus className="w-4 h-4" /> Add Candidate
+                        <UserPlus className="h-4 w-4" />
+                        Add Candidate
                     </Button>
                 </CardContent>
             </Card>
@@ -148,7 +157,7 @@ export function StepCandidates({
             <StepFooter
                 onBack={onBack}
                 onNext={onNext}
-                nextLabel={<>Next: Preview <ChevronRight className="ml-2 w-4 h-4" /></>}
+                nextLabel={<>Next: Preview <ChevronRight className="ml-2 h-4 w-4" /></>}
                 isNextDisabled={!isValid}
             />
         </div>
