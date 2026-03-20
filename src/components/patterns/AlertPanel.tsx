@@ -39,7 +39,8 @@ const toneIcons: Record<NonNullable<AlertPanelProps["tone"]>, LucideIcon> = {
 
 export interface AlertPanelProps
     extends React.HTMLAttributes<HTMLDivElement>,
-        VariantProps<typeof alertPanelVariants> {
+        Omit<VariantProps<typeof alertPanelVariants>, "tone"> {
+    tone?: NonNullable<VariantProps<typeof alertPanelVariants>["tone"]>
     icon?: boolean | React.ReactNode
 }
 

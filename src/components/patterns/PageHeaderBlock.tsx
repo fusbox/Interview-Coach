@@ -2,7 +2,7 @@ import * as React from "react"
 import { cn } from "@/lib/cn"
 import { SectionHeader } from "@/components/patterns/SectionHeader"
 
-export interface PageHeaderBlockProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface PageHeaderBlockProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
     title: string | React.ReactNode
     description?: string | React.ReactNode
     actions?: React.ReactNode
