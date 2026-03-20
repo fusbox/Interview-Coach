@@ -16,6 +16,7 @@ export interface DataTableColumn<T> {
     accessorKey?: keyof T | string
     cell?: (item: T) => React.ReactNode
     className?: string
+    headerCellProps?: React.ThHTMLAttributes<HTMLTableCellElement>
 }
 
 export interface DataTableProps<T> extends React.HTMLAttributes<HTMLDivElement> {
@@ -41,7 +42,11 @@ export function DataTable<T>({
                 <TableHeader className="bg-surface-subtle/50">
                     <TableRow className="hover:bg-transparent">
                         {columns.map((column, idx) => (
-                            <TableHead key={idx} className={cn("text-micro font-bold uppercase tracking-widest py-3", column.className)}>
+                            <TableHead
+                                key={idx}
+                                className={cn("text-micro font-bold uppercase tracking-widest py-3", column.className)}
+                                {...column.headerCellProps}
+                            >
                                 {column.header}
                             </TableHead>
                         ))}
@@ -75,9 +80,20 @@ export function DataTable<T>({
                                 key={rowIdx}
                                 className={cn(
                                     "transition-colors hover:bg-surface-subtle/30",
-                                    onRowClick && "cursor-pointer"
+                                    onRowClick && "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-inset"
                                 )}
                                 onClick={() => onRowClick?.(item)}
+                                onKeyDown={(event) => {
+                                    if (!onRowClick) {
+                                        return;
+                                    }
+
+                                    if (event.key === "Enter" || event.key === " ") {
+                                        event.preventDefault();
+                                        onRowClick(item);
+                                    }
+                                }}
+                                tabIndex={onRowClick ? 0 : undefined}
                             >
                                 {columns.map((column, colIdx) => (
                                     <TableCell key={colIdx} className={cn("py-4 text-sm", column.className)}>

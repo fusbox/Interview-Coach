@@ -32,6 +32,8 @@ type SortConfig = {
     direction: 'asc' | 'desc';
 } | null;
 
+type SortKey = NonNullable<SortConfig>["key"];
+
 
 export function RecruiterSessionsTable({ initialSessions, recruiterTimezone, recruiterProfile, isAdmin = false }: RecruiterSessionsTableProps) {
     const router = useRouter();
@@ -39,7 +41,24 @@ export function RecruiterSessionsTable({ initialSessions, recruiterTimezone, rec
     const [sortConfig, setSortConfig] = useState<SortConfig>(null);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
-    const handleSort = (key: keyof SessionSummary | 'delivered' | 'updatedAt') => {
+    const getAriaSort = (key: SortKey) => {
+        if (sortConfig?.key !== key) {
+            return "none" as const;
+        }
+
+        return sortConfig.direction === "asc" ? "ascending" as const : "descending" as const;
+    };
+
+    const getSortButtonLabel = (label: string, key: SortKey) => {
+        const currentSort = getAriaSort(key);
+        if (currentSort === "none") {
+            return `Sort by ${label}`;
+        }
+
+        return `Sort by ${label}, currently ${currentSort}`;
+    };
+
+    const handleSort = (key: keyof SessionSummary | 'delivered' | 'updatedAt' | 'engagedTimeSeconds') => {
         setSortConfig(prev => {
             if (prev?.key === key) {
                 return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
@@ -144,6 +163,7 @@ E: ${recruiterProfile?.email || ''}`;
                     className="pl-9 bg-surface-base border-border rounded-2xl focus-visible:ring-primary/20 focus-visible:ring-offset-0 focus-visible:border-primary/50"
                     value={searchQuery}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+                    aria-label="Search candidates or roles"
                 />
             </div>
 
@@ -151,10 +171,15 @@ E: ${recruiterProfile?.email || ''}`;
                 columns={[
                     {
                         header: (
-                            <button onClick={() => handleSort('candidateName')} className="flex items-center gap-1 hover:text-text-primary transition-colors">
+                            <button
+                                onClick={() => handleSort('candidateName')}
+                                className="flex items-center gap-1 hover:text-text-primary transition-colors"
+                                aria-label={getSortButtonLabel("candidate", "candidateName")}
+                            >
                                 Candidate <ArrowUpDown className="w-3 h-3" />
                             </button>
                         ),
+                        headerCellProps: { "aria-sort": getAriaSort("candidateName") },
                         cell: (session) => (
                             <div className="flex flex-col text-sm">
                                 <div className="flex items-center gap-2 max-w-full">
@@ -172,10 +197,15 @@ E: ${recruiterProfile?.email || ''}`;
                     },
                     {
                         header: (
-                            <button onClick={() => handleSort('role')} className="flex items-center gap-1 hover:text-text-primary transition-colors">
+                            <button
+                                onClick={() => handleSort('role')}
+                                className="flex items-center gap-1 hover:text-text-primary transition-colors"
+                                aria-label={getSortButtonLabel("role", "role")}
+                            >
                                 Role <ArrowUpDown className="w-3 h-3" />
                             </button>
                         ),
+                        headerCellProps: { "aria-sort": getAriaSort("role") },
                         cell: (session) => (
                             <span className="text-xs text-text-muted font-medium truncate max-w-[140px] block">
                                 {session.role}
@@ -185,19 +215,29 @@ E: ${recruiterProfile?.email || ''}`;
                     },
                     {
                         header: (
-                            <button onClick={() => handleSort('status')} className="flex items-center gap-1 hover:text-text-primary transition-colors">
+                            <button
+                                onClick={() => handleSort('status')}
+                                className="flex items-center gap-1 hover:text-text-primary transition-colors"
+                                aria-label={getSortButtonLabel("status", "status")}
+                            >
                                 Status <ArrowUpDown className="w-3 h-3" />
                             </button>
                         ),
+                        headerCellProps: { "aria-sort": getAriaSort("status") },
                         cell: (session) => <StatusBadge session={session} />,
                         className: "w-[180px]"
                     },
                     {
                         header: (
-                            <button onClick={() => handleSort('engagedTimeSeconds')} className="flex items-center gap-1 hover:text-text-primary transition-colors">
+                            <button
+                                onClick={() => handleSort('engagedTimeSeconds')}
+                                className="flex items-center gap-1 hover:text-text-primary transition-colors"
+                                aria-label={getSortButtonLabel("active time", "engagedTimeSeconds")}
+                            >
                                 Active <ArrowUpDown className="w-3 h-3" />
                             </button>
                         ),
+                        headerCellProps: { "aria-sort": getAriaSort("engagedTimeSeconds") },
                         cell: (session) => (
                             <span className="text-text-secondary whitespace-nowrap text-sm font-medium">
                                 {formatDuration(session.engagedTimeSeconds)}
@@ -206,10 +246,15 @@ E: ${recruiterProfile?.email || ''}`;
                     },
                     {
                         header: (
-                            <button onClick={() => handleSort('updatedAt')} className="flex items-center gap-1 hover:text-text-primary transition-colors">
+                            <button
+                                onClick={() => handleSort('updatedAt')}
+                                className="flex items-center gap-1 hover:text-text-primary transition-colors"
+                                aria-label={getSortButtonLabel("last activity", "updatedAt")}
+                            >
                                 Last Activity <ArrowUpDown className="w-3 h-3" />
                             </button>
                         ),
+                        headerCellProps: { "aria-sort": getAriaSort("updatedAt") },
                         cell: (session) => (
                             <span className="text-text-secondary whitespace-nowrap text-sm">
                                 {formatTimestamp(session.updatedAt || session.createdAt, recruiterTimezone)}
@@ -218,10 +263,15 @@ E: ${recruiterProfile?.email || ''}`;
                     },
                     {
                         header: (
-                            <button onClick={() => handleSort('delivered')} className="flex items-center gap-1 hover:text-text-primary transition-colors">
+                            <button
+                                onClick={() => handleSort('delivered')}
+                                className="flex items-center gap-1 hover:text-text-primary transition-colors"
+                                aria-label={getSortButtonLabel("delivery date", "delivered")}
+                            >
                                 Delivered <ArrowUpDown className="w-3 h-3" />
                             </button>
                         ),
+                        headerCellProps: { "aria-sort": getAriaSort("delivered") },
                         cell: (session) => (
                             <span className="text-text-secondary whitespace-nowrap text-sm">
                                 {formatTimestamp(session.invitationSentAt || session.createdAt, recruiterTimezone)}
@@ -233,13 +283,14 @@ E: ${recruiterProfile?.email || ''}`;
                         className: "text-right",
                         cell: (session) => (
                             <div className="flex items-center justify-end gap-1 px-6" onClick={(e) => e.stopPropagation()}>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    asChild
-                                    className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/5 transition-colors rounded-2xl"
-                                    title="Open Results in New Tab"
-                                >
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            asChild
+                                            className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/5 transition-colors rounded-2xl"
+                                            title="Open Results in New Tab"
+                                            aria-label={`Open ${session.candidateName}'s session in a new tab`}
+                                        >
                                     <Link href={`/recruiter/sessions/${session.id}`} target="_blank" rel="noopener noreferrer">
                                         <ExternalLink className="h-4 w-4" />
                                     </Link>
@@ -253,6 +304,7 @@ E: ${recruiterProfile?.email || ''}`;
                                             asChild
                                             className="h-8 w-8 text-text-muted hover:text-state-info hover:bg-state-info/5 transition-colors rounded-2xl"
                                             title="Resend Invite Email"
+                                            aria-label={`Resend invite email to ${session.candidateName}`}
                                         >
                                             <a href={buildResendMailto(session)!} target="_blank" rel="noopener noreferrer">
                                                 <Mail className="h-4 w-4" />
@@ -269,6 +321,7 @@ E: ${recruiterProfile?.email || ''}`;
                                         title="Delete Session"
                                         disabled={isDeleting === session.id}
                                         onClick={() => handleDelete(session.id)}
+                                        aria-label={`Delete ${session.candidateName}'s session`}
                                     >
                                         <Trash2 className={isDeleting === session.id ? "h-4 w-4 animate-pulse" : "h-4 w-4"} />
                                     </Button>

@@ -115,7 +115,7 @@ export default function LoginPage() {
                         )}
 
                         <div className="space-y-2">
-                            <label className="text-micro font-bold uppercase tracking-widest text-text-muted ml-1">
+                            <label htmlFor="email" className="text-micro font-bold uppercase tracking-widest text-text-muted ml-1">
                                 Email Address
                             </label>
                             <div className="relative group">
@@ -133,7 +133,7 @@ export default function LoginPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-micro font-bold uppercase tracking-widest text-text-muted ml-1">
+                            <label htmlFor="password" className="text-micro font-bold uppercase tracking-widest text-text-muted ml-1">
                                 Password
                             </label>
                             <div className="relative group">
@@ -151,6 +151,8 @@ export default function LoginPage() {
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
                                     className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-disabled hover:text-text-primary focus:outline-none transition-colors"
+                                    aria-label={showPassword ? "Hide password" : "Show password"}
+                                    aria-pressed={showPassword}
                                 >
                                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                 </button>

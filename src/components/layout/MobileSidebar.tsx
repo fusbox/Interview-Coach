@@ -4,6 +4,7 @@ import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAccessibleDialog } from "@/lib/hooks/use-accessible-dialog";
 
 interface MobileSidebarProps {
     children: React.ReactNode;
@@ -11,6 +12,16 @@ interface MobileSidebarProps {
 
 export function MobileSidebar({ children }: MobileSidebarProps) {
     const [isOpen, setIsOpen] = React.useState(false);
+    const drawerRef = React.useRef<HTMLDivElement>(null);
+    const closeButtonRef = React.useRef<HTMLButtonElement>(null);
+
+    useAccessibleDialog({
+        isOpen,
+        containerRef: drawerRef,
+        initialFocusRef: closeButtonRef,
+        onClose: () => setIsOpen(false),
+    });
+
     return (
         <>
             <Button
@@ -18,6 +29,7 @@ export function MobileSidebar({ children }: MobileSidebarProps) {
                 size="icon"
                 className="md:hidden fixed top-4 left-4 z-50"
                 onClick={() => setIsOpen(true)}
+                aria-label="Open navigation menu"
             >
                 <Menu size={24} />
             </Button>
@@ -41,13 +53,20 @@ export function MobileSidebar({ children }: MobileSidebarProps) {
                             exit={{ x: "-100%" }}
                             transition={{ type: "spring", damping: 20, stiffness: 300 }}
                             className="fixed inset-y-0 left-0 z-50 w-3/4 max-w-sm bg-white shadow-xl md:hidden"
+                            ref={drawerRef}
+                            role="dialog"
+                            aria-modal="true"
+                            aria-label="Navigation menu"
+                            tabIndex={-1}
                         >
                             <div className="relative h-full">
                                 <Button
+                                    ref={closeButtonRef}
                                     variant="ghost"
                                     size="icon"
                                     className="absolute top-4 right-4 z-50 text-muted-foreground"
                                     onClick={() => setIsOpen(false)}
+                                    aria-label="Close navigation menu"
                                 >
                                     <X size={20} />
                                 </Button>

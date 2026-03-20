@@ -10,6 +10,7 @@ import { AlertPanel } from '@/components/patterns/AlertPanel';
 import { FeedbackChoiceButton } from '@/components/patterns/FeedbackChoiceButton';
 import { FeedbackPill } from '@/components/patterns/FeedbackPill';
 import { captureFeedbackAction } from '@/app/actions/feedback';
+import { useAccessibleDialog } from '@/lib/hooks/use-accessible-dialog';
 
 interface InviteEmailPreviewModalProps {
     isOpen: boolean;
@@ -52,7 +53,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
     const currentYear = new Date().getFullYear();
     const closeButtonRef = useRef<HTMLButtonElement>(null);
     const successPrimaryButtonRef = useRef<HTMLButtonElement>(null);
-    const lastFocusedElementRef = useRef<HTMLElement | null>(null);
+    const dialogRef = useRef<HTMLDivElement>(null);
     const feedbackResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const titleId = useId();
     const descriptionId = useId();
@@ -68,16 +69,12 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
         };
     }, []);
 
-    useEffect(() => {
-        if (!isOpen) {
-            lastFocusedElementRef.current?.focus();
-            return;
-        }
-
-        lastFocusedElementRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-        const focusTarget = sendSuccess ? successPrimaryButtonRef.current : closeButtonRef.current;
-        focusTarget?.focus();
-    }, [isOpen, sendSuccess]);
+    useAccessibleDialog({
+        isOpen,
+        containerRef: dialogRef,
+        initialFocusRef: sendSuccess ? successPrimaryButtonRef : closeButtonRef,
+        onClose,
+    });
 
     const handleInviteEaseFeedback = async (rating: number) => {
         setInviteEaseRating(rating);
@@ -128,10 +125,12 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        ref={dialogRef}
                         className={cn(
                             "relative w-full overflow-hidden bg-surface-base border border-border/50 shadow-2xl rounded-[32px] flex flex-col",
                             sendSuccess ? "max-w-md h-auto" : "max-w-5xl h-[90vh]"
                         )}
+                        tabIndex={-1}
                     >
                         {sendSuccess ? (
                                 <div className="p-12 flex flex-col items-center justify-center text-center space-y-8 animate-in zoom-in duration-500">

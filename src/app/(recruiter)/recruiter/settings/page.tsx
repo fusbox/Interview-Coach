@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -79,6 +79,11 @@ export default function SettingsPage() {
         phone: "",
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
     });
+    const titleInputId = useId();
+    const firstNameInputId = useId();
+    const lastNameInputId = useId();
+    const phoneInputId = useId();
+    const timezoneInputId = useId();
 
     const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -214,8 +219,9 @@ export default function SettingsPage() {
                         )}
 
                         <FieldGroup>
-                            <FieldLabel>Your Job Title</FieldLabel>
+                            <FieldLabel htmlFor={titleInputId}>Your Job Title</FieldLabel>
                             <input
+                                id={titleInputId}
                                 className={textFieldClassName}
                                 value={profile.title}
                                 onChange={e => setProfile({ ...profile, title: e.target.value })}
@@ -225,8 +231,9 @@ export default function SettingsPage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FieldGroup>
-                                <FieldLabel>First Name</FieldLabel>
+                                <FieldLabel htmlFor={firstNameInputId}>First Name</FieldLabel>
                                 <input
+                                    id={firstNameInputId}
                                     required
                                     className={textFieldClassName}
                                     value={profile.first_name}
@@ -234,8 +241,9 @@ export default function SettingsPage() {
                                 />
                             </FieldGroup>
                             <FieldGroup>
-                                <FieldLabel>Last Name</FieldLabel>
+                                <FieldLabel htmlFor={lastNameInputId}>Last Name</FieldLabel>
                                 <input
+                                    id={lastNameInputId}
                                     required
                                     className={textFieldClassName}
                                     value={profile.last_name}
@@ -245,8 +253,9 @@ export default function SettingsPage() {
                         </div>
 
                         <FieldGroup>
-                            <FieldLabel>Phone Number</FieldLabel>
+                            <FieldLabel htmlFor={phoneInputId}>Phone Number</FieldLabel>
                             <input
+                                id={phoneInputId}
                                 className={textFieldClassName}
                                 value={profile.phone}
                                 onChange={e => setProfile({ ...profile, phone: e.target.value })}
@@ -256,9 +265,10 @@ export default function SettingsPage() {
                         </FieldGroup>
 
                         <FieldGroup>
-                            <FieldLabel>Display Time Zone</FieldLabel>
+                            <FieldLabel htmlFor={timezoneInputId}>Display Time Zone</FieldLabel>
                             <div className="relative group">
                                 <select
+                                    id={timezoneInputId}
                                     className={selectFieldClassName}
                                     value={profile.timezone}
                                     onChange={e => setProfile({ ...profile, timezone: e.target.value })}

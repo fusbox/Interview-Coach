@@ -11,6 +11,7 @@ import { RecruiterTemplate } from "@/lib/domain/template";
 import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { AlertPanel } from "@/components/patterns/AlertPanel";
 import { FieldGroup, FieldHint, FieldLabel, textFieldClassName, textareaFieldClassName } from "@/components/patterns/FormField";
+import { useAccessibleDialog } from "@/lib/hooks/use-accessible-dialog";
 
 interface StepJobAndQuestionsProps {
     details: Details;
@@ -35,12 +36,14 @@ const AutoResizeTextarea = ({
     value,
     onChange,
     placeholder,
-    className
+    className,
+    ariaLabel,
 }: {
     value: string;
     onChange: (val: string) => void;
     placeholder: string;
     className?: string;
+    ariaLabel?: string;
 }) => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -60,6 +63,7 @@ const AutoResizeTextarea = ({
             placeholder={placeholder}
             rows={1}
             style={{ resize: 'none', overflow: 'hidden' }}
+            aria-label={ariaLabel}
         />
     );
 };
@@ -84,18 +88,20 @@ export function StepJobAndQuestions({
     const [isShared, setIsShared] = useState(true);
     const [saveError, setSaveError] = useState<string | null>(null);
     const saveTemplateInputRef = useRef<HTMLInputElement>(null);
-    const lastFocusedElementRef = useRef<HTMLElement | null>(null);
+    const saveDialogRef = useRef<HTMLDivElement>(null);
     const saveDialogTitleId = useId();
+    const templateSelectId = useId();
+    const reqIdInputId = useId();
+    const targetRoleInputId = useId();
+    const jobDescriptionInputId = useId();
+    const templateNameInputId = useId();
 
-    useEffect(() => {
-        if (showSaveModal) {
-            lastFocusedElementRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-            saveTemplateInputRef.current?.focus();
-            return;
-        }
-
-        lastFocusedElementRef.current?.focus();
-    }, [showSaveModal]);
+    useAccessibleDialog({
+        isOpen: showSaveModal,
+        containerRef: saveDialogRef,
+        initialFocusRef: saveTemplateInputRef,
+        onClose: () => setShowSaveModal(false),
+    });
 
     const addTechnical = () => {
         setTechnical([...technical, {
@@ -190,9 +196,10 @@ export function StepJobAndQuestions({
 
                         {/* Template Select */}
                         <div className="flex items-center gap-2">
-                            <span className="text-micro font-bold uppercase tracking-widest text-text-disabled">Use a Template:</span>
+                            <label htmlFor={templateSelectId} className="text-micro font-bold uppercase tracking-widest text-text-disabled">Use a Template:</label>
                             <div className="relative">
                                 <select
+                                    id={templateSelectId}
                                     className="h-9 min-w-[200px] rounded-lg border border-border bg-surface-base text-[11px] px-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-flat"
                                     defaultValue=""
                                     onChange={(e) => handleApplyTemplate(e.target.value)}
@@ -208,21 +215,21 @@ export function StepJobAndQuestions({
                     <CardContent className="space-y-6">
                             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                 <FieldGroup className="space-y-2">
-                                    <FieldLabel>Req ID</FieldLabel>
-                                    <input className={`${textFieldClassName} h-11 py-0`}
+                                    <FieldLabel htmlFor={reqIdInputId}>Req ID</FieldLabel>
+                                    <input id={reqIdInputId} className={`${textFieldClassName} h-11 py-0`}
                                         value={details.reqId} onChange={e => setDetails({ ...details, reqId: e.target.value })}
                                         placeholder="e.g. RCI-ENG-101" />
                                 </FieldGroup>
                                 <FieldGroup className="space-y-2">
-                                    <FieldLabel>Target Role</FieldLabel>
-                                    <input className={`${textFieldClassName} h-11 py-0`}
+                                    <FieldLabel htmlFor={targetRoleInputId}>Target Role</FieldLabel>
+                                    <input id={targetRoleInputId} className={`${textFieldClassName} h-11 py-0`}
                                         value={details.role} onChange={e => setDetails({ ...details, role: e.target.value })}
                                         placeholder="e.g. Senior Product Manager" />
                                 </FieldGroup>
                             </div>
                             <FieldGroup className="space-y-2">
-                                <FieldLabel>Job Description <span className="text-text-disabled font-normal lowercase tracking-normal">(Optional)</span></FieldLabel>
-                                <textarea className={textareaFieldClassName}
+                                <FieldLabel htmlFor={jobDescriptionInputId}>Job Description <span className="text-text-disabled font-normal lowercase tracking-normal">(Optional)</span></FieldLabel>
+                                <textarea id={jobDescriptionInputId} className={textareaFieldClassName}
                                     value={details.jd} onChange={e => setDetails({ ...details, jd: e.target.value })}
                                     placeholder="Paste the job description here..." />
                             </FieldGroup>
@@ -268,6 +275,7 @@ export function StepJobAndQuestions({
                                         value={q.text}
                                         onChange={val => updateQuestion(setStar, star, q.id, val)}
                                         placeholder={`STAR Question ${idx + 1}...`}
+                                        ariaLabel={`STAR question ${idx + 1}`}
                                     />
                                     {q.text && (
                                         <button
@@ -275,6 +283,7 @@ export function StepJobAndQuestions({
                                             onClick={() => clearQuestion(setStar, star, q.id)}
                                             className="absolute right-3 top-3 p-1 text-state-critical hover:opacity-80 transition-all duration-base"
                                             title="Clear content"
+                                            aria-label={`Clear STAR question ${idx + 1}`}
                                         >
                                             <X className="w-4 h-4" />
                                         </button>
@@ -300,6 +309,7 @@ export function StepJobAndQuestions({
                                         value={q.text}
                                         onChange={val => updateQuestion(setPerma, perma, q.id, val)}
                                         placeholder={`${q.label} Question...`}
+                                        ariaLabel={`${q.label} question`}
                                     />
                                     {q.text && (
                                         <button
@@ -307,6 +317,7 @@ export function StepJobAndQuestions({
                                             onClick={() => clearQuestion(setPerma, perma, q.id)}
                                             className="absolute right-3 top-3 p-1 text-state-critical hover:opacity-80 transition-all duration-base"
                                             title="Clear content"
+                                            aria-label={`Clear ${q.label} question`}
                                         >
                                             <X className="w-4 h-4" />
                                         </button>
@@ -340,24 +351,26 @@ export function StepJobAndQuestions({
                                 <div key={q.id} className="flex gap-2 items-center animate-in fade-in slide-in-from-top-1 duration-base">
                                     <div className="flex-1 relative group/field">
                                         <AutoResizeTextarea
-                                            className={`${textareaFieldClassName} min-h-[44px] pl-4 pr-10`}
-                                            value={q.text}
-                                            onChange={val => updateQuestion(setTechnical, technical, q.id, val)}
-                                            placeholder={`Technical Question ${idx + 1}...`}
-                                        />
+                                        className={`${textareaFieldClassName} min-h-[44px] pl-4 pr-10`}
+                                        value={q.text}
+                                        onChange={val => updateQuestion(setTechnical, technical, q.id, val)}
+                                        placeholder={`Technical Question ${idx + 1}...`}
+                                        ariaLabel={`Technical question ${idx + 1}`}
+                                    />
                                         {q.text && (
                                             <button
                                                 type="button"
                                                 onClick={() => clearQuestion(setTechnical, technical, q.id)}
                                                 className="absolute right-3 top-3 p-1 text-state-critical hover:opacity-80 transition-all duration-base"
                                                 title="Clear content"
+                                                aria-label={`Clear technical question ${idx + 1}`}
                                             >
                                                 <X className="w-4 h-4" />
                                             </button>
                                         )}
                                     </div>
                                     {technical.length > 1 && (
-                                        <Button size="icon" variant="ghost" shape="square" className="text-state-critical hover:bg-state-critical/5 shrink-0" onClick={() => removeQuestion(setTechnical, technical, q.id)}>
+                                        <Button size="icon" variant="ghost" shape="square" className="text-state-critical hover:bg-state-critical/5 shrink-0" onClick={() => removeQuestion(setTechnical, technical, q.id)} aria-label={`Remove technical question ${idx + 1}`}>
                                             <Trash2 className="w-4 h-4" />
                                         </Button>
                                     )}
@@ -403,10 +416,12 @@ export function StepJobAndQuestions({
             {showSaveModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 glass-overlay animate-in fade-in duration-slow">
                     <Card
+                        ref={saveDialogRef}
                         className="shadow-floating border-border/50 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-base ease-emphasized"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby={saveDialogTitleId}
+                        tabIndex={-1}
                     >
                         <div className="flex items-center justify-between p-6 border-b border-border/50 bg-surface-base">
                             <h3 id={saveDialogTitleId} className="font-bold text-lg text-text-primary font-sans">Save Interview Template</h3>
@@ -417,8 +432,9 @@ export function StepJobAndQuestions({
                         <form onSubmit={handleSaveSubmit} className="p-6 space-y-6">
                             {saveError && <AlertPanel tone="critical">{saveError}</AlertPanel>}
                             <FieldGroup className="space-y-2">
-                                <FieldLabel>Template Name</FieldLabel>
+                                <FieldLabel htmlFor={templateNameInputId}>Template Name</FieldLabel>
                                 <input
+                                    id={templateNameInputId}
                                     ref={saveTemplateInputRef}
                                     className={`${textFieldClassName} h-11 py-0`}
                                     value={templateName}

@@ -23,6 +23,7 @@ import { useSession } from '../context/SessionContext';
 import { SectionHeader } from '@/components/patterns/SectionHeader';
 import { AlertPanel } from '@/components/patterns/AlertPanel';
 import { FeedbackChoiceButton } from '@/components/patterns/FeedbackChoiceButton';
+import { useAccessibleDialog } from '@/lib/hooks/use-accessible-dialog';
 
 // ─────────────────────────────────────────────
 // Types
@@ -253,8 +254,8 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
     const drawerRef = useRef<HTMLDivElement>(null);
+    const transcriptPanelRef = useRef<HTMLDivElement>(null);
     const transcriptCloseButtonRef = useRef<HTMLButtonElement>(null);
-    const lastFocusedElementRef = useRef<HTMLElement | null>(null);
     const dialogTitleId = useId();
     const dialogDescriptionId = useId();
     const transcriptTitleId = useId();
@@ -337,15 +338,17 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
         }
     };
 
-    useEffect(() => {
-        if (isOpen) {
-            lastFocusedElementRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-            drawerRef.current?.focus();
-            return;
-        }
+    useAccessibleDialog({
+        isOpen,
+        containerRef: drawerRef,
+    });
 
-        lastFocusedElementRef.current?.focus();
-    }, [isOpen]);
+    useAccessibleDialog({
+        isOpen: isTranscriptOpen,
+        containerRef: transcriptPanelRef,
+        initialFocusRef: transcriptCloseButtonRef,
+        onClose: () => setIsTranscriptOpen(false),
+    });
 
     // Reset on close; cleanup on unmount
     useEffect(() => {
@@ -368,14 +371,6 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
             isProgrammaticScroll.current = false;
         }
     }, [isOpen]);
-
-    useEffect(() => {
-        if (isTranscriptOpen) {
-            transcriptCloseButtonRef.current?.focus();
-        } else if (isOpen) {
-            drawerRef.current?.focus();
-        }
-    }, [isTranscriptOpen, isOpen]);
 
     useEffect(() => {
         if (!audioBlob && audioRef.current) {
@@ -500,7 +495,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                     }}
                 >
                     <div id={dialogDescriptionId} className="sr-only">
-                        Review your coach feedback and choose whether to continue or retry this answer.
+                        Review your coach feedback, then choose an action to continue. This step remains open until you continue, retry, or finish the session.
                     </div>
                     {errorMessage && (
                         <AlertPanel tone="critical" className="absolute top-4 left-4 right-4 z-50 md:left-8 md:right-8">
@@ -814,10 +809,12 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                     animate={{ y: 0, opacity: 1 }}
                                     exit={{ y: '-100%', opacity: 0 }}
                                     transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+                                    ref={transcriptPanelRef}
                                     className="absolute inset-x-0 md:left-auto md:right-0 top-0 h-[78%] md:h-full md:w-96 z-50 bg-surface-base/90 rounded-b-[2rem] md:rounded-none md:border-l border-b md:border-b-0 border-border p-6 flex flex-col shadow-2xl backdrop-blur-xl"
                                     role="dialog"
                                     aria-modal="true"
                                     aria-labelledby={transcriptTitleId}
+                                    tabIndex={-1}
                                 >
                                     <div id={transcriptTitleId} className="sr-only">
                                         Transcript panel

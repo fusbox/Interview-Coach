@@ -92,6 +92,10 @@ export function RecruiterMetricsChart({ feedback }: RecruiterMetricsProps) {
                 </CardHeader>
                 <CardContent className="flex items-center">
                     <div className="h-[200px] w-1/2">
+                        <div className="sr-only">
+                            Recruiter workflow friction breakdown:
+                            {frictionData.map((entry) => ` ${entry.name}: ${entry.value} responses.`).join("")}
+                        </div>
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
@@ -128,6 +132,14 @@ export function RecruiterMetricsChart({ feedback }: RecruiterMetricsProps) {
                                 <p className="text-2xl font-black text-foreground">{frictionData.find(d => d.name === 'Positive (Low Friction)')?.value || 0} <span className="text-sm font-semibold text-muted-foreground">found it easy</span></p>
                             </div>
                         </div>
+                        <ul className="space-y-2 text-sm text-muted-foreground">
+                            {frictionData.map((entry) => (
+                                <li key={entry.name} className="flex items-center gap-2">
+                                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: entry.fill }} aria-hidden="true" />
+                                    <span>{entry.name}: {entry.value}</span>
+                                </li>
+                            ))}
+                        </ul>
                     </div>
                 </CardContent>
             </Card>
