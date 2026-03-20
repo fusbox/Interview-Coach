@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Loader2, Save, X } from "lucide-react";
 import { Details, QuestionInput, StepFooterProps } from "../constants";
-import { useState, useLayoutEffect, useRef, useEffect, useId } from "react";
+import { useState, useLayoutEffect, useRef, useId } from "react";
 import { ChevronRight } from "lucide-react";
 import { showDemoTools } from "@/lib/feature-flags";
 import { RecruiterTemplate } from "@/lib/domain/template";
