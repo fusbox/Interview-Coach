@@ -33,8 +33,10 @@ import { AlertPanel } from '@/components/patterns/AlertPanel';
 import { ContentCard } from '@/components/patterns/ContentCard';
 import { answerTextareaClassName } from '@/components/patterns/FormField';
 import { SessionPromptShell } from '@/components/patterns/SessionPromptShell';
+import { showDemoTools } from '@/lib/feature-flags';
 
 export default function UnifiedSessionScreen() {
+    const canShowDebugTools = showDemoTools();
     const {
         session,
         candidateToken,
@@ -776,31 +778,35 @@ export default function UnifiedSessionScreen() {
                 audioBlob={audioBlob}
             />
 
-            <EngagementDebugOverlay
-                isVisible={showDebug}
-                onClose={() => setShowDebug(false)}
-                tracker={{
-                    totalEngagedSeconds: totalEngagedSeconds,
-                    isWindowOpen: isEngagementWindowOpen,
-                    trackEvent,
-                    flush: flushEngagement,
-                    debugEvents: engagementDebugEvents,
-                    windowTimeRemaining: engagementWindowTimeRemaining,
-                    clearDebugEvents: clearDebugEvents
-                }}
-                aiContexts={{
-                    tipsPrompt: hints?.__debugPrompt,
-                    strongResponsePrompt: strongResponseData?.__debugPrompt,
-                    analysisPrompt: analysis?.__debugPrompt
-                }}
-            />
+            {canShowDebugTools && (
+                <>
+                    <EngagementDebugOverlay
+                        isVisible={showDebug}
+                        onClose={() => setShowDebug(false)}
+                        tracker={{
+                            totalEngagedSeconds: totalEngagedSeconds,
+                            isWindowOpen: isEngagementWindowOpen,
+                            trackEvent,
+                            flush: flushEngagement,
+                            debugEvents: engagementDebugEvents,
+                            windowTimeRemaining: engagementWindowTimeRemaining,
+                            clearDebugEvents: clearDebugEvents
+                        }}
+                        aiContexts={{
+                            tipsPrompt: hints?.__debugPrompt,
+                            strongResponsePrompt: strongResponseData?.__debugPrompt,
+                            analysisPrompt: analysis?.__debugPrompt
+                        }}
+                    />
 
-            <button
-                onClick={() => setShowDebug(true)}
-                className="fixed bottom-0 left-0 w-16 h-16 opacity-0 z-50 cursor-default"
-                aria-hidden="true"
-                title="Debug"
-            />
+                    <button
+                        onClick={() => setShowDebug(true)}
+                        className="fixed bottom-0 left-0 w-16 h-16 opacity-0 z-50 cursor-default"
+                        aria-hidden="true"
+                        title="Debug"
+                    />
+                </>
+            )}
         </div>
     );
 }
