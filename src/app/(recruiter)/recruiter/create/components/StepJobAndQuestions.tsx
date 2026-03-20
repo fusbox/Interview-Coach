@@ -196,7 +196,7 @@ export function StepJobAndQuestions({
 
                         {/* Template Select */}
                         <div className="flex items-center gap-2">
-                            <label htmlFor={templateSelectId} className="text-micro font-bold uppercase tracking-widest text-text-disabled">Use a Template:</label>
+                            <label htmlFor={templateSelectId} className="text-micro text-primary font-bold uppercase tracking-widest text-text-disabled">Use a Template:</label>
                             <div className="relative">
                                 <select
                                     id={templateSelectId}
