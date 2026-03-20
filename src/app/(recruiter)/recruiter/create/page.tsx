@@ -16,6 +16,14 @@ import { StepPreviewCombined } from "./components/StepPreviewCombined";
 import { fetchTemplates, saveTemplateAction } from "../templates/actions";
 import { RecruiterTemplate } from "@/lib/domain/template";
 
+function createIdempotencyKey() {
+    if (typeof globalThis !== "undefined" && globalThis.crypto?.randomUUID) {
+        return globalThis.crypto.randomUUID();
+    }
+
+    return `invite-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
+
 export default function CreateInviteWizard() {
     const [step, setStep] = useState<1 | 2 | 3>(1);
     const [statusMessage, setStatusMessage] = useState("");
@@ -56,7 +64,7 @@ export default function CreateInviteWizard() {
     const previousDraftSignatureRef = useRef<string | null>(null);
 
     const [error, setError] = useState<string | null>(null);
-    const [createInviteKey, setCreateInviteKey] = useState(() => crypto.randomUUID());
+    const [createInviteKey, setCreateInviteKey] = useState(() => createIdempotencyKey());
 
     const [recruiterProfile, setRecruiterProfile] = useState<RecruiterProfile>({
         name: "",
@@ -143,7 +151,7 @@ export default function CreateInviteWizard() {
     }, [draftSignature, inviteResults.length]);
 
     useEffect(() => {
-        setCreateInviteKey(crypto.randomUUID());
+        setCreateInviteKey(createIdempotencyKey());
     }, [details.role, details.jd, details.reqId, candidates, star, perma, technical]);
 
     const handleSaveTemplate = async (name: string, isShared: boolean) => {
@@ -369,7 +377,7 @@ export default function CreateInviteWizard() {
                 </div>
             )}
 
-            <div ref={stepRegionRef} tabIndex={-1}>
+            <div ref={stepRegionRef} tabIndex={-1} className="outline-none focus:outline-none focus-visible:outline-none">
             {step === 1 && (
                 <StepJobAndQuestions
                     details={details} setDetails={setDetails}
@@ -412,7 +420,7 @@ export default function CreateInviteWizard() {
                     error={error}
                     recruiterProfile={recruiterProfile}
                     onNewInvite={() => {
-                        setCreateInviteKey(crypto.randomUUID());
+                        setCreateInviteKey(createIdempotencyKey());
                         setInviteResults([]);
                         setStep(1);
                         setDetails({ role: "", jd: "", firstName: "", lastName: "", candidateEmail: "", reqId: "" });
