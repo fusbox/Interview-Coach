@@ -112,6 +112,7 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                         className="h-10 w-auto object-contain"
                         style={{ width: 'auto', height: 'auto' }}
                         priority
+                        unoptimized
                     />
                 </motion.div>
 

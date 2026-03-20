@@ -290,6 +290,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                                     width={140} 
                                                     height={36} 
                                                     className="h-9 w-auto" 
+                                                    unoptimized
                                                 />
                                             </div>
 
@@ -334,6 +335,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                                             width={80} 
                                                             height={20} 
                                                             className="h-5 w-auto" 
+                                                            unoptimized
                                                         />
                                                     </div>
                                                 </div>

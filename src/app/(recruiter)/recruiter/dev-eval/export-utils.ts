@@ -102,12 +102,35 @@ export function buildBatchPayload(
 /**
  * Trigger a JSON file download in the browser.
  */
+function sanitizeDownloadFilename(filename: string) {
+    const normalized = filename
+        .replace(/[^a-zA-Z0-9._-]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^\.+/, '')
+        .replace(/^[-_.]+|[-_.]+$/g, '');
+
+    if (!normalized) {
+        return 'export.json';
+    }
+
+    return normalized.toLowerCase().endsWith('.json') ? normalized : `${normalized}.json`;
+}
+
 export function downloadJson(data: unknown, filename: string) {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const safeFilename = sanitizeDownloadFilename(filename);
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+        // Use a download-only content type so exported data is not interpreted as active markup.
+        type: 'application/octet-stream',
+    });
     const url = URL.createObjectURL(blob);
+    if (!url.startsWith('blob:')) {
+        throw new Error('Unexpected download URL scheme.');
+    }
+
     const a = document.createElement('a');
     a.href = url;
-    a.download = filename;
+    a.download = safeFilename;
+    a.rel = 'noopener';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

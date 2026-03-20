@@ -64,6 +64,7 @@ export default function InitialsScreen() {
                         className="h-12 w-auto object-contain"
                         style={{ width: 'auto', height: 'auto' }}
                         priority
+                        unoptimized
                     />
                 </div>
 

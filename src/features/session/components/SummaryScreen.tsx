@@ -92,6 +92,7 @@ export default function SummaryScreen() {
                             className="h-12 w-auto object-contain"
                             style={{ width: 'auto', height: 'auto' }}
                             priority
+                            unoptimized
                         />
                     </motion.div>
 
@@ -262,6 +263,7 @@ export default function SummaryScreen() {
                             fill
                             sizes="(max-width: 640px) 64px, 80px"
                             className="object-contain opacity-50"
+                            unoptimized
                         />
                     </div>
                 </motion.div>

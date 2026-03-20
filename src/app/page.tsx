@@ -27,6 +27,7 @@ export default function Home() {
                             fill
                             className="object-contain"
                             priority
+                            unoptimized
                         />
                     </motion.div>
 
@@ -46,6 +47,7 @@ export default function Home() {
                                 alt="Rangam"
                                 fill
                                 className="object-contain"
+                                unoptimized
                             />
                         </div>
                     </motion.div>

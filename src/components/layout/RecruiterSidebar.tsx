@@ -55,6 +55,7 @@ export function RecruiterSidebar({ className, onNavigate, user, profile }: Recru
                             fill
                             className="object-contain"
                             priority
+                            unoptimized
                         />
                     </div>
                     <h1 className="font-bold text-xl font-display select-none">
