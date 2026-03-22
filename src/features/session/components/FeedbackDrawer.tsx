@@ -450,7 +450,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
     const getCardClasses = (sectionKey: SectionKey) => {
         const isElevated = sectionKey === 'start' || sectionKey === 'next';
         return cn(
-            'scroll-snap-align-start flex-shrink-0 w-full min-h-full md:h-full flex flex-col justify-start px-6 md:pl-20 md:pr-14 pb-8',
+            'scroll-snap-align-start flex h-full min-h-0 w-full flex-shrink-0 flex-col justify-start px-6 pb-[calc(2rem+env(safe-area-inset-bottom))] md:h-full md:px-0 md:pb-8 md:pl-20 md:pr-14',
             isElevated ? 'pt-8 md:pt-14' : 'pt-20 md:pt-12'
         );
     };
@@ -503,7 +503,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                         </AlertPanel>
                     )}
                     {/* ── Main Layout (Vertical Split: Header + Content) ─────────────────── */}
-                    <div className="flex-1 flex flex-col min-w-0 bg-transparent relative">
+                    <div className="relative flex flex-1 min-h-0 min-w-0 flex-col bg-transparent">
                         {/* Progress Nav */}
                         <ProgressDots
                             sections={sections}
@@ -519,14 +519,14 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                     setHasScrolled(true);
                                 }
                             }}
-                            className={cn('flex-1 min-w-0 scroll-snap-y-mandatory custom-scrollbar bg-transparent overflow-hidden')}
+                            className={cn('flex-1 min-h-0 min-w-0 overflow-hidden overscroll-none scroll-snap-y-mandatory custom-scrollbar bg-transparent')}
                             style={{ scrollSnapType: 'y mandatory' }}
                         >
                             {/* Card 0: Start / Ack */}
                             <div
                                 ref={setCardRef('start')}
                                 data-section="start"
-                                className={cn(getCardClasses('start'), 'items-center justify-center text-center max-w-4xl mx-auto relative overflow-y-auto')}
+                                className={cn(getCardClasses('start'), 'items-center justify-center text-center max-w-4xl mx-auto relative overflow-y-auto overscroll-y-contain')}
                                 style={{ scrollSnapAlign: 'start', minHeight: '100%' }}
                             >
                                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-deep/20 to-brand-deep opacity-100" />
@@ -589,7 +589,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                                 />
                                             </div>
                                         </div>
-                                        <div className="flex-1 overflow-y-auto md:min-h-0 pt-8 md:pt-10 px-1 -mx-1 custom-scrollbar">
+                                        <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pt-8 md:pt-10 px-1 -mx-1 custom-scrollbar">
                                             <div className="p-0 space-y-6">
                                                 <p className="text-xl md:text-2xl text-text-secondary leading-relaxed font-medium">
                                                     {analysis.deliveryPulse.body}
@@ -634,7 +634,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                             />
                                         </div>
                                     </div>
-                                    <div className="flex-1 overflow-y-auto md:min-h-0 pt-8 md:pt-10 px-1 -mx-1 custom-scrollbar">
+                                    <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pt-8 md:pt-10 px-1 -mx-1 custom-scrollbar">
                                         <div className="p-0 space-y-6">
                                             <p className="text-xl md:text-2xl text-text-secondary leading-relaxed font-medium">
                                                 {analysis.contentPulse.body}
@@ -669,12 +669,12 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                 ref={setCardRef('next')}
                                 data-section="next"
                                 style={{ scrollSnapAlign: 'start', minHeight: '100%' }}
-                                className={cn(getCardClasses('next'), 'items-start text-left relative overflow-y-auto')}
+                                className={cn(getCardClasses('next'), 'items-start text-left relative overflow-y-auto overscroll-y-contain')}
                             >
                                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-deep/20 to-brand-deep opacity-100" />
                                 <div className="flex-1 w-full flex flex-col min-h-0">
                                     {/* Recommendation content (scrollable if needed) */}
-                                    <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4">
+                                    <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain custom-scrollbar px-4">
                                         <div className="my-auto py-12 space-y-6 max-w-2xl">
                                             <p className="text-xs font-black text-text-muted uppercase tracking-[0.2em]">
                                                 The Next Step

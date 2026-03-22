@@ -82,9 +82,36 @@ export interface CoachingPulse {
     body: string;
     quote?: string;
 }
+
+export interface FeedbackSignalAssessment {
+    valence: 'strength' | 'mixed' | 'growth';
+    detectability: 'clear' | 'moderate' | 'ambiguous' | 'thin';
+}
+
+export interface FeedbackPrimaryAnchor {
+    source: 'content' | 'delivery' | 'fallback';
+    signalType: 'quote' | 'behavior' | 'pattern' | 'effort' | 'omission';
+    dimension: Dimension;
+    candidateEvidence: string;
+    interviewerValue: string;
+}
+
+export interface FeedbackIntervention {
+    type: 'amplify_strength' | 'sharpen_signal' | 'repair_foundation' | 'polish_response';
+    reason: string;
+}
+
+export interface FeedbackPlan {
+    centralRead: string;
+    signal: FeedbackSignalAssessment;
+    primaryAnchor: FeedbackPrimaryAnchor;
+    intervention: FeedbackIntervention;
+}
+
 export interface AnalysisResult {
     ack?: string;
     scores?: Record<Dimension, DimensionScore>;
+    feedbackPlan?: FeedbackPlan;
 
     contentPulse?: CoachingPulse;
     deliveryPulse?: CoachingPulse;
@@ -97,7 +124,6 @@ export interface AnalysisResult {
     meta?: {
         tier: 0 | 1 | 2;
         modality: 'text' | 'voice';
-        signalQuality?: 'insufficient' | 'emerging' | 'reliable' | 'strong';
         confidence?: 'low' | 'medium' | 'high';
         readinessLevel?: string;
     };
@@ -105,8 +131,6 @@ export interface AnalysisResult {
     transcript?: string;
     __debugPrompt?: string;
 
-    readinessBand?: 'RL1' | 'RL2' | 'RL3' | 'RL4';
-    coachReaction?: string;
 }
 export interface InterviewSession {
     id: string;
@@ -135,6 +159,8 @@ export interface InterviewSession {
     inviteToken?: string;
     viewedAt?: number;
     updatedAt?: number;
+    summaryExpiresAt?: number;
+    summaryExpired?: boolean;
     engagedTimeSeconds?: number;
     engagedTimeDelta?: number;
     intakeData?: Record<string, unknown>;

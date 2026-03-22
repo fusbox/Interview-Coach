@@ -46,10 +46,9 @@ export default async function RecruiterDashboard() {
                         </Link>
                     </Button>
                 }
-                supporting={
-                    <DashboardStats metrics={basicStats} variant="header" />
-                }
             />
+
+            <DashboardStats metrics={basicStats} variant="header" />
 
             <CollapsibleSection
                 storageKey="invite_progress"

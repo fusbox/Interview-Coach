@@ -53,6 +53,24 @@ export async function GET(
                 submittedAt: answer?.submittedAt || undefined,
                 feedback: answer?.analysis ? {
                     ack: answer.analysis.ack,
+                    feedbackPlan: answer.analysis.feedbackPlan ? {
+                        centralRead: answer.analysis.feedbackPlan.centralRead,
+                        signal: {
+                            valence: answer.analysis.feedbackPlan.signal.valence,
+                            detectability: answer.analysis.feedbackPlan.signal.detectability,
+                        },
+                        primaryAnchor: {
+                            source: answer.analysis.feedbackPlan.primaryAnchor.source,
+                            signalType: answer.analysis.feedbackPlan.primaryAnchor.signalType,
+                            dimension: answer.analysis.feedbackPlan.primaryAnchor.dimension,
+                            candidateEvidence: answer.analysis.feedbackPlan.primaryAnchor.candidateEvidence,
+                            interviewerValue: answer.analysis.feedbackPlan.primaryAnchor.interviewerValue,
+                        },
+                        intervention: {
+                            type: answer.analysis.feedbackPlan.intervention.type,
+                            reason: answer.analysis.feedbackPlan.intervention.reason,
+                        },
+                    } : undefined,
                     contentPulse: answer.analysis.contentPulse ? {
                         headline: answer.analysis.contentPulse.headline,
                         body: answer.analysis.contentPulse.body,
@@ -69,8 +87,8 @@ export async function GET(
                     meta: answer.analysis.meta ? {
                         tier: answer.analysis.meta.tier,
                         modality: answer.analysis.meta.modality,
-                        signalQuality: answer.analysis.meta.signalQuality,
                         confidence: answer.analysis.meta.confidence,
+                        readinessLevel: answer.analysis.meta.readinessLevel,
                     } : undefined,
                 } : null,
                 evaluation: null, // Client-side will merge localStorage evals

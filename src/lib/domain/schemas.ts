@@ -79,9 +79,35 @@ export const CoachingPulseSchema = z.object({
     quote: z.string().optional()
 });
 
+export const FeedbackSignalAssessmentSchema = z.object({
+    valence: z.enum(['strength', 'mixed', 'growth']),
+    detectability: z.enum(['clear', 'moderate', 'ambiguous', 'thin']),
+});
+
+export const FeedbackPrimaryAnchorSchema = z.object({
+    source: z.enum(['content', 'delivery', 'fallback']),
+    signalType: z.enum(['quote', 'behavior', 'pattern', 'effort', 'omission']),
+    dimension: DimensionSchema,
+    candidateEvidence: z.string(),
+    interviewerValue: z.string(),
+});
+
+export const FeedbackInterventionSchema = z.object({
+    type: z.enum(['amplify_strength', 'sharpen_signal', 'repair_foundation', 'polish_response']),
+    reason: z.string(),
+});
+
+export const FeedbackPlanSchema = z.object({
+    centralRead: z.string(),
+    signal: FeedbackSignalAssessmentSchema,
+    primaryAnchor: FeedbackPrimaryAnchorSchema,
+    intervention: FeedbackInterventionSchema,
+});
+
 export const AnalysisResultSchema = z.object({
     ack: z.string().optional(),
     scores: z.record(DimensionSchema, DimensionScoreSchema).optional(),
+    feedbackPlan: FeedbackPlanSchema.optional(),
 
     contentPulse: CoachingPulseSchema.optional(),
     deliveryPulse: CoachingPulseSchema.optional(),
@@ -93,13 +119,10 @@ export const AnalysisResultSchema = z.object({
     meta: z.object({
         tier: z.union([z.literal(0), z.literal(1), z.literal(2)]),
         modality: z.enum(['text', 'voice']),
-        signalQuality: z.enum(['insufficient', 'emerging', 'reliable', 'strong']).optional(),
         confidence: z.enum(['low', 'medium', 'high']).optional(),
         readinessLevel: z.enum(['RL1', 'RL2', 'RL3', 'RL4']).optional(),
     }).optional(),
     transcript: z.string().optional(),
-    readinessBand: z.enum(['RL1', 'RL2', 'RL3', 'RL4']).optional(),
-    coachReaction: z.string().optional(),
 }).passthrough();
 
 export const AnswerSchema = z.object({
@@ -135,6 +158,8 @@ export const InterviewSessionSchema = z.object({
         email: z.string(),
         resumeText: z.string().optional(),
     }).passthrough().optional(),
+    summaryExpiresAt: z.number().nullish().transform(v => v ?? undefined),
+    summaryExpired: z.boolean().optional(),
     engagedTimeSeconds: z.number().nullish().transform(v => v ?? undefined),
     parentSessionId: z.string().uuid().nullish().transform(v => v ?? undefined),
     attemptNumber: z.number().int().min(1).nullish().transform(v => v ?? undefined),

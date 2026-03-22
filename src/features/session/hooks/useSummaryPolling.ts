@@ -3,14 +3,15 @@ import { useEffect } from 'react';
 interface UseSummaryPollingProps {
     hasNarrative: boolean;
     isCreating: boolean;
+    isExpired?: boolean;
     refresh: () => Promise<void>;
 }
 
-export function useSummaryPolling({ hasNarrative, isCreating, refresh }: UseSummaryPollingProps) {
+export function useSummaryPolling({ hasNarrative, isCreating, isExpired = false, refresh }: UseSummaryPollingProps) {
     useEffect(() => {
         let isMounted = true;
 
-        if (hasNarrative || isCreating) {
+        if (hasNarrative || isCreating || isExpired) {
             return;
         }
 
@@ -27,5 +28,5 @@ export function useSummaryPolling({ hasNarrative, isCreating, refresh }: UseSumm
             isMounted = false;
             clearInterval(interval);
         };
-    }, [hasNarrative, isCreating, refresh]);
+    }, [hasNarrative, isCreating, isExpired, refresh]);
 }

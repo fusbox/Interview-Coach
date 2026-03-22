@@ -43,6 +43,7 @@ export async function POST(
             session.status = transitionSessionStatus(session, "IN_SESSION").status;
         }
 
+        await repository.deleteAnalysis(resolvedParams.session_id, resolvedParams.question_id);
         await repository.update(session);
 
         return NextResponse.json(session);

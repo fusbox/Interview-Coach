@@ -188,27 +188,31 @@ export function StepJobAndQuestions({
             <div className="space-y-8">
                 {/* Job Details Section */}
                 <Card className="border-border/50 shadow-raised-1">
-                    <CardHeader className="flex flex-row items-center justify-between pb-4">
-                        <CardTitle className="text-base font-bold font-sans flex items-center gap-2.5">
-                            <div className="w-1 h-4 bg-primary rounded-full" />
-                            Job Details
-                        </CardTitle>
+                    <CardHeader className="pb-4">
+                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                            <CardTitle className="text-base font-bold font-sans flex items-center gap-2.5">
+                                <div className="w-1 h-4 bg-primary rounded-full" />
+                                Job Details
+                            </CardTitle>
 
-                        {/* Template Select */}
-                        <div className="flex items-center gap-2">
-                            <label htmlFor={templateSelectId} className="text-micro text-primary font-bold uppercase tracking-widest text-text-disabled">Use a Template:</label>
-                            <div className="relative">
-                                <select
-                                    id={templateSelectId}
-                                    className="h-9 min-w-[200px] rounded-lg border border-border bg-surface-base text-[11px] px-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-flat"
-                                    defaultValue=""
-                                    onChange={(e) => handleApplyTemplate(e.target.value)}
-                                >
-                                    <option value="" disabled>Select a Template...</option>
-                                    {templates.map(t => (
-                                        <option key={t.id} value={t.id}>{t.name}</option>
-                                    ))}
-                                </select>
+                            {/* Template Select */}
+                            <div className="flex w-full flex-col gap-2 md:w-auto md:min-w-[280px]">
+                                <label htmlFor={templateSelectId} className="text-micro font-bold uppercase tracking-widest text-primary">
+                                    Use a Template
+                                </label>
+                                <div className="relative w-full">
+                                    <select
+                                        id={templateSelectId}
+                                        className="h-11 w-full rounded-xl border border-border bg-surface-base px-4 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-flat"
+                                        defaultValue=""
+                                        onChange={(e) => handleApplyTemplate(e.target.value)}
+                                    >
+                                        <option value="" disabled>Select a Template...</option>
+                                        {templates.map(t => (
+                                            <option key={t.id} value={t.id}>{t.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </CardHeader>
@@ -341,7 +345,7 @@ export function StepJobAndQuestions({
                                 label="strong"
                                 onClick={addTechnical}
                                 type="button"
-                                className="hidden sm:flex rounded-xl text-emerald-800 border-emerald-300 hover:bg-emerald-50 hover:border-emerald-400 hover:text-emerald-900 transition-all dark:text-emerald-200 dark:border-emerald-400/40 dark:hover:bg-emerald-500/10"
+                                className="hidden sm:flex rounded-xl text-emerald-800 border-emerald-400 hover:bg-emerald-50 hover:border-emerald-500 hover:text-emerald-900 transition-all dark:text-emerald-200 dark:border-emerald-400/50 dark:hover:bg-emerald-500/10"
                             >
                                 <Plus className="w-4 h-4 mr-1" /> Add
                             </Button>
@@ -383,7 +387,7 @@ export function StepJobAndQuestions({
                                 label="strong"
                                 onClick={addTechnical}
                                 type="button"
-                                className="mt-2 w-full sm:hidden border-dashed text-emerald-800 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-200 dark:border-emerald-400/40 dark:hover:bg-emerald-500/10"
+                                className="mt-2 w-full border-dashed text-emerald-800 border-emerald-400 hover:bg-emerald-50 hover:border-emerald-500 dark:text-emerald-200 dark:border-emerald-400/50 dark:hover:bg-emerald-500/10 sm:hidden"
                             >
                                 <Plus className="w-4 h-4 mr-2" /> Add Technical Question
                             </Button>

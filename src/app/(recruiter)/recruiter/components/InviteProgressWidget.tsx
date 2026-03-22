@@ -7,6 +7,7 @@ import { SessionSummary } from "@/lib/domain/types";
 import { computeWidgetBuckets, WidgetBucket, WidgetSession } from "@/lib/services/compute-widget-buckets";
 import { StatusBadge, AttemptBadge, InitialsMatchBadge } from "./session-badges";
 import { RecruiterProfile } from "./RecruiterSessionsTable";
+import { ResendInviteButton } from "./ResendInviteButton";
 import {
     CheckCircle2,
     Clock,
@@ -14,11 +15,9 @@ import {
     Inbox,
     ChevronDown,
     ChevronUp,
-    Mail,
     ExternalLink,
 } from "lucide-react";
 import { formatTimestamp } from "@/lib/utils/format";
-import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
 const BUCKET_CONFIG: Record<string, {
@@ -87,85 +86,137 @@ function BucketHeader({ bucket }: { bucket: WidgetBucket }) {
     );
 }
 
+function formatTimestampParts(timestamp?: number, timezone?: string) {
+    if (!timestamp) {
+        return { date: "-", time: "" };
+    }
+
+    const formatted = formatTimestamp(timestamp, timezone);
+    const match = formatted.match(/^(.*)\s(\d{1,2}:\d{2}\s(?:AM|PM))(?:\s(.*))?$/);
+
+    if (!match) {
+        return { date: formatted, time: "" };
+    }
+
+    const [, date, time, tzName] = match;
+    return {
+        date,
+        time: [time, tzName].filter(Boolean).join(" "),
+    };
+}
+
 function SessionRow({ session, bucketKey, recruiterProfile, recruiterTimezone }: { session: WidgetSession; bucketKey: string; recruiterProfile?: RecruiterProfile; recruiterTimezone?: string }) {
     const router = useRouter();
-
-    const buildResendMailto = () => {
-        if (!session.inviteToken) return null;
-        const origin = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || '');
-        const link = `${origin}/s/${session.inviteToken}`;
-        const subject = `Interview Invitation: ${session.role}`;
-        const body = `Hi ${session.candidateName},\n\nI'd like to invite you to a preliminary interview practice session for the ${session.role} role. This interactive session will help us understand your experience better.\n\nPlease click the link below to start whenever you're ready:\n${link}\n\nBest regards,\n\n${recruiterProfile?.name || ''}\n${recruiterProfile?.title || 'Recruiter'}\n${recruiterProfile?.company || 'Rangam Consultants Inc.'}\n\nM: ${recruiterProfile?.phone || ''}\nE: ${recruiterProfile?.email || ''}`;
-        return `mailto:${session.candidateEmail || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    };
+    const showStatus = bucketKey === 'needs_followup' || bucketKey === 'recently_active';
+    const timestamp = formatTimestampParts(
+        bucketKey === 'awaiting_action'
+            ? (session.invitationSentAt || session.createdAt)
+            : (session.updatedAt || session.createdAt),
+        recruiterTimezone
+    );
 
     const handleRowClick = () => {
         router.push(`/recruiter/sessions/${session.id}`);
     };
 
     return (
-        <div
-            className="group grid grid-cols-12 gap-3 py-2.5 px-3 rounded-lg hover:bg-surface-subtle transition-all duration-base ease-standard cursor-pointer items-center"
-            onClick={handleRowClick}
-        >
-            <div className="col-span-5 min-w-0">
-                <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-text-primary truncate">
-                        {session.candidateName}
-                    </span>
-                    <InitialsMatchBadge session={session} />
-                    <AttemptBadge attemptNumber={session.attemptNumber} />
-                </div>
-                <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs text-text-muted truncate">{session.role}</span>
-                </div>
-            </div>
+        <>
+            <div
+                className="group cursor-pointer rounded-xl px-2 py-2 transition-all duration-base ease-standard hover:bg-surface-subtle md:hidden"
+                onClick={handleRowClick}
+            >
+                <div className="flex items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                            <span className="truncate text-[13px] font-semibold text-text-primary">
+                                {session.candidateName}
+                            </span>
+                            <InitialsMatchBadge session={session} />
+                            <AttemptBadge attemptNumber={session.attemptNumber} />
+                        </div>
+                        <div className="mt-0.5 truncate text-[11px] text-text-muted">
+                            {session.role}
+                        </div>
+                    </div>
 
-            <div className="col-span-3 flex items-center min-w-0">
-                {(bucketKey === 'needs_followup' || bucketKey === 'recently_active') ? (
-                    <StatusBadge session={session} />
+                    <div className="shrink-0 text-right">
+                        <div className="text-[11px] font-medium leading-tight text-text-secondary">
+                            {timestamp.date}
+                        </div>
+                        <div className="mt-0.5 text-[10px] leading-tight text-text-muted">
+                            {timestamp.time}
+                        </div>
+                    </div>
+
+                    <div className="flex shrink-0 items-start gap-1" onClick={(e) => e.stopPropagation()}>
+                        <ResendInviteButton
+                            session={session}
+                            recruiterProfile={recruiterProfile}
+                            className="h-7 w-7 rounded-md text-text-muted hover:bg-sky-50 hover:text-sky-800 dark:hover:bg-sky-500/10 dark:hover:text-sky-200"
+                        />
+                    </div>
+                </div>
+
+                {showStatus ? (
+                    <div className="mt-2 flex items-center justify-start">
+                        <StatusBadge session={session} />
+                    </div>
                 ) : null}
             </div>
 
-            <div className="col-span-4 flex items-center justify-between min-w-0 gap-2">
-                <span className="text-xs text-text-secondary truncate">
-                    {bucketKey === 'ready_to_review' && formatTimestamp(session.updatedAt || session.createdAt, recruiterTimezone)}
-                    {(bucketKey === 'needs_followup' || bucketKey === 'recently_active') && formatTimestamp(session.updatedAt || session.createdAt, recruiterTimezone)}
-                    {bucketKey === 'awaiting_action' && formatTimestamp(session.invitationSentAt || session.createdAt, recruiterTimezone)}
-                </span>
-
-                <div
-                    className="flex items-center gap-0.5 shrink-0"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <div className="w-7 h-7 flex items-center justify-center">
-                        {session.inviteToken && bucketKey !== 'ready_to_review' ? (
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                asChild
-                                className="h-7 w-7 text-text-muted hover:text-sky-800 opacity-0 group-hover:opacity-100 transition-opacity dark:hover:text-sky-200"
-                                title="Resend Invite Email"
-                            >
-                                <a href={buildResendMailto() || '#'} target="_blank" rel="noopener noreferrer">
-                                    <Mail className="h-3.5 w-3.5" />
-                                </a>
-                            </Button>
-                        ) : null}
+            <div
+                className="group hidden cursor-pointer items-center rounded-lg px-3 py-2.5 transition-all duration-base ease-standard hover:bg-surface-subtle md:grid md:grid-cols-12 md:gap-3"
+                onClick={handleRowClick}
+            >
+                <div className="col-span-5 min-w-0">
+                    <div className="flex items-center gap-2">
+                        <span className="truncate text-sm font-semibold text-text-primary">
+                            {session.candidateName}
+                        </span>
+                        <InitialsMatchBadge session={session} />
+                        <AttemptBadge attemptNumber={session.attemptNumber} />
                     </div>
-                    <a
-                        href={`/recruiter/sessions/${session.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="h-7 w-7 flex items-center justify-center rounded-md text-text-muted hover:text-sky-800 hover:bg-surface-subtle opacity-0 group-hover:opacity-100 transition-all dark:hover:text-sky-200"
-                        title="Open in New Tab"
+                    <div className="mt-0.5 flex items-center gap-2">
+                        <span className="truncate text-xs text-text-muted">{session.role}</span>
+                    </div>
+                </div>
+
+                <div className="col-span-3 flex min-w-0 items-center">
+                    {showStatus ? <StatusBadge session={session} /> : null}
+                </div>
+
+                <div className="col-span-4 flex min-w-0 items-center justify-between gap-2">
+                    <span className="text-xs text-text-secondary">
+                        {bucketKey === 'ready_to_review' && formatTimestamp(session.updatedAt || session.createdAt, recruiterTimezone)}
+                        {showStatus && formatTimestamp(session.updatedAt || session.createdAt, recruiterTimezone)}
+                        {bucketKey === 'awaiting_action' && formatTimestamp(session.invitationSentAt || session.createdAt, recruiterTimezone)}
+                    </span>
+
+                    <div
+                        className="flex shrink-0 items-center gap-0.5"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
+                        <div className="flex h-7 w-7 items-center justify-center">
+                            <ResendInviteButton
+                                session={session}
+                                recruiterProfile={recruiterProfile}
+                                className="h-7 w-7 text-text-muted transition-colors hover:text-sky-800 dark:hover:text-sky-200"
+                            />
+                        </div>
+                        <a
+                            href={`/recruiter/sessions/${session.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-all hover:bg-surface-subtle hover:text-sky-800 dark:hover:text-sky-200"
+                            title="Open in New Tab"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                    </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 }
 
@@ -191,13 +242,13 @@ function BucketSection({ bucket, recruiterProfile, recruiterTimezone }: { bucket
                     </p>
                 ) : (
                     <>
-                        <div className="grid grid-cols-12 gap-3 px-3 mb-1 text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                        <div className="mb-1 hidden grid-cols-12 gap-3 px-3 text-[10px] font-bold uppercase tracking-wider text-text-muted md:grid">
                             <div className="col-span-5">Candidate</div>
                             <div className="col-span-3">{col2Header}</div>
                             <div className="col-span-4">{col3Header}</div>
                         </div>
 
-                        <div className="space-y-0.5 overflow-x-auto custom-scrollbar pb-1">
+                        <div className="space-y-1 pb-1 md:space-y-0.5">
                             {visibleSessions.map((session) => (
                                 <SessionRow
                                     key={session.id}
@@ -257,7 +308,7 @@ export function InviteProgressWidget({ sessions, recruiterProfile, recruiterTime
                             key={bucket.key}
                             className="border-none shadow-flat bg-surface-base overflow-hidden rounded-2xl"
                         >
-                            <CardContent className="p-5">
+                            <CardContent className="p-4 md:p-5">
                                 <BucketSection 
                                     bucket={bucket} 
                                     recruiterProfile={recruiterProfile}

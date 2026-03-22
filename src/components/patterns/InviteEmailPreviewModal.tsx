@@ -32,6 +32,10 @@ interface InviteEmailPreviewModalProps {
     errorMessage?: string | null;
     onNewInvite?: () => void;
     onDashboard?: () => void;
+    successPrimaryLabel?: string;
+    successPrimaryIcon?: React.ReactNode;
+    successSecondaryLabel?: string;
+    successSecondaryIcon?: React.ReactNode;
 }
 
 export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = ({
@@ -43,9 +47,14 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
     sendSuccess = false,
     errorMessage,
     onNewInvite,
-    onDashboard
+    onDashboard,
+    successPrimaryLabel = "Start New Invite",
+    successPrimaryIcon = <PlusCircle size={20} />,
+    successSecondaryLabel = "Go to Dashboard",
+    successSecondaryIcon = <LayoutDashboard size={20} />
 }) => {
     const fromEmail = "Rangam Interview Coach <interviews@coach.rangam.com>";
+    const fromEmailMobile = "interviews@coach.rangam.com";
     const to = data.recipientEmails.length === 1 ? data.recipientEmails[0] : "";
     const bcc = data.recipientEmails.length > 1 ? data.recipientEmails.join(', ') : "";
     const cc = data.recruiterEmail || "";
@@ -184,8 +193,8 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                             label="strong"
                                             className="w-full gap-3"
                                         >
-                                            <PlusCircle size={20} />
-                                            Start New Invite
+                                            {successPrimaryIcon}
+                                            {successPrimaryLabel}
                                         </Button>
                                         <Button
                                             onClick={onDashboard}
@@ -195,19 +204,19 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                             label="strong"
                                             className="w-full gap-3 border-border/30"
                                         >
-                                            <LayoutDashboard size={20} />
-                                            Go to Dashboard
+                                            {successSecondaryIcon}
+                                            {successSecondaryLabel}
                                         </Button>
                                     </div>
                             </div>
                         ) : (
                             <>
-                                <div className="px-6 py-4 border-b border-border/30 flex items-center justify-between sticky top-0 z-10 backdrop-blur-sm bg-surface-base/90">
-                                    <p id={descriptionId} className="text-[13px] font-medium text-text-secondary leading-tight text-left">
-                                        Verify and click <strong>Send</strong> or <strong>Cancel</strong> to edit.
+                                <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border/30 bg-surface-base/90 px-6 py-3 backdrop-blur-sm">
+                                    <p id={descriptionId} className="text-left text-[13px] font-medium leading-tight text-text-secondary">
+                                        Verify email details.
                                     </p>
                                     
-                                    <div className="flex items-center gap-2">
+                                    <div className="ml-auto flex items-center gap-2">
                                         <Button
                                             ref={closeButtonRef}
                                             onClick={onClose}
@@ -230,12 +239,13 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                             {isSending ? <Loader2 size={14} className="animate-spin" /> : <SendHorizontal size={14} />}
                                             {isSending ? "Sending..." : "Send"}
                                         </Button>
-                                        <div className="w-[1px] h-6 bg-border/30 mx-1" />
+                                        <div className="mx-1 hidden h-6 w-[1px] bg-border/30 md:block" />
                                         <Button
                                             onClick={onClose}
                                             variant="ghost"
                                             size="icon"
                                             shape="pill"
+                                            className="hidden md:inline-flex"
                                             aria-label="Close invite preview"
                                         >
                                             <X size={20} className="text-text-disabled hover:text-text-secondary" />
@@ -254,7 +264,8 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                     <div className="px-8 py-6 space-y-3 bg-surface-base border-b border-border/30">
                                         <div className="flex flex-wrap gap-y-1">
                                             <span className="w-16 text-[11px] font-bold text-text-disabled uppercase tracking-wider">From:</span>
-                                            <span className="text-[11px] text-text-secondary truncate">{fromEmail}</span>
+                                            <span className="text-[11px] text-text-secondary md:hidden">{fromEmailMobile}</span>
+                                            <span className="hidden truncate text-[11px] text-text-secondary md:inline">{fromEmail}</span>
                                         </div>
                                         <div className="flex flex-wrap gap-y-1">
                                             <span className="w-16 text-[11px] font-bold text-text-disabled uppercase tracking-wider">To:</span>

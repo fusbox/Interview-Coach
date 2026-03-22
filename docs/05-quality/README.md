@@ -59,6 +59,20 @@ Read this when:
 
 ### QA And Product Quality
 
+#### [feedback-chain-spec.md](./feedback-chain-spec.md)
+Design specification for how answer-level coaching feedback should be generated as one coherent chain.
+
+Covers:
+- the intended relationship between `ack`, `contentPulse`, `deliveryPulse`, and recommendation
+- hidden planning fields and schema direction
+- prompt-contract changes for coherence
+- evaluation criteria and failure modes for answer-level feedback quality
+
+Read this when:
+- you are redesigning or tuning answer feedback generation
+- you want to improve `ack` without breaking the rest of the feedback chain
+- you need the target contract for AI-feedback implementation work
+
 #### [QA-checklist.md](./QA-checklist.md)
 Ship-blocking QA checklist for the product experience.
 
@@ -168,6 +182,7 @@ Read in this order:
 
 ### For AI and coaching quality work
 Read in this order:
+- [feedback-chain-spec.md](./feedback-chain-spec.md)
 - [QA-checklist.md](./QA-checklist.md)
 - [readiness-band-definition.md](./readiness-band-definition.md)
 - [readiness-eval-scenarios.md](./readiness-eval-scenarios.md)

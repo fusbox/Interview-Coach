@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button"
-import { RotateCcw, Loader2 } from "lucide-react"
+import { RotateCcw, Loader2, XCircle } from "lucide-react"
 import { useSession } from "../context/SessionContext"
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -46,14 +46,21 @@ export default function SummaryScreen() {
 
     const descriptionText = hasNarrative 
         ? "Here's your feedback summary. You'll also receive an email of this report."
-        : "One moment while I create your feedback summary";
+        : session?.summaryExpired
+            ? "Your browser summary has been cleared for privacy. Use the email copy of your full debrief if you want to review it again."
+            : "One moment while I create your feedback summary";
 
     const [isCreating, setIsCreating] = useState(false);
+
+    const handleCloseWindow = () => {
+        window.close();
+    };
 
     // Phase 2: Extracted Polling Hook
     useSummaryPolling({
         hasNarrative: !!hasNarrative,
         isCreating,
+        isExpired: !!session?.summaryExpired,
         refresh
     });
 
@@ -141,6 +148,18 @@ export default function SummaryScreen() {
                             </motion.div>
                         ))}
                     </div>
+                ) : session?.summaryExpired ? (
+                    <ContentCard density="spacious" className="w-full">
+                        <div className="space-y-4 text-left">
+                            <h3 className="text-2xl font-bold text-text-primary">Debrief moved to email</h3>
+                            <p className="text-lg leading-relaxed text-text-secondary">
+                                For privacy, we only keep the browser copy of your session debrief for a short period after it&apos;s emailed.
+                            </p>
+                            <p className="text-base leading-relaxed text-text-secondary">
+                                You can still use the email version as your study guide, and you can start another practice round whenever you&apos;re ready.
+                            </p>
+                        </div>
+                    </ContentCard>
                 ) : (
                     <div className="w-full flex flex-col gap-6" aria-busy="true" aria-live="polite">
                         {/* Executive Summary Skeleton */}
@@ -215,7 +234,18 @@ export default function SummaryScreen() {
                     transition={{ delay: 0.9, duration: 0.8 }}
                     className="w-full max-w-2xl flex flex-col items-center"
                 >
-                    <div className="w-full">
+                    <div className="w-full space-y-4">
+                        <Button
+                            emphasis="tertiary"
+                            density="comfortable"
+                            shape="pill"
+                            label="strong"
+                            onClick={handleCloseWindow}
+                            className="w-full gap-3 border-0 bg-transparent text-primary shadow-none hover:bg-transparent hover:text-primary"
+                        >
+                            <XCircle size={20} />
+                            Close this window
+                        </Button>
                         <Button
                             emphasis="primary"
                             density="hero"
@@ -242,7 +272,7 @@ export default function SummaryScreen() {
                         Your completion progress has been shared with your recruiter.
                     </p>
                     <p className="text-text-muted text-xs">
-                        You may now safely close this window.
+                        Your full debrief has also been sent to email for safekeeping.
                     </p>
                 </motion.div>
 

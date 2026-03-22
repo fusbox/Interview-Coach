@@ -9,6 +9,24 @@ import { NonEmptyProviderTextSchema, parseProviderJson, parseProviderValue } fro
 import { incrementMetric, observeMetric } from "@/lib/server/metrics";
 
 export class AIService {
+    private static readonly detectabilityLevels = ["clear", "moderate", "ambiguous", "thin"] as const;
+
+    private static mapDetectabilityToConfidence(
+        detectability?: typeof AIService.detectabilityLevels[number]
+    ): "low" | "medium" | "high" {
+        switch (detectability) {
+            case "clear":
+                return "high";
+            case "moderate":
+                return "medium";
+            case "ambiguous":
+            case "thin":
+                return "low";
+            default:
+                return "medium";
+        }
+    }
+
     /**
      * Internal Algorithm to determine Readiness Level based on foundational vs advanced dimensions.
      * Foundational: focus_relevance, structural_clarity, confidence
@@ -63,14 +81,34 @@ ${FEEDBACK_DIMENSIONS.map((d, i) => `${i + 1}. ${d}`).join('\n')}
 
 COACHING RULES:
 - First, quietly score all 9 dimensions internally with a brief string 'label' explaining the score. These are hidden from the user but used for post-session telemetry.
+- COHERENCE RULE: The ACK, Content Pulse, Delivery Pulse, Recommendation, and Next Action must all read like one coach responding from one central interpretation of the answer. The ACK should preview or frame the main pulse, not compete with it.
 - IMPACT-DRIVEN COACHING: You MUST connect your pulse feedback directly to the candidate's target role. Explain WHY this behavior matters for someone doing that specific job. Avoid generic praise like "You spoke clearly." Instead say, "Your concise framing is essential when briefing executives."
 - THE GRACEFUL PIVOT (NOTEBOOK-LM STYLE): Always look for ANY positive signal or relevant transferrable skill first and explicitly affirm it. Then, gracefully pivot to what the question is *really* indexing for. Example framework: "It's great that you brought up [X]. Interviewers ask this to understand your ability to [underlying dimension]. Here, what they're looking for is..."
 - PERSPECTIVE: You MUST use first/second person perspective (e.g., "Your answer was...", "You wrote/spoke..."). 
-- ACK: EXACTLY 1 sentence, warm and personal. You MUST explicitly reference one specific observation, noun, or concept they mentioned in their answer to prove they were heard (e.g. "I love your approach to reconciling cash drawers.").
-- NEXT ACTION LOGIC: 
-  - If the candidate scores a 1 or 2 on any dimension, you MUST recommend 'redo_answer'. 
-  - If all scores are 3 or higher, recommend 'next_question'.
-  - LAST QUESTION EXCEPTION: If scores are 3+ AND this is the last question (${progress?.total || 'X'} of ${progress?.total || 'X'}), you MUST recommend 'stop_for_now' and set the label to 'See Session Summary'.
+- INTERNAL PLANNING: Before writing visible feedback, determine one central read of the answer, one primary anchor, the anchor's valence (strength|mixed|growth), the anchor's detectability (clear|moderate|ambiguous|thin), and the highest-value coaching intervention. Return that plan in the JSON.
+- RANKING INTENT: Use the hidden scores and evidence only to rank candidate signals and choose the most teachable, best-supported dimension to coach on. Do NOT turn the response into a laundry list.
+- ACK: EXACTLY 1 sentence, warm and personal. ACK is the opening coaching move, not generic praise. It MUST come from the primary anchor, explicitly reference a specific observation, noun, quote fragment, or behavior from the answer, and connect that signal to interviewer value or what the question is testing.
+- ACK SIGNAL RULES:
+  - If valence is strength, sound energized and affirming.
+  - If valence is mixed, affirm the real starting point and pivot toward what interviewers are listening for.
+  - If valence is growth, do not invent praise; acknowledge effort or the starting point and frame the missing target.
+- DETECTABILITY RULES:
+  - If detectability is clear, you may sound direct and confident.
+  - If detectability is moderate, stay specific but avoid overclaiming.
+  - If detectability is ambiguous or thin, avoid hard claims and orient the candidate toward the stronger target pattern.
+- INTERVENTION LOGIC:
+  - You MUST choose exactly one intervention type in feedbackPlan.intervention.type:
+    - amplify_strength: the candidate showed a clear, high-value signal worth reinforcing
+    - sharpen_signal: the answer has a real signal, but it needs more precision, specificity, or stronger interviewer-facing proof
+    - repair_foundation: the answer is missing a core structural or relevance requirement and should be rebuilt
+    - polish_response: the core answer is usable, and the best next move is a focused polish note that may come from either content or delivery
+- NEXT ACTION LOGIC:
+  - Base nextAction on the intervention, signal valence, and detectability, not on raw score thresholds.
+  - repair_foundation => recommend 'redo_answer'.
+  - sharpen_signal => recommend 'redo_answer' if the missing piece materially weakens interviewer confidence; otherwise recommend 'next_question' with a focused polish tip.
+  - amplify_strength => recommend 'next_question'.
+  - polish_response => recommend 'next_question' unless the identified issue materially obscures the candidate's meaning, in which case recommend 'redo_answer'.
+  - LAST QUESTION EXCEPTION: If the correct action would otherwise be 'next_question' AND this is the last question (${progress?.total || 'X'} of ${progress?.total || 'X'}), you MUST recommend 'stop_for_now' and set the label to 'See Session Summary'.
 - RECOMMENDATION GUIDANCE:
   - If REDO, explain the missing critical piece the candidate should focus on.
   - If NEXT, affirm readiness with a minor polish tip.
@@ -85,14 +123,34 @@ You must generate at least 1, but no more than 2, High-Impact "Pulses" highlight
    - MODALITY AWARENESS: The candidate provided this answer via **${audioData ? "VOICE (AUDIO)" : "TEXT (TYPED)"}**. 
    - If TEXT (TYPED): Do NOT mention "speaking", "listening", "sounding", "vocal tone", or spoken "filler words" like "um / uh". Instead, critique their "writing", "readability", "drafting", or "written structure".
    - If VOICE (AUDIO): Critique their vocal delivery, pacing, and spoken filler words.
-   - DO NOT generate a Delivery Pulse for average/fine performance (scores 3 or 4).
-   - ONLY generate a Delivery Pulse if the candidate urgently needs help (scored 1 or 2) OR demonstrated exceptional mastery (scored 5).
+   - POLISH CAN COME FROM BOTH CONTENT AND DELIVERY. Do NOT assume all polish notes belong in the Delivery Pulse.
+   - ONLY generate a Delivery Pulse if delivery/mechanics are materially affecting interpretation, credibility, or ease of understanding, or if delivery demonstrates standout mastery worth explicitly reinforcing.
+   - If the primary anchor source is 'delivery', you MUST generate a Delivery Pulse.
+   - If the primary anchor source is 'content', only generate a Delivery Pulse when it adds a clearly distinct second insight. Do NOT generate it for minor polish notes.
    - Examples: "You used 'um' 14 times, which distracts from your expertise" OR "Your use of 'First, Second, Third' signposting made your complex answer incredibly easy to follow."
 `;
 
         const schemaPrompt = `
 Generate feedback as strict JSON matching this schema:
 {
+  "feedbackPlan": {
+    "centralRead": "string (One-sentence summary of the core coaching read)",
+    "signal": {
+      "valence": "strength | mixed | growth",
+      "detectability": "clear | moderate | ambiguous | thin"
+    },
+    "primaryAnchor": {
+      "source": "content | delivery | fallback",
+      "signalType": "quote | behavior | pattern | effort | omission",
+      "dimension": "${FEEDBACK_DIMENSIONS.join(' | ')}",
+      "candidateEvidence": "string",
+      "interviewerValue": "string"
+    },
+    "intervention": {
+      "type": "amplify_strength | sharpen_signal | repair_foundation | polish_response",
+      "reason": "string"
+    }
+  },
   "ack": "string",
   "transcript": "string (The highly accurate transcription of the audio, including full punctuation and correct sentence structure. Required if audio is provided.)",
   "scores": {
@@ -105,7 +163,7 @@ Generate feedback as strict JSON matching this schema:
     "quote": "string (Exact quote from transcript)"
   },
   "deliveryPulse": { 
-    "//": "OPTIONAL: Include ONLY IF a delivery dimension scored 1, 2, or 5.",
+    "//": "OPTIONAL: Include ONLY IF delivery/mechanics materially affect interpretation or show standout mastery.",
     "dimension": "filler_words | signposting | conciseness | resilience",
     "headline": "string (Short action-oriented title)",
     "body": "string (Narrative coaching tying behavior to role impact. NO QUOTES.)"
@@ -129,7 +187,7 @@ Generate feedback as strict JSON matching this schema:
             observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "analysis", outcome: "mock_fallback" });
             return {
                 ack: "I noted your answer. (No API Key)",
-                meta: { tier: 1, modality: audioData ? "voice" : "text", signalQuality: "insufficient", confidence: "medium", readinessLevel: "RL4" },
+                meta: { tier: 1, modality: audioData ? "voice" : "text", confidence: "medium", readinessLevel: "RL4" },
                 transcript: answerText || "Audio Answer (Mock)",
                 contentPulse: { dimension: "focus_relevance", headline: "Setup Needed", body: "Please add your Gemini API key to evaluate your response.", quote: "" }
             };
@@ -187,10 +245,8 @@ Generate feedback as strict JSON matching this schema:
                     modality: result.meta?.modality ?? (audioData ? "voice" : "text"),
                     ...result.meta,
                     readinessLevel: calculatedRL,
-                    confidence: scoreValues.confidence <= 2 ? 'low' : scoreValues.confidence >= 4 ? 'high' : 'medium'
+                    confidence: result.meta?.confidence ?? AIService.mapDetectabilityToConfidence(result.feedbackPlan?.signal.detectability)
                 },
-                readinessBand: calculatedRL,
-                coachReaction: result.ack,
                 __debugPrompt: combinedPrompt
             };
 
@@ -205,9 +261,8 @@ Generate feedback as strict JSON matching this schema:
             observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "analysis", outcome: "error" });
             return {
                 ack: "I noted your answer.",
-                meta: { tier: 1, modality: audioData ? "voice" : "text", signalQuality: "insufficient", confidence: "medium", readinessLevel: "RL4" },
+                meta: { tier: 1, modality: audioData ? "voice" : "text", confidence: "medium", readinessLevel: "RL4" },
                 transcript: answerText || "Audio Answer",
-                readinessBand: "RL4",
                 contentPulse: {
                     dimension: "focus_relevance",
                     headline: "System Offline",

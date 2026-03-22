@@ -1,3 +1,13 @@
+HISTORICAL DEBUG SNAPSHOT
+
+This file captures an older prompt/schema snapshot kept for reference only.
+
+Important:
+- It does not reflect the current live answer-feedback contract.
+- It includes older fields such as `taggedObservations` and `primaryFocus` that are no longer the active implementation shape.
+- Use [feedback-chain-spec.md](../feedback-chain-spec.md) and the current code in `src/lib/server/services/ai-service.ts` as the source of truth for ongoing redesign work.
+
+Original source:
 http://localhost:3000/s/53f714fde1db3988e39acf547c3052e5
 
 

@@ -362,7 +362,7 @@ export default function CreateInviteWizard() {
                                 <div key={s} className={`flex-1 flex flex-col items-center group cursor-pointer transition-all duration-base ${s < step ? 'text-emerald-800 dark:text-emerald-200' : (s === step ? 'text-primary' : 'text-text-disabled')}`}
                                     onClick={() => s <= step ? setStep(s as 1 | 2 | 3) : null}>
                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 mb-2 transition-all duration-base
-                                         ${s < step ? 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-200' :
+                                         ${s < step ? 'border-emerald-400 bg-emerald-50 text-emerald-800 dark:border-emerald-400/50 dark:bg-emerald-500/10 dark:text-emerald-200' :
                                             s === step ? 'border-primary bg-primary text-primary-foreground shadow-[0_0_0_4px_hsl(var(--primary)/0.15)]' :
                                                 'border-border bg-surface-base group-hover:border-primary/50'}`}>
                                         {s < step ? <Check className="w-4 h-4" /> : s}

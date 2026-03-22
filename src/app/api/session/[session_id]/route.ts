@@ -17,6 +17,7 @@ import { incrementMetric } from "@/lib/server/metrics";
 import { createServerLogger } from "@/lib/server/server-logger";
 
 const repository = new SupabaseSessionRepository();
+const SUMMARY_RETENTION_MS = 6 * 60 * 60 * 1000;
 
 export async function GET(
     request: Request,
@@ -115,12 +116,18 @@ export async function PATCH(
 
                 // Trigger Email Debrief
                 if (session.candidate?.email) {
-                    await EmailService.sendDebriefEmail(session).catch(err => 
+                    const emailResult = await EmailService.sendDebriefEmail(session).catch(err => {
                         routeLogger.error("Debrief email send failed", {
                             error: err,
                             errorCode: "SESSION_DEBRIEF_EMAIL_FAILED"
-                        })
-                    );
+                        });
+
+                        return null;
+                    });
+
+                    if (emailResult) {
+                        await repository.setSummaryExpiry(session_id, Date.now() + SUMMARY_RETENTION_MS);
+                    }
                 }
             } catch (summaryError) {
                 routeLogger.error("Summarization failed", {

@@ -44,14 +44,14 @@ export function DashboardStats({ metrics, variant = "default" }: DashboardStatsP
 
     if (variant === "header") {
         return (
-            <div className="flex items-center gap-1.5 md:gap-2 w-full">
+            <div className="grid w-full grid-cols-2 gap-2 md:flex md:items-center md:gap-2">
                 {stats.map((stat) => (
                     <MetricCard
                         key={stat.fullLabel}
                         title={stat.label}
                         value={stat.value}
                         variant="pill"
-                        className={cn("flex-1 px-1 border-none shadow-none", stat.bgColor)}
+                        className={cn("flex-1 border-none px-1 py-0.5 shadow-none", stat.bgColor)}
                         valueClassName={stat.textColor}
                     />
                 ))}

@@ -9,7 +9,7 @@ const alertPanelVariants = cva(
         variants: {
             tone: {
                 critical: "border-state-critical/25 bg-state-critical/5 text-text-primary [&_svg]:text-rose-700 dark:[&_svg]:text-rose-300",
-                success: "border-state-success/25 bg-state-success/5 text-text-primary [&_svg]:text-emerald-700 dark:[&_svg]:text-emerald-300",
+                success: "border-state-success/40 bg-state-success/5 text-text-primary [&_svg]:text-emerald-700 dark:border-state-success/50 dark:[&_svg]:text-emerald-300",
                 info: "border-state-info/25 bg-state-info/5 text-text-primary [&_svg]:text-sky-700 dark:[&_svg]:text-sky-300",
                 warning: "border-state-warning/25 bg-state-warning/5 text-text-primary [&_svg]:text-amber-800 dark:[&_svg]:text-amber-300",
             },

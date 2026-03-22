@@ -4,7 +4,7 @@ import React from "react";
 import { SessionSummary, InterviewSession } from "@/lib/domain/types";
 import { StatusBadge as CanonicalStatusBadge } from "@/components/patterns/StatusBadge";
 
-const STATUS_WIDTH = "w-[160px] justify-center text-center";
+const STATUS_WIDTH = "w-[10rem] justify-center text-center whitespace-nowrap";
 
 type BadgeSession = SessionSummary | InterviewSession;
 
@@ -33,7 +33,12 @@ export function StatusBadge({ session }: { session: BadgeSession }) {
     }
 
     if (submittedCount > 0) {
-        return <CanonicalStatusBadge variant="progressSolid" icon={false} className={STATUS_WIDTH} fullWidth={false}>In Progress ({submittedCount}/{questionCount})</CanonicalStatusBadge>;
+        return (
+            <CanonicalStatusBadge variant="progressSolid" icon={false} className={STATUS_WIDTH} fullWidth={false}>
+                <span className="md:hidden">({submittedCount}/{questionCount})</span>
+                <span className="hidden md:inline">In Progress ({submittedCount}/{questionCount})</span>
+            </CanonicalStatusBadge>
+        );
     }
 
     if (status === 'IN_SESSION' && answerCount > 0) {
@@ -58,7 +63,7 @@ export function StatusBadge({ session }: { session: BadgeSession }) {
 export function AttemptBadge({ attemptNumber }: { attemptNumber?: number }) {
     if (!attemptNumber || attemptNumber <= 1) return null;
     return (
-        <CanonicalStatusBadge variant="neutral" icon={false} size="sm" className="text-[9px] whitespace-nowrap shrink-0 px-1.5 h-4 min-w-fit">
+        <CanonicalStatusBadge variant="neutral" icon={false} size="sm" className="h-4 min-w-fit shrink-0 whitespace-nowrap px-1.5 text-[8px] md:text-[9px]">
             Attempt {attemptNumber}
         </CanonicalStatusBadge>
     );

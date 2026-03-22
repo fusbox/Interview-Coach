@@ -12,6 +12,7 @@ interface SessionIntake {
     entered_initials?: string;
     engaged_time_seconds?: number;
     retry_contexts?: Record<string, unknown>;
+    summary_expires_at?: number | string | null;
 }
 
 interface DbSession {
@@ -84,6 +85,24 @@ export class SupabaseSessionRepository implements SessionRepository {
 
     private asAttemptNumber(value: unknown): number | undefined {
         return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : undefined;
+    }
+
+    private async clearExpiredSummary(sessionId: string, intake: SessionIntake | null | undefined): Promise<void> {
+        const supabase = createAdminClient();
+        const updatedIntake = { ...(intake || {}) };
+        delete updatedIntake.summary_expires_at;
+
+        const { error } = await supabase
+            .from("sessions")
+            .update({
+                summary_narrative: null,
+                intake_json: updatedIntake
+            })
+            .eq("session_id", sessionId);
+
+        if (error) {
+            Logger.error("[Repo] clearExpiredSummary Failed", error);
+        }
     }
 
     private normalizeCandidate(rawCandidate: unknown) {
@@ -326,6 +345,16 @@ export class SupabaseSessionRepository implements SessionRepository {
         });
 
         const intake = this.asObject(sData.intake_json);
+        const summaryExpiresAt = this.asTimestamp(intake.summary_expires_at);
+        const summaryExpired =
+            typeof sData.summary_narrative === "string" &&
+            !!summaryExpiresAt &&
+            Date.now() >= summaryExpiresAt;
+
+        if (summaryExpired) {
+            await this.clearExpiredSummary(id, sData.intake_json as SessionIntake | null | undefined);
+        }
+
         const candidate = this.normalizeCandidate(intake.candidate);
         const candidateName = (candidate.firstName && candidate.lastName)
             ? `${candidate.firstName} ${candidate.lastName}`
@@ -348,6 +377,8 @@ export class SupabaseSessionRepository implements SessionRepository {
             enteredInitials,
             viewedAt: this.asTimestamp(intake.viewed_at),
             updatedAt: this.asTimestamp(sData.updated_at),
+            summaryExpiresAt: summaryExpiresAt,
+            summaryExpired,
             candidate: {
                 firstName: candidate.firstName,
                 lastName: candidate.lastName,
@@ -364,7 +395,7 @@ export class SupabaseSessionRepository implements SessionRepository {
             attemptNumber: this.asAttemptNumber(sData.attempt_number),
             clientName: this.asString(sData.client_name),
             readinessBand: sData.readiness_band,
-            summaryNarrative: sData.summary_narrative
+            summaryNarrative: summaryExpired ? null : sData.summary_narrative
         };
     }
 
@@ -472,7 +503,7 @@ export class SupabaseSessionRepository implements SessionRepository {
         if (updates.parentSessionId) dbUpdates.parent_session_id = updates.parentSessionId;
         if (updates.attemptNumber) dbUpdates.attempt_number = updates.attemptNumber;
         if (updates.clientName) dbUpdates.client_name = updates.clientName;
-        if (updates.summaryNarrative) dbUpdates.summary_narrative = updates.summaryNarrative;
+        if (updates.summaryNarrative !== undefined) dbUpdates.summary_narrative = updates.summaryNarrative;
 
         // Handle intake_json updates (Initials, Engagement)
         const shouldPatchIntake =
@@ -552,6 +583,30 @@ export class SupabaseSessionRepository implements SessionRepository {
     async deleteAnalysis(sessionId: string, questionId: string): Promise<void> {
         const supabase = createAdminClient();
         await supabase.from('eval_results').delete().eq('session_id', sessionId).eq('question_id', questionId);
+    }
+
+    async setSummaryExpiry(sessionId: string, expiresAt: number): Promise<void> {
+        const supabase = createAdminClient();
+        const { data: current } = await supabase
+            .from("sessions")
+            .select("intake_json")
+            .eq("session_id", sessionId)
+            .single();
+
+        const currentIntake = (current?.intake_json as SessionIntake) || {};
+        const { error } = await supabase
+            .from("sessions")
+            .update({
+                intake_json: {
+                    ...currentIntake,
+                    summary_expires_at: expiresAt
+                }
+            })
+            .eq("session_id", sessionId);
+
+        if (error) {
+            Logger.error("[Repo] setSummaryExpiry Failed", error);
+        }
     }
 
     async delete(id: string): Promise<void> {

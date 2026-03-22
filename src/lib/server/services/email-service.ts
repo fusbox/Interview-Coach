@@ -48,13 +48,13 @@ export class EmailService {
                 from: fromEmail
             }, "EmailService");
             
-            const debriefUrl = `${baseUrl}/s/${session.inviteToken}`;
+            const practiceAgainUrl = `${baseUrl}/s/${session.inviteToken}/practice-again`;
 
             const html = renderSessionDebriefEmail({
                 candidateName,
                 role: session.role,
                 summaryNarrative: session.summaryNarrative || '',
-                debriefUrl,
+                practiceAgainUrl,
                 logoUrl: `${baseUrl}/rangam-logo.png`,
             });
 

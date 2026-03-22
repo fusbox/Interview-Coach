@@ -20,23 +20,42 @@ export function formatDuration(seconds?: number): string {
  * Format a timestamp into a human-readable date/time string.
  */
 export function formatTimestamp(timestamp?: number, timezone?: string): string {
-    if (!timestamp) return "—";
+    if (!timestamp) return "-";
+
     const date = new Date(timestamp);
+
     try {
-        const timeStr = date.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
+        const resolvedTimeZone = timezone || undefined;
+        const dateStr = new Intl.DateTimeFormat("en-US", {
+            month: "numeric",
+            day: "numeric",
+            year: "numeric",
+            timeZone: resolvedTimeZone,
+        }).format(date);
+
+        const timeStr = new Intl.DateTimeFormat("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
             hour12: true,
-            timeZone: timezone || undefined
-        });
+            timeZone: resolvedTimeZone,
+        }).format(date);
 
-        const tzName = new Intl.DateTimeFormat('en-US', {
-            timeZoneName: 'short',
-            timeZone: timezone || undefined
-        }).formatToParts(date).find(p => p.type === 'timeZoneName')?.value || "";
+        const tzName = new Intl.DateTimeFormat("en-US", {
+            timeZoneName: "short",
+            timeZone: resolvedTimeZone,
+        })
+            .formatToParts(date)
+            .find((part) => part.type === "timeZoneName")?.value || "";
 
-        return `${date.toLocaleDateString()} ${timeStr} ${tzName}`;
+        return `${dateStr} ${timeStr} ${tzName}`.trim();
     } catch {
-        return date.toLocaleString();
+        return new Intl.DateTimeFormat("en-US", {
+            month: "numeric",
+            day: "numeric",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+        }).format(date);
     }
 }

@@ -3,12 +3,13 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, ArrowUpDown, Mail, Trash2, ExternalLink } from "lucide-react";
+import { Search, ArrowUpDown, Trash2, ExternalLink } from "lucide-react";
 import { SessionSummary } from "@/lib/domain/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { deleteSession } from "../actions";
 import { StatusBadge, AttemptBadge, InitialsMatchBadge } from "./session-badges";
+import { ResendInviteButton } from "./ResendInviteButton";
 import { DataTable } from "@/components/patterns/DataTable";
 import { formatTimestamp, formatDuration } from "@/lib/utils/format";
 
@@ -33,6 +34,25 @@ type SortConfig = {
 } | null;
 
 type SortKey = NonNullable<SortConfig>["key"];
+
+function formatTimestampParts(timestamp?: number, timezone?: string) {
+    if (!timestamp) {
+        return { date: "-", time: "" };
+    }
+
+    const formatted = formatTimestamp(timestamp, timezone);
+    const match = formatted.match(/^(.*)\s(\d{1,2}:\d{2}\s(?:AM|PM))(?:\s(.*))?$/);
+
+    if (!match) {
+        return { date: formatted, time: "" };
+    }
+
+    const [, date, time, tzName] = match;
+    return {
+        date,
+        time: [time, tzName].filter(Boolean).join(" "),
+    };
+}
 
 
 export function RecruiterSessionsTable({ initialSessions, recruiterTimezone, recruiterProfile, isAdmin = false }: RecruiterSessionsTableProps) {
@@ -65,30 +85,6 @@ export function RecruiterSessionsTable({ initialSessions, recruiterTimezone, rec
             }
             return { key, direction: 'desc' };
         });
-    };
-
-    const buildResendMailto = (session: SessionSummary) => {
-        if (!session.inviteToken) return null;
-        const origin = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || '');
-        if (!origin) return null;
-        const link = `${origin}/s/${session.inviteToken}`;
-        const subject = `Interview Invitation: ${session.role}`;
-        const body = `Hi ${session.candidateName},
-
-I'd like to invite you to a preliminary interview practice session for the ${session.role} role. This interactive session will help us understand your experience better.
-
-Please click the link below to start whenever you're ready:
-${link}
-
-Best regards,
-
-${recruiterProfile?.name || ''}
-${recruiterProfile?.title || 'Recruiter'}
-${recruiterProfile?.company || 'Rangam Consultants Inc.'}
-
-M: ${recruiterProfile?.phone || ''}
-E: ${recruiterProfile?.email || ''}`;
-        return `mailto:${session.candidateEmail || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     };
 
     // Re-fetch data whenever the tab regains focus (covers back-navigation, tab switching, etc.)
@@ -180,15 +176,21 @@ E: ${recruiterProfile?.email || ''}`;
                             </button>
                         ),
                         headerCellProps: { "aria-sort": getAriaSort("candidateName") },
-                        cell: (session) => (
-                            <div className="flex flex-col text-sm">
-                                <div className="flex items-center gap-2 max-w-full">
+                        cell: (session) => {
+                            const hasAttempt = !!session.attemptNumber && session.attemptNumber > 1;
+
+                            return (
+                                <div className="flex flex-col text-sm">
                                     <span className="truncate font-semibold text-text-primary">{session.candidateName}</span>
-                                    <AttemptBadge attemptNumber={session.attemptNumber} />
+                                    {hasAttempt ? (
+                                        <div className="mt-1">
+                                            <AttemptBadge attemptNumber={session.attemptNumber} />
+                                        </div>
+                                    ) : null}
                                 </div>
-                            </div>
-                        ),
-                        className: "w-[220px]"
+                            );
+                        },
+                        className: "w-[200px]"
                     },
                     {
                         header: "Initials Match?",
@@ -225,7 +227,7 @@ E: ${recruiterProfile?.email || ''}`;
                         ),
                         headerCellProps: { "aria-sort": getAriaSort("status") },
                         cell: (session) => <StatusBadge session={session} />,
-                        className: "w-[180px]"
+                        className: "w-[260px]"
                     },
                     {
                         header: (
@@ -255,11 +257,17 @@ E: ${recruiterProfile?.email || ''}`;
                             </button>
                         ),
                         headerCellProps: { "aria-sort": getAriaSort("updatedAt") },
-                        cell: (session) => (
-                            <span className="text-text-secondary whitespace-nowrap text-sm">
-                                {formatTimestamp(session.updatedAt || session.createdAt, recruiterTimezone)}
-                            </span>
-                        )
+                        cell: (session) => {
+                            const timestamp = formatTimestampParts(session.updatedAt || session.createdAt, recruiterTimezone);
+
+                            return (
+                                <div className="flex flex-col leading-tight">
+                                    <span className="whitespace-nowrap text-sm text-text-secondary">{timestamp.date}</span>
+                                    <span className="mt-1 whitespace-nowrap text-[11px] text-text-muted">{timestamp.time}</span>
+                                </div>
+                            );
+                        },
+                        className: "w-[130px]"
                     },
                     {
                         header: (
@@ -272,11 +280,17 @@ E: ${recruiterProfile?.email || ''}`;
                             </button>
                         ),
                         headerCellProps: { "aria-sort": getAriaSort("delivered") },
-                        cell: (session) => (
-                            <span className="text-text-secondary whitespace-nowrap text-sm">
-                                {formatTimestamp(session.invitationSentAt || session.createdAt, recruiterTimezone)}
-                            </span>
-                        )
+                        cell: (session) => {
+                            const timestamp = formatTimestampParts(session.invitationSentAt || session.createdAt, recruiterTimezone);
+
+                            return (
+                                <div className="flex flex-col leading-tight">
+                                    <span className="whitespace-nowrap text-sm text-text-secondary">{timestamp.date}</span>
+                                    <span className="mt-1 whitespace-nowrap text-[11px] text-text-muted">{timestamp.time}</span>
+                                </div>
+                            );
+                        },
+                        className: "w-[130px]"
                     },
                     {
                         header: <span className="px-6 block text-right">Actions</span>,
@@ -297,20 +311,11 @@ E: ${recruiterProfile?.email || ''}`;
                                 </Button>
 
                                 <div className="w-8 h-8 flex items-center justify-center">
-                                    {buildResendMailto(session) ? (
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            asChild
-                                            className="h-8 w-8 text-text-muted hover:text-sky-800 hover:bg-sky-50 transition-colors rounded-2xl dark:hover:text-sky-200 dark:hover:bg-sky-500/10"
-                                            title="Resend Invite Email"
-                                            aria-label={`Resend invite email to ${session.candidateName}`}
-                                        >
-                                            <a href={buildResendMailto(session)!} target="_blank" rel="noopener noreferrer">
-                                                <Mail className="h-4 w-4" />
-                                            </a>
-                                        </Button>
-                                    ) : null}
+                                    <ResendInviteButton
+                                        session={session}
+                                        recruiterProfile={recruiterProfile}
+                                        className="h-8 w-8 text-text-muted hover:text-sky-800 hover:bg-sky-50 transition-colors rounded-2xl dark:hover:text-sky-200 dark:hover:bg-sky-500/10"
+                                    />
                                 </div>
 
                                 {isAdmin && (

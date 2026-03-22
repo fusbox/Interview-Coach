@@ -101,13 +101,33 @@ export interface ExportQuestionPayload {
     // AI feedback
     feedback?: {
         ack?: string;
-        primaryFocus?: {
-            dimension: string;
+        feedbackPlan?: {
+            centralRead: string;
+            signal: {
+                valence: string;
+                detectability: string;
+            };
+            primaryAnchor: {
+                source: string;
+                signalType: string;
+                dimension: string;
+                candidateEvidence: string;
+                interviewerValue: string;
+            };
+            intervention: {
+                type: string;
+                reason: string;
+            };
+        };
+        contentPulse?: {
+            headline: string;
+            body: string;
+            quote?: string;
+        };
+        deliveryPulse?: {
             headline: string;
             body: string;
         };
-        whyThisMatters?: string;
-        observations?: string[];
         nextAction?: {
             label: string;
             actionType: string;
@@ -115,8 +135,8 @@ export interface ExportQuestionPayload {
         meta?: {
             tier: number;
             modality: string;
-            signalQuality?: string;
             confidence?: string;
+            readinessLevel?: string;
         };
     } | null;
     // Evaluator scores

@@ -9,12 +9,12 @@ const statusBadgeVariants = cva(
     {
         variants: {
             variant: {
-                success: "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-200 dark:border-emerald-400/30",
+                success: "bg-emerald-50 text-emerald-800 border-emerald-400 dark:bg-emerald-500/15 dark:text-emerald-200 dark:border-emerald-400/50",
                 warning: "bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-500/15 dark:text-amber-200 dark:border-amber-400/30",
                 critical: "bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-500/15 dark:text-rose-200 dark:border-rose-400/30",
                 info: "bg-sky-50 text-sky-800 border-sky-200 dark:bg-sky-500/15 dark:text-sky-200 dark:border-sky-400/30",
                 neutral: "bg-muted text-muted-foreground border-border",
-                readinessHigh: "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-200 dark:border-emerald-400/30",
+                readinessHigh: "bg-emerald-50 text-emerald-800 border-emerald-400 dark:bg-emerald-500/15 dark:text-emerald-200 dark:border-emerald-400/50",
                 readinessPotential: "bg-sky-50 text-sky-800 border-sky-200 dark:bg-sky-500/15 dark:text-sky-200 dark:border-sky-400/30",
                 readinessMedium: "bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-500/15 dark:text-amber-200 dark:border-amber-400/30",
                 readinessLow: "bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-500/15 dark:text-rose-200 dark:border-rose-400/30",

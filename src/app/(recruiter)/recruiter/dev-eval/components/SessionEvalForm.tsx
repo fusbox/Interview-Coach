@@ -254,10 +254,10 @@ export function SessionEvalForm({ session }: SessionEvalFormProps) {
                                             <strong>Next Action:</strong> {answer.analysis.nextAction.label} ({answer.analysis.nextAction.actionType})
                                         </p>
                                     )}
-                                    {answer.analysis.readinessBand && (
+                                    {answer.analysis.meta?.readinessLevel && (
                                         <div className="pt-1">
                                             <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200 text-micro font-bold">
-                                                AI READINESS: {answer.analysis.readinessBand}
+                                                AI READINESS: {answer.analysis.meta.readinessLevel}
                                             </Badge>
                                         </div>
                                     )}

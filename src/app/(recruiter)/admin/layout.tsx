@@ -38,7 +38,7 @@ export default async function AdminLayout({
             <RecruiterMobileDock user={user} />
 
             {/* Main Content */}
-            <main className="flex-1 p-8 pt-8 w-full max-w-full overflow-hidden pb-24 md:pb-8">
+            <main className="flex-1 w-full max-w-full overflow-hidden px-4 pb-24 pt-6 md:p-8 md:pb-8 md:pt-8">
                 {children}
             </main>
         </div>

@@ -20,7 +20,7 @@ export function PageHeaderBlock({
     return (
         <div
             className={cn(
-                "relative overflow-hidden rounded-xl bg-transparent p-6 pl-7",
+                "relative overflow-hidden rounded-xl bg-transparent px-4 py-5 pl-6 md:p-6 md:pl-7",
                 className
             )}
             {...props}

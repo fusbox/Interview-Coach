@@ -183,7 +183,7 @@ export default function TemplatesPage() {
     };
 
     return (
-        <div className="max-w-6xl mx-auto pb-12 px-6 space-y-10 animate-in fade-in duration-slow">
+        <div className="max-w-6xl mx-auto pb-12 space-y-10 animate-in fade-in duration-slow">
             <PageHeaderBlock
                 title="Interview Templates"
                 description="Manage and reuse your question sets for consistent interviews."
@@ -260,7 +260,7 @@ export default function TemplatesPage() {
 
                                             <div className="ml-auto">
                                                 {template.isShared ? (
-                                                    <Badge variant="secondary" className="bg-emerald-50 text-emerald-800 border-emerald-200 gap-1 px-3 py-1 font-bold uppercase text-[9px] tracking-wider rounded-full dark:bg-emerald-500/15 dark:text-emerald-200 dark:border-emerald-400/30">
+                                                    <Badge variant="secondary" className="bg-emerald-50 text-emerald-800 border-emerald-400 gap-1 px-3 py-1 font-bold uppercase text-[9px] tracking-wider rounded-full dark:bg-emerald-500/15 dark:text-emerald-200 dark:border-emerald-400/50">
                                                         <Users className="w-3 h-3" /> Shared
                                                     </Badge>
                                                 ) : (

@@ -78,7 +78,7 @@ export function StepCandidates({
                 }
             />
 
-            <Card className="border-border/50 shadow-raised-1">
+            <Card className="overflow-hidden rounded-[1.5rem] border-border/50 shadow-raised-1">
                 <CardHeader className="flex flex-row items-center justify-between border-b border-border/30 bg-surface-base py-5">
                     <CardTitle className="flex items-center gap-2.5 font-sans text-base font-bold">
                         <div className="h-4 w-1 rounded-full bg-primary" />
@@ -97,8 +97,8 @@ export function StepCandidates({
                     )}
 
                     {candidates.map((candidate, index) => (
-                        <div key={candidate.id} className="animate-in slide-in-from-top-2 flex items-start gap-3 duration-200 fade-in">
-                            <div className="w-6 pt-3 text-center text-xs font-bold text-text-disabled">
+                        <div key={candidate.id} className="animate-in slide-in-from-top-2 flex items-start gap-1 md:gap-3 duration-200 fade-in">
+                            <div className="w-4 pt-3 text-center text-[10px] font-bold text-text-disabled md:w-6 md:text-xs">
                                 #{index + 1}
                             </div>
                             <div className="grid flex-1 grid-cols-1 gap-3 md:grid-cols-3">
@@ -132,7 +132,7 @@ export function StepCandidates({
                                 size="icon"
                                 variant="ghost"
                                 shape="square"
-                                className="mt-1 shrink-0 text-destructive hover:bg-rose-50 dark:hover:bg-rose-500/10"
+                                className="-mr-2 mt-1 h-8 w-8 shrink-0 rounded-lg px-0 text-destructive hover:bg-rose-50 dark:hover:bg-rose-500/10 md:mr-0 md:h-10 md:w-10 md:rounded-xl"
                                 onClick={() => removeCandidate(candidate.id)}
                             >
                                 <Trash2 className="h-4 w-4" />
@@ -146,7 +146,7 @@ export function StepCandidates({
                         shape="app"
                         label="strong"
                         onClick={addCandidate}
-                        className="mt-4 w-full gap-2 text-emerald-800 border-emerald-300 hover:bg-emerald-50 hover:border-emerald-400 hover:text-emerald-900 dark:text-emerald-200 dark:border-emerald-400/40 dark:hover:bg-emerald-500/10"
+                        className="mt-4 w-full gap-2 text-emerald-800 border-emerald-400 hover:bg-emerald-50 hover:border-emerald-500 hover:text-emerald-900 dark:text-emerald-200 dark:border-emerald-400/50 dark:hover:bg-emerald-500/10"
                     >
                         <UserPlus className="h-4 w-4" />
                         Add Candidate
