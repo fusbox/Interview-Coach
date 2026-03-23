@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import BrandLogo from '@/components/brand/BrandLogo';
+import { pilotRollout } from '@/lib/config/pilot-rollout';
 
 
 export default function Home() {
@@ -73,6 +74,7 @@ export default function Home() {
                         </div>
                         <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">
                             Candidates must use the unique invitation link sent to their email.
+                            {pilotRollout.enabled ? ' Limited pilot rollout.' : ''}
                         </p>
                     </div>
                 </motion.div>

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { SupabaseInviteRepository } from "@/lib/server/infrastructure/supabase-invite-repository";
 import InterviewSessionScreen from "@/features/session/components/InterviewSessionScreen";
+import { pilotRollout } from "@/lib/config/pilot-rollout";
 
 interface PageProps {
     params: Promise<{
@@ -40,6 +41,8 @@ export default async function CandidateSessionPage({ params }: PageProps) {
 export async function generateMetadata() {
     return {
         title: "Your Interview Session",
-        description: "Join your personalized AI interview practice session."
+        description: pilotRollout.enabled
+            ? "Join a limited-pilot AI interview practice session."
+            : "Join your personalized AI interview practice session."
     }
 }

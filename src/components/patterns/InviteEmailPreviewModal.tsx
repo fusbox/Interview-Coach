@@ -11,6 +11,7 @@ import { FeedbackChoiceButton } from '@/components/patterns/FeedbackChoiceButton
 import { FeedbackPill } from '@/components/patterns/FeedbackPill';
 import { captureFeedbackAction } from '@/app/actions/feedback';
 import { useAccessibleDialog } from '@/lib/hooks/use-accessible-dialog';
+import { getPilotSupportLine, pilotRollout } from '@/lib/config/pilot-rollout';
 
 interface InviteEmailPreviewModalProps {
     isOpen: boolean;
@@ -55,6 +56,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
 }) => {
     const fromEmail = "Rangam Interview Coach <interviews@coach.rangam.com>";
     const fromEmailMobile = "interviews@coach.rangam.com";
+    const pilotSupportLine = getPilotSupportLine();
     const to = data.recipientEmails.length === 1 ? data.recipientEmails[0] : "";
     const bcc = data.recipientEmails.length > 1 ? data.recipientEmails.join(', ') : "";
     const cc = data.recruiterEmail || "";
@@ -212,9 +214,16 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                         ) : (
                             <>
                                 <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border/30 bg-surface-base/90 px-6 py-3 backdrop-blur-sm">
-                                    <p id={descriptionId} className="text-left text-[13px] font-medium leading-tight text-text-secondary">
-                                        Verify email details.
-                                    </p>
+                                    <div id={descriptionId} className="space-y-1">
+                                        <p className="text-left text-[13px] font-medium leading-tight text-text-secondary">
+                                            Verify email details.
+                                        </p>
+                                        {pilotRollout.enabled && (
+                                            <p className="text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300">
+                                                Pilot rollout copy
+                                            </p>
+                                        )}
+                                    </div>
                                     
                                     <div className="ml-auto flex items-center gap-2">
                                         <Button
@@ -314,7 +323,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                                         Hi {data.recipientFirstName || 'Candidate'},
                                                     </p>
                                                     <p className="text-[15px] leading-relaxed font-medium">
-                                                        I&apos;d like to invite you to a preliminary interview practice session for the <strong>{data.role}</strong> role. This interactive session will help us understand your experience better.
+                                                        I&apos;d like to invite you to a guided interview practice session for the <strong>{data.role}</strong> role. Your practice responses help us tailor how we support your preparation during the selection process.
                                                     </p>
                                                     <p className="text-[15px] leading-relaxed font-medium">
                                                         Please click the button below to start whenever you&apos;re ready:
@@ -326,6 +335,25 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                                         Start My Practice Session
                                                     </div>
                                                 </div>
+
+                                                {pilotRollout.enabled && (
+                                                    <div className="rounded-2xl border border-sky-200 bg-sky-50 px-5 py-5 text-sky-950">
+                                                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-sky-700">
+                                                            Pilot Notice
+                                                        </p>
+                                                        <div className="mt-3 space-y-3 text-[14px] leading-relaxed text-slate-700">
+                                                            <p>
+                                                                This invitation is part of a limited pilot rollout of Rangam&apos;s interview practice experience. It is intended for practice and product testing, not as a standalone hiring or assessment tool.
+                                                            </p>
+                                                            <p>
+                                                                Spoken or written responses may be transcribed and reviewed by the recruiting team to support candidate preparation. All AI coaching feedback remains visible only to the candidate.
+                                                            </p>
+                                                            <p>
+                                                                Questions about this pilot can be directed to {pilotSupportLine}.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                )}
 
                                                 <div className="pt-6 border-t border-border/50 flex flex-col gap-0.5">
                                                     <p className="text-sm font-bold text-text-primary">{data.recruiterName}</p>
@@ -360,9 +388,16 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
 
                                 <div className="px-8 py-4 bg-surface-subtle/50 border-t border-border/30 flex items-center gap-2">
                                     <ShieldCheck size={14} className="text-emerald-700 dark:text-emerald-300" />
-                                    <span className="text-[10px] font-bold text-text-disabled uppercase tracking-widest">
-                                        Secure automated delivery via Resend
-                                    </span>
+                                    <div className="space-y-1">
+                                        <span className="block text-[10px] font-bold text-text-disabled uppercase tracking-widest">
+                                            Secure automated delivery via Resend
+                                        </span>
+                                        {pilotRollout.enabled && (
+                                            <span className="block text-[11px] text-text-secondary">
+                                                Internal pilot note: this tool does not deliver assessment data. Any sourcing or selection decision remains solely the recruiter&apos;s responsibility.
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </>
                         )}

@@ -136,9 +136,9 @@ export function StepPreviewCombined({
 
             <Card className="border-border/50 shadow-raised-1 overflow-hidden bg-surface-base">
                 <CardContent className="p-0">
-                    <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border/30">
+                    <div className="flex flex-col md:flex-row">
                         {/* Left Column: Job Details */}
-                        <div className="p-8 space-y-8">
+                        <div className="flex-1 p-8 space-y-8">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <h3 className="text-base font-bold text-text-primary font-sans flex items-center gap-2.5">
@@ -199,8 +199,13 @@ export function StepPreviewCombined({
                             </div>
                         </div>
 
+                        <div
+                            aria-hidden="true"
+                            className="mx-6 h-3 rounded-full bg-surface-subtle/80 border border-border/40 md:mx-0 md:my-6 md:h-auto md:w-3 md:self-stretch"
+                        />
+
                         {/* Right Column: Candidates */}
-                        <div className="p-8 space-y-8">
+                        <div className="flex-1 p-8 space-y-8">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <h3 className="text-base font-bold text-text-primary font-sans flex items-center gap-2.5">

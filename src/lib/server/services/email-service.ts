@@ -5,6 +5,7 @@ import { Logger } from '@/lib/logger';
 import { renderSessionDebriefEmail } from '../emails/SessionDebriefEmail';
 import { renderCandidateInviteEmail } from '../emails/CandidateInviteEmail';
 import { parseProviderValue } from '@/lib/server/provider-response';
+import { pilotRollout } from '@/lib/config/pilot-rollout';
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://coach.rangam.com';
 
@@ -127,6 +128,10 @@ export class EmailService {
                 recruiterCompany: params.recruiterCompany,
                 recruiterPhone: params.recruiterPhone,
                 recruiterEmail: params.recruiterEmail,
+                pilotEnabled: pilotRollout.enabled,
+                supportPhone: pilotRollout.supportPhone,
+                supportContactName: pilotRollout.supportName,
+                supportContactEmail: pilotRollout.supportEmail,
             });
 
             Logger.info("[EmailService] Preparing to send invite via Resend", { 

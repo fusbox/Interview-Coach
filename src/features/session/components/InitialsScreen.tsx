@@ -7,9 +7,11 @@ import { Button } from '@/components/ui/button';
 import { useSession } from '../context/SessionContext';
 import { AlertPanel } from '@/components/patterns/AlertPanel';
 import { largeTextInputClassName } from '@/components/patterns/FormField';
+import { getPilotSupportLine, pilotRollout } from '@/lib/config/pilot-rollout';
 
 export default function InitialsScreen() {
     const { session, candidateToken, submitInitials } = useSession();
+    const pilotSupportLine = getPilotSupportLine();
     const firstQuestion = session?.questions?.[0];
     const [initials, setInitials] = useState('');
     const [isFocused, setIsFocused] = useState(false);
@@ -87,18 +89,30 @@ export default function InitialsScreen() {
                         You can pause at any time and return using this same link.
                     </p>
 
+                    {pilotRollout.enabled && (
+                        <div className="space-y-3 rounded-2xl border border-sky-200 bg-sky-50 p-6 text-slate-700 shadow-sm">
+                            <h3 className="text-base font-bold text-sky-900">Limited pilot notice</h3>
+                            <p className="text-sm leading-relaxed">
+                                This experience is part of a limited pilot rollout of Rangam&rsquo;s interview practice app. It is designed for practice and product testing, not as a standalone hiring or assessment tool.
+                            </p>
+                            <p className="text-sm leading-relaxed">
+                                Questions or issues? Contact {pilotSupportLine}.
+                            </p>
+                        </div>
+                    )}
+
                     <div className="space-y-4 p-6 bg-surface-subtle rounded-2xl border border-border shadow-sm overflow-hidden relative">
                         <div className="absolute top-0 left-0 w-1 h-full bg-primary/20" />
                         <h3 className="text-text-primary font-bold text-base">This is practice &mdash; not a live interview.</h3>
                         <div className="space-y-3">
                             <p className="text-sm text-text-secondary leading-relaxed">
-                                Your responses are used to generate coaching insights to help you improve.
+                                Your spoken or written responses may be transcribed and reviewed by the recruiting team so they can tailor how they support your preparation during the selection process.
                             </p>
                             <p className="text-sm text-text-secondary leading-relaxed">
-                                The person who shared this link may review your responses to support your preparation.
+                                This app will not produce assessment data or make sourcing decisions. Those decisions always remain with the recruiter.
                             </p>
                             <p className="text-sm font-medium text-text-primary leading-relaxed">
-                                Only you can see the AI coaching feedback generated during practice.
+                                All AI coaching feedback generated during practice is visible only to you.
                             </p>
                         </div>
                     </div>

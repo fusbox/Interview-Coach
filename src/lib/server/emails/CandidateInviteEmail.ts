@@ -8,6 +8,10 @@ export interface CandidateInviteEmailProps {
   recruiterCompany?: string;
   recruiterPhone?: string;
   recruiterEmail?: string;
+  pilotEnabled?: boolean;
+  supportPhone?: string;
+  supportContactName?: string;
+  supportContactEmail?: string;
 }
 
 export function renderCandidateInviteEmail({
@@ -20,6 +24,10 @@ export function renderCandidateInviteEmail({
   recruiterCompany,
   recruiterPhone,
   recruiterEmail,
+  pilotEnabled = false,
+  supportPhone,
+  supportContactName,
+  supportContactEmail,
 }: CandidateInviteEmailProps): string {
   const currentYear = new Date().getFullYear();
 
@@ -38,6 +46,9 @@ export function renderCandidateInviteEmail({
   const safeRecruiterCompany = recruiterCompany ? escapeHTML(recruiterCompany) : 'Rangam Consultants Inc.';
   const safeRecruiterPhone = recruiterPhone ? escapeHTML(recruiterPhone) : '';
   const safeRecruiterEmail = recruiterEmail ? escapeHTML(recruiterEmail) : '';
+  const safeSupportPhone = supportPhone ? escapeHTML(supportPhone) : '(908) 704-8843';
+  const safeSupportContactName = supportContactName ? escapeHTML(supportContactName) : 'Fu Chen';
+  const safeSupportContactEmail = supportContactEmail ? escapeHTML(supportContactEmail) : 'fu@rangam.com';
 
   return `
 <!DOCTYPE html>
@@ -65,7 +76,7 @@ export function renderCandidateInviteEmail({
     </p>
 
     <p style="font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
-      I'd like to invite you to a preliminary interview practice session for the <strong>${safeRole}</strong> role. This interactive session will help us understand your experience better.
+      I'd like to invite you to a guided interview practice session for the <strong>${safeRole}</strong> role. Your practice responses help us tailor how we support your preparation during the selection process.
     </p>
 
     <p style="font-size: 16px; line-height: 1.6; margin-bottom: 32px;">
@@ -77,6 +88,22 @@ export function renderCandidateInviteEmail({
         Start My Practice Session
       </a>
     </div>
+
+    ${pilotEnabled ? `
+    <div style="margin-bottom: 40px; padding: 20px 22px; border-radius: 18px; background-color: #f8fafc; border: 1px solid #dbeafe;">
+      <p style="margin: 0 0 10px 0; font-size: 12px; line-height: 1.4; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #1d4ed8;">
+        Pilot Notice
+      </p>
+      <p style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.65; color: #334155;">
+        This invitation is part of a limited pilot rollout of Rangam's interview practice experience. It is intended for practice and product testing, not as a standalone hiring or assessment tool.
+      </p>
+      <p style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.65; color: #334155;">
+        Your spoken or written responses may be transcribed and reviewed by the recruiting team to support your preparation. All AI coaching feedback remains visible only to you.
+      </p>
+      <p style="margin: 0; font-size: 14px; line-height: 1.65; color: #334155;">
+        Questions about this pilot? Contact ${safeSupportContactName} at ${safeSupportPhone} or ${safeSupportContactEmail}.
+      </p>
+    </div>` : ''}
 
     <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin-top: 32px; border-top: 1px solid #eeeeee; padding-top: 32px; width: 100%;">
       <tr>

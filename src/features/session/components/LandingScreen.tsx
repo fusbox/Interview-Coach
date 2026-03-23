@@ -11,6 +11,7 @@ import { captureFeedbackAction } from '@/app/actions/feedback';
 import { FeedbackPill } from '@/components/patterns/FeedbackPill';
 import { AlertPanel } from '@/components/patterns/AlertPanel';
 import { EMOJI_SCALE, FeedbackChoiceButton } from '@/components/patterns/FeedbackChoiceButton';
+import { getPilotSupportLine, pilotRollout } from '@/lib/config/pilot-rollout';
 
 import { Variants } from 'framer-motion';
 
@@ -26,6 +27,7 @@ interface LandingScreenProps {
 
 export default function LandingScreen({ onStart, role = "Candidate" }: LandingScreenProps) {
     const { session, candidateToken } = useSession();
+    const pilotSupportLine = getPilotSupportLine();
     const firstQuestion = session?.questions?.[0];
     const [rating, setRating] = useState<number | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -128,6 +130,20 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
 
                 {/* Key Points */}
                 <motion.div variants={fadeUp} className="w-full space-y-4 flex flex-col relative z-10">
+                    {pilotRollout.enabled && (
+                        <div className="rounded-2xl border border-sky-200 bg-sky-50 px-5 py-5 shadow-sm">
+                            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-sky-700">Pilot Notice</p>
+                            <div className="mt-3 space-y-3 text-sm leading-relaxed text-slate-700">
+                                <p>
+                                    This is a limited pilot rollout of Rangam&apos;s interview practice experience. It is intended for skill-building and product testing, not as a standalone hiring or assessment tool.
+                                </p>
+                                <p>
+                                    Questions about this pilot can be directed to {pilotSupportLine}.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="flex flex-col gap-4 p-5 rounded-2xl bg-surface-base border border-border/50 shadow-sm transition-all duration-base">
                         <div className="flex items-start gap-4">
                             <div className="w-10 h-10 rounded-full bg-state-info/10 border border-state-info/20 shadow-flat flex items-center justify-center shrink-0">
@@ -174,10 +190,10 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                                     After each answer, your coach looks at <strong className="font-bold text-text-primary">what you said</strong> and <strong className="font-bold text-text-primary">how you structured it - things like clarity, specificity, and relevance to the role.</strong>
                                 </p>
                                 <p className="text-sm text-text-secondary leading-relaxed">
-                                    Feedback is based on the substance of your response, not on accent, speaking style, or delivery polish. There are no scores or rankings, just concrete suggestions framed as things to try.
+                                    Your spoken or written responses may be transcribed and can be reviewed by the recruiting team to support your preparation. Feedback is based on the substance of your response, not on accent, speaking style, or delivery polish.
                                 </p>
                                 <p className="text-sm text-text-secondary leading-relaxed">
-                                    Coaching insights are visible <strong className="font-bold text-text-primary">only to you.</strong>
+                                    This app does not generate assessment data. Coaching insights and session-level AI feedback are visible <strong className="font-bold text-text-primary">only to you.</strong>
                                 </p>
                             </div>
                         </div>
