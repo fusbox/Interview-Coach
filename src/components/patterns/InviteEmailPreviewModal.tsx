@@ -58,7 +58,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
     const to = data.recipientEmails.length === 1 ? data.recipientEmails[0] : "";
     const bcc = data.recipientEmails.length > 1 ? data.recipientEmails.join(', ') : "";
     const cc = data.recruiterEmail || "";
-    const subject = `Interview Invitation: ${data.role || 'Role'}`;
+    const subject = `Practice Interview Invitation: ${data.role || 'Role'}`;
     const currentYear = new Date().getFullYear();
     const closeButtonRef = useRef<HTMLButtonElement>(null);
     const successPrimaryButtonRef = useRef<HTMLButtonElement>(null);
@@ -306,7 +306,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
 
                                             <div className="px-10 pb-12 space-y-6">
                                                 <h1 id={titleId} className="text-2xl font-bold text-text-primary leading-[1.15]">
-                                                    Interview Invitation: {data.role}
+                                                    Practice Interview Invitation: {data.role}
                                                 </h1>
                                                 
                                                 <div className="space-y-4 text-text-secondary">

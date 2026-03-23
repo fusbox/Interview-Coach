@@ -151,7 +151,7 @@ export class EmailService {
                 to,
                 cc,
                 bcc,
-                subject: `Interview Invitation: ${params.role}`,
+                subject: `Practice Interview Invitation: ${params.role}`,
                 html,
             });
 

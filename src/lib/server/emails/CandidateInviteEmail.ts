@@ -45,7 +45,7 @@ export function renderCandidateInviteEmail({
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Interview Invitation: ${safeRole}</title>
+  <title>Practice Interview Invitation: ${safeRole}</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji'; background-color: #ffffff; color: #333333; padding: 40px 20px; max-width: 600px; margin: 0 auto; -webkit-font-smoothing: antialiased;">
     <table border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 32px;">
@@ -57,7 +57,7 @@ export function renderCandidateInviteEmail({
     </table>
 
     <h1 style="font-size: 24px; font-weight: bold; line-height: 1.2; margin-bottom: 24px; color: #1a1a1a;">
-      Interview Invitation: ${safeRole}
+      Practice Interview Invitation: ${safeRole}
     </h1>
 
     <p style="font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
