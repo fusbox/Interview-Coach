@@ -1,3 +1,5 @@
+import { normalizeRecruiterSignature } from "@/lib/recruiter-signature";
+
 export interface CandidateInviteEmailProps {
   firstName: string;
   role: string;
@@ -41,11 +43,18 @@ export function renderCandidateInviteEmail({
 
   const safeFirstName = escapeHTML(firstName);
   const safeRole = escapeHTML(role);
-  const safeRecruiterName = escapeHTML(recruiterName);
-  const safeRecruiterTitle = recruiterTitle ? escapeHTML(recruiterTitle) : 'Recruiter';
-  const safeRecruiterCompany = recruiterCompany ? escapeHTML(recruiterCompany) : 'Rangam Consultants Inc.';
-  const safeRecruiterPhone = recruiterPhone ? escapeHTML(recruiterPhone) : '';
-  const safeRecruiterEmail = recruiterEmail ? escapeHTML(recruiterEmail) : '';
+  const recruiterSignature = normalizeRecruiterSignature({
+    name: recruiterName,
+    title: recruiterTitle,
+    company: recruiterCompany,
+    phone: recruiterPhone,
+    email: recruiterEmail,
+  });
+  const safeRecruiterName = escapeHTML(recruiterSignature.name);
+  const safeRecruiterTitle = escapeHTML(recruiterSignature.title);
+  const safeRecruiterCompany = escapeHTML(recruiterSignature.company);
+  const safeRecruiterPhone = escapeHTML(recruiterSignature.phone);
+  const safeRecruiterEmail = escapeHTML(recruiterSignature.email);
   const safeSupportPhone = supportPhone ? escapeHTML(supportPhone) : '(908) 704-8843';
   const safeSupportContactName = supportContactName ? escapeHTML(supportContactName) : 'Fu Chen';
   const safeSupportContactEmail = supportContactEmail ? escapeHTML(supportContactEmail) : 'fu@rangam.com';

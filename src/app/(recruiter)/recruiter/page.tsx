@@ -11,6 +11,7 @@ import { CollapsibleSection } from "./components/CollapsibleSection";
 import { redirect } from "next/navigation";
 import { computeDashboardStats } from "@/lib/services/compute-dashboard-stats";
 import { PageHeaderBlock } from "@/components/patterns/PageHeaderBlock";
+import { normalizeRecruiterSignature } from "@/lib/recruiter-signature";
 export const dynamic = 'force-dynamic';
 
 export default async function RecruiterDashboard() {
@@ -19,17 +20,20 @@ export default async function RecruiterDashboard() {
 
     const [sessions, profileData] = await Promise.all([
         getRecruiterSessions(),
-        createClient().from('recruiter_profiles').select('timezone, full_name, title, company, phone, email').eq('recruiter_id', user.id).single()
+        createClient().from('recruiter_profiles').select('*').eq('recruiter_id', user.id).single()
     ]);
 
     const recruiterTimezone = profileData.data?.timezone;
-    const recruiterProfile = {
-        name: profileData.data?.full_name || user.email || '',
-        title: profileData.data?.title || 'Recruiter',
-        company: profileData.data?.company || 'Rangam Consultants Inc.',
-        phone: profileData.data?.phone || '',
-        email: profileData.data?.email || user.email || '',
-    };
+    const recruiterName = [profileData.data?.first_name, profileData.data?.last_name]
+        .filter((value): value is string => Boolean(value && value.trim()))
+        .join(" ");
+    const recruiterProfile = normalizeRecruiterSignature({
+        name: recruiterName,
+        title: profileData.data?.title,
+        company: profileData.data?.company,
+        phone: profileData.data?.phone,
+        email: profileData.data?.email || user.email,
+    });
 
     const basicStats = computeDashboardStats(sessions);
 

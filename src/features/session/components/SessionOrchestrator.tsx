@@ -25,12 +25,27 @@ export default function SessionOrchestrator() {
 
     const [isEntering, setIsEntering] = useState(false);
 
-    // Sync transition overlay with status change to prevent glitch
+    // Let the entering overlay own the reveal. Once the session state is active,
+    // wait for the screen to mount and paint underneath before releasing it.
     useEffect(() => {
         if (isEntering && (now.status === "IN_SESSION" || now.status === "AWAITING_EVALUATION" || now.status === "REVIEWING")) {
-            // Keep overlay for an extra 200ms to allow UnifiedSessionScreen to mount and start fade
-            const timer = setTimeout(() => setIsEntering(false), 200);
-            return () => clearTimeout(timer);
+            let timeoutId: ReturnType<typeof setTimeout> | null = null;
+            let frameOne = 0;
+            let frameTwo = 0;
+
+            frameOne = window.requestAnimationFrame(() => {
+                frameTwo = window.requestAnimationFrame(() => {
+                    timeoutId = setTimeout(() => setIsEntering(false), 80);
+                });
+            });
+
+            return () => {
+                window.cancelAnimationFrame(frameOne);
+                window.cancelAnimationFrame(frameTwo);
+                if (timeoutId) {
+                    clearTimeout(timeoutId);
+                }
+            };
         }
     }, [now.status, isEntering]);
 
@@ -76,18 +91,7 @@ export default function SessionOrchestrator() {
 
         if (now.status === "IN_SESSION" || now.status === "AWAITING_EVALUATION" || now.status === "REVIEWING") {
             if (!currentQ) return <ErrorScreen key="error-missing-q" />;
-            return (
-                <motion.div
-                    key="session-main"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: TRANSITION_DURATION, delay: isEntering ? 0.2 : 0 }} // Perfectly synchronized cross-fade
-                    className="h-full w-full"
-                >
-                    <UnifiedSessionScreen />
-                </motion.div>
-            );
+            return <div key="session-main" className="h-full w-full"><UnifiedSessionScreen /></div>;
         }
 
         if (now.status === "COMPLETED") return <SummaryScreen key="summary" />;

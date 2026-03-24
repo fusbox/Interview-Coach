@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShieldCheck, Loader2, SendHorizontal, CheckCircle2, LayoutDashboard, PlusCircle } from 'lucide-react';
 import Image from 'next/image';
@@ -12,6 +13,7 @@ import { FeedbackPill } from '@/components/patterns/FeedbackPill';
 import { captureFeedbackAction } from '@/app/actions/feedback';
 import { useAccessibleDialog } from '@/lib/hooks/use-accessible-dialog';
 import { getPilotSupportLine, pilotRollout } from '@/lib/config/pilot-rollout';
+import { normalizeRecruiterSignature } from '@/lib/recruiter-signature';
 
 interface InviteEmailPreviewModalProps {
     isOpen: boolean;
@@ -37,6 +39,7 @@ interface InviteEmailPreviewModalProps {
     successPrimaryIcon?: React.ReactNode;
     successSecondaryLabel?: string;
     successSecondaryIcon?: React.ReactNode;
+    showSuccessFeedbackPrompt?: boolean;
 }
 
 export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = ({
@@ -52,11 +55,19 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
     successPrimaryLabel = "Start New Invite",
     successPrimaryIcon = <PlusCircle size={20} />,
     successSecondaryLabel = "Go to Dashboard",
-    successSecondaryIcon = <LayoutDashboard size={20} />
+    successSecondaryIcon = <LayoutDashboard size={20} />,
+    showSuccessFeedbackPrompt = true,
 }) => {
     const fromEmail = "Rangam Interview Coach <interviews@coach.rangam.com>";
     const fromEmailMobile = "interviews@coach.rangam.com";
     const pilotSupportLine = getPilotSupportLine();
+    const recruiterSignature = normalizeRecruiterSignature({
+        name: data.recruiterName,
+        title: data.recruiterTitle,
+        company: data.recruiterCompany,
+        phone: data.recruiterPhone,
+        email: data.recruiterEmail,
+    });
     const to = data.recipientEmails.length === 1 ? data.recipientEmails[0] : "";
     const bcc = data.recipientEmails.length > 1 ? data.recipientEmails.join(', ') : "";
     const cc = data.recruiterEmail || "";
@@ -71,6 +82,12 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
     const [inviteEaseRating, setInviteEaseRating] = useState<number | null>(null);
     const [savedRating, setSavedRating] = useState<number | null>(null);
     const [feedbackError, setFeedbackError] = useState<string | null>(null);
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+        return () => setIsMounted(false);
+    }, []);
 
     useEffect(() => {
         return () => {
@@ -114,7 +131,11 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
         feedbackResetTimeoutRef.current = setTimeout(() => setSavedRating(null), 2000);
     };
 
-    return (
+    if (!isMounted) {
+        return null;
+    }
+
+    return createPortal(
         <AnimatePresence>
             {isOpen && (
                 <div 
@@ -152,38 +173,40 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                         <h2 id={titleId} className="text-4xl font-black text-text-primary">Delivered!</h2>
                                     </div>
 
-                                    <div id={descriptionId} className="w-full max-w-sm space-y-4">
-                                        <p className="text-sm font-semibold text-text-secondary">
-                                            How easy was it to set up this interview?
-                                        </p>
-                                        <div className="flex items-center justify-center gap-2">
-                                            {[1, 2, 3, 4, 5].map((value) => (
-                                                <div key={value} className="relative">
-                                                    <FeedbackChoiceButton
-                                                        onClick={() => handleInviteEaseFeedback(value)}
-                                                        kind="compact"
-                                                        tone="primary"
-                                                        selected={inviteEaseRating === value}
-                                                        className={cn(
-                                                            "min-w-10 justify-center px-0",
-                                                            inviteEaseRating === value
-                                                                ? "border-state-info bg-state-info text-primary-foreground shadow-md"
-                                                                : "border-border bg-surface-base text-sky-800 hover:border-sky-300 hover:bg-sky-50 dark:text-sky-200 dark:hover:bg-sky-500/10"
-                                                        )}
-                                                        aria-label={`Rate invite setup ease ${value} out of 5`}
-                                                    >
-                                                        {value}
-                                                    </FeedbackChoiceButton>
-                                                    <FeedbackPill isVisible={savedRating === value} text="" />
-                                                </div>
-                                            ))}
+                                    {showSuccessFeedbackPrompt && (
+                                        <div id={descriptionId} className="w-full max-w-sm space-y-4">
+                                            <p className="text-sm font-semibold text-text-secondary">
+                                                How easy was it to set up this interview?
+                                            </p>
+                                            <div className="flex items-center justify-center gap-2">
+                                                {[1, 2, 3, 4, 5].map((value) => (
+                                                    <div key={value} className="relative">
+                                                        <FeedbackChoiceButton
+                                                            onClick={() => handleInviteEaseFeedback(value)}
+                                                            kind="compact"
+                                                            tone="primary"
+                                                            selected={inviteEaseRating === value}
+                                                            className={cn(
+                                                                "min-w-10 justify-center px-0",
+                                                                inviteEaseRating === value
+                                                                    ? "border-state-info bg-state-info text-primary-foreground shadow-md"
+                                                                    : "border-border bg-surface-base text-sky-800 hover:border-sky-300 hover:bg-sky-50 dark:text-sky-200 dark:hover:bg-sky-500/10"
+                                                            )}
+                                                            aria-label={`Rate invite setup ease ${value} out of 5`}
+                                                        >
+                                                            {value}
+                                                        </FeedbackChoiceButton>
+                                                        <FeedbackPill isVisible={savedRating === value} text="" />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {feedbackError && (
+                                                <AlertPanel tone="critical" size="sm" className="justify-center bg-state-critical/10 text-left">
+                                                    {feedbackError}
+                                                </AlertPanel>
+                                            )}
                                         </div>
-                                        {feedbackError && (
-                                            <AlertPanel tone="critical" size="sm" className="justify-center bg-state-critical/10 text-left">
-                                                {feedbackError}
-                                            </AlertPanel>
-                                        )}
-                                    </div>
+                                    )}
 
                                     <div className="w-full space-y-3 pt-2">
                                         <Button
@@ -356,13 +379,13 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                                 )}
 
                                                 <div className="pt-6 border-t border-border/50 flex flex-col gap-0.5">
-                                                    <p className="text-sm font-bold text-text-primary">{data.recruiterName}</p>
-                                                    <p className="text-xs font-semibold text-text-secondary">{data.recruiterTitle}</p>
-                                                    <p className="text-xs font-semibold text-text-secondary">{data.recruiterCompany}</p>
-                                                    {(data.recruiterPhone || data.recruiterEmail) && (
+                                                    <p className="text-sm font-bold text-text-primary">{recruiterSignature.name}</p>
+                                                    <p className="text-xs font-semibold text-text-secondary">{recruiterSignature.title}</p>
+                                                    <p className="text-xs font-semibold text-text-secondary">{recruiterSignature.company}</p>
+                                                    {(recruiterSignature.phone || recruiterSignature.email) && (
                                                         <div className="pt-2 text-[11px] font-semibold text-text-disabled font-mono">
-                                                            {data.recruiterPhone && <span className="block">M: {data.recruiterPhone}</span>}
-                                                            {data.recruiterEmail && <span className="block">E: {data.recruiterEmail}</span>}
+                                                            {recruiterSignature.phone && <span className="block">M: {recruiterSignature.phone}</span>}
+                                                            {recruiterSignature.email && <span className="block">E: {recruiterSignature.email}</span>}
                                                         </div>
                                                     )}
                                                     
@@ -405,5 +428,5 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                 </div>
             )}
         </AnimatePresence>
-    );
+    , document.body);
 };

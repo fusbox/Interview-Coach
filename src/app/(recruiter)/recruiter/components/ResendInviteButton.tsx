@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, ExternalLink, X } from "lucide-react";
+import { Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InviteEmailPreviewModal } from "@/components/patterns/InviteEmailPreviewModal";
 import type { RecruiterProfile } from "./RecruiterSessionsTable";
@@ -30,6 +30,9 @@ export function ResendInviteButton({
     if (!session.inviteToken || !session.candidateEmail || !recruiterProfile) {
         return null;
     }
+
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://coach.rangam.com";
+    const inviteLink = `${baseUrl}/s/${session.inviteToken}`;
 
     const handleSend = async () => {
         setIsSending(true);
@@ -87,7 +90,7 @@ export function ResendInviteButton({
                     recipientEmails: [session.candidateEmail],
                     recipientFirstName: session.candidateFirstName || session.candidateName,
                     role: session.role,
-                    inviteLink: "",
+                    inviteLink,
                     recruiterName: recruiterProfile.name,
                     recruiterTitle: recruiterProfile.title,
                     recruiterCompany: recruiterProfile.company,
@@ -98,17 +101,17 @@ export function ResendInviteButton({
                 isSending={isSending}
                 sendSuccess={sendSuccess}
                 errorMessage={sendError}
+                showSuccessFeedbackPrompt={false}
                 onNewInvite={() => {
                     setIsPreviewOpen(false);
                     setSendSuccess(false);
+                    window.location.assign("/recruiter/create");
                 }}
                 onDashboard={() => {
-                    window.open(`/recruiter/sessions/${session.id}`, "_blank", "noopener,noreferrer");
+                    setIsPreviewOpen(false);
+                    setSendSuccess(false);
+                    window.location.assign("/recruiter");
                 }}
-                successPrimaryLabel="Close"
-                successPrimaryIcon={<X size={20} />}
-                successSecondaryLabel="Open Session"
-                successSecondaryIcon={<ExternalLink size={20} />}
             />
         </>
     );

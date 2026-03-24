@@ -10,8 +10,8 @@ export default function EnteringRoomScreen() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: TRANSITION_DURATION }}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white"
+            transition={{ duration: TRANSITION_DURATION, ease: "easeOut" }}
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/95 backdrop-blur-[2px]"
         >
             <div className="text-center px-4">
                 <motion.p

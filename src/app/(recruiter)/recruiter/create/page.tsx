@@ -15,6 +15,7 @@ import { StepPreviewCombined } from "./components/StepPreviewCombined";
 
 import { fetchTemplates, saveTemplateAction } from "../templates/actions";
 import { RecruiterTemplate } from "@/lib/domain/template";
+import { normalizeRecruiterSignature } from "@/lib/recruiter-signature";
 
 function createIdempotencyKey() {
     if (typeof globalThis !== "undefined" && globalThis.crypto?.randomUUID) {
@@ -93,13 +94,13 @@ export default function CreateInviteWizard() {
 
                 const name = data ? `${data.first_name} ${data.last_name || ''}`.trim() : "Recruiter";
 
-                setRecruiterProfile({
-                    name: name || "Recruiter",
+                setRecruiterProfile(normalizeRecruiterSignature({
+                    name,
                     email: user.email || "",
-                    phone: data?.phone || "",
-                    title: data?.title || "Recruiter",
-                    company: data?.company || "Rangam Consultants Inc."
-                });
+                    phone: data?.phone,
+                    title: data?.title,
+                    company: data?.company
+                }));
 
                 // Fetch Templates
                 const { templates: t } = await fetchTemplates();

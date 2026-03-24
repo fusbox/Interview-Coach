@@ -19,10 +19,10 @@ import {
     ArrowRight,
     Loader2,
     Lightbulb,
+    Pause,
+    Play,
     Sparkles,
     X,
-    Volume2,
-    VolumeX
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -80,6 +80,7 @@ export default function UnifiedSessionScreen() {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const mobilePanelRef = useRef<HTMLDivElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const coachLensControlsRef = useRef<HTMLDivElement>(null);
     const questionRegionRef = useRef<HTMLDivElement>(null);
 
     // Mobile Panel Auto-Scroll
@@ -87,6 +88,42 @@ export default function UnifiedSessionScreen() {
         if (hintOpen || strongResponseOpen) {
             mobilePanelRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
         }
+    }, [hintOpen, strongResponseOpen]);
+
+    useEffect(() => {
+        if (!hintOpen && !strongResponseOpen) {
+            return;
+        }
+
+        const handlePointerAway = (event: MouseEvent | TouchEvent) => {
+            const target = event.target as Node | null;
+            if (!target) {
+                return;
+            }
+
+            if (dropdownRef.current?.contains(target)) {
+                return;
+            }
+
+            if (mobilePanelRef.current?.contains(target)) {
+                return;
+            }
+
+            if (coachLensControlsRef.current?.contains(target)) {
+                return;
+            }
+
+            setHintOpen(false);
+            setStrongResponseOpen(false);
+        };
+
+        document.addEventListener('mousedown', handlePointerAway);
+        document.addEventListener('touchstart', handlePointerAway);
+
+        return () => {
+            document.removeEventListener('mousedown', handlePointerAway);
+            document.removeEventListener('touchstart', handlePointerAway);
+        };
     }, [hintOpen, strongResponseOpen]);
 
     // Hooks
@@ -366,7 +403,7 @@ export default function UnifiedSessionScreen() {
                             <SessionPromptShell
                                 footer={
                                     <div className="flex min-h-12 w-auto items-center gap-2 md:min-h-10 md:gap-4">
-                                        <div className="flex flex-1 justify-start gap-4">
+                                        <div ref={coachLensControlsRef} className="flex flex-1 justify-start gap-4">
                                             {!hasSubmitted && (
                                                 <>
                                                     <Button
@@ -488,9 +525,9 @@ export default function UnifiedSessionScreen() {
                                                 aria-label={isPlaying ? "Stop reading" : "Read question"}
                                             >
                                                 {isPlaying ? (
-                                                    <VolumeX size={18} className="animate-pulse" />
+                                                    <Pause size={18} className="animate-pulse" />
                                                 ) : (
-                                                    <Volume2 size={18} />
+                                                    <Play size={18} />
                                                 )}
                                             </Button>
                                         </div>
@@ -540,12 +577,22 @@ export default function UnifiedSessionScreen() {
                                     className="hidden lg:block overflow-hidden px-4 md:px-6 lg:px-10 w-full"
                                 >
                                     <div className="py-2">
-                                        <CoachLensDropdown
-                                            mode={hintOpen ? 'hints' : 'example'}
-                                            tips={hints}
-                                            strongResponse={strongResponseData}
-                                            isLoading={hintOpen ? isHintLoading : isStrongResponseLoading}
-                                        />
+                                        <AnimatePresence mode="wait" initial={false}>
+                                            <motion.div
+                                                key={hintOpen ? 'hints' : 'example'}
+                                                initial={{ opacity: 0, y: 10, scale: 0.985 }}
+                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                exit={{ opacity: 0, y: -8, scale: 0.985 }}
+                                                transition={{ duration: 0.22, ease: 'easeOut' }}
+                                            >
+                                                <CoachLensDropdown
+                                                    mode={hintOpen ? 'hints' : 'example'}
+                                                    tips={hints}
+                                                    strongResponse={strongResponseData}
+                                                    isLoading={hintOpen ? isHintLoading : isStrongResponseLoading}
+                                                />
+                                            </motion.div>
+                                        </AnimatePresence>
                                     </div>
                                 </motion.div>
                             )}
@@ -683,46 +730,61 @@ export default function UnifiedSessionScreen() {
                 <AnimatePresence>
                     {(hintOpen || strongResponseOpen) && (
                         <motion.div
-                            initial={{ y: "100%" }}
-                            animate={{ y: 0 }}
-                            exit={{ y: "100%" }}
-                            transition={{ type: "spring", damping: 30, stiffness: 250 }}
-                            className="lg:hidden fixed bottom-0 left-0 right-0 glass-overlay border-t border-border z-[60] flex flex-col max-h-[85dvh] rounded-t-3xl shadow-floating"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="pointer-events-none lg:hidden fixed inset-0 z-[60] bg-background/20"
                         >
-                            {/* Drag Indicator */}
-                            <div className="w-12 h-1.5 bg-border rounded-full mx-auto my-3 shrink-0" />
-
-                            {/* Fixed Header */}
-                            <div className="px-6 pb-4 flex items-center justify-between shrink-0 border-b border-border">
-                                <span className="font-black text-sm uppercase tracking-[0.2em] text-text-muted">
-                                    {hintOpen ? "Coach's Lens" : "Example Response"}
-                                </span>
-                                <Button
-                                    type="button"
-                                    onClick={() => { setHintOpen(false); setStrongResponseOpen(false); }}
-                                    variant="ghost"
-                                    size="icon"
-                                    shape="pill"
-                                    className="bg-surface-subtle text-text-secondary hover:bg-surface-raised"
-                                >
-                                    <X size={18} />
-                                </Button>
-                            </div>
-
-                            {/* Scrollable Content */}
-                            <div
+                            <motion.div
                                 ref={mobilePanelRef}
-                                className="flex-1 overflow-y-auto p-6 pt-4 custom-scrollbar"
+                                initial={{ y: "100%" }}
+                                animate={{ y: 0 }}
+                                exit={{ y: "100%" }}
+                                transition={{ type: "spring", damping: 30, stiffness: 250 }}
+                                className="pointer-events-auto absolute bottom-0 left-0 right-0 glass-overlay border-t border-border flex flex-col max-h-[85dvh] rounded-t-3xl shadow-floating"
                             >
-                                <CoachLensDropdown
-                                    mode={hintOpen ? 'hints' : 'example'}
-                                    tips={hints}
-                                    strongResponse={strongResponseData}
-                                    isLoading={hintOpen ? isHintLoading : isStrongResponseLoading}
-                                />
-                                {/* Bottom padding for mobile browser bars */}
-                                <div className="h-8 shrink-0" />
-                            </div>
+                                {/* Drag Indicator */}
+                                <div className="w-12 h-1.5 bg-border rounded-full mx-auto my-3 shrink-0" />
+
+                                {/* Fixed Header */}
+                                <div className="px-6 pb-4 flex items-center justify-between shrink-0 border-b border-border">
+                                    <span className="font-black text-sm uppercase tracking-[0.2em] text-text-muted">
+                                        {hintOpen ? "Coach's Lens" : "Example Response"}
+                                    </span>
+                                    <Button
+                                        type="button"
+                                        onClick={() => { setHintOpen(false); setStrongResponseOpen(false); }}
+                                        variant="ghost"
+                                        size="icon"
+                                        shape="pill"
+                                        className="bg-surface-subtle text-text-secondary hover:bg-surface-raised"
+                                    >
+                                        <X size={18} />
+                                    </Button>
+                                </div>
+
+                                {/* Scrollable Content */}
+                                <div className="flex-1 overflow-y-auto p-6 pt-4 custom-scrollbar">
+                                    <AnimatePresence mode="wait" initial={false}>
+                                        <motion.div
+                                            key={hintOpen ? 'hints' : 'example'}
+                                            initial={{ opacity: 0, y: 14, scale: 0.985 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: -10, scale: 0.985 }}
+                                            transition={{ duration: 0.22, ease: 'easeOut' }}
+                                        >
+                                            <CoachLensDropdown
+                                                mode={hintOpen ? 'hints' : 'example'}
+                                                tips={hints}
+                                                strongResponse={strongResponseData}
+                                                isLoading={hintOpen ? isHintLoading : isStrongResponseLoading}
+                                            />
+                                        </motion.div>
+                                    </AnimatePresence>
+                                    {/* Bottom padding for mobile browser bars */}
+                                    <div className="h-8 shrink-0" />
+                                </div>
+                            </motion.div>
                         </motion.div>
                     )}
                 </AnimatePresence>

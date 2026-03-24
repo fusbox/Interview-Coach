@@ -529,9 +529,8 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                 className={cn(getCardClasses('start'), 'items-center justify-center text-center max-w-4xl mx-auto relative overflow-y-auto overscroll-y-contain')}
                                 style={{ scrollSnapAlign: 'start', minHeight: '100%' }}
                             >
-                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-deep/20 to-brand-deep opacity-100" />
                                 <div className="w-full flex flex-col items-center my-auto py-8">
-                                    <h2 id={dialogTitleId} className="text-4xl md:text-5xl lg:text-5xl font-bold text-text-primary leading-[1.1]">
+                                    <h2 id={dialogTitleId} className="text-3xl md:text-4xl lg:text-4xl font-bold text-text-primary leading-[1.1]">
                                         {analysis?.ack || 'Reviewing your answer…'}
                                     </h2>
                                     <div className="mt-12 flex flex-col md:flex-row items-center gap-4 justify-center w-full">
@@ -635,22 +634,15 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                         </div>
                                     </div>
                                     <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pt-8 md:pt-10 px-1 -mx-1 custom-scrollbar">
-                                        <div className="p-0 space-y-6">
-                                            <p className="text-xl md:text-2xl text-text-secondary leading-relaxed font-medium">
-                                                {analysis.contentPulse.body}
-                                            </p>
-                                            {analysis.contentPulse.quote && (
-                                                <blockquote className="border-l-2 border-primary bg-surface-subtle rounded-r-lg p-5">
-                                                    <p className="text-lg md:text-xl text-text-secondary italic font-medium leading-relaxed">
-                                                        &quot;{analysis.contentPulse.quote}&quot;
-                                                    </p>
-                                                </blockquote>
-                                            )}
-                                            <HelpfulRating
-                                                onSelect={(val) => handleHelpfulnessSelect('content', val)}
-                                                currentVal={helpfulness.content || null}
-                                                showSaved={savedTypes.content}
-                                            />
+                                            <div className="p-0 space-y-6">
+                                                <p className="text-xl md:text-2xl text-text-secondary leading-relaxed font-medium">
+                                                    {analysis.contentPulse.body}
+                                                </p>
+                                                <HelpfulRating
+                                                    onSelect={(val) => handleHelpfulnessSelect('content', val)}
+                                                    currentVal={helpfulness.content || null}
+                                                    showSaved={savedTypes.content}
+                                                />
                                             <FeedbackNavButtons
                                                 onPrimary={() => scrollToSection('next')}
                                                 onSkip={() => {
@@ -671,7 +663,6 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                 style={{ scrollSnapAlign: 'start', minHeight: '100%' }}
                                 className={cn(getCardClasses('next'), 'items-start text-left relative overflow-y-auto overscroll-y-contain')}
                             >
-                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-deep/20 to-brand-deep opacity-100" />
                                 <div className="flex-1 w-full flex flex-col min-h-0">
                                     {/* Recommendation content (scrollable if needed) */}
                                     <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain custom-scrollbar px-4">

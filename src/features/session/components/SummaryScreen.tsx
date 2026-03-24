@@ -53,7 +53,13 @@ export default function SummaryScreen() {
     const [isCreating, setIsCreating] = useState(false);
 
     const handleCloseWindow = () => {
+        const wasVisible = document.visibilityState;
         window.close();
+        window.setTimeout(() => {
+            if (wasVisible === 'visible' && document.visibilityState === 'visible') {
+                router.replace('/');
+            }
+        }, 150);
     };
 
     // Phase 2: Extracted Polling Hook

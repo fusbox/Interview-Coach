@@ -179,23 +179,20 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                         </div>
                     </div>
 
-                    <div className="flex items-start gap-4 p-5 rounded-2xl bg-surface-base border border-border/50 shadow-sm">
+                    <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-4 p-5 rounded-2xl bg-surface-base border border-border/50 shadow-sm">
                         <div className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-950 border border-purple-100 dark:border-purple-900 shadow-flat flex items-center justify-center shrink-0">
                             <ShieldCheck className="w-5 h-5 text-purple-600 dark:text-purple-300" />
                         </div>
-                        <div className="space-y-4">
+                        <div className="min-w-0">
                             <h3 className="font-bold text-text-primary">Private Coaching Feedback</h3>
-                            <div className="space-y-4">
-                                <p className="text-sm text-text-secondary leading-relaxed">
-                                    After each answer, your coach looks at <strong className="font-bold text-text-primary">what you said</strong> and <strong className="font-bold text-text-primary">how you structured it - things like clarity, specificity, and relevance to the role.</strong>
-                                </p>
-                                <p className="text-sm text-text-secondary leading-relaxed">
-                                    Your spoken or written responses may be transcribed and can be reviewed by the recruiting team to support your preparation. Feedback is based on the substance of your response, not on accent, speaking style, or delivery polish.
-                                </p>
-                                <p className="text-sm text-text-secondary leading-relaxed">
-                                    This app does not generate assessment data. Coaching insights and session-level AI feedback are visible <strong className="font-bold text-text-primary">only to you.</strong>
-                                </p>
-                            </div>
+                        </div>
+                        <div className="col-span-2 space-y-4 pt-1">
+                            <p className="text-sm text-text-secondary leading-relaxed">
+                                After each answer, your coach looks at <strong className="font-bold text-text-primary">what you said</strong> and <strong className="font-bold text-text-primary">how you structured it - things like clarity, specificity, and relevance to the role. </strong>Feedback is based on the substance of your response, not on accent, speaking style, or delivery polish.
+                            </p>
+                            <p className="text-sm text-text-secondary leading-relaxed">
+                                The recruiting team may review a transcript of your voice or text answer to help you prepare, but coaching feedback is visible <strong className="font-bold text-text-primary">only to you.</strong>
+                            </p>
                         </div>
                     </div>
 
