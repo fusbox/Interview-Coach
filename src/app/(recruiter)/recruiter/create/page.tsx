@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { Button } from "@/components/ui/button";
 import { Check, ChevronLeft } from "lucide-react";
-import { Details, QuestionInput, STAR_TEMPLATE, PERMA_TEMPLATE, DEV_CANDIDATE_POOL, DEV_JOB_POOL, RecruiterProfile, InviteResult } from "./constants";
+import { Details, InviteBatchSummary, QuestionInput, STAR_TEMPLATE, PERMA_TEMPLATE, DEV_CANDIDATE_POOL, DEV_JOB_POOL, RecruiterProfile, InviteFailure, InviteResult } from "./constants";
 
 // Sub-components
 import { StepJobAndQuestions } from "./components/StepJobAndQuestions";
@@ -61,6 +61,8 @@ export default function CreateInviteWizard() {
 
     // Batch Results
     const [inviteResults, setInviteResults] = useState<InviteResult[]>([]);
+    const [inviteFailures, setInviteFailures] = useState<InviteFailure[]>([]);
+    const [inviteSummary, setInviteSummary] = useState<InviteBatchSummary | null>(null);
     const hasInviteResults = inviteResults.length > 0;
     const previousDraftSignatureRef = useRef<string | null>(null);
 
@@ -148,6 +150,8 @@ export default function CreateInviteWizard() {
 
         if (previousSignature && previousSignature !== draftSignature && inviteResults.length > 0) {
             setInviteResults([]);
+            setInviteFailures([]);
+            setInviteSummary(null);
         }
     }, [draftSignature, inviteResults.length]);
 
@@ -178,6 +182,8 @@ export default function CreateInviteWizard() {
         setIsLoading(true);
         setError(null);
         setErrorMessage(null);
+        setInviteFailures([]);
+        setInviteSummary(null);
         setStatusMessage("Generating invitations.");
         try {
             const allQuestions = [
@@ -237,6 +243,19 @@ export default function CreateInviteWizard() {
                 setInviteResults(data.results);
                 setStatusMessage("Invitation preview is ready.");
                 // No longer advancing to step 4
+            }
+
+            const failures: InviteFailure[] = Array.isArray(data.failures) ? data.failures : [];
+            const summary: InviteBatchSummary | null = data.summary ? data.summary : null;
+            setInviteFailures(failures);
+            setInviteSummary(summary);
+            if (failures.length > 0) {
+                const failedEmails = failures.map((failure) => failure.email).join(", ");
+                const message = failures.length === candidates.length
+                    ? `No invites were created. Failed candidates: ${failedEmails}.`
+                    : `Some invites could not be created. Failed candidates: ${failedEmails}.`;
+                setError(message);
+                setErrorMessage(message);
             }
         } catch (e: unknown) {
             console.error(e);
@@ -418,11 +437,15 @@ export default function CreateInviteWizard() {
                     isLoading={isLoading}
                     isGenerated={hasInviteResults}
                     results={inviteResults}
+                    failures={inviteFailures}
+                    summary={inviteSummary}
                     error={error}
                     recruiterProfile={recruiterProfile}
                     onNewInvite={() => {
                         setCreateInviteKey(createIdempotencyKey());
                         setInviteResults([]);
+                        setInviteFailures([]);
+                        setInviteSummary(null);
                         setStep(1);
                         setDetails({ role: "", jd: "", firstName: "", lastName: "", candidateEmail: "", reqId: "" });
                         setCandidates([]);

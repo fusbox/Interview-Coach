@@ -69,8 +69,8 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        const ipDecision = consumeRateLimit(`invite_send:ip:${requestIp(req)}`, MAX_IP_REQUESTS, WINDOW_MS);
-        const userDecision = consumeRateLimit(`invite_send:user:${user.id}`, MAX_USER_REQUESTS, WINDOW_MS);
+        const ipDecision = await consumeRateLimit(`invite_send:ip:${requestIp(req)}`, MAX_IP_REQUESTS, WINDOW_MS);
+        const userDecision = await consumeRateLimit(`invite_send:user:${user.id}`, MAX_USER_REQUESTS, WINDOW_MS);
 
         if (!ipDecision.allowed || !userDecision.allowed) {
             recordRateLimitDenial({

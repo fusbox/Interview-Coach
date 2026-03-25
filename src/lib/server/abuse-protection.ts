@@ -8,7 +8,7 @@ export function requestIp(request: Request): string {
     return forwarded?.split(",")[0].trim() || "unknown";
 }
 
-export function enforceIpRateLimit(params: {
+export async function enforceIpRateLimit(params: {
     request: Request;
     scope: string;
     correlationId: string;
@@ -19,7 +19,7 @@ export function enforceIpRateLimit(params: {
     actorType?: "anonymous" | "candidate" | "recruiter" | "service" | "system";
 }) {
     const ip = requestIp(params.request);
-    const decision = consumeRateLimit(`${params.scope}:ip:${ip}`, params.maxRequests, params.windowMs);
+    const decision = await consumeRateLimit(`${params.scope}:ip:${ip}`, params.maxRequests, params.windowMs);
 
     if (decision.allowed) {
         return null;

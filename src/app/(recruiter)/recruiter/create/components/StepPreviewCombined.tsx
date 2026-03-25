@@ -1,9 +1,9 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { Details, QuestionInput, InviteResult, RecruiterProfile } from "../constants";
+import { Details, InviteBatchSummary, InviteFailure, QuestionInput, InviteResult, RecruiterProfile } from "../constants";
 import { CandidateRow } from "./StepCandidates";
-import { ChevronLeft, Edit, Eye, Loader2, X } from "lucide-react";
+import { AlertTriangle, ChevronLeft, Edit, Eye, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { useState, useEffect } from "react";
@@ -24,6 +24,8 @@ interface StepPreviewCombinedProps {
     isLoading: boolean;
     isGenerated?: boolean;
     results: InviteResult[];
+    failures: InviteFailure[];
+    summary: InviteBatchSummary | null;
     error: string | null;
     recruiterProfile: RecruiterProfile;
     onNewInvite: () => void;
@@ -37,6 +39,8 @@ export function StepPreviewCombined({
     onBack, onHandleCreate,
     isLoading, isGenerated = false,
     results,
+    failures,
+    summary,
     error,
     recruiterProfile,
     onNewInvite,
@@ -262,6 +266,26 @@ export function StepPreviewCombined({
                     aria-live="assertive"
                 >
                     {error}
+                </AlertPanel>
+            )}
+
+            {summary?.hasFailures && failures.length > 0 && (
+                <AlertPanel
+                    tone="warning"
+                    weight="semibold"
+                    className="animate-in fade-in-50"
+                    icon={<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-state-warning/20"><AlertTriangle size={16} /></div>}
+                    role="status"
+                    aria-live="polite"
+                >
+                    <div className="space-y-2">
+                        <p>
+                            {summary.succeeded} of {summary.requested} invites were created. {summary.failed} candidate{summary.failed === 1 ? "" : "s"} need{summary.failed === 1 ? "s" : ""} follow-up before sending.
+                        </p>
+                        <p className="text-xs font-medium text-text-secondary">
+                            Failed: {failures.map((failure) => failure.email).join(", ")}
+                        </p>
+                    </div>
                 </AlertPanel>
             )}
 

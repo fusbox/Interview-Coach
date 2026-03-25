@@ -135,6 +135,27 @@ Read this when:
 - you are changing a behavior that touches trust, privacy, interpretation, or authority boundaries
 - you need to understand why a prior architectural decision exists
 
+### [adr-rate-limit-backend.md](./adr-rate-limit-backend.md)
+Proposed architecture decision for moving production throttling to a shared backend.
+
+Read this when:
+- you are implementing or reviewing rate-limit hardening
+- you need the decision frame for Redis vs Postgres-backed throttling
+
+### [adr-invite-batch-consistency.md](./adr-invite-batch-consistency.md)
+Proposed architecture decision for deterministic invite-batch consistency and partial-failure handling.
+
+Read this when:
+- you are changing invite creation orchestration
+- you need the target consistency model for batch behavior
+
+### [adr-application-boundaries.md](./adr-application-boundaries.md)
+Proposed architecture decision for introducing an explicit application-service layer for orchestration-heavy server commands.
+
+Read this when:
+- you are extracting route logic into application services
+- you want the intended responsibility split for server-side orchestration
+
 ---
 
 ## Recommended Reading Paths
@@ -162,6 +183,9 @@ Read in this order:
 - [stability-and-change-policy.md](./stability-and-change-policy.md)
 - [design-gates.md](./design-gates.md)
 - [gate-decisions.md](./gate-decisions.md)
+- [adr-rate-limit-backend.md](./adr-rate-limit-backend.md)
+- [adr-invite-batch-consistency.md](./adr-invite-batch-consistency.md)
+- [adr-application-boundaries.md](./adr-application-boundaries.md)
 - [state-and-streaming-contract.md](./state-and-streaming-contract.md)
 - [architecture-overview.md](./architecture-overview.md)
 

@@ -35,7 +35,7 @@ vi.mock('@/lib/logger', () => ({
 }));
 
 vi.mock('@/lib/server/rate-limit', () => ({
-    consumeRateLimit: vi.fn(() => ({ allowed: true, remaining: 10, resetAt: Date.now() + 1000 }))
+    consumeRateLimit: vi.fn(async () => ({ allowed: true, remaining: 10, resetAt: Date.now() + 1000 }))
 }));
 
 describe('POST /api/invite/send', () => {
@@ -104,8 +104,8 @@ describe('POST /api/invite/send', () => {
     it('returns 429 when rate limited', async () => {
         const { consumeRateLimit } = await import('@/lib/server/rate-limit');
         vi.mocked(consumeRateLimit)
-            .mockReturnValueOnce({ allowed: false, remaining: 0, resetAt: Date.now() + 1000 })
-            .mockReturnValueOnce({ allowed: true, remaining: 10, resetAt: Date.now() + 1000 });
+            .mockResolvedValueOnce({ allowed: false, remaining: 0, resetAt: Date.now() + 1000 })
+            .mockResolvedValueOnce({ allowed: true, remaining: 10, resetAt: Date.now() + 1000 });
 
         const { POST } = await import('./route');
         const req = new Request('http://localhost/api/invite/send', {

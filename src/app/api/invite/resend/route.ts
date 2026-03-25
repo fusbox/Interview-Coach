@@ -7,6 +7,7 @@ import { errorResponse } from "@/lib/server/api-errors";
 import { consumeRateLimit } from "@/lib/server/rate-limit";
 import { createServerLogger } from "@/lib/server/server-logger";
 import { incrementMetric, observeMetric, recordAuthDenial, recordRateLimitDenial } from "@/lib/server/metrics";
+import { getAppOrigin } from "@/lib/server/url/get-app-origin";
 
 const sessionRepo = new SupabaseSessionRepository();
 
@@ -58,8 +59,8 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        const ipDecision = consumeRateLimit(`invite_resend:ip:${requestIp(req)}`, MAX_IP_REQUESTS, WINDOW_MS);
-        const userDecision = consumeRateLimit(`invite_resend:user:${user.id}`, MAX_USER_REQUESTS, WINDOW_MS);
+        const ipDecision = await consumeRateLimit(`invite_resend:ip:${requestIp(req)}`, MAX_IP_REQUESTS, WINDOW_MS);
+        const userDecision = await consumeRateLimit(`invite_resend:user:${user.id}`, MAX_USER_REQUESTS, WINDOW_MS);
 
         if (!ipDecision.allowed || !userDecision.allowed) {
             recordRateLimitDenial({
@@ -138,7 +139,7 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://coach.rangam.com";
+        const baseUrl = getAppOrigin(req.url);
         const inviteLink = `${baseUrl}/s/${session.inviteToken}`;
 
         routeLogger.info("Triggering invite resend email", {

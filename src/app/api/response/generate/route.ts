@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     const correlationId = createCorrelationId();
 
     try {
-        const rateLimitResponse = enforceIpRateLimit({
+        const rateLimitResponse = await enforceIpRateLimit({
             request: req,
             scope: 'response_generate',
             correlationId,

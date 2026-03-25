@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     const startedAt = Date.now();
 
     try {
-        const rateLimitResponse = enforceIpRateLimit({
+        const rateLimitResponse = await enforceIpRateLimit({
             request,
             scope: "session_start",
             correlationId,

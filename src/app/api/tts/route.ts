@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     });
 
     try {
-        const rateLimitResponse = enforceIpRateLimit({
+        const rateLimitResponse = await enforceIpRateLimit({
             request,
             scope: "tts",
             correlationId,

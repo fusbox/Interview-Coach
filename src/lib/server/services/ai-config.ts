@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { Logger } from "@/lib/logger";
+import { assertProductionServerEnv, getOptionalServerEnv } from "@/lib/server/config/server-env";
 
 /**
  * Model Registry: Canonical source of truth for AI models used in the system.
@@ -12,7 +13,9 @@ export const AI_MODELS = {
     QUESTION_GEN: 'gemini-2.5-flash',
 } as const;
 
-const apiKey = process.env.GEMINI_API_KEY;
+assertProductionServerEnv(["GEMINI_API_KEY"], "AI service configuration");
+
+const apiKey = getOptionalServerEnv("GEMINI_API_KEY");
 
 /**
  * Shared AI Client Instance.

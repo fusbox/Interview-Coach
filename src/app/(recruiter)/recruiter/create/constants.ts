@@ -54,6 +54,23 @@ export interface InviteResult {
     link: string;
 }
 
+export interface InviteFailure {
+    status: "failed";
+    firstName: string;
+    lastName: string;
+    email: string;
+    code: "INVITE_CREATE_FAILED";
+    message: string;
+    retryable: boolean;
+}
+
+export interface InviteBatchSummary {
+    requested: number;
+    succeeded: number;
+    failed: number;
+    hasFailures: boolean;
+}
+
 // ─── Dev-Only Data Pools ────────────────────────────────────────
 export const DEV_CANDIDATE_POOL = [
     { firstName: "Ian", lastName: "Caldwell", email: "icclearly@example.com" },

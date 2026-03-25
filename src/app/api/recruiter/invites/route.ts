@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { uuidv7 } from "uuidv7";
 import { randomBytes } from "crypto";
 import { z } from "zod";
-import { Invite } from "@/lib/domain/invite";
 import { errorResponse } from "@/lib/server/api-errors";
 import {
     beginIdempotentRequest,
@@ -14,6 +13,8 @@ import { consumeRateLimit } from "@/lib/server/rate-limit";
 import { incrementMetric, observeMetric, recordAuthDenial, recordRateLimitDenial } from "@/lib/server/metrics";
 import { createClient } from "@/lib/supabase/server";
 import { createServerLogger } from "@/lib/server/server-logger";
+import { getAppOrigin } from "@/lib/server/url/get-app-origin";
+import { createInviteBatch } from "@/lib/server/application/invites/create-invite-batch";
 
 const repository = new SupabaseInviteRepository();
 const IDEMPOTENCY_SCOPE = "recruiter_invites:create";
@@ -41,25 +42,6 @@ const CreateInviteSchema = z.object({
 function requestIp(req: NextRequest): string {
     const forwarded = req.headers.get("x-forwarded-for");
     return forwarded?.split(",")[0].trim() || "unknown";
-}
-
-function normalizeAppOrigin(origin: string): string {
-    const url = new URL(origin);
-
-    if (url.hostname === "0.0.0.0" || url.hostname === "::" || url.hostname === "[::]") {
-        url.hostname = "localhost";
-    }
-
-    return url.origin;
-}
-
-function baseUrl(req: NextRequest): string {
-    const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
-    if (configured) {
-        return configured;
-    }
-
-    return normalizeAppOrigin(new URL(req.url).origin);
 }
 
 export async function POST(request: NextRequest) {
@@ -145,8 +127,8 @@ export async function POST(request: NextRequest) {
         }
 
         const ip = requestIp(request);
-        const ipDecision = consumeRateLimit(`recruiter_invites:ip:${ip}`, MAX_IP_REQUESTS, WINDOW_MS);
-        const userDecision = consumeRateLimit(`recruiter_invites:user:${user.id}`, MAX_USER_REQUESTS, WINDOW_MS);
+        const ipDecision = await consumeRateLimit(`recruiter_invites:ip:${ip}`, MAX_IP_REQUESTS, WINDOW_MS);
+        const userDecision = await consumeRateLimit(`recruiter_invites:user:${user.id}`, MAX_USER_REQUESTS, WINDOW_MS);
 
         if (!ipDecision.allowed || !userDecision.allowed) {
             if (idempotencyReserved && idempotencyKey) {
@@ -180,8 +162,7 @@ export async function POST(request: NextRequest) {
         }
 
         const { role, jobDescription, candidates, questions } = parseResult.data;
-        const results: { id: string; firstName: string; lastName: string; email: string; link: string }[] = [];
-        const appBaseUrl = baseUrl(request);
+        const appBaseUrl = getAppOrigin(request.url);
 
         routeLogger.info("Creating invites", {
             actorId: user.id,
@@ -189,40 +170,31 @@ export async function POST(request: NextRequest) {
             outcome: "start"
         });
 
-        for (const candidate of candidates) {
-            const token = randomBytes(16).toString("hex");
-            const sessionId = uuidv7();
-
-            const invite: Invite = {
-                id: sessionId,
-                token,
+        const batchResult = await createInviteBatch(
+            {
                 role,
                 jobDescription,
-                candidate,
+                candidates,
                 questions,
                 createdBy: user.id,
-                createdAt: Date.now()
-            };
+                appBaseUrl,
+            },
+            {
+                repository,
+                createSessionId: () => uuidv7(),
+                createToken: () => randomBytes(16).toString("hex"),
+            }
+        );
 
-            await repository.create(invite);
-
-            results.push({
-                id: sessionId,
-                firstName: candidate.firstName,
-                lastName: candidate.lastName,
-                email: candidate.email,
-                link: `${appBaseUrl}/s/${token}`
-            });
-        }
-
-        const responseBody = { results, correlationId };
+        const responseStatus = batchResult.summary.hasFailures ? 207 : 200;
+        const responseBody = { ...batchResult, correlationId };
 
         if (idempotencyReserved && idempotencyKey) {
             await completeIdempotentRequest({
                 scope: IDEMPOTENCY_SCOPE,
                 actorId: user.id,
                 key: idempotencyKey,
-                statusCode: 200,
+                statusCode: responseStatus,
                 body: responseBody
             });
         }
@@ -230,12 +202,18 @@ export async function POST(request: NextRequest) {
         routeLogger.info("Invite creation completed", {
             actorId: user.id,
             candidateCount: candidates.length,
-            outcome: "success"
+            succeeded: batchResult.summary.succeeded,
+            failed: batchResult.summary.failed,
+            outcome: batchResult.summary.hasFailures ? "partial_failure" : "success"
         });
-        incrementMetric("recruiter_invite_create_total", { outcome: "success" });
-        observeMetric("recruiter_invite_create_duration_ms", Date.now() - startedAt, { outcome: "success" });
+        incrementMetric("recruiter_invite_create_total", {
+            outcome: batchResult.summary.hasFailures ? "partial_failure" : "success",
+        });
+        observeMetric("recruiter_invite_create_duration_ms", Date.now() - startedAt, {
+            outcome: batchResult.summary.hasFailures ? "partial_failure" : "success",
+        });
 
-        return NextResponse.json(responseBody);
+        return NextResponse.json(responseBody, { status: responseStatus });
     } catch (error) {
         routeLogger.error("Failed to create invites", {
             actorId: userId ?? undefined,

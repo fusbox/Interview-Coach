@@ -1,9 +1,15 @@
-import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { hashToken } from "@/lib/server/crypto";
 import { Logger } from "@/lib/logger";
 import { recordAuthDenial } from "@/lib/server/metrics";
+import { assertProductionServerEnv } from "@/lib/server/config/server-env";
 
 const TOKEN_HEADER = "x-candidate-token";
+
+assertProductionServerEnv(
+    ["SUPABASE_SERVICE_ROLE_KEY"],
+    "candidate token authentication"
+);
 
 interface CandidateTokenResult {
     ok: boolean;
@@ -22,7 +28,7 @@ export async function requireCandidateToken(request: Request, sessionId: string)
         return { ok: false, status: 401, error: "Missing candidate token" };
     }
 
-    const supabase = process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : createClient();
+    const supabase = createAdminClient();
     const tokenHash = hashToken(token);
 
     const { data, error } = await supabase
@@ -53,7 +59,7 @@ export async function requireCandidateToken(request: Request, sessionId: string)
 }
 
 export async function issueCandidateToken(sessionId: string): Promise<string> {
-    const supabase = process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : createClient();
+    const supabase = createAdminClient();
 
     // Generate a random token (simple UUID or random string)
     const token = crypto.randomUUID();

@@ -6,15 +6,17 @@ import { renderSessionDebriefEmail } from '../emails/SessionDebriefEmail';
 import { renderCandidateInviteEmail } from '../emails/CandidateInviteEmail';
 import { parseProviderValue } from '@/lib/server/provider-response';
 import { pilotRollout } from '@/lib/config/pilot-rollout';
+import { assertProductionServerEnv, getOptionalServerEnv } from '@/lib/server/config/server-env';
+import { getAppOrigin } from '@/lib/server/url/get-app-origin';
 
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://coach.rangam.com';
+assertProductionServerEnv(["RESEND_API_KEY"], "email delivery configuration");
 
 export class EmailService {
     /**
      * Helper to get a fresh Resend client with the latest API key from process.env
      */
     private static getClient() {
-        const apiKey = process.env.RESEND_API_KEY;
+        const apiKey = getOptionalServerEnv("RESEND_API_KEY");
         if (!apiKey) {
             return null;
         }
@@ -41,22 +43,24 @@ export class EmailService {
         }
 
         try {
-            const fromEmail = process.env.RESEND_FROM_EMAIL || 'Rangam Interview Coach <interviews@coach.rangam.com>';
+            const fromEmail = getOptionalServerEnv("RESEND_FROM_EMAIL") || 'Rangam Interview Coach <interviews@coach.rangam.com>';
             
             Logger.info("[EmailService] Preparing to send via Resend", { 
                 sessionId: session.id, 
                 recipient: candidateEmail,
                 from: fromEmail
             }, "EmailService");
+
+            const appOrigin = getAppOrigin();
             
-            const practiceAgainUrl = `${baseUrl}/s/${session.inviteToken}/practice-again`;
+            const practiceAgainUrl = `${appOrigin}/s/${session.inviteToken}/practice-again`;
 
             const html = renderSessionDebriefEmail({
                 candidateName,
                 role: session.role,
                 summaryNarrative: session.summaryNarrative || '',
                 practiceAgainUrl,
-                logoUrl: `${baseUrl}/rangam-logo.png`,
+                logoUrl: `${appOrigin}/rangam-logo.png`,
             });
 
             const { data, error } = await resend.emails.send({
@@ -116,13 +120,14 @@ export class EmailService {
         }
 
         try {
-            const fromEmail = process.env.RESEND_FROM_EMAIL || 'Rangam Interview Coach <interviews@coach.rangam.com>';
+            const fromEmail = getOptionalServerEnv("RESEND_FROM_EMAIL") || 'Rangam Interview Coach <interviews@coach.rangam.com>';
+            const appOrigin = getAppOrigin();
             
             const html = renderCandidateInviteEmail({
                 firstName: params.recipientFirstName,
                 role: params.role,
                 inviteLink: params.inviteLink,
-                logoUrl: `${baseUrl}/rangam-logo.png`,
+                logoUrl: `${appOrigin}/rangam-logo.png`,
                 recruiterName: params.recruiterName,
                 recruiterTitle: params.recruiterTitle,
                 recruiterCompany: params.recruiterCompany,

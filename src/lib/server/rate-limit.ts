@@ -1,39 +1,56 @@
-export type RateLimitDecision = {
-    allowed: boolean;
-    remaining: number;
-    resetAt: number;
-};
+import { getOptionalServerEnv, isProductionServer } from "@/lib/server/config/server-env";
+import { MemoryRateLimitBackend, SupabaseRateLimitBackend } from "@/lib/server/rate-limit/backend";
+import type { RateLimitBackend, RateLimitDecision } from "@/lib/server/rate-limit/types";
 
-type Bucket = {
-    count: number;
-    resetAt: number;
-};
+type RateLimitBackendName = "memory" | "supabase";
 
-const buckets = new Map<string, Bucket>();
+let cachedBackend: RateLimitBackend | null = null;
+let cachedBackendName: RateLimitBackendName | null = null;
 
-export function consumeRateLimit(key: string, maxRequests: number, windowMs: number, now: number = Date.now()): RateLimitDecision {
-    const existing = buckets.get(key);
+function resolveBackendName(): RateLimitBackendName {
+    const configured = getOptionalServerEnv("RATE_LIMIT_BACKEND");
+    if (configured) {
+        if (configured === "memory" || configured === "supabase") {
+            return configured;
+        }
 
-    if (!existing || existing.resetAt <= now) {
-        const resetAt = now + windowMs;
-        buckets.set(key, { count: 1, resetAt });
-        return { allowed: true, remaining: Math.max(0, maxRequests - 1), resetAt };
+        throw new Error(`Unsupported RATE_LIMIT_BACKEND value: ${configured}`);
     }
 
-    if (existing.count >= maxRequests) {
-        return { allowed: false, remaining: 0, resetAt: existing.resetAt };
-    }
-
-    existing.count += 1;
-    buckets.set(key, existing);
-
-    return {
-        allowed: true,
-        remaining: Math.max(0, maxRequests - existing.count),
-        resetAt: existing.resetAt
-    };
+    return isProductionServer() ? "supabase" : "memory";
 }
 
-export function clearRateLimitBuckets() {
-    buckets.clear();
+function createBackend(name: RateLimitBackendName): RateLimitBackend {
+    if (name === "supabase") {
+        return new SupabaseRateLimitBackend();
+    }
+
+    if (isProductionServer()) {
+        throw new Error("RATE_LIMIT_BACKEND=memory is not allowed in production.");
+    }
+
+    return new MemoryRateLimitBackend();
+}
+
+function getBackend(): RateLimitBackend {
+    const backendName = resolveBackendName();
+    if (!cachedBackend || cachedBackendName !== backendName) {
+        cachedBackend = createBackend(backendName);
+        cachedBackendName = backendName;
+    }
+
+    return cachedBackend;
+}
+
+export async function consumeRateLimit(key: string, maxRequests: number, windowMs: number, now: number = Date.now()): Promise<RateLimitDecision> {
+    return getBackend().consume({ key, maxRequests, windowMs, now });
+}
+
+export async function clearRateLimitBuckets(): Promise<void> {
+    if (cachedBackend?.clear) {
+        await cachedBackend.clear();
+    }
+
+    cachedBackend = null;
+    cachedBackendName = null;
 }

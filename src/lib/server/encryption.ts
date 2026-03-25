@@ -1,4 +1,5 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes, scryptSync } from "crypto";
+import { assertProductionServerEnv, getOptionalServerEnv, getRequiredServerEnv } from "@/lib/server/config/server-env";
 
 /**
  * SOC 2 Compliant Encryption Utility
@@ -12,16 +13,18 @@ const IV_LENGTH = 12;
 const KEY_LENGTH = 32;
 const LEGACY_SALT_BYTES = [105, 110, 116, 101, 114, 118, 105, 101, 119, 45, 99, 111, 97, 99, 104, 45, 115, 97, 108, 116];
 
+assertProductionServerEnv(["ENCRYPTION_SECRET"], "server encryption");
+
 const getRawSecret = () => {
-    const rawSecret = process.env.ENCRYPTION_SECRET;
-    if (!rawSecret || rawSecret.length < 32) {
+    const rawSecret = getRequiredServerEnv("ENCRYPTION_SECRET", "server encryption");
+    if (rawSecret.length < 32) {
         throw new Error("ENCRYPTION_SECRET environment variable is missing or too short (min 32 chars).");
     }
     return rawSecret;
 };
 
 const getPrimarySalt = (rawSecret: string) => {
-    const configuredSalt = process.env.ENCRYPTION_SALT;
+    const configuredSalt = getOptionalServerEnv("ENCRYPTION_SALT");
     if (configuredSalt) {
         return configuredSalt;
     }

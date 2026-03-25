@@ -57,6 +57,63 @@ Read this when:
 - you are requesting or performing a structured review
 - you want a consistent review rubric across contributors
 
+#### [comprehensive_code_review_2026-03-25.md](./comprehensive_code_review_2026-03-25.md)
+Time-stamped production-readiness review used as the source assessment for the current remediation pass.
+
+Read this when:
+- you want the most recent dated review snapshot
+- you need the exact severity board and production gate rationale for the current hardening effort
+
+#### [production_remediation_plan_2026-03-25.md](./production_remediation_plan_2026-03-25.md)
+Repo-specific execution plan that turns the 2026-03-25 review into workstreams, phases, exit criteria, and delivery order.
+
+Read this when:
+- you are planning remediation execution
+- you need the phase-by-phase hardening roadmap
+- you want the repo-specific module plan
+
+#### [production_remediation_issue_breakdown_2026-03-25.md](./production_remediation_issue_breakdown_2026-03-25.md)
+GitHub-issue style breakdown of the remediation work.
+
+Read this when:
+- you are creating or managing implementation tickets
+- you need acceptance criteria and dependencies for each finding
+
+#### [production_remediation_issue_bodies_2026-03-25.md](./production_remediation_issue_bodies_2026-03-25.md)
+Copy-paste-ready issue bodies for the first remediation wave.
+
+Read this when:
+- you are creating GitHub issues or Linear tickets
+- you want ready-to-use engineering ticket text for the P0/P1 startup work
+
+#### [production_remediation_tracker_2026-03-25.md](./production_remediation_tracker_2026-03-25.md)
+Live administration tracker for monitoring remediation progress and production gate status.
+
+Read this when:
+- you are overseeing execution
+- you need a current status view by severity and work item
+
+#### [production_remediation_sprint1_board_2026-03-25.md](./production_remediation_sprint1_board_2026-03-25.md)
+Focused sprint board for the first hardening sprint.
+
+Read this when:
+- you are planning or administering the first remediation sprint
+- you want a bounded in-scope/out-of-scope board for P0 foundation work
+
+#### [release-gate-checklist.md](./release-gate-checklist.md)
+Operational release gate for deciding whether a build may be promoted to production.
+
+Read this when:
+- you are preparing a release decision
+- you need a repeatable production go/no-go checklist
+
+#### [production-hardening-runbook.md](./production-hardening-runbook.md)
+Administrative runbook for executing and governing the remediation program itself.
+
+Read this when:
+- you are running weekly remediation reviews
+- you need to verify what must be updated before a remediation item is considered complete
+
 ### QA And Product Quality
 
 #### [feedback-chain-spec.md](./feedback-chain-spec.md)
@@ -170,6 +227,9 @@ Read this when:
 ### For release readiness
 Read in this order:
 - [comprehensive_code_review.md](./comprehensive_code_review.md)
+- [comprehensive_code_review_2026-03-25.md](./comprehensive_code_review_2026-03-25.md)
+- [production_remediation_tracker_2026-03-25.md](./production_remediation_tracker_2026-03-25.md)
+- [release-gate-checklist.md](./release-gate-checklist.md)
 - [QA-checklist.md](./QA-checklist.md)
 - [environment_variable_matrix.md](./environment_variable_matrix.md)
 - [ops_alert_policy.md](./ops_alert_policy.md)
@@ -179,6 +239,9 @@ Read in this order:
 Read in this order:
 - [code_review_request.md](./code_review_request.md)
 - [comprehensive_code_review.md](./comprehensive_code_review.md)
+- [comprehensive_code_review_2026-03-25.md](./comprehensive_code_review_2026-03-25.md)
+- [production_remediation_plan_2026-03-25.md](./production_remediation_plan_2026-03-25.md)
+- [production_remediation_tracker_2026-03-25.md](./production_remediation_tracker_2026-03-25.md)
 
 ### For AI and coaching quality work
 Read in this order:

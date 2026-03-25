@@ -1,11 +1,12 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { cache } from 'react';
+import { getRequiredServerEnv } from '@/lib/server/config/server-env';
 
 export function createClient() {
     return createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        getRequiredServerEnv("NEXT_PUBLIC_SUPABASE_URL", "server Supabase client"),
+        getRequiredServerEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "server Supabase client"),
         {
             cookies: {
                 async getAll() {
@@ -34,8 +35,8 @@ export function createClient() {
 
 export function createAdminClient() {
     return createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        getRequiredServerEnv("NEXT_PUBLIC_SUPABASE_URL", "admin Supabase client"),
+        getRequiredServerEnv("SUPABASE_SERVICE_ROLE_KEY", "admin Supabase client"),
         {
             cookies: {
                 getAll() {

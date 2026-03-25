@@ -43,6 +43,8 @@ describe("StepPreviewCombined", () => {
                 isLoading={false}
                 isGenerated={true}
                 results={[{ id: "s1", firstName: "Pat", lastName: "Lee", email: "pat@example.com", link: "https://example.com/s/token" }]}
+                failures={[]}
+                summary={null}
                 error={null}
                 recruiterProfile={{ name: "Recruiter", email: "recruiter@example.com", phone: "", title: "Lead", company: "Company" }}
                 onNewInvite={() => {}}

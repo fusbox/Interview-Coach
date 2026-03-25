@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { InviteEmailPreviewModal } from "@/components/patterns/InviteEmailPreviewModal";
 import type { RecruiterProfile } from "./RecruiterSessionsTable";
 import type { SessionSummary } from "@/lib/domain/types";
+import { DEFAULT_PUBLIC_APP_ORIGIN, getConfiguredPublicAppOrigin } from "@/lib/config/public-app-origin";
 
 interface ResendInviteButtonProps {
     session: SessionSummary;
@@ -31,7 +32,7 @@ export function ResendInviteButton({
         return null;
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://coach.rangam.com";
+    const baseUrl = getConfiguredPublicAppOrigin() || DEFAULT_PUBLIC_APP_ORIGIN;
     const inviteLink = `${baseUrl}/s/${session.inviteToken}`;
 
     const handleSend = async () => {

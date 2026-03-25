@@ -44,14 +44,17 @@ This folder contains all project documentation for Interview Coach for Recruiter
 
 15. [Quality README](05-quality/README.md) - Entry point for review, QA, and ops quality docs
 16. [Comprehensive Code Review](05-quality/comprehensive_code_review.md) - Production-readiness assessment
-17. [QA Checklist](05-quality/QA-checklist.md) - Product-level quality gates
+17. [Production Remediation Plan (2026-03-25)](05-quality/production_remediation_plan_2026-03-25.md) - Execution plan for current hardening work
+18. [Production Remediation Tracker (2026-03-25)](05-quality/production_remediation_tracker_2026-03-25.md) - Live status board for remediation oversight
+19. [Release Gate Checklist](05-quality/release-gate-checklist.md) - Production go/no-go administration
+20. [QA Checklist](05-quality/QA-checklist.md) - Product-level quality gates
 
 ### Delivery Artifacts
 
-18. Use Cases - Concrete scenarios derived from user stories
-19. User Flows - Step-by-step interaction paths
-20. Wireframes - UI structure and layout
-21. Project Docs - PRD, handoff, and planning artifacts
+21. Use Cases - Concrete scenarios derived from user stories
+22. User Flows - Step-by-step interaction paths
+23. Wireframes - UI structure and layout
+24. Project Docs - PRD, handoff, and planning artifacts
 
 ---
 

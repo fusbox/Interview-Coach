@@ -60,7 +60,7 @@ describe("POST /api/recruiter/invites", () => {
         vi.clearAllMocks();
         getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
         createInviteMock.mockResolvedValue(undefined);
-        consumeRateLimitMock.mockReturnValue({ allowed: true, remaining: 10, resetAt: Date.now() + 1000 });
+        consumeRateLimitMock.mockResolvedValue({ allowed: true, remaining: 10, resetAt: Date.now() + 1000 });
         beginIdempotentRequestMock.mockResolvedValue({ kind: "acquired" });
         completeIdempotentRequestMock.mockResolvedValue(undefined);
         releaseIdempotentRequestMock.mockResolvedValue(undefined);
@@ -103,8 +103,8 @@ describe("POST /api/recruiter/invites", () => {
 
     it("returns 429 when rate limited", async () => {
         consumeRateLimitMock
-            .mockReturnValueOnce({ allowed: false, remaining: 0, resetAt: Date.now() + 1000 })
-            .mockReturnValueOnce({ allowed: true, remaining: 10, resetAt: Date.now() + 1000 });
+            .mockResolvedValueOnce({ allowed: false, remaining: 0, resetAt: Date.now() + 1000 })
+            .mockResolvedValueOnce({ allowed: true, remaining: 10, resetAt: Date.now() + 1000 });
         const { POST } = await import("./route");
 
         const req = new Request("http://localhost/api/recruiter/invites", {
@@ -176,8 +176,103 @@ describe("POST /api/recruiter/invites", () => {
         }));
     });
 
+    it("returns 207 with explicit batch failures when some invites fail", async () => {
+        createInviteMock
+            .mockResolvedValueOnce(undefined)
+            .mockRejectedValueOnce(new Error("Supabase Session Create Error: duplicate key"));
+        const { POST } = await import("./route");
+
+        const req = new Request("http://localhost/api/recruiter/invites", {
+            method: "POST",
+            headers: { "Idempotency-Key": "create-key-partial" },
+            body: JSON.stringify({
+                ...validPayload,
+                candidates: [
+                    validPayload.candidates[0],
+                    {
+                        firstName: "Pat",
+                        lastName: "Chy",
+                        email: "patchy@example.com",
+                        reqId: "REQ-2",
+                    },
+                ],
+            })
+        });
+
+        const res = await POST(req as never);
+        const body = await res.json();
+
+        expect(res.status).toBe(207);
+        expect(body.results).toHaveLength(1);
+        expect(body.failures).toEqual([
+            expect.objectContaining({
+                status: "failed",
+                email: "patchy@example.com",
+                code: "INVITE_CREATE_FAILED",
+            }),
+        ]);
+        expect(body.summary).toEqual({
+            requested: 2,
+            succeeded: 1,
+            failed: 1,
+            hasFailures: true,
+        });
+        expect(completeIdempotentRequestMock).toHaveBeenCalledWith(expect.objectContaining({
+            statusCode: 207,
+        }));
+    });
+
+    it("replays a stored partial-failure response for a duplicate idempotency key", async () => {
+        beginIdempotentRequestMock.mockResolvedValue({
+            kind: "replay",
+            statusCode: 207,
+            body: {
+                results: [{ id: "existing", firstName: "Cand", lastName: "Date", email: "candidate@example.com", link: "https://app.example.com/s/token" }],
+                failures: [{
+                    status: "failed",
+                    firstName: "Pat",
+                    lastName: "Chy",
+                    email: "patchy@example.com",
+                    code: "INVITE_CREATE_FAILED",
+                    message: "Supabase Session Create Error: duplicate key",
+                    retryable: true,
+                }],
+                summary: {
+                    requested: 2,
+                    succeeded: 1,
+                    failed: 1,
+                    hasFailures: true,
+                },
+                correlationId: "corr-partial",
+            }
+        });
+        const { POST } = await import("./route");
+
+        const req = new Request("http://localhost/api/recruiter/invites", {
+            method: "POST",
+            headers: { "Idempotency-Key": "same-key-partial" },
+            body: JSON.stringify(validPayload)
+        });
+
+        const res = await POST(req as never);
+        const body = await res.json();
+
+        expect(res.status).toBe(207);
+        expect(body.correlationId).toBe("corr-partial");
+        expect(body.summary).toEqual({
+            requested: 2,
+            succeeded: 1,
+            failed: 1,
+            hasFailures: true,
+        });
+        expect(body.failures).toHaveLength(1);
+        expect(createInviteMock).not.toHaveBeenCalled();
+        expect(completeIdempotentRequestMock).not.toHaveBeenCalled();
+    });
+
     it("normalizes a local 0.0.0.0 request origin to localhost when no app url is configured", async () => {
         vi.stubEnv("NEXT_PUBLIC_APP_URL", "");
+        vi.stubEnv("NEXT_PUBLIC_BASE_URL", "");
         const { POST } = await import("./route");
 
         const req = new Request("http://0.0.0.0:3000/api/recruiter/invites", {
