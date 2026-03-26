@@ -2,7 +2,7 @@
 
 Date: 2026-03-25  
 Source review: [comprehensive_code_review_2026-03-25.md](./comprehensive_code_review_2026-03-25.md)  
-Status: Active; P1-3 completed and P1-4 started on 2026-03-25  
+Status: Remediation execution complete for P0/P1 scope on 2026-03-26  
 Owner: Engineering  
 
 ---
@@ -194,12 +194,15 @@ Required validation:
 - alert/runbook review
 - accessibility CI checks
 
-Phase 4 status on 2026-03-25:
-- `P1-4` moved to `In Progress`.
-- Baseline assessment completed:
-  - `src/lib/server/metrics.ts` is currently process-local and restart-bound
-  - `src/app/api/recruiter/ops/metrics/route.ts` exposes only the local process snapshot
-  - current metrics are useful for local inspection but not sufficient for durable incident analysis or multi-instance SLO reporting
+Phase 4 completion note on 2026-03-26:
+- `P1-4` completed.
+- Durable metrics now cover:
+  - restart-safe rollups
+  - multi-instance aggregation
+  - submit-outcome instrumentation for in-session progress reliability
+  - SQL-backed SLO summaries
+  - recruiter ops summary payloads backed by durable data
+- Threshold recalibration and denominator tuning are now operational follow-on work, not unresolved remediation work.
 
 ---
 
@@ -315,7 +318,7 @@ Mitigation:
 
 ### P2 complete
 
-- durable metrics and SLO wiring exist
+- route-to-application-service follow-on work is landed where scoped
 - accessibility automation covers critical paths
 - ADRs, runbook, and release gate checklist are in place
 

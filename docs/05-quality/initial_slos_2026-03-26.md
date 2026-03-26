@@ -235,22 +235,22 @@ For the current stage of the product:
 
 - `Session Start Availability` and `AI Assist Reliability` should influence release decisions first
 - `AI Assist Latency` should initially influence release decisions only when paired with visible user degradation
-- `In-Session Progress Reliability` can move toward a hard gate once durable query/dashboard wiring is added and the denominator policy is finalized
+- `In-Session Progress Reliability` now has durable query/dashboard wiring; remaining hard-gate decisions are policy tuning rather than implementation gaps
 
 ---
 
-## Remaining Work To Fully Operationalize These SLOs
+## Remaining Work For Ongoing Ops Tuning
 
-1. Create explicit durable queries or dashboard views for the four SLOs above.
-2. Finalize the denominator policy for `session_submit_total`, especially whether `invalid_request` and `idempotency_mismatch` remain outside the SLI denominator.
-3. Update alert policy thresholds from provisional counts to SLO/burn-oriented guidance where possible.
-4. Update the incident runbook to use the new SLO terminology during triage.
+1. Finalize the denominator policy for `session_submit_total`, especially whether `invalid_request`, `idempotency_mismatch`, and `request_in_progress` remain outside or inside the SLI denominator long-term.
+2. Recalibrate alert thresholds from provisional counts to SLO/burn-oriented guidance after more durable history accumulates.
+3. Update the incident runbook to use the new SLO terminology during triage as those thresholds are finalized.
 
 Current implementation status:
 
 - the app now has SQL-backed SLO summary functions for the four objectives above
 - the recruiter ops metrics route returns `sloSummary` as a thin operational summary surface
-- the remaining work is production validation of the new SQL functions plus denominator/threshold policy finalization
+- the SQL summary layer has been validated in production
+- the remaining work is policy tuning, not implementation remediation
 
 ---
 

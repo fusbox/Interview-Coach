@@ -436,7 +436,7 @@ Reduce loose `z.any()` contract surfaces and replace them with constrained runti
 
 ## P1-4: Land Durable Metrics Path and SLO Base Layer
 
-Status: `In Progress`  
+Status: `Done`  
 Priority: `P1`  
 Suggested owner: Platform / ops
 
@@ -492,13 +492,7 @@ Move metrics from process memory into a durable backend and define minimal SLO-b
   - durable timing rollups confirmed for AI-backed operations
   - deployed environment is writing through the Supabase durable metrics path
 
-### Remaining Work
-
-- document the minimum SLO set against the durable metric names now validated in production
-- update alert-policy and runbook language from local-snapshot assumptions to durable operational truth
-- decide whether any threshold recalibration is required immediately or can wait for more history
-
-### Current Progress Update
+### Completion Notes
 
 - initial SLO proposal added:
   - `docs/05-quality/initial_slos_2026-03-26.md`
@@ -529,17 +523,18 @@ Move metrics from process memory into a durable backend and define minimal SLO-b
   - `get_slo_ai_reliability(...)`
   - `get_slo_ai_latency(...)`
 - the recruiter ops metrics route now returns `sloSummary` alongside `snapshot`, `dashboard`, and `alerts`
+- updated metrics rollup migration with SLO summary functions has been applied and validated in Supabase production
+- summary queries have been validated against deployed traffic for:
+  - session start availability
+  - in-session progress reliability
+  - AI assist reliability
+  - AI assist latency
+- `P1-4` is complete for remediation purposes.
 
-### Next Slice
-
-- operationalize the new submit metric family in durable queries/dashboard views
-- apply and validate the updated metrics rollup migration with the new SLO summary functions
-- finalize the minimum SLO/dashboard set around:
-  - invite creation/send
-  - candidate session start/completion
-  - AI request success/error/malformed-response outcomes
-  - submit success/failure outcomes
-  - auth and rate-limit denials
+Follow-on work that remains intentionally outside remediation scope:
+- threshold recalibration after more durable history accumulates
+- denominator policy refinement if real traffic suggests `request_in_progress` or `analysisIncluded` should be treated differently
+- burn-rate style alerting beyond the current threshold-based operational heuristics
 
 ---
 

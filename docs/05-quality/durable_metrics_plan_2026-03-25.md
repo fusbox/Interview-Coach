@@ -265,5 +265,11 @@ Latest implementation note:
   - derived `dashboard`
   - `alerts`
 - operational follow-up is now:
-  - apply the updated rollup migration in Supabase
-  - validate the new SLO summary functions with deployed traffic
+  - threshold recalibration after more history accumulates
+  - denominator-policy tuning for `session_submit_total`
+
+Completion note:
+
+- `P1-4` is complete for remediation purposes.
+- Durable metrics, submit-outcome instrumentation, SQL-backed SLO summaries, and ops-route summary exposure are all validated in production.
+- Remaining work is normal operations tuning rather than unresolved hardening or implementation backlog.

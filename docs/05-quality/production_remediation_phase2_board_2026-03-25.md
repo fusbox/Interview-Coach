@@ -17,12 +17,28 @@ This phase should:
 
 ---
 
-## Active Item
+## Phase Status
+
+Status: Complete
+
+Phase 2 remediation work is complete for the defined scope.
+
+`P1-4` closed with:
+- durable Supabase/Postgres rollups validated in production
+- submit-outcome instrumentation landed for in-session progress reliability
+- SQL-backed SLO summary functions validated in production
+- recruiter ops route returning durable summary data via `sloSummary`
+
+Threshold tuning and denominator refinement continue as normal ops policy work and do not keep this remediation phase open.
+
+---
+
+## Completed Active Item
 
 ### P1-4: Land Durable Metrics Path and SLO Base Layer
 
 Owner: Platform / ops  
-Status: In Progress
+Status: Done
 
 Current execution slice:
 - baseline the current metrics path in:
@@ -107,12 +123,11 @@ Do not expand the first `P1-4` slice into:
 - [x] durable write/read path is validated in the deployed environment
 - [x] minimum SLO set is documented against real metric names
 - [x] durable submit success/failure instrumentation is added for in-session progress reliability
-- [ ] updated metrics rollup migration with SLO summary functions is applied and validated in Supabase
+- [x] updated metrics rollup migration with SLO summary functions is applied and validated in Supabase
 
 ---
 
 ## Operating Notes
 
 - Keep the tracker as the canonical status source.
-- Use this board for active sequencing and immediate next actions.
-- Update this board in place while `P1-4` remains the active slice unless the phase shape changes materially.
+- Use the tracker and issue breakdown for any future P2 or ops-policy follow-on work.

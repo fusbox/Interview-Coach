@@ -11,7 +11,7 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
 
 - Production release status: `Remediation gate satisfied for the initial hardening scope`
 - Controlled staging status: `Allowed`
-- Active phase: `Phase 4 / P1-4 SLO operationalization`
+- Active phase: `Post-remediation backlog / P2 follow-on work`
 - Last updated by: `Codex`
 
 ---
@@ -36,7 +36,7 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
 | P1-1 | Centralize canonical app origin resolution | P1 | Backend / platform | Sprint 1 | Done | P0-3 | Shared origin helper, server email adoption, and resend preview alignment landed |
 | P1-2 | Remove residual hardcoded business defaults | P1 | Frontend / product engineering | Sprint 3 | Done | none | Recruiter/business fallback policy is now centralized in shared config and consumed by recruiter signature flows |
 | P1-3 | Tighten runtime schemas | P1 | Backend / AI contracts | Sprint 3 | Done | feedback-chain coordination | Shared request contracts consolidated, provider malformed-response path typed, and critical route/service seams covered |
-| P1-4 | Land durable metrics path and SLO base layer | P1 | Platform / ops | Sprint 4 | In Progress | metrics backend decision | Durable Supabase rollups are validated in production; current active slice is SQL-backed SLO summaries and ops-route operationalization |
+| P1-4 | Land durable metrics path and SLO base layer | P1 | Platform / ops | Sprint 4 | Done | metrics backend decision | Durable Supabase rollups and SQL-backed SLO summaries are validated in production; threshold tuning is now ongoing ops work rather than remediation scope |
 | P2-1 | Continue route-to-application-service extraction | P2 | Backend / architecture | Sprint 3 | Not Started | P0-2 pattern established | Invite flows become the reference implementation |
 | P2-2 | Add accessibility automation for critical flows | P2 | Frontend / QA | Sprint 4 | Not Started | stable flow surfaces | Recruiter create and candidate session flows first |
 
@@ -311,6 +311,23 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
   - `src/lib/server/metrics.ts`
   - `src/app/api/recruiter/ops/metrics/route.ts`
 - The ops route now returns `sloSummary` in addition to snapshot/dashboard/alerts.
+
+### 2026-03-26 (P1-4 Completed)
+
+- `P1-4` moved to `Done`.
+- Applied and validated the updated metrics rollup migration with SQL-backed SLO summary functions in Supabase production.
+- Confirmed production summary queries return sensible data for:
+  - session start availability
+  - in-session progress reliability
+  - AI assist reliability
+  - AI assist latency
+- Confirmed the durable metrics path now covers:
+  - counter rollups
+  - timing rollups
+  - submit-outcome instrumentation
+  - SQL-backed SLO summaries
+  - recruiter ops summary payloads
+- Remaining threshold calibration and denominator tuning is now ongoing operational policy work, not unresolved remediation scope.
 
 ### 2026-__-__
 
