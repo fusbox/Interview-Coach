@@ -2,8 +2,8 @@ import { getDurableMetricsBackend } from "@/lib/server/metrics/backend";
 import type {
     CounterMetric,
     MetricTags,
-    MetricTagValue,
     MetricsSnapshot,
+    OperationalSloSummary,
     TimingMetric
 } from "@/lib/server/metrics/types";
 
@@ -197,6 +197,127 @@ function counterValue(snapshot: MetricsSnapshot, name: string, filters: Record<s
         .reduce((total, metric) => total + metric.value, 0);
 }
 
+function percentage(numerator: number, denominator: number) {
+    if (denominator <= 0) {
+        return 0;
+    }
+    return Number(((numerator / denominator) * 100).toFixed(2));
+}
+
+export function buildOperationalSloSummary(snapshot: MetricsSnapshot, since = new Date(Date.now() - (24 * 60 * 60 * 1000)).toISOString()): OperationalSloSummary {
+    const sessionStartSuccessCount = counterValue(snapshot, "session_start_total", { outcome: "success" });
+    const sessionStartFailureCount = counterValue(snapshot, "session_start_total", { outcome: "error" })
+        + counterValue(snapshot, "session_start_total", { outcome: "rate_limited" });
+    const sessionStartTotalCount = sessionStartSuccessCount + sessionStartFailureCount;
+
+    const submitSuccessCount = counterValue(snapshot, "session_submit_total", { outcome: "success" });
+    const replaySuccessCount = counterValue(snapshot, "session_submit_total", { outcome: "replay_success" });
+    const submitErrorCount = counterValue(snapshot, "session_submit_total", { outcome: "error" });
+    const requestInProgressCount = counterValue(snapshot, "session_submit_total", { outcome: "request_in_progress" });
+    const idempotencyMismatchCount = counterValue(snapshot, "session_submit_total", { outcome: "idempotency_mismatch" });
+    const invalidRequestCount = counterValue(snapshot, "session_submit_total", { outcome: "invalid_request" });
+    const submitSliNumerator = submitSuccessCount + replaySuccessCount;
+    const submitSliDenominator = submitSliNumerator + submitErrorCount + requestInProgressCount;
+
+    const aiOperations = new Set(
+        snapshot.counters
+            .filter((metric) => metric.name === "ai_requests_total")
+            .map((metric) => metric.tags.operation || "unknown")
+    );
+
+    const aiReliabilityOperations = Array.from(aiOperations)
+        .map((operation) => {
+            const successCount = counterValue(snapshot, "ai_requests_total", { operation, outcome: "success" });
+            const errorCount = counterValue(snapshot, "ai_requests_total", { operation, outcome: "error" });
+            const malformedResponseCount = counterValue(snapshot, "ai_requests_total", { operation, outcome: "malformed_response" });
+            const mockFallbackCount = counterValue(snapshot, "ai_requests_total", { operation, outcome: "mock_fallback" });
+            const totalCount = successCount + errorCount + malformedResponseCount + mockFallbackCount;
+
+            return {
+                operation,
+                successCount,
+                errorCount,
+                malformedResponseCount,
+                mockFallbackCount,
+                totalCount,
+                successRate: percentage(successCount, totalCount)
+            };
+        })
+        .sort((left, right) => left.operation.localeCompare(right.operation));
+
+    const aiLatencyOperations = snapshot.timings
+        .filter((metric) => metric.name === "ai_request_duration_ms")
+        .map((metric) => ({
+            operation: metric.tags.operation || "unknown",
+            count: metric.count,
+            totalMs: metric.totalMs,
+            minMs: metric.minMs,
+            maxMs: metric.maxMs,
+            avgMs: metric.avgMs
+        }))
+        .sort((left, right) => left.operation.localeCompare(right.operation));
+
+    const aiOverall = aiReliabilityOperations.reduce((total, operation) => ({
+        successCount: total.successCount + operation.successCount,
+        errorCount: total.errorCount + operation.errorCount,
+        malformedResponseCount: total.malformedResponseCount + operation.malformedResponseCount,
+        mockFallbackCount: total.mockFallbackCount + operation.mockFallbackCount,
+        totalCount: total.totalCount + operation.totalCount
+    }), {
+        successCount: 0,
+        errorCount: 0,
+        malformedResponseCount: 0,
+        mockFallbackCount: 0,
+        totalCount: 0
+    });
+
+    return {
+        generatedAt: new Date().toISOString(),
+        since,
+        sessionStart: {
+            successCount: sessionStartSuccessCount,
+            failureCount: sessionStartFailureCount,
+            totalCount: sessionStartTotalCount,
+            successRate: percentage(sessionStartSuccessCount, sessionStartTotalCount)
+        },
+        sessionProgress: {
+            successCount: submitSuccessCount,
+            replaySuccessCount,
+            errorCount: submitErrorCount,
+            requestInProgressCount,
+            idempotencyMismatchCount,
+            invalidRequestCount,
+            sliNumerator: submitSliNumerator,
+            sliDenominator: submitSliDenominator,
+            successRate: percentage(submitSliNumerator, submitSliDenominator)
+        },
+        aiReliability: {
+            overall: {
+                ...aiOverall,
+                successRate: percentage(aiOverall.successCount, aiOverall.totalCount)
+            },
+            operations: aiReliabilityOperations
+        },
+        aiLatency: {
+            operations: aiLatencyOperations
+        }
+    };
+}
+
+export async function getOperationalSloSummary() {
+    const backend = getDurableMetricsBackend();
+    const since = new Date(Date.now() - (24 * 60 * 60 * 1000)).toISOString();
+    if (!backend || !("readSloSummary" in backend)) {
+        return buildOperationalSloSummary(getMetricsSnapshot(), since);
+    }
+
+    try {
+        return await backend.readSloSummary({ sinceMs: 24 * 60 * 60 * 1000 });
+    } catch {
+        return buildOperationalSloSummary(getMetricsSnapshot(), since);
+    }
+}
+
 export function buildOperationsDashboard(snapshot: MetricsSnapshot): OperationsDashboard {
     const aiOperations = snapshot.timings
         .filter((metric) => metric.name === "ai_request_duration_ms")
@@ -263,4 +384,3 @@ export type {
     MetricsSnapshot,
     TimingMetric
 } from "@/lib/server/metrics/types";
-

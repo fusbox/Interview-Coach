@@ -151,3 +151,152 @@ as $$
     group by metric_name, tags_key
     order by metric_name, tags_key;
 $$;
+
+create or replace function public.get_slo_session_start(
+    p_since timestamptz
+)
+returns table (
+    success_count bigint,
+    failure_count bigint,
+    total_count bigint,
+    success_rate numeric
+)
+language sql
+security definer
+as $$
+    with rollup as (
+        select
+            coalesce(sum(case when tags ->> 'outcome' = 'success' then value else 0 end), 0) as success_count,
+            coalesce(sum(case when tags ->> 'outcome' in ('error', 'rate_limited') then value else 0 end), 0) as failure_count
+        from public.metric_counter_rollups
+        where bucket_start >= p_since
+          and metric_name = 'session_start_total'
+    )
+    select
+        success_count,
+        failure_count,
+        success_count + failure_count as total_count,
+        case
+            when success_count + failure_count = 0 then 0
+            else round((success_count::numeric / (success_count + failure_count)::numeric) * 100, 2)
+        end as success_rate
+    from rollup;
+$$;
+
+create or replace function public.get_slo_session_progress(
+    p_since timestamptz
+)
+returns table (
+    success_count bigint,
+    replay_success_count bigint,
+    error_count bigint,
+    request_in_progress_count bigint,
+    idempotency_mismatch_count bigint,
+    invalid_request_count bigint,
+    sli_numerator bigint,
+    sli_denominator bigint,
+    success_rate numeric
+)
+language sql
+security definer
+as $$
+    with rollup as (
+        select
+            coalesce(sum(case when tags ->> 'outcome' = 'success' then value else 0 end), 0) as success_count,
+            coalesce(sum(case when tags ->> 'outcome' = 'replay_success' then value else 0 end), 0) as replay_success_count,
+            coalesce(sum(case when tags ->> 'outcome' = 'error' then value else 0 end), 0) as error_count,
+            coalesce(sum(case when tags ->> 'outcome' = 'request_in_progress' then value else 0 end), 0) as request_in_progress_count,
+            coalesce(sum(case when tags ->> 'outcome' = 'idempotency_mismatch' then value else 0 end), 0) as idempotency_mismatch_count,
+            coalesce(sum(case when tags ->> 'outcome' = 'invalid_request' then value else 0 end), 0) as invalid_request_count
+        from public.metric_counter_rollups
+        where bucket_start >= p_since
+          and metric_name = 'session_submit_total'
+    )
+    select
+        success_count,
+        replay_success_count,
+        error_count,
+        request_in_progress_count,
+        idempotency_mismatch_count,
+        invalid_request_count,
+        success_count + replay_success_count as sli_numerator,
+        success_count + replay_success_count + error_count + request_in_progress_count as sli_denominator,
+        case
+            when success_count + replay_success_count + error_count + request_in_progress_count = 0 then 0
+            else round(((success_count + replay_success_count)::numeric / (success_count + replay_success_count + error_count + request_in_progress_count)::numeric) * 100, 2)
+        end as success_rate
+    from rollup;
+$$;
+
+create or replace function public.get_slo_ai_reliability(
+    p_since timestamptz
+)
+returns table (
+    operation text,
+    success_count bigint,
+    error_count bigint,
+    malformed_response_count bigint,
+    mock_fallback_count bigint,
+    total_count bigint,
+    success_rate numeric
+)
+language sql
+security definer
+as $$
+    with rollup as (
+        select
+            coalesce(tags ->> 'operation', 'unknown') as operation,
+            coalesce(sum(case when tags ->> 'outcome' = 'success' then value else 0 end), 0) as success_count,
+            coalesce(sum(case when tags ->> 'outcome' = 'error' then value else 0 end), 0) as error_count,
+            coalesce(sum(case when tags ->> 'outcome' = 'malformed_response' then value else 0 end), 0) as malformed_response_count,
+            coalesce(sum(case when tags ->> 'outcome' = 'mock_fallback' then value else 0 end), 0) as mock_fallback_count
+        from public.metric_counter_rollups
+        where bucket_start >= p_since
+          and metric_name = 'ai_requests_total'
+        group by coalesce(tags ->> 'operation', 'unknown')
+    )
+    select
+        operation,
+        success_count,
+        error_count,
+        malformed_response_count,
+        mock_fallback_count,
+        success_count + error_count + malformed_response_count + mock_fallback_count as total_count,
+        case
+            when success_count + error_count + malformed_response_count + mock_fallback_count = 0 then 0
+            else round((success_count::numeric / (success_count + error_count + malformed_response_count + mock_fallback_count)::numeric) * 100, 2)
+        end as success_rate
+    from rollup
+    order by operation;
+$$;
+
+create or replace function public.get_slo_ai_latency(
+    p_since timestamptz
+)
+returns table (
+    operation text,
+    count bigint,
+    total_ms bigint,
+    min_ms integer,
+    max_ms integer,
+    avg_ms numeric
+)
+language sql
+security definer
+as $$
+    select
+        coalesce(tags ->> 'operation', 'unknown') as operation,
+        sum(count) as count,
+        sum(total_ms) as total_ms,
+        min(min_ms) as min_ms,
+        max(max_ms) as max_ms,
+        case
+            when sum(count) = 0 then 0
+            else round(sum(total_ms)::numeric / sum(count)::numeric, 2)
+        end as avg_ms
+    from public.metric_timing_rollups
+    where bucket_start >= p_since
+      and metric_name = 'ai_request_duration_ms'
+    group by coalesce(tags ->> 'operation', 'unknown')
+    order by operation;
+$$;

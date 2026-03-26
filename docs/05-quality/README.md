@@ -115,6 +115,14 @@ Read this when:
 - you need the chosen dual-write direction, guardrails, and first-slice scope
 - you want the minimum SLO set and storage boundaries for the operability phase
 
+#### [initial_slos_2026-03-26.md](./initial_slos_2026-03-26.md)
+Initial SLO proposal mapped to the durable metrics now validated in production.
+
+Read this when:
+- you are defining release-relevant reliability objectives
+- you need exact metric-to-SLO mapping for session start, AI reliability, and latency
+- you want to distinguish primary SLOs from supporting operational indicators
+
 #### [release-gate-checklist.md](./release-gate-checklist.md)
 Operational release gate for deciding whether a build may be promoted to production.
 

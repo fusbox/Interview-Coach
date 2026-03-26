@@ -76,6 +76,7 @@ If any item above is not complete:
 - [ ] Metrics and structured logs are visible in the target environment
 - [ ] Alert routes and responders are still correct for this release
 - [ ] Incident runbook is current for any changed operational behavior
+- [ ] Current release was reviewed against the active SLO proposal in [initial_slos_2026-03-26.md](./initial_slos_2026-03-26.md)
 
 ---
 

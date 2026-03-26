@@ -11,7 +11,7 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
 
 - Production release status: `Remediation gate satisfied for the initial hardening scope`
 - Controlled staging status: `Allowed`
-- Active phase: `Phase 4 / P1-4 operability baseline`
+- Active phase: `Phase 4 / P1-4 SLO operationalization`
 - Last updated by: `Codex`
 
 ---
@@ -36,7 +36,7 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
 | P1-1 | Centralize canonical app origin resolution | P1 | Backend / platform | Sprint 1 | Done | P0-3 | Shared origin helper, server email adoption, and resend preview alignment landed |
 | P1-2 | Remove residual hardcoded business defaults | P1 | Frontend / product engineering | Sprint 3 | Done | none | Recruiter/business fallback policy is now centralized in shared config and consumed by recruiter signature flows |
 | P1-3 | Tighten runtime schemas | P1 | Backend / AI contracts | Sprint 3 | Done | feedback-chain coordination | Shared request contracts consolidated, provider malformed-response path typed, and critical route/service seams covered |
-| P1-4 | Land durable metrics path and SLO base layer | P1 | Platform / ops | Sprint 4 | In Progress | metrics backend decision | Baseline confirmed: metrics are stored in process-local `globalThis` state and exposed through the ops route, so they do not survive restart or support multi-instance aggregation |
+| P1-4 | Land durable metrics path and SLO base layer | P1 | Platform / ops | Sprint 4 | In Progress | metrics backend decision | Durable Supabase rollups are validated in production; current active slice is SQL-backed SLO summaries and ops-route operationalization |
 | P2-1 | Continue route-to-application-service extraction | P2 | Backend / architecture | Sprint 3 | Not Started | P0-2 pattern established | Invite flows become the reference implementation |
 | P2-2 | Add accessibility automation for critical flows | P2 | Frontend / QA | Sprint 4 | Not Started | stable flow surfaces | Recruiter create and candidate session flows first |
 
@@ -276,6 +276,41 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
   - optional Supabase durable sink is now available behind `METRICS_BACKEND=supabase`
   - recruiter ops metrics route now reads the durable-aware snapshot helper
   - focused metrics backend and ops-route tests landed
+- Deployed durable-metrics validation completed:
+  - metrics rollup migration applied successfully in Supabase production
+  - durable counter rollups observed for `session_start_total`
+  - durable timing rollups observed for `ai_request_duration_ms` across:
+    - `analysis`
+    - `session_summary`
+    - `strong_response`
+    - `tips`
+    - `tts`
+  - durable write path, read path, and deployed env configuration are now confirmed
+- Initial SLO proposal added:
+  - `docs/05-quality/initial_slos_2026-03-26.md`
+  - proposed first SLO set:
+    - session start availability
+    - in-session progress reliability
+    - AI assist reliability
+    - AI assist latency
+- Added explicit submit-outcome instrumentation for the in-session progress SLO:
+  - `src/app/api/session/[session_id]/questions/[question_id]/submit/route.ts`
+  - metric family: `session_submit_total`
+  - current outcomes:
+    - `success`
+    - `replay_success`
+    - `invalid_request`
+    - `request_in_progress`
+    - `idempotency_mismatch`
+    - `error`
+- Added focused submit-route outcome coverage:
+  - `src/app/api/session/[session_id]/questions/[question_id]/submit/route.test.ts`
+- Added SQL-backed SLO summary functions and ops-route summary payload:
+  - `supabase/migrations/20260325_add_metrics_rollups.sql`
+  - `src/lib/server/metrics/backend.ts`
+  - `src/lib/server/metrics.ts`
+  - `src/app/api/recruiter/ops/metrics/route.ts`
+- The ops route now returns `sloSummary` in addition to snapshot/dashboard/alerts.
 
 ### 2026-__-__
 

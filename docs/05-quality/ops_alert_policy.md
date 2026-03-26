@@ -68,4 +68,11 @@ This document defines the current alert rules, routing, and operator intent for 
 
 - A dual-write metrics path is now the chosen direction for `P1-4`.
 - The first implementation slice has landed the durable backend abstraction and Supabase rollup migration.
-- Until the ops metrics route is switched to durable reads in production, this alert policy should still be interpreted as local-snapshot guidance rather than fully durable operational truth.
+- The recruiter ops metrics route now reads the durable-aware snapshot helper.
+- Durable counter and timing rollups have been validated in production.
+- Thresholds should still be treated as provisional until the minimum SLO set is finalized and enough durable history exists for recalibration.
+
+## SLO Alignment Note
+
+- The current initial SLO proposal is documented in [initial_slos_2026-03-26.md](./initial_slos_2026-03-26.md).
+- Until burn-rate style alerting is implemented, the alert rules in this document remain threshold-based operational heuristics rather than full SLO-budget enforcement.

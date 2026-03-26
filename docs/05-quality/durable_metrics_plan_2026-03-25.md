@@ -42,7 +42,7 @@ Recommended shape:
    - `observeMetric`
    - `recordAuthDenial`
    - `recordRateLimitDenial`
-4. Keep the recruiter ops route, but move its durable view to read from persisted rollups instead of one process-local map.
+4. Keep the recruiter ops route, but move its durable view to read from persisted rollups and SLO summary functions instead of one process-local map.
 
 Why this approach:
 
@@ -231,6 +231,39 @@ Guardrail:
 
 - staging/production metrics survive restart and deploy rollover
 - multi-instance writes contribute to one durable operational view
-- the recruiter ops metrics view is backed by durable data in production
+- the recruiter ops metrics view is backed by durable data and SQL-backed SLO summaries in production
 - the minimum SLO set is documented against actual metric names
 - runbook and alert-policy docs are updated to reflect the durable path
+
+---
+
+## Validation Status
+
+As of 2026-03-26:
+
+- the metrics rollup migration has been applied successfully in Supabase production
+- durable counter rollups have been observed in production
+- durable timing rollups have been observed in production for:
+  - `analysis`
+  - `session_summary`
+  - `strong_response`
+  - `tips`
+  - `tts`
+
+This means the remaining `P1-4` work is no longer durability implementation risk. It is now the SLO and alert-policy completion layer.
+
+Latest implementation note:
+
+- SQL-backed SLO summary functions have now been added for:
+  - session start
+  - session progress
+  - AI reliability
+  - AI latency
+- the recruiter ops metrics route now returns:
+  - durable-aware `snapshot`
+  - `sloSummary`
+  - derived `dashboard`
+  - `alerts`
+- operational follow-up is now:
+  - apply the updated rollup migration in Supabase
+  - validate the new SLO summary functions with deployed traffic

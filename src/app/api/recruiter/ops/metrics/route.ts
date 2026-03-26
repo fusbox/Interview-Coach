@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createCorrelationId, unauthorizedResponse } from "@/lib/server/api-errors";
 import { buildOperationsAlerts } from "@/lib/server/alerts";
-import { buildOperationsDashboard, getOperationalMetricsSnapshot, recordAuthDenial } from "@/lib/server/metrics";
+import {
+    buildOperationsDashboard,
+    getOperationalMetricsSnapshot,
+    getOperationalSloSummary,
+    recordAuthDenial
+} from "@/lib/server/metrics";
 
 export async function GET() {
     const correlationId = createCorrelationId();
@@ -19,12 +24,14 @@ export async function GET() {
     }
 
     const snapshot = await getOperationalMetricsSnapshot();
+    const sloSummary = await getOperationalSloSummary();
     const dashboard = buildOperationsDashboard(snapshot);
     const alerts = buildOperationsAlerts(snapshot);
 
     return NextResponse.json({
         correlationId,
         snapshot,
+        sloSummary,
         dashboard,
         alerts
     });

@@ -486,15 +486,59 @@ Move metrics from process memory into a durable backend and define minimal SLO-b
   - in-memory metrics behavior remains intact for local/test ergonomics
   - optional Supabase durable writes are available behind `METRICS_BACKEND=supabase`
   - the recruiter ops metrics route now reads the durable-aware snapshot helper
+- deployed validation completed:
+  - rollup migration applied successfully in Supabase production
+  - durable counter rollups confirmed
+  - durable timing rollups confirmed for AI-backed operations
+  - deployed environment is writing through the Supabase durable metrics path
+
+### Remaining Work
+
+- document the minimum SLO set against the durable metric names now validated in production
+- update alert-policy and runbook language from local-snapshot assumptions to durable operational truth
+- decide whether any threshold recalibration is required immediately or can wait for more history
+
+### Current Progress Update
+
+- initial SLO proposal added:
+  - `docs/05-quality/initial_slos_2026-03-26.md`
+- proposed first SLO set:
+  - session start availability
+  - in-session progress reliability
+  - AI assist reliability
+  - AI assist latency
+- current follow-up gap:
+  - submit-outcome instrumentation is now landed in:
+    - `src/app/api/session/[session_id]/questions/[question_id]/submit/route.ts`
+  - metric family:
+    - `session_submit_total`
+  - tagged outcomes:
+    - `success`
+    - `replay_success`
+    - `invalid_request`
+    - `request_in_progress`
+    - `idempotency_mismatch`
+    - `error`
+- remaining work is now operationalization rather than missing instrumentation:
+    - wire the new metric family into SLO queries/dashboard views
+    - decide whether `analysisIncluded` remains part of the long-term low-cardinality tag set
+- SQL-backed SLO summary functions are now added in:
+  - `supabase/migrations/20260325_add_metrics_rollups.sql`
+  - `get_slo_session_start(...)`
+  - `get_slo_session_progress(...)`
+  - `get_slo_ai_reliability(...)`
+  - `get_slo_ai_latency(...)`
+- the recruiter ops metrics route now returns `sloSummary` alongside `snapshot`, `dashboard`, and `alerts`
 
 ### Next Slice
 
-- choose a bounded durable sink strategy for this repo
-- preserve the current metric API shape if possible so route/service instrumentation does not need wide churn
-- define the minimum SLO/dashboard set around:
+- operationalize the new submit metric family in durable queries/dashboard views
+- apply and validate the updated metrics rollup migration with the new SLO summary functions
+- finalize the minimum SLO/dashboard set around:
   - invite creation/send
   - candidate session start/completion
   - AI request success/error/malformed-response outcomes
+  - submit success/failure outcomes
   - auth and rate-limit denials
 
 ---

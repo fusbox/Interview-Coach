@@ -12,6 +12,7 @@ import {
     completeIdempotentRequest,
     releaseIdempotentRequest
 } from "@/lib/server/idempotency";
+import { incrementMetric } from "@/lib/server/metrics";
 
 const repository = new SupabaseSessionRepository();
 const SUBMIT_SCOPE_PREFIX = "session_submit";
@@ -25,8 +26,17 @@ export async function POST(
         const idempotencyKey = req.headers.get("Idempotency-Key")?.trim() || null;
         const body = await req.json();
         const parseResult = SubmitAnswerRequestSchema.safeParse(body);
+        const analysisIncluded = parseResult.success ? Boolean(parseResult.data.analysis) : false;
+
+        const recordSubmitOutcome = (outcome: string) => {
+            incrementMetric("session_submit_total", {
+                outcome,
+                analysisIncluded
+            });
+        };
 
         if (!parseResult.success) {
+            recordSubmitOutcome("invalid_request");
             return validationErrorResponse(correlationId);
         }
 
@@ -43,10 +53,12 @@ export async function POST(
             });
 
             if (reservation.kind === "replay") {
+                recordSubmitOutcome("replay_success");
                 return NextResponse.json(reservation.body, { status: reservation.statusCode });
             }
 
             if (reservation.kind === "pending") {
+                recordSubmitOutcome("request_in_progress");
                 return errorResponse(409, {
                     code: "REQUEST_IN_PROGRESS",
                     message: "An identical submit request is already in progress",
@@ -56,6 +68,7 @@ export async function POST(
             }
 
             if (reservation.kind === "conflict") {
+                recordSubmitOutcome("idempotency_mismatch");
                 return errorResponse(409, {
                     code: "IDEMPOTENCY_MISMATCH",
                     message: "Idempotency key cannot be reused with a different payload",
@@ -81,6 +94,7 @@ export async function POST(
                     body: responseBody
                 });
             }
+            recordSubmitOutcome("replay_success");
             return NextResponse.json(responseBody);
         }
 
@@ -101,6 +115,7 @@ export async function POST(
                 });
             }
 
+            recordSubmitOutcome("success");
             return NextResponse.json(updatedSession);
         } catch (error) {
             if (idempotencyReserved && idempotencyKey) {
@@ -111,6 +126,7 @@ export async function POST(
                 });
             }
 
+            recordSubmitOutcome("error");
             throw error;
         }
     });

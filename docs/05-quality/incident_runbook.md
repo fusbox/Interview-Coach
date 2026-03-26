@@ -6,6 +6,10 @@ Primary data source: `/api/recruiter/ops/metrics`
 
 Use this runbook when one of the current operational alerts is triggered. Each section assumes structured logs and the metrics snapshot endpoint are available.
 
+Related SLO proposal:
+
+- [initial_slos_2026-03-26.md](./initial_slos_2026-03-26.md)
+
 ## 1. Invite Delivery Failures
 
 Alert ID: `invite_delivery_failures`

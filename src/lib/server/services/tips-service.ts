@@ -1,8 +1,7 @@
 import { Type } from "@google/genai";
 import { Blueprint, Competency, QuestionTips } from "@/lib/domain/types";
-import { GenerateTipsSchema, QuestionTipsSchema } from "@/lib/domain/schemas";
+import { QuestionTipsSchema } from "@/lib/domain/schemas";
 import { Logger } from "@/lib/logger";
-import { z } from "zod";
 import { ai, AI_MODELS } from "./ai-config";
 import { getReadingLevelContext } from "@/lib/ai/prompts";
 import { parseProviderJson } from "@/lib/server/provider-response";

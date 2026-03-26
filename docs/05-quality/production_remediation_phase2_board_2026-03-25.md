@@ -40,11 +40,22 @@ Current execution slice:
   - optional Supabase durable sink
   - durable rollup migration
   - durable-aware recruiter ops metrics read path
+- deployed validation completed:
+  - durable counter rollups confirmed in production
+  - durable AI timing rollups confirmed in production
 - define the minimum SLO/dashboard set for:
   - invite create/send
   - candidate session start/completion
   - AI success/error/malformed-response outcomes
   - auth denials and rate-limit denials
+- initial SLO proposal is now documented in:
+  - `docs/05-quality/initial_slos_2026-03-26.md`
+- submit outcome instrumentation is now landed for the in-session progress SLO:
+  - `src/app/api/session/[session_id]/questions/[question_id]/submit/route.ts`
+  - metric family: `session_submit_total`
+- SQL-backed SLO summary functions are now landed in:
+  - `supabase/migrations/20260325_add_metrics_rollups.sql`
+- the recruiter ops metrics route now returns `sloSummary` in addition to the raw durable-aware snapshot
 - document what remains local-only versus what must become durable for production operations
 
 Completion target:
@@ -93,7 +104,10 @@ Do not expand the first `P1-4` slice into:
 - [x] tracker and issue breakdown are updated to reflect the new active item
 - [x] bounded durable sink direction is chosen
 - [x] first durable backend slice is landed without widening instrumentation churn
-- [ ] minimum SLO set is documented against real metric names
+- [x] durable write/read path is validated in the deployed environment
+- [x] minimum SLO set is documented against real metric names
+- [x] durable submit success/failure instrumentation is added for in-session progress reliability
+- [ ] updated metrics rollup migration with SLO summary functions is applied and validated in Supabase
 
 ---
 

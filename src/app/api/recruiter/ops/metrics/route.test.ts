@@ -47,6 +47,11 @@ describe("GET /api/recruiter/ops/metrics", () => {
                 value: 1
             })
         ]));
+        expect(body.sloSummary.sessionStart).toMatchObject({
+            successCount: 0,
+            failureCount: 0,
+            totalCount: 0
+        });
         expect(body.dashboard.invites.sendSuccesses).toBe(1);
         expect(body.dashboard.sessions.completions).toBe(1);
         expect(body.dashboard.ai.errors).toBe(1);
@@ -74,3 +79,4 @@ describe("GET /api/recruiter/ops/metrics", () => {
         ]));
     });
 });
+
