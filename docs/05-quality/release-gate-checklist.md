@@ -32,9 +32,15 @@ Approvers:
 Production must remain blocked unless all items below are checked.
 
 - [ ] Shared rate limiting is active in production code paths
-- [ ] Invite batch creation has deterministic partial-failure handling
+- [ ] Invite batch creation has production-safe consistency semantics:
+  - transaction-safe persistence
+  - or persisted reconciliation/retry state
 - [ ] Protected auth/env dependencies fail fast in production
-- [ ] Failure-mode tests for invite creation and auth/env contract are passing
+- [ ] Canonical public origin is sourced from trusted configured env in production
+- [ ] Production origin generation does not trust request-derived host fallback
+- [ ] Durable metrics backend is enforced in production
+- [ ] Alert-to-paging routing has been validated for the current release posture
+- [ ] Failure-mode tests for invite creation, origin contract, metrics contract, and auth/env contract are passing
 
 If any item above is not complete:
 
@@ -46,7 +52,7 @@ If any item above is not complete:
 ## Correctness and Reliability
 
 - [ ] Invite send, resend, and candidate access flows were tested against the current build
-- [ ] Partial invite-batch failure behavior has been validated
+- [ ] Partial invite-batch failure and recovery behavior have been validated
 - [ ] Idempotent retry behavior has been validated for critical write paths
 - [ ] Canonical app origin generation is validated for the deployment environment
 
@@ -74,7 +80,9 @@ If any item above is not complete:
 
 - [ ] Key latency budgets were measured on the current build
 - [ ] Metrics and structured logs are visible in the target environment
+- [ ] Durable metrics backend is active in the target environment
 - [ ] Alert routes and responders are still correct for this release
+- [ ] Paging integration was exercised or otherwise validated for this release
 - [ ] Incident runbook is current for any changed operational behavior
 - [ ] Current release was reviewed against the active SLO proposal in [initial_slos_2026-03-26.md](./initial_slos_2026-03-26.md)
 

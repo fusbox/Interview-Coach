@@ -68,6 +68,39 @@ Source request reference: `docs/05-quality/code_review_request.md` (the requeste
 - `interfaces/http/*`: auth, request parse/validate, response serialization.
 - `features/*`: UX state + rendering only.
 
+### Route extraction targets (concrete scope for "continue route → application-service extraction")
+
+Priority routes to move from handler-heavy orchestration into application services:
+
+1. `POST /api/recruiter/invites`
+   - Why: combines auth, schema validation, idempotency, rate limiting, persistence loop, and link construction in one route.
+   - Extract to: `application/invites/create-invite-batch.ts` (transaction + partial-failure policy + idempotent response assembly).
+
+2. `POST /api/invite/send` and `POST /api/invite/resend`
+   - Why: mixes transport concerns with provider/email orchestration and retry/error-policy logic.
+   - Extract to: `application/invites/send-invite-emails.ts` and `application/invites/resend-invite.ts`.
+
+3. `POST /api/session/[session_id]/questions/[question_id]/submit`
+   - Why: carries idempotency + candidate auth + domain transition + persistence in a route-level flow.
+   - Extract to: `application/session/submit-answer-command.ts` with explicit transition guardrail and response replay behavior.
+
+4. `POST /api/session/[session_id]/questions/[question_id]/analysis`
+   - Why: route coordinates AI orchestration, provider parsing, and session update behavior.
+   - Extract to: `application/session/generate-analysis-command.ts` with provider abstraction + timeout/retry policy.
+
+5. `POST /api/session/start`
+   - Why: start/clone semantics, token issuance, and state initialization are business workflows rather than HTTP concerns.
+   - Extract to: `application/session/start-session-command.ts` (new vs clone decisioning, token issuance contract, replay handling).
+
+6. `POST /api/questions/generate` and `POST /api/response/generate`
+   - Why: candidate/recruiter-side AI generation policy (prompts, moderation/fallback, telemetry) should be centralized.
+   - Extract to: `application/ai/generate-questions.ts` and `application/ai/generate-response-feedback.ts`.
+
+Boundary rule for all extractions:
+
+- Route handlers should only do `auth → validate → call application command → map result to HTTP`.
+- All retries, idempotency, transaction semantics, provider fallback, and domain transitions should live in application services.
+
 ---
 
 ## 4) Type Safety & Runtime Validation

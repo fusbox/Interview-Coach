@@ -1,15 +1,17 @@
 # Production Remediation Plan
 
 Date: 2026-03-25  
-Source review: [comprehensive_code_review_2026-03-25.md](./comprehensive_code_review_2026-03-25.md)  
-Status: Remediation execution complete for P0/P1 scope on 2026-03-26  
+Source reviews:
+- [comprehensive_code_review_2026-03-25.md](./comprehensive_code_review_2026-03-25.md)
+- [comprehensive_code_review_2026-03-26.md](./comprehensive_code_review_2026-03-26.md)
+Status: Initial remediation complete, but production release reopened by the 2026-03-26 review refresh  
 Owner: Engineering  
 
 ---
 
 ## Purpose
 
-This document translates the 2026-03-25 production-readiness review into an execution plan that can be administered, tracked, and used as a release gate.
+This document translates the production-readiness reviews from 2026-03-25 and 2026-03-26 into an execution plan that can be administered, tracked, and used as a release gate.
 
 It is intentionally implementation-aware and repo-specific.
 
@@ -17,8 +19,8 @@ It is intentionally implementation-aware and repo-specific.
 
 ## Release Position
 
-- Production: `Initial remediation gate satisfied; remaining work is P1/P2 hardening and backlog execution`
-- Controlled staging: `GO`
+- Production: `NO-GO until reopened production blockers are closed`
+- Controlled staging: `GO with explicit risk acceptance`
 
 ---
 
@@ -204,6 +206,45 @@ Phase 4 completion note on 2026-03-26:
   - recruiter ops summary payloads backed by durable data
 - Threshold recalibration and denominator tuning are now operational follow-on work, not unresolved remediation work.
 
+### Phase 5: Production Gate Reopen
+
+Target duration: 0.5-1 sprint
+
+Goal:
+- reconcile the 2026-03-25 remediation closeout with the stricter 2026-03-26 production gate
+- close the remaining true production blockers rather than continuing under a stale `prod-ready` posture
+
+Tasks:
+- replace deterministic-but-non-reconciled invite batch behavior with one of:
+  - transaction-safe DB-side batch write semantics
+  - persisted batch reconciliation records and retry-safe recovery semantics
+- remove request-derived origin fallback from production origin resolution
+- make durable metrics backend a production fail-fast contract
+- validate alert-to-paging routing through an operator game-day or equivalent failure-injection exercise
+- update release-gate and operational docs to reflect the reopened production contract
+
+Primary files/modules:
+- `src/lib/server/application/invites/*`
+- `src/lib/server/infrastructure/supabase-invite-repository.ts`
+- `src/lib/server/url/get-app-origin.ts`
+- `src/lib/config/public-app-origin.ts`
+- `src/lib/server/metrics/*`
+- `docs/05-quality/release-gate-checklist.md`
+- `docs/05-quality/ops_alert_policy.md`
+- `docs/05-quality/environment_variable_matrix.md`
+
+Required validation:
+- integration test for invite persistence failure and recovery/retry semantics
+- production-mode origin contract test proving no request-host fallback
+- production-mode metrics backend contract test proving memory/unset configuration is rejected
+- documented paging validation evidence
+
+Exit criteria:
+- production invite writes have deterministic recovery semantics, not only deterministic partial reporting
+- production public origin comes from trusted configured env only
+- production metrics path fails fast without durable backend configuration
+- paging responders and alert routes are validated against a live or simulated incident path
+
 ---
 
 ## Repo-Specific Module Plan
@@ -322,10 +363,18 @@ Mitigation:
 - accessibility automation covers critical paths
 - ADRs, runbook, and release gate checklist are in place
 
+### Production gate reopened
+
+- the initial remediation closure remains historically accurate
+- the current production release posture is derived from the latest review, not the earlier closeout
+- any new production release recommendation must clear the Phase 5 exit criteria
+
 ---
 
 ## Related Documents
 
 - [comprehensive_code_review_2026-03-25.md](./comprehensive_code_review_2026-03-25.md)
+- [comprehensive_code_review_2026-03-26.md](./comprehensive_code_review_2026-03-26.md)
 - [production_remediation_issue_breakdown_2026-03-25.md](./production_remediation_issue_breakdown_2026-03-25.md)
 - [production_remediation_tracker_2026-03-25.md](./production_remediation_tracker_2026-03-25.md)
+- [production_execution_plan_2026-03-26.md](./production_execution_plan_2026-03-26.md)

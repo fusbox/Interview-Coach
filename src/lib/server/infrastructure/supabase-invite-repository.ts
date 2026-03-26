@@ -1,5 +1,5 @@
 import { Invite, InviteRepository } from "@/lib/domain/invite";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { hashToken } from "@/lib/server/crypto";
 import { encrypt } from "@/lib/server/encryption";
 import { Logger } from "@/lib/logger";
@@ -53,6 +53,28 @@ export class SupabaseInviteRepository implements InviteRepository {
 
         if (tokenError) {
             throw new Error(`Supabase Token Create Error: ${tokenError.message}`);
+        }
+    }
+
+    async createBatch(invites: Invite[]): Promise<void> {
+        const supabase = createAdminClient();
+        const payload = invites.map((invite) => ({
+            session_id: invite.id,
+            created_by: invite.createdBy,
+            role: invite.role,
+            job_description: invite.jobDescription ?? null,
+            candidate: invite.candidate,
+            questions: invite.questions,
+            token_hash: hashToken(invite.token),
+            encrypted_token: encrypt(invite.token)
+        }));
+
+        const { error } = await supabase.rpc("create_invite_batch", {
+            p_invites: payload
+        });
+
+        if (error) {
+            throw new Error(`Supabase Invite Batch Create Error: ${error.message}`);
         }
     }
 

@@ -29,6 +29,29 @@ describe("metrics backend", () => {
         expect(backend).toBeInstanceOf(SupabaseDurableMetricsBackend);
     });
 
+    it("fails fast in production when metrics backend is unset", () => {
+        vi.stubEnv("NODE_ENV", "production");
+
+        expect(() => getMetricsBackendName()).toThrow(
+            "[ServerEnv] Missing required environment variable METRICS_BACKEND for durable metrics backend."
+        );
+    });
+
+    it('fails fast in production when metrics backend is set to "memory"', () => {
+        vi.stubEnv("NODE_ENV", "production");
+        vi.stubEnv("METRICS_BACKEND", "memory");
+
+        expect(() => getMetricsBackendName()).toThrow('METRICS_BACKEND must be set to "supabase" in production.');
+    });
+
+    it("rejects unsupported backend values", () => {
+        process.env.METRICS_BACKEND = "file";
+
+        expect(() => getMetricsBackendName()).toThrow(
+            'Unsupported METRICS_BACKEND value "file". Expected "memory" or "supabase".'
+        );
+    });
+
     it("builds a snapshot from durable rollups", () => {
         const snapshot = buildSnapshotFromRollups(
             [

@@ -9,9 +9,9 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
 
 ## Overall Status
 
-- Production release status: `Remediation gate satisfied for the initial hardening scope`
-- Controlled staging status: `Allowed`
-- Active phase: `Remediation complete; follow-on work is normal quality/architecture improvement`
+- Production release status: `Blocked by 2026-03-26 review refresh`
+- Controlled staging status: `Allowed with explicit risk acceptance`
+- Active phase: `Production gate reopen and release-posture correction`
 - Last updated by: `Fu Chen`
 
 ---
@@ -20,7 +20,7 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
 
 | Severity | Total | Not Started | In Progress | Blocked | Done |
 |----------|-------|-------------|-------------|---------|------|
-| P0 | 3 | 0 | 0 | 0 | 3 |
+| P0 | 6 | 3 | 0 | 0 | 3 |
 | P1 | 4 | 0 | 0 | 0 | 4 |
 | P2 | 2 | 0 | 0 | 0 | 2 |
 
@@ -39,6 +39,9 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
 | P1-4 | Land durable metrics path and SLO base layer | P1 | Platform / ops | Sprint 4 | Done | metrics backend decision | Durable Supabase rollups and SQL-backed SLO summaries are validated in production; threshold tuning is now ongoing ops work rather than remediation scope |
 | P2-1 | Continue route-to-application-service extraction | P2 | Backend / architecture | Sprint 3 | Done | P0-2 pattern established | Invite create remains the reference implementation; invite send/resend and session-start extraction established the bounded application-service pattern |
 | P2-2 | Add accessibility automation for critical flows | P2 | Frontend / QA | Sprint 4 | Done | stable flow surfaces | Recruiter preview/send and candidate landing accessibility coverage are now in CI |
+| P0-R1 | Reopen invite batch consistency for durable recovery semantics | P0 | Backend / application layer | Sprint 5 | In Progress | P0-2 baseline | Atomic batch RPC and application-service rewrite landed locally with focused tests; pending migration rollout and deployed validation |
+| P0-R2 | Enforce canonical app origin contract in production | P0 | Backend / platform | Sprint 5 | In Progress | P1-1 baseline | Production-only `NEXT_PUBLIC_APP_URL` enforcement landed locally with focused tests; pending deployed validation |
+| P0-R3 | Enforce durable metrics backend and validate paging integration | P0 | Platform / ops | Sprint 5 | In Progress | P1-4 baseline | Production fail-fast metrics contract landed locally with focused tests; external paging validation remains open |
 
 ---
 
@@ -394,6 +397,54 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
   - candidate landing alert and CTA-state coverage
 - Any deeper candidate-session accessibility work can continue as normal quality improvement, not unresolved remediation.
 
+### 2026-03-26 (Review Refresh / Production Gate Reopened)
+
+- Fresh review added:
+  - `docs/05-quality/comprehensive_code_review_2026-03-26.md`
+- Production posture changed from the earlier remediation closeout to:
+  - `NO-GO for production`
+  - `GO for controlled staging`
+- Reopened production items:
+  - `P0-R1` invite batch durability / reconciliation semantics
+  - `P0-R2` production-only canonical origin enforcement
+  - `P0-R3` production-enforced durable metrics backend and paging validation
+- Root cause of the posture change:
+  - the prior tracker closed the initial remediation scope correctly
+  - the 2026-03-26 review applies a stricter production gate requiring:
+    - reconciliation-safe invite writes rather than deterministic mixed-result reporting alone
+    - no request-derived origin fallback in production
+    - durable metrics enforcement as a deployment contract plus validated operator paging
+- New execution plan added:
+  - `docs/05-quality/production_execution_plan_2026-03-26.md`
+  - `docs/05-quality/production_deployment_validation_checklist_2026-03-26.md`
+
+### 2026-03-26 (Execution Slice Landed Locally)
+
+- `P0-R2` local implementation landed:
+  - `src/lib/server/url/get-app-origin.ts`
+  - `src/lib/server/url/get-app-origin.test.ts`
+  - production now requires `NEXT_PUBLIC_APP_URL` even when a request URL or `NEXT_PUBLIC_BASE_URL` is present
+- `P0-R3` local implementation landed:
+  - `src/lib/server/metrics/backend.ts`
+  - `src/lib/server/metrics/backend.test.ts`
+  - production now rejects missing or `memory` metrics backend configuration in code
+- `P0-R1` local implementation landed:
+  - `src/lib/server/application/invites/create-invite-batch.ts`
+  - `src/lib/server/application/invites/create-invite-batch.test.ts`
+  - `src/lib/server/infrastructure/supabase-invite-repository.ts`
+  - `supabase/migrations/20260326_add_atomic_invite_batch.sql`
+  - invite persistence now uses one database RPC path for atomic multi-write semantics rather than sequential per-candidate writes in the application layer
+- Focused local validation completed:
+  - `src/lib/server/url/get-app-origin.test.ts`
+  - `src/lib/server/metrics/backend.test.ts`
+  - `src/lib/server/application/invites/create-invite-batch.test.ts`
+  - `src/app/api/recruiter/invites/route.test.ts`
+  - `npx tsc --noEmit`
+- Remaining closure work:
+  - apply and validate the invite-batch migration in Supabase
+  - validate the production origin contract in deployed configuration
+  - run alert-to-paging validation for `P0-R3`
+
 ### 2026-__-__
 
 - Add status update here.
@@ -417,6 +468,9 @@ Use this section to record decisions that change implementation direction during
 | 2026-03-25 | `P0-1` closes only after deployed recruiter and candidate routes both return `429 RATE_LIMITED` under load against the shared limiter | P0-1 | Prevents false closure based on local tests or migration-only rollout |
 | 2026-03-25 | Invite batch creation will surface deterministic mixed results immediately, with deeper transaction/batch-record semantics evaluated as a follow-on within `P0-2` | P0-2 | Improves user-visible correctness before full persistence model redesign |
 | 2026-03-25 | `P0-2` closes for the initial rollout at deterministic mixed-result semantics with idempotent partial replay; deeper batch infrastructure is deferred to ATS integration work | P0-2 | Keeps the remediation scope proportional to the rollout and avoids speculative persistence redesign |
+| 2026-03-26 | The 2026-03-25 remediation closure is superseded for production-release purposes by the 2026-03-26 review refresh | P0-R1, P0-R2, P0-R3 | Controlled staging may continue, but production is blocked until the reopened items are closed |
+| 2026-03-26 | Canonical origin enforcement must reject production request-host fallback even when a request URL is available | P0-R2 | `NEXT_PUBLIC_APP_URL` becomes a required production contract for trusted public-origin generation |
+| 2026-03-26 | Durable metrics capability is not sufficient by itself; production must also enforce the durable backend and validate alert-to-paging routing | P0-R3 | Closes the gap between instrumentation availability and operable production enforcement |
 
 ---
 
@@ -430,13 +484,13 @@ Use this section to record decisions that change implementation direction during
 
 ## Release Gate
 
-Initial remediation gate is satisfied when all of the following are true:
+Production release is blocked until all of the following are true:
 
-- [x] `P0-1` is complete
-- [x] `P0-2` is complete
-- [x] `P0-3` is complete
-- [x] failure-mode tests for invite flow are passing
-- [x] env/auth startup contract is documented in operational docs
+- [x] Initial remediation gate items `P0-1`, `P0-2`, and `P0-3` remain complete
+- [ ] `P0-R1` is complete
+- [ ] `P0-R2` is complete
+- [ ] `P0-R3` is complete
+- [ ] Release-gate checklist is re-run against the 2026-03-26 production posture
 
 ---
 

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getUserMock = vi.fn();
-const createInviteMock = vi.fn();
+const createInviteBatchMock = vi.fn();
 const consumeRateLimitMock = vi.fn();
 const beginIdempotentRequestMock = vi.fn();
 const completeIdempotentRequestMock = vi.fn();
@@ -12,12 +12,16 @@ vi.mock("@/lib/supabase/server", () => ({
         auth: {
             getUser: getUserMock
         }
+    }),
+    createAdminClient: () => ({
+        rpc: vi.fn().mockResolvedValue({ data: null, error: null })
     })
 }));
 
 vi.mock("@/lib/server/infrastructure/supabase-invite-repository", () => ({
     SupabaseInviteRepository: class {
-        create = createInviteMock;
+        create = vi.fn();
+        createBatch = createInviteBatchMock;
     }
 }));
 
@@ -59,7 +63,7 @@ describe("POST /api/recruiter/invites", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
-        createInviteMock.mockResolvedValue(undefined);
+        createInviteBatchMock.mockResolvedValue(undefined);
         consumeRateLimitMock.mockResolvedValue({ allowed: true, remaining: 10, resetAt: Date.now() + 1000 });
         beginIdempotentRequestMock.mockResolvedValue({ kind: "acquired" });
         completeIdempotentRequestMock.mockResolvedValue(undefined);
@@ -83,7 +87,7 @@ describe("POST /api/recruiter/invites", () => {
 
         expect(res.status).toBe(401);
         expect(body.code).toBe("UNAUTHORIZED");
-        expect(createInviteMock).not.toHaveBeenCalled();
+        expect(createInviteBatchMock).not.toHaveBeenCalled();
     });
 
     it("returns 400 when payload is invalid", async () => {
@@ -98,7 +102,7 @@ describe("POST /api/recruiter/invites", () => {
 
         expect(res.status).toBe(400);
         expect(body.code).toBe("INVALID_REQUEST");
-        expect(createInviteMock).not.toHaveBeenCalled();
+        expect(createInviteBatchMock).not.toHaveBeenCalled();
     });
 
     it("returns 429 when rate limited", async () => {
@@ -117,7 +121,7 @@ describe("POST /api/recruiter/invites", () => {
 
         expect(res.status).toBe(429);
         expect(body.code).toBe("RATE_LIMITED");
-        expect(createInviteMock).not.toHaveBeenCalled();
+        expect(createInviteBatchMock).not.toHaveBeenCalled();
     });
 
     it("replays the saved response for a duplicate idempotency key", async () => {
@@ -142,7 +146,7 @@ describe("POST /api/recruiter/invites", () => {
 
         expect(res.status).toBe(200);
         expect(body.correlationId).toBe("corr-existing");
-        expect(createInviteMock).not.toHaveBeenCalled();
+        expect(createInviteBatchMock).not.toHaveBeenCalled();
         expect(completeIdempotentRequestMock).not.toHaveBeenCalled();
     });
 
@@ -167,7 +171,7 @@ describe("POST /api/recruiter/invites", () => {
             actorId: "user-1",
             key: "create-key-1"
         }));
-        expect(createInviteMock).toHaveBeenCalledTimes(1);
+        expect(createInviteBatchMock).toHaveBeenCalledTimes(1);
         expect(completeIdempotentRequestMock).toHaveBeenCalledWith(expect.objectContaining({
             scope: "recruiter_invites:create",
             actorId: "user-1",
@@ -176,10 +180,8 @@ describe("POST /api/recruiter/invites", () => {
         }));
     });
 
-    it("returns 207 with explicit batch failures when some invites fail", async () => {
-        createInviteMock
-            .mockResolvedValueOnce(undefined)
-            .mockRejectedValueOnce(new Error("Supabase Session Create Error: duplicate key"));
+    it("returns 207 with deterministic batch failures when the atomic batch write fails", async () => {
+        createInviteBatchMock.mockRejectedValueOnce(new Error("Supabase Invite Batch Create Error: duplicate key"));
         const { POST } = await import("./route");
 
         const req = new Request("http://localhost/api/recruiter/invites", {
@@ -203,8 +205,13 @@ describe("POST /api/recruiter/invites", () => {
         const body = await res.json();
 
         expect(res.status).toBe(207);
-        expect(body.results).toHaveLength(1);
+        expect(body.results).toEqual([]);
         expect(body.failures).toEqual([
+            expect.objectContaining({
+                status: "failed",
+                email: "candidate@example.com",
+                code: "INVITE_CREATE_FAILED",
+            }),
             expect.objectContaining({
                 status: "failed",
                 email: "patchy@example.com",
@@ -213,8 +220,8 @@ describe("POST /api/recruiter/invites", () => {
         ]);
         expect(body.summary).toEqual({
             requested: 2,
-            succeeded: 1,
-            failed: 1,
+            succeeded: 0,
+            failed: 2,
             hasFailures: true,
         });
         expect(completeIdempotentRequestMock).toHaveBeenCalledWith(expect.objectContaining({
@@ -266,7 +273,7 @@ describe("POST /api/recruiter/invites", () => {
             hasFailures: true,
         });
         expect(body.failures).toHaveLength(1);
-        expect(createInviteMock).not.toHaveBeenCalled();
+        expect(createInviteBatchMock).not.toHaveBeenCalled();
         expect(completeIdempotentRequestMock).not.toHaveBeenCalled();
     });
 
@@ -286,5 +293,26 @@ describe("POST /api/recruiter/invites", () => {
 
         expect(res.status).toBe(200);
         expect(body.results[0].link).toMatch(/^http:\/\/localhost:3000\/s\//);
+    });
+
+    it("returns 500 in production when NEXT_PUBLIC_APP_URL is missing", async () => {
+        vi.stubEnv("NODE_ENV", "production");
+        vi.stubEnv("METRICS_BACKEND", "supabase");
+        vi.stubEnv("NEXT_PUBLIC_APP_URL", "");
+        vi.stubEnv("NEXT_PUBLIC_BASE_URL", "");
+        const { POST } = await import("./route");
+
+        const req = new Request("https://untrusted.example.com/api/recruiter/invites", {
+            method: "POST",
+            headers: { "Idempotency-Key": "create-key-prod-origin" },
+            body: JSON.stringify(validPayload)
+        });
+
+        const res = await POST(req as never);
+        const body = await res.json();
+
+        expect(res.status).toBe(500);
+        expect(body.code).toBe("INTERNAL_ERROR");
+        expect(createInviteBatchMock).not.toHaveBeenCalled();
     });
 });

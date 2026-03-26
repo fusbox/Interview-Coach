@@ -1,4 +1,4 @@
-import { getOptionalServerEnv } from "@/lib/server/config/server-env";
+import { getOptionalServerEnv, isProductionServer } from "@/lib/server/config/server-env";
 import type {
     CounterMetric,
     DurableCounterRollup,
@@ -271,9 +271,22 @@ let backendInstance: DurableMetricsBackend | null | undefined;
 
 export function getMetricsBackendName(): MetricsBackendName {
     const configured = getOptionalServerEnv("METRICS_BACKEND")?.toLowerCase();
+    if (configured && configured !== "memory" && configured !== "supabase") {
+        throw new Error(`Unsupported METRICS_BACKEND value "${configured}". Expected "memory" or "supabase".`);
+    }
+
     if (configured === "supabase") {
         return "supabase";
     }
+
+    if (isProductionServer()) {
+        if (!configured) {
+            throw new Error("[ServerEnv] Missing required environment variable METRICS_BACKEND for durable metrics backend.");
+        }
+
+        throw new Error('METRICS_BACKEND must be set to "supabase" in production.');
+    }
+
     return "memory";
 }
 

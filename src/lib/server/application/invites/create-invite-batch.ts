@@ -51,42 +51,50 @@ export async function createInviteBatch(
     const repository = dependencies.repository ?? new (await import("@/lib/server/infrastructure/supabase-invite-repository")).SupabaseInviteRepository();
     const createSessionId = dependencies.createSessionId ?? (() => uuidv7());
     const createToken = dependencies.createToken ?? (() => randomBytes(16).toString("hex"));
-    const results: InviteBatchSuccess[] = [];
-    const failures: InviteBatchFailure[] = [];
-
-    for (const candidate of input.candidates) {
+    const invites = input.candidates.map((candidate) => {
         const sessionId = createSessionId();
         const token = createToken();
-        const invite = toInvite({
+        return toInvite({
             sessionId,
             token,
             input,
             candidate,
         });
+    });
 
-        try {
-            await repository.create(invite);
-            results.push({
-                status: "created",
-                id: sessionId,
-                firstName: candidate.firstName,
-                lastName: candidate.lastName,
-                email: candidate.email,
-                link: `${input.appBaseUrl}/s/${token}`,
-            });
-        } catch (error) {
-            failures.push(toFailure(candidate, error));
-        }
+    try {
+        await repository.createBatch(invites);
+    } catch (error) {
+        const failures = input.candidates.map((candidate) => toFailure(candidate, error));
+        return {
+            results: [],
+            failures,
+            summary: {
+                requested: input.candidates.length,
+                succeeded: 0,
+                failed: failures.length,
+                hasFailures: failures.length > 0,
+            },
+        };
     }
+
+    const results: InviteBatchSuccess[] = invites.map((invite) => ({
+        status: "created",
+        id: invite.id,
+        firstName: invite.candidate.firstName,
+        lastName: invite.candidate.lastName,
+        email: invite.candidate.email,
+        link: `${input.appBaseUrl}/s/${invite.token}`,
+    }));
 
     return {
         results,
-        failures,
+        failures: [],
         summary: {
             requested: input.candidates.length,
             succeeded: results.length,
-            failed: failures.length,
-            hasFailures: failures.length > 0,
+            failed: 0,
+            hasFailures: false,
         },
     };
 }

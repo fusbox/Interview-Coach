@@ -24,6 +24,10 @@ function getConfiguredOrigin(): string | undefined {
 }
 
 export function getAppOrigin(requestUrl?: string): string {
+    if (isProductionServer()) {
+        return normalizeOrigin(getRequiredServerEnv("NEXT_PUBLIC_APP_URL", "public app origin resolution"));
+    }
+
     const configuredOrigin = getConfiguredOrigin();
     if (configuredOrigin) {
         return configuredOrigin;
@@ -31,10 +35,6 @@ export function getAppOrigin(requestUrl?: string): string {
 
     if (requestUrl) {
         return normalizeOrigin(new URL(requestUrl).origin);
-    }
-
-    if (isProductionServer()) {
-        getRequiredServerEnv("NEXT_PUBLIC_APP_URL", "public app origin resolution");
     }
 
     return DEFAULT_PUBLIC_APP_ORIGIN;

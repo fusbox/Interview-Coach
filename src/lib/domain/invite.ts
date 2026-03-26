@@ -24,5 +24,6 @@ export interface Invite {
 
 export interface InviteRepository {
     create(invite: Invite): Promise<void>;
+    createBatch(invites: Invite[]): Promise<void>;
     getByToken(token: string): Promise<Invite | null>;
 }

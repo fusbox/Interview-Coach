@@ -3,6 +3,7 @@
 Date: 2026-03-25  
 Primary tracker: [production_remediation_tracker_2026-03-25.md](./production_remediation_tracker_2026-03-25.md)  
 Primary execution plan: [production_remediation_plan_2026-03-25.md](./production_remediation_plan_2026-03-25.md)
+Current release checklist: [production_deployment_validation_checklist_2026-03-26.md](./production_deployment_validation_checklist_2026-03-26.md)
 
 ---
 
@@ -18,6 +19,63 @@ Use it when:
 - verifying that completed remediation work also updated tests and docs
 
 This runbook is complementary to the operational incident runbook. It is about governance and execution discipline, not live incident response.
+
+---
+
+## Current Release Run Sequence
+
+Use this sequence for the 2026-03-26 production-gate reopen work.
+
+Primary operator checklist:
+
+- [production_deployment_validation_checklist_2026-03-26.md](./production_deployment_validation_checklist_2026-03-26.md)
+
+Run in this order:
+
+1. Preconditions and ownership
+- record the release candidate SHA
+- name the validation owner
+- confirm Supabase, deployment, and paging access before any rollout step
+
+2. Migration rollout
+- apply [20260326_add_atomic_invite_batch.sql](../../supabase/migrations/20260326_add_atomic_invite_batch.sql)
+- verify `public.create_invite_batch(...)` exists and is callable
+- stop immediately if the migration or RPC validation fails
+
+3. Production contract review
+- confirm `NEXT_PUBLIC_APP_URL` is explicitly set
+- confirm `METRICS_BACKEND=supabase`
+- confirm `RATE_LIMIT_BACKEND=supabase`
+- do not continue if any production contract still relies on fallback behavior
+
+4. Post-deploy smoke validation
+- create a recruiter invite and inspect the generated link origin
+- validate resend uses the same canonical origin
+- validate atomic multi-candidate invite creation on the deployed build
+- open `/api/recruiter/ops/metrics` and confirm durable counters and `sloSummary`
+
+5. Failure-mode evidence
+- capture proof that production-like startup fails without `NEXT_PUBLIC_APP_URL`
+- capture proof that production-like startup fails without `METRICS_BACKEND` or with `METRICS_BACKEND=memory`
+- validate that a controlled failing invite batch does not leave mixed persisted state
+
+6. Paging exercise
+- trigger one safe alerting scenario
+- confirm alert emission, pager delivery, responder acknowledgement, and incident-note capture
+- keep `P0-R3` open if paging delivery is not objectively confirmed
+
+7. Release-gate closeout
+- rerun [release-gate-checklist.md](./release-gate-checklist.md)
+- update [production_remediation_tracker_2026-03-25.md](./production_remediation_tracker_2026-03-25.md)
+- record the new production recommendation
+
+Stop conditions:
+
+- migration fails
+- required env contract is missing
+- origin smoke shows request-host-derived links
+- invite failure-mode validation shows partial persisted state
+- paging validation does not reach the responder
 
 ---
 
@@ -183,5 +241,6 @@ Use this at the end of each weekly review.
 - [production_remediation_plan_2026-03-25.md](./production_remediation_plan_2026-03-25.md)
 - [production_remediation_issue_breakdown_2026-03-25.md](./production_remediation_issue_breakdown_2026-03-25.md)
 - [production_remediation_tracker_2026-03-25.md](./production_remediation_tracker_2026-03-25.md)
+- [production_deployment_validation_checklist_2026-03-26.md](./production_deployment_validation_checklist_2026-03-26.md)
 - [release-gate-checklist.md](./release-gate-checklist.md)
 - [incident_runbook.md](./incident_runbook.md)

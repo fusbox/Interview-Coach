@@ -60,8 +60,8 @@ This document defines the current alert rules, routing, and operator intent for 
 
 ## Current Limitations
 
-- Metrics are in-process only and reset when the app process restarts.
-- Alerting is currently policy-driven and queryable through the ops snapshot endpoint; external paging integration is still pending.
+- Production still requires explicit durable-backend enforcement; `METRICS_BACKEND` can currently default to memory unless the deployment contract is tightened.
+- Alerting is currently policy-driven and queryable through the ops snapshot endpoint; external paging integration validation is still pending.
 - These thresholds are intentionally conservative and should be recalibrated once durable metrics history exists.
 
 ## Durable Metrics Transition Note
@@ -70,6 +70,7 @@ This document defines the current alert rules, routing, and operator intent for 
 - The first implementation slice has landed the durable backend abstraction and Supabase rollup migration.
 - The recruiter ops metrics route now reads the durable-aware snapshot helper.
 - Durable counter and timing rollups have been validated in production.
+- Production release should still remain blocked until the deployment contract enforces the durable backend and the alert-to-paging route is validated.
 - Thresholds should still be treated as provisional until the minimum SLO set is finalized and enough durable history exists for recalibration.
 
 ## SLO Alignment Note
