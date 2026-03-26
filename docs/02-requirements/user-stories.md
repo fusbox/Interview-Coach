@@ -6,7 +6,7 @@
 |---------|------|--------|---------|
 | 0.1 | 2025-01-29 | Fu Chen | Initial draft |
 | 0.2 | 2025-03-19 | Fu Chen | Epics 1 & 2 - scope & implementation updates |
-| 0.3 | 2026-03-20 | Codex | Added missing acceptance criteria and aligned completion status to current implementation |
+| 0.3 | 2026-03-20 | Fu Chen | Added missing acceptance criteria and aligned completion status to current implementation |
 
 ---
 

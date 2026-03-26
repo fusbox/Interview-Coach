@@ -12,7 +12,7 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
 - Production release status: `Remediation gate satisfied for the initial hardening scope`
 - Controlled staging status: `Allowed`
 - Active phase: `Remediation complete; follow-on work is normal quality/architecture improvement`
-- Last updated by: `Codex`
+- Last updated by: `Fu Chen`
 
 ---
 
