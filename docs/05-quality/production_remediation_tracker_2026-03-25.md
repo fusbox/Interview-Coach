@@ -9,9 +9,9 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
 
 ## Overall Status
 
-- Production release status: `Blocked`
-- Controlled staging status: `Allowed with risk acceptance`
-- Active phase: `Phase 1 / Execution`
+- Production release status: `Remediation gate satisfied for the initial hardening scope`
+- Controlled staging status: `Allowed`
+- Active phase: `Phase 4 / P1-4 operability baseline`
 - Last updated by: `Codex`
 
 ---
@@ -20,8 +20,8 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
 
 | Severity | Total | Not Started | In Progress | Blocked | Done |
 |----------|-------|-------------|-------------|---------|------|
-| P0 | 3 | 0 | 1 | 0 | 2 |
-| P1 | 4 | 3 | 0 | 0 | 1 |
+| P0 | 3 | 0 | 0 | 0 | 3 |
+| P1 | 4 | 0 | 1 | 0 | 3 |
 | P2 | 2 | 2 | 0 | 0 | 0 |
 
 ---
@@ -30,13 +30,13 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
 
 | ID | Title | Severity | Owner | Sprint | Status | Dependencies | Notes |
 |----|-------|----------|-------|--------|--------|--------------|-------|
-| P0-1 | Replace process-local rate limiting | P0 | Platform / backend | Sprint 1 | In Progress | backend choice | Supabase/Postgres backend selected; abstraction, async consumers, and migration landed locally |
+| P0-1 | Replace process-local rate limiting | P0 | Platform / backend | Sprint 1 | Done | backend choice | Supabase/Postgres backend selected; abstraction, async consumers, migration rollout, and deployed recruiter/candidate 429 smoke tests completed |
 | P0-2 | Make invite creation deterministic under partial failure | P0 | Backend / application layer | Sprint 2 | Done | P0-3, consistency model decision | Initial-rollout stop point reached: deterministic mixed-result semantics, recruiter-visible failures, and idempotent partial replay |
 | P0-3 | Add production fail-fast for auth and required server env | P0 | Platform / backend | Sprint 1 | Done | env inventory | Privileged env/auth seams now use the server env contract; remaining URL-origin cleanup belongs to `P1-1` |
 | P1-1 | Centralize canonical app origin resolution | P1 | Backend / platform | Sprint 1 | Done | P0-3 | Shared origin helper, server email adoption, and resend preview alignment landed |
-| P1-2 | Remove residual hardcoded business defaults | P1 | Frontend / product engineering | Sprint 3 | Not Started | none | Can proceed in parallel once config policy is agreed |
-| P1-3 | Tighten runtime schemas | P1 | Backend / AI contracts | Sprint 3 | Not Started | feedback-chain coordination | Prioritize provider and domain contracts before export/debug surfaces |
-| P1-4 | Land durable metrics path and SLO base layer | P1 | Platform / ops | Sprint 4 | Not Started | metrics backend decision | Start design in Sprint 2 even if implementation lands later |
+| P1-2 | Remove residual hardcoded business defaults | P1 | Frontend / product engineering | Sprint 3 | Done | none | Recruiter/business fallback policy is now centralized in shared config and consumed by recruiter signature flows |
+| P1-3 | Tighten runtime schemas | P1 | Backend / AI contracts | Sprint 3 | Done | feedback-chain coordination | Shared request contracts consolidated, provider malformed-response path typed, and critical route/service seams covered |
+| P1-4 | Land durable metrics path and SLO base layer | P1 | Platform / ops | Sprint 4 | In Progress | metrics backend decision | Baseline confirmed: metrics are stored in process-local `globalThis` state and exposed through the ops route, so they do not survive restart or support multi-instance aggregation |
 | P2-1 | Continue route-to-application-service extraction | P2 | Backend / architecture | Sprint 3 | Not Started | P0-2 pattern established | Invite flows become the reference implementation |
 | P2-2 | Add accessibility automation for critical flows | P2 | Frontend / QA | Sprint 4 | Not Started | stable flow surfaces | Recruiter create and candidate session flows first |
 
@@ -48,7 +48,7 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
 
 - Tracker created from the 2026-03-25 production-readiness review.
 - Recommended owners and sprint targets assigned for planning purposes.
-- Production remains blocked on P0 completion.
+- Initial production status was blocked on P0 completion.
 
 ### 2026-03-25 (Planning Baseline)
 
@@ -120,6 +120,20 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
   - update ops/runbook docs for backend selection and migration rollout
   - validate migration/application path in deployed environments
 
+### 2026-03-25 (P0-1 Completed)
+
+- `P0-1` moved to `Done`.
+- Confirmed shared rate-limit database path in Supabase production:
+  - `public.rate_limit_buckets`
+  - `public.consume_rate_limit_bucket(...)`
+- Validated deployed recruiter-route throttling:
+  - `POST /api/recruiter/invites`
+  - observed 10 allowed responses and 1 `429 RATE_LIMITED` response within the configured window
+- Validated deployed candidate/public-route throttling:
+  - `POST /api/session/start`
+  - observed 10 allowed responses and 1 `429 RATE_LIMITED` response within the configured window
+- `P0` production blockers are now closed at the code, test, database, and deployed smoke-test level.
+
 ### 2026-03-25 (P0-2 Completed)
 
 - `P0-2` moved to `Done`.
@@ -142,6 +156,127 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
   - all-or-nothing transaction semantics
   - retry-failed-only tooling tied to future ATS integration
 
+### 2026-03-25 (Phase 2 Started)
+
+- Active phase moved to the remaining `P1`/`P2` backlog.
+- `P1-2` moved to `In Progress`.
+- First execution slice:
+  - added `src/lib/config/recruiter-defaults.ts`
+  - updated `src/lib/recruiter-signature.ts` to consume shared recruiter/business defaults
+  - removed recruiter create-flow company fallback literal in `src/app/(recruiter)/recruiter/create/page.tsx`
+- Phase 2 active board added:
+  - `docs/05-quality/production_remediation_phase2_board_2026-03-25.md`
+
+### 2026-03-25 (P1-2 Completed / P1-3 Started)
+
+- `P1-2` moved to `Done`.
+- Removed the last recruiter create-flow identity fallback literal by sourcing the default recruiter name from shared config:
+  - `src/app/(recruiter)/recruiter/create/page.tsx`
+- `P1-3` moved to `In Progress`.
+- First schema-tightening slice landed in shared domain and tips contracts:
+  - `src/lib/domain/schemas.ts`
+  - `src/lib/server/services/tips-service.ts`
+- Replaced broad `z.any()` usage in the first pass with permissive structured schemas for:
+  - competencies
+  - scoring dimensions
+  - rating bands
+- Tightened the answer-submit route boundary to use the shared analysis schema:
+  - `src/app/api/session/[session_id]/questions/[question_id]/submit/route.ts`
+- Added focused regression coverage for invalid analysis payload rejection:
+  - `src/app/api/session/[session_id]/questions/[question_id]/submit/route.test.ts`
+- Tightened the recruiter template repository boundary by validating persisted template question payloads:
+  - `src/lib/server/infrastructure/supabase-template-repository.ts`
+- Replaced the duplicated strong-response route request schema with a shared domain schema:
+  - `src/lib/domain/schemas.ts`
+  - `src/app/api/response/generate/route.ts`
+- Added focused route coverage for the shared strong-response request schema:
+  - `src/app/api/response/generate/route.test.ts`
+- Replaced the duplicated question-generation route request schema with a shared domain schema:
+  - `src/lib/domain/schemas.ts`
+  - `src/app/api/questions/generate/route.ts`
+- Unified the tips request contract by removing service/domain duplication and moving the route onto a shared domain request schema:
+  - `src/lib/domain/schemas.ts`
+  - `src/lib/server/services/tips-service.ts`
+  - `src/app/api/tips/generate/route.ts`
+- Added focused route coverage for the shared tips request schema:
+  - `src/app/api/tips/generate/route.test.ts`
+- Verified the analysis route now uses the shared domain request schema and aligned its focused tests to the current auth path:
+  - `src/lib/domain/schemas.ts`
+  - `src/app/api/analysis/route.ts`
+  - `src/app/api/analysis/route.test.ts`
+- Replaced the duplicated invite send and invite resend route request schemas with shared domain schemas:
+  - `src/lib/domain/schemas.ts`
+  - `src/app/api/invite/send/route.ts`
+  - `src/app/api/invite/resend/route.ts`
+- Added focused resend-route coverage for the shared invite resend request schema:
+  - `src/app/api/invite/resend/route.test.ts`
+- Replaced the duplicated question retry and question analysis route request schemas with shared domain schemas:
+  - `src/lib/domain/schemas.ts`
+  - `src/app/api/session/[session_id]/questions/[question_id]/retry/route.ts`
+  - `src/app/api/session/[session_id]/questions/[question_id]/analysis/route.ts`
+- Verified focused retry and question-analysis route coverage after the shared-schema consolidation:
+  - `src/app/api/session/[session_id]/questions/[question_id]/retry/route.test.ts`
+  - `src/app/api/session/[session_id]/questions/[question_id]/analysis/route.test.ts`
+- Replaced the duplicated TTS route request schema with a shared domain schema:
+  - `src/lib/domain/schemas.ts`
+  - `src/app/api/tts/route.ts`
+- Replaced the duplicated recruiter invite-create route request schema with a shared domain schema:
+  - `src/lib/domain/schemas.ts`
+  - `src/app/api/recruiter/invites/route.ts`
+- Replaced the duplicated answer-submit route request schema with a shared domain schema:
+  - `src/lib/domain/schemas.ts`
+  - `src/app/api/session/[session_id]/questions/[question_id]/submit/route.ts`
+- Enriched the shared provider malformed-response path with explicit error kinds:
+  - `src/lib/server/provider-errors.ts`
+  - `src/lib/server/provider-response.ts`
+- Updated AI-service fallback handling to distinguish malformed provider output from runtime failures in logs and metrics:
+  - `src/lib/server/services/ai-service.ts`
+- Added focused provider/AI malformed-response coverage:
+  - `src/lib/server/services/provider-response.test.ts`
+  - `src/lib/server/services/ai-service.test.ts`
+- Propagated malformed-response classification through the remaining provider-backed services and question-generation route:
+  - `src/lib/server/services/strong-response-service.ts`
+  - `src/lib/server/services/tips-service.ts`
+  - `src/lib/server/services/email-service.ts`
+  - `src/app/api/questions/generate/route.ts`
+- Added focused classification coverage for those seams:
+  - `src/lib/server/services/strong-response-service.test.ts`
+  - `src/lib/server/services/tips-service.test.ts`
+  - `src/lib/server/services/email-service.test.ts`
+  - `src/app/api/questions/generate/route.provider.test.ts`
+- Intentionally kept the draft-save request payload local:
+  - `src/app/api/session/[session_id]/questions/[question_id]/answer/route.ts`
+  - rationale: it is a one-off route-local persistence DTO rather than a shared contract, so promoting it would add indirection without reducing meaningful drift
+
+### 2026-03-25 (P1-3 Completed / P1-4 Started)
+
+- `P1-3` moved to `Done`.
+- Closure rationale:
+  - no remaining `z.any()` usage surfaced in `src`
+  - critical request-schema drift on live recruiter/candidate routes was consolidated into shared domain schemas
+  - malformed provider output is now classified consistently as typed `ProviderResponseError` kinds and tracked as `malformed_response` across the critical AI/service/route seams
+  - the remaining local draft-save payload is intentionally route-local and not worth centralizing
+- `P1-4` moved to `In Progress`.
+- Baseline assessment completed for the current metrics path:
+  - `src/lib/server/metrics.ts` stores counters/timings in process-local `globalThis` maps
+  - `src/app/api/recruiter/ops/metrics/route.ts` exposes that in-memory snapshot and derived dashboard
+  - current metrics reset on process restart and cannot aggregate across instances
+  - current operations dashboard does not yet provide durable incident-correlation support
+- Bounded `P1-4` design note added:
+  - `docs/05-quality/durable_metrics_plan_2026-03-25.md`
+  - recommendation: dual-write with Postgres/Supabase durable rollups while preserving the current instrumentation surface
+- First `P1-4` implementation slice landed:
+  - `src/lib/server/metrics/backend.ts`
+  - `src/lib/server/metrics/types.ts`
+  - `src/lib/server/metrics.ts`
+  - `src/app/api/recruiter/ops/metrics/route.ts`
+  - `supabase/migrations/20260325_add_metrics_rollups.sql`
+- Current slice status:
+  - existing metric call sites still write to in-memory state
+  - optional Supabase durable sink is now available behind `METRICS_BACKEND=supabase`
+  - recruiter ops metrics route now reads the durable-aware snapshot helper
+  - focused metrics backend and ops-route tests landed
+
 ### 2026-__-__
 
 - Add status update here.
@@ -162,6 +297,7 @@ Use this section to record decisions that change implementation direction during
 | 2026-03-25 | Canonical public-origin resolution will prefer `NEXT_PUBLIC_APP_URL`, then `NEXT_PUBLIC_BASE_URL`, then request origin for non-production request-scoped flows | P1-1 | Keeps existing behavior compatible while removing route-local divergence |
 | 2026-03-25 | Production public-origin resolution will fail fast without configured origin instead of trusting request-host fallback | P1-1 | Covers the untrusted-host concern without adding a separate allowlist system in this slice |
 | 2026-03-25 | Shared rate limiting will use Supabase/Postgres in production/staging and memory only in local/test | P0-1 | Avoids adding Redis infrastructure during the initial hardening wave |
+| 2026-03-25 | `P0-1` closes only after deployed recruiter and candidate routes both return `429 RATE_LIMITED` under load against the shared limiter | P0-1 | Prevents false closure based on local tests or migration-only rollout |
 | 2026-03-25 | Invite batch creation will surface deterministic mixed results immediately, with deeper transaction/batch-record semantics evaluated as a follow-on within `P0-2` | P0-2 | Improves user-visible correctness before full persistence model redesign |
 | 2026-03-25 | `P0-2` closes for the initial rollout at deterministic mixed-result semantics with idempotent partial replay; deeper batch infrastructure is deferred to ATS integration work | P0-2 | Keeps the remediation scope proportional to the rollout and avoids speculative persistence redesign |
 
@@ -177,13 +313,13 @@ Use this section to record decisions that change implementation direction during
 
 ## Release Gate
 
-Production remains blocked until all of the following are true:
+Initial remediation gate is satisfied when all of the following are true:
 
-- [ ] `P0-1` is complete
-- [ ] `P0-2` is complete
-- [ ] `P0-3` is complete
-- [ ] failure-mode tests for invite flow are passing
-- [ ] env/auth startup contract is documented in operational docs
+- [x] `P0-1` is complete
+- [x] `P0-2` is complete
+- [x] `P0-3` is complete
+- [x] failure-mode tests for invite flow are passing
+- [x] env/auth startup contract is documented in operational docs
 
 ---
 

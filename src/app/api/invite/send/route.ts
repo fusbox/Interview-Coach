@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
+import { InviteSendRequestSchema } from "@/lib/domain/schemas";
 import { EmailService } from "@/lib/server/services/email-service";
 import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-session-repository";
 import { createClient } from "@/lib/supabase/server";
@@ -13,26 +13,6 @@ const sessionRepo = new SupabaseSessionRepository();
 const WINDOW_MS = 5 * 60 * 1000;
 const MAX_IP_REQUESTS = 20;
 const MAX_USER_REQUESTS = 30;
-
-const InviteSendSchema = z.object({
-    recipientEmail: z.string().email().optional(),
-    recipientEmails: z.array(z.string().email()).max(50).optional(),
-    recipientFirstName: z.string().trim().min(1),
-    role: z.string().trim().min(1),
-    inviteLink: z.string().url(),
-    recruiterName: z.string().trim().min(1),
-    recruiterTitle: z.string().trim().optional(),
-    recruiterCompany: z.string().trim().optional(),
-    recruiterPhone: z.string().trim().optional(),
-    recruiterEmail: z.string().email().optional(),
-    sessionIds: z.array(z.string().min(1)).max(50).optional()
-}).superRefine((value, ctx) => {
-    const direct = value.recipientEmail ? [value.recipientEmail] : [];
-    const fromArray = value.recipientEmails || [];
-    if (direct.length + fromArray.length === 0) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "At least one recipient email is required" });
-    }
-});
 
 function requestIp(req: NextRequest): string {
     const forwarded = req.headers.get('x-forwarded-for');
@@ -95,7 +75,7 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const parseResult = InviteSendSchema.safeParse(body);
+        const parseResult = InviteSendRequestSchema.safeParse(body);
         if (!parseResult.success) {
             incrementMetric("invite_send_total", { outcome: "invalid_request" });
             observeMetric("invite_send_duration_ms", Date.now() - startedAt, { outcome: "invalid_request" });

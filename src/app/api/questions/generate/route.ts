@@ -1,8 +1,7 @@
 "use server";
 
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { GeneratedInterviewQuestionsSchema } from "@/lib/domain/schemas";
+import { GenerateQuestionsRequestSchema, GeneratedInterviewQuestionsSchema } from "@/lib/domain/schemas";
 import { ai, AI_MODELS } from "@/lib/server/services/ai-config";
 import { getReadingLevelContext } from "@/lib/ai/prompts";
 import {
@@ -16,14 +15,10 @@ import { incrementMetric, observeMetric, recordAuthDenial } from "@/lib/server/m
 import { createClient } from "@/lib/supabase/server";
 import { parseProviderJson } from "@/lib/server/provider-response";
 import { createServerLogger } from "@/lib/server/server-logger";
+import { ProviderResponseError } from "@/lib/server/provider-errors";
 
 const WINDOW_MS = 5 * 60 * 1000;
 const MAX_QUESTION_GENERATION_REQUESTS = 15;
-const GenerateQuestionsRequestSchema = z.object({
-    role: z.string().trim().min(1, "Role is required"),
-    jobDescription: z.string().trim().optional(),
-    resume: z.string().trim().optional()
-});
 
 export async function POST(req: NextRequest) {
     const correlationId = createCorrelationId();
@@ -176,17 +171,21 @@ RULES:
         return NextResponse.json(result);
 
     } catch (error) {
+        const outcome = error instanceof ProviderResponseError ? "malformed_response" : "error";
         routeLogger.error("Question generation failed", {
             error,
-            errorCode: "QUESTION_GENERATION_FAILED"
+            errorCode: "QUESTION_GENERATION_FAILED",
+            provider: error instanceof ProviderResponseError ? error.provider : "gemini",
+            operation: error instanceof ProviderResponseError ? error.operation : "generateQuestions",
+            providerErrorKind: error instanceof ProviderResponseError ? error.kind : undefined
         });
         incrementMetric("ai_requests_total", {
             operation: "question_generation",
-            outcome: "error"
+            outcome
         });
         observeMetric("ai_request_duration_ms", Date.now() - startedAt, {
             operation: "question_generation",
-            outcome: "error"
+            outcome
         });
         return internalErrorResponse(correlationId);
     }

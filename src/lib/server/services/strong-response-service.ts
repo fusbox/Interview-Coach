@@ -6,6 +6,7 @@ import { ai, AI_MODELS } from "./ai-config";
 import { getReadingLevelContext } from "@/lib/ai/prompts";
 import { parseProviderJson } from "@/lib/server/provider-response";
 import { incrementMetric, observeMetric } from "@/lib/server/metrics";
+import { ProviderResponseError } from "@/lib/server/provider-errors";
 
 export class StrongResponseService {
     static async generateStrongResponse(
@@ -99,9 +100,15 @@ Return strictly JSON matching this structure:
             return parsedData;
 
         } catch (error) {
-            Logger.error("[StrongResponseService] Generation Failed", error);
-            incrementMetric("ai_requests_total", { operation: "strong_response", outcome: "error" });
-            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "strong_response", outcome: "error" });
+            const outcome = error instanceof ProviderResponseError ? "malformed_response" : "error";
+            Logger.error("[StrongResponseService] Generation Failed", {
+                error,
+                provider: error instanceof ProviderResponseError ? error.provider : "gemini",
+                operation: error instanceof ProviderResponseError ? error.operation : "generateStrongResponse",
+                providerErrorKind: error instanceof ProviderResponseError ? error.kind : undefined
+            });
+            incrementMetric("ai_requests_total", { operation: "strong_response", outcome });
+            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "strong_response", outcome });
             throw error;
         }
     }

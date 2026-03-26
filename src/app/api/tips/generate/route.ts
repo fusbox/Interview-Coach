@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { TipsService, GenerateTipsSchema } from "@/lib/server/services/tips-service";
+import { GenerateTipsRequestSchema } from "@/lib/domain/schemas";
+import { TipsService } from "@/lib/server/services/tips-service";
 import { Logger } from "@/lib/logger";
 import {
     createCorrelationId,
@@ -8,13 +9,9 @@ import {
 } from "@/lib/server/api-errors";
 import { enforceIpRateLimit } from "@/lib/server/abuse-protection";
 import { authorizeCandidateSessionRequest } from "@/lib/server/candidate-route-auth";
-import { z } from "zod";
 
 const WINDOW_MS = 5 * 60 * 1000;
 const MAX_TIPS_REQUESTS = 30;
-const GenerateTipsRequestSchema = GenerateTipsSchema.extend({
-    sessionId: z.string().min(1, "Session is required")
-});
 
 export async function POST(req: NextRequest) {
     const correlationId = createCorrelationId();

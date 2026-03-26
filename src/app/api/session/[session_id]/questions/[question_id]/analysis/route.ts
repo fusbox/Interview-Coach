@@ -4,20 +4,14 @@ import { AIService } from "@/lib/server/services/ai-service";
 import { getAnalysisContext } from "@/lib/server/session/orchestrator";
 import { SessionStatus } from "@/lib/domain/types";
 import { validatedSessionHandler } from "@/lib/server/api-handler-utils";
+import { QuestionAnalysisRequestSchema } from "@/lib/domain/schemas";
 import {
     notFoundResponse,
     validationErrorResponse
 } from "@/lib/server/api-errors";
 import { transitionSessionStatus } from "@/lib/domain/session-state-machine";
-import { z } from "zod";
 
 const repository = new SupabaseSessionRepository();
-const QuestionAnalysisRequestSchema = z.object({
-    audioData: z.object({
-        base64: z.string().min(1),
-        mimeType: z.string().min(1)
-    }).nullable().optional()
-});
 
 export async function POST(
     request: Request,

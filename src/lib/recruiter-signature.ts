@@ -1,3 +1,9 @@
+import {
+    DEFAULT_RECRUITER_COMPANY,
+    DEFAULT_RECRUITER_NAME,
+    DEFAULT_RECRUITER_TITLE,
+} from "@/lib/config/recruiter-defaults";
+
 export interface RecruiterSignatureInput {
     name?: string | null;
     title?: string | null;
@@ -22,9 +28,9 @@ export function normalizeRecruiterSignature(input: RecruiterSignatureInput): Rec
     const email = input.email?.trim();
 
     return {
-        name: name || "Recruiter",
-        title: title || "Recruiter",
-        company: company || "Rangam Consultants Inc.",
+        name: name || DEFAULT_RECRUITER_NAME,
+        title: title || DEFAULT_RECRUITER_TITLE,
+        company: company || DEFAULT_RECRUITER_COMPANY,
         phone: phone || "",
         email: email || "",
     };

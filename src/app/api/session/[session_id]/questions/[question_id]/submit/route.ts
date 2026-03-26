@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { submitAnswer } from "@/lib/server/session/orchestrator";
 import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-session-repository";
-import { z } from "zod";
 import { validatedSessionHandler } from "@/lib/server/api-handler-utils";
+import { SubmitAnswerRequestSchema } from "@/lib/domain/schemas";
 import {
     errorResponse,
     validationErrorResponse
@@ -24,10 +24,7 @@ export async function POST(
     return validatedSessionHandler(request, resolvedParams, async (req, { session, correlationId }) => {
         const idempotencyKey = req.headers.get("Idempotency-Key")?.trim() || null;
         const body = await req.json();
-        const parseResult = z.object({
-            text: z.string(),
-            analysis: z.any().optional()
-        }).safeParse(body);
+        const parseResult = SubmitAnswerRequestSchema.safeParse(body);
 
         if (!parseResult.success) {
             return validationErrorResponse(correlationId);

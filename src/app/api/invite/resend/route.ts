@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
+import { InviteResendRequestSchema } from "@/lib/domain/schemas";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-session-repository";
 import { EmailService } from "@/lib/server/services/email-service";
@@ -14,15 +14,6 @@ const sessionRepo = new SupabaseSessionRepository();
 const WINDOW_MS = 5 * 60 * 1000;
 const MAX_IP_REQUESTS = 20;
 const MAX_USER_REQUESTS = 30;
-
-const InviteResendSchema = z.object({
-    sessionId: z.string().min(1),
-    recruiterName: z.string().trim().min(1),
-    recruiterTitle: z.string().trim().optional(),
-    recruiterCompany: z.string().trim().optional(),
-    recruiterPhone: z.string().trim().optional(),
-    recruiterEmail: z.string().email().optional(),
-});
 
 function requestIp(req: NextRequest): string {
     const forwarded = req.headers.get("x-forwarded-for");
@@ -79,7 +70,7 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const parseResult = InviteResendSchema.safeParse(body);
+        const parseResult = InviteResendRequestSchema.safeParse(body);
 
         if (!parseResult.success) {
             incrementMetric("invite_send_total", { outcome: "invalid_request" });

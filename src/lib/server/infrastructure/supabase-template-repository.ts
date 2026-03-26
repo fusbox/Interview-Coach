@@ -1,8 +1,24 @@
 import { createClient } from "@/lib/supabase/server";
 import { RecruiterTemplate, TemplateRepository } from "@/lib/domain/template";
-import { QuestionInput } from "@/app/(recruiter)/recruiter/create/constants";
+import { z } from "zod";
 
 import { SupabaseClient } from '@supabase/supabase-js';
+
+const QuestionInputSchema = z.object({
+    id: z.string(),
+    text: z.string(),
+    category: z.string(),
+    label: z.string(),
+    isLocked: z.boolean().optional(),
+});
+
+const TemplateQuestionsSchema = z.object({
+    star: z.array(QuestionInputSchema),
+    perma: z.array(QuestionInputSchema),
+    technical: z.array(QuestionInputSchema),
+});
+
+type TemplateQuestions = z.infer<typeof TemplateQuestionsSchema>;
 
 export class SupabaseTemplateRepository implements TemplateRepository {
     private client: SupabaseClient | null = null;
@@ -70,7 +86,7 @@ export class SupabaseTemplateRepository implements TemplateRepository {
             name?: string;
             is_shared?: boolean;
             target_role?: string;
-            questions?: unknown; // Supabase JSONB
+            questions?: TemplateQuestions;
         } = {};
         if (updates.name !== undefined) dataToUpdate.name = updates.name;
         if (updates.isShared !== undefined) dataToUpdate.is_shared = updates.isShared;
@@ -96,21 +112,22 @@ export class SupabaseTemplateRepository implements TemplateRepository {
         name: string;
         is_shared: boolean;
         target_role: string;
-        questions: {
-            star: QuestionInput[];
-            perma: QuestionInput[];
-            technical: QuestionInput[];
-        };
+        questions: unknown;
         created_at: string;
         updated_at: string;
     }): RecruiterTemplate {
+        const questionsResult = TemplateQuestionsSchema.safeParse(row.questions);
+        if (!questionsResult.success) {
+            throw new Error("Supabase Template Read Error: Template questions payload is invalid");
+        }
+
         return {
             id: row.id,
             recruiterId: row.recruiter_id,
             name: row.name,
             isShared: row.is_shared,
             targetRole: row.target_role,
-            questions: row.questions,
+            questions: questionsResult.data,
             createdAt: row.created_at,
             updatedAt: row.updated_at,
         };

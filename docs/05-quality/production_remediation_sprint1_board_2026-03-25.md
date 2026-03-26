@@ -47,7 +47,7 @@ Acceptance criteria:
 ### 3. P0-1: Shared Rate Limiting
 
 Owner: Platform / backend  
-Status: In Progress
+Status: Done
 
 Primary deliverables:
 - backend abstraction
@@ -150,11 +150,11 @@ Mitigation:
 
 Sprint 1 is complete only when:
 
-- [ ] `P0-3` is done
-- [ ] `P1-1` is done
-- [ ] `P0-1` is done
-- [ ] tests for these items are merged and passing
-- [ ] tracker and runbook docs are updated with outcomes
+- [x] `P0-3` is done
+- [x] `P1-1` is done
+- [x] `P0-1` is done
+- [x] tests for these items are merged and passing
+- [x] tracker and runbook docs are updated with outcomes
 
 ### Progress Snapshot
 
@@ -164,15 +164,16 @@ Sprint 1 is complete only when:
 - `P1-1` completed:
   - canonical origin helper
   - invite/resend/email/previews aligned
-- `P0-1` in progress:
+- `P0-1` completed:
   - Supabase/Postgres backend selected
   - async limiter abstraction landed
-  - migration added
+  - migration applied and database path validated
   - focused route coverage passing locally
+  - deployed recruiter and candidate `429 RATE_LIMITED` smoke tests passed
 
 If any item above is incomplete:
 
-- [ ] Sprint 2 may plan `P0-2`, but production remains blocked
+- [x] Condition cleared on 2026-03-25; Sprint 1 exit criteria are satisfied
 
 ### Sprint 2 Planning Note
 

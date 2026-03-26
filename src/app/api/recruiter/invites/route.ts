@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { uuidv7 } from "uuidv7";
 import { randomBytes } from "crypto";
-import { z } from "zod";
 import { errorResponse } from "@/lib/server/api-errors";
 import {
     beginIdempotentRequest,
@@ -15,29 +14,13 @@ import { createClient } from "@/lib/supabase/server";
 import { createServerLogger } from "@/lib/server/server-logger";
 import { getAppOrigin } from "@/lib/server/url/get-app-origin";
 import { createInviteBatch } from "@/lib/server/application/invites/create-invite-batch";
+import { CreateInviteRequestSchema } from "@/lib/domain/schemas";
 
 const repository = new SupabaseInviteRepository();
 const IDEMPOTENCY_SCOPE = "recruiter_invites:create";
 const WINDOW_MS = 5 * 60 * 1000;
 const MAX_IP_REQUESTS = 10;
 const MAX_USER_REQUESTS = 20;
-
-const CreateInviteSchema = z.object({
-    role: z.string().trim().min(1),
-    jobDescription: z.string().optional(),
-    candidates: z.array(z.object({
-        firstName: z.string().trim().min(1),
-        lastName: z.string().trim().min(1),
-        email: z.string().email(),
-        reqId: z.string().trim().min(1),
-        resumeText: z.string().optional()
-    })).min(1).max(50),
-    questions: z.array(z.object({
-        text: z.string().trim().min(1),
-        category: z.string().trim().min(1),
-        index: z.number().int().min(0)
-    })).min(1)
-});
 
 function requestIp(req: NextRequest): string {
     const forwarded = req.headers.get("x-forwarded-for");
@@ -80,7 +63,7 @@ export async function POST(request: NextRequest) {
         userId = user.id;
 
         const rawBody = await request.json();
-        const parseResult = CreateInviteSchema.safeParse(rawBody);
+        const parseResult = CreateInviteRequestSchema.safeParse(rawBody);
         if (!parseResult.success) {
             incrementMetric("recruiter_invite_create_total", { outcome: "invalid_request" });
             observeMetric("recruiter_invite_create_duration_ms", Date.now() - startedAt, { outcome: "invalid_request" });

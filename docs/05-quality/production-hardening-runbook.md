@@ -137,6 +137,15 @@ Update:
 - [../04-architecture/api-surface.md](../04-architecture/api-surface.md)
 - [../04-architecture/gate-decisions.md](../04-architecture/gate-decisions.md) if trust-sensitive behavior changed
 
+### If metrics durability or SLO wiring changes
+
+Update:
+
+- [ops_alert_policy.md](./ops_alert_policy.md)
+- [release-gate-checklist.md](./release-gate-checklist.md)
+- [production_remediation_tracker_2026-03-25.md](./production_remediation_tracker_2026-03-25.md)
+- [production_remediation_issue_breakdown_2026-03-25.md](./production_remediation_issue_breakdown_2026-03-25.md)
+
 ---
 
 ## Escalation Rules

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const analyzeAnswerMock = vi.fn();
-const requireCandidateTokenMock = vi.fn();
+const authorizeCandidateSessionRequestMock = vi.fn();
 
 vi.mock("@/lib/server/services/ai-service", () => ({
     AIService: {
@@ -9,8 +9,8 @@ vi.mock("@/lib/server/services/ai-service", () => ({
     }
 }));
 
-vi.mock("@/lib/server/auth/candidate-token", () => ({
-    requireCandidateToken: requireCandidateTokenMock
+vi.mock("@/lib/server/candidate-route-auth", () => ({
+    authorizeCandidateSessionRequest: authorizeCandidateSessionRequestMock
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -24,7 +24,7 @@ vi.mock("@/lib/logger", () => ({
 describe("POST /api/analysis", () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        requireCandidateTokenMock.mockResolvedValue({ ok: true, status: 200 });
+        authorizeCandidateSessionRequestMock.mockResolvedValue(null);
     });
 
     it("returns the sanitized validation envelope for malformed input", async () => {
@@ -78,7 +78,14 @@ describe("POST /api/analysis", () => {
     });
 
     it("returns a sanitized unauthorized envelope when candidate token is missing", async () => {
-        requireCandidateTokenMock.mockResolvedValue({ ok: false, status: 401, error: "Missing candidate token" });
+        authorizeCandidateSessionRequestMock.mockResolvedValue(new Response(JSON.stringify({
+            code: "UNAUTHORIZED",
+            message: "Missing candidate token",
+            retryable: false
+        }), {
+            status: 401,
+            headers: { "Content-Type": "application/json" }
+        }));
         const { POST } = await import("./route");
 
         const req = new Request("http://localhost/api/analysis", {

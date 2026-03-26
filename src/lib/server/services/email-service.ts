@@ -8,6 +8,7 @@ import { parseProviderValue } from '@/lib/server/provider-response';
 import { pilotRollout } from '@/lib/config/pilot-rollout';
 import { assertProductionServerEnv, getOptionalServerEnv } from '@/lib/server/config/server-env';
 import { getAppOrigin } from '@/lib/server/url/get-app-origin';
+import { ProviderResponseError } from '@/lib/server/provider-errors';
 
 assertProductionServerEnv(["RESEND_API_KEY"], "email delivery configuration");
 
@@ -93,7 +94,12 @@ export class EmailService {
 
             return parsedData;
         } catch (error) {
-            Logger.error("[EmailService] Failed to send email", error, "EmailService");
+            Logger.error("[EmailService] Failed to send email", {
+                error,
+                provider: error instanceof ProviderResponseError ? error.provider : "resend",
+                operation: error instanceof ProviderResponseError ? error.operation : "sendDebriefEmail",
+                providerErrorKind: error instanceof ProviderResponseError ? error.kind : undefined
+            }, "EmailService");
             throw error;
         }
     }
@@ -188,7 +194,12 @@ export class EmailService {
 
             return parsedData;
         } catch (error) {
-            Logger.error("[EmailService] Failed to send invite email", error, "EmailService");
+            Logger.error("[EmailService] Failed to send invite email", {
+                error,
+                provider: error instanceof ProviderResponseError ? error.provider : "resend",
+                operation: error instanceof ProviderResponseError ? error.operation : "sendInviteEmail",
+                providerErrorKind: error instanceof ProviderResponseError ? error.kind : undefined
+            }, "EmailService");
             throw error;
         }
     }

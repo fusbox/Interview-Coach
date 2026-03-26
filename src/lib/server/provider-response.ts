@@ -12,14 +12,25 @@ export function parseProviderJson<T>(
     context: ProviderContext
 ): T {
     if (!rawText) {
-        throw new ProviderResponseError(context.provider, context.operation, "Provider returned an empty response");
+        throw new ProviderResponseError(
+            context.provider,
+            context.operation,
+            "empty_response",
+            "Provider returned an empty response"
+        );
     }
 
     let parsedJson: unknown;
     try {
         parsedJson = JSON.parse(rawText);
     } catch (error) {
-        throw new ProviderResponseError(context.provider, context.operation, "Provider returned invalid JSON", { cause: error });
+        throw new ProviderResponseError(
+            context.provider,
+            context.operation,
+            "invalid_json",
+            "Provider returned invalid JSON",
+            { cause: error }
+        );
     }
 
     return parseProviderValue(parsedJson, schema, context);
@@ -32,7 +43,13 @@ export function parseProviderValue<T>(
 ): T {
     const result = schema.safeParse(value);
     if (!result.success) {
-        throw new ProviderResponseError(context.provider, context.operation, "Provider response failed schema validation", { cause: result.error });
+        throw new ProviderResponseError(
+            context.provider,
+            context.operation,
+            "schema_validation",
+            "Provider response failed schema validation",
+            { cause: result.error }
+        );
     }
 
     return result.data;

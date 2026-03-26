@@ -13,7 +13,7 @@ vi.mock("@/lib/server/services/ai-config", () => ({
         }
     },
     AI_MODELS: {
-        STRONG_RESPONSE: "mock-model"
+        TIPS: "mock-model"
     }
 }));
 
@@ -30,30 +30,31 @@ vi.mock("@/lib/logger", () => ({
     }
 }));
 
-describe("StrongResponseService", () => {
+describe("TipsService", () => {
     beforeEach(() => {
         vi.clearAllMocks();
     });
 
-    it("throws a typed provider error for invalid Gemini payloads", async () => {
+    it("classifies malformed provider payloads distinctly", async () => {
         generateContentMock.mockResolvedValue({
-            text: JSON.stringify({ strongResponse: "Only one field" })
+            text: JSON.stringify({ doThis: "Only one field" })
         });
 
-        const { StrongResponseService } = await import("./strong-response-service");
+        const { TipsService } = await import("./tips-service");
 
         await expect(
-            StrongResponseService.generateStrongResponse("Tell me about yourself", "QA Engineer")
+            TipsService.generateTips("Tell me about yourself", "QA Engineer")
         ).rejects.toBeInstanceOf(ProviderResponseError);
+
         expect(incrementMetricMock).toHaveBeenCalledWith("ai_requests_total", {
-            operation: "strong_response",
+            operation: "tips",
             outcome: "malformed_response"
         });
         expect(loggerErrorMock).toHaveBeenCalledWith(
-            "[StrongResponseService] Generation Failed",
+            "[TipsService] Generation Failed",
             expect.objectContaining({
                 provider: "gemini",
-                operation: "generateStrongResponse",
+                operation: "generateTips",
                 providerErrorKind: "schema_validation",
                 error: expect.any(ProviderResponseError)
             })

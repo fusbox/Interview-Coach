@@ -1,31 +1,15 @@
-type MetricTagValue = string | number | boolean | undefined;
-export type MetricTags = Record<string, MetricTagValue>;
-
-type CounterMetric = {
-    name: string;
-    tags: Record<string, string>;
-    value: number;
-};
-
-type TimingMetric = {
-    name: string;
-    tags: Record<string, string>;
-    count: number;
-    totalMs: number;
-    minMs: number;
-    maxMs: number;
-    avgMs: number;
-};
+import { getDurableMetricsBackend } from "@/lib/server/metrics/backend";
+import type {
+    CounterMetric,
+    MetricTags,
+    MetricTagValue,
+    MetricsSnapshot,
+    TimingMetric
+} from "@/lib/server/metrics/types";
 
 type MetricsState = {
     counters: Map<string, CounterMetric>;
     timings: Map<string, Omit<TimingMetric, "avgMs">>;
-};
-
-export type MetricsSnapshot = {
-    generatedAt: string;
-    counters: CounterMetric[];
-    timings: TimingMetric[];
 };
 
 type OperationsDashboard = {
@@ -87,6 +71,38 @@ function metricKey(name: string, tags: Record<string, string>) {
     return `${name}::${JSON.stringify(tags)}`;
 }
 
+function writeDurableCounter(name: string, value: number, tags: Record<string, string>) {
+    const backend = getDurableMetricsBackend();
+    if (!backend) {
+        return;
+    }
+
+    const recordedAt = new Date().toISOString();
+    void backend.writeCounter({
+        name,
+        value,
+        tags,
+        tagsKey: metricKey(name, tags),
+        recordedAt
+    }).catch(() => undefined);
+}
+
+function writeDurableTiming(name: string, durationMs: number, tags: Record<string, string>) {
+    const backend = getDurableMetricsBackend();
+    if (!backend) {
+        return;
+    }
+
+    const recordedAt = new Date().toISOString();
+    void backend.writeTiming({
+        name,
+        durationMs,
+        tags,
+        tagsKey: metricKey(name, tags),
+        recordedAt
+    }).catch(() => undefined);
+}
+
 export function incrementMetric(name: string, tags: MetricTags = {}, value = 1) {
     const state = getMetricsState();
     const normalizedTags = normalizeTags(tags);
@@ -95,14 +111,15 @@ export function incrementMetric(name: string, tags: MetricTags = {}, value = 1) 
 
     if (existing) {
         existing.value += value;
-        return;
+    } else {
+        state.counters.set(key, {
+            name,
+            tags: normalizedTags,
+            value
+        });
     }
 
-    state.counters.set(key, {
-        name,
-        tags: normalizedTags,
-        value
-    });
+    writeDurableCounter(name, value, normalizedTags);
 }
 
 export function observeMetric(name: string, durationMs: number, tags: MetricTags = {}) {
@@ -116,17 +133,18 @@ export function observeMetric(name: string, durationMs: number, tags: MetricTags
         existing.totalMs += durationMs;
         existing.minMs = Math.min(existing.minMs, durationMs);
         existing.maxMs = Math.max(existing.maxMs, durationMs);
-        return;
+    } else {
+        state.timings.set(key, {
+            name,
+            tags: normalizedTags,
+            count: 1,
+            totalMs: durationMs,
+            minMs: durationMs,
+            maxMs: durationMs
+        });
     }
 
-    state.timings.set(key, {
-        name,
-        tags: normalizedTags,
-        count: 1,
-        totalMs: durationMs,
-        minMs: durationMs,
-        maxMs: durationMs
-    });
+    writeDurableTiming(name, durationMs, normalizedTags);
 }
 
 export function startMetricTimer(name: string, tags: MetricTags = {}) {
@@ -159,6 +177,19 @@ export function getMetricsSnapshot(): MetricsSnapshot {
     };
 }
 
+export async function getOperationalMetricsSnapshot() {
+    const backend = getDurableMetricsBackend();
+    if (!backend) {
+        return getMetricsSnapshot();
+    }
+
+    try {
+        return await backend.readSnapshot();
+    } catch {
+        return getMetricsSnapshot();
+    }
+}
+
 function counterValue(snapshot: MetricsSnapshot, name: string, filters: Record<string, string> = {}) {
     return snapshot.counters
         .filter((metric) => metric.name === name)
@@ -181,6 +212,9 @@ export function buildOperationsDashboard(snapshot: MetricsSnapshot): OperationsD
             errors: counterValue(snapshot, "ai_requests_total", {
                 operation: metric.tags.operation || "unknown",
                 outcome: "error"
+            }) + counterValue(snapshot, "ai_requests_total", {
+                operation: metric.tags.operation || "unknown",
+                outcome: "malformed_response"
             }),
             avgLatencyMs: metric.avgMs,
             maxLatencyMs: metric.maxMs
@@ -191,7 +225,8 @@ export function buildOperationsDashboard(snapshot: MetricsSnapshot): OperationsD
         generatedAt: snapshot.generatedAt,
         invites: {
             createSuccesses: counterValue(snapshot, "recruiter_invite_create_total", { outcome: "success" }),
-            createFailures: counterValue(snapshot, "recruiter_invite_create_total", { outcome: "error" }),
+            createFailures: counterValue(snapshot, "recruiter_invite_create_total", { outcome: "error" })
+                + counterValue(snapshot, "recruiter_invite_create_total", { outcome: "partial_failure" }),
             sendSuccesses: counterValue(snapshot, "invite_send_total", { outcome: "success" }),
             sendFailures: counterValue(snapshot, "invite_send_total", { outcome: "error" })
         },
@@ -203,7 +238,8 @@ export function buildOperationsDashboard(snapshot: MetricsSnapshot): OperationsD
         ai: {
             requests: counterValue(snapshot, "ai_requests_total", { outcome: "success" })
                 + counterValue(snapshot, "ai_requests_total", { outcome: "mock_fallback" }),
-            errors: counterValue(snapshot, "ai_requests_total", { outcome: "error" }),
+            errors: counterValue(snapshot, "ai_requests_total", { outcome: "error" })
+                + counterValue(snapshot, "ai_requests_total", { outcome: "malformed_response" }),
             operations: aiOperations
         },
         security: {
@@ -219,3 +255,12 @@ export function resetMetrics() {
         timings: new Map()
     };
 }
+
+export type {
+    CounterMetric,
+    MetricTags,
+    MetricTagValue,
+    MetricsSnapshot,
+    TimingMetric
+} from "@/lib/server/metrics/types";
+

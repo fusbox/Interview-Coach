@@ -100,6 +100,21 @@ Read this when:
 - you are planning or administering the first remediation sprint
 - you want a bounded in-scope/out-of-scope board for P0 foundation work
 
+#### [production_remediation_phase2_board_2026-03-25.md](./production_remediation_phase2_board_2026-03-25.md)
+Active execution board for the post-P0 remediation backlog.
+
+Read this when:
+- you are managing the remaining P1/P2 work
+- you need the current active item, ready queue, and phase-level sequencing
+
+#### [durable_metrics_plan_2026-03-25.md](./durable_metrics_plan_2026-03-25.md)
+Bounded design note for `P1-4` durable metrics and SLO work.
+
+Read this when:
+- you are implementing or reviewing the durable metrics path
+- you need the chosen dual-write direction, guardrails, and first-slice scope
+- you want the minimum SLO set and storage boundaries for the operability phase
+
 #### [release-gate-checklist.md](./release-gate-checklist.md)
 Operational release gate for deciding whether a build may be promoted to production.
 

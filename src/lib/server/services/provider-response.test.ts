@@ -10,21 +10,33 @@ import {
 
 describe("provider response parsing", () => {
     it("throws a typed provider error for invalid JSON", () => {
-        expect(() =>
+        try {
             parseProviderJson("not json", StrongResponseResultSchema, {
                 provider: "gemini",
                 operation: "generateStrongResponse"
-            })
-        ).toThrow(ProviderResponseError);
+            });
+        } catch (error) {
+            expect(error).toBeInstanceOf(ProviderResponseError);
+            expect((error as ProviderResponseError).kind).toBe("invalid_json");
+            return;
+        }
+
+        throw new Error("Expected ProviderResponseError");
     });
 
     it("throws a typed provider error for schema-invalid JSON", () => {
-        expect(() =>
+        try {
             parseProviderJson(JSON.stringify({ strongResponse: "valid" }), StrongResponseResultSchema, {
                 provider: "gemini",
                 operation: "generateStrongResponse"
-            })
-        ).toThrow(ProviderResponseError);
+            });
+        } catch (error) {
+            expect(error).toBeInstanceOf(ProviderResponseError);
+            expect((error as ProviderResponseError).kind).toBe("schema_validation");
+            return;
+        }
+
+        throw new Error("Expected ProviderResponseError");
     });
 
     it("accepts valid recruiter question generation payloads", () => {
@@ -52,12 +64,33 @@ describe("provider response parsing", () => {
     });
 
     it("throws a typed provider error for invalid resend payloads", () => {
-        expect(() =>
+        try {
             parseProviderValue({ notId: "123" }, ResendEmailSendResultSchema, {
                 provider: "resend",
                 operation: "sendInviteEmail"
-            })
-        ).toThrow(ProviderResponseError);
+            });
+        } catch (error) {
+            expect(error).toBeInstanceOf(ProviderResponseError);
+            expect((error as ProviderResponseError).kind).toBe("schema_validation");
+            return;
+        }
+
+        throw new Error("Expected ProviderResponseError");
+    });
+
+    it("throws a typed provider error for empty provider text", () => {
+        try {
+            parseProviderJson("", StrongResponseResultSchema, {
+                provider: "gemini",
+                operation: "generateStrongResponse"
+            });
+        } catch (error) {
+            expect(error).toBeInstanceOf(ProviderResponseError);
+            expect((error as ProviderResponseError).kind).toBe("empty_response");
+            return;
+        }
+
+        throw new Error("Expected ProviderResponseError");
     });
 
     it("supports generic schemas for non-empty provider text", () => {

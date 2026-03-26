@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
     buildOperationsDashboard,
     getMetricsSnapshot,
+    getOperationalMetricsSnapshot,
     incrementMetric,
     observeMetric,
     resetMetrics
@@ -85,5 +86,19 @@ describe("server metrics", () => {
                 avgLatencyMs: 90
             })
         ]);
+    });
+
+    it("returns the local snapshot when no durable backend is configured", async () => {
+        incrementMetric("invite_send_total", { outcome: "success" });
+
+        const snapshot = await getOperationalMetricsSnapshot();
+
+        expect(snapshot.counters).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                name: "invite_send_total",
+                tags: { outcome: "success" },
+                value: 1
+            })
+        ]));
     });
 });

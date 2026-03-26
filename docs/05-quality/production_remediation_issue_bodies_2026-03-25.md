@@ -195,6 +195,8 @@ Out of scope:
 
 ## P0-1: Replace Process-Local Rate Limiting
 
+Status: `Done` on 2026-03-25 after deployed recruiter and candidate route validation.
+
 ### Title
 
 `P0-1: Replace process-local rate limiting with shared backend`

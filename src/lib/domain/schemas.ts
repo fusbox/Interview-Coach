@@ -217,6 +217,32 @@ export const QuestionPlanSchema = z
     })
     .optional();
 
+export const CompetencySchema = z
+    .object({
+        id: z.string().optional(),
+        name: z.string().optional(),
+        definition: z.string().optional(),
+    })
+    .passthrough();
+
+export const ScoringDimensionSchema = z
+    .object({
+        id: z.string().optional(),
+        name: z.string().optional(),
+        label: z.string().optional(),
+        description: z.string().optional(),
+    })
+    .passthrough();
+
+export const RatingBandSchema = z
+    .object({
+        label: z.string().optional(),
+        min: z.number().optional(),
+        max: z.number().optional(),
+        description: z.string().optional(),
+    })
+    .passthrough();
+
 export const BlueprintSchema = z
     .object({
         role: z
@@ -234,19 +260,13 @@ export const BlueprintSchema = z
             .optional(),
         scoringModel: z
             .object({
-                dimensions: z.array(z.any()).optional(),
-                ratingBands: z.any().optional(),
+                dimensions: z.array(ScoringDimensionSchema).optional(),
+                ratingBands: z.array(RatingBandSchema).optional(),
             })
-            .optional()
-            .or(z.any()),
+            .passthrough()
+            .optional(),
         competencies: z
-            .array(
-                z.object({
-                    id: z.string(),
-                    name: z.string(),
-                    definition: z.string(),
-                })
-            )
+            .array(CompetencySchema)
             .optional(),
     })
     .passthrough()
@@ -260,9 +280,14 @@ export const CoachPrepSchema = z.object({
 export const GenerateTipsSchema = z.object({
     question: z.string().min(1, 'Question is required'),
     role: z.string().min(1, 'Role is required'),
-    competency: z.any().optional(),
+    competency: CompetencySchema.optional(),
+    resumeText: z.string().optional(),
     intakeData: IntakeDataSchema,
     blueprint: BlueprintSchema,
+});
+
+export const GenerateTipsRequestSchema = GenerateTipsSchema.extend({
+    sessionId: z.string().min(1, "Session is required"),
 });
 
 export const GenerateStrongResponseSchema = z.object({
@@ -270,10 +295,75 @@ export const GenerateStrongResponseSchema = z.object({
     role: z.string().optional()
 });
 
+export const GenerateStrongResponseRequestSchema = GenerateStrongResponseSchema.extend({
+    resumeText: z.string().optional(),
+    sessionId: z.string().min(1, 'Session is required'),
+});
+
 export const GenerateBlueprintSchema = z.object({
     role: z.string().min(1, 'Role is required'),
     jobDescription: z.string().optional(),
     seniority: z.string().optional(),
+});
+
+export const GenerateQuestionsRequestSchema = z.object({
+    role: z.string().trim().min(1, "Role is required"),
+    jobDescription: z.string().trim().optional(),
+    resume: z.string().trim().optional(),
+});
+
+export const InviteSendRequestSchema = z.object({
+    recipientEmail: z.string().email().optional(),
+    recipientEmails: z.array(z.string().email()).max(50).optional(),
+    recipientFirstName: z.string().trim().min(1),
+    role: z.string().trim().min(1),
+    inviteLink: z.string().url(),
+    recruiterName: z.string().trim().min(1),
+    recruiterTitle: z.string().trim().optional(),
+    recruiterCompany: z.string().trim().optional(),
+    recruiterPhone: z.string().trim().optional(),
+    recruiterEmail: z.string().email().optional(),
+    sessionIds: z.array(z.string().min(1)).max(50).optional()
+}).superRefine((value, ctx) => {
+    const direct = value.recipientEmail ? [value.recipientEmail] : [];
+    const fromArray = value.recipientEmails || [];
+    if (direct.length + fromArray.length === 0) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "At least one recipient email is required" });
+    }
+});
+
+export const InviteResendRequestSchema = z.object({
+    sessionId: z.string().min(1),
+    recruiterName: z.string().trim().min(1),
+    recruiterTitle: z.string().trim().optional(),
+    recruiterCompany: z.string().trim().optional(),
+    recruiterPhone: z.string().trim().optional(),
+    recruiterEmail: z.string().email().optional(),
+});
+
+export const CreateInviteCandidateSchema = z.object({
+    firstName: z.string().trim().min(1),
+    lastName: z.string().trim().min(1),
+    email: z.string().email(),
+    reqId: z.string().trim().min(1),
+    resumeText: z.string().optional(),
+});
+
+export const CreateInviteQuestionSchema = z.object({
+    text: z.string().trim().min(1),
+    category: z.string().trim().min(1),
+    index: z.number().int().min(0),
+});
+
+export const CreateInviteRequestSchema = z.object({
+    role: z.string().trim().min(1),
+    jobDescription: z.string().optional(),
+    candidates: z.array(CreateInviteCandidateSchema).min(1).max(50),
+    questions: z.array(CreateInviteQuestionSchema).min(1),
+});
+
+export const TtsRequestSchema = z.object({
+    text: z.string().trim().min(1, "Missing text"),
 });
 
 export const GenerateQuestionPlanSchema = z.object({
@@ -301,4 +391,27 @@ export const AnalyzeAnswerSchema = z.object({
     blueprint: BlueprintSchema,
     questionId: z.string().optional(),
     intakeData: IntakeDataSchema,
+});
+
+export const AnalyzeAnswerRequestSchema = AnalyzeAnswerSchema.extend({
+    sessionId: z.string().min(1, "Session is required"),
+});
+
+export const QuestionRetryRequestSchema = z.object({
+    retryContext: z.object({
+        trigger: z.enum(["user", "coach"]),
+        focus: z.string().optional(),
+    }).optional(),
+});
+
+export const QuestionAnalysisRequestSchema = z.object({
+    audioData: z.object({
+        base64: z.string().min(1),
+        mimeType: z.string().min(1),
+    }).nullable().optional(),
+});
+
+export const SubmitAnswerRequestSchema = z.object({
+    text: z.string(),
+    analysis: AnalysisResultSchema.optional(),
 });

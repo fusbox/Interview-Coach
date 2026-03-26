@@ -1,21 +1,20 @@
 import { Type } from "@google/genai";
 import { Blueprint, Competency, QuestionTips } from "@/lib/domain/types";
-import { QuestionTipsSchema } from "@/lib/domain/schemas";
+import { GenerateTipsSchema, QuestionTipsSchema } from "@/lib/domain/schemas";
 import { Logger } from "@/lib/logger";
 import { z } from "zod";
 import { ai, AI_MODELS } from "./ai-config";
 import { getReadingLevelContext } from "@/lib/ai/prompts";
 import { parseProviderJson } from "@/lib/server/provider-response";
 import { incrementMetric, observeMetric } from "@/lib/server/metrics";
+import { ProviderResponseError } from "@/lib/server/provider-errors";
 
-// --- Schema Definition ---
-export const GenerateTipsSchema = z.object({
-    question: z.string(),
-    role: z.string(),
-    competency: z.any().optional(),
-    blueprint: z.any().optional(),
-    resumeText: z.string().optional(),
-});
+type TipsCompetencyInput = Partial<Competency>;
+type TipsBlueprintInput = {
+    title?: string;
+    competencies?: TipsCompetencyInput[];
+    readingLevel?: Blueprint["readingLevel"];
+};
 
 // --- Service ---
 
@@ -23,8 +22,8 @@ export class TipsService {
     static async generateTips(
         questionText: string,
         role: string,
-        competency?: Competency,
-        blueprint?: Blueprint,
+        competency?: TipsCompetencyInput,
+        blueprint?: TipsBlueprintInput,
         resumeText?: string
     ): Promise<QuestionTips> {
         const startedAt = Date.now();
@@ -152,9 +151,15 @@ Return strictly JSON.
             return parsedData;
 
         } catch (error) {
-            Logger.error("[TipsService] Generation Failed", error);
-            incrementMetric("ai_requests_total", { operation: "tips", outcome: "error" });
-            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "tips", outcome: "error" });
+            const outcome = error instanceof ProviderResponseError ? "malformed_response" : "error";
+            Logger.error("[TipsService] Generation Failed", {
+                error,
+                provider: error instanceof ProviderResponseError ? error.provider : "gemini",
+                operation: error instanceof ProviderResponseError ? error.operation : "generateTips",
+                providerErrorKind: error instanceof ProviderResponseError ? error.kind : undefined
+            });
+            incrementMetric("ai_requests_total", { operation: "tips", outcome });
+            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "tips", outcome });
             throw error;
         }
     }

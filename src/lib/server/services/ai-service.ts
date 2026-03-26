@@ -7,6 +7,7 @@ import { ai, AI_MODELS } from "./ai-config";
 import { FEEDBACK_DIMENSIONS } from "@/lib/constants";
 import { NonEmptyProviderTextSchema, parseProviderJson, parseProviderValue } from "@/lib/server/provider-response";
 import { incrementMetric, observeMetric } from "@/lib/server/metrics";
+import { ProviderResponseError } from "@/lib/server/provider-errors";
 
 export class AIService {
     private static readonly detectabilityLevels = ["clear", "moderate", "ambiguous", "thin"] as const;
@@ -256,9 +257,15 @@ Generate feedback as strict JSON matching this schema:
             return mappedResult;
 
         } catch (error) {
-            Logger.error("AI Analysis Failed", error);
-            incrementMetric("ai_requests_total", { operation: "analysis", outcome: "error" });
-            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "analysis", outcome: "error" });
+            const outcome = error instanceof ProviderResponseError ? "malformed_response" : "error";
+            Logger.error("AI Analysis Failed", {
+                error,
+                provider: error instanceof ProviderResponseError ? error.provider : "gemini",
+                operation: error instanceof ProviderResponseError ? error.operation : "analyzeAnswer",
+                providerErrorKind: error instanceof ProviderResponseError ? error.kind : undefined
+            });
+            incrementMetric("ai_requests_total", { operation: "analysis", outcome });
+            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "analysis", outcome });
             return {
                 ack: "I noted your answer.",
                 meta: { tier: 1, modality: audioData ? "voice" : "text", confidence: "medium", readinessLevel: "RL4" },
@@ -362,9 +369,15 @@ ${session.jobDescription || "No specific job description provided."}
             observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "session_summary", outcome: "success" });
             return summary;
         } catch (error) {
-            Logger.error("Session Summarization Failed", error);
-            incrementMetric("ai_requests_total", { operation: "session_summary", outcome: "error" });
-            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "session_summary", outcome: "error" });
+            const outcome = error instanceof ProviderResponseError ? "malformed_response" : "error";
+            Logger.error("Session Summarization Failed", {
+                error,
+                provider: error instanceof ProviderResponseError ? error.provider : "gemini",
+                operation: error instanceof ProviderResponseError ? error.operation : "summarizeSession",
+                providerErrorKind: error instanceof ProviderResponseError ? error.kind : undefined
+            });
+            incrementMetric("ai_requests_total", { operation: "session_summary", outcome });
+            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "session_summary", outcome });
             return `### Executive Summary\nThe candidate completed the interview for the ${session.role} position. They demonstrated consistent effort across all questions.`;
         }
     }

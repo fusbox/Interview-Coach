@@ -110,4 +110,25 @@ describe("POST /api/session/[session_id]/questions/[question_id]/submit", () => 
             statusCode: 200
         }));
     });
+
+    it("returns 400 when analysis payload fails schema validation", async () => {
+        const { POST } = await import("./route");
+
+        const req = new Request("http://localhost/api/session/session-1/questions/question-1/submit", {
+            method: "POST",
+            body: JSON.stringify({
+                text: "Answer 1",
+                analysis: {
+                    ack: 123
+                }
+            })
+        });
+
+        const res = await POST(req, { params: Promise.resolve({ session_id: "session-1", question_id: "question-1" }) });
+        const body = await res.json();
+
+        expect(res.status).toBe(400);
+        expect(body.code).toBe("INVALID_REQUEST");
+        expect(updateMock).not.toHaveBeenCalled();
+    });
 });

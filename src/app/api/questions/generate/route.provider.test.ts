@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getUserMock = vi.fn();
 const generateContentMock = vi.fn();
+const incrementMetricMock = vi.fn();
+const observeMetricMock = vi.fn();
+const routeLoggerErrorMock = vi.fn();
 
 vi.mock("@/lib/supabase/server", () => ({
     createClient: () => ({
@@ -17,6 +20,20 @@ vi.mock("@/lib/logger", () => ({
         warn: vi.fn(),
         error: vi.fn()
     }
+}));
+
+vi.mock("@/lib/server/metrics", () => ({
+    incrementMetric: incrementMetricMock,
+    observeMetric: observeMetricMock,
+    recordAuthDenial: vi.fn()
+}));
+
+vi.mock("@/lib/server/server-logger", () => ({
+    createServerLogger: () => ({
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: routeLoggerErrorMock
+    })
 }));
 
 vi.mock("@/lib/server/services/ai-config", () => ({
@@ -58,5 +75,17 @@ describe("POST /api/questions/generate provider validation", () => {
             message: "Internal server error",
             retryable: true
         });
+        expect(incrementMetricMock).toHaveBeenCalledWith("ai_requests_total", {
+            operation: "question_generation",
+            outcome: "malformed_response"
+        });
+        expect(routeLoggerErrorMock).toHaveBeenCalledWith(
+            "Question generation failed",
+            expect.objectContaining({
+                provider: "gemini",
+                operation: "generateQuestions",
+                providerErrorKind: "schema_validation"
+            })
+        );
     });
 });

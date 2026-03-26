@@ -63,3 +63,9 @@ This document defines the current alert rules, routing, and operator intent for 
 - Metrics are in-process only and reset when the app process restarts.
 - Alerting is currently policy-driven and queryable through the ops snapshot endpoint; external paging integration is still pending.
 - These thresholds are intentionally conservative and should be recalibrated once durable metrics history exists.
+
+## Durable Metrics Transition Note
+
+- A dual-write metrics path is now the chosen direction for `P1-4`.
+- The first implementation slice has landed the durable backend abstraction and Supabase rollup migration.
+- Until the ops metrics route is switched to durable reads in production, this alert policy should still be interpreted as local-snapshot guidance rather than fully durable operational truth.

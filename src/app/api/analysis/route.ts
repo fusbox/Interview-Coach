@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { AnalyzeAnswerSchema } from "@/lib/domain/schemas";
+import { AnalyzeAnswerRequestSchema } from "@/lib/domain/schemas";
 import { AIService } from "@/lib/server/services/ai-service";
 import { Question, Blueprint } from "@/lib/domain/types";
-import { z } from "zod";
 import {
     createCorrelationId,
     internalErrorResponse,
@@ -14,9 +13,6 @@ import { createServerLogger } from "@/lib/server/server-logger";
 
 const WINDOW_MS = 5 * 60 * 1000;
 const MAX_ANALYSIS_REQUESTS = 30;
-const AnalyzeAnswerRequestSchema = AnalyzeAnswerSchema.extend({
-    sessionId: z.string().min(1, "Session is required")
-});
 
 export async function POST(request: Request) {
     const correlationId = createCorrelationId();

@@ -2,7 +2,7 @@
 
 Date: 2026-03-25  
 Source review: [comprehensive_code_review_2026-03-25.md](./comprehensive_code_review_2026-03-25.md)  
-Status: Draft for execution  
+Status: Active; P1-3 completed and P1-4 started on 2026-03-25  
 Owner: Engineering  
 
 ---
@@ -17,8 +17,8 @@ It is intentionally implementation-aware and repo-specific.
 
 ## Release Position
 
-- Production: `NO-GO` until all P0 items are complete
-- Controlled staging: `GO` with risk acceptance and active remediation
+- Production: `Initial remediation gate satisfied; remaining work is P1/P2 hardening and backlog execution`
+- Controlled staging: `GO`
 
 ---
 
@@ -120,6 +120,11 @@ Required validation:
 - env fail-fast tests
 - origin contract tests
 
+Phase 1 status on 2026-03-25:
+- `P0-1` completed with deployed recruiter and candidate route `429` validation against the shared Supabase/Postgres limiter.
+- `P0-2` completed for the initial-rollout stop point at deterministic mixed-result invite semantics.
+- `P0-3` completed with production fail-fast env/auth coverage across privileged server seams.
+
 ### Phase 2: Invite Flow Consistency
 
 Target duration: 1 sprint
@@ -162,6 +167,13 @@ Required validation:
 - route thinness review
 - regression checks on recruiter flows
 
+Phase 3 status on 2026-03-25:
+- `P1-2` completed with shared recruiter/business defaults replacing feature-local fallback literals.
+- `P1-3` completed with:
+  - critical route request-schema consolidation into shared domain contracts
+  - removal of the remaining surfaced `z.any()` usage in `src`
+  - typed malformed-provider classification across the critical AI/service/route seams
+
 ### Phase 4: Operability and Quality Uplift
 
 Target duration: 1 sprint
@@ -181,6 +193,13 @@ Required validation:
 - metrics durability checks
 - alert/runbook review
 - accessibility CI checks
+
+Phase 4 status on 2026-03-25:
+- `P1-4` moved to `In Progress`.
+- Baseline assessment completed:
+  - `src/lib/server/metrics.ts` is currently process-local and restart-bound
+  - `src/app/api/recruiter/ops/metrics/route.ts` exposes only the local process snapshot
+  - current metrics are useful for local inspection but not sufficient for durable incident analysis or multi-instance SLO reporting
 
 ---
 

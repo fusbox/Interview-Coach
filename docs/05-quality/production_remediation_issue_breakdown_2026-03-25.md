@@ -79,15 +79,30 @@ Replace in-memory rate limiting with a shared backend that is correct across res
   - supabase backend selection
   - production memory-backend rejection
   - affected invite/session routes
-- remaining work:
-  - update operational docs and tracker state
-  - apply and validate the migration in deployed environments
+
+### Completion Notes
+
+- `P0-1` is complete.
+- Applied and validated the shared rate-limit database path in Supabase production:
+  - `public.rate_limit_buckets`
+  - `public.consume_rate_limit_bucket(...)`
+- Confirmed deployed recruiter-route throttling with `POST /api/recruiter/invites`:
+  - observed `429`
+  - response included `code: "RATE_LIMITED"`
+- Confirmed deployed candidate/public-route throttling with `POST /api/session/start`:
+  - observed `429`
+  - response included `code: "RATE_LIMITED"`
+- Production limiter semantics are now validated at:
+  - code path
+  - test coverage
+  - database backend
+  - deployed route behavior
 
 ---
 
 ## P0-2: Make Invite Creation Deterministic Under Partial Failure
 
-Status: `In Progress`  
+Status: `Done`  
 Priority: `P0`  
 Suggested owner: Backend / application layer
 
@@ -257,7 +272,7 @@ Use one trusted server utility to derive public app origin for invite links and 
 
 ## P1-2: Remove Residual Hardcoded Business Defaults
 
-Status: `Not Started`  
+Status: `Done`  
 Priority: `P1`  
 Suggested owner: Frontend / product engineering
 
@@ -282,11 +297,28 @@ Move business identity defaults out of scattered UI initialization logic into ce
 - no new hardcoded org identity values in feature components
 - fallback policy is centralized and documented
 
+### Current Progress
+
+- added shared recruiter/business default config:
+  - `src/lib/config/recruiter-defaults.ts`
+- updated recruiter signature normalization to consume shared defaults:
+  - `src/lib/recruiter-signature.ts`
+- removed recruiter create-flow company fallback literal:
+  - `src/app/(recruiter)/recruiter/create/page.tsx`
+- removed recruiter create-flow name fallback literal:
+  - `src/app/(recruiter)/recruiter/create/page.tsx`
+
+### Completion Notes
+
+- `P1-2` is complete for the current recruiter-facing flows.
+- Canonical recruiter/business fallback values now live in shared config rather than feature-level literals.
+- Future profile-policy changes should update shared config or profile-normalization utilities, not page-level defaults.
+
 ---
 
 ## P1-3: Tighten Runtime Schemas
 
-Status: `Not Started`  
+Status: `Done`  
 Priority: `P1`  
 Suggested owner: Backend / AI contracts
 
@@ -315,11 +347,96 @@ Reduce loose `z.any()` contract surfaces and replace them with constrained runti
 - no critical-path `z.any()` remains in provider/domain contracts
 - callers receive typed malformed-data failures
 
+### Current Progress
+
+- first schema-tightening slice landed in:
+  - `src/lib/domain/schemas.ts`
+  - `src/lib/server/services/tips-service.ts`
+- replaced broad `z.any()` usage with permissive structured schemas for:
+  - competencies
+  - scoring dimensions
+  - rating bands
+- tightened the answer-submit route boundary to use the shared `AnalysisResultSchema`:
+  - `src/app/api/session/[session_id]/questions/[question_id]/submit/route.ts`
+- added focused regression coverage for invalid analysis payload rejection:
+  - `src/app/api/session/[session_id]/questions/[question_id]/submit/route.test.ts`
+- tightened the recruiter template repository boundary by validating persisted template question payloads:
+  - `src/lib/server/infrastructure/supabase-template-repository.ts`
+- replaced the duplicated strong-response route request schema with a shared domain schema:
+  - `src/lib/domain/schemas.ts`
+  - `src/app/api/response/generate/route.ts`
+- added focused route coverage for the shared strong-response request schema:
+  - `src/app/api/response/generate/route.test.ts`
+- replaced the duplicated question-generation route request schema with a shared domain schema:
+  - `src/lib/domain/schemas.ts`
+  - `src/app/api/questions/generate/route.ts`
+- unified the tips request contract by removing service/domain duplication and moving the route onto a shared domain request schema:
+  - `src/lib/domain/schemas.ts`
+  - `src/lib/server/services/tips-service.ts`
+  - `src/app/api/tips/generate/route.ts`
+- added focused route coverage for the shared tips request schema:
+  - `src/app/api/tips/generate/route.test.ts`
+- verified the analysis route now uses the shared domain request schema and aligned its focused tests to the current auth path:
+  - `src/lib/domain/schemas.ts`
+  - `src/app/api/analysis/route.ts`
+  - `src/app/api/analysis/route.test.ts`
+- replaced the duplicated invite send and invite resend route request schemas with shared domain schemas:
+  - `src/lib/domain/schemas.ts`
+  - `src/app/api/invite/send/route.ts`
+  - `src/app/api/invite/resend/route.ts`
+- added focused resend-route coverage for the shared invite resend request schema:
+  - `src/app/api/invite/resend/route.test.ts`
+- replaced the duplicated question retry and question analysis route request schemas with shared domain schemas:
+  - `src/lib/domain/schemas.ts`
+  - `src/app/api/session/[session_id]/questions/[question_id]/retry/route.ts`
+  - `src/app/api/session/[session_id]/questions/[question_id]/analysis/route.ts`
+- verified focused retry and question-analysis route coverage after the shared-schema consolidation:
+  - `src/app/api/session/[session_id]/questions/[question_id]/retry/route.test.ts`
+  - `src/app/api/session/[session_id]/questions/[question_id]/analysis/route.test.ts`
+- replaced the duplicated TTS route request schema with a shared domain schema:
+  - `src/lib/domain/schemas.ts`
+  - `src/app/api/tts/route.ts`
+- replaced the duplicated recruiter invite-create route request schema with a shared domain schema:
+  - `src/lib/domain/schemas.ts`
+  - `src/app/api/recruiter/invites/route.ts`
+- replaced the duplicated answer-submit route request schema with a shared domain schema:
+  - `src/lib/domain/schemas.ts`
+  - `src/app/api/session/[session_id]/questions/[question_id]/submit/route.ts`
+- enriched the shared provider malformed-response path with explicit error kinds:
+  - `src/lib/server/provider-errors.ts`
+  - `src/lib/server/provider-response.ts`
+- updated AI-service fallback handling to distinguish malformed provider output from runtime failures in logs and metrics:
+  - `src/lib/server/services/ai-service.ts`
+- added focused malformed-response coverage:
+  - `src/lib/server/services/provider-response.test.ts`
+  - `src/lib/server/services/ai-service.test.ts`
+- propagated malformed-response classification through the remaining provider-backed services and question-generation route:
+  - `src/lib/server/services/strong-response-service.ts`
+  - `src/lib/server/services/tips-service.ts`
+  - `src/lib/server/services/email-service.ts`
+  - `src/app/api/questions/generate/route.ts`
+- added focused classification coverage for those seams:
+  - `src/lib/server/services/strong-response-service.test.ts`
+  - `src/lib/server/services/tips-service.test.ts`
+  - `src/lib/server/services/email-service.test.ts`
+  - `src/app/api/questions/generate/route.provider.test.ts`
+- intentionally left the draft-save route payload local:
+  - `src/app/api/session/[session_id]/questions/[question_id]/answer/route.ts`
+  - rationale: it is a one-off persistence payload with no shared consumer surface, so centralizing it would be overengineering rather than risk reduction
+
+### Completion Notes
+
+- `P1-3` is complete for the current remediation scope.
+- No remaining `z.any()` usage surfaced in `src`.
+- Critical recruiter/candidate route request contracts now flow through shared domain schemas where centralization reduces drift.
+- Provider-backed malformed output is normalized through one typed error family and classified distinctly from generic runtime failure in the critical AI/service/route seams.
+- Future schema changes should be treated as normal contract evolution, not unresolved remediation backlog.
+
 ---
 
 ## P1-4: Land Durable Metrics Path and SLO Base Layer
 
-Status: `Not Started`  
+Status: `In Progress`  
 Priority: `P1`  
 Suggested owner: Platform / ops
 
@@ -344,6 +461,41 @@ Move metrics from process memory into a durable backend and define minimal SLO-b
 - metrics survive restart
 - candidate-affecting failures can be correlated across logs and metrics
 - initial SLO thresholds are documented
+
+### Current Progress
+
+- baseline assessment completed for the existing metrics path:
+  - `src/lib/server/metrics.ts`
+  - `src/app/api/recruiter/ops/metrics/route.ts`
+  - `src/lib/server/alerts.ts`
+- current implementation findings:
+  - counters and timings are held in process-local `globalThis` maps
+  - the ops metrics route returns only the local process snapshot
+  - metrics are lost on restart and do not aggregate across instances
+  - dashboard/error counts are useful for local introspection but are insufficient for durable incident analysis or SLO reporting
+- bounded design note added:
+  - `docs/05-quality/durable_metrics_plan_2026-03-25.md`
+  - selected direction: dual-write with Supabase/Postgres durable rollups while preserving the current instrumentation API
+- first implementation slice landed:
+  - `src/lib/server/metrics/backend.ts`
+  - `src/lib/server/metrics/types.ts`
+  - `src/lib/server/metrics.ts`
+  - `src/app/api/recruiter/ops/metrics/route.ts`
+  - `supabase/migrations/20260325_add_metrics_rollups.sql`
+- current implementation state:
+  - in-memory metrics behavior remains intact for local/test ergonomics
+  - optional Supabase durable writes are available behind `METRICS_BACKEND=supabase`
+  - the recruiter ops metrics route now reads the durable-aware snapshot helper
+
+### Next Slice
+
+- choose a bounded durable sink strategy for this repo
+- preserve the current metric API shape if possible so route/service instrumentation does not need wide churn
+- define the minimum SLO/dashboard set around:
+  - invite creation/send
+  - candidate session start/completion
+  - AI request success/error/malformed-response outcomes
+  - auth and rate-limit denials
 
 ---
 

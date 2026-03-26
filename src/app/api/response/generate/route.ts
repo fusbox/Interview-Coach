@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { StrongResponseService } from '@/lib/server/services/strong-response-service';
+import { GenerateStrongResponseRequestSchema } from '@/lib/domain/schemas';
 import { Logger } from '@/lib/logger';
-import { z } from 'zod';
 import {
     createCorrelationId,
     internalErrorResponse,
@@ -12,13 +12,6 @@ import { authorizeCandidateSessionRequest } from '@/lib/server/candidate-route-a
 
 const WINDOW_MS = 5 * 60 * 1000;
 const MAX_STRONG_RESPONSE_REQUESTS = 30;
-
-const GenerateStrongResponseSchema = z.object({
-    question: z.string().min(1, 'Question is required'),
-    role: z.string().optional(),
-    resumeText: z.string().optional(),
-    sessionId: z.string().min(1, 'Session is required'),
-});
 
 export async function POST(req: NextRequest) {
     const correlationId = createCorrelationId();
@@ -38,7 +31,7 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
 
         // Validate request body
-        const result = GenerateStrongResponseSchema.safeParse(body);
+        const result = GenerateStrongResponseRequestSchema.safeParse(body);
 
         if (!result.success) {
             Logger.warn('[API] Invalid Strong Response request', result.error);

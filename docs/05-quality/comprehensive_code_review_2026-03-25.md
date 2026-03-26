@@ -140,6 +140,74 @@ Source request reference: `docs/05-quality/code_review_request.md` (the requeste
 - Define SLOs with alert thresholds tied to paging policy.
 - Add correlation between route errors, provider failures, and candidate session impacts.
 
+### Durable metrics implementation (what this should mean in practice)
+
+Target outcome: **metrics survive restarts, horizontal scaling, and deploy rollovers**, and can be queried historically for incident analysis and release gates.
+
+Recommended implementation path (incremental):
+
+1. **Instrumentation standardization**
+   - Keep current metric names, but emit through a shared telemetry interface (counter/histogram/gauge/event) instead of direct in-memory mutation only.
+   - Attach stable labels: `route`, `operation`, `actorType`, `outcome`, `provider`, `env`, `buildSha`.
+
+2. **Export + storage**
+   - Export metrics via OTLP (OpenTelemetry) or a managed agent to a durable backend (Datadog/New Relic/Grafana Cloud/Prometheus+Mimir/CloudWatch).
+   - For audit-grade product analytics, also persist key domain events in DB tables (append-only) with retention and partitioning policy.
+
+3. **Dashboards with release-gate views**
+   - Build dashboards for:
+     - API reliability by route (`5xx`, `4xx`, latency p95/p99),
+     - AI provider reliability (error rate + latency by operation),
+     - Candidate funnel health (start → submit → complete conversion),
+     - Security posture (auth denials, rate-limit denials).
+   - Include deploy markers (`buildSha`) so regressions can be tied to releases.
+
+4. **Retention + cardinality guardrails**
+   - Keep low-cardinality labels only (never raw user/session IDs in metric labels).
+   - Retain high-resolution data (e.g., 7–14 days) and rolled-up data (e.g., 90+ days).
+
+5. **Runbook linkage**
+   - Every critical dashboard panel should link to incident runbook sections and owner/on-call rotation.
+
+### SLO-backed alerting (what this should mean in practice)
+
+Target outcome: alerting is driven by **user-impact objectives**, not ad-hoc thresholds.
+
+Recommended initial SLO set for this product:
+
+1. **Session start availability SLO**
+   - SLI: successful `/api/session/start` responses ÷ total valid requests.
+   - Target: 99.5% over 30 days.
+   - Alerting: multi-window burn-rate alerts (fast + slow), page on-call only when error-budget burn indicates real risk.
+
+2. **Submit reliability SLO**
+   - SLI: successful question submit mutations (including idempotent replay success) ÷ total submit attempts.
+   - Target: 99.0% over 30 days.
+   - Alerting: warn on sustained degradation; page when burn rate exceeds critical threshold.
+
+3. **AI response latency SLO**
+   - SLI: p95 latency for AI-backed generation endpoints.
+   - Target: p95 < 3.5s (or role-specific baseline) over rolling 7 days.
+   - Alerting: ticket-level for mild breach, page-level when p95 and error-rate breach together.
+
+4. **Invite delivery success SLO**
+   - SLI: successful invite send operations ÷ send attempts.
+   - Target: 99.0% over 30 days.
+   - Alerting: page only when sustained failure impacts active recruiters; otherwise route to business-hours queue.
+
+Alert policy model:
+
+- **Page** only on user-impacting, budget-burning incidents.
+- **Ticket/Slack** for early degradation, non-urgent trend drift, and capacity planning.
+- **Auto-resolve** when signal clears for a stable window.
+
+Operationalization checklist:
+
+- Define SLI query per SLO in telemetry backend.
+- Set error-budget policy (freeze releases if budget is exhausted).
+- Wire alert routes to on-call schedule and escalation chain.
+- Validate alert quality with game days (inject controlled failures).
+
 ---
 
 ## 9) Accessibility & Polish

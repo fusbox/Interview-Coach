@@ -16,6 +16,7 @@ import { StepPreviewCombined } from "./components/StepPreviewCombined";
 import { fetchTemplates, saveTemplateAction } from "../templates/actions";
 import { RecruiterTemplate } from "@/lib/domain/template";
 import { normalizeRecruiterSignature } from "@/lib/recruiter-signature";
+import { DEFAULT_RECRUITER_COMPANY, DEFAULT_RECRUITER_NAME } from "@/lib/config/recruiter-defaults";
 
 function createIdempotencyKey() {
     if (typeof globalThis !== "undefined" && globalThis.crypto?.randomUUID) {
@@ -74,7 +75,7 @@ export default function CreateInviteWizard() {
         email: "",
         phone: "",
         title: "",
-        company: "Rangam Consultants Inc."
+        company: DEFAULT_RECRUITER_COMPANY
     });
 
     // Fetch Recruiter Profile & Templates
@@ -94,7 +95,7 @@ export default function CreateInviteWizard() {
                     .eq('recruiter_id', user.id)
                     .single();
 
-                const name = data ? `${data.first_name} ${data.last_name || ''}`.trim() : "Recruiter";
+                const name = data ? `${data.first_name} ${data.last_name || ''}`.trim() : DEFAULT_RECRUITER_NAME;
 
                 setRecruiterProfile(normalizeRecruiterSignature({
                     name,

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProviderResponseError } from "@/lib/server/provider-errors";
 
 const sendMock = vi.fn();
+const loggerErrorMock = vi.fn();
 
 vi.mock("resend", () => ({
     Resend: class {
@@ -15,7 +16,7 @@ vi.mock("@/lib/logger", () => ({
     Logger: {
         info: vi.fn(),
         warn: vi.fn(),
-        error: vi.fn()
+        error: loggerErrorMock
     }
 }));
 
@@ -38,5 +39,15 @@ describe("EmailService", () => {
                 recruiterName: "Recruiter"
             })
         ).rejects.toBeInstanceOf(ProviderResponseError);
+        expect(loggerErrorMock).toHaveBeenCalledWith(
+            "[EmailService] Failed to send invite email",
+            expect.objectContaining({
+                provider: "resend",
+                operation: "sendInviteEmail",
+                providerErrorKind: "schema_validation",
+                error: expect.any(ProviderResponseError)
+            }),
+            "EmailService"
+        );
     });
 });

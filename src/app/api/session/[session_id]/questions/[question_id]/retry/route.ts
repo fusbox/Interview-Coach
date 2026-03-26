@@ -2,16 +2,10 @@ import { NextResponse } from "next/server";
 import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-session-repository";
 import { validatedSessionHandler } from "@/lib/server/api-handler-utils";
 import { transitionSessionStatus } from "@/lib/domain/session-state-machine";
+import { QuestionRetryRequestSchema } from "@/lib/domain/schemas";
 import { validationErrorResponse } from "@/lib/server/api-errors";
-import { z } from "zod";
 
 const repository = new SupabaseSessionRepository();
-const RetryRequestSchema = z.object({
-    retryContext: z.object({
-        trigger: z.enum(["user", "coach"]),
-        focus: z.string().optional()
-    }).optional()
-});
 
 export async function POST(
     request: Request,
@@ -20,7 +14,7 @@ export async function POST(
     const resolvedParams = await params;
     return validatedSessionHandler(request, resolvedParams, async (req, { session, correlationId }) => {
         const body = await req.json().catch(() => ({}));
-        const parseResult = RetryRequestSchema.safeParse(body);
+        const parseResult = QuestionRetryRequestSchema.safeParse(body);
         if (!parseResult.success) {
             return validationErrorResponse(correlationId);
         }
