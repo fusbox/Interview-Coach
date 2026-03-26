@@ -52,3 +52,35 @@ export type CreateInviteBatchResult = {
     failures: InviteBatchFailure[];
     summary: InviteBatchSummary;
 };
+
+export type InviteEmailInput = {
+    recipientEmails: string[];
+    recipientFirstName: string;
+    role: string;
+    inviteLink: string;
+    recruiterName: string;
+    recruiterTitle?: string;
+    recruiterCompany?: string;
+    recruiterPhone?: string;
+    recruiterEmail?: string;
+};
+
+export type SendInviteEmailInput = InviteEmailInput & {
+    actorId: string;
+    sessionIds?: string[];
+};
+
+export type ResendInviteEmailInput = {
+    actorId: string;
+    sessionId: string;
+    recruiterName: string;
+    recruiterTitle?: string;
+    recruiterCompany?: string;
+    recruiterPhone?: string;
+    recruiterEmail?: string;
+    requestUrl?: string;
+};
+
+export type InviteEmailResult = {
+    id?: string | null;
+} | undefined;

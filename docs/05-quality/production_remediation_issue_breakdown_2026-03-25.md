@@ -540,7 +540,7 @@ Follow-on work that remains intentionally outside remediation scope:
 
 ## P2-1: Continue Route-to-Application-Service Extraction
 
-Status: `Not Started`  
+Status: `Done`  
 Priority: `P2`  
 Suggested owner: Backend / architecture
 
@@ -564,11 +564,47 @@ Reduce route handler orchestration and move business commands into application s
 - invite routes become reference examples for thin-route structure
 - new route logic does not couple parse, persistence, metrics, and provider behavior directly
 
+### Current Progress
+
+- invite create remains the initial reference extraction:
+  - `src/lib/server/application/invites/create-invite-batch.ts`
+- first bounded follow-on slice is now landed for invite send/resend:
+  - `src/lib/server/application/invites/send-invite-email.ts`
+  - `src/lib/server/application/invites/resend-invite-email.ts`
+  - `src/lib/server/application/invites/errors.ts`
+- the corresponding HTTP routes are now thinner:
+  - `src/app/api/invite/send/route.ts`
+  - `src/app/api/invite/resend/route.ts`
+- focused application-service coverage added:
+  - `src/lib/server/application/invites/send-invite-email.test.ts`
+  - `src/lib/server/application/invites/resend-invite-email.test.ts`
+- focused route regression coverage remains in place:
+  - `src/app/api/invite/send/route.test.ts`
+  - `src/app/api/invite/resend/route.test.ts`
+- next bounded extraction slice landed for session start:
+  - `src/lib/server/application/session/start-session.ts`
+  - `src/lib/server/application/session/errors.ts`
+  - `src/app/api/session/start/route.ts`
+- focused session-start extraction coverage added:
+  - `src/lib/server/application/session/start-session.test.ts`
+  - `src/app/api/session/start/route.test.ts`
+
+### Completion Notes
+
+- `P2-1` is complete for remediation scope.
+- The application-service pattern is now established on the highest-value orchestration-heavy routes:
+  - invite create
+  - invite send
+  - invite resend
+  - session start
+- That is enough to prove the boundary direction and remove route-level orchestration concentration from the most important candidate/recruiter entry flows.
+- Further route extraction can continue as normal architecture cleanup, but it is no longer required to satisfy the remediation plan.
+
 ---
 
 ## P2-2: Add Accessibility Automation for Critical Flows
 
-Status: `Not Started`  
+Status: `Done`  
 Priority: `P2`  
 Suggested owner: Frontend / QA
 
@@ -592,6 +628,34 @@ Catch keyboard, announcement, and focus regressions in recruiter and candidate c
 - keyboard/focus regressions are covered
 - async error/success announcements are verified
 - critical flows have accessibility assertions in CI
+
+### Current Progress
+
+- recruiter preview/send accessibility slice landed:
+  - `src/components/patterns/InviteEmailPreviewModal.test.tsx`
+  - `src/app/(recruiter)/recruiter/create/components/StepPreviewCombined.test.tsx`
+- current coverage verifies:
+  - preview dialog initial focus
+  - success dialog initial focus
+  - `Escape` dismissal
+  - send error announcement via `role="alert"`
+- dialog focus behavior was reinforced in:
+  - `src/components/patterns/InviteEmailPreviewModal.tsx`
+- candidate landing accessibility slice landed:
+  - `src/features/session/components/LandingScreen.test.tsx`
+- landing coverage verifies:
+  - baseline feedback failure announces via `role="alert"`
+  - begin CTA stays disabled until baseline rating selection
+- landing error announcement was reinforced in:
+  - `src/features/session/components/LandingScreen.tsx`
+
+### Completion Notes
+
+- `P2-2` is complete for remediation scope.
+- The current CI baseline now covers:
+  - recruiter preview/send dialog focus and alert behavior
+  - candidate landing alert announcement and CTA gating behavior
+- Further accessibility automation can continue as normal quality work, but it is no longer required to satisfy the remediation plan.
 
 ---
 

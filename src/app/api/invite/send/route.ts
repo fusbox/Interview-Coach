@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { InviteSendRequestSchema } from "@/lib/domain/schemas";
 import { EmailService } from "@/lib/server/services/email-service";
-import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-session-repository";
 import { createClient } from "@/lib/supabase/server";
 import { errorResponse } from "@/lib/server/api-errors";
 import { incrementMetric, observeMetric, recordAuthDenial, recordRateLimitDenial } from "@/lib/server/metrics";
 import { consumeRateLimit } from "@/lib/server/rate-limit";
 import { createServerLogger } from "@/lib/server/server-logger";
-
-const sessionRepo = new SupabaseSessionRepository();
+import { sendInviteEmailCommand } from "@/lib/server/application/invites/send-invite-email";
+import { InviteAccessError } from "@/lib/server/application/invites/errors";
 
 const WINDOW_MS = 5 * 60 * 1000;
 const MAX_IP_REQUESTS = 20;
@@ -106,29 +105,14 @@ export async function POST(req: NextRequest) {
             ...(recipientEmail ? [recipientEmail] : [])
         ]));
 
-        if (sessionIds && sessionIds.length > 0) {
-            for (const sessionId of sessionIds) {
-                const session = await sessionRepo.get(sessionId);
-                if (!session || session.recruiterId !== user.id) {
-                    incrementMetric("invite_send_total", { outcome: "forbidden" });
-                    observeMetric("invite_send_duration_ms", Date.now() - startedAt, { outcome: "forbidden" });
-                    return errorResponse(403, {
-                        code: 'FORBIDDEN',
-                        message: 'Session access denied',
-                        correlationId,
-                        retryable: false
-                    });
-                }
-            }
-        }
-
         routeLogger.info("Triggering candidate invite email", {
             actorId: user.id,
             recipientCount: finalRecipientEmails.length,
             outcome: 'start'
         });
 
-        const result = await EmailService.sendInviteEmail({
+        const result = await sendInviteEmailCommand({
+            actorId: user.id,
             recipientEmails: finalRecipientEmails,
             recipientFirstName,
             role,
@@ -137,12 +121,11 @@ export async function POST(req: NextRequest) {
             recruiterTitle,
             recruiterCompany,
             recruiterPhone,
-            recruiterEmail
+            recruiterEmail,
+            sessionIds
+        }, {
+            sendInviteEmail: EmailService.sendInviteEmail.bind(EmailService)
         });
-
-        if (sessionIds && Array.isArray(sessionIds)) {
-            await Promise.all(sessionIds.map(id => sessionRepo.markInvitationSent(id)));
-        }
 
         routeLogger.info("Invite flow completed", {
             actorId: user.id,
@@ -154,6 +137,16 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ success: true, data: result, correlationId });
     } catch (error) {
+        if (error instanceof InviteAccessError) {
+            incrementMetric("invite_send_total", { outcome: "forbidden" });
+            observeMetric("invite_send_duration_ms", Date.now() - startedAt, { outcome: "forbidden" });
+            return errorResponse(403, {
+                code: 'FORBIDDEN',
+                message: error.message,
+                correlationId,
+                retryable: false
+            });
+        }
         routeLogger.error("Failed to trigger invite email", {
             error,
             errorCode: "INVITE_SEND_FAILED"

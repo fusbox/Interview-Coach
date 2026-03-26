@@ -11,7 +11,7 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
 
 - Production release status: `Remediation gate satisfied for the initial hardening scope`
 - Controlled staging status: `Allowed`
-- Active phase: `Post-remediation backlog / P2 follow-on work`
+- Active phase: `Remediation complete; follow-on work is normal quality/architecture improvement`
 - Last updated by: `Codex`
 
 ---
@@ -21,8 +21,8 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
 | Severity | Total | Not Started | In Progress | Blocked | Done |
 |----------|-------|-------------|-------------|---------|------|
 | P0 | 3 | 0 | 0 | 0 | 3 |
-| P1 | 4 | 0 | 1 | 0 | 3 |
-| P2 | 2 | 2 | 0 | 0 | 0 |
+| P1 | 4 | 0 | 0 | 0 | 4 |
+| P2 | 2 | 0 | 0 | 0 | 2 |
 
 ---
 
@@ -37,8 +37,8 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
 | P1-2 | Remove residual hardcoded business defaults | P1 | Frontend / product engineering | Sprint 3 | Done | none | Recruiter/business fallback policy is now centralized in shared config and consumed by recruiter signature flows |
 | P1-3 | Tighten runtime schemas | P1 | Backend / AI contracts | Sprint 3 | Done | feedback-chain coordination | Shared request contracts consolidated, provider malformed-response path typed, and critical route/service seams covered |
 | P1-4 | Land durable metrics path and SLO base layer | P1 | Platform / ops | Sprint 4 | Done | metrics backend decision | Durable Supabase rollups and SQL-backed SLO summaries are validated in production; threshold tuning is now ongoing ops work rather than remediation scope |
-| P2-1 | Continue route-to-application-service extraction | P2 | Backend / architecture | Sprint 3 | Not Started | P0-2 pattern established | Invite flows become the reference implementation |
-| P2-2 | Add accessibility automation for critical flows | P2 | Frontend / QA | Sprint 4 | Not Started | stable flow surfaces | Recruiter create and candidate session flows first |
+| P2-1 | Continue route-to-application-service extraction | P2 | Backend / architecture | Sprint 3 | Done | P0-2 pattern established | Invite create remains the reference implementation; invite send/resend and session-start extraction established the bounded application-service pattern |
+| P2-2 | Add accessibility automation for critical flows | P2 | Frontend / QA | Sprint 4 | Done | stable flow surfaces | Recruiter preview/send and candidate landing accessibility coverage are now in CI |
 
 ---
 
@@ -328,6 +328,71 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
   - SQL-backed SLO summaries
   - recruiter ops summary payloads
 - Remaining threshold calibration and denominator tuning is now ongoing operational policy work, not unresolved remediation scope.
+
+### 2026-03-26 (P2-1 Started)
+
+- `P2-1` moved to `In Progress`.
+- Extracted invite email orchestration out of the HTTP routes and into application services:
+  - `src/lib/server/application/invites/send-invite-email.ts`
+  - `src/lib/server/application/invites/resend-invite-email.ts`
+  - `src/lib/server/application/invites/errors.ts`
+- Thinned the invite send/resend routes so they now focus on:
+  - auth
+  - rate limiting
+  - request parsing
+  - HTTP response mapping
+- Added focused application-service tests:
+  - `src/lib/server/application/invites/send-invite-email.test.ts`
+  - `src/lib/server/application/invites/resend-invite-email.test.ts`
+- Invite send/resend route regression coverage remains green:
+  - `src/app/api/invite/send/route.test.ts`
+  - `src/app/api/invite/resend/route.test.ts`
+- Added the next bounded extraction slice for session start:
+  - `src/lib/server/application/session/start-session.ts`
+  - `src/lib/server/application/session/errors.ts`
+- Thinned the session start route so clone/create orchestration now lives in the application layer:
+  - `src/app/api/session/start/route.ts`
+- Added focused application-service and route coverage:
+  - `src/lib/server/application/session/start-session.test.ts`
+  - `src/app/api/session/start/route.test.ts`
+
+### 2026-03-26 (P2-1 Completed)
+
+- `P2-1` moved to `Done`.
+- Remediation closure rationale:
+  - invite creation already existed as the first application-service reference
+  - invite send/resend now follow the same pattern
+  - session start now follows the same pattern
+- This establishes the intended thin-route/application-service boundary on the highest-value orchestration-heavy paths without forcing a broad route refactor as part of remediation.
+- Further extraction work is now normal architecture cleanup, not unresolved remediation.
+
+### 2026-03-26 (P2-2 Started)
+
+- `P2-2` moved to `In Progress`.
+- Added recruiter preview/send accessibility automation:
+  - `src/components/patterns/InviteEmailPreviewModal.test.tsx`
+  - `src/app/(recruiter)/recruiter/create/components/StepPreviewCombined.test.tsx`
+- Coverage now asserts:
+  - initial focus lands on the primary dialog action for preview and success states
+  - `Escape` closes the preview dialog
+  - send failures surface through an alert region
+- Reinforced dialog focus behavior in:
+  - `src/components/patterns/InviteEmailPreviewModal.tsx`
+
+### 2026-03-26 (P2-2 Completed)
+
+- `P2-2` moved to `Done`.
+- Added the candidate-side accessibility slice on the landing flow:
+  - `src/features/session/components/LandingScreen.test.tsx`
+- Candidate landing coverage now asserts:
+  - baseline feedback save failures announce through an alert region
+  - the primary begin CTA stays disabled until the required baseline rating is selected
+- Reinforced the landing feedback error announcement in:
+  - `src/features/session/components/LandingScreen.tsx`
+- `P2-2` is considered complete for remediation scope with:
+  - recruiter preview/send focus and alert coverage
+  - candidate landing alert and CTA-state coverage
+- Any deeper candidate-session accessibility work can continue as normal quality improvement, not unresolved remediation.
 
 ### 2026-__-__
 

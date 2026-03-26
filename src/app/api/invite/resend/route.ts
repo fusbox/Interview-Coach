@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { InviteResendRequestSchema } from "@/lib/domain/schemas";
 import { createClient } from "@/lib/supabase/server";
-import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-session-repository";
 import { EmailService } from "@/lib/server/services/email-service";
 import { errorResponse } from "@/lib/server/api-errors";
 import { consumeRateLimit } from "@/lib/server/rate-limit";
 import { createServerLogger } from "@/lib/server/server-logger";
 import { incrementMetric, observeMetric, recordAuthDenial, recordRateLimitDenial } from "@/lib/server/metrics";
-import { getAppOrigin } from "@/lib/server/url/get-app-origin";
-
-const sessionRepo = new SupabaseSessionRepository();
+import { resendInviteEmailCommand } from "@/lib/server/application/invites/resend-invite-email";
+import { InviteAccessError, InviteInputError } from "@/lib/server/application/invites/errors";
 
 const WINDOW_MS = 5 * 60 * 1000;
 const MAX_IP_REQUESTS = 20;
@@ -92,67 +90,24 @@ export async function POST(req: NextRequest) {
             recruiterEmail,
         } = parseResult.data;
 
-        const session = await sessionRepo.get(sessionId);
-
-        if (!session || session.recruiterId !== user.id) {
-            incrementMetric("invite_send_total", { outcome: "forbidden" });
-            observeMetric("invite_send_duration_ms", Date.now() - startedAt, { outcome: "forbidden" });
-            return errorResponse(403, {
-                code: "FORBIDDEN",
-                message: "Session access denied",
-                correlationId,
-                retryable: false,
-            });
-        }
-
-        if (!session.inviteToken) {
-            incrementMetric("invite_send_total", { outcome: "invalid_request" });
-            observeMetric("invite_send_duration_ms", Date.now() - startedAt, { outcome: "invalid_request" });
-            return errorResponse(400, {
-                code: "INVALID_REQUEST",
-                message: "Session does not have an invite token",
-                correlationId,
-                retryable: false,
-            });
-        }
-
-        const candidateEmail = session.candidate?.email;
-        const recipientFirstName = session.candidate?.firstName || session.candidateName || "Candidate";
-
-        if (!candidateEmail) {
-            incrementMetric("invite_send_total", { outcome: "invalid_request" });
-            observeMetric("invite_send_duration_ms", Date.now() - startedAt, { outcome: "invalid_request" });
-            return errorResponse(400, {
-                code: "INVALID_REQUEST",
-                message: "Session does not have a candidate email",
-                correlationId,
-                retryable: false,
-            });
-        }
-
-        const baseUrl = getAppOrigin(req.url);
-        const inviteLink = `${baseUrl}/s/${session.inviteToken}`;
-
         routeLogger.info("Triggering invite resend email", {
             actorId: user.id,
             sessionId,
-            recipientEmail: candidateEmail,
             outcome: "start",
         });
 
-        const result = await EmailService.sendInviteEmail({
-            recipientEmails: [candidateEmail],
-            recipientFirstName,
-            role: session.role,
-            inviteLink,
+        const { result, candidateEmail } = await resendInviteEmailCommand({
+            actorId: user.id,
+            sessionId,
             recruiterName,
             recruiterTitle,
             recruiterCompany,
             recruiterPhone,
             recruiterEmail,
+            requestUrl: req.url
+        }, {
+            sendInviteEmail: EmailService.sendInviteEmail.bind(EmailService)
         });
-
-        await sessionRepo.markInvitationSent(sessionId);
 
         routeLogger.info("Invite resend completed", {
             actorId: user.id,
@@ -165,6 +120,26 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ success: true, data: result, correlationId });
     } catch (error) {
+        if (error instanceof InviteAccessError) {
+            incrementMetric("invite_send_total", { outcome: "forbidden" });
+            observeMetric("invite_send_duration_ms", Date.now() - startedAt, { outcome: "forbidden" });
+            return errorResponse(403, {
+                code: "FORBIDDEN",
+                message: error.message,
+                correlationId,
+                retryable: false,
+            });
+        }
+        if (error instanceof InviteInputError) {
+            incrementMetric("invite_send_total", { outcome: "invalid_request" });
+            observeMetric("invite_send_duration_ms", Date.now() - startedAt, { outcome: "invalid_request" });
+            return errorResponse(400, {
+                code: "INVALID_REQUEST",
+                message: error.message,
+                correlationId,
+                retryable: false,
+            });
+        }
         routeLogger.error("Failed to resend invite email", {
             error,
             errorCode: "INVITE_RESEND_FAILED",

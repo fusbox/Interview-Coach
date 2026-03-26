@@ -210,7 +210,11 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                             </div>
                         </div>
 
-                        {feedbackError && <AlertPanel tone="critical">{feedbackError}</AlertPanel>}
+                        {feedbackError && (
+                            <AlertPanel tone="critical" role="alert" aria-live="assertive">
+                                {feedbackError}
+                            </AlertPanel>
+                        )}
 
                         <div className="flex items-center justify-between gap-2 w-full">
                             {EMOJI_SCALE.map(({ val, emoji }) => (

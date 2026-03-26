@@ -81,26 +81,28 @@ Completion target:
 
 ---
 
-## Ready Queue
-
-### P1-3: Tighten Runtime Schemas
-
-Owner: Backend / AI contracts  
-Status: Done
-
-Completed slice:
-- removed broad `z.any()` from the critical provider/domain paths
-- consolidated high-value recruiter/candidate route request contracts into shared domain schemas
-- classified malformed provider output consistently across the main AI/service/route seams
+## P2 Active Queue
 
 ### P2-1: Continue Route-to-Application-Service Extraction
 
 Owner: Backend / architecture  
-Status: Ready after P1-4 baseline
+Status: Done
 
-First slice:
+Completed slice:
 - use invite flow as the reference extraction pattern
-- identify the next route family with enough orchestration weight to justify extraction
+- invite send/resend extraction is now landed
+- session-start extraction is now landed
+- the thin-route/application-service pattern is now established on the highest-value orchestration-heavy entry flows
+
+### P2-2: Add Accessibility Automation For Critical Flows
+
+Owner: Frontend / QA  
+Status: Done
+
+Completed slice:
+- recruiter preview/send accessibility coverage is now in CI
+- candidate landing accessibility coverage is now in CI
+- current baseline covers focus, dismissal, alert announcements, and CTA gating behavior on critical recruiter/candidate entry surfaces
 
 ---
 
@@ -114,7 +116,7 @@ Do not expand the first `P1-4` slice into:
 
 ---
 
-## Exit Criteria For Active Slice
+## Exit Criteria For P2 Follow-On Work
 
 - [x] current in-memory metrics implementation is baselined
 - [x] tracker and issue breakdown are updated to reflect the new active item
@@ -124,6 +126,10 @@ Do not expand the first `P1-4` slice into:
 - [x] minimum SLO set is documented against real metric names
 - [x] durable submit success/failure instrumentation is added for in-session progress reliability
 - [x] updated metrics rollup migration with SLO summary functions is applied and validated in Supabase
+- [ ] invite-family extraction is either closed or cleanly bounded to the next route family
+- [x] recruiter preview/send accessibility assertions remain stable in CI
+- [x] one bounded candidate-session accessibility slice is added
+- [x] thin-route/application-service pattern is established on the main invite/session entry flows
 
 ---
 

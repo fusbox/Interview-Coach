@@ -212,6 +212,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                         <Button
                                             ref={successPrimaryButtonRef}
                                             onClick={onNewInvite}
+                                            autoFocus
                                             emphasis="primary"
                                             density="hero"
                                             shape="app"
@@ -252,6 +253,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                         <Button
                                             ref={closeButtonRef}
                                             onClick={onClose}
+                                            autoFocus
                                             emphasis="secondary"
                                             density="compact"
                                             shape="square"
