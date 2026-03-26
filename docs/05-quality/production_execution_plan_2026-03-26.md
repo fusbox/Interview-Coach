@@ -78,7 +78,9 @@ Problem:
 Execution:
 
 1. Change origin resolution so production never trusts request-derived origin fallback.
-2. Make `NEXT_PUBLIC_APP_URL` the required production contract for candidate-facing public-origin generation.
+2. Require a configured canonical origin for candidate-facing public URL generation.
+   - preferred: `NEXT_PUBLIC_APP_URL`
+   - compatible fallback: `NEXT_PUBLIC_BASE_URL`
 3. Keep local development ergonomics for request-based localhost normalization outside production.
 4. Add focused tests for:
    - missing `NEXT_PUBLIC_APP_URL` in production
@@ -187,7 +189,7 @@ Mapped execution:
 - `Workstream 1` implements the invite consistency model decision and delivery:
   - transaction-safe DB batch write
   - or persisted `batch_id` reconciliation state with per-candidate status
-- `Workstream 2` removes production request-host fallback and makes `NEXT_PUBLIC_APP_URL` the trusted production contract
+- `Workstream 2` removes production request-host fallback while allowing either `NEXT_PUBLIC_APP_URL` or `NEXT_PUBLIC_BASE_URL` as the trusted configured production origin
 
 ### 2. Refactor Suggestions
 

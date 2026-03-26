@@ -24,11 +24,18 @@ function getConfiguredOrigin(): string | undefined {
 }
 
 export function getAppOrigin(requestUrl?: string): string {
+    const configuredOrigin = getConfiguredOrigin();
+
     if (isProductionServer()) {
-        return normalizeOrigin(getRequiredServerEnv("NEXT_PUBLIC_APP_URL", "public app origin resolution"));
+        if (configuredOrigin) {
+            return configuredOrigin;
+        }
+
+        throw new Error(
+            "[ServerEnv] Missing required environment variable NEXT_PUBLIC_APP_URL or NEXT_PUBLIC_BASE_URL for public app origin resolution."
+        );
     }
 
-    const configuredOrigin = getConfiguredOrigin();
     if (configuredOrigin) {
         return configuredOrigin;
     }

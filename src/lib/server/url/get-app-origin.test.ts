@@ -58,7 +58,7 @@ describe("getAppOrigin", () => {
         const { getAppOrigin } = await import("./get-app-origin");
 
         expect(() => getAppOrigin()).toThrow(
-            "[ServerEnv] Missing required environment variable NEXT_PUBLIC_APP_URL for public app origin resolution."
+            "[ServerEnv] Missing required environment variable NEXT_PUBLIC_APP_URL or NEXT_PUBLIC_BASE_URL for public app origin resolution."
         );
     });
 
@@ -73,11 +73,11 @@ describe("getAppOrigin", () => {
         const { getAppOrigin } = await import("./get-app-origin");
 
         expect(() => getAppOrigin("https://untrusted.example.com/api/recruiter/invites")).toThrow(
-            "[ServerEnv] Missing required environment variable NEXT_PUBLIC_APP_URL for public app origin resolution."
+            "[ServerEnv] Missing required environment variable NEXT_PUBLIC_APP_URL or NEXT_PUBLIC_BASE_URL for public app origin resolution."
         );
     });
 
-    it("requires NEXT_PUBLIC_APP_URL in production even when NEXT_PUBLIC_BASE_URL is present", async () => {
+    it("accepts NEXT_PUBLIC_BASE_URL in production when NEXT_PUBLIC_APP_URL is absent", async () => {
         process.env = {
             ...process.env,
             NODE_ENV: "production",
@@ -87,9 +87,7 @@ describe("getAppOrigin", () => {
 
         const { getAppOrigin } = await import("./get-app-origin");
 
-        expect(() => getAppOrigin()).toThrow(
-            "[ServerEnv] Missing required environment variable NEXT_PUBLIC_APP_URL for public app origin resolution."
-        );
+        expect(getAppOrigin()).toBe("https://base.example.com");
     });
 
     it("throws for malformed configured origins", async () => {

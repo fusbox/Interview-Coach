@@ -40,7 +40,7 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
 | P2-1 | Continue route-to-application-service extraction | P2 | Backend / architecture | Sprint 3 | Done | P0-2 pattern established | Invite create remains the reference implementation; invite send/resend and session-start extraction established the bounded application-service pattern |
 | P2-2 | Add accessibility automation for critical flows | P2 | Frontend / QA | Sprint 4 | Done | stable flow surfaces | Recruiter preview/send and candidate landing accessibility coverage are now in CI |
 | P0-R1 | Reopen invite batch consistency for durable recovery semantics | P0 | Backend / application layer | Sprint 5 | In Progress | P0-2 baseline | Atomic batch RPC and application-service rewrite landed locally with focused tests; pending migration rollout and deployed validation |
-| P0-R2 | Enforce canonical app origin contract in production | P0 | Backend / platform | Sprint 5 | In Progress | P1-1 baseline | Production-only `NEXT_PUBLIC_APP_URL` enforcement landed locally with focused tests; pending deployed validation |
+| P0-R2 | Enforce canonical app origin contract in production | P0 | Backend / platform | Sprint 5 | In Progress | P1-1 baseline | Production now requires a configured origin from `NEXT_PUBLIC_APP_URL` or `NEXT_PUBLIC_BASE_URL`; request-host fallback remains disallowed; pending deployed validation |
 | P0-R3 | Enforce durable metrics backend and validate paging integration | P0 | Platform / ops | Sprint 5 | In Progress | P1-4 baseline | Production fail-fast metrics contract landed locally with focused tests; external paging validation remains open |
 
 ---
@@ -423,7 +423,7 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
 - `P0-R2` local implementation landed:
   - `src/lib/server/url/get-app-origin.ts`
   - `src/lib/server/url/get-app-origin.test.ts`
-  - production now requires `NEXT_PUBLIC_APP_URL` even when a request URL or `NEXT_PUBLIC_BASE_URL` is present
+  - production now requires a configured public origin and no longer trusts request-host fallback
 - `P0-R3` local implementation landed:
   - `src/lib/server/metrics/backend.ts`
   - `src/lib/server/metrics/backend.test.ts`
@@ -469,7 +469,7 @@ Use this section to record decisions that change implementation direction during
 | 2026-03-25 | Invite batch creation will surface deterministic mixed results immediately, with deeper transaction/batch-record semantics evaluated as a follow-on within `P0-2` | P0-2 | Improves user-visible correctness before full persistence model redesign |
 | 2026-03-25 | `P0-2` closes for the initial rollout at deterministic mixed-result semantics with idempotent partial replay; deeper batch infrastructure is deferred to ATS integration work | P0-2 | Keeps the remediation scope proportional to the rollout and avoids speculative persistence redesign |
 | 2026-03-26 | The 2026-03-25 remediation closure is superseded for production-release purposes by the 2026-03-26 review refresh | P0-R1, P0-R2, P0-R3 | Controlled staging may continue, but production is blocked until the reopened items are closed |
-| 2026-03-26 | Canonical origin enforcement must reject production request-host fallback even when a request URL is available | P0-R2 | `NEXT_PUBLIC_APP_URL` becomes a required production contract for trusted public-origin generation |
+| 2026-03-26 | Canonical origin enforcement must reject production request-host fallback even when a request URL is available | P0-R2 | Production requires a configured trusted origin via `NEXT_PUBLIC_APP_URL` or `NEXT_PUBLIC_BASE_URL` |
 | 2026-03-26 | Durable metrics capability is not sufficient by itself; production must also enforce the durable backend and validate alert-to-paging routing | P0-R3 | Closes the gap between instrumentation availability and operable production enforcement |
 
 ---
