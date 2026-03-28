@@ -20,7 +20,7 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
 
 | Severity | Total | Not Started | In Progress | Blocked | Done |
 |----------|-------|-------------|-------------|---------|------|
-| P0 | 6 | 3 | 0 | 0 | 3 |
+| P0 | 6 | 0 | 1 | 0 | 5 |
 | P1 | 4 | 0 | 0 | 0 | 4 |
 | P2 | 2 | 0 | 0 | 0 | 2 |
 
@@ -39,9 +39,9 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
 | P1-4 | Land durable metrics path and SLO base layer | P1 | Platform / ops | Sprint 4 | Done | metrics backend decision | Durable Supabase rollups and SQL-backed SLO summaries are validated in production; threshold tuning is now ongoing ops work rather than remediation scope |
 | P2-1 | Continue route-to-application-service extraction | P2 | Backend / architecture | Sprint 3 | Done | P0-2 pattern established | Invite create remains the reference implementation; invite send/resend and session-start extraction established the bounded application-service pattern |
 | P2-2 | Add accessibility automation for critical flows | P2 | Frontend / QA | Sprint 4 | Done | stable flow surfaces | Recruiter preview/send and candidate landing accessibility coverage are now in CI |
-| P0-R1 | Reopen invite batch consistency for durable recovery semantics | P0 | Backend / application layer | Sprint 5 | In Progress | P0-2 baseline | Atomic batch RPC and application-service rewrite landed locally with focused tests; pending migration rollout and deployed validation |
-| P0-R2 | Enforce canonical app origin contract in production | P0 | Backend / platform | Sprint 5 | In Progress | P1-1 baseline | Production now requires a configured origin from `NEXT_PUBLIC_APP_URL` or `NEXT_PUBLIC_BASE_URL`; request-host fallback remains disallowed; pending deployed validation |
-| P0-R3 | Enforce durable metrics backend and validate paging integration | P0 | Platform / ops | Sprint 5 | In Progress | P1-4 baseline | Production fail-fast metrics contract landed locally with focused tests; external paging validation remains open |
+| P0-R1 | Reopen invite batch consistency for durable recovery semantics | P0 | Backend / application layer | Sprint 5 | Done | P0-2 baseline | Atomic batch RPC is deployed and validated; persisted batch tracking and safe retry endpoint now land the app-owned reconciliation model beyond the original atomicity baseline |
+| P0-R2 | Enforce canonical app origin contract in production | P0 | Backend / platform | Sprint 5 | Done | P1-1 baseline | Production configured-origin validation passed with `NEXT_PUBLIC_BASE_URL`; request-host fallback remains disallowed and invite flow is healthy in deployment |
+| P0-R3 | Enforce durable metrics backend and validate paging integration | P0 | Platform / ops | Sprint 5 | In Progress | P1-4 baseline | Durable metrics contract and Teams notification starter are implemented and test-covered; live Teams webhook provisioning and final delivery validation are deployment-team handoff items outside product-developer scope |
 
 ---
 
@@ -441,9 +441,199 @@ Issue breakdown: [production_remediation_issue_breakdown_2026-03-25.md](./produc
   - `src/app/api/recruiter/invites/route.test.ts`
   - `npx tsc --noEmit`
 - Remaining closure work:
-  - apply and validate the invite-batch migration in Supabase
   - validate the production origin contract in deployed configuration
   - run alert-to-paging validation for `P0-R3`
+
+### 2026-03-27 (P0-R1 Completed)
+
+- `P0-R1` moved to `Done`.
+- Deployed happy-path validation completed:
+  - multi-recipient invite creation succeeded in the deployed environment
+  - related `sessions`, `questions`, and `candidate_tokens` rows referenced the correct session records
+- Controlled failure-mode validation completed using a temporary fail trigger inside `public.create_invite_batch(...)`:
+  - recruiter UI showed deterministic all-failure behavior for the batch
+  - no new `sessions` rows were created
+  - no new `questions` rows were created
+  - no new `candidate_tokens` rows were created
+- Closure rationale:
+  - the atomic invite-batch path is deployed
+  - happy-path and failure-path behavior are both validated
+  - no partial persisted state was observed under controlled batch failure
+
+### 2026-03-27 (P0-R2 Completed)
+
+- `P0-R2` moved to `Done`.
+- Production validation completed:
+  - deployed invite creation initially failed due to missing configured origin env
+  - configured production origin was restored via environment settings
+  - deployed invite create, multi-recipient flow, and full practice-session flow all passed afterward
+- Current production contract:
+  - trusted configured origin may come from `NEXT_PUBLIC_APP_URL` or `NEXT_PUBLIC_BASE_URL`
+  - request-host fallback remains disallowed in production
+- Closure rationale:
+  - the production failure mode was identified and corrected
+  - deployed behavior now uses configured origin successfully
+  - no further code remediation is needed for the origin contract
+
+### 2026-03-27 (Post-P0 Follow-On: Invite Delivery Metrics Split)
+
+- Landed the review follow-on to separate invite send vs resend metrics:
+  - resend route now emits `invite_resend_total`
+  - resend route now emits `invite_resend_duration_ms`
+- Updated the ops dashboard shape to expose:
+  - `invites.sendSuccesses`
+  - `invites.sendFailures`
+  - `invites.resendSuccesses`
+  - `invites.resendFailures`
+- Updated alert evaluation so `invite_delivery_failures` still aggregates both delivery paths for operational paging while preserving route-level triage clarity.
+- Focused validation passed:
+  - `src/lib/server/metrics.test.ts`
+  - `src/lib/server/alerts.test.ts`
+  - `src/app/api/invite/resend/route.test.ts`
+  - `src/app/api/recruiter/ops/metrics/route.test.ts`
+  - `npx tsc --noEmit`
+
+### 2026-03-27 (Post-P0 Follow-On: Logger Redaction Guardrail)
+
+- Landed logger-boundary redaction for high-risk fields:
+  - email addresses
+  - invite/candidate tokens
+  - session identifiers
+  - invite/practice-again URLs
+  - secret-like keys
+- This guardrail now applies before structured payloads are emitted, reducing dependence on every callsite remembering to sanitize manually.
+- Added focused logger coverage proving reserved fields and nested payload fields are redacted:
+  - `src/lib/logger.test.ts`
+- Regression validation also re-ran the recent ops metrics slice:
+  - `src/lib/server/metrics.test.ts`
+  - `src/lib/server/alerts.test.ts`
+  - `src/app/api/invite/resend/route.test.ts`
+  - `src/app/api/recruiter/ops/metrics/route.test.ts`
+  - `npx tsc --noEmit`
+
+### 2026-03-27 (Post-P0 Follow-On: Durable Metrics RPC Compatibility)
+
+- Hardened the durable metrics backend against stringly typed Supabase/Postgres RPC payloads for:
+  - counter rollups
+  - timing rollups
+  - session-start SLO rows
+  - session-progress SLO rows
+  - AI reliability SLO rows
+  - AI latency SLO rows
+- Added focused compatibility coverage proving mixed numeric/string payloads normalize cleanly before dashboard and SLO summary assembly:
+  - `src/lib/server/metrics/backend.test.ts`
+  - `src/lib/server/metrics.test.ts`
+  - `src/app/api/recruiter/ops/metrics/route.test.ts`
+  - `npx tsc --noEmit`
+
+### 2026-03-27 (Post-P0 Follow-On: Invite Batch Response Contract)
+
+- Tightened recruiter invite-route contract coverage for partial-failure responses:
+  - exact `207` response envelope
+  - deterministic per-candidate failure ordering
+  - required `results`, `failures`, `summary`, and `correlationId` fields
+  - idempotent replay of the same partial-failure response shape
+- Focused validation passed:
+  - `src/app/api/recruiter/invites/route.test.ts`
+  - `src/lib/server/application/invites/create-invite-batch.test.ts`
+  - `npx tsc --noEmit`
+
+### 2026-03-27 (Post-P0 Follow-On: Shared Rate-Limit Reliability Evidence)
+
+- Added shared-state rate-limit coverage proving the Supabase-backed limiter enforces the same bucket across isolated module instances, not just within one process-local cache.
+- Regression validation also re-ran the key recruiter/candidate throttled routes:
+  - `src/lib/server/rate-limit.test.ts`
+  - `src/app/api/invite/send/route.test.ts`
+  - `src/app/api/recruiter/invites/route.test.ts`
+  - `src/app/api/session/start/route.test.ts`
+  - `npx tsc --noEmit`
+
+### 2026-03-27 (Post-P0 Follow-On: Session Route Thinning)
+
+- Extracted `PATCH /api/session/[session_id]` orchestration into an application command:
+  - `src/lib/server/application/session/update-session.ts`
+  - `src/lib/server/application/session/update-session.test.ts`
+- `PATCH /api/session/[session_id]` now focuses on:
+  - candidate auth
+  - request validation
+  - application-command invocation
+  - HTTP error mapping
+- Extracted `GET /api/session/[session_id]` fetch/mark-viewed behavior into an application command:
+  - `src/lib/server/application/session/get-session.ts`
+  - `src/lib/server/application/session/get-session.test.ts`
+- `GET /api/session/[session_id]` now focuses on:
+  - candidate auth
+  - application-command invocation
+  - HTTP error mapping
+- Extended command-specific error modeling for session update/fetch flows:
+  - `src/lib/server/application/session/errors.ts`
+- Added route regression coverage for both methods:
+  - `src/app/api/session/[session_id]/route.test.ts`
+- Closure/evidence note:
+  - the highest-value remaining route-thinning target identified in the 2026-03-26 review is no longer open
+  - remaining route-thinning backlog is now centered on question-mutation and AI helper routes rather than the base session route
+- Focused validation passed:
+  - `src/lib/server/application/session/get-session.test.ts`
+  - `src/lib/server/application/session/update-session.test.ts`
+  - `src/app/api/session/[session_id]/route.test.ts`
+  - `npx tsc --noEmit`
+
+### 2026-03-28 (Post-P0 Follow-On: Recruiter Accessibility and Polish Punch List)
+
+- Expanded recruiter critical-path accessibility coverage to close the latest review punch-list slice for create + preview + resend flows.
+- Updated recruiter create preview coverage to use the real preview modal instead of a stub so the test now asserts:
+  - preview dialog opens on the generated invite path
+  - keyboard focus lands on the preview cancel action
+  - async send failures are announced through the live alert region
+- Added resend-flow accessibility coverage asserting:
+  - resend preview opens from the sessions table action
+  - keyboard focus lands on the preview cancel action
+  - resend failures are announced through the live alert region
+  - successful resend moves focus to the primary success action
+- Current CI-facing recruiter accessibility smoke now includes:
+  - `src/app/(recruiter)/recruiter/create/components/StepPreviewCombined.test.tsx`
+  - `src/app/(recruiter)/recruiter/components/ResendInviteButton.test.tsx`
+  - `src/components/patterns/InviteEmailPreviewModal.test.tsx`
+- Focused validation passed:
+  - recruiter create preview/send accessibility suite
+  - recruiter resend accessibility suite
+  - preview modal accessibility suite
+  - `npx tsc --noEmit`
+
+### 2026-03-28 (Post-P0 Follow-On: Invite Batch Reconciliation State and Safe Retry)
+
+- Landed persisted invite-batch reconciliation records for recruiter invite creation:
+  - `supabase/migrations/20260328_add_invite_batch_tracking.sql`
+  - `invite_batches`
+  - `invite_batch_candidates`
+- Expanded invite batch application types and command behavior so recruiter invite creation now returns a durable `batchId` and records per-candidate batch state before the atomic RPC write:
+  - `src/lib/server/application/invites/types.ts`
+  - `src/lib/server/application/invites/create-invite-batch.ts`
+- Extended the Supabase invite repository with tracked-batch lifecycle operations:
+  - create tracked batch
+  - mark batch completed
+  - mark batch failed
+  - load tracked batch by recruiter
+  - mark original batch retried
+  - `src/lib/server/infrastructure/supabase-invite-repository.ts`
+- Added a safe recruiter retry path that only retries failed-and-retryable candidates from a prior batch and records parent/child lineage:
+  - `src/lib/server/application/invites/retry-invite-batch.ts`
+  - `src/app/api/recruiter/invites/[batch_id]/retry/route.ts`
+- Invite create and retry validation now covers:
+  - tracked batch creation and completion/failure bookkeeping
+  - retry rejection for missing or non-retryable batches
+  - successful child-batch creation from failed candidates only
+  - recruiter route response contract including returned `batchId`
+  - focused retry route coverage
+- Focused validation passed:
+  - `src/lib/server/application/invites/create-invite-batch.test.ts`
+  - `src/lib/server/application/invites/retry-invite-batch.test.ts`
+  - `src/app/api/recruiter/invites/route.test.ts`
+  - `src/app/api/recruiter/invites/[batch_id]/retry/route.test.ts`
+  - `npx tsc --noEmit`
+- Scope note:
+  - this closes the app-owned reconciliation/safe-retry gap from the 2026-03-26 review
+  - rollout still requires applying the new tracking migration and validating the retry endpoint in the target Supabase/deployment environment
 
 ### 2026-__-__
 
@@ -471,6 +661,8 @@ Use this section to record decisions that change implementation direction during
 | 2026-03-26 | The 2026-03-25 remediation closure is superseded for production-release purposes by the 2026-03-26 review refresh | P0-R1, P0-R2, P0-R3 | Controlled staging may continue, but production is blocked until the reopened items are closed |
 | 2026-03-26 | Canonical origin enforcement must reject production request-host fallback even when a request URL is available | P0-R2 | Production requires a configured trusted origin via `NEXT_PUBLIC_APP_URL` or `NEXT_PUBLIC_BASE_URL` |
 | 2026-03-26 | Durable metrics capability is not sufficient by itself; production must also enforce the durable backend and validate alert-to-paging routing | P0-R3 | Closes the gap between instrumentation availability and operable production enforcement |
+| 2026-03-27 | Microsoft Teams webhook delivery is the accepted MVP paging path for P0-R3, with live webhook provisioning and final send validation owned by the deployment team | P0-R3 | Product-developer scope ends at starter implementation, tests, and documentation; production closeout requires deployment-managed webhook evidence |
+| 2026-03-28 | Invite consistency follow-on work will persist batch reconciliation state and expose retry-failed-only behavior through a recruiter-safe endpoint | P0-R1 follow-on | Extends the closed atomicity baseline into an explicit recovery model without reopening production gating beyond normal migration/endpoint rollout validation |
 
 ---
 
@@ -487,8 +679,8 @@ Use this section to record decisions that change implementation direction during
 Production release is blocked until all of the following are true:
 
 - [x] Initial remediation gate items `P0-1`, `P0-2`, and `P0-3` remain complete
-- [ ] `P0-R1` is complete
-- [ ] `P0-R2` is complete
+- [x] `P0-R1` is complete
+- [x] `P0-R2` is complete
 - [ ] `P0-R3` is complete
 - [ ] Release-gate checklist is re-run against the 2026-03-26 production posture
 
@@ -499,3 +691,4 @@ Production release is blocked until all of the following are true:
 - Update this tracker at least once per week while remediation is active.
 - When an item moves to `Done`, also update linked runbooks, ADRs, and quality docs if impacted.
 - Do not mark a P0 item done until code, tests, and documentation are all complete.
+

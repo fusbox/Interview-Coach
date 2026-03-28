@@ -5,11 +5,19 @@ import type { InviteRepository } from "@/lib/domain/invite";
 describe("createInviteBatch", () => {
     it("returns created results when the batch write succeeds", async () => {
         const createBatchMock = vi.fn<InviteRepository["createBatch"]>().mockResolvedValue(undefined);
+        const createTrackedBatchMock = vi.fn().mockResolvedValue("batch-1");
+        const markTrackedBatchCompletedMock = vi.fn().mockResolvedValue(undefined);
+        const markTrackedBatchFailedMock = vi.fn().mockResolvedValue(undefined);
 
-        const repository: InviteRepository = {
+        const repository = {
             create: vi.fn(),
             createBatch: createBatchMock,
             getByToken: vi.fn(),
+            createTrackedBatch: createTrackedBatchMock,
+            markTrackedBatchCompleted: markTrackedBatchCompletedMock,
+            markTrackedBatchFailed: markTrackedBatchFailedMock,
+            getTrackedBatch: vi.fn(),
+            markTrackedBatchRetried: vi.fn(),
         };
 
         const result = await createInviteBatch(
@@ -53,6 +61,7 @@ describe("createInviteBatch", () => {
             }
         );
 
+        expect(result.batchId).toBe("batch-1");
         expect(result.summary).toEqual({
             requested: 2,
             succeeded: 2,
@@ -78,16 +87,27 @@ describe("createInviteBatch", () => {
             },
         ]);
         expect(result.failures).toEqual([]);
+        expect(createTrackedBatchMock).toHaveBeenCalledTimes(1);
         expect(createBatchMock).toHaveBeenCalledTimes(1);
+        expect(markTrackedBatchCompletedMock).toHaveBeenCalledTimes(1);
+        expect(markTrackedBatchFailedMock).not.toHaveBeenCalled();
     });
 
     it("returns deterministic all-failure results when the atomic batch write fails", async () => {
         const createBatchMock = vi.fn<InviteRepository["createBatch"]>().mockRejectedValue(new Error("database write failed"));
+        const createTrackedBatchMock = vi.fn().mockResolvedValue("batch-failed");
+        const markTrackedBatchCompletedMock = vi.fn().mockResolvedValue(undefined);
+        const markTrackedBatchFailedMock = vi.fn().mockResolvedValue(undefined);
 
-        const repository: InviteRepository = {
+        const repository = {
             create: vi.fn(),
             createBatch: createBatchMock,
             getByToken: vi.fn(),
+            createTrackedBatch: createTrackedBatchMock,
+            markTrackedBatchCompleted: markTrackedBatchCompletedMock,
+            markTrackedBatchFailed: markTrackedBatchFailedMock,
+            getTrackedBatch: vi.fn(),
+            markTrackedBatchRetried: vi.fn(),
         };
 
         const result = await createInviteBatch(
@@ -125,6 +145,7 @@ describe("createInviteBatch", () => {
             }
         );
 
+        expect(result.batchId).toBe("batch-failed");
         expect(result.summary).toEqual({
             requested: 2,
             succeeded: 0,
@@ -148,6 +169,9 @@ describe("createInviteBatch", () => {
                 retryable: true,
             }),
         ]);
+        expect(createTrackedBatchMock).toHaveBeenCalledTimes(1);
         expect(createBatchMock).toHaveBeenCalledTimes(1);
+        expect(markTrackedBatchCompletedMock).not.toHaveBeenCalled();
+        expect(markTrackedBatchFailedMock).toHaveBeenCalledTimes(1);
     });
 });

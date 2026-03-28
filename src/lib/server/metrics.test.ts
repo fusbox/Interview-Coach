@@ -65,7 +65,9 @@ describe("server metrics", () => {
 
         expect(dashboard.invites).toMatchObject({
             createSuccesses: 1,
-            sendSuccesses: 1
+            sendSuccesses: 1,
+            resendSuccesses: 0,
+            resendFailures: 0
         });
         expect(dashboard.sessions).toMatchObject({
             starts: 2,

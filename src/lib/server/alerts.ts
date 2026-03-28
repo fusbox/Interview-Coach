@@ -31,8 +31,10 @@ const SESSION_STALL_START_THRESHOLD = 5;
 
 export function buildOperationsAlerts(snapshot: MetricsSnapshot): OperationsAlert[] {
     const dashboard = buildOperationsDashboard(snapshot);
-    const inviteAttempts = dashboard.invites.sendSuccesses + dashboard.invites.sendFailures;
-    const inviteFailureRate = inviteAttempts === 0 ? 0 : dashboard.invites.sendFailures / inviteAttempts;
+    const inviteSuccesses = dashboard.invites.sendSuccesses + dashboard.invites.resendSuccesses;
+    const inviteFailures = dashboard.invites.sendFailures + dashboard.invites.resendFailures;
+    const inviteAttempts = inviteSuccesses + inviteFailures;
+    const inviteFailureRate = inviteAttempts === 0 ? 0 : inviteFailures / inviteAttempts;
     const aiAttempts = dashboard.ai.requests + dashboard.ai.errors;
     const aiErrorRate = aiAttempts === 0 ? 0 : dashboard.ai.errors / aiAttempts;
     const highestAiLatency = dashboard.ai.operations.reduce((max, operation) => Math.max(max, operation.maxLatencyMs), 0);
@@ -41,15 +43,19 @@ export function buildOperationsAlerts(snapshot: MetricsSnapshot): OperationsAler
     return [
         {
             id: "invite_delivery_failures",
-            severity: dashboard.invites.sendFailures >= INVITE_FAILURE_THRESHOLD && inviteFailureRate >= 0.3 ? "critical" : "warning",
+            severity: inviteFailures >= INVITE_FAILURE_THRESHOLD && inviteFailureRate >= 0.3 ? "critical" : "warning",
             title: "Invite delivery failures",
             summary: "Candidate invite sends are failing often enough to impact recruiter workflows.",
             runbookSlug: "invite-delivery-failures",
             routes: ["backend-primary", "product-owner"],
-            triggered: dashboard.invites.sendFailures >= INVITE_FAILURE_THRESHOLD,
+            triggered: inviteFailures >= INVITE_FAILURE_THRESHOLD,
             metadata: {
                 sendFailures: dashboard.invites.sendFailures,
                 sendSuccesses: dashboard.invites.sendSuccesses,
+                resendFailures: dashboard.invites.resendFailures,
+                resendSuccesses: dashboard.invites.resendSuccesses,
+                totalFailures: inviteFailures,
+                totalSuccesses: inviteSuccesses,
                 failureRate: Number(inviteFailureRate.toFixed(2))
             }
         },

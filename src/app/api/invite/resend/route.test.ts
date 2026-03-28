@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getMetricsSnapshot, resetMetrics } from "@/lib/server/metrics";
 
 const getUserMock = vi.fn();
 const getSessionMock = vi.fn();
@@ -33,6 +34,7 @@ vi.mock("@/lib/server/rate-limit", () => ({
 describe("POST /api/invite/resend", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        resetMetrics();
         getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
         getSessionMock.mockResolvedValue({
             id: "session-1",
@@ -82,5 +84,12 @@ describe("POST /api/invite/resend", () => {
         expect(body.success).toBe(true);
         expect(sendInviteEmailMock).toHaveBeenCalledTimes(1);
         expect(markInvitationSentMock).toHaveBeenCalledWith("session-1");
+        expect(getMetricsSnapshot().counters).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                name: "invite_resend_total",
+                tags: { outcome: "success" },
+                value: 1
+            })
+        ]));
     });
 });

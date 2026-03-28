@@ -30,7 +30,7 @@ describe("Logger", () => {
             route: "/api/recruiter/invites",
             actorType: "recruiter",
             actorId: "user-1",
-            sessionId: "session-1",
+            sessionId: "[REDACTED_SESSION_ID]",
             errorCode: "NONE"
         });
         expect(entry.data).toMatchObject({
@@ -55,6 +55,31 @@ describe("Logger", () => {
         expect(entry.data.error).toMatchObject({
             name: "Error",
             message: "boom"
+        });
+    });
+
+    it("redacts sensitive payload fields", () => {
+        const spy = vi.spyOn(console, "info").mockImplementation(() => undefined);
+
+        Logger.info("Invite payload", {
+            sessionId: "session-123",
+            recipientEmail: "candidate@example.com",
+            recipientEmails: ["one@example.com", "two@example.com"],
+            inviteToken: "secret-token",
+            inviteLink: "https://example.com/s/secret-token",
+            recruiterEmail: "recruiter@example.com"
+        }, "InviteAPI");
+
+        const [serialized] = spy.mock.calls[0];
+        const entry = JSON.parse(serialized as string);
+
+        expect(entry.sessionId).toBe("[REDACTED_SESSION_ID]");
+        expect(entry.data).toMatchObject({
+            recipientEmail: "[REDACTED_EMAIL]",
+            recipientEmails: ["[REDACTED_EMAIL]", "[REDACTED_EMAIL]"],
+            inviteToken: "[REDACTED_TOKEN]",
+            inviteLink: "[REDACTED_URL]",
+            recruiterEmail: "[REDACTED_EMAIL]"
         });
     });
 

@@ -35,6 +35,129 @@ export interface DurableMetricsBackend {
 
 const DEFAULT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+    return typeof value === "object" && value !== null && !Array.isArray(value)
+        ? value as Record<string, unknown>
+        : null;
+}
+
+function toFiniteNumber(value: unknown): number {
+    if (typeof value === "number" && Number.isFinite(value)) {
+        return value;
+    }
+
+    if (typeof value === "string" && value.trim().length > 0) {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    return 0;
+}
+
+function toStringMap(value: unknown): Record<string, string> {
+    const record = asRecord(value);
+    if (!record) {
+        return {};
+    }
+
+    return Object.fromEntries(
+        Object.entries(record)
+            .filter(([, entryValue]) => entryValue !== null && entryValue !== undefined)
+            .map(([key, entryValue]) => [key, String(entryValue)])
+    );
+}
+
+function normalizeCounterRollup(row: unknown): DurableCounterRollup {
+    const record = asRecord(row);
+
+    return {
+        metric_name: typeof record?.metric_name === "string" ? record.metric_name : "",
+        tags_key: typeof record?.tags_key === "string" ? record.tags_key : "",
+        tags: toStringMap(record?.tags),
+        value: toFiniteNumber(record?.value)
+    };
+}
+
+function normalizeTimingRollup(row: unknown): DurableTimingRollup {
+    const record = asRecord(row);
+
+    return {
+        metric_name: typeof record?.metric_name === "string" ? record.metric_name : "",
+        tags_key: typeof record?.tags_key === "string" ? record.tags_key : "",
+        tags: toStringMap(record?.tags),
+        count: toFiniteNumber(record?.count),
+        total_ms: toFiniteNumber(record?.total_ms),
+        min_ms: toFiniteNumber(record?.min_ms),
+        max_ms: toFiniteNumber(record?.max_ms)
+    };
+}
+
+function normalizeSessionStartRow(row: unknown): SloSessionStartRow | null {
+    const record = asRecord(row);
+    if (!record) {
+        return null;
+    }
+
+    return {
+        success_count: toFiniteNumber(record.success_count),
+        failure_count: toFiniteNumber(record.failure_count),
+        total_count: toFiniteNumber(record.total_count),
+        success_rate: toFiniteNumber(record.success_rate)
+    };
+}
+
+function normalizeSessionProgressRow(row: unknown): SloSessionProgressRow | null {
+    const record = asRecord(row);
+    if (!record) {
+        return null;
+    }
+
+    return {
+        success_count: toFiniteNumber(record.success_count),
+        replay_success_count: toFiniteNumber(record.replay_success_count),
+        error_count: toFiniteNumber(record.error_count),
+        request_in_progress_count: toFiniteNumber(record.request_in_progress_count),
+        idempotency_mismatch_count: toFiniteNumber(record.idempotency_mismatch_count),
+        invalid_request_count: toFiniteNumber(record.invalid_request_count),
+        sli_numerator: toFiniteNumber(record.sli_numerator),
+        sli_denominator: toFiniteNumber(record.sli_denominator),
+        success_rate: toFiniteNumber(record.success_rate)
+    };
+}
+
+function normalizeAiReliabilityRow(row: unknown): SloAiReliabilityRow | null {
+    const record = asRecord(row);
+    if (!record || typeof record.operation !== "string") {
+        return null;
+    }
+
+    return {
+        operation: record.operation,
+        success_count: toFiniteNumber(record.success_count),
+        error_count: toFiniteNumber(record.error_count),
+        malformed_response_count: toFiniteNumber(record.malformed_response_count),
+        mock_fallback_count: toFiniteNumber(record.mock_fallback_count),
+        total_count: toFiniteNumber(record.total_count),
+        success_rate: toFiniteNumber(record.success_rate)
+    };
+}
+
+function normalizeAiLatencyRow(row: unknown): SloAiLatencyRow | null {
+    const record = asRecord(row);
+    if (!record || typeof record.operation !== "string") {
+        return null;
+    }
+
+    return {
+        operation: record.operation,
+        count: toFiniteNumber(record.count),
+        total_ms: toFiniteNumber(record.total_ms),
+        min_ms: toFiniteNumber(record.min_ms),
+        max_ms: toFiniteNumber(record.max_ms),
+        avg_ms: toFiniteNumber(record.avg_ms)
+    };
+}
+
 function floorToMinute(date: Date) {
     const copy = new Date(date);
     copy.setUTCSeconds(0, 0);
@@ -222,8 +345,8 @@ export class SupabaseDurableMetricsBackend implements DurableMetricsBackend {
         }
 
         return buildSnapshotFromRollups(
-            Array.isArray(counterData) ? counterData as DurableCounterRollup[] : [],
-            Array.isArray(timingData) ? timingData as DurableTimingRollup[] : []
+            Array.isArray(counterData) ? counterData.map(normalizeCounterRollup) : [],
+            Array.isArray(timingData) ? timingData.map(normalizeTimingRollup) : []
         );
     }
 
@@ -259,10 +382,14 @@ export class SupabaseDurableMetricsBackend implements DurableMetricsBackend {
 
         return buildSloSummaryFromRows(
             since,
-            Array.isArray(sessionStartData) ? (sessionStartData[0] as SloSessionStartRow | undefined) ?? null : null,
-            Array.isArray(sessionProgressData) ? (sessionProgressData[0] as SloSessionProgressRow | undefined) ?? null : null,
-            Array.isArray(aiReliabilityData) ? aiReliabilityData as SloAiReliabilityRow[] : [],
-            Array.isArray(aiLatencyData) ? aiLatencyData as SloAiLatencyRow[] : []
+            Array.isArray(sessionStartData) ? normalizeSessionStartRow(sessionStartData[0]) : null,
+            Array.isArray(sessionProgressData) ? normalizeSessionProgressRow(sessionProgressData[0]) : null,
+            Array.isArray(aiReliabilityData)
+                ? aiReliabilityData.map(normalizeAiReliabilityRow).filter((row): row is SloAiReliabilityRow => row !== null)
+                : [],
+            Array.isArray(aiLatencyData)
+                ? aiLatencyData.map(normalizeAiLatencyRow).filter((row): row is SloAiLatencyRow => row !== null)
+                : []
         );
     }
 }
@@ -307,4 +434,13 @@ export function resetDurableMetricsBackendForTests() {
     backendInstance = undefined;
 }
 
-export { buildSnapshotFromRollups, buildSloSummaryFromRows };
+export {
+    buildSnapshotFromRollups,
+    buildSloSummaryFromRows,
+    normalizeAiLatencyRow,
+    normalizeAiReliabilityRow,
+    normalizeCounterRollup,
+    normalizeSessionProgressRow,
+    normalizeSessionStartRow,
+    normalizeTimingRollup
+};

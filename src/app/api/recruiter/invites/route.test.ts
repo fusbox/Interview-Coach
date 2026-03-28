@@ -18,11 +18,8 @@ vi.mock("@/lib/supabase/server", () => ({
     })
 }));
 
-vi.mock("@/lib/server/infrastructure/supabase-invite-repository", () => ({
-    SupabaseInviteRepository: class {
-        create = vi.fn();
-        createBatch = createInviteBatchMock;
-    }
+vi.mock("@/lib/server/application/invites/create-invite-batch", () => ({
+    createInviteBatch: createInviteBatchMock
 }));
 
 vi.mock("@/lib/server/rate-limit", () => ({
@@ -63,7 +60,24 @@ describe("POST /api/recruiter/invites", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
-        createInviteBatchMock.mockResolvedValue(undefined);
+        createInviteBatchMock.mockResolvedValue({
+            batchId: "batch-1",
+            results: [{
+                status: "created",
+                id: "session-1",
+                firstName: "Cand",
+                lastName: "Date",
+                email: "candidate@example.com",
+                link: "https://app.example.com/s/token-1"
+            }],
+            failures: [],
+            summary: {
+                requested: 1,
+                succeeded: 1,
+                failed: 0,
+                hasFailures: false
+            }
+        });
         consumeRateLimitMock.mockResolvedValue({ allowed: true, remaining: 10, resetAt: Date.now() + 1000 });
         beginIdempotentRequestMock.mockResolvedValue({ kind: "acquired" });
         completeIdempotentRequestMock.mockResolvedValue(undefined);
@@ -129,6 +143,7 @@ describe("POST /api/recruiter/invites", () => {
             kind: "replay",
             statusCode: 200,
             body: {
+                batchId: "batch-existing",
                 results: [{ id: "existing", firstName: "Cand", lastName: "Date", email: "candidate@example.com", link: "https://app.example.com/s/token" }],
                 correlationId: "corr-existing"
             }
@@ -163,9 +178,10 @@ describe("POST /api/recruiter/invites", () => {
         const body = await res.json();
 
         expect(res.status).toBe(200);
+        expect(body.batchId).toBe("batch-1");
         expect(body.results).toHaveLength(1);
         expect(body.results[0].email).toBe("candidate@example.com");
-        expect(body.results[0].link).toMatch(/^https:\/\/app\.example\.com\/s\//);
+        expect(body.results[0].link).toBe("https://app.example.com/s/token-1");
         expect(beginIdempotentRequestMock).toHaveBeenCalledWith(expect.objectContaining({
             scope: "recruiter_invites:create",
             actorId: "user-1",
@@ -181,7 +197,36 @@ describe("POST /api/recruiter/invites", () => {
     });
 
     it("returns 207 with deterministic batch failures when the atomic batch write fails", async () => {
-        createInviteBatchMock.mockRejectedValueOnce(new Error("Supabase Invite Batch Create Error: duplicate key"));
+        createInviteBatchMock.mockResolvedValueOnce({
+            batchId: "batch-failed",
+            results: [],
+            failures: [
+                {
+                    status: "failed",
+                    firstName: "Cand",
+                    lastName: "Date",
+                    email: "candidate@example.com",
+                    code: "INVITE_CREATE_FAILED",
+                    message: "Supabase Invite Batch Create Error: duplicate key",
+                    retryable: true,
+                },
+                {
+                    status: "failed",
+                    firstName: "Pat",
+                    lastName: "Chy",
+                    email: "patchy@example.com",
+                    code: "INVITE_CREATE_FAILED",
+                    message: "Supabase Invite Batch Create Error: duplicate key",
+                    retryable: true,
+                },
+            ],
+            summary: {
+                requested: 2,
+                succeeded: 0,
+                failed: 2,
+                hasFailures: true,
+            }
+        });
         const { POST } = await import("./route");
 
         const req = new Request("http://localhost/api/recruiter/invites", {
@@ -206,17 +251,56 @@ describe("POST /api/recruiter/invites", () => {
 
         expect(res.status).toBe(207);
         expect(body.results).toEqual([]);
+        expect(body).toEqual({
+            batchId: "batch-failed",
+            results: [],
+            failures: [
+                {
+                    status: "failed",
+                    firstName: "Cand",
+                    lastName: "Date",
+                    email: "candidate@example.com",
+                    code: "INVITE_CREATE_FAILED",
+                    message: "Supabase Invite Batch Create Error: duplicate key",
+                    retryable: true,
+                },
+                {
+                    status: "failed",
+                    firstName: "Pat",
+                    lastName: "Chy",
+                    email: "patchy@example.com",
+                    code: "INVITE_CREATE_FAILED",
+                    message: "Supabase Invite Batch Create Error: duplicate key",
+                    retryable: true,
+                },
+            ],
+            summary: {
+                requested: 2,
+                succeeded: 0,
+                failed: 2,
+                hasFailures: true,
+            },
+            correlationId: expect.any(String),
+        });
         expect(body.failures).toEqual([
-            expect.objectContaining({
+            {
                 status: "failed",
+                firstName: "Cand",
+                lastName: "Date",
                 email: "candidate@example.com",
                 code: "INVITE_CREATE_FAILED",
-            }),
-            expect.objectContaining({
+                message: "Supabase Invite Batch Create Error: duplicate key",
+                retryable: true,
+            },
+            {
                 status: "failed",
+                firstName: "Pat",
+                lastName: "Chy",
                 email: "patchy@example.com",
                 code: "INVITE_CREATE_FAILED",
-            }),
+                message: "Supabase Invite Batch Create Error: duplicate key",
+                retryable: true,
+            },
         ]);
         expect(body.summary).toEqual({
             requested: 2,
@@ -234,6 +318,7 @@ describe("POST /api/recruiter/invites", () => {
             kind: "replay",
             statusCode: 207,
             body: {
+                batchId: "batch-partial",
                 results: [{ id: "existing", firstName: "Cand", lastName: "Date", email: "candidate@example.com", link: "https://app.example.com/s/token" }],
                 failures: [{
                     status: "failed",
@@ -265,14 +350,32 @@ describe("POST /api/recruiter/invites", () => {
         const body = await res.json();
 
         expect(res.status).toBe(207);
-        expect(body.correlationId).toBe("corr-partial");
-        expect(body.summary).toEqual({
-            requested: 2,
-            succeeded: 1,
-            failed: 1,
-            hasFailures: true,
+        expect(body).toEqual({
+            batchId: "batch-partial",
+            results: [{
+                id: "existing",
+                firstName: "Cand",
+                lastName: "Date",
+                email: "candidate@example.com",
+                link: "https://app.example.com/s/token",
+            }],
+            failures: [{
+                status: "failed",
+                firstName: "Pat",
+                lastName: "Chy",
+                email: "patchy@example.com",
+                code: "INVITE_CREATE_FAILED",
+                message: "Supabase Session Create Error: duplicate key",
+                retryable: true,
+            }],
+            summary: {
+                requested: 2,
+                succeeded: 1,
+                failed: 1,
+                hasFailures: true,
+            },
+            correlationId: "corr-partial",
         });
-        expect(body.failures).toHaveLength(1);
         expect(createInviteBatchMock).not.toHaveBeenCalled();
         expect(completeIdempotentRequestMock).not.toHaveBeenCalled();
     });
@@ -280,6 +383,24 @@ describe("POST /api/recruiter/invites", () => {
     it("normalizes a local 0.0.0.0 request origin to localhost when no app url is configured", async () => {
         vi.stubEnv("NEXT_PUBLIC_APP_URL", "");
         vi.stubEnv("NEXT_PUBLIC_BASE_URL", "");
+        createInviteBatchMock.mockResolvedValueOnce({
+            batchId: "batch-local",
+            results: [{
+                status: "created",
+                id: "session-local",
+                firstName: "Cand",
+                lastName: "Date",
+                email: "candidate@example.com",
+                link: "http://localhost:3000/s/token-local"
+            }],
+            failures: [],
+            summary: {
+                requested: 1,
+                succeeded: 1,
+                failed: 0,
+                hasFailures: false
+            }
+        });
         const { POST } = await import("./route");
 
         const req = new Request("http://0.0.0.0:3000/api/recruiter/invites", {

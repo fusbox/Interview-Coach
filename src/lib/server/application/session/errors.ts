@@ -14,3 +14,17 @@ export class SessionStartNotFoundError extends Error {
         this.name = "SessionStartNotFoundError";
     }
 }
+
+export class SessionUpdateNotFoundError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "SessionUpdateNotFoundError";
+    }
+}
+
+export class SessionUpdateValidationError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "SessionUpdateValidationError";
+    }
+}

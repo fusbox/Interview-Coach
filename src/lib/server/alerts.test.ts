@@ -9,6 +9,7 @@ describe("operations alerts", () => {
 
     it("does not trigger alerts when metrics are healthy", () => {
         incrementMetric("invite_send_total", { outcome: "success" }, 5);
+        incrementMetric("invite_resend_total", { outcome: "success" }, 2);
         incrementMetric("recruiter_invite_create_total", { outcome: "success" }, 2);
         incrementMetric("session_start_total", { outcome: "success", mode: "new" }, 3);
         incrementMetric("session_completion_total", { outcome: "success" }, 2);
@@ -21,8 +22,9 @@ describe("operations alerts", () => {
     });
 
     it("triggers invite, auth, AI, latency, and stall alerts at threshold", () => {
-        incrementMetric("invite_send_total", { outcome: "error" }, 4);
+        incrementMetric("invite_send_total", { outcome: "error" }, 2);
         incrementMetric("invite_send_total", { outcome: "success" }, 2);
+        incrementMetric("invite_resend_total", { outcome: "error" }, 2);
         incrementMetric("auth_denials_total", { actorType: "candidate" }, 12);
         incrementMetric("rate_limit_denials_total", { scope: "analysis" }, 11);
         incrementMetric("ai_requests_total", { operation: "analysis", outcome: "error" }, 6);

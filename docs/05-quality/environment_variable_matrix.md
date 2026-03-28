@@ -16,6 +16,7 @@ This matrix documents the environment variables currently used by the applicatio
 | `RESEND_FROM_EMAIL` | Optional | Server only | Outbound sender identity | Falls back to `Rangam Interview Coach <interviews@coach.rangam.com>`. Configure explicitly in production to match a verified sender. |
 | `RATE_LIMIT_BACKEND` | Optional locally, strongly recommended for explicit deployment configuration | Server only | Rate-limit backend selection | Supported values: `memory`, `supabase`. Defaults to `memory` in local/test and `supabase` in production. `memory` must not be used in production. |
 | `METRICS_BACKEND` | Optional locally, required for production release | Server only | Metrics sink selection | Supported values: `memory`, `supabase`. Current implementation still defaults to `memory` unless explicitly set to `supabase`, which is acceptable for local/test only. Production release contract should require `supabase` after the metrics rollup migration is applied. |
+| `TEAMS_ALERT_WEBHOOK_URL` | Optional until Teams delivery is adopted, then required for alert notifications | Server only | Microsoft Teams incoming webhook target for operational alerts | Used by the protected ops metrics `POST` route to deliver the currently triggered alert window to Teams. Treat as a secret webhook URL. Missing configuration does not break metrics collection, but it prevents Teams delivery. |
 | `NEXT_PUBLIC_BASE_URL` | Valid for production release when explicitly configured | Server-only use in current code path, but public-prefixed | Email logo/debrief link generation and compatible configured public-origin fallback | Production may use this as the configured canonical origin when `NEXT_PUBLIC_APP_URL` is absent. Production URL generation should not rely on request-derived host fallback. |
 | `NEXT_PUBLIC_APP_URL` | Recommended for production release | Client + server | Canonical app origin for invite links and trusted public URL generation | This is the preferred explicit production origin. Production may also accept `NEXT_PUBLIC_BASE_URL` as a compatibility fallback, but request-derived host fallback remains disallowed. |
 | `ENCRYPTION_SECRET` | Yes for encrypted-at-rest features, effectively required in production server deployments using encrypted data | Server only | AES-256-GCM encryption utility | Must be at least 32 characters. High-sensitivity secret. Production server encryption paths should fail fast when it is missing. Rotation requires migration planning for encrypted historical data. |
@@ -24,7 +25,7 @@ This matrix documents the environment variables currently used by the applicatio
 
 ## Security Notes
 
-- Do not expose `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `RESEND_API_KEY`, or `ENCRYPTION_SECRET` in client bundles, browser logs, screenshots, or copied examples.
+- Do not expose `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `RESEND_API_KEY`, `ENCRYPTION_SECRET`, or `TEAMS_ALERT_WEBHOOK_URL` in client bundles, browser logs, screenshots, or copied examples.
 - Prefer deployment-managed secrets over committed local files.
 - Set canonical URL variables explicitly in non-local environments. Do not rely on mutable host headers as the primary trust source.
 - Keep `NEXT_PUBLIC_SHOW_DEMO_TOOLS` disabled in production by default.
@@ -42,6 +43,8 @@ Feature-complete local setup:
 - `RESEND_API_KEY`
 - `RESEND_FROM_EMAIL`
 - `RATE_LIMIT_BACKEND`
+- `METRICS_BACKEND`
+- `TEAMS_ALERT_WEBHOOK_URL`
 - `NEXT_PUBLIC_BASE_URL`
 - `NEXT_PUBLIC_APP_URL`
 - `ENCRYPTION_SECRET`
@@ -51,6 +54,7 @@ Feature-complete local setup:
 - Changing canonical URL variables affects generated invite/debrief links and email assets.
 - `RATE_LIMIT_BACKEND` should be explicitly pinned in non-local deployments so backend selection is visible in configuration review and rollout checklists.
 - `METRICS_BACKEND` should remain `memory` only in local/test. Production release should explicitly pin it to `supabase` after the durable metrics migration is applied.
+- `TEAMS_ALERT_WEBHOOK_URL` should point at a channel-owned Teams incoming webhook, not a personal endpoint. Validate one manual send from the protected ops metrics `POST` route after configuration.
 - Missing provider keys may not always hard-fail locally; they can degrade functionality in dev/test by design. In production they should be treated as deployment contract failures, not soft runtime degradation.
 - If `ENCRYPTION_SECRET` changes unexpectedly, decryption of historical encrypted values may fail silently in current utility behavior.
 - Protected server auth and encryption flows should not rely on implicit fallback behavior in production. Missing required privileged env should be treated as a deployment error, not a recoverable runtime condition.

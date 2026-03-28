@@ -64,6 +64,61 @@ describe("consumeRateLimit", () => {
         expect(decision).toEqual({ allowed: true, remaining: 4, resetAt: 5000 });
     });
 
+    it("enforces limits across isolated module instances with the shared supabase backend", async () => {
+        process.env = { ...process.env, RATE_LIMIT_BACKEND: "supabase" };
+        const sharedBuckets = new Map<string, { count: number; resetAt: number }>();
+
+        rpcMock.mockImplementation(async (_name, params: {
+            p_bucket_key: string;
+            p_max_requests: number;
+            p_window_ms: number;
+            p_now_ms: number;
+        }) => {
+            const existing = sharedBuckets.get(params.p_bucket_key);
+
+            if (!existing || existing.resetAt <= params.p_now_ms) {
+                const resetAt = params.p_now_ms + params.p_window_ms;
+                sharedBuckets.set(params.p_bucket_key, { count: 1, resetAt });
+                return {
+                    data: [{ allowed: true, remaining: params.p_max_requests - 1, reset_at_ms: resetAt }],
+                    error: null
+                };
+            }
+
+            if (existing.count >= params.p_max_requests) {
+                return {
+                    data: [{ allowed: false, remaining: 0, reset_at_ms: existing.resetAt }],
+                    error: null
+                };
+            }
+
+            existing.count += 1;
+            sharedBuckets.set(params.p_bucket_key, existing);
+            return {
+                data: [{
+                    allowed: true,
+                    remaining: params.p_max_requests - existing.count,
+                    reset_at_ms: existing.resetAt
+                }],
+                error: null
+            };
+        });
+
+        const firstModule = await import("./rate-limit");
+        const firstDecision = await firstModule.consumeRateLimit("shared-bucket", 2, 1000, 1000);
+        const secondDecision = await firstModule.consumeRateLimit("shared-bucket", 2, 1000, 1001);
+
+        vi.resetModules();
+
+        const secondModule = await import("./rate-limit");
+        const thirdDecision = await secondModule.consumeRateLimit("shared-bucket", 2, 1000, 1002);
+
+        expect(firstDecision).toEqual({ allowed: true, remaining: 1, resetAt: 2000 });
+        expect(secondDecision).toEqual({ allowed: true, remaining: 0, resetAt: 2000 });
+        expect(thirdDecision).toEqual({ allowed: false, remaining: 0, resetAt: 2000 });
+        expect(rpcMock).toHaveBeenCalledTimes(3);
+    });
+
     it("defaults to the supabase backend in production", async () => {
         process.env = { ...process.env, NODE_ENV: "production" };
         delete process.env.RATE_LIMIT_BACKEND;

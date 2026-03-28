@@ -19,6 +19,8 @@ type OperationsDashboard = {
         createFailures: number;
         sendSuccesses: number;
         sendFailures: number;
+        resendSuccesses: number;
+        resendFailures: number;
     };
     sessions: {
         starts: number;
@@ -349,7 +351,9 @@ export function buildOperationsDashboard(snapshot: MetricsSnapshot): OperationsD
             createFailures: counterValue(snapshot, "recruiter_invite_create_total", { outcome: "error" })
                 + counterValue(snapshot, "recruiter_invite_create_total", { outcome: "partial_failure" }),
             sendSuccesses: counterValue(snapshot, "invite_send_total", { outcome: "success" }),
-            sendFailures: counterValue(snapshot, "invite_send_total", { outcome: "error" })
+            sendFailures: counterValue(snapshot, "invite_send_total", { outcome: "error" }),
+            resendSuccesses: counterValue(snapshot, "invite_resend_total", { outcome: "success" }),
+            resendFailures: counterValue(snapshot, "invite_resend_total", { outcome: "error" })
         },
         sessions: {
             starts: counterValue(snapshot, "session_start_total", { outcome: "success" }),

@@ -34,12 +34,13 @@ Production must remain blocked unless all items below are checked.
 - [ ] Shared rate limiting is active in production code paths
 - [ ] Invite batch creation has production-safe consistency semantics:
   - transaction-safe persistence
-  - or persisted reconciliation/retry state
+  - persisted reconciliation/retry state
 - [ ] Protected auth/env dependencies fail fast in production
 - [ ] Canonical public origin is sourced from trusted configured env in production
 - [ ] Production origin generation does not trust request-derived host fallback
 - [ ] Durable metrics backend is enforced in production
 - [ ] Alert-to-paging routing has been validated for the current release posture
+- [ ] If live alert delivery is deployment-managed, ownership and evidence expectations are explicitly handed off before release sign-off
 - [ ] Failure-mode tests for invite creation, origin contract, metrics contract, and auth/env contract are passing
 
 If any item above is not complete:
@@ -53,6 +54,8 @@ If any item above is not complete:
 
 - [ ] Invite send, resend, and candidate access flows were tested against the current build
 - [ ] Partial invite-batch failure and recovery behavior have been validated
+- [ ] Recruiter invite create returns a durable `batchId` and tracked-batch recovery state in the current build
+- [ ] Recruiter retry endpoint was validated for failed-and-retryable invite batches in the target environment
 - [ ] Idempotent retry behavior has been validated for critical write paths
 - [ ] Canonical app origin generation is validated for the deployment environment
 
@@ -83,6 +86,7 @@ If any item above is not complete:
 - [ ] Durable metrics backend is active in the target environment
 - [ ] Alert routes and responders are still correct for this release
 - [ ] Paging integration was exercised or otherwise validated for this release
+- [ ] If product engineering does not own the webhook/paging destination, deployment-team evidence is attached
 - [ ] Incident runbook is current for any changed operational behavior
 - [ ] Current release was reviewed against the active SLO proposal in [initial_slos_2026-03-26.md](./initial_slos_2026-03-26.md)
 
@@ -101,6 +105,7 @@ If any item above is not complete:
 
 - [ ] Relevant architecture docs were updated if system boundaries changed
 - [ ] Relevant quality docs were updated if release posture changed
+- [ ] Invite-batch tracking migration and retry-endpoint rollout notes were updated if the tracked recovery model changed
 - [ ] Remediation tracker was updated if a tracked item was completed by this release
 - [ ] Gate decision log was reviewed if a trust-sensitive system behavior changed
 
@@ -115,3 +120,5 @@ Known risks accepted:
 Rollback considerations:
 
 Follow-up actions after release:
+
+

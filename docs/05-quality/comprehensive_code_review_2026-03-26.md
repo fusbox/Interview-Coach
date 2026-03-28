@@ -62,6 +62,34 @@ Source request reference: `docs/05-quality/code_review_request.md`
 - **Strength:** route-level contracts are cleaner than the prior snapshot.
 - **Gap:** selected critical session routes still carry orchestration concerns that should be in application services.
 
+### Offending routes targeted for refactor (findings #2 and #3)
+
+This concern is now best understood as a route-by-route readiness map rather than a flat list of "bad" handlers. Several routes are already materially improved and should be tracked as partially remediated rather than wholly offending.
+
+#### Route readiness crosswalk
+
+| Route / route set | Finding | Current status | Remaining gap | Release-blocking now? |
+|---|---|---|---|---|
+| `POST /api/recruiter/invites` | #2 distributed rate-limit correctness | `Partially remediated` | Shared limiter is in place; route still owns some orchestration and HTTP/result shaping rather than delegating all workflow policy to application services | `No` |
+| `POST /api/invite/send` | #2 distributed rate-limit correctness | `Partially remediated` | Shared limiter is in place and send command exists; route still mixes transport concerns with operation-specific orchestration/metrics handling | `No` |
+| `POST /api/invite/resend` | #2 distributed rate-limit correctness, #3 auth/policy consistency | `Partially remediated` | Shared limiter is in place and resend command exists; route still owns more workflow/error shaping than the preferred thin-adapter model | `No` |
+| `POST /api/session/start` | #2 distributed rate-limit correctness, #3 parent-session token validation path | `Partially remediated` | Improved materially via shared abuse protection and `startSessionCommand`, but still combines HTTP mapping with route-local policy/error/metric branching | `No` |
+| `POST /api/analysis` | #2 distributed rate-limit correctness | `Not started` | Still a candidate for shared policy adapter + thinner command boundary | `No` |
+| `POST /api/questions/generate` | #2 distributed rate-limit correctness | `Not started` | Still route-heavy relative to the preferred `auth -> validate -> command -> map response` boundary | `No` |
+| `POST /api/response/generate` | #2 distributed rate-limit correctness | `Not started` | Same as above; command boundary is still thinner in some neighboring flows than here | `No` |
+| `POST /api/tips/generate` | #2 distributed rate-limit correctness | `Not started` | Still route-heavy relative to the target application-service split | `No` |
+| `POST /api/tts` | #2 distributed rate-limit correctness | `Not started` | Still route-heavy relative to the target application-service split | `No` |
+| `GET /api/session/[session_id]` | #3 candidate-token auth consistency | `Remediated in current slice` | Candidate-token auth, fetch orchestration, and non-blocking mark-viewed handling now sit behind an application command; remaining improvement is optional helper unification with adjacent candidate-session adapters | `No` |
+| `PATCH /api/session/[session_id]` | #3 candidate-token auth consistency | `Remediated in current slice` | Status-transition validation, persistence, summarization, debrief email, and fallback handling now live in an application command; remaining work is follow-on extraction of neighboring session mutation routes for consistency | `No` |
+| Candidate question mutation routes under `api/session/[session_id]/questions/[question_id]/*` | #3 candidate-token auth consistency | `Partially remediated` | `validatedSessionHandler` already unifies auth/session/question validation, but command extraction is still incomplete on some mutation flows | `No` |
+
+#### What is already satisfied enough for current production readiness
+
+- Findings #2 and #3 are no longer best described as broad production blockers across all listed routes.
+- Shared rate limiting is already production-ready as a deployment contract.
+- Candidate-token validation has already been materially standardized on critical session flows.
+- Remaining work in this section is primarily architecture hardening and maintainability risk reduction unless a new route bypasses shared policy.
+
 ### Updated responsibility map
 
 - `domain/*`: invariants and state transition rules.
@@ -75,6 +103,7 @@ Source request reference: `docs/05-quality/code_review_request.md`
 1. `POST /api/session/[session_id]/questions/[question_id]/submit`
 2. `POST /api/session/[session_id]/questions/[question_id]/analysis`
 3. `POST /api/questions/generate` and `POST /api/response/generate`
+4. `POST /api/tips/generate` and `POST /api/tts`
 
 Boundary rule remains: all retries/idempotency/provider fallback/transaction semantics belong in `application/*`, not route handlers.
 
@@ -156,9 +185,9 @@ Boundary rule remains: all retries/idempotency/provider fallback/transaction sem
 
 ### Immediate punch list
 
-- Add explicit keyboard/focus E2E assertions on recruiter create + invite preview + resend flows.
-- Add regression checks for `aria-live` announcements during async invite send/resend outcomes.
-- Add CI-accessibility smoke checks (axe/Playwright) for recruiter critical paths.
+- Recruiter create + invite preview + resend flows now have explicit focus/critical-path assertions in the CI-facing component suite.
+- Async invite send/resend outcomes now have regression checks covering live alert announcements in the recruiter critical paths.
+- CI accessibility smoke now includes recruiter critical-path preview/resend assertions; deeper browser-level axe/Playwright expansion remains optional quality uplift rather than an open production-readiness blocker.
 
 ---
 

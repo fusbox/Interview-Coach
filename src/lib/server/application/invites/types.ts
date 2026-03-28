@@ -19,6 +19,7 @@ export type CreateInviteBatchInput = {
     questions: CreateInviteBatchQuestionInput[];
     createdBy: string;
     appBaseUrl: string;
+    parentBatchId?: string;
 };
 
 export type InviteBatchSuccess = {
@@ -40,6 +41,31 @@ export type InviteBatchFailure = {
     retryable: boolean;
 };
 
+export type PersistedInviteBatchCandidateStatus = "pending" | "created" | "failed" | "retry_issued";
+
+export type PersistedInviteBatchCandidate = CreateInviteBatchCandidateInput & {
+    candidateIndex: number;
+    status: PersistedInviteBatchCandidateStatus;
+    retryable: boolean;
+    retryCount: number;
+    sessionId?: string;
+    errorCode?: InviteBatchFailure["code"];
+    errorMessage?: string;
+};
+
+export type PersistedInviteBatchStatus = "pending" | "completed" | "failed" | "retry_issued";
+
+export type PersistedInviteBatch = {
+    batchId: string;
+    parentBatchId?: string;
+    createdBy: string;
+    role: string;
+    jobDescription?: string;
+    questions: CreateInviteBatchQuestionInput[];
+    candidates: PersistedInviteBatchCandidate[];
+    status: PersistedInviteBatchStatus;
+};
+
 export type InviteBatchSummary = {
     requested: number;
     succeeded: number;
@@ -48,10 +74,14 @@ export type InviteBatchSummary = {
 };
 
 export type CreateInviteBatchResult = {
+    batchId: string;
+    retriedFromBatchId?: string;
     results: InviteBatchSuccess[];
     failures: InviteBatchFailure[];
     summary: InviteBatchSummary;
 };
+
+export type RetryInviteBatchResult = CreateInviteBatchResult;
 
 export type InviteEmailInput = {
     recipientEmails: string[];

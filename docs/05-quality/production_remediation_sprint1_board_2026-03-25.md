@@ -183,6 +183,11 @@ If any item above is incomplete:
   - idempotent replay for partial results
 - Sprint 2 should not reopen batch semantics unless ATS integration or rollout evidence justifies durable batch records or retry-failed-only tooling
 
+Later-state note on 2026-03-28:
+
+- the 2026-03-26 production-readiness review did justify that deeper follow-on
+- invite consistency now also includes persisted batch reconciliation records and a recruiter-safe retry endpoint in app code
+
 ---
 
 ## Review Cadence

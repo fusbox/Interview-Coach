@@ -148,7 +148,7 @@ Required validation:
 
 Completion note for this rollout:
 - stop at deterministic mixed-result reporting and recruiter-visible partial-failure handling
-- do not expand Phase 2 into durable batch-job infrastructure unless future ATS integration requires it
+- later follow-on work may still add persisted reconciliation records and retry-safe recovery semantics if production-readiness review evidence requires it
 
 ### Phase 3: Boundary and Contract Cleanup
 
@@ -245,6 +245,16 @@ Exit criteria:
 - production metrics path fails fast without durable backend configuration
 - paging responders and alert routes are validated against a live or simulated incident path
 
+Phase 5 status note on 2026-03-28:
+- the app-owned invite recovery follow-on is now implemented with:
+  - persisted `invite_batches` / `invite_batch_candidates` reconciliation records
+  - recruiter invite create responses returning durable `batchId`
+  - recruiter-safe retry path at `POST /api/recruiter/invites/[batch_id]/retry`
+- remaining rollout work for this follow-on is deployment validation of:
+  - `20260328_add_invite_batch_tracking.sql`
+  - tracked-batch persistence in the target Supabase project
+  - retry-endpoint behavior in the target deployment
+
 ---
 
 ## Repo-Specific Module Plan
@@ -284,6 +294,7 @@ Exit criteria:
 - failure during persistence mid-batch
 - provider failure after persistence
 - idempotent retry behavior
+- persisted batch tracking and retry-failed-only recovery behavior
 
 3. Auth/env contract tests
 - production boot with missing secrets

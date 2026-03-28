@@ -39,7 +39,9 @@ Run in this order:
 
 2. Migration rollout
 - apply [20260326_add_atomic_invite_batch.sql](../../supabase/migrations/20260326_add_atomic_invite_batch.sql)
+- apply [20260328_add_invite_batch_tracking.sql](../../supabase/migrations/20260328_add_invite_batch_tracking.sql)
 - verify `public.create_invite_batch(...)` exists and is callable
+- verify `invite_batches` and `invite_batch_candidates` exist and are writable
 - stop immediately if the migration or RPC validation fails
 
 3. Production contract review
@@ -52,12 +54,15 @@ Run in this order:
 - create a recruiter invite and inspect the generated link origin
 - validate resend uses the same canonical origin
 - validate atomic multi-candidate invite creation on the deployed build
+- confirm invite create returns a durable `batchId`
+- validate `POST /api/recruiter/invites/[batch_id]/retry` against a controlled failed batch
 - open `/api/recruiter/ops/metrics` and confirm durable counters and `sloSummary`
 
 5. Failure-mode evidence
 - capture proof that production-like startup fails without `NEXT_PUBLIC_APP_URL`
 - capture proof that production-like startup fails without `METRICS_BACKEND` or with `METRICS_BACKEND=memory`
 - validate that a controlled failing invite batch does not leave mixed persisted state
+- validate that the failed batch is persisted with per-candidate failure state and can be retried safely through the tracked retry path
 
 6. Paging exercise
 - trigger one safe alerting scenario
@@ -177,6 +182,7 @@ Update:
 - [../04-architecture/e2e-flow.md](../04-architecture/e2e-flow.md)
 - [../04-architecture/api-surface.md](../04-architecture/api-surface.md)
 - [incident_runbook.md](./incident_runbook.md)
+- [production_deployment_validation_checklist_2026-03-26.md](./production_deployment_validation_checklist_2026-03-26.md)
 - [production_remediation_tracker_2026-03-25.md](./production_remediation_tracker_2026-03-25.md)
 
 ### If auth/env startup policy changes

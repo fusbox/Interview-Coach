@@ -13,7 +13,7 @@ Use this checklist to close the remaining deployment-side work for:
 
 - `P0-R1` invite-batch atomic persistence rollout
 - `P0-R2` deployed canonical-origin contract validation
-- `P0-R3` deployed durable-metrics enforcement and alert-to-paging validation
+- `P0-R3` deployed durable-metrics enforcement and alert-to-paging validation, including deployment-team webhook ownership where applicable
 
 This document is intentionally operational. It assumes the local code and focused tests are already complete.
 
@@ -43,31 +43,39 @@ Record here:
 
 ---
 
-## Section A: Migration Rollout For Atomic Invite Batch
+## Section A: Migration Rollout For Invite Batch Consistency
 
 Goal:
 
-- apply and validate the new `create_invite_batch(...)` RPC before treating `P0-R1` as closed
+- apply and validate the invite-batch consistency migrations before treating the current tracked-retry model as rolled out
 
 Migration file:
 
 - [20260326_add_atomic_invite_batch.sql](../../supabase/migrations/20260326_add_atomic_invite_batch.sql)
+- [20260328_add_invite_batch_tracking.sql](../../supabase/migrations/20260328_add_invite_batch_tracking.sql)
 
 Steps:
 
 1. Review the migration SQL and confirm it only introduces:
    - `public.create_invite_batch(jsonb)`
    - inserts into existing `sessions`, `questions`, and `candidate_tokens` tables
-2. Apply the migration in the target Supabase environment.
-3. Verify the RPC exists and is callable by the service-role-backed server path.
-4. Confirm no pre-existing RLS or function-permission issue blocks the RPC.
+2. Review the tracking migration SQL and confirm it introduces only the tracked-batch persistence surfaces needed for recovery:
+   - `invite_batches`
+   - `invite_batch_candidates`
+   - batch lineage / retry metadata
+3. Apply both migrations in the target Supabase environment.
+4. Verify the RPC exists and is callable by the service-role-backed server path.
+5. Verify the tracking tables are present and writable by the service-role-backed server path.
+6. Confirm no pre-existing RLS or function-permission issue blocks the RPC or tracked-batch writes.
 
 Evidence to capture:
 
-- [ ] Migration applied successfully
-- [ ] RPC `public.create_invite_batch` exists
-- [ ] Service-role-backed call path succeeds in the target environment
-- [ ] No schema drift error is observed
+- [x] Migration applied successfully
+- [x] RPC `public.create_invite_batch` exists
+- [x] Service-role-backed call path succeeds in the target environment
+- [x] No schema drift error is observed
+- [ ] Tracking tables `invite_batches` and `invite_batch_candidates` exist
+- [ ] Service-role-backed tracked-batch writes succeed in the target environment
 
 Suggested validation queries/checks:
 
@@ -77,6 +85,17 @@ Suggested validation queries/checks:
 Rollback note:
 
 - if the migration fails, stop rollout and keep production blocked on `P0-R1`
+
+Validation status on 2026-03-27:
+
+- migration was already applied in the target Supabase project
+- deployed multi-recipient happy-path invite creation passed
+- `P0-R1` is no longer blocked on Section A
+
+Follow-on rollout note on 2026-03-28:
+
+- the tracked-batch migration and recruiter retry endpoint landed in app code
+- rollout is not complete until `20260328_add_invite_batch_tracking.sql` is applied in the target Supabase project and the retry endpoint is validated against those tables
 
 ---
 
@@ -98,22 +117,28 @@ Required env/settings:
 
 Checks:
 
-- [ ] `NEXT_PUBLIC_APP_URL` is explicitly set to the intended public origin
-- [ ] `NEXT_PUBLIC_BASE_URL` does not conflict with `NEXT_PUBLIC_APP_URL`
-- [ ] `METRICS_BACKEND` is explicitly pinned to `supabase`
-- [ ] `RATE_LIMIT_BACKEND` is explicitly pinned to `supabase`
+- [x] `NEXT_PUBLIC_APP_URL` is explicitly set to the intended public origin
+- [x] `NEXT_PUBLIC_BASE_URL` does not conflict with `NEXT_PUBLIC_APP_URL`
+- [x] `METRICS_BACKEND` is explicitly pinned to `supabase`
+- [x] `RATE_LIMIT_BACKEND` is explicitly pinned to `supabase`
 - [ ] No production deployment is relying on implicit fallback for origin or metrics backend
 
 Record here:
 
-- Public origin value reviewed:
-- Metrics backend value reviewed:
-- Rate-limit backend value reviewed:
-- Reviewer:
+- Public origin value reviewed: Y
+- Metrics backend value reviewed: Y
+- Rate-limit backend value reviewed: Y
+- Reviewer: Fu Chen
 
 Failure rule:
 
 - if any required production contract is missing or fallback-based, stop rollout and mark the release `NO-GO`
+
+Validation status on 2026-03-27:
+
+- production origin configuration was corrected and redeployed
+- deployed invite-create and practice-session flows passed afterward
+- `P0-R2` is no longer blocked on Section B for origin validation
 
 ---
 
@@ -148,9 +173,13 @@ Capture:
 
 Checks:
 
-- [ ] Happy-path batch creation succeeds for multiple candidates
-- [ ] All expected sessions/questions/tokens are created for a successful batch
-- [ ] No partial-write state is observed from the happy-path batch
+- [x] Happy-path batch creation succeeds for multiple candidates
+- [x] All expected sessions/questions/tokens are created for a successful batch
+- [x] No partial-write state is observed from the happy-path batch
+- [ ] Create response returns a durable `batchId`
+- [ ] A failed batch is represented in `invite_batches` and `invite_batch_candidates`
+- [ ] `POST /api/recruiter/invites/[batch_id]/retry` retries only failed-and-retryable candidates
+- [ ] Parent/child retry lineage is recorded after a successful retry
 
 Suggested smoke:
 
@@ -163,6 +192,8 @@ Capture:
 - request timestamp
 - response status
 - candidate/session identifiers
+- returned `batchId`
+- tracked batch row identifiers if verified in SQL
 
 ### C3. Durable Metrics Validation
 
@@ -209,6 +240,12 @@ Evidence to capture:
 
 - startup failure log or deployment failure screenshot/text
 
+Validation status on 2026-03-27:
+
+- satisfied by observed deployed failure when configured origin env was missing
+- satisfied by successful redeploy after restoring configured origin env
+- `P0-R2` failure-mode and recovery evidence is satisfied
+
 ### D2. Metrics Failure Contract
 
 Checks:
@@ -244,6 +281,18 @@ Evidence to capture:
 - response status/body summary
 - DB verification that no subset of the failed batch was persisted
 
+Validation status on 2026-03-27:
+
+- completed with a temporary fail trigger inside `public.create_invite_batch(...)`
+- recruiter UI showed deterministic all-failure handling for the batch
+- no new `sessions`, `questions`, or `candidate_tokens` rows were created
+- `P0-R1` failure-mode evidence is satisfied
+
+Follow-on validation needed on 2026-03-28:
+
+- confirm the failed batch is persisted in tracking tables with per-candidate failure state
+- confirm the retry endpoint creates a child batch only for retryable failed candidates and marks the original batch `retry_issued`
+
 ---
 
 ## Section E: Alert-To-Paging Validation
@@ -271,6 +320,9 @@ Minimum validation:
 - [ ] Confirm responder acknowledges it
 - [ ] Confirm incident notes are recorded
 
+Owner note:
+- If TEAMS_ALERT_WEBHOOK_URL provisioning is deployment-managed, product engineering may stop after handing off the tested Teams starter implementation and docs. Final completion evidence for this section must then be attached by the deployment team.
+
 Recommended target alert:
 
 - one of:
@@ -291,6 +343,7 @@ Record here:
 Failure rule:
 
 - if alert generation works but paging delivery does not, `P0-R3` remains open
+- if webhook provisioning has not yet been completed by the deployment team, record this section as an ownership handoff rather than a product-engineering miss
 
 ---
 
@@ -298,13 +351,15 @@ Failure rule:
 
 Use this only after Sections A-E are complete.
 
-- [ ] Migration rollout evidence attached
-- [ ] Production env contract reviewed and recorded
-- [ ] Post-deploy smoke checks completed
-- [ ] Failure-mode validation evidence attached
+- [x] Migration rollout evidence attached
+- [x] Production env contract reviewed and recorded
+- [x] Post-deploy smoke checks completed
+- [x] Failure-mode validation evidence attached
+- [x] Failure-mode validation evidence attached for `P0-R1`
+- [ ] Invite tracking migration and retry-endpoint evidence attached
 - [ ] Paging validation evidence attached
 - [ ] [release-gate-checklist.md](./release-gate-checklist.md) rerun
-- [ ] Tracker updated with final status for `P0-R1`, `P0-R2`, `P0-R3`
+- [ ] Tracker updated with final status for remaining open item `P0-R3`
 - [ ] New production recommendation recorded
 
 Final recommendation:
@@ -317,3 +372,4 @@ Notes:
 - Summary:
 - Remaining risks:
 - Follow-up work:
+

@@ -42,8 +42,78 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function sanitizeForLogging(value: unknown, depth = 0, seen = new WeakSet<object>()): unknown {
+function normalizeSensitiveKey(key: string) {
+    return key.replace(/[^a-z0-9]/gi, "").toLowerCase();
+}
+
+function redactStringMatches(input: string, matcher: RegExp, replacement: string) {
+    if (!matcher.test(input)) {
+        return input;
+    }
+
+    matcher.lastIndex = 0;
+    return input.replace(matcher, replacement);
+}
+
+function redactEmailValue(value: unknown): unknown {
+    if (typeof value === "string") {
+        return redactStringMatches(value, /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[REDACTED_EMAIL]");
+    }
+
+    if (Array.isArray(value)) {
+        return value.map(() => "[REDACTED_EMAIL]");
+    }
+
+    return "[REDACTED_EMAIL]";
+}
+
+function redactSensitiveValue(key: string, value: unknown): unknown {
+    const normalizedKey = normalizeSensitiveKey(key);
+
+    if (normalizedKey.includes("sessionid")) {
+        return "[REDACTED_SESSION_ID]";
+    }
+
+    if (normalizedKey.includes("token")) {
+        return "[REDACTED_TOKEN]";
+    }
+
+    if (
+        normalizedKey.includes("apikey")
+        || normalizedKey.includes("secret")
+        || normalizedKey.includes("authorization")
+        || normalizedKey.includes("cookie")
+        || normalizedKey.includes("servicerolekey")
+    ) {
+        return "[REDACTED_SECRET]";
+    }
+
+    if (
+        normalizedKey.includes("email")
+        || normalizedKey === "to"
+        || normalizedKey === "from"
+        || normalizedKey === "cc"
+        || normalizedKey === "bcc"
+        || normalizedKey.includes("recipient")
+    ) {
+        return redactEmailValue(value);
+    }
+
+    if (normalizedKey === "invitelink" || normalizedKey === "practiceagainurl") {
+        return "[REDACTED_URL]";
+    }
+
+    return value;
+}
+
+function sanitizeForLogging(value: unknown, depth = 0, seen = new WeakSet<object>(), key?: string): unknown {
     if (value === null || value === undefined) return value;
+
+    const redactedValue = key ? redactSensitiveValue(key, value) : value;
+    if (redactedValue !== value) {
+        return redactedValue;
+    }
+
     if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return value;
     if (typeof value === "bigint") return value.toString();
 
@@ -80,7 +150,7 @@ function sanitizeForLogging(value: unknown, depth = 0, seen = new WeakSet<object
 
     const result: Record<string, unknown> = {};
     for (const [key, entryValue] of Object.entries(value)) {
-        result[key] = sanitizeForLogging(entryValue, depth + 1, seen);
+        result[key] = sanitizeForLogging(entryValue, depth + 1, seen, key);
     }
 
     seen.delete(value);
@@ -97,7 +167,7 @@ function extractReservedFields(payload?: unknown) {
 
     for (const [key, value] of Object.entries(payload)) {
         if (RESERVED_FIELDS.has(key)) {
-            fields[key] = value;
+            fields[key] = sanitizeForLogging(value, 0, new WeakSet<object>(), key);
             continue;
         }
 

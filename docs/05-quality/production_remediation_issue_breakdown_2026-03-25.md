@@ -166,6 +166,15 @@ For the initial rollout, `P0-2` is complete at deterministic mixed-result semant
 
 Durable batch-job infrastructure, all-or-nothing transaction semantics, and retry-failed-only tooling are intentionally deferred to future ATS integration work unless rollout evidence forces that investment earlier.
 
+Later-state note on 2026-03-28:
+
+- rollout evidence from the 2026-03-26 production-readiness review did force the deeper recovery model
+- the app code now includes:
+  - DB-side atomic batch persistence
+  - persisted reconciliation records in `invite_batches` and `invite_batch_candidates`
+  - recruiter-safe retry behavior through `POST /api/recruiter/invites/[batch_id]/retry`
+- deployment rollout still needs the tracking migration and retry-endpoint validation in the target environment
+
 ---
 
 ## P0-3: Add Production Fail-Fast for Auth and Required Server Env

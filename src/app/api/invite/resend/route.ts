@@ -38,8 +38,8 @@ export async function POST(req: NextRequest) {
                 route: "/api/invite/resend",
                 reason: "missing_supabase_user",
             });
-            incrementMetric("invite_send_total", { outcome: "unauthorized" });
-            observeMetric("invite_send_duration_ms", Date.now() - startedAt, { outcome: "unauthorized" });
+            incrementMetric("invite_resend_total", { outcome: "unauthorized" });
+            observeMetric("invite_resend_duration_ms", Date.now() - startedAt, { outcome: "unauthorized" });
             return errorResponse(401, {
                 code: "UNAUTHORIZED",
                 message: "Authentication required",
@@ -57,8 +57,8 @@ export async function POST(req: NextRequest) {
                 route: "/api/invite/resend",
                 scope: "invite_resend",
             });
-            incrementMetric("invite_send_total", { outcome: "rate_limited" });
-            observeMetric("invite_send_duration_ms", Date.now() - startedAt, { outcome: "rate_limited" });
+            incrementMetric("invite_resend_total", { outcome: "rate_limited" });
+            observeMetric("invite_resend_duration_ms", Date.now() - startedAt, { outcome: "rate_limited" });
             return errorResponse(429, {
                 code: "RATE_LIMITED",
                 message: "Rate limit exceeded. Please retry later.",
@@ -71,8 +71,8 @@ export async function POST(req: NextRequest) {
         const parseResult = InviteResendRequestSchema.safeParse(body);
 
         if (!parseResult.success) {
-            incrementMetric("invite_send_total", { outcome: "invalid_request" });
-            observeMetric("invite_send_duration_ms", Date.now() - startedAt, { outcome: "invalid_request" });
+            incrementMetric("invite_resend_total", { outcome: "invalid_request" });
+            observeMetric("invite_resend_duration_ms", Date.now() - startedAt, { outcome: "invalid_request" });
             return errorResponse(400, {
                 code: "INVALID_REQUEST",
                 message: "Invalid resend payload",
@@ -115,14 +115,14 @@ export async function POST(req: NextRequest) {
             recipientEmail: candidateEmail,
             outcome: "success",
         });
-        incrementMetric("invite_send_total", { outcome: "success" });
-        observeMetric("invite_send_duration_ms", Date.now() - startedAt, { outcome: "success" });
+        incrementMetric("invite_resend_total", { outcome: "success" });
+        observeMetric("invite_resend_duration_ms", Date.now() - startedAt, { outcome: "success" });
 
         return NextResponse.json({ success: true, data: result, correlationId });
     } catch (error) {
         if (error instanceof InviteAccessError) {
-            incrementMetric("invite_send_total", { outcome: "forbidden" });
-            observeMetric("invite_send_duration_ms", Date.now() - startedAt, { outcome: "forbidden" });
+            incrementMetric("invite_resend_total", { outcome: "forbidden" });
+            observeMetric("invite_resend_duration_ms", Date.now() - startedAt, { outcome: "forbidden" });
             return errorResponse(403, {
                 code: "FORBIDDEN",
                 message: error.message,
@@ -131,8 +131,8 @@ export async function POST(req: NextRequest) {
             });
         }
         if (error instanceof InviteInputError) {
-            incrementMetric("invite_send_total", { outcome: "invalid_request" });
-            observeMetric("invite_send_duration_ms", Date.now() - startedAt, { outcome: "invalid_request" });
+            incrementMetric("invite_resend_total", { outcome: "invalid_request" });
+            observeMetric("invite_resend_duration_ms", Date.now() - startedAt, { outcome: "invalid_request" });
             return errorResponse(400, {
                 code: "INVALID_REQUEST",
                 message: error.message,
@@ -144,8 +144,8 @@ export async function POST(req: NextRequest) {
             error,
             errorCode: "INVITE_RESEND_FAILED",
         });
-        incrementMetric("invite_send_total", { outcome: "error" });
-        observeMetric("invite_send_duration_ms", Date.now() - startedAt, { outcome: "error" });
+        incrementMetric("invite_resend_total", { outcome: "error" });
+        observeMetric("invite_resend_duration_ms", Date.now() - startedAt, { outcome: "error" });
         return errorResponse(500, {
             code: "INTERNAL_ERROR",
             message: "Internal server error",

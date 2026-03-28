@@ -7,9 +7,16 @@ import {
     InviteBatchFailure,
     InviteBatchSuccess,
 } from "@/lib/server/application/invites/types";
+import type { PersistedInviteBatch } from "@/lib/server/application/invites/types";
 
 export type CreateInviteBatchDependencies = {
-    repository?: InviteRepository;
+    repository?: InviteRepository & {
+        createTrackedBatch(input: CreateInviteBatchInput, invites: Invite[]): Promise<string>;
+        markTrackedBatchCompleted(batchId: string, invites: Invite[]): Promise<void>;
+        markTrackedBatchFailed(batchId: string, failures: InviteBatchFailure[]): Promise<void>;
+        getTrackedBatch(batchId: string, actorId: string): Promise<PersistedInviteBatch | null>;
+        markTrackedBatchRetried(batchId: string, childBatchId: string): Promise<void>;
+    };
     createSessionId?: () => string;
     createToken?: () => string;
 };
@@ -61,12 +68,16 @@ export async function createInviteBatch(
             candidate,
         });
     });
+    const batchId = await repository.createTrackedBatch(input, invites);
 
     try {
         await repository.createBatch(invites);
     } catch (error) {
         const failures = input.candidates.map((candidate) => toFailure(candidate, error));
+        await repository.markTrackedBatchFailed(batchId, failures);
         return {
+            batchId,
+            retriedFromBatchId: input.parentBatchId,
             results: [],
             failures,
             summary: {
@@ -78,6 +89,8 @@ export async function createInviteBatch(
         };
     }
 
+    await repository.markTrackedBatchCompleted(batchId, invites);
+
     const results: InviteBatchSuccess[] = invites.map((invite) => ({
         status: "created",
         id: invite.id,
@@ -88,6 +101,8 @@ export async function createInviteBatch(
     }));
 
     return {
+        batchId,
+        retriedFromBatchId: input.parentBatchId,
         results,
         failures: [],
         summary: {
