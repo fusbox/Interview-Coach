@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { StepJobAndQuestions } from "./StepJobAndQuestions";
@@ -17,7 +17,6 @@ function StepFooterStub({ onNext, isNextDisabled, customAction }: StepFooterProp
 
 describe("StepJobAndQuestions", () => {
     it("keeps next disabled until req id, role, and a question are present", async () => {
-        const user = userEvent.setup();
         let details: Details = { role: "", jd: "", firstName: "", lastName: "", candidateEmail: "", reqId: "" };
         let star: QuestionInput[] = [{ id: "s1", text: "", category: "STAR", label: "STAR 1" }];
         const perma: QuestionInput[] = [];
@@ -69,11 +68,15 @@ describe("StepJobAndQuestions", () => {
 
         expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
 
-        await user.type(screen.getByLabelText("Req ID"), "REQ-10");
-        await user.type(screen.getByLabelText("Target Role"), "QA Engineer");
-        await user.type(screen.getByLabelText("STAR question 1"), "Tell me about a time you improved quality.");
+        fireEvent.change(screen.getByLabelText("Req ID"), { target: { value: "REQ-10" } });
+        fireEvent.change(screen.getByLabelText("Target Role"), { target: { value: "QA Engineer" } });
+        fireEvent.change(screen.getByLabelText("STAR question 1"), {
+            target: { value: "Tell me about a time you improved quality." }
+        });
 
-        expect(screen.getByRole("button", { name: "Next" })).toBeEnabled();
+        await waitFor(() => {
+            expect(screen.getByRole("button", { name: "Next" })).toBeEnabled();
+        });
     });
 
     it("applies a template and saves a new template from the modal", async () => {
@@ -163,8 +166,11 @@ describe("StepJobAndQuestions", () => {
         await user.click(screen.getByRole("button", { name: /save as template/i }));
         expect(await screen.findByRole("dialog", { name: "Save Interview Template" })).toBeInTheDocument();
 
-        await user.type(screen.getByLabelText("Template Name"), "Night Shift Pack");
-        await user.click(screen.getByRole("button", { name: "Save Template" }));
+        const dialog = await screen.findByRole("dialog", { name: "Save Interview Template" });
+        const templateNameInput = within(dialog).getByLabelText("Template Name");
+        await user.clear(templateNameInput);
+        await user.type(templateNameInput, "Night Shift Pack");
+        await user.click(within(dialog).getByRole("button", { name: "Save Template" }));
 
         await waitFor(() => {
             expect(onSaveTemplate).toHaveBeenCalledWith("Night Shift Pack", true);
