@@ -1,9 +1,10 @@
+import { createElement, type ImgHTMLAttributes } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import LandingScreen from "./LandingScreen";
 
 vi.mock("next/image", () => ({
-    default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img {...props} />
+    default: (props: ImgHTMLAttributes<HTMLImageElement>) => createElement("img", { ...props, alt: props.alt ?? "" })
 }));
 
 vi.mock("@/features/audio/audio-engine", () => ({

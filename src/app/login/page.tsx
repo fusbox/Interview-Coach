@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Lock, Mail, UserPlus, LogIn, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { AlertPanel } from "@/components/patterns/AlertPanel";
+import { e2eRecruiterCookie, isClientE2EMode } from "@/lib/e2e/test-mode";
 
 export default function LoginPage() {
     const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
@@ -31,6 +32,19 @@ export default function LoginPage() {
         setSuccessMessage(null);
 
         try {
+            if (isClientE2EMode()) {
+                if (activeTab === 'login') {
+                    document.cookie = `${e2eRecruiterCookie.name}=${e2eRecruiterCookie.value}; path=/; SameSite=Lax`;
+                    router.push("/recruiter/create");
+                    router.refresh();
+                } else {
+                    setSuccessMessage("Check your email for the confirmation link!");
+                    setEmail("");
+                    setPassword("");
+                }
+                return;
+            }
+
             if (activeTab === 'login') {
                 const { error } = await supabase.auth.signInWithPassword({
                     email,
@@ -123,6 +137,7 @@ export default function LoginPage() {
                                 <input
                                     required
                                     id="email"
+                                    name="email"
                                     className="w-full h-11 pl-11 pr-4 rounded-xl border border-border bg-surface-subtle/30 focus:bg-surface-base focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all duration-base placeholder:text-text-disabled text-sm text-text-primary"
                                     placeholder="name@company.com"
                                     type="email"
@@ -141,6 +156,7 @@ export default function LoginPage() {
                                 <input
                                     required
                                     id="password"
+                                    name="password"
                                     className="w-full h-11 pl-11 pr-11 rounded-xl border border-border bg-surface-subtle/30 focus:bg-surface-base focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all duration-base placeholder:text-text-disabled text-sm text-text-primary"
                                     placeholder={activeTab === 'signup' ? "Create a strong password" : "Enter your password"}
                                     type={showPassword ? "text" : "password"}

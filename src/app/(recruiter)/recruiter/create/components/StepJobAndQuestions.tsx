@@ -38,14 +38,17 @@ const AutoResizeTextarea = ({
     placeholder,
     className,
     ariaLabel,
+    name,
 }: {
     value: string;
     onChange: (val: string) => void;
     placeholder: string;
     className?: string;
     ariaLabel?: string;
+    name?: string;
 }) => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const fieldId = useId();
 
     useLayoutEffect(() => {
         if (textareaRef.current) {
@@ -57,6 +60,8 @@ const AutoResizeTextarea = ({
     return (
         <textarea
             ref={textareaRef}
+            id={fieldId}
+            name={name ?? ariaLabel ?? placeholder}
             className={className}
             value={value}
             onChange={(e) => onChange(e.target.value)}
@@ -203,6 +208,7 @@ export function StepJobAndQuestions({
                                 <div className="relative w-full">
                                     <select
                                         id={templateSelectId}
+                                        name="templateId"
                                         className="h-11 w-full rounded-xl border border-border bg-surface-base px-4 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-flat"
                                         defaultValue=""
                                         onChange={(e) => handleApplyTemplate(e.target.value)}
@@ -221,12 +227,14 @@ export function StepJobAndQuestions({
                                 <FieldGroup className="space-y-2">
                                     <FieldLabel htmlFor={reqIdInputId}>Req ID</FieldLabel>
                                     <input id={reqIdInputId} className={`${textFieldClassName} h-11 py-0`}
+                                        name="reqId"
                                         value={details.reqId} onChange={e => setDetails({ ...details, reqId: e.target.value })}
                                         placeholder="e.g. RCI-ENG-101" />
                                 </FieldGroup>
                                 <FieldGroup className="space-y-2">
                                     <FieldLabel htmlFor={targetRoleInputId}>Target Role</FieldLabel>
                                     <input id={targetRoleInputId} className={`${textFieldClassName} h-11 py-0`}
+                                        name="targetRole"
                                         value={details.role} onChange={e => setDetails({ ...details, role: e.target.value })}
                                         placeholder="e.g. Senior Product Manager" />
                                 </FieldGroup>
@@ -234,6 +242,7 @@ export function StepJobAndQuestions({
                             <FieldGroup className="space-y-2">
                                 <FieldLabel htmlFor={jobDescriptionInputId}>Job Description <span className="text-text-disabled font-normal lowercase tracking-normal">(Optional)</span></FieldLabel>
                                 <textarea id={jobDescriptionInputId} className={textareaFieldClassName}
+                                    name="jobDescription"
                                     value={details.jd} onChange={e => setDetails({ ...details, jd: e.target.value })}
                                     placeholder="Paste the job description here..." />
                             </FieldGroup>
@@ -280,6 +289,7 @@ export function StepJobAndQuestions({
                                         onChange={val => updateQuestion(setStar, star, q.id, val)}
                                         placeholder={`STAR Question ${idx + 1}...`}
                                         ariaLabel={`STAR question ${idx + 1}`}
+                                        name={`star-question-${idx + 1}`}
                                     />
                                     {q.text && (
                                         <button
@@ -306,7 +316,7 @@ export function StepJobAndQuestions({
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {perma.map(q => (
+                            {perma.map((q, idx) => (
                                 <div key={q.id} className="relative group/field">
                                     <AutoResizeTextarea
                                         className={`${textareaFieldClassName} min-h-[44px] pl-4 pr-10`}
@@ -314,6 +324,7 @@ export function StepJobAndQuestions({
                                         onChange={val => updateQuestion(setPerma, perma, q.id, val)}
                                         placeholder={`${q.label} Question...`}
                                         ariaLabel={`${q.label} question`}
+                                        name={`perma-question-${idx + 1}`}
                                     />
                                     {q.text && (
                                         <button
@@ -360,6 +371,7 @@ export function StepJobAndQuestions({
                                         onChange={val => updateQuestion(setTechnical, technical, q.id, val)}
                                         placeholder={`Technical Question ${idx + 1}...`}
                                         ariaLabel={`Technical question ${idx + 1}`}
+                                        name={`technical-question-${idx + 1}`}
                                     />
                                         {q.text && (
                                             <button
@@ -439,6 +451,7 @@ export function StepJobAndQuestions({
                                 <FieldLabel htmlFor={templateNameInputId}>Template Name</FieldLabel>
                                 <input
                                     id={templateNameInputId}
+                                    name="templateName"
                                     ref={saveTemplateInputRef}
                                     className={`${textFieldClassName} h-11 py-0`}
                                     value={templateName}
@@ -455,6 +468,7 @@ export function StepJobAndQuestions({
                                     <input
                                         type="checkbox"
                                         id="isShared"
+                                        name="isShared"
                                         className="w-5 h-5 rounded-md border-border bg-surface-subtle text-primary focus:ring-primary/20 transition-all cursor-pointer"
                                         checked={isShared}
                                         onChange={e => setIsShared(e.target.checked)}

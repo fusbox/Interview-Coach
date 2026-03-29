@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { useRouter, usePathname } from "next/navigation";
+import { isClientE2EMode } from "@/lib/e2e/test-mode";
 
 export function ProfileGuard() {
     const router = useRouter();
@@ -10,6 +11,11 @@ export function ProfileGuard() {
     const [checked, setChecked] = useState(false);
 
     useEffect(() => {
+        if (isClientE2EMode()) {
+            setChecked(true);
+            return;
+        }
+
         // Skip if already on settings page to avoid loop
         if (pathname?.includes('/recruiter/settings')) {
             return;

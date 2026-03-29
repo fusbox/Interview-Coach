@@ -9,6 +9,7 @@ import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { StatusBadge as SessionStatusBadge } from "../../components/session-badges";
 import { StatusBadge } from "@/components/patterns/StatusBadge";
 import { InterviewSession } from "@/lib/domain/types";
+import { E2E_RECRUITER_ID, getE2EInterviewSession, isServerE2EMode } from "@/lib/e2e/test-mode";
 
 const sessionRepo = new SupabaseSessionRepository();
 
@@ -19,7 +20,9 @@ export default async function SessionDetailsPage({ params }: { params: Promise<{
     const user = await getCachedUser();
     if (!user) redirect("/login");
 
-    const session: InterviewSession | null = await sessionRepo.get(id);
+    const session: InterviewSession | null = isServerE2EMode() && user.id === E2E_RECRUITER_ID
+        ? getE2EInterviewSession(id)
+        : await sessionRepo.get(id);
 
     if (!session) {
         notFound();

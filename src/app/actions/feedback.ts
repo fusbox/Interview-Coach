@@ -3,10 +3,10 @@
 import { SupabaseFeedbackRepository, FeedbackRecord } from "@/lib/server/infrastructure/supabase-feedback-repository";
 import { getCachedUser } from "@/lib/supabase/server";
 
-const feedbackRepo = new SupabaseFeedbackRepository();
-
 export async function captureFeedbackAction(record: FeedbackRecord) {
     try {
+        const feedbackRepo = new SupabaseFeedbackRepository();
+
         // If it's a recruiter-side signal, try to associate the recruiter ID
         if (record.type.startsWith('recruiter_')) {
             const user = await getCachedUser();

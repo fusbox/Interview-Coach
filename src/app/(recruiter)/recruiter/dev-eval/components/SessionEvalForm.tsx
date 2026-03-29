@@ -169,6 +169,8 @@ export function SessionEvalForm({ session }: SessionEvalFormProps) {
                         </div>
                     </div>
                     <textarea
+                        id="overall-session-notes"
+                        name="overallSessionNotes"
                         className="flex min-h-[80px] w-full rounded-md border bg-white px-3 py-2 text-sm placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-violet-300 focus:border-violet-300"
                         placeholder="Overall notes about this session (strengths, patterns, areas for improvement)..."
                         value={eval_.overallNotes}
@@ -284,6 +286,8 @@ export function SessionEvalForm({ session }: SessionEvalFormProps) {
                                                     onChange={(n) => updateQuestionScore(qIdx, dim.id, n)}
                                                 />
                                                 <input
+                                                    id={`question-${qIdx + 1}-${dim.id}-comment`}
+                                                    name={`question-${qIdx + 1}-${dim.id}-comment`}
                                                     className="h-8 w-full rounded border bg-white px-2 text-xs placeholder:text-slate-300 focus:outline-none focus:ring-1 focus:ring-violet-200"
                                                     placeholder="Comment..."
                                                     value={scoreObj?.comment || ''}
@@ -295,6 +299,8 @@ export function SessionEvalForm({ session }: SessionEvalFormProps) {
                                 </div>
                                 {/* Question-level notes */}
                                 <textarea
+                                    id={`question-${qIdx + 1}-notes`}
+                                    name={`question-${qIdx + 1}-notes`}
                                     className="mt-4 flex min-h-[60px] w-full rounded-md border bg-white px-3 py-2 text-xs placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-violet-200"
                                     placeholder="Additional notes for this question..."
                                     value={qEval?.notes || ''}

@@ -155,6 +155,8 @@ export function RecruiterSessionsTable({ initialSessions, recruiterTimezone, rec
             <div className="relative max-w-sm">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                 <Input
+                    id="manage-invites-search"
+                    name="manageInvitesSearch"
                     placeholder="Search candidates or roles..."
                     className="pl-9 bg-surface-base border-border rounded-2xl focus-visible:ring-primary/20 focus-visible:ring-offset-0 focus-visible:border-primary/50"
                     value={searchQuery}

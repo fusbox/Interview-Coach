@@ -9,6 +9,7 @@ import { Loader2, Save, CheckCircle2, AlertTriangle } from "lucide-react";
 import { AlertPanel } from "@/components/patterns/AlertPanel";
 import { PageHeaderBlock } from "@/components/patterns/PageHeaderBlock";
 import { FieldGroup, FieldHint, FieldLabel, selectFieldClassName, textFieldClassName } from "@/components/patterns/FormField";
+import { E2E_RECRUITER_ID, getE2ERecruiterProfile, isClientE2EMode } from "@/lib/e2e/test-mode";
 
 interface RecruiterProfile {
     recruiter_id: string;
@@ -91,6 +92,21 @@ export default function SettingsPage() {
     );
 
     useEffect(() => {
+        if (isClientE2EMode()) {
+            const e2eProfile = {
+                recruiter_id: E2E_RECRUITER_ID,
+                first_name: getE2ERecruiterProfile().first_name,
+                last_name: getE2ERecruiterProfile().last_name,
+                title: getE2ERecruiterProfile().title,
+                phone: getE2ERecruiterProfile().phone,
+                timezone: getE2ERecruiterProfile().timezone,
+            };
+            setInitialProfile(e2eProfile);
+            setProfile(e2eProfile);
+            setIsLoading(false);
+            return;
+        }
+
         const fetchProfile = async () => {
             setIsLoading(true);
             const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -149,6 +165,13 @@ export default function SettingsPage() {
         setSuccessMessage(null);
 
         try {
+            if (isClientE2EMode()) {
+                setInitialProfile({ ...profile });
+                setSuccessMessage("Profile updated successfully.");
+                setTimeout(() => setSuccessMessage(null), 3000);
+                return;
+            }
+
             const { error } = await supabase
                 .from('recruiter_profiles')
                 .upsert({
@@ -222,6 +245,7 @@ export default function SettingsPage() {
                             <FieldLabel htmlFor={titleInputId}>Your Job Title</FieldLabel>
                             <input
                                 id={titleInputId}
+                                name="title"
                                 className={textFieldClassName}
                                 value={profile.title}
                                 onChange={e => setProfile({ ...profile, title: e.target.value })}
@@ -234,6 +258,7 @@ export default function SettingsPage() {
                                 <FieldLabel htmlFor={firstNameInputId}>First Name</FieldLabel>
                                 <input
                                     id={firstNameInputId}
+                                    name="firstName"
                                     required
                                     className={textFieldClassName}
                                     value={profile.first_name}
@@ -244,6 +269,7 @@ export default function SettingsPage() {
                                 <FieldLabel htmlFor={lastNameInputId}>Last Name</FieldLabel>
                                 <input
                                     id={lastNameInputId}
+                                    name="lastName"
                                     required
                                     className={textFieldClassName}
                                     value={profile.last_name}
@@ -256,6 +282,7 @@ export default function SettingsPage() {
                             <FieldLabel htmlFor={phoneInputId}>Phone Number</FieldLabel>
                             <input
                                 id={phoneInputId}
+                                name="phone"
                                 className={textFieldClassName}
                                 value={profile.phone}
                                 onChange={e => setProfile({ ...profile, phone: e.target.value })}
@@ -269,6 +296,7 @@ export default function SettingsPage() {
                             <div className="relative group">
                                 <select
                                     id={timezoneInputId}
+                                    name="timezone"
                                     className={selectFieldClassName}
                                     value={profile.timezone}
                                     onChange={e => setProfile({ ...profile, timezone: e.target.value })}

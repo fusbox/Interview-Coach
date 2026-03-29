@@ -3,6 +3,7 @@ import { RecruiterSidebar } from '@/components/layout/RecruiterSidebar';
 import { RecruiterMobileDock } from '@/components/layout/RecruiterMobileDock';
 import { ProfileGuard } from '@/components/auth/ProfileGuard';
 import { redirect } from 'next/navigation';
+import { E2E_RECRUITER_ID, getE2ERecruiterProfile, isServerE2EMode } from '@/lib/e2e/test-mode';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,18 +12,19 @@ export default async function RecruiterLayout({
 }: {
     children: React.ReactNode
 }) {
-    const supabase = createClient();
     const user = await getCachedUser();
 
     if (!user) {
         redirect('/login');
     }
 
-    const { data: profile } = await supabase
-        .from('recruiter_profiles')
-        .select('first_name, last_name, title')
-        .eq('recruiter_id', user.id)
-        .single();
+    const profile = isServerE2EMode() && user.id === E2E_RECRUITER_ID
+        ? getE2ERecruiterProfile()
+        : (await createClient()
+            .from('recruiter_profiles')
+            .select('first_name, last_name, title')
+            .eq('recruiter_id', user.id)
+            .single()).data;
 
     return (
         <div className="min-h-screen bg-surface-subtle flex">

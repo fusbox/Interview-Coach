@@ -1,5 +1,6 @@
 "use server";
 
+import { E2E_RECRUITER_ID, getE2ERecruiterSessions, isServerE2EMode } from "@/lib/e2e/test-mode";
 import { getCachedUser } from "@/lib/supabase/server";
 import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-session-repository";
 import { redirect } from "next/navigation";
@@ -13,6 +14,10 @@ export async function getRecruiterSessions(): Promise<SessionSummary[]> {
 
     if (!user) {
         redirect("/login");
+    }
+
+    if (isServerE2EMode() && user.id === E2E_RECRUITER_ID) {
+        return getE2ERecruiterSessions();
     }
 
     try {

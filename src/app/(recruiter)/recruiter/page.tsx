@@ -12,15 +12,19 @@ import { redirect } from "next/navigation";
 import { computeDashboardStats } from "@/lib/services/compute-dashboard-stats";
 import { PageHeaderBlock } from "@/components/patterns/PageHeaderBlock";
 import { normalizeRecruiterSignature } from "@/lib/recruiter-signature";
+import { E2E_RECRUITER_ID, getE2ERecruiterProfile, isServerE2EMode } from "@/lib/e2e/test-mode";
 export const dynamic = 'force-dynamic';
 
 export default async function RecruiterDashboard() {
     const user = await getCachedUser();
     if (!user) redirect("/login");
 
+    const isE2ERecruiter = isServerE2EMode() && user.id === E2E_RECRUITER_ID;
     const [sessions, profileData] = await Promise.all([
         getRecruiterSessions(),
-        createClient().from('recruiter_profiles').select('*').eq('recruiter_id', user.id).single()
+        isE2ERecruiter
+            ? Promise.resolve({ data: getE2ERecruiterProfile(), error: null })
+            : createClient().from('recruiter_profiles').select('*').eq('recruiter_id', user.id).single()
     ]);
 
     const recruiterTimezone = profileData.data?.timezone;

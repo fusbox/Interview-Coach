@@ -17,6 +17,7 @@ import { fetchTemplates, saveTemplateAction } from "../templates/actions";
 import { RecruiterTemplate } from "@/lib/domain/template";
 import { normalizeRecruiterSignature } from "@/lib/recruiter-signature";
 import { DEFAULT_RECRUITER_COMPANY, DEFAULT_RECRUITER_NAME } from "@/lib/config/recruiter-defaults";
+import { E2E_RECRUITER_EMAIL, isClientE2EMode } from "@/lib/e2e/test-mode";
 
 function createIdempotencyKey() {
     if (typeof globalThis !== "undefined" && globalThis.crypto?.randomUUID) {
@@ -80,6 +81,16 @@ export default function CreateInviteWizard() {
 
     // Fetch Recruiter Profile & Templates
     useEffect(() => {
+        if (isClientE2EMode()) {
+            setRecruiterProfile(normalizeRecruiterSignature({
+                name: DEFAULT_RECRUITER_NAME,
+                email: E2E_RECRUITER_EMAIL,
+                company: DEFAULT_RECRUITER_COMPANY
+            }));
+            setTemplates([]);
+            return;
+        }
+
         const supabase = createBrowserClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!

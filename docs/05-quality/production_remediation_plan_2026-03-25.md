@@ -1,391 +1,76 @@
 # Production Remediation Plan
 
 Date: 2026-03-25  
-Source reviews:
-- [comprehensive_code_review_2026-03-25.md](./comprehensive_code_review_2026-03-25.md)
-- [comprehensive_code_review_2026-03-26.md](./comprehensive_code_review_2026-03-26.md)
-Status: Initial remediation complete, but production release reopened by the 2026-03-26 review refresh  
-Owner: Engineering  
+Status: Historical planning baseline  
+Current execution reference: [production_execution_plan_2026-03-26.md](./production_execution_plan_2026-03-26.md)
 
 ---
 
 ## Purpose
 
-This document translates the production-readiness reviews from 2026-03-25 and 2026-03-26 into an execution plan that can be administered, tracked, and used as a release gate.
+This document preserves the original remediation structure created from the 2026-03-25 review.
 
-It is intentionally implementation-aware and repo-specific.
+It is retained for historical context and planning traceability. It should not be used as the current release-status source of truth.
 
----
+For current release posture, use:
 
-## Release Position
-
-- Production: `NO-GO until reopened production blockers are closed`
-- Controlled staging: `GO with explicit risk acceptance`
-
----
-
-## Execution Principles
-
-1. Fix distributed-systems weaknesses before polishing structure.
-2. Prefer narrow, testable application-service extraction over broad refactors.
-3. Treat every P0 fix as incomplete until failure-mode tests and runbook updates land.
-4. Preserve behavior for existing users unless the change is an explicit hardening gate.
-
----
-
-## Workstreams
-
-### Workstream A: Production Safety
-
-Goal: remove the three release blockers identified in the review.
-
-Scope:
-- shared/distributed rate limiting
-- transaction-safe invite creation flow
-- fail-fast auth and environment contract validation
-
-Exit criteria:
-- no process-local protection remains in production code paths
-- invite creation has deterministic partial-failure handling
-- protected server behavior does not vary by environment shape
-
-### Workstream B: Boundary Cleanup
-
-Goal: reduce drift between route handlers, application logic, and infrastructure.
-
-Scope:
-- canonical app origin resolution
-- route-to-application-service extraction for invite flows
-- removal of hardcoded business defaults from feature-level UI
-- tighter schema contracts
-
-Exit criteria:
-- invite-related routes are thin
-- origin resolution is centralized
-- critical contracts no longer use loose placeholder schemas
-
-### Workstream C: Operability and Quality Uplift
-
-Goal: make the system operable across restarts and scale-out, and easier to verify.
-
-Scope:
-- durable metrics
-- SLO and alert alignment
-- failure-mode integration coverage
-- accessibility automation
-- remediation/runbook/ADR documentation
-
-Exit criteria:
-- metrics survive restart and support incident analysis
-- failure modes are covered by tests
-- release gate checklist exists and is used
-
----
-
-## Sequenced Delivery Plan
-
-### Phase 0: Governance Setup
-
-Target duration: 0.5 sprint
-
-Tasks:
-- create remediation tracker and issue breakdown
-- confirm production gate criteria
-- assign owners for each P0 workstream
-- create ADR placeholders for:
-  - rate-limit backend choice
-  - invite consistency model
-  - application boundary split
-
-Deliverables:
-- [production_remediation_tracker_2026-03-25.md](./production_remediation_tracker_2026-03-25.md)
-- [production_remediation_issue_breakdown_2026-03-25.md](./production_remediation_issue_breakdown_2026-03-25.md)
-
-### Phase 1: P0 Hardening
-
-Target duration: 1 sprint
-
-Tasks:
-- land shared rate-limit backend abstraction and production backend
-- add startup env/auth contract validation
-- centralize canonical app origin generation
-
-Primary files/modules:
-- `src/lib/server/rate-limit.ts`
-- `src/lib/server/rate-limit/*`
-- `src/lib/server/config/server-env.ts`
-- `src/lib/server/url/get-app-origin.ts`
-- invite-related API routes
-
-Required validation:
-- rate-limit backend tests
-- env fail-fast tests
-- origin contract tests
-
-Phase 1 status on 2026-03-25:
-- `P0-1` completed with deployed recruiter and candidate route `429` validation against the shared Supabase/Postgres limiter.
-- `P0-2` completed for the initial-rollout stop point at deterministic mixed-result invite semantics.
-- `P0-3` completed with production fail-fast env/auth coverage across privileged server seams.
-
-### Phase 2: Invite Flow Consistency
-
-Target duration: 1 sprint
-
-Tasks:
-- extract invite orchestration into application command handlers
-- define deterministic partial-failure behavior
-- add per-candidate batch result modeling
-- add idempotent replay coverage for mixed-result batches
-
-Primary files/modules:
-- `src/app/api/recruiter/invites/route.ts`
-- `src/lib/server/application/invites/*`
-- `src/lib/server/infrastructure/supabase-invite-repository.ts`
-
-Required validation:
-- partial-batch failure integration tests
-- idempotency/retry tests
-
-Completion note for this rollout:
-- stop at deterministic mixed-result reporting and recruiter-visible partial-failure handling
-- later follow-on work may still add persisted reconciliation records and retry-safe recovery semantics if production-readiness review evidence requires it
-
-### Phase 3: Boundary and Contract Cleanup
-
-Target duration: 1 sprint
-
-Tasks:
-- remove residual hardcoded business identity defaults from feature flows
-- tighten `z.any()` schema surfaces
-- continue route-to-application-service extraction beyond invite flow
-
-Primary files/modules:
-- recruiter create/dashboard flows
-- `src/lib/domain/schemas.ts`
-- provider-response and AI-service contracts
-
-Required validation:
-- schema contract tests
-- route thinness review
-- regression checks on recruiter flows
-
-Phase 3 status on 2026-03-25:
-- `P1-2` completed with shared recruiter/business defaults replacing feature-local fallback literals.
-- `P1-3` completed with:
-  - critical route request-schema consolidation into shared domain contracts
-  - removal of the remaining surfaced `z.any()` usage in `src`
-  - typed malformed-provider classification across the critical AI/service/route seams
-
-### Phase 4: Operability and Quality Uplift
-
-Target duration: 1 sprint
-
-Tasks:
-- replace memory-backed metrics with durable export path
-- define SLOs and alert thresholds
-- add accessibility automation for recruiter and candidate critical flows
-- update release runbook and gate checklist
-
-Primary files/modules:
-- `src/lib/server/metrics.ts`
-- ops routes and logging/correlation utilities
-- Playwright/E2E or comparable higher-level tests
-
-Required validation:
-- metrics durability checks
-- alert/runbook review
-- accessibility CI checks
-
-Phase 4 completion note on 2026-03-26:
-- `P1-4` completed.
-- Durable metrics now cover:
-  - restart-safe rollups
-  - multi-instance aggregation
-  - submit-outcome instrumentation for in-session progress reliability
-  - SQL-backed SLO summaries
-  - recruiter ops summary payloads backed by durable data
-- Threshold recalibration and denominator tuning are now operational follow-on work, not unresolved remediation work.
-
-### Phase 5: Production Gate Reopen
-
-Target duration: 0.5-1 sprint
-
-Goal:
-- reconcile the 2026-03-25 remediation closeout with the stricter 2026-03-26 production gate
-- close the remaining true production blockers rather than continuing under a stale `prod-ready` posture
-
-Tasks:
-- replace deterministic-but-non-reconciled invite batch behavior with one of:
-  - transaction-safe DB-side batch write semantics
-  - persisted batch reconciliation records and retry-safe recovery semantics
-- remove request-derived origin fallback from production origin resolution
-- make durable metrics backend a production fail-fast contract
-- validate alert-to-paging routing through an operator game-day or equivalent failure-injection exercise
-- update release-gate and operational docs to reflect the reopened production contract
-
-Primary files/modules:
-- `src/lib/server/application/invites/*`
-- `src/lib/server/infrastructure/supabase-invite-repository.ts`
-- `src/lib/server/url/get-app-origin.ts`
-- `src/lib/config/public-app-origin.ts`
-- `src/lib/server/metrics/*`
-- `docs/05-quality/release-gate-checklist.md`
-- `docs/05-quality/ops_alert_policy.md`
-- `docs/05-quality/environment_variable_matrix.md`
-
-Required validation:
-- integration test for invite persistence failure and recovery/retry semantics
-- production-mode origin contract test proving no request-host fallback
-- production-mode metrics backend contract test proving memory/unset configuration is rejected
-- documented paging validation evidence
-
-Exit criteria:
-- production invite writes have deterministic recovery semantics, not only deterministic partial reporting
-- production public origin comes from trusted configured env only
-- production metrics path fails fast without durable backend configuration
-- paging responders and alert routes are validated against a live or simulated incident path
-
-Phase 5 status note on 2026-03-28:
-- the app-owned invite recovery follow-on is now implemented with:
-  - persisted `invite_batches` / `invite_batch_candidates` reconciliation records
-  - recruiter invite create responses returning durable `batchId`
-  - recruiter-safe retry path at `POST /api/recruiter/invites/[batch_id]/retry`
-- remaining rollout work for this follow-on is deployment validation of:
-  - `20260328_add_invite_batch_tracking.sql`
-  - tracked-batch persistence in the target Supabase project
-  - retry-endpoint behavior in the target deployment
-
----
-
-## Repo-Specific Module Plan
-
-### New modules to add
-
-- `src/lib/server/rate-limit/backend.ts`
-- `src/lib/server/rate-limit/types.ts`
-- `src/lib/server/config/server-env.ts`
-- `src/lib/server/url/get-app-origin.ts`
-- `src/lib/server/application/invites/create-invite-batch.ts`
-- `src/lib/server/application/invites/resend-invite.ts`
-- `src/lib/server/application/invites/types.ts`
-
-### Existing modules to refactor first
-
-- `src/app/api/recruiter/invites/route.ts`
-- `src/app/api/invite/send/route.ts`
-- `src/app/api/invite/resend/route.ts`
-- `src/lib/server/infrastructure/supabase-invite-repository.ts`
-- `src/lib/server/auth/candidate-token.ts`
-- `src/lib/domain/schemas.ts`
-- `src/lib/server/metrics.ts`
-
----
-
-## Testing Plan
-
-### Must-add tests before production
-
-1. Shared rate-limit semantics
-- TTL behavior
-- multi-instance consistency
-- restart behavior
-
-2. Invite batch failure modes
-- failure during persistence mid-batch
-- provider failure after persistence
-- idempotent retry behavior
-- persisted batch tracking and retry-failed-only recovery behavior
-
-3. Auth/env contract tests
-- production boot with missing secrets
-- candidate token validation consistency
-
-4. Origin generation tests
-- malformed app URL
-- untrusted request host
-- missing production origin
-
-### Next-sprint quality tests
-
-1. Accessibility flow checks
-- recruiter create flow
-- invite preview/send flow
-- candidate session controls and async feedback states
-
-2. Operability tests
-- durable metrics write/read behavior
-- correlation id propagation in error paths
-
----
-
-## Risks and Dependencies
-
-### Key technical dependencies
-
-- decision on shared rate-limit backend
-- decision on invite-batch consistency model
-- agreement on env validation strictness in production
-
-### Risks
-
-- partial refactor of invite flow can increase complexity if route logic and application logic coexist too long
-- schema tightening may surface latent malformed payload handling
-- durable metrics work can sprawl if backend/vendor choice is not bounded early
-
-Mitigation:
-- keep each workstream behind clear acceptance criteria
-- avoid parallel refactors of invite flow and schema contract unless necessary
-
----
-
-## Administrative Cadence
-
-### Weekly review
-
-- update status in the remediation tracker
-- record blockers and decision needs
-- confirm whether any P0 item is drifting in scope
-
-### Release review
-
-- production remains blocked while any P0 item is not complete
-- staging can continue only with explicit risk acceptance recorded
-
----
-
-## Definition of Done
-
-### P0 complete
-
-- shared limiter is live in production code paths
-- invite creation is deterministic under partial failure
-- env/auth contract fails fast in production
-
-### P1 complete
-
-- origin helper is canonical
-- hardcoded business defaults are centralized or removed
-- critical schemas are tightened
-- invite routes are thin
-
-### P2 complete
-
-- route-to-application-service follow-on work is landed where scoped
-- accessibility automation covers critical paths
-- ADRs, runbook, and release gate checklist are in place
-
-### Production gate reopened
-
-- the initial remediation closure remains historically accurate
-- the current production release posture is derived from the latest review, not the earlier closeout
-- any new production release recommendation must clear the Phase 5 exit criteria
-
----
-
-## Related Documents
-
-- [comprehensive_code_review_2026-03-25.md](./comprehensive_code_review_2026-03-25.md)
-- [comprehensive_code_review_2026-03-26.md](./comprehensive_code_review_2026-03-26.md)
-- [production_remediation_issue_breakdown_2026-03-25.md](./production_remediation_issue_breakdown_2026-03-25.md)
 - [production_remediation_tracker_2026-03-25.md](./production_remediation_tracker_2026-03-25.md)
 - [production_execution_plan_2026-03-26.md](./production_execution_plan_2026-03-26.md)
+- [release-gate-checklist.md](./release-gate-checklist.md)
+
+---
+
+## Original Planning Structure
+
+The original remediation program was organized into five phases:
+
+1. governance setup
+2. P0 hardening
+3. invite-flow consistency
+4. boundary and contract cleanup
+5. operability and quality uplift
+
+That structure successfully produced the first remediation wave, but the 2026-03-26 review reopened the production gate with stricter release criteria.
+
+---
+
+## Historical Outcomes From The Original Plan
+
+The original plan materially delivered:
+
+- shared production-backed rate limiting
+- fail-fast server environment and auth contract handling
+- centralized origin handling
+- deterministic invite-batch behavior
+- runtime schema tightening
+- durable metrics and SLO groundwork
+- route thinning on core service boundaries
+- accessibility automation on critical flows
+
+Those outcomes remain valid. What changed after the later review was the release standard, not the existence of this work.
+
+---
+
+## How To Use This Document Now
+
+Use this document only when you need:
+
+- the original structure of the remediation program
+- historical planning context
+- rationale for how the work was sequenced before the gate was reopened
+
+Do not use it for:
+
+- current production approval
+- current blocker status
+- deployment sign-off
+
+---
+
+## Supersession Note
+
+The 2026-03-26 execution plan superseded this plan for release decisions by adding explicit reopened workstreams for:
+
+- invite reconciliation-safe recovery semantics
+- production origin enforcement
+- durable metrics enforcement plus alert-delivery validation

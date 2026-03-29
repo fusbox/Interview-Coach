@@ -683,6 +683,8 @@ export default function UnifiedSessionScreen() {
                                     ) : (
                                         <textarea
                                             ref={textareaRef}
+                                            id="session-answer-text"
+                                            name="sessionAnswer"
                                             className={answerTextareaClassName}
                                             placeholder="Type your answer here..."
                                             value={answerText}

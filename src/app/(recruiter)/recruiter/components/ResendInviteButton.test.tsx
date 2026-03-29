@@ -1,13 +1,15 @@
-import type { ImgHTMLAttributes } from "react";
+import { createElement, type ImgHTMLAttributes } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ResendInviteButton } from "./ResendInviteButton";
 
 vi.mock("next/image", () => ({
-    default: ({ unoptimized: _unoptimized, ...props }: ImgHTMLAttributes<HTMLImageElement> & { unoptimized?: boolean }) => (
-        <img {...props} />
-    )
+    default: (props: ImgHTMLAttributes<HTMLImageElement> & { unoptimized?: boolean }) => {
+        const imgProps = { ...props };
+        delete imgProps.unoptimized;
+        return createElement("img", { ...imgProps, alt: props.alt ?? "" });
+    }
 }));
 
 vi.mock("@/app/actions/feedback", () => ({

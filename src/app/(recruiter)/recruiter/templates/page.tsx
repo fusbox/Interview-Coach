@@ -55,6 +55,8 @@ function EditableTemplateTitle({ template, onUpdate, isEditable }: EditableTempl
         return (
             <div className="flex items-center gap-2 w-full animate-in fade-in slide-in-from-left-1 duration-200">
                 <input
+                    id={`template-name-${template.id}`}
+                    name="templateName"
                     autoFocus
                     className="flex-1 h-8 bg-surface-subtle border border-primary/30 rounded-lg px-3 text-sm font-bold text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                     value={name}
@@ -220,6 +222,8 @@ export default function TemplatesPage() {
                 <div className="space-y-8">
                     {/* Search Bar */}
                     <SearchField
+                        id="templates-search"
+                        name="templatesSearch"
                         wrapperClassName="max-w-md"
                         placeholder="Search by template name or role..."
                         value={searchQuery}

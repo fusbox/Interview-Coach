@@ -14,14 +14,17 @@ export const dynamic = 'force-dynamic';
 
 export default async function CandidateSessionPage({ params }: PageProps) {
     const { token } = await params;
+
+    // Preserve the built-in demo token as a zero-dependency local/test entrypoint.
+    // This keeps local browser smoke tests and manual UX checks off the real repository path.
+    if (token === 'demo-invite-token') {
+        return <InterviewSessionScreen initialConfig={{ role: 'Product Manager' }} />;
+    }
+
     const repository = new SupabaseInviteRepository();
     const invite = await repository.getByToken(token);
 
     if (!invite) {
-        // Fallback for "demo-invite-token" for dev convenience if not in repo
-        if (token === 'demo-invite-token') {
-            return <InterviewSessionScreen initialConfig={{ role: 'Product Manager' }} />;
-        }
         notFound();
     }
 

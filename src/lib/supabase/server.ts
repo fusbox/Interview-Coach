@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { cache } from 'react';
 import { getRequiredServerEnv } from '@/lib/server/config/server-env';
+import { getE2ERecruiterUser, hasE2ERecruiterCookie, isServerE2EMode } from '@/lib/e2e/test-mode';
 
 export function createClient() {
     return createServerClient(
@@ -50,6 +51,14 @@ export function createAdminClient() {
 }
 
 export const getCachedUser = cache(async () => {
+    if (isServerE2EMode()) {
+        const cookieStore = await cookies();
+
+        if (hasE2ERecruiterCookie(cookieStore)) {
+            return getE2ERecruiterUser();
+        }
+    }
+
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     return user;

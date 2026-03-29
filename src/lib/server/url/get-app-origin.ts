@@ -1,4 +1,4 @@
-import { getRequiredServerEnv, isProductionServer } from "@/lib/server/config/server-env";
+import { isProductionServer } from "@/lib/server/config/server-env";
 import { DEFAULT_PUBLIC_APP_ORIGIN, getConfiguredPublicAppOrigin } from "@/lib/config/public-app-origin";
 
 const LOCALHOST_HOSTS = new Set(["0.0.0.0", "::", "[::]"]);

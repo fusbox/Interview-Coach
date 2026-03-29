@@ -103,18 +103,24 @@ export function StepCandidates({
                             </div>
                             <div className="grid flex-1 grid-cols-1 gap-3 md:grid-cols-3">
                                 <input
+                                    id={`${candidate.id}-first-name`}
+                                    name={`candidate-${candidate.id}-first-name`}
                                     className={`${textFieldClassName} h-11 py-0`}
                                     value={candidate.firstName}
                                     onChange={(e) => updateCandidate(candidate.id, "firstName", e.target.value)}
                                     placeholder="First Name"
                                 />
                                 <input
+                                    id={`${candidate.id}-last-name`}
+                                    name={`candidate-${candidate.id}-last-name`}
                                     className={`${textFieldClassName} h-11 py-0`}
                                     value={candidate.lastName}
                                     onChange={(e) => updateCandidate(candidate.id, "lastName", e.target.value)}
                                     placeholder="Last Name"
                                 />
                                 <input
+                                    id={`${candidate.id}-email`}
+                                    name={`candidate-${candidate.id}-email`}
                                     className={`${textFieldClassName} h-11 py-0`}
                                     value={candidate.email}
                                     onChange={(e) => updateCandidate(candidate.id, "email", e.target.value)}
@@ -122,6 +128,8 @@ export function StepCandidates({
                                     type="email"
                                 />
                                 <input
+                                    id={`${candidate.id}-resume-text`}
+                                    name={`candidate-${candidate.id}-resume-text`}
                                     className={`${textFieldClassName} h-11 py-0 md:col-span-3`}
                                     value={candidate.resumeText || ""}
                                     onChange={(e) => updateCandidate(candidate.id, "resumeText", e.target.value)}

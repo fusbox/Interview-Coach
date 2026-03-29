@@ -231,17 +231,25 @@ export function StepPreviewCombined({
                                 )}
                             </div>
 
-                            <div className="space-y-3 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar">
+                            <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1 custom-scrollbar">
                                 {candidates.map((c, i) => (
-                                    <div key={c.id} className="group flex items-center justify-between transition-all duration-300 animate-in slide-in-from-right-4" style={{ animationDelay: `${i * 50}ms` }}>
-                                        <div className="flex items-center gap-4">
-                                            <div className="text-xs font-bold text-text-disabled min-w-[12px] text-left group-hover:text-primary transition-colors">
-                                                {i + 1}
-                                            </div>
-                                            <div className="text-sm font-bold text-text-primary font-sans">{c.firstName} {c.lastName}</div>
+                                    <div
+                                        key={c.id}
+                                        className="group grid grid-cols-[20px_minmax(0,1fr)] gap-3 transition-all duration-300 animate-in slide-in-from-right-4 md:grid-cols-[20px_minmax(0,1fr)_minmax(0,1fr)] md:gap-4"
+                                        style={{ animationDelay: `${i * 50}ms` }}
+                                    >
+                                        <div className="pt-1 text-xs font-bold text-text-disabled text-left group-hover:text-primary transition-colors">
+                                            {i + 1}
                                         </div>
-                                        <div className="text-xs font-medium text-text-secondary font-mono bg-surface-subtle/80 px-2 py-1 rounded-lg truncate max-w-[160px] md:max-w-none">
-                                            {c.email}
+                                        <div className="min-w-0">
+                                            <div className="text-sm font-bold text-text-primary font-sans truncate">
+                                                {c.firstName} {c.lastName}
+                                            </div>
+                                        </div>
+                                        <div className="min-w-0 md:pl-2">
+                                            <div className="text-xs font-medium text-text-secondary font-mono bg-surface-subtle/80 px-3 py-1.5 rounded-lg whitespace-nowrap overflow-hidden text-ellipsis">
+                                                {c.email}
+                                            </div>
                                         </div>
                                     </div>
                                 ))}

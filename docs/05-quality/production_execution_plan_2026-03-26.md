@@ -2,361 +2,199 @@
 
 Date: 2026-03-26  
 Primary review: [comprehensive_code_review_2026-03-26.md](./comprehensive_code_review_2026-03-26.md)  
-Related tracker: [production_remediation_tracker_2026-03-25.md](./production_remediation_tracker_2026-03-25.md)  
-Related prior plan: [production_remediation_plan_2026-03-25.md](./production_remediation_plan_2026-03-25.md)
+Primary status reference: [production_remediation_tracker_2026-03-25.md](./production_remediation_tracker_2026-03-25.md)  
 Deployment validation: [production_deployment_validation_checklist_2026-03-26.md](./production_deployment_validation_checklist_2026-03-26.md)
 
 ---
 
-## Current Posture
+## Purpose
+
+This document explains the release-facing execution model that emerged from the 2026-03-26 production-gate reopen.
+
+It is the stable reference for:
+
+- what was required to satisfy the reopened blockers
+- what is now complete in application scope
+- what remains deployment-managed before production promotion
+
+---
+
+## Current Release Position
 
 - Production: `NO-GO`
-- Controlled staging: `GO with explicit risk acceptance`
+- Controlled staging / internal validation: `GO with explicit risk acceptance`
 
-This plan supersedes the earlier remediation-closeout posture for production release decisions.
+Reason:
 
-The 2026-03-25 remediation work remains complete for its original scope, but the 2026-03-26 review raises a stricter production gate:
-
-1. invite-batch durability/reconciliation
-2. canonical origin enforcement in production
-3. durable metrics enforcement plus paging validation
+- all application-owned reopened blockers are complete
+- the remaining open item is deployment-team validation of live alert delivery under `P0-R3`
 
 ---
 
-## Goal
+## Execution Model
 
-Convert the repo from a stale "initial remediation complete" posture into a current, defensible production-release plan.
+The reopened production gate was resolved through three workstreams.
 
-This plan is intentionally narrow:
+### Workstream 1: Invite Consistency And Recovery
 
-- close the remaining true production blockers
-- update release-governance docs to match the latest review
-- avoid broad architecture churn that does not change release posture
+Outcome: `Complete`
 
----
+Delivered:
 
-## Workstreams
+- DB-side atomic invite-batch persistence
+- durable `batchId` on recruiter invite creation
+- persisted reconciliation state in `invite_batches` and `invite_batch_candidates`
+- recruiter-safe retry endpoint at `POST /api/recruiter/invites/[batch_id]/retry`
+- happy-path, failure-path, and retry-path validation
 
-### Workstream 1: Invite Consistency Reopen
+Release significance:
 
-Status on 2026-03-27:
-
-- Complete for the current production gate
-- deployed happy-path validation passed
-- controlled failure-mode validation confirmed no partial persisted state under batch failure
-- 2026-03-28 follow-on landed persisted batch reconciliation records and a safe recruiter retry endpoint in app code
-
-Problem:
-
-- the original production-gate closure only proved atomicity and no partial persisted rows
-- the review's stronger mitigation also asked for durable batch reconciliation records and retry-safe recovery semantics
-- those app-owned recovery semantics are now implemented, but deployment rollout still needs the new tracking migration and retry-endpoint validation
-
-Execution:
-
-1. Use the DB-side batch RPC for all-or-nothing invite persistence.
-2. Persist a durable batch record with per-candidate status, retryability, retry count, and parent/child retry lineage.
-3. Preserve recruiter-visible explicit per-candidate result reporting and return a durable `batchId`.
-4. Expose a recruiter-safe retry endpoint that only retries failed-and-retryable candidates from a prior batch.
-5. Cover create and retry behavior with focused command and route tests.
-
-Suggested targets:
-
-- `src/lib/server/application/invites/create-invite-batch.ts`
-- `src/lib/server/application/invites/retry-invite-batch.ts`
-- `src/lib/server/application/invites/types.ts`
-- `src/lib/server/infrastructure/supabase-invite-repository.ts`
-- `src/app/api/recruiter/invites/route.ts`
-- `src/app/api/recruiter/invites/[batch_id]/retry/route.ts`
-- `supabase/migrations/20260328_add_invite_batch_tracking.sql`
-
-Exit criteria:
-
-- no ambiguous partial-write outcome remains
-- recovery/retry semantics are explicit and test-covered
-- persisted batch state exists for safe follow-up and retry
-- release gate can defend invite consistency under failure, not only happy path
+- no ambiguous partial persisted state remains
+- failed batches are recoverable and auditable
+- recruiter retry behavior is backed by explicit server-side contract
 
 ### Workstream 2: Canonical Origin Enforcement
 
-Status on 2026-03-27:
+Outcome: `Complete`
 
-- Complete for the current production gate
-- deployed validation passed after restoring configured production origin env
-- production now operates with a configured trusted origin and without request-host fallback
-Problem:
+Delivered:
 
-- the intended production contract is trusted configured origin only
-- the current helper still returns request-derived origin when `requestUrl` is present and no configured origin exists
-- that means production trust still depends on mutable request host input in some paths
+- centralized trusted-origin handling
+- production configured-origin enforcement
+- compatibility support for `NEXT_PUBLIC_BASE_URL`
+- removal of request-host fallback reliance in production
 
-Execution:
+Release significance:
 
-1. Change origin resolution so production never trusts request-derived origin fallback.
-2. Require a configured canonical origin for candidate-facing public URL generation.
-   - preferred: `NEXT_PUBLIC_APP_URL`
-   - compatible fallback: `NEXT_PUBLIC_BASE_URL`
-3. Keep local development ergonomics for request-based localhost normalization outside production.
-4. Add focused tests for:
-   - missing `NEXT_PUBLIC_APP_URL` in production
-   - malformed configured origin
-   - request-host fallback rejection in production
-   - localhost normalization in non-production
+- candidate-facing links come from trusted configuration
+- production behavior is no longer dependent on mutable request host input
 
-Suggested targets:
+### Workstream 3: Durable Metrics And Alerting Contract
 
-- `src/lib/server/url/get-app-origin.ts`
-- `src/lib/config/public-app-origin.ts`
-- `src/lib/server/url/get-app-origin.test.ts`
+Outcome: `Partially complete in deployment scope`
 
-Exit criteria:
+Completed in application scope:
 
-- production public URL generation is trusted-env-only
-- request-derived host fallback is impossible in production
-- deployment contract is documented in quality and env docs
+- durable metrics backend support
+- SQL-backed SLO summaries
+- recruiter ops metrics route backed by durable data
+- production metrics contract enforcement in app code
+- Teams notification starter implementation and tests
 
-### Workstream 3: Durable Metrics Enforcement and Paging Validation
+Still open in deployment scope:
 
-Problem:
+- provisioning the live Teams webhook destination
+- validating actual alert delivery and responder acknowledgement
 
-- durable metrics path exists and has production validation
-- production contract still permits `METRICS_BACKEND` to default to memory
-- production metrics are validated, but live alert delivery still depends on deployment-managed Teams webhook provisioning
+Release significance:
 
-Execution:
-
-1. Make the metrics backend a production fail-fast contract.
-2. Reject `METRICS_BACKEND=memory` or unset metrics backend in production.
-3. Add contract tests for production backend selection.
-4. Validate alert routing through a game-day or equivalent paging exercise.
-5. Update alert/runbook/release docs with the validation evidence.
-6. Handoff live webhook provisioning and final Teams delivery validation to the deployment team when the product-developer role does not own production alert infrastructure.
-
-Suggested targets:
-
-- `src/lib/server/metrics/backend.ts`
-- `src/lib/server/metrics/backend.test.ts`
-- `docs/05-quality/ops_alert_policy.md`
-- `docs/05-quality/incident_runbook.md`
-- `docs/05-quality/release-gate-checklist.md`
-
-Exit criteria:
-
-- production cannot boot into memory-only metrics mode
-- durable metrics are both implemented and enforced
-- paging path is validated and documented
-
----
-
-## Sequencing
-
-### Step 1: Governance correction
-
-Update tracker, plan, release gate, alert policy, and env matrix so the repo no longer claims production readiness.
-
-### Step 2: Canonical origin fix
-
-This is the smallest production-trust fix and should land first.
-
-### Step 3: Metrics enforcement
-
-This is a bounded contract change with a clear test surface and direct production impact.
-
-### Step 4: Invite consistency redesign
-
-This is the largest reopened item and should be handled after the trust and operability contracts are corrected, unless implementation discovery shows it is faster to land first.
-
-### Step 5: Re-run production gate
-
-After the three reopened items land:
-
-- rerun the release-gate checklist
-- update the tracker decision log
-- issue a fresh production recommendation
-
----
-
-## Deliverables
-
-- updated tracker reflecting reopened production blockers
-- updated remediation plan reflecting the latest review posture
-- updated release-gate checklist with the current blockers
-- updated env and alert policy docs reflecting the production contract
-- code/test changes for origin enforcement, metrics enforcement, and invite consistency
-- documented paging-validation evidence
-- deployment validation checklist for migration rollout, env contract review, smoke checks, and paging exercise
-
-Current completion state:
-
-- `Workstream 1 / P0-R1`: complete
-- `Workstream 1` follow-on reconciliation tracking and safe retry: implemented in app code; deployment validation still needed for the new tracking migration and retry endpoint
-- `Workstream 2 / P0-R2`: complete
-- `Workstream 3 / P0-R3`: in progress, with code-side starter complete and live Teams delivery validation handed off to the deployment team
+- instrumentation and alert evaluation are in place
+- production promotion still requires live delivery evidence
 
 ---
 
 ## Review Crosswalk
 
-This section explicitly maps the latest review's action lists to execution tasks in this plan.
+This section maps the latest review themes to their current status.
 
-### 1. Hardening Strategy
+### Hardening Strategy
 
-Review items:
+Status: `Addressed`
 
-- transaction-safe invite batch command
-- batch reconciliation records
-- production-only canonical origin policy
+- transaction-safe invite handling: complete
+- reconciliation records: complete
+- production canonical origin policy: complete
 
-Mapped execution:
+### Refactor Suggestions
 
-- `Workstream 1` implements the invite consistency model decision and delivery:
-  - transaction-safe DB batch write
-  - or persisted `batch_id` reconciliation state with per-candidate status
-- `Workstream 2` removes production request-host fallback while allowing either `NEXT_PUBLIC_APP_URL` or `NEXT_PUBLIC_BASE_URL` as the trusted configured production origin
+Status: `Addressed for remediation scope`
 
-### 2. Refactor Suggestions
+- route thinning on the highest-value invite and session surfaces: complete for remediation scope
+- hardcoded recruiter/org defaults cleanup: complete
+- send vs resend metrics naming split: complete
 
-Review items:
+### Gaps And Recommendations
 
-- continue route thinning to `auth -> validate -> command -> map HTTP response`
-- replace hardcoded recruiter/org defaults with tenant-config or profile-first initialization
-- split send vs resend metrics naming
+Status: `Addressed in current application scope`
 
-Mapped execution:
+- partial invite-batch response contract coverage: complete
+- durable metrics/SLO RPC compatibility coverage: complete
+- shared multi-instance rate-limit reliability evidence: complete
 
-- the highest-value remaining route-thinning example in `PATCH /api/session/[session_id]` and `GET /api/session/[session_id]` has now landed via dedicated application commands; remaining work is follow-on cleanup on neighboring question-mutation and AI helper routes
-- carry the recruiter-defaults cleanup as `P1` backlog aligned with the tracker
-- metrics-name split work has now landed in the metrics slice so send and resend have distinct operational counters while the delivery-failure alert still aggregates both paths
+### Mitigations
 
-### 3. Gaps
+Status:
 
-Review items:
+- invite tracking and safe retry: complete
+- production origin env contract: complete
+- recurring CI policy around log-redaction auditing: still a follow-on for the core dev / CI owners, not a release blocker within product-engineering scope
 
-- critical session routes still contain orchestration concerns
-- partial-success batch contract coverage needs expansion
-- durable metrics/SLO RPC compatibility coverage needs expansion
+### Required Upgrades
 
-Mapped execution:
+Status:
 
-- major session-route extraction is now materially improved with command boundaries on `GET` and `PATCH /api/session/[session_id]`; keep the remaining question-mutation and AI helper route extraction in next-sprint architecture cleanup after release blockers
-- add contract and compatibility tests as required outputs of `Workstream 1` and `Workstream 3`
+- durable metrics requirement: complete in code and validated operationally
+- alert-to-paging validation: still open in deployment scope
+- release-gate rule tied to operational evidence: documented and active
 
-### 4. Recommendations
+### Punch List
 
-Review items:
+Status: `Addressed for current remediation scope`
 
-- add contract tests for partial invite-batch response shape
-- add strict compatibility tests for durable metrics/SLO RPC payload contracts
+- recruiter accessibility and polish assertions are in place
+- browser smoke now covers the minimum critical recruiter and candidate flows
 
-Mapped execution:
+### Repo Checklist
 
-- `Workstream 1` adds `207` response-shape and deterministic per-candidate status coverage
-- `Workstream 3` adds compatibility coverage for metrics rollup and SLO summary RPC payloads
+Status: `Addressed`
 
-### 5. Mitigations
-
-Review items:
-
-- persist reconciliation-safe invite batch status and expose safe retry endpoint
-- enforce production canonical origin env contract at startup
-- run recurring log-redaction audit with CI checks on logger callsites
-
-Mapped execution:
-
-- `Workstream 1` now owns and implements persisted batch state and safe retry behavior through tracked batch records and `POST /api/recruiter/invites/[batch_id]/retry`
-- `Workstream 2` owns startup-time production origin contract enforcement
-- add log-redaction audit and logger-callsite CI checks as a parallel `P1` security/ops follow-on, not a blocker to the three reopened P0 items unless a live leak is discovered
-
-### 6. Prioritized Optimization List
-
-Review items:
-
-- P0 convert invite persistence from sequential writes to transaction/RPC batch operation
-- P1 parallelize/queue invite persistence with deterministic ordering
-- P1 reduce orchestration in long-lived session UI surfaces
-
-Mapped execution:
-
-- `Workstream 1` implements the P0 invite persistence redesign
-- bounded concurrency/queueing remains an optional implementation detail only if needed after the consistency model is chosen
-- UI orchestration cleanup remains `P1` backlog after production blockers are closed
-
-### 7. Minimum Viable Next Expansion
-
-Review items:
-
-- integration test for partial invite failure plus retry/reconciliation
-- integration test for production startup/env contract failure
-- contract test for canonical origin generation
-- reliability test for shared multi-instance rate limiting
-
-Mapped execution:
-
-- `Workstream 1` now has focused create/retry command and route coverage; a deeper deployed integration pass should validate the new tracking migration and retry endpoint in the target environment
-- `Workstream 2` delivers the canonical-origin contract test
-- `Workstream 3` delivers the production metrics-backend contract test
-- shared rate-limit reliability test is a release-evidence follow-on that should be added before the final production recommendation is reissued
-
-### 8. Required Upgrades
-
-Review items:
-
-- require durable metrics backend in production
-- validate alert-to-paging integration
-- add release-gate rule tied to SLO error-budget posture
-
-Mapped execution:
-
-- `Workstream 3` enforces the durable backend contract
-- `Workstream 3` also owns the paging-validation exercise
-- update the release gate after the first paging validation pass so SLO error-budget posture becomes a formal approval input
-
-### 9. Punch List
-
-Review items:
-
-- keyboard/focus E2E assertions on recruiter create + preview + resend
-- regression checks for `aria-live` announcements
-- CI accessibility smoke checks for recruiter critical paths
-
-Mapped execution:
-
-- bounded recruiter critical-path accessibility smoke now covers create-preview and resend focus/error/success behavior in CI-facing component tests
-- current remediation coverage now includes the latest punch-list slice for recruiter create + preview + resend flows; any deeper browser-level axe/Playwright expansion is follow-on quality uplift rather than an open remediation gap
-
-### 10. Repo Checklist
-
-Review items:
-
-- add explicit production deployment contract doc
-- add release gate that blocks prod promotion when P0 checklist items are open
-
-Mapped execution:
-
-- this plan itself plus the updated env matrix and release-gate checklist form the first production deployment contract baseline
-- the updated tracker and release gate now keep production blocked until `P0-R3` is complete
+- deployment contract docs exist
+- release gate exists and keeps production blocked while open items remain
 
 ---
 
-## Non-Goals
+## Remaining Handoff Item
 
-This plan should not expand into:
+### Live Teams / Paging Validation
 
-- broad route-to-application extraction beyond the current critical blockers
-- full observability-platform migration
-- dashboard redesign
-- speculative ATS-scale batch infrastructure unless required by the chosen invite consistency model
+Owner:
+
+- deployment team / production operators
+
+Why it remains open:
+
+- the app can evaluate alerts and format Teams notifications
+- production readiness still requires proof that the configured destination actually receives them
+
+Required evidence:
+
+- webhook is provisioned in the target deployment environment
+- at least one real alert is delivered to the intended destination
+- responder acknowledgement is confirmed and recorded
+
+This is the only remaining open item preventing a production `GO`.
 
 ---
 
-## Definition of Done
+## Related Audience Documents
 
-This plan is complete when:
+Use these as the companion set:
 
-- the docs and tracker no longer claim production readiness prematurely
-- origin enforcement is production-safe
-- metrics backend enforcement is complete and alert-delivery ownership is explicit
-- invite-batch failure handling is reconciliation-safe, with durable batch tracking and retry-safe recovery semantics in app code
-- a new release recommendation can be made from current evidence
+- current status:
+  - [production_remediation_tracker_2026-03-25.md](./production_remediation_tracker_2026-03-25.md)
+- release approval:
+  - [release-gate-checklist.md](./release-gate-checklist.md)
+- deployment validation:
+  - [production_deployment_validation_checklist_2026-03-26.md](./production_deployment_validation_checklist_2026-03-26.md)
+- operator guidance:
+  - [production-hardening-runbook.md](./production-hardening-runbook.md)
+- environment contract:
+  - [environment_variable_matrix.md](./environment_variable_matrix.md)
+- alert routing and ownership:
+  - [ops_alert_policy.md](./ops_alert_policy.md)
 
+---
 
+## Historical Note
+
+The earlier remediation plan from 2026-03-25 remains useful as a planning artifact, but current release posture should be read from this document, the tracker, and the release gate rather than from earlier implementation-phase planning notes.

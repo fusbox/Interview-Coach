@@ -127,6 +127,7 @@ export default function InitialsScreen() {
                     <div className="relative group">
                         <input
                             id="initials-input"
+                            name="initials"
                             type="text"
                             value={initials}
                             onChange={handleInputChange}
