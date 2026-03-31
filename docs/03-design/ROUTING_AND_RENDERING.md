@@ -1,218 +1,151 @@
 # ROUTING_AND_RENDERING.md
 
-Purpose: Define the hard boundary between Pages and Screens so routing stays simple, UI stays state-driven, and “just one little router hack” never becomes your app’s personality.
+Purpose: define the current routing boundary for the session experience so route handling stays boring and the candidate UI remains state-driven.
 
 ---
 
-## Core definitions
+## Core Definitions
 
-### Page
-A Page is a route entry point. It is responsible for:
-- reading URL params / query strings
-- validating or normalizing route inputs (e.g., invite_token)
-- initiating data/session bootstrap (if needed)
-- selecting which Screen to render
+### Route entry
 
-A Page is allowed to:
-- use router hooks (react-router, wouter, etc.)
-- read `window.location`
-- handle redirects / guard routes
-- own error boundaries for route-level failures
+In the current app, the route entry point is a Next.js App Router page or layout that:
+- reads route params
+- validates or resolves entry inputs
+- bootstraps session context
+- renders the session shell
 
-A Page is not allowed to:
-- implement session UI details
-- contain business logic beyond orchestration
-- encode session progress in the URL (e.g., /q/3)
-
----
+Current examples:
+- `src/app/(candidate)/s/[token]/page.tsx`
+- `src/app/(candidate)/s/[token]/layout.tsx`
 
 ### Screen
-A Screen is a state-driven UI surface. It is responsible for:
-- rendering the UI for one coherent session state
-- calling actions (submit, retry, exit) via the Session API/context
-- composing session components and UI primitives
 
-A Screen is allowed to:
-- read derived session state (e.g., `now`, selectors)
-- call actions (e.g., `actions.submitAnswer()`)
-- open UI overlays (Dialog/Popover/Sheet)
-- be pure with respect to routing (no router knowledge)
+A Screen is a coherent state-driven UI surface inside the session experience. A Screen:
+- renders one meaningful phase of the session
+- reads derived session state
+- calls session actions through context/hooks
+- does not own URL progression
 
-A Screen is not allowed to:
-- use router hooks
-- read or mutate URL params
-- perform redirects
-- fetch session bootstrap data directly (unless explicitly delegated and documented)
-- decide “where to go next” via navigation (state transitions decide)
+Current examples:
+- `InitialsScreen`
+- `LandingScreen`
+- `UnifiedSessionScreen`
+- `SummaryScreen`
 
 ---
 
-## The rule of flow
+## Rule Of Flow
 
-Routing chooses Pages.  
-Pages choose Screens.  
-Screens never choose Pages.
+Routes choose entry points.  
+Entry points bootstrap session state.  
+Derived state chooses screens.  
+Screens do not choose routes.
 
 ---
 
-## Rendering algorithm (canonical)
+## Current Rendering Model
 
-The app renders Screens based on **derived session state**, not URL shape.
+The live app renders the candidate experience from persisted session state plus derived `now` state.
 
 High-level algorithm:
 
-1) Page reads route inputs (invite_token, optional debug params)
-2) Page initializes/loads session context (or triggers load)
-3) Page computes derived “now” state using selectors
-4) Page selects Screen based on now state
-5) Screen renders UI + triggers state transitions via actions
+1. Candidate opens `/s/[token]`
+2. The entry route resolves token-scoped session access
+3. Session state is loaded into context
+4. `selectNow()` derives the current screen/state contract
+5. `SessionOrchestrator` renders the correct screen from derived state
+6. Screen actions mutate session state through APIs/context
+7. UI changes because state changed, not because the route changed
+
+Key implementation references:
+- `src/lib/state/selectors.ts`
+- `src/features/session/context/SessionContext.tsx`
+- `src/features/session/components/SessionOrchestrator.tsx`
 
 ---
 
-## File and folder conventions (Vite React)
+## Current File And Responsibility Model
 
-Recommended structure:
-
-src/
-  pages/
-    InterviewSessionPage.tsx
-  screens/
-    session/
-      InitialsScreen.tsx
-      LandingScreen.tsx
-      ActiveQuestionScreen.tsx
-      PendingEvaluationScreen.tsx
-      ReviewFeedbackScreen.tsx
-      SummaryScreen.tsx
-  components/
-    session/              # composed session UI pieces
-    ui/                   # primitives (Button, Card, etc.)
-  lib/
-    core/                 # domain, state, adapter logic
-    cn.ts
-
-Naming rule:
-- Pages end with `Page.tsx`
-- Screens end with `Screen.tsx`
-
----
-
-## Route contract: Interview Session
-
-Example route:
-
-/s/:invite_token
-
-Page responsibilities:
-- parse invite_token
-- validate presence/shape (basic)
-- start session load if needed
-- render session shell and selected screen
-
-Screen responsibilities:
-- never reference invite_token
-- never read path
-- render based only on now state + actions
-
----
-
-## Screen selection (example mapping)
-
-Use a selector (or small mapping) inside the Page:
-
-- If session not loaded:
-  - render loading skeleton or PendingEvaluationScreen (depending on state model)
-- If initials required:
-  - render InitialsScreen
-- If initials collected but not started:
-  - render LandingScreen
-- If answering:
-  - render ActiveQuestionScreen
-- If awaiting eval:
-  - render PendingEvaluationScreen
-- If feedback ready / review step:
-  - render ReviewFeedbackScreen
-- If complete:
-  - render SummaryScreen
-
-Important: This mapping is driven by state (e.g., `now.screen`, `now.status`), not by the URL.
-
----
-
-## URL policy (hard rules)
+### Route-layer responsibilities
 
 Allowed:
-- /s/:invite_token
-- optional query params for diagnostics (dev only), e.g. ?debug=1
+- parse invite token / route params
+- perform entry-time session bootstrap
+- render candidate shell / provider tree
+- handle route-level access failures
 
 Not allowed:
-- /s/:invite_token/q/:questionIndex
-- /s/:invite_token/screen/:screenId
-- any URL encoding of progress, retries, attempts, or evaluation state
+- encode question progression in the URL
+- move question/review/summary state into route structure
+- duplicate screen-selection logic in multiple places
+
+### Screen-layer responsibilities
+
+Allowed:
+- read derived session state
+- call context actions such as start, submit, retry, complete
+- open overlays and compose UI sections
+
+Not allowed:
+- change the route to advance the session
+- depend on URL shape for current question or review state
+- become the source of truth for resumability
+
+---
+
+## Current URL Policy
+
+Allowed:
+- `/s/[token]`
+- diagnostic query params in development when explicitly needed
+
+Not allowed:
+- `/s/[token]/q/[index]`
+- `/s/[token]/screen/[screen]`
+- any route scheme that encodes retries, evaluation state, or session progress
 
 Reason:
-- refresh/resume is guaranteed by persisted state, not by reconstructing state from the URL.
+- refresh/resume comes from persisted session state
+- the URL identifies the session access point, not the current step within the session
 
 ---
 
-## Refresh and resume behavior
+## Refresh And Resume Contract
 
 Invariant:
-- Re-opening / refreshing the invite link should always restore the candidate to the correct in-progress UI state.
+- reopening the invite link should restore the candidate to the correct live session state
 
-Mechanism:
-- Session state is persisted (autosave drafts, submitted answers, attempt history)
-- On load, state is rehydrated
-- Derived state (“now”) selects the correct Screen
-- Page remains static; Screen changes as state changes
-
----
-
-## Anti-patterns (explicitly forbidden)
-
-- Router hooks inside Screens
-- Screens that call navigation (push/replace) to advance flow
-- Encoding progress in the URL
-- Duplicating screen selection logic across multiple pages
-- “Page components” that include large UI blocks for session experience
-
-If you catch any of these in review, treat it as a bug.
+Current mechanism:
+- authoritative session state is fetched from the server
+- derived `now` state selects the visible screen
+- the candidate stays on the same entry route while state changes underneath
 
 ---
 
-## Practical examples
+## Anti-Patterns
 
-### Good: Page selects screen
+- router-driven question progression
+- screen components importing router hooks to advance the session
+- duplicating screen selection outside the orchestrator/state model
+- building new flows that depend on URL reconstruction instead of persistence
 
-InterviewSessionPage:
-- parse token
-- bootstrap session
-- select screen: `const screen = selectScreen(now)`
-- `return <ScreenComponent />`
-
-### Good: Screen triggers state transitions
-
-ActiveQuestionScreen:
-- render question + response composer
-- call `actions.submitAnswer(...)`
-- after submit, UI updates via state → Page picks new Screen
-
-### Bad: Screen navigates
-
-ActiveQuestionScreen:
-- calls `navigate('/q/4')` to go forward
-This violates the model and will break resume/rehydration.
+Treat these as bugs unless there is an explicit architectural decision to change the model.
 
 ---
 
-## Acceptance criteria
+## Practical Guidance For New Development
 
-This doc is “implemented” when:
-
-- Screens compile without importing router libraries
-- Pages contain minimal UI (mostly orchestration)
-- Refreshing the invite link returns candidate to the correct state
-- Session progression never changes the URL
-- State transitions alone determine what the user sees
+- if you add a new session phase, first decide how it will appear in derived state
+- keep route changes for access and shell concerns, not session progression
+- prefer updating selectors/orchestrator over adding route branches for in-session UI changes
 
 ---
+
+## Acceptance Criteria
+
+This model is being respected when:
+
+- the candidate session experience stays on `/s/[token]` while progressing
+- refreshing the invite link restores the correct UI state
+- route files remain thin entry/bootstrap layers
+- screens remain state-driven and route-agnostic

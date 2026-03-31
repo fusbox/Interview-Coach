@@ -1,8 +1,9 @@
 /**
  * Export utilities for the dev evaluation module.
- * 
- * Builds structured JSON payloads optimized for LLM consumption
- * and triggers browser downloads.
+ *
+ * Builds structured JSON payloads for the internal evaluation workspace
+ * and triggers browser downloads. These exports are not part of the
+ * recruiter-facing product contract.
  */
 
 import {

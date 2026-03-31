@@ -25,7 +25,8 @@ export async function GET(
     const correlationId = createCorrelationId();
     const { sessionId } = await params;
 
-    // Demo-mode gate
+    // Internal demo-only export route for the dev evaluation workspace.
+    // This route is intentionally outside the recruiter-facing product contract.
     if (!showDemoTools()) {
         return notFoundResponse(correlationId, "Not available");
     }

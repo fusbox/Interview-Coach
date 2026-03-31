@@ -32,7 +32,7 @@ export default async function DevEvalPage() {
                             <h1 className="text-2xl font-bold font-display text-slate-900">Dev Evaluation</h1>
                             <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200 text-micro">DEV ONLY</Badge>
                         </div>
-                        <p className="text-sm text-slate-500 mt-0.5">Score sessions, evaluate candidate-facing content quality, and export data for analysis.</p>
+                        <p className="text-sm text-slate-500 mt-0.5">Internal calibration workspace for scoring sessions, reviewing hidden signals, and exporting analysis data.</p>
                     </div>
                 </div>
             </div>

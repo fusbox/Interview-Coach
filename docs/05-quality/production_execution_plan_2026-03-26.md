@@ -1,7 +1,7 @@
 # Production Execution Plan
 
 Date: 2026-03-26  
-Primary review: [comprehensive_code_review_2026-03-26.md](./comprehensive_code_review_2026-03-26.md)  
+Primary architecture/quality review: [implementation-docs-alignment-review_2026-03-30.md](./implementation-docs-alignment-review_2026-03-30.md)  
 Primary status reference: [production_remediation_tracker_2026-03-25.md](./production_remediation_tracker_2026-03-25.md)  
 Deployment validation: [production_deployment_validation_checklist_2026-03-26.md](./production_deployment_validation_checklist_2026-03-26.md)
 

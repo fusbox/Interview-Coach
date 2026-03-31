@@ -235,20 +235,24 @@ export function StepPreviewCombined({
                                 {candidates.map((c, i) => (
                                     <div
                                         key={c.id}
-                                        className="group grid grid-cols-[20px_minmax(0,1fr)] gap-3 transition-all duration-300 animate-in slide-in-from-right-4 md:grid-cols-[20px_minmax(0,1fr)_minmax(0,1fr)] md:gap-4"
+                                        className="group grid grid-cols-[20px_minmax(0,1fr)] gap-3 transition-all duration-300 animate-in slide-in-from-right-4"
                                         style={{ animationDelay: `${i * 50}ms` }}
                                     >
                                         <div className="pt-1 text-xs font-bold text-text-disabled text-left group-hover:text-primary transition-colors">
                                             {i + 1}
                                         </div>
                                         <div className="min-w-0">
-                                            <div className="text-sm font-bold text-text-primary font-sans truncate">
-                                                {c.firstName} {c.lastName}
-                                            </div>
-                                        </div>
-                                        <div className="min-w-0 md:pl-2">
-                                            <div className="text-xs font-medium text-text-secondary font-mono bg-surface-subtle/80 px-3 py-1.5 rounded-lg whitespace-nowrap overflow-hidden text-ellipsis">
-                                                {c.email}
+                                            <div className="flex min-w-0 items-center justify-between gap-3 md:gap-4">
+                                                <div className="min-w-0 shrink-0">
+                                                    <div className="text-sm font-bold text-text-primary font-sans truncate">
+                                                        {c.firstName} {c.lastName}
+                                                    </div>
+                                                </div>
+                                                <div className="min-w-0 flex-1 text-right">
+                                                    <div className="inline-block max-w-full rounded-lg bg-surface-subtle/80 px-3 py-1.5 font-mono text-xs font-medium text-text-secondary whitespace-nowrap overflow-hidden text-ellipsis md:max-w-[24rem] lg:max-w-[28rem] xl:max-w-[32rem]">
+                                                        {c.email}
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

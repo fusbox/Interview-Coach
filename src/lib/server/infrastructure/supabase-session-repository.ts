@@ -394,7 +394,6 @@ export class SupabaseSessionRepository implements SessionRepository {
             parentSessionId: sData.parent_session_id,
             attemptNumber: this.asAttemptNumber(sData.attempt_number),
             clientName: this.asString(sData.client_name),
-            readinessBand: sData.readiness_band,
             summaryNarrative: summaryExpired ? null : sData.summary_narrative
         };
     }
@@ -418,7 +417,6 @@ export class SupabaseSessionRepository implements SessionRepository {
             parent_session_id: session.parentSessionId,
             attempt_number: session.attemptNumber,
             client_name: session.clientName,
-            readiness_band: session.readinessBand,
             summary_narrative: session.summaryNarrative
         };
 

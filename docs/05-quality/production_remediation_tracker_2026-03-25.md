@@ -2,7 +2,7 @@
 
 Date opened: 2026-03-25  
 Primary review references:
-- [comprehensive_code_review_2026-03-26.md](./comprehensive_code_review_2026-03-26.md)
+- [implementation-docs-alignment-review_2026-03-30.md](./implementation-docs-alignment-review_2026-03-30.md)
 - [production_execution_plan_2026-03-26.md](./production_execution_plan_2026-03-26.md)
 - [release-gate-checklist.md](./release-gate-checklist.md)
 
@@ -191,9 +191,4 @@ Use these documents as the current supporting references:
 
 ## Historical Planning References
 
-These remain useful as historical planning artifacts but are not the primary source of current release posture:
-
-- [production_remediation_plan_2026-03-25.md](./production_remediation_plan_2026-03-25.md)
-- [production_remediation_issue_breakdown_2026-03-25.md](./production_remediation_issue_breakdown_2026-03-25.md)
-- [production_remediation_sprint1_board_2026-03-25.md](./production_remediation_sprint1_board_2026-03-25.md)
-- [production_remediation_phase2_board_2026-03-25.md](./production_remediation_phase2_board_2026-03-25.md)
+Earlier planning artifacts were intentionally removed once their outcomes were folded into this tracker and the stable release documents.

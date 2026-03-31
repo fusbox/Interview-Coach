@@ -232,7 +232,6 @@ describe("SupabaseSessionRepository.get", () => {
                 parent_session_id: null,
                 attempt_number: 1,
                 client_name: null,
-                readiness_band: null,
                 summary_narrative: null,
                 updated_at: new Date().toISOString()
             },
@@ -356,7 +355,6 @@ describe("SupabaseSessionRepository.get", () => {
                                     parent_session_id: null,
                                     attempt_number: 1,
                                     client_name: null,
-                                    readiness_band: null,
                                     summary_narrative: null,
                                     updated_at: new Date().toISOString()
                                 },
@@ -442,7 +440,6 @@ describe("SupabaseSessionRepository.get", () => {
                                     parent_session_id: null,
                                     attempt_number: 0,
                                     client_name: 42,
-                                    readiness_band: null,
                                     summary_narrative: null,
                                     updated_at: "bad-date"
                                 },

@@ -29,24 +29,21 @@ export class AIService {
     }
 
     /**
-     * Internal Algorithm to determine Readiness Level based on foundational vs advanced dimensions.
-     * Foundational: focus_relevance, structural_clarity, confidence
-     * Middle: specificity_concreteness, outcome_explicitness, pace, clarity
-     * Advanced: decision_rationale, energy
+     * Internal readiness calibration remains available for downstream/internal tooling.
+     * This is intentionally hidden from the candidate-facing experience.
      */
     private static calculateReadiness(scores: Record<string, number>): "RL1" | "RL2" | "RL3" | "RL4" {
-        const foundational = ['focus_relevance', 'structural_clarity', 'confidence'];
-        const middle = ['specificity_concreteness', 'outcome_explicitness', 'pace', 'clarity'];
+        const foundational = ["focus_relevance", "structural_clarity", "confidence"];
+        const middle = ["specificity_concreteness", "outcome_explicitness", "pace", "clarity"];
 
-        // If any foundational is failing (1 or 2), it's RL3 or RL4
-        const hasFoundationalFail = foundational.some(d => scores[d] <= 2);
+        const hasFoundationalFail = foundational.some((d) => scores[d] <= 2);
         const avgFoundational = foundational.reduce((acc, d) => acc + (scores[d] || 3), 0) / foundational.length;
         const avgMiddle = middle.reduce((acc, d) => acc + (scores[d] || 3), 0) / middle.length;
 
-        if (avgFoundational <= 2) return "RL4"; // Incomplete/Incoherent
-        if (hasFoundationalFail || avgFoundational < 3.5) return "RL3"; // Practice Recommended
-        if (avgMiddle < 3.8) return "RL2"; // Strong Potential
-        return "RL1"; // Ready
+        if (avgFoundational <= 2) return "RL4";
+        if (hasFoundationalFail || avgFoundational < 3.5) return "RL3";
+        if (avgMiddle < 3.8) return "RL2";
+        return "RL1";
     }
 
     static async analyzeAnswer(
@@ -112,7 +109,7 @@ COACHING RULES:
   - LAST QUESTION EXCEPTION: If the correct action would otherwise be 'next_question' AND this is the last question (${progress?.total || 'X'} of ${progress?.total || 'X'}), you MUST recommend 'stop_for_now' and set the label to 'See Session Summary'.
 - RECOMMENDATION GUIDANCE:
   - If REDO, explain the missing critical piece the candidate should focus on.
-  - If NEXT, affirm readiness with a minor polish tip.
+  - If NEXT, affirm the strongest signal you heard and give one focused polish tip.
   - If LAST (Summary), briefly summarize their overall trajectory across the questions and congratulate them on finishing.
 
 EVIDENCE RULES & PULSE GENERATION:
@@ -173,7 +170,7 @@ Generate feedback as strict JSON matching this schema:
     "label": "string",
     "actionType": "redo_answer | next_question"
   },
-  "recommendation": "string (A contextual summary for the next step. If REDO, explain the missing critical piece. If NEXT, affirm readiness with a minor polish tip.)",
+  "recommendation": "string (A contextual summary for the next step. If REDO, explain the missing critical piece. If NEXT, affirm the strongest signal and add one focused polish tip.)",
   "meta": {
     "tier": 1,
     "modality": "text|voice"
@@ -224,7 +221,6 @@ Generate feedback as strict JSON matching this schema:
             });
             Logger.info("AI Parsed Result", { hasScores: !!result.scores, hasAck: !!result.ack });
 
-            // 1. Extract raw scores for Algorithm
             const scoreValues: Record<string, number> = {};
             if (result.scores) {
                 Object.entries(result.scores as Record<Dimension, DimensionScore>).forEach(([dim, data]) => {
@@ -232,10 +228,9 @@ Generate feedback as strict JSON matching this schema:
                 });
             }
 
-            // 2. Calculate Readiness Level via Server-Side Weights
             const calculatedRL = AIService.calculateReadiness(scoreValues);
 
-            // 3. Ensure transcript exists
+            // Ensure transcript exists even when the provider omits it.
             const finalTranscript = result.transcript || answerText || "Audio Answer";
 
             const mappedResult: AnalysisResult = {
@@ -345,8 +340,8 @@ Output EXACTLY this Markdown structure (do not wrap in markdown code blocks like
 - **[Pattern Name]**: [Identify the most significant weakness seen across multiple answers. Explain *why* it matters.]
 - **[Tip for Next Time]**: [Provide highly actionable, specific advice on exactly how to improve this behavior for the next round.]
 
-### Readiness & Next Steps
-[1-2 sentences synthesizing your overall readiness into an affirming, encouraging statement. DO NOT use internal codes like RL1, RL2, RL3, or RL4. Instead, use phrases like "You are highly prepared", "You have strong potential with a bit of polish", "More practice is recommended before the real interview", etc.]
+### Momentum & Next Steps
+[1-2 sentences synthesizing your overall trajectory into an affirming, encouraging statement. Highlight what to keep doing and the single next practice focus that would create the biggest improvement.]
 
 SESSION DATA:
 ${answersContext}

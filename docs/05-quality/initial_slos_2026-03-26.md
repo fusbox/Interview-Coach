@@ -2,7 +2,7 @@
 
 Date: 2026-03-26  
 Related tracker: [production_remediation_tracker_2026-03-25.md](./production_remediation_tracker_2026-03-25.md)  
-Related metrics plan: [durable_metrics_plan_2026-03-25.md](./durable_metrics_plan_2026-03-25.md)
+Related context: durable metrics are now reflected directly in the live tracker, execution plan, and production contract tests rather than a separate retained planning document.
 
 ---
 

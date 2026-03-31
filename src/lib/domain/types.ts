@@ -139,7 +139,6 @@ export interface InterviewSession {
     role: string;
     jobDescription?: string;
     status: SessionStatus;
-    readinessBand?: string | null;
     summaryNarrative?: string | null;
 
     questions: Question[];

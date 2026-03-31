@@ -1,8 +1,9 @@
 /**
  * Dashboard Constitution Service
- * 
- * Implements the "Log facts. Infer meaning." data architecture.
- * Transforms raw session data (Layer 1) into interpretive signals (Layer 3).
+ *
+ * Internal exploratory scaffold for a future interpretation layer.
+ * This service is not part of the current recruiter product contract and
+ * should be treated as dormant until a scoped readiness/signals feature returns.
  */
 
 import { InterviewSession } from '@/lib/domain/types';
@@ -13,7 +14,7 @@ interface CompetencyMetric {
     id: string;
     totalQuestions: number;
     attempted: number;
-    strongSignals: number; // e.g., RL3/RL4
+    strongSignals: number; // Internal calibration placeholder only.
 }
 
 export interface SessionMetrics {

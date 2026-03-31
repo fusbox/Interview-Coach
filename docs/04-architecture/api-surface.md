@@ -1,116 +1,115 @@
-> **Stability:** Locked for V1. Changes that alter system meaning, authority boundaries,
-> privacy posture, or resume guarantees require a Gate Decision update.
+> **Stability:** Current implementation contract for the live recruiter-led app.
+> Update this document when the shipped route surface changes. Do not use it to describe target-state architecture that is not implemented.
 
-# API Surface (Architectural)
+# API Surface (Current Implementation)
 
 ## Purpose
 
-This document defines the **public API surface** between the client applications
-(candidate and recruiter) and the server.
+This document defines the public and semi-public route surface that the current Next.js application actually uses today.
 
 It exists to:
-- Make responsibility boundaries explicit
-- Support security and privacy reviews
-- Stabilize client/server contracts as the system evolves
-
-This document intentionally avoids implementation details, schemas, and transport
-optimizations. Those belong in code and contracts.
+- make current client/server boundaries explicit
+- reduce confusion between live implementation and future architecture ideas
+- give new development a trustworthy baseline
 
 ---
 
 ## Design Principles
 
-- APIs reflect **system actions**, not UI mechanics
-- All state-changing APIs are **idempotent**
-- Server endpoints enforce access and authority
-- Clients consume **projections**, not raw tables
-- Streaming channels notify; they do not decide
+- Routes reflect current system actions and state transitions
+- Candidate-scoped mutations are protected by candidate-token validation
+- Recruiter-only actions stay behind authenticated recruiter context
+- The server owns authoritative session state
+- The client renders from fetched session state and derived selectors
 
 ---
 
-## Candidate-Facing API Surface
+## Candidate-Facing Surface
 
-### Session Entry & Hydration
+### Entry
 
-| Method | Route                          | Purpose                                                  |
-|--------|--------------------------------|----------------------------------------------------------|
-| GET    | `/s/[token]`                   | Entry point via candidate invite token                   |
-| GET    | `/api/session/{sessionId}/now` | Retrieve current session projection for hydration/resume |
+| Method | Route | Purpose |
+|--------|-------|---------|
+| GET | `/s/[token]` | Candidate entry route via invite token |
 
----
+Notes:
+- The invite token is used to bootstrap the session experience.
+- Screen progression after entry is state-driven, not URL-driven.
 
-### Session Lifecycle
+### Session bootstrap and lifecycle
 
-| Method | Route                            | Purpose       |
-|--------|----------------------------------|---------------|
-| POST   | `/api/session/{sessionId}/start` | Start session |
+| Method | Route | Purpose |
+|--------|-------|---------|
+| POST | `/api/session/start` | Start a session or create a practice-again clone |
+| GET | `/api/session/[session_id]` | Fetch authoritative session state |
+| PATCH | `/api/session/[session_id]` | Update session-level state such as completion or metadata |
 
----
+Notes:
+- `POST /api/session/start` returns the session plus the current candidate token header for the active session context.
+- `GET /api/session/[session_id]` is the live hydration/resume route.
 
-### Question & Answer Interaction
+### Question and answer interaction
 
-| Method | Route                                                   | Purpose                            |
-|--------|---------------------------------------------------------|------------------------------------|
-| POST   | `/api/session/{sessionId}/question/{questionId}/draft`  | Persist draft answer snapshot      |
-| POST   | `/api/session/{sessionId}/question/{questionId}/submit` | Submit final answer for evaluation |
-| POST   | `/api/session/{sessionId}/question/{questionId}/retry`  | Initiate retry flow for a question |
+| Method | Route | Purpose |
+|--------|-------|---------|
+| POST | `/api/session/[session_id]/questions/[question_id]/answer` | Persist draft / in-progress answer content |
+| POST | `/api/session/[session_id]/questions/[question_id]/submit` | Submit final answer for evaluation |
+| POST | `/api/session/[session_id]/questions/[question_id]/analysis` | Generate or retrieve structured feedback analysis |
+| POST | `/api/session/[session_id]/questions/[question_id]/retry` | Reset the current question into a retry state |
 
-Draft routes support progressive save and offline reconciliation.
+### Candidate assist routes
 
----
-
-### Streaming
-
-| Method | Route                             | Purpose                                                     |
-|--------|-----------------------------------|-------------------------------------------------------------|
-| GET    | `/api/session/{sessionId}/stream` | Server-Sent Events channel for status and streaming updates |
-
-Streaming messages may include:
-- Workflow status
-- Partial AI outputs
-- Completion signals
-
-Streaming does not mutate state.
+| Method | Route | Purpose |
+|--------|-------|---------|
+| POST | `/api/tips/generate` | Generate hint/help content |
+| POST | `/api/response/generate` | Generate strong-response assistance |
+| POST | `/api/tts` | Generate text-to-speech assets for the candidate experience |
 
 ---
 
-## Recruiter-Facing API Surface
+## Recruiter-Facing Surface
 
-### Session Discovery & Review
+### Authenticated recruiter portal
 
-| Method | Route                    | Purpose                       |
-|--------|--------------------------|-------------------------------|
-| GET    | `/r/sessions`            | Recruiter session list        |
-| GET    | `/r/session/{sessionId}` | Recruiter session detail view |
+The recruiter portal is primarily implemented through authenticated Next.js routes and server-side actions rather than a fully separate public REST surface.
 
----
+Primary recruiter routes:
+- `/login`
+- `/recruiter`
+- `/recruiter/create`
+- `/recruiter/sessions/[session_id]`
 
-### Recruiter Projections
+### Recruiter APIs currently used
 
-| Method | Route                                          | Purpose                                          |
-|--------|------------------------------------------------|--------------------------------------------------|
-| GET    | `/api/recruiter/session/{sessionId}/summary`   | Derived session summary (readiness, descriptors) |
-| GET    | `/api/recruiter/session/{sessionId}/responses` | Raw candidate responses for follow-up guidance   |
+| Method | Route | Purpose |
+|--------|-------|---------|
+| POST | `/api/recruiter/invites` | Create invite batches |
+| POST | `/api/recruiter/invites/[batch_id]/retry` | Retry failed invite sends for a batch |
+| POST | `/api/invite/resend` | Resend an invite |
+| GET | `/api/recruiter/ops/metrics` | Retrieve recruiter operations metrics |
+| POST | `/api/recruiter/ops/metrics` | Trigger or test metrics/alerts workflow path |
 
-Recruiter APIs enforce interpretation boundaries defined in the Dashboard Constitution.
-
----
-
-## Access & Authorization Rules
-
-- Candidate routes are scoped by **invite token → session**
-- Recruiter routes require authenticated recruiter context
-- No API permits cross-session or cross-candidate access
-- All access checks are enforced server-side
+Notes:
+- Recruiter list/detail data may also come from server-side page actions instead of public fetch routes.
+- Current recruiter scope is operational tracking and evidence review, not recruiter-facing readiness interpretation.
 
 ---
 
-## Non-Goals
+## Access and Authorization Rules
+
+- Candidate session routes require a valid candidate token mapped to the requested session
+- Recruiter mutation routes require authenticated recruiter context
+- No candidate route should be able to cross session boundaries
+- No recruiter route should expose candidate-only coaching feedback
+
+---
+
+## Explicit Non-Goals For This Document
 
 This document does not:
-- Define request/response schemas
-- Specify authentication mechanisms
-- Describe pagination, filtering, or sorting mechanics
-- Guarantee backward compatibility for undocumented routes
+- define future event-log or SSE transport ambitions
+- promise routes that are not implemented
+- describe request/response schemas in detail
+- replace route-level tests or domain schemas
 
-Those concerns are handled in implementation and versioning policies.
+Future-state ideas belong in separate target-state docs, not in the live API contract.

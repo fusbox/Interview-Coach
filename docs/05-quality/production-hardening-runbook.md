@@ -138,9 +138,4 @@ Recommended escalation path:
 
 ## Historical Planning References
 
-Earlier planning artifacts remain available for context, but they are not the current operating source of truth:
-
-- [production_remediation_plan_2026-03-25.md](./production_remediation_plan_2026-03-25.md)
-- [production_remediation_issue_breakdown_2026-03-25.md](./production_remediation_issue_breakdown_2026-03-25.md)
-- [production_remediation_sprint1_board_2026-03-25.md](./production_remediation_sprint1_board_2026-03-25.md)
-- [production_remediation_phase2_board_2026-03-25.md](./production_remediation_phase2_board_2026-03-25.md)
+Earlier planning artifacts were intentionally removed once their contents were folded into the stable tracker, execution plan, and release documents.

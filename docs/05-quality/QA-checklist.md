@@ -1,380 +1,170 @@
 # QA Checklist
 
-This document defines **ship‑blocking quality gates** for the Interview Coach App. It is designed to be used by Product, Design, Engineering, and QA to ensure that changes preserve psychological safety, tier integrity, modality safety, and coaching intent.
+Status: Current UX contract for the live recruiter-led app
 
-The checklist is organized by **global rules**, then **screen‑specific checks**, followed by **edge cases and regression tests**.
+This checklist defines the current ship-blocking UX and product-quality expectations for the candidate practice flow and the recruiter-led experience that exists in this repo today.
 
----
-
-## GLOBAL QA PRINCIPLES (Apply Everywhere)
-
-### Language & Tone (Hard Rules)
-
-* ⛔ No scores, percentages, ranks, or numeric ratings
-
-* ⛔ No readiness claims (e.g., “ready”, “not ready”, “qualified”)
-
-* ⛔ No screening language (e.g., “pass”, “fail”, “red flag”, “concern”)
-
-* ⛔ No interviewer simulation (e.g., “hiring managers expect…”)
-
-* ⛔ No comparisons to other users
-
-* ⛔ No habitual claims (e.g., “you usually…”, “you often…”, “you tend to…”)
-
-* ✅ Language is observational or permission‑based
-
-* ✅ Coaching is forward‑looking, not corrective
-
-* ✅ Silence is preferred over speculative feedback
-
-**Fail if any forbidden language appears.**
+It is intentionally grounded in the implemented product, not an earlier candidate-led intake concept or future-state coaching model.
 
 ---
 
-### Tier Integrity
+## Global Principles
 
-* Tier is never named or displayed in the UI
-* Tier 0 never surfaces:
+### Language and framing
 
-  * role expectations
-  * competency names
-  * “why this matters” explanations
-* Tier escalation requires:
+- No scores, ranks, percentages, pass/fail, or comparative language
+- No hiring recommendations or screening judgments
+- No comparisons to other candidates
+- Coaching should feel supportive, observational, and forward-looking
+- The app may describe practice, preparation, growth, and confidence
+- Candidate self-reported confidence/preparedness inputs are allowed
 
-  * explicit intake choice **or**
-  * explicit in‑session opt‑in
-* Tier never escalates silently
+Fail if the product starts sounding evaluative, comparative, or judgmental.
 
-**Fail if tier rules are violated.**
+### Privacy and exposure
 
----
+- Candidate coaching feedback is candidate-only
+- Recruiter-facing views may include raw candidate answers and completion status
+- Candidate-facing copy must continue to distinguish practice/coaching from evaluation
+- Browser-visible summary content may expire after email delivery without breaking the candidate's ability to keep the emailed debrief
 
-### Modality Safety
+Fail if candidate-only coaching becomes recruiter-visible or if privacy boundaries are contradicted in copy.
 
-* Voice feedback never references:
+### Modality safety
 
-  * accent
-  * voice quality
-  * speed as “too fast/slow”
-  * filler‑word counts
-* Text feedback never references typing speed
-* Voice transcripts are read‑only after submission
-* Audio never auto‑plays
+- Voice feedback must not reference accent, voice quality, or filler-word counts as evaluative signals
+- Text feedback must not reference typing speed
+- Candidate transcript/audio is read-only after submission
+- Audio playback is user-triggered only
 
-**Fail if modality‑unsafe feedback appears.**
-
----
-
-## SCREEN 1: INTAKE QA
-
-### Structure
-
-* ✅ Exactly **one** intake question
-* ✅ Exactly **three** options
-* ❌ No progress indicator
-* ❌ No multi‑step wizard
-
-### Copy Verification
-
-* Prompt reads:
-
-  > **How would you like coaching to show up today?**
-* Option 1 is preselected by default
-* No references to:
-
-  * skill level
-  * confidence scoring
-  * difficulty
-  * assessment
-
-### Behavior
-
-* Skipping intake defaults to Tier 0
-* Selection affects **session only**, not user profile
-* User can proceed immediately
-
-**Fail if intake exceeds one question or implies evaluation.**
+Fail if modality-specific feedback becomes judgmental or auto-play behavior is introduced.
 
 ---
 
-## SCREEN 2: SESSION QA
+## Candidate Entry and Landing
 
-### Layout Integrity
+### Access and framing
 
-* ✅ Only **two primary blocks**:
+- Candidate enters through `/s/[token]`
+- No account creation is required
+- If initials are required for the session, initials are collected before the landing screen
+- Landing copy clearly explains that the experience is practice and skill-building, not evaluation
+- Rangam branding remains visible
 
-  * Transcript block
-  * Input block
-* ❌ No persistent chat log
-* ❌ No feedback content visible during answering
+### Current landing contract
 
----
+- The landing screen may show:
+  - target role context
+  - no-time-limit reassurance
+  - privacy/coaching boundary explanation
+  - resume-later / copy-link guidance
+  - pilot notice when rollout config enables it
+- The landing screen currently captures a self-reported preparedness baseline before begin
+- Begin is disabled until the required baseline interaction is complete
 
-### Transcript Block
-
-#### New Question State
-
-* Question replaces prior content (fade/replace, not scroll)
-* Prior questions are not visible by default
-* Helper text (if present) is neutral and optional
-
-#### After Submission
-
-* Transcript shows:
-
-  * Question
-  * User answer (read‑only)
-* Playback button present for voice answers
-* No edit affordance
-
-#### Navigation
-
-* Question navigator hidden unless explicitly opened
-* Navigator shows only:
-
-  * question identifier
-  * answered / unanswered status
-* Selecting a prior question:
-
-  * replaces transcript content
-  * replaces input with “Retry this question” CTA
-
-#### Retry Behavior
-
-* Retry discards previous answer immediately
-* No confirmation modal
-* Input block returns cleanly
-* No ghost transcript content
-
-**Fail if prior answers remain visible during active answering.**
+Fail if the landing screen implies assessment, hides the practice framing, or removes the current begin gating without a product decision.
 
 ---
 
-### Input Block — Voice Mode
+## Candidate Session
 
-#### Idle
+### Core workspace
 
-* Copy:
+- Candidate sees one current question at a time
+- Current role context remains visible during the session
+- Candidate can see progress through question count / progress UI
+- Feedback content is not visible while actively composing an answer
 
-  * “Tap to start”
-  * “You can stop anytime”
-* Mic is the primary affordance
+### Input modes
 
-#### Recording
+- Candidate can answer by voice or text
+- Text mode is first-class, not buried or degraded
+- Candidate explicitly submits an answer before analysis
+- Microphone failure must leave the candidate with a usable text path
 
-* Copy:
+### Active-answer behavior
 
-  * “Listening”
-  * supportive subtext only (e.g., “Take your time”)
-* ❌ No timers
-* ❌ No energetic waveform
-* ❌ No coaching text visible
+- Current answer is editable only before submit
+- Submitted answers become read-only
+- No persistent transcript/history feed should crowd the active-answer view
+- Resume behavior should return the candidate to the correct in-progress state from the same invite link
 
-#### Silence Handling
-
-* Gentle prompt only:
-
-  * “Whenever you’re ready”
-* No alerts or warnings
-
-#### Stop / End
-
-* “Got it.” appears briefly
-* Transition to feedback flow
-
-#### Errors
-
-* Mic permission error uses human language
-* Immediate text fallback shown
-* No dead ends
-
-**Fail if recording feels evaluative or rushed.**
+Fail if active-answer UX becomes confusing, hidden behind navigation tricks, or dependent on URL progress state.
 
 ---
 
-### Input Block — Text Mode
+## Candidate Feedback Step
 
-* Text mode accessible without navigation
-* Placeholder is neutral
-* Submit button appears only when text exists
-* ❌ No character counts
-* ❌ No minimum‑length warnings
+### Transition and loading
 
-**Fail if text mode is hidden or discouraged.**
+- After submit, the app transitions through pending/evaluation state before showing feedback
+- Loading should feel deliberate rather than broken or frozen
+- Feedback should not appear as an instant jarring swap with no transition affordance
 
----
+### Current feedback contract
 
-### Hint System (Session Screen)
+- The feedback experience is currently organized around:
+  - summary / opening recommendation
+  - optional delivery pulse
+  - optional content pulse
+  - next-step action area
+- Candidate can inspect their own answer/transcript during feedback
+- Voice answers may be played back on demand
+- Candidate can either continue or retry from the feedback step
+- Retry keeps the candidate on the current question and resets answer capture for a fresh attempt
 
-#### Entry Point
-
-* Exactly one CTA:
-
-  * “Need a hint?”
-* Text‑only, no icon
-* Positioned between question and input
-
-#### Behavior
-
-* Hints appear **only** on user tap
-* Hints disappear when answering begins
-* No hint content during recording or typing
-
-#### Tier Mapping
-
-* Tier 0:
-
-  * single generic tip
-  * no categories
-* Tier 1+:
-
-  * category selection allowed
-  * exactly one tip shown
-* Tier 2:
-
-  * may reference role context
-  * still generic and preparatory
-
-#### Content Rules
-
-* Hints never reference:
-
-  * user behavior
-  * past answers
-  * mistakes
-* Hints never sound corrective
-
-**Fail if hints appear automatically or feel judgmental.**
+Fail if the feedback step loses clarity about the candidate's own answer, stops supporting retry/continue, or exposes recruiter-facing interpretation language.
 
 ---
 
-## SCREEN 3: FEEDBACK (REVIEW) QA
+## Candidate Summary and Completion
 
-### Loader & Transitions
+### Completion
 
-* Loader is subtle (skeleton or shimmer)
-* ❌ No spinners
-* ❌ No “analyzing…” text
-* Loader visible for minimum duration
-* Acknowledgement appears alone briefly
+- Final question completion transitions to a summary screen
+- Summary may show loading/skeleton states while the debrief is still being prepared
+- When available, the summary shows narrative coaching content
+- If browser-visible summary content has expired, the UI explains that the email copy remains the durable version
 
-**Fail if feedback appears instantly without pause.**
+### Current post-session UX
 
----
+- Candidate can start another practice round from summary
+- Candidate can provide end-of-session survey feedback from summary
+- The current session survey captures:
+  - confidence delta
+  - psychological safety
+  - repeat intent
 
-### Feedback Structure (Must Be Preserved)
-
-Order is fixed:
-
-1. Acknowledgement
-2. Primary coaching focus
-3. Why this helps (Tier 1+ only)
-4. Optional observations (collapsed)
-5. Next action
-
-**Fail if order changes or zones are merged.**
+Fail if the summary loses debrief visibility, the privacy-expiry behavior becomes contradictory, or practice-again breaks.
 
 ---
 
-### Acknowledgement
+## Recruiter-Led App Scope Checks
 
-* Exactly one sentence
-* Observational only
-* ❌ No praise inflation (“great”, “excellent”)
-* ❌ No critique
+- Recruiter dashboard remains focused on invite/session operations for the current scope
+- Recruiter-facing readiness interpretation remains out of scope for the live product unless explicitly reintroduced
+- Recruiter views may show session status, timestamps, progress, and raw answer evidence
+- Recruiter views should not expose candidate-only coaching feedback
 
----
-
-### Primary Coaching Focus
-
-* Exactly one focus
-* Communication‑level framing
-* Actionable for the next attempt
-* ❌ No stacked advice
-
-**Fail if multiple focuses appear.**
+Fail if recruiter UI starts surfacing dormant readiness concepts or private coaching content without an explicit scope change.
 
 ---
 
-### Why This Helps
+## Regression Cases
 
-* Visible only Tier 1+
-* Explains listener benefit, not expectations
-* ❌ No interviewer simulation
-
----
-
-### Observations
-
-* Collapsed by default
-* 0–3 bullets only
-* Observational language only
-* ❌ No advice verbs
+- Candidate can enter from invite link, begin, answer, receive feedback, finish, and see summary
+- Candidate can resume the same invite link after interruption
+- Candidate can retry after feedback without route-based progression hacks
+- Voice and text both remain usable on mobile and desktop
+- Empty, partial, and failed-response states remain calm and non-scolding
+- Browser summary expiry does not erase the email-based debrief path
 
 ---
 
-### Next Actions
+## Final Gate
 
-* Exactly one primary CTA
-* Secondary “Stop for now” always allowed
-* ❌ No urgency language
-* Stopping never framed as failure
+Before shipping a UX change, ask:
 
-**Fail if user is pressured to continue.**
+> Would this still feel safe, clear, and useful to a nervous candidate practicing for a real interview?
 
----
-
-## EDGE & FAILURE CASE QA
-
-### Model Failure / Timeout
-
-* Deterministic Tier 0 fallback used
-* User is not informed of model failure
-* Feedback remains calm and valid
-
-### Empty Answer
-
-* User returned to session screen
-* Copy: “Whenever you’re ready”
-* ❌ No scolding or warnings
-
-### Rapid Abandon / Restart
-
-* ❌ No warning dialogs
-* ❌ No negative copy
-* System remains neutral
-
-### Accessibility
-
-* Keyboard access for mic controls
-* Reduced‑motion preferences respected
-* Screen‑reader labels present for:
-
-  * loader
-  * mic states
-  * playback controls
-
----
-
-## REGRESSION / ABUSE TESTS (Must Pass)
-
-* High‑confidence user selects Tier 0 → feedback remains gentle
-* Low‑confidence user selects Tier 2 → language remains supportive
-* User retries repeatedly → no escalation in tone
-* User never opens hints → no hint pressure appears
-* User opens hints repeatedly → hints remain preparatory
-* Voice answer with long pauses → no speed commentary
-* Short text answer → no “too short” feedback
-
-**Fail if the system becomes more judgmental under stress.**
-
----
-
-## FINAL SHIP GATE
-
-Before shipping any change, ask:
-
-> *“Would this feel okay if I were nervous, under pressure, and trying my best?”*
-
-If the answer is not an unqualified **yes**, the change does not ship.
+If the answer is not clearly yes, the change is not ready.

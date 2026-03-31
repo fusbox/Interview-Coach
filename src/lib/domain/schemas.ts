@@ -144,7 +144,6 @@ export const InterviewSessionSchema = z.object({
     role: z.string(),
     jobDescription: z.string().nullish().transform(v => v ?? undefined),
     status: SessionStatusSchema,
-    readinessBand: z.string().nullish().transform(v => v ?? undefined),
     summaryNarrative: z.string().nullish().transform(v => v ?? undefined),
     questions: z.array(QuestionSchema),
     currentQuestionIndex: z.number(),
@@ -188,7 +187,6 @@ export const InitSessionSchema = z.object({
 
 export const UpdateSessionSchema = z.object({
     status: SessionStatusSchema.optional(),
-    readinessBand: z.string().optional(),
     summaryNarrative: z.string().optional(),
     currentQuestionIndex: z.number().int().min(0).optional(),
     role: z.string().min(1).optional(),

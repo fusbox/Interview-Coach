@@ -1,8 +1,8 @@
 # Quality Documentation
 
-This folder holds the quality, release-readiness, operability, and AI-quality references for the repo.
+This folder holds the current quality, release-readiness, operability, and product-quality references for the repo.
 
-The documents here do not all serve the same audience. Some are current release references, while others are preserved as historical planning or review artifacts.
+The goal of this section is present-day clarity. These docs should describe the live recruiter-led app as it exists now, plus a few explicitly labeled reference artifacts for future decisions.
 
 ---
 
@@ -27,7 +27,7 @@ If you need current test strategy and coverage shape, add:
 
 ## Current Source-Of-Truth Documents
 
-### Release And Remediation Status
+### Release and remediation status
 
 - [production_remediation_tracker_2026-03-25.md](./production_remediation_tracker_2026-03-25.md)
   Current status summary for remediation and release posture.
@@ -49,7 +49,7 @@ If you need current test strategy and coverage shape, add:
 - [test_pyramid_plan_2026-03-29.md](./test_pyramid_plan_2026-03-29.md)
   Current testing strategy and implemented unit / integration / E2E posture.
 
-### Operations And Runtime Quality
+### Operations and runtime quality
 
 - [environment_variable_matrix.md](./environment_variable_matrix.md)
   Current environment-variable contract and deployment guidance.
@@ -63,46 +63,33 @@ If you need current test strategy and coverage shape, add:
 - [initial_slos_2026-03-26.md](./initial_slos_2026-03-26.md)
   Current SLO proposal aligned to the durable metrics implementation.
 
-### Product And AI Quality
+### Product and AI quality
 
 - [QA-checklist.md](./QA-checklist.md)
-  Product-quality and release-readiness QA checklist.
+  Current UX and product-quality contract for the live app.
 
 - [feedback-chain-spec.md](./feedback-chain-spec.md)
   Target behavior for answer-level coaching feedback.
 
+- [implementation-docs-alignment-review_2026-03-30.md](./implementation-docs-alignment-review_2026-03-30.md)
+  Audit of where code and docs currently align or drift.
+
+### Reference-only documents
+
 - [readiness-band-definition.md](./readiness-band-definition.md)
-  Canonical meaning of readiness bands.
+  Inactive future-state reference for recruiter-facing readiness.
 
 - [readiness-eval-scenarios.md](./readiness-eval-scenarios.md)
-  Regression scenarios for readiness interpretation.
+  Future-state regression scenarios for readiness if that concept is ever reactivated.
 
----
-
-## Historical Artifacts
-
-These documents are preserved for traceability and planning context. They are not the primary source of current release status.
-
-- [comprehensive_code_review.md](./comprehensive_code_review.md)
-- [comprehensive_code_review_2026-03-26.md](./comprehensive_code_review_2026-03-26.md)
-- [production_remediation_plan_2026-03-25.md](./production_remediation_plan_2026-03-25.md)
-- [production_remediation_issue_breakdown_2026-03-25.md](./production_remediation_issue_breakdown_2026-03-25.md)
-- [production_remediation_sprint1_board_2026-03-25.md](./production_remediation_sprint1_board_2026-03-25.md)
-- [production_remediation_phase2_board_2026-03-25.md](./production_remediation_phase2_board_2026-03-25.md)
-- [durable_metrics_plan_2026-03-25.md](./durable_metrics_plan_2026-03-25.md)
-- [code_review_request.md](./code_review_request.md)
-
-Use these when you need:
-
-- the original review or remediation framing
-- acceptance-criteria history
-- retrospective context for why work was sequenced the way it was
+- [readiness-disposition-plan_2026-03-31.md](./readiness-disposition-plan_2026-03-31.md)
+  Decision support for how to quarantine or remove dormant readiness code.
 
 ---
 
 ## Reading Paths
 
-### For Release Approval
+### For release approval
 
 Read in this order:
 
@@ -113,7 +100,7 @@ Read in this order:
 5. [environment_variable_matrix.md](./environment_variable_matrix.md)
 6. [ops_alert_policy.md](./ops_alert_policy.md)
 
-### For Test Coverage And Automation
+### For test coverage and automation
 
 Read in this order:
 
@@ -121,12 +108,19 @@ Read in this order:
 2. [production_remediation_tracker_2026-03-25.md](./production_remediation_tracker_2026-03-25.md)
 3. [QA-checklist.md](./QA-checklist.md)
 
-### For AI And Coaching Quality
+### For current product and coaching quality
 
 Read in this order:
 
-1. [feedback-chain-spec.md](./feedback-chain-spec.md)
-2. [QA-checklist.md](./QA-checklist.md)
-3. [readiness-band-definition.md](./readiness-band-definition.md)
-4. [readiness-eval-scenarios.md](./readiness-eval-scenarios.md)
-5. [debug/ai_context.md](./debug/ai_context.md)
+1. [QA-checklist.md](./QA-checklist.md)
+2. [feedback-chain-spec.md](./feedback-chain-spec.md)
+3. [implementation-docs-alignment-review_2026-03-30.md](./implementation-docs-alignment-review_2026-03-30.md)
+4. [debug/ai_context.md](./debug/ai_context.md)
+
+### For readiness cleanup decisions
+
+Read in this order:
+
+1. [readiness-disposition-plan_2026-03-31.md](./readiness-disposition-plan_2026-03-31.md)
+2. [readiness-band-definition.md](./readiness-band-definition.md)
+3. [readiness-eval-scenarios.md](./readiness-eval-scenarios.md)

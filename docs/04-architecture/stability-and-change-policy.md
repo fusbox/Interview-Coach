@@ -2,185 +2,147 @@
 
 ## Purpose
 
-This document defines how architectural artifacts are stabilized, evolved, and governed
-over time.
+This document defines how architecture artifacts are stabilized, evolved, and governed over time.
 
 Its goals are to:
-- Prevent silent architectural drift
-- Make intentional change explicit and auditable
-- Balance flexibility with trust, security, and correctness
-- Clarify when a change requires formal review versus routine iteration
-
-This policy applies to all architecture-level documentation and the system behaviors they describe.
+- prevent silent architectural drift
+- make intentional change explicit and auditable
+- distinguish current implementation truth from future-state thinking
+- clarify when a doc change is routine versus architecture-significant
 
 ---
 
 ## Core Principle
 
-**Not all documents are equal.**
+Not all documents are equal.
 
-Some documents define *meaning and authority* and must be treated as contracts.
-Others describe *current structure* and may evolve more freely.
+Some documents describe the live system and should stay accurate enough to support implementation. Others preserve future-state or exploratory thinking and should not be mistaken for current truth.
 
-The level of rigor applied to a change depends on what the change affects—not who makes it
-or how urgent it feels.
+The level of rigor applied to a change depends on what the document currently claims to represent.
 
 ---
 
 ## Document Stability Levels
 
-### 1. Locked for V1 (Contract Documents)
+### 1. Current implementation contract
 
-These documents define **system meaning, authority boundaries, or trust guarantees**.
+These documents are intended to describe the live app and should be kept aligned with shipped behavior.
 
-They must not be changed casually.
+Characteristics:
+- define route and interaction boundaries that currently exist
+- support current engineering work
+- are safe to use as the baseline for new app bootstrapping
 
-**Characteristics**
-- Define who owns truth
-- Define what is persisted vs derived
-- Define access, visibility, and interpretation boundaries
-- Define guarantees such as “resume exactly” or privacy constraints
+Change policy:
+- update promptly when implementation changes
+- do not use them to document speculative future architecture
+- behavioral changes with trust/privacy implications should still be reflected in gate decisions
 
-**Change Policy**
-- Changes require a **Gate Decision entry**
-- Relevant gates (Spec, Eval, Threat) should be re-evaluated
-- Changes should be backward-compatible where possible, or explicitly versioned
-
-**Current Documents**
-- `state-and-streaming-contract.md`
+Current documents:
 - `api-surface.md`
+- `../03-design/ROUTING_AND_RENDERING.md`
+- `../03-design/SCREEN_STATE_MODEL.md`
 
----
+### 2. Stable narrative
 
-### 2. Stable Narrative (Descriptive Architecture)
+These documents describe the current system at a higher level.
 
-These documents describe the system at a high level but do not themselves define authority.
+Characteristics:
+- explain intent and structure
+- support onboarding and reasoning
+- should remain accurate but are not the only source of truth
 
-They should remain accurate but may be updated as the system evolves.
+Change policy:
+- may be updated as the system evolves
+- must not contradict current implementation contract docs
 
-**Characteristics**
-- Explain intent and structure
-- Support onboarding and reasoning
-- Do not introduce new constraints on their own
-
-**Change Policy**
-- May be updated to reflect accepted decisions
-- Must not contradict Gate Decisions or Contract Documents
-- Do not require Gate Decision updates unless reflecting a behavioral change
-
-**Current Documents**
+Current documents:
 - `architecture-overview.md`
+- `e2e-flow.md`
 
----
+### 3. Structural guidance
 
-### 3. Structural Guidance (Engineering Discipline)
+These documents guide where code belongs and how contributors should think about boundaries.
 
-These documents guide how code is organized and how contributors should think about boundaries.
+Characteristics:
+- socially enforced through review and discipline
+- intended to reduce sprawl and coupling
 
-They are enforced socially (code review, design review), not through gates.
+Change policy:
+- may evolve with team learning
+- significant shifts should be discussed when they affect maintainability or cross-layer coupling
 
-**Characteristics**
-- Define layering and responsibility expectations
-- Help prevent entropy and coupling
-- Support long-term maintainability
-
-**Change Policy**
-- May evolve as the team gains experience
-- Significant boundary changes should be discussed, but do not require Gate Decisions
-  unless they alter system authority or trust
-
-**Current Documents**
+Current documents:
 - `code-organization.md`
 
----
+### 4. Governance and decision ledger
 
-### 4. Decision Ledger (Always Append-Only)
+These documents record higher-scrutiny decisions and review expectations.
 
-The decision ledger records **why** the system is allowed to behave in certain ways.
+Change policy:
+- decision records are append-only in spirit
+- supersede by annotation rather than silent rewrite when possible
 
-It is never “locked,” but it is never rewritten.
-
-**Characteristics**
-- Append-only
-- Historical record of reasoning
-- Source of truth for architectural intent
-
-**Change Policy**
-- New decisions are appended
-- Superseded decisions are annotated, not deleted
-- Every entry includes scope, decision, rationale, and date
-
-**Current Documents**
+Current documents:
 - `gate-decisions.md`
+- `design-gates.md`
+
+### 5. Future-state reference
+
+These documents preserve target-state architecture or earlier architectural aspirations that are not fully implemented in the live app.
+
+Characteristics:
+- useful for long-term design thinking
+- unsafe to treat as present-day implementation truth
+
+Change policy:
+- may remain in the repo if clearly labeled
+- must not be presented as current contract docs
+
+Current documents:
+- `state-and-streaming-contract.md`
+- `vertical-slice-contracts.md`
 
 ---
 
-## What Requires a Gate Decision Update
+## What Requires Higher-Scrutiny Update
 
-A change requires a Gate Decision entry if it affects any of the following:
+A change deserves higher scrutiny if it affects:
+- access or visibility boundaries
+- privacy or data-retention behavior
+- recruiter interpretation versus raw evidence boundaries
+- resumability guarantees
+- current route/auth/session ownership model
 
-- **Access**
-  - Who can see or modify data
-  - How invite tokens or authentication work
-
-- **Interpretation**
-  - How readiness or outcomes are framed
-  - Whether the system emits judgments, rankings, or recommendations
-
-- **Persistence**
-  - What facts are stored
-  - What conclusions are derived
-  - Where aggregation occurs (client vs server)
-
-- **Comparability**
-  - Any new ability to compare candidates or sessions
-
-- **Guarantees**
-  - Resume semantics
-  - Privacy or data-retention posture
-  - Determinism or reproducibility claims
-
-If a change touches one or more of these areas, it must be recorded.
+If the behavior changes materially, update:
+- the current implementation docs
+- any relevant gate/decision docs
 
 ---
 
-## What Does *Not* Require a Gate Decision
+## What Does Not Need Formal Escalation By Default
 
-The following do **not** require Gate Decision updates on their own:
-
-- UI layout or styling changes
-- Performance optimizations that preserve behavior
-- Refactoring that preserves authority boundaries
-- Adding new additive API fields or events without semantic change
-- Tooling, build, or deployment changes
+- cosmetic wording improvements
+- framework-specific cleanup when intent stays the same
+- explanatory updates that bring narrative docs back in line with implementation
+- historical cleanup that removes stale references without changing live behavior
 
 ---
 
 ## Review Heuristic
 
-When uncertain, apply this test:
+When uncertain, ask:
 
-> “Would this change surprise a recruiter, candidate, or auditor if they understood the system’s intent?”
+> Is this doc describing what the app does now, or what we once hoped it would become later?
 
-If the answer is “yes,” the change deserves a Gate Decision entry.
-
----
-
-## Intentional Flexibility
-
-This policy is designed to:
-- Encourage experimentation within safe bounds
-- Make high-impact decisions visible
-- Avoid both paralysis and accidental overreach
-
-The goal is not rigidity—it is **clarity under change**.
+If the answer is "later," it should not be labeled or read as a current contract.
 
 ---
 
 ## Related Documents
 
-- Architecture Overview
-- State & Streaming Contract
-- API Surface
-- Code Organization & Layering
-- Gate Decisions
+- [README.md](./README.md)
+- [api-surface.md](./api-surface.md)
+- [gate-decisions.md](./gate-decisions.md)
+- [../03-design/ROUTING_AND_RENDERING.md](../03-design/ROUTING_AND_RENDERING.md)
+- [../03-design/SCREEN_STATE_MODEL.md](../03-design/SCREEN_STATE_MODEL.md)

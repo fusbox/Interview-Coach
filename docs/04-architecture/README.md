@@ -1,201 +1,123 @@
 # Architecture Documentation
 
-This folder explains how the system is structured, where architectural boundaries live, and which documents should be treated as guidance versus contract.
+This folder explains how the system is structured, where architectural boundaries live, and which documents describe current implementation versus future-state direction.
 
 Use this section when you need to:
 - understand the current system shape
 - reason about client/server/data ownership
 - check architectural constraints before changing behavior
-- onboard into the codebase beyond feature-level docs
+- distinguish live contracts from aspirational architecture
 
 ---
 
 ## How To Read This Section
 
-Start here, then choose the document that matches your question:
+Start with the current implementation docs first. Use future-state references only when you are explicitly evaluating longer-term evolution.
 
-1. Read [architecture-overview.md](./architecture-overview.md) for the high-level mental model.
-2. Read [code-organization.md](./code-organization.md) to understand where responsibilities belong in the codebase.
-3. Read the contract documents before changing session state, resume behavior, privacy boundaries, or client/server interaction patterns.
+Recommended starting order:
 
-If you are making a behaviorally significant change, do not rely on the overview alone. Check the locked contract documents and the change policy.
+1. [architecture-overview.md](./architecture-overview.md)
+2. [code-organization.md](./code-organization.md)
+3. [api-surface.md](./api-surface.md)
+4. [e2e-flow.md](./e2e-flow.md)
+
+Then add design-state docs for session flow:
+
+5. [../03-design/ROUTING_AND_RENDERING.md](../03-design/ROUTING_AND_RENDERING.md)
+6. [../03-design/SCREEN_STATE_MODEL.md](../03-design/SCREEN_STATE_MODEL.md)
 
 ---
 
 ## Document Map
 
-### [architecture-overview.md](./architecture-overview.md)
-Best starting point for most readers.
+### Current implementation references
 
-Covers:
-- major system components
-- how client, server, storage, and AI layers relate
-- core architectural goals and boundaries
+#### [architecture-overview.md](./architecture-overview.md)
+High-level mental model for the current app.
 
-Read this when:
-- you are new to the system
-- you want the big picture before reading implementation details
+#### [code-organization.md](./code-organization.md)
+Layering and responsibility guidance for the current repo.
 
-### [code-organization.md](./code-organization.md)
-Explains how the repository is layered and where logic should live.
+#### [api-surface.md](./api-surface.md)
+Current implemented route surface and access rules.
 
-Covers:
-- domain vs server vs data vs client responsibilities
-- dependency direction
-- organizational rules that prevent logic sprawl
+#### [e2e-flow.md](./e2e-flow.md)
+End-to-end journey from recruiter invite creation through candidate practice.
 
-Read this when:
-- you are adding or moving code
-- you want to know the correct home for new logic
+#### [../03-design/ROUTING_AND_RENDERING.md](../03-design/ROUTING_AND_RENDERING.md)
+Current route-vs-screen boundary for the live session experience.
 
-### [api-surface.md](./api-surface.md)
-Defines the architectural API surface between clients and the server.
+#### [../03-design/SCREEN_STATE_MODEL.md](../03-design/SCREEN_STATE_MODEL.md)
+Canonical state-driven screen model used by the candidate session experience.
 
-Covers:
-- candidate and recruiter API responsibilities
-- action-oriented route expectations
-- streaming boundaries at the architectural level
+### Governance and change control
 
-Read this when:
-- you are changing route behavior
-- you are introducing new client/server interactions
-- you need to check whether a concern belongs in transport, orchestration, or projection
+#### [stability-and-change-policy.md](./stability-and-change-policy.md)
+How architecture docs should be changed and which ones are current contract versus reference.
 
-### [state-and-streaming-contract.md](./state-and-streaming-contract.md)
-Core contract for state ownership, persistence, resume behavior, and streaming semantics.
+#### [design-gates.md](./design-gates.md)
+Review gates for meaningful system changes.
 
-Covers:
-- server-owned truth
-- facts vs projections
-- resumability guarantees
-- streaming as transport rather than business logic
+#### [gate-decisions.md](./gate-decisions.md)
+Decision ledger for trust-sensitive behavior changes.
 
-Read this when:
-- you are changing session lifecycle behavior
-- you are touching resume/hydration guarantees
-- you are changing what is persisted versus derived
+### Target-state or future-evolution references
 
-### [vertical-slice-contracts.md](./vertical-slice-contracts.md)
-Defines the walking-skeleton contract for session hydration and minimal endpoint behavior.
+#### [state-and-streaming-contract.md](./state-and-streaming-contract.md)
+Future-state architecture reference. Useful for long-term evolution discussion, but not the live implementation contract.
 
-Covers:
-- `/now` projection shape
-- minimal vertical-slice endpoint contracts
-- assumptions that support progressive enhancement
+#### [vertical-slice-contracts.md](./vertical-slice-contracts.md)
+Walking-skeleton / target-state reference for an earlier projection-oriented architecture direction.
 
-Read this when:
-- you are aligning implementation to the core session slice
-- you want a concrete contract view to pair with the higher-level architecture docs
+### ADRs
 
-### [e2e-flow.md](./e2e-flow.md)
-Describes the end-to-end journey from recruiter invite creation through candidate practice.
+#### [adr-rate-limit-backend.md](./adr-rate-limit-backend.md)
+Accepted decision for rate-limit backend hardening.
 
-Covers:
-- plain-language system flow
-- route, API, and persistence touchpoints
-- how major steps connect across the stack
+#### [adr-invite-batch-consistency.md](./adr-invite-batch-consistency.md)
+Proposed decision for invite-batch consistency behavior.
 
-Read this when:
-- you want to trace the lifecycle of a session end to end
-- you are debugging a cross-layer issue
-
-### [stability-and-change-policy.md](./stability-and-change-policy.md)
-Defines how architecture docs should be changed and which ones are effectively locked.
-
-Covers:
-- document stability levels
-- which docs are contract documents
-- when a change should trigger higher scrutiny
-
-Read this when:
-- you are planning an architectural change
-- you are unsure whether a doc update is descriptive or contract-altering
-
-### [design-gates.md](./design-gates.md)
-Defines the review gates that meaningful system changes are expected to pass.
-
-Covers:
-- spec, evaluation, threat, performance, and observability gates
-- required evidence for each gate
-- default expectations for change review
-
-Read this when:
-- you are preparing a significant product or system change
-- you want to know what evidence is expected before a change is considered done
-
-### [gate-decisions.md](./gate-decisions.md)
-Records stable gate decisions for trust-sensitive system behaviors.
-
-Covers:
-- decision scope rules
-- active gate decisions and rationale
-- system behaviors that are intentionally constrained
-
-Read this when:
-- you are changing a behavior that touches trust, privacy, interpretation, or authority boundaries
-- you need to understand why a prior architectural decision exists
-
-### [adr-rate-limit-backend.md](./adr-rate-limit-backend.md)
-Proposed architecture decision for moving production throttling to a shared backend.
-
-Read this when:
-- you are implementing or reviewing rate-limit hardening
-- you need the decision frame for Redis vs Postgres-backed throttling
-
-### [adr-invite-batch-consistency.md](./adr-invite-batch-consistency.md)
-Proposed architecture decision for deterministic invite-batch consistency and partial-failure handling.
-
-Read this when:
-- you are changing invite creation orchestration
-- you need the target consistency model for batch behavior
-
-### [adr-application-boundaries.md](./adr-application-boundaries.md)
-Proposed architecture decision for introducing an explicit application-service layer for orchestration-heavy server commands.
-
-Read this when:
-- you are extracting route logic into application services
-- you want the intended responsibility split for server-side orchestration
+#### [adr-application-boundaries.md](./adr-application-boundaries.md)
+Proposed decision for application-service extraction patterns.
 
 ---
 
 ## Recommended Reading Paths
 
 ### For onboarding
-Read in this order:
+
 - [architecture-overview.md](./architecture-overview.md)
 - [code-organization.md](./code-organization.md)
+- [api-surface.md](./api-surface.md)
 - [e2e-flow.md](./e2e-flow.md)
 
 ### For feature implementation
-Read in this order:
+
 - [code-organization.md](./code-organization.md)
 - [api-surface.md](./api-surface.md)
-- [vertical-slice-contracts.md](./vertical-slice-contracts.md)
+- [../03-design/ROUTING_AND_RENDERING.md](../03-design/ROUTING_AND_RENDERING.md)
+- [../03-design/SCREEN_STATE_MODEL.md](../03-design/SCREEN_STATE_MODEL.md)
 
 ### For session lifecycle or resume changes
-Read in this order:
-- [state-and-streaming-contract.md](./state-and-streaming-contract.md)
+
+- [../03-design/SCREEN_STATE_MODEL.md](../03-design/SCREEN_STATE_MODEL.md)
+- [../03-design/ROUTING_AND_RENDERING.md](../03-design/ROUTING_AND_RENDERING.md)
 - [api-surface.md](./api-surface.md)
 - [stability-and-change-policy.md](./stability-and-change-policy.md)
 
-### For architecture review or governance
-Read in this order:
-- [stability-and-change-policy.md](./stability-and-change-policy.md)
-- [design-gates.md](./design-gates.md)
-- [gate-decisions.md](./gate-decisions.md)
-- [adr-rate-limit-backend.md](./adr-rate-limit-backend.md)
-- [adr-invite-batch-consistency.md](./adr-invite-batch-consistency.md)
-- [adr-application-boundaries.md](./adr-application-boundaries.md)
+### For future-state architecture discussion
+
 - [state-and-streaming-contract.md](./state-and-streaming-contract.md)
+- [vertical-slice-contracts.md](./vertical-slice-contracts.md)
 - [architecture-overview.md](./architecture-overview.md)
+- [gate-decisions.md](./gate-decisions.md)
 
 ---
 
 ## Change Expectations
 
-Not every document in this folder has the same weight.
+Not every document here has the same weight.
 
-- Treat [state-and-streaming-contract.md](./state-and-streaming-contract.md) and [api-surface.md](./api-surface.md) as architectural contracts.
-- Treat [gate-decisions.md](./gate-decisions.md) as the architectural decision log for trust-sensitive behavior changes.
-- Treat [architecture-overview.md](./architecture-overview.md) and [e2e-flow.md](./e2e-flow.md) as descriptive narrative that should stay accurate but should not silently redefine system authority.
-- Use [stability-and-change-policy.md](./stability-and-change-policy.md) when you are unsure how formally a change should be handled.
+- Treat [api-surface.md](./api-surface.md), [../03-design/ROUTING_AND_RENDERING.md](../03-design/ROUTING_AND_RENDERING.md), and [../03-design/SCREEN_STATE_MODEL.md](../03-design/SCREEN_STATE_MODEL.md) as the most trustworthy current implementation references.
+- Treat [gate-decisions.md](./gate-decisions.md) as the decision log for trust-sensitive behavior.
+- Treat [state-and-streaming-contract.md](./state-and-streaming-contract.md) and [vertical-slice-contracts.md](./vertical-slice-contracts.md) as future-state references until implementation catches up.

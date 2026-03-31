@@ -17,7 +17,7 @@ import { SessionSurvey } from "./SessionSurvey";
 import { getIconForTitle, parseDebrief } from "./SummaryUtilities";
 
 const STOCK_NARRATIVES = [
-    "The candidate demonstrated high proficiency and readiness for the role across all evaluated questions.",
+    "The candidate demonstrated strong performance across the evaluated questions.",
     "Strong performance with minor areas for refinement; the candidate shows solid potential.",
     "The candidate would benefit from additional practice in several key competency areas.",
     "Excellent communication and problem-solving skills evident throughout the session.",
@@ -206,7 +206,7 @@ export default function SummaryScreen() {
                             </div>
                         </ContentCard>
 
-                        {/* Readiness & Next Steps Skeleton */}
+                        {/* Momentum & Next Steps Skeleton */}
                         <ContentCard density="spacious" className="w-full">
                             <Skeleton className="h-8 w-52 mb-6" />
                             <Skeleton className="h-4 w-3/4" />
@@ -290,7 +290,7 @@ export default function SummaryScreen() {
                     className="flex flex-row items-center justify-center gap-[0.4rem] text-muted-foreground font-medium tracking-wide whitespace-nowrap pt-8"
                 >
                     <span className="uppercase text-micro sm:text-xs tracking-widest translate-y-px">
-                        Workforce Readiness Powered By
+                        Interview Practice Powered By
                     </span>
                     <div className="relative h-4 w-16 sm:h-5 sm:w-20 flex-shrink-0">
                         <Image

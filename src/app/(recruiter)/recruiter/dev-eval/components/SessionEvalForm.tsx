@@ -134,6 +134,9 @@ export function SessionEvalForm({ session }: SessionEvalFormProps) {
 
     return (
         <div className="space-y-8">
+            <div className="rounded-lg border border-violet-200 bg-violet-50/60 px-4 py-3 text-sm text-violet-900">
+                Internal evaluation workspace. Hidden calibration fields are shown here for analysis only and do not represent the current recruiter-facing product contract.
+            </div>
             {/* Overall Session Eval */}
             <Card className="border-violet-200 bg-violet-50/30">
                 <CardHeader className="pb-3">
@@ -162,11 +165,6 @@ export function SessionEvalForm({ session }: SessionEvalFormProps) {
                                 debouncedSave(next);
                             }}
                         />
-                        <div className="ml-auto">
-                            <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-200 text-micro font-bold">
-                                AGGREGATE READINESS: {session.readinessBand || 'N/A'}
-                            </Badge>
-                        </div>
                     </div>
                     <textarea
                         id="overall-session-notes"
@@ -259,7 +257,7 @@ export function SessionEvalForm({ session }: SessionEvalFormProps) {
                                     {answer.analysis.meta?.readinessLevel && (
                                         <div className="pt-1">
                                             <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200 text-micro font-bold">
-                                                AI READINESS: {answer.analysis.meta.readinessLevel}
+                                                AI CALIBRATION BAND: {answer.analysis.meta.readinessLevel}
                                             </Badge>
                                         </div>
                                     )}

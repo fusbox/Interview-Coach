@@ -2,7 +2,7 @@
 
 Status: Proposed  
 Date: 2026-03-25  
-Related review: [../05-quality/comprehensive_code_review_2026-03-25.md](../05-quality/comprehensive_code_review_2026-03-25.md)
+Related review: [../05-quality/implementation-docs-alignment-review_2026-03-30.md](../05-quality/implementation-docs-alignment-review_2026-03-30.md)
 
 ---
 

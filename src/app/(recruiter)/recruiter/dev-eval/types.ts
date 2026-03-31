@@ -1,57 +1,54 @@
 /**
- * Dev Evaluation Module — Types & Rubric
- * 
- * Used by the developer evaluation workspace to score
- * candidate sessions and export structured data for LLM analysis.
+ * Dev Evaluation Module - Internal Types & Rubric
+ *
+ * Used only by the internal developer evaluation workspace to score
+ * candidate sessions and export structured data for analysis.
+ * This module is intentionally not part of the recruiter-facing product contract.
  */
-
-// ─── Rubric Dimensions ──────────────────────────────────────────
 
 export const EVAL_RUBRIC_DIMENSIONS = [
     {
-        id: 'hints_quality',
-        label: 'Hints Quality',
-        description: 'Are the tips/hints useful, specific, and actionable for this question and role?'
+        id: "hints_quality",
+        label: "Hints Quality",
+        description: "Are the tips or hints useful, specific, and actionable for this question and role?"
     },
     {
-        id: 'response_example_quality',
-        label: 'Response Example Quality',
-        description: 'Is the strong response realistic, relevant, well-structured, and appropriately calibrated?'
+        id: "response_example_quality",
+        label: "Response Example Quality",
+        description: "Is the strong response realistic, relevant, well-structured, and appropriately calibrated?"
     },
     {
-        id: 'feedback_accuracy',
-        label: 'Feedback Accuracy',
-        description: 'Does the AI feedback correctly identify strengths and weaknesses in the answer?'
+        id: "feedback_accuracy",
+        label: "Feedback Accuracy",
+        description: "Does the AI feedback correctly identify strengths and weaknesses in the answer?"
     },
     {
-        id: 'feedback_actionability',
-        label: 'Feedback Actionability',
-        description: 'Is the recommended next step clear, specific, and useful to the candidate?'
+        id: "feedback_actionability",
+        label: "Feedback Actionability",
+        description: "Is the recommended next step clear, specific, and useful to the candidate?"
     },
     {
-        id: 'reading_level_fit',
-        label: 'Reading Level Fit',
-        description: 'Is the language appropriately calibrated for the role level (entry-level vs senior)?'
+        id: "reading_level_fit",
+        label: "Reading Level Fit",
+        description: "Is the language appropriately calibrated for the role level (entry-level vs senior)?"
     },
     {
-        id: 'readiness_level_accuracy',
-        label: 'Readiness Level Accuracy',
-        description: 'Does the assigned Readiness Level (RL1-RL4) accurately reflect the candidate’s performance based on the evidence?'
+        id: "readiness_level_accuracy",
+        label: "Internal Calibration Band Accuracy",
+        description: "For internal review only: does the hidden readiness band (RL1-RL4) align with the evidence in the candidate response?"
     },
     {
-        id: 'overall_quality',
-        label: 'Overall Session Quality',
-        description: 'Holistic rating of the entire session experience for this question.'
-    },
+        id: "overall_quality",
+        label: "Overall Session Quality",
+        description: "Holistic rating of the entire session experience for this question."
+    }
 ] as const;
 
-export type EvalDimensionId = typeof EVAL_RUBRIC_DIMENSIONS[number]['id'];
-
-// ─── Scoring Types ──────────────────────────────────────────────
+export type EvalDimensionId = (typeof EVAL_RUBRIC_DIMENSIONS)[number]["id"];
 
 export interface EvalRubricScore {
     dimension: EvalDimensionId;
-    score: number; // 1-5
+    score: number;
     comment: string;
 }
 
@@ -63,19 +60,16 @@ export interface QuestionEval {
 
 export interface SessionEval {
     sessionId: string;
-    evaluatedAt: number; // timestamp
-    overallScore: number; // 1-5
+    evaluatedAt: number;
+    overallScore: number;
     overallNotes: string;
     questionEvals: QuestionEval[];
 }
-
-// ─── Export Payload ──────────────────────────────────────────────
 
 export interface ExportQuestionPayload {
     questionIndex: number;
     questionText: string;
     category: string;
-    // Candidate-facing content
     tips?: {
         lookingFor: string;
         pointsToCover: string[];
@@ -95,10 +89,8 @@ export interface ExportQuestionPayload {
             proTip: string;
         };
     } | null;
-    // Candidate answer
     candidateTranscript?: string;
     submittedAt?: number;
-    // AI feedback
     feedback?: {
         ack?: string;
         feedbackPlan?: {
@@ -139,7 +131,6 @@ export interface ExportQuestionPayload {
             readinessLevel?: string;
         };
     } | null;
-    // Evaluator scores
     evaluation?: {
         scores: EvalRubricScore[];
         notes: string;
@@ -147,7 +138,7 @@ export interface ExportQuestionPayload {
 }
 
 export interface ExportSessionPayload {
-    exportedAt: string; // ISO timestamp
+    exportedAt: string;
     rubricDefinition: typeof EVAL_RUBRIC_DIMENSIONS;
     session: {
         id: string;

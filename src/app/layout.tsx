@@ -21,9 +21,6 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
     title: 'Interview Coach',
     description: 'AI-powered interview practice',
-    icons: {
-        icon: '/r2w-logo.webp',
-    },
 }
 
 export default function RootLayout({

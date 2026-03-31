@@ -85,8 +85,8 @@ If any item above remains incomplete:
 
 ## AI And Product Quality
 
-- [ ] Readiness meaning remains aligned with [readiness-band-definition.md](./readiness-band-definition.md)
-- [ ] Readiness scenarios were spot-checked or fully run as appropriate
+- [ ] If recruiter-facing readiness is reactivated, readiness meaning remains aligned with [readiness-band-definition.md](./readiness-band-definition.md)
+- [ ] If recruiter-facing readiness is reactivated, readiness scenarios were spot-checked or fully run as appropriate
 - [ ] Feedback quality changes were reviewed against [feedback-chain-spec.md](./feedback-chain-spec.md) when applicable
 - [ ] No candidate-facing copy implies ranking, scoring, or hiring judgment
 
