@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Loader2, Save, X } from "lucide-react";
 import { Details, QuestionInput, StepFooterProps } from "../constants";
-import { useState, useLayoutEffect, useRef, useId } from "react";
+import { useEffect, useState, useLayoutEffect, useRef, useId } from "react";
 import { ChevronRight } from "lucide-react";
 import { showDemoTools } from "@/lib/feature-flags";
 import { RecruiterTemplate } from "@/lib/domain/template";
@@ -24,7 +24,7 @@ interface StepJobAndQuestionsProps {
     setTechnical: (val: QuestionInput[]) => void;
     onNext: () => void;
     onRandomizeJob?: () => void;
-    onGenerateQuestionsAI?: () => void;
+    onGenerateQuestionsAI?: () => Promise<void>;
     isGeneratingQuestions?: boolean;
     StepFooter: React.ComponentType<StepFooterProps>;
     templates?: RecruiterTemplate[];
@@ -92,8 +92,13 @@ export function StepJobAndQuestions({
     const [templateName, setTemplateName] = useState("");
     const [isShared, setIsShared] = useState(true);
     const [saveError, setSaveError] = useState<string | null>(null);
+    const [generationFeedback, setGenerationFeedback] = useState<{
+        tone: "critical" | "warning";
+        message: string;
+    } | null>(null);
     const saveTemplateInputRef = useRef<HTMLInputElement>(null);
     const saveDialogRef = useRef<HTMLDivElement>(null);
+    const generationFeedbackTimeoutRef = useRef<number | null>(null);
     const saveDialogTitleId = useId();
     const templateSelectId = useId();
     const reqIdInputId = useId();
@@ -107,6 +112,20 @@ export function StepJobAndQuestions({
         initialFocusRef: saveTemplateInputRef,
         onClose: () => setShowSaveModal(false),
     });
+
+    useEffect(() => {
+        return () => {
+            if (generationFeedbackTimeoutRef.current !== null) {
+                window.clearTimeout(generationFeedbackTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    useEffect(() => {
+        if (details.role.trim() && generationFeedback?.tone === "warning") {
+            setGenerationFeedback(null);
+        }
+    }, [details.role, generationFeedback?.tone]);
 
     const addTechnical = () => {
         setTechnical([...technical, {
@@ -153,6 +172,39 @@ export function StepJobAndQuestions({
             setSaveError("Failed to save template. Please try again.");
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleGenerateQuestions = async () => {
+        if (!onGenerateQuestionsAI) {
+            return;
+        }
+
+        if (generationFeedbackTimeoutRef.current !== null) {
+            window.clearTimeout(generationFeedbackTimeoutRef.current);
+            generationFeedbackTimeoutRef.current = null;
+        }
+
+        if (!details.role.trim()) {
+            setGenerationFeedback({
+                tone: "warning",
+                message: "Enter a Target Role first so we can generate relevant interview questions.",
+            });
+            generationFeedbackTimeoutRef.current = window.setTimeout(() => {
+                setGenerationFeedback(null);
+                generationFeedbackTimeoutRef.current = null;
+            }, 4500);
+            return;
+        }
+
+        setGenerationFeedback(null);
+        try {
+            await onGenerateQuestionsAI();
+        } catch {
+            setGenerationFeedback({
+                tone: "critical",
+                message: "AI question generation failed. Please review the job details and try again.",
+            });
         }
     };
 
@@ -253,22 +305,36 @@ export function StepJobAndQuestions({
                 <div className="space-y-4">
                     {/* AI Generator Action - Contextually placed closer to questions */}
                     {onGenerateQuestionsAI && (
-                        <div className="flex justify-start">
-                            <Button
-                                onClick={onGenerateQuestionsAI}
-                                disabled={isGeneratingQuestions}
-                                emphasis="primary"
-                                density="comfortable"
-                                shape="pill"
-                                label="chrome"
-                                className="min-w-[200px] justify-center gap-2 border border-brand-deep/20 bg-brand-deep text-primary-foreground hover:bg-brand-deep/90 hover:text-primary-foreground"
-                            >
-                                {isGeneratingQuestions ? (
-                                    <><Loader2 className="w-4 h-4 animate-spin" /> Generating Questions...</>
-                                ) : (
-                                    <>✨ AI Generate Questions</>
-                                )}
-                            </Button>
+                        <div className="space-y-3">
+                            <div className="flex justify-start">
+                                <Button
+                                    onClick={handleGenerateQuestions}
+                                    disabled={isGeneratingQuestions}
+                                    emphasis="primary"
+                                    density="comfortable"
+                                    shape="pill"
+                                    label="chrome"
+                                    className="min-w-[200px] justify-center gap-2 border border-brand-deep/20 bg-brand-deep text-primary-foreground hover:bg-brand-deep/90 hover:text-primary-foreground"
+                                >
+                                    {isGeneratingQuestions ? (
+                                        <><Loader2 className="w-4 h-4 animate-spin" /> Generating Questions...</>
+                                    ) : (
+                                        <>AI Generate Questions</>
+                                    )}
+                                </Button>
+                            </div>
+
+                            {generationFeedback && (
+                                <AlertPanel
+                                    tone={generationFeedback.tone}
+                                    size="sm"
+                                    role={generationFeedback.tone === "critical" ? "alert" : "status"}
+                                    aria-live={generationFeedback.tone === "critical" ? "assertive" : "polite"}
+                                    className="max-w-2xl animate-in fade-in slide-in-from-top-1"
+                                >
+                                    {generationFeedback.message}
+                                </AlertPanel>
+                            )}
                         </div>
                     )}
 

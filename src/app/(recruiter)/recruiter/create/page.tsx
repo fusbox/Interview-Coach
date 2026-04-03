@@ -337,7 +337,12 @@ export default function CreateInviteWizard() {
     };
 
     const generateQuestionsAI = async () => {
-        if (!details.role) return;
+        if (!details.role.trim()) {
+            const message = "Enter a Target Role first so we can generate relevant interview questions.";
+            setErrorMessage(message);
+            throw new Error(message);
+        }
+
         setIsGeneratingQuestions(true);
         setErrorMessage(null);
         setStatusMessage("Generating interview questions.");
@@ -370,7 +375,9 @@ export default function CreateInviteWizard() {
             setStatusMessage("AI-generated questions are ready.");
         } catch (e) {
             console.error("AI question generation failed:", e);
-            setErrorMessage("AI question generation failed. Please review the job details and try again.");
+            const message = "AI question generation failed. Please review the job details and try again.";
+            setErrorMessage(message);
+            throw new Error(message);
         } finally {
             setIsGeneratingQuestions(false);
         }

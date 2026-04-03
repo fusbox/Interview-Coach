@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { deleteSession } from "../actions";
 import { StatusBadge, AttemptBadge, InitialsMatchBadge } from "./session-badges";
 import { ResendInviteButton } from "./ResendInviteButton";
+import { AlertPanel } from "@/components/patterns/AlertPanel";
 import { DataTable } from "@/components/patterns/DataTable";
 import { formatTimestamp, formatDuration } from "@/lib/utils/format";
 
@@ -60,6 +61,7 @@ export function RecruiterSessionsTable({ initialSessions, recruiterTimezone, rec
     const [searchQuery, setSearchQuery] = useState("");
     const [sortConfig, setSortConfig] = useState<SortConfig>(null);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
 
     const getAriaSort = (key: SortKey) => {
         if (sortConfig?.key !== key) {
@@ -94,17 +96,18 @@ export function RecruiterSessionsTable({ initialSessions, recruiterTimezone, rec
         return () => window.removeEventListener('focus', onFocus);
     }, [router]);
 
-    const handleDelete = async (sessionId: string) => {
+    const handleDelete = async (session: SessionSummary) => {
         if (!confirm("Are you sure you want to delete this session? This action cannot be undone.")) {
             return;
         }
 
-        setIsDeleting(sessionId);
+        setIsDeleting(session.id);
+        setDeleteError(null);
         try {
-            await deleteSession(sessionId);
+            await deleteSession(session.id);
             router.refresh();
         } catch {
-            alert("Failed to delete session.");
+            setDeleteError(`We couldn't delete ${session.candidateName}'s session. Please try again.`);
         } finally {
             setIsDeleting(null);
         }
@@ -164,6 +167,18 @@ export function RecruiterSessionsTable({ initialSessions, recruiterTimezone, rec
                     aria-label="Search candidates or roles"
                 />
             </div>
+
+            {deleteError && (
+                <AlertPanel
+                    tone="critical"
+                    size="sm"
+                    role="alert"
+                    aria-live="assertive"
+                    className="animate-in fade-in slide-in-from-top-1"
+                >
+                    {deleteError}
+                </AlertPanel>
+            )}
 
             <DataTable<SessionSummary>
                 columns={[
@@ -327,7 +342,7 @@ export function RecruiterSessionsTable({ initialSessions, recruiterTimezone, rec
                                         className="h-8 w-8 text-text-muted hover:text-rose-800 hover:bg-rose-50 transition-colors rounded-2xl dark:hover:text-rose-200 dark:hover:bg-rose-500/10"
                                         title="Delete Session"
                                         disabled={isDeleting === session.id}
-                                        onClick={() => handleDelete(session.id)}
+                                        onClick={() => handleDelete(session)}
                                         aria-label={`Delete ${session.candidateName}'s session`}
                                     >
                                         <Trash2 className={isDeleting === session.id ? "h-4 w-4 animate-pulse" : "h-4 w-4"} />

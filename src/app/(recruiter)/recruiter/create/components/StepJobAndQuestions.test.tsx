@@ -176,4 +176,60 @@ describe("StepJobAndQuestions", () => {
             expect(onSaveTemplate).toHaveBeenCalledWith("Night Shift Pack", true);
         });
     });
+
+    it("prompts for target role before generating AI questions", async () => {
+        const user = userEvent.setup();
+
+        render(
+            <StepJobAndQuestions
+                details={{ role: "", jd: "", firstName: "", lastName: "", candidateEmail: "", reqId: "" }}
+                setDetails={vi.fn()}
+                star={[{ id: "s1", text: "", category: "STAR", label: "STAR 1" }]}
+                setStar={vi.fn()}
+                perma={[]}
+                setPerma={vi.fn()}
+                technical={[]}
+                setTechnical={vi.fn()}
+                onNext={vi.fn()}
+                onGenerateQuestionsAI={vi.fn()}
+                StepFooter={StepFooterStub}
+                onSaveTemplate={vi.fn()}
+            />
+        );
+
+        await user.click(screen.getByRole("button", { name: /ai generate questions/i }));
+
+        expect(await screen.findByRole("status")).toHaveTextContent(
+            "Enter a Target Role first so we can generate relevant interview questions."
+        );
+    });
+
+    it("shows a visible failure panel when AI question generation rejects", async () => {
+        const user = userEvent.setup();
+        const onGenerateQuestionsAI = vi.fn().mockRejectedValue(new Error("Generation failed"));
+
+        render(
+            <StepJobAndQuestions
+                details={{ role: "QA Engineer", jd: "", firstName: "", lastName: "", candidateEmail: "", reqId: "" }}
+                setDetails={vi.fn()}
+                star={[{ id: "s1", text: "", category: "STAR", label: "STAR 1" }]}
+                setStar={vi.fn()}
+                perma={[]}
+                setPerma={vi.fn()}
+                technical={[]}
+                setTechnical={vi.fn()}
+                onNext={vi.fn()}
+                onGenerateQuestionsAI={onGenerateQuestionsAI}
+                StepFooter={StepFooterStub}
+                onSaveTemplate={vi.fn()}
+            />
+        );
+
+        await user.click(screen.getByRole("button", { name: /ai generate questions/i }));
+
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "AI question generation failed. Please review the job details and try again."
+        );
+        expect(onGenerateQuestionsAI).toHaveBeenCalledTimes(1);
+    });
 });

@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { deleteSession } from "../actions";
 import { RecruiterSessionsTable } from "./RecruiterSessionsTable";
 
 const refreshMock = vi.fn();
@@ -86,5 +87,19 @@ describe("RecruiterSessionsTable", () => {
         const reordered = screen.getAllByText(/Alice Baker|Charlie Adams/);
         expect(reordered[0]).toHaveTextContent("Alice Baker");
         expect(screen.getByRole("columnheader", { name: /candidate/i })).toHaveAttribute("aria-sort", "ascending");
+    });
+
+    it("shows an inline error panel when deleting a session fails", async () => {
+        const user = userEvent.setup();
+        vi.spyOn(window, "confirm").mockReturnValue(true);
+        vi.mocked(deleteSession).mockRejectedValue(new Error("Delete failed"));
+
+        render(<RecruiterSessionsTable initialSessions={sessions} isAdmin />);
+
+        await user.click(screen.getByRole("button", { name: /delete charlie adams's session/i }));
+
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "We couldn't delete Charlie Adams's session. Please try again."
+        );
     });
 });
