@@ -16,7 +16,7 @@ Current characteristics:
 
 | Layer | Technology |
 |---|---|
-| App framework | Next.js 14 App Router |
+| App framework | Next.js 15 App Router |
 | UI | React 18, TypeScript, Tailwind CSS, Framer Motion |
 | Auth + data | Supabase |
 | AI | Google Gemini |

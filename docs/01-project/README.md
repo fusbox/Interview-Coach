@@ -10,6 +10,7 @@ Use this section when you need to:
 ## Current Contents
 
 - [project-charter.md](./project-charter.md)
+- [recruiter-team-description-brief.md](./recruiter-team-description-brief.md)
 - [stakeholder-map.md](./stakeholder-map.md)
 - [interview_coach_prd_v1.docx](./interview_coach_prd_v1.docx)
 - [handoff.pdf](./handoff.pdf)
