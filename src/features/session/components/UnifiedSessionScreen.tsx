@@ -81,6 +81,7 @@ export default function UnifiedSessionScreen() {
     const mobilePanelRef = useRef<HTMLDivElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const coachLensControlsRef = useRef<HTMLDivElement>(null);
+    const workspaceRef = useRef<HTMLDivElement>(null);
     const questionRegionRef = useRef<HTMLDivElement>(null);
 
     // Mobile Panel Auto-Scroll
@@ -110,6 +111,10 @@ export default function UnifiedSessionScreen() {
             }
 
             if (coachLensControlsRef.current?.contains(target)) {
+                return;
+            }
+
+            if (workspaceRef.current?.contains(target)) {
                 return;
             }
 
@@ -389,7 +394,10 @@ export default function UnifiedSessionScreen() {
 
             <main className="flex-1 w-full flex flex-row overflow-hidden relative">
                 {/* LEFT: Main Workspace */}
-                <div className="flex-1 flex flex-col items-center transition-all duration-700 ease-in-out overflow-y-auto custom-scrollbar">
+                <div
+                    ref={workspaceRef}
+                    className="flex-1 flex flex-col items-center transition-all duration-700 ease-in-out overflow-y-auto custom-scrollbar"
+                >
                     <div className="w-full max-w-4xl flex flex-col">
                         {/* 1. TOP: Question Card Area */}
                         <div
