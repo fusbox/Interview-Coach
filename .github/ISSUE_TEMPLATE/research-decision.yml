@@ -1,0 +1,44 @@
+name: Research / Decision
+description: Track an unresolved product, technical, or policy decision
+title: "[Decision] "
+labels:
+  - research
+body:
+  - type: textarea
+    id: decision_to_make
+    attributes:
+      label: Decision To Make
+      description: What needs to be decided?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What background matters for this decision?
+    validations:
+      required: true
+  - type: textarea
+    id: options_considered
+    attributes:
+      label: Options Considered
+      description: List the options currently under consideration.
+      placeholder: |
+        1. 
+        2. 
+        3. 
+  - type: textarea
+    id: recommendation
+    attributes:
+      label: Recommendation
+      description: What is the current best recommendation?
+  - type: textarea
+    id: inputs_needed
+    attributes:
+      label: Inputs Needed
+      description: What information is still needed?
+  - type: input
+    id: deadline_trigger
+    attributes:
+      label: Deadline / Trigger
+      description: When does this decision need to be made?

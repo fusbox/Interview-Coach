@@ -54,6 +54,9 @@ If you need current test strategy and coverage shape, add:
 - [environment_variable_matrix.md](./environment_variable_matrix.md)
   Current environment-variable contract and deployment guidance.
 
+- [ops improvement/operational-improvement_working_doc_2026-04-06.md](./ops%20improvement/operational-improvement_working_doc_2026-04-06.md)
+  Master setup and execution guide for GitHub operations, cadence, backlog hygiene, and repeatable project-management routines.
+
 - [ops_alert_policy.md](./ops_alert_policy.md)
   Current alert definitions, routing intent, and delivery ownership notes.
 

@@ -1,0 +1,46 @@
+name: Product / UX Idea
+description: Capture a feature, flow, or interface improvement idea
+title: "[Product] "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: user_need
+    attributes:
+      label: User Need
+      description: Who needs this, and what are they trying to do?
+    validations:
+      required: true
+  - type: textarea
+    id: proposed_change
+    attributes:
+      label: Proposed Change
+      description: Describe the feature or UX improvement.
+    validations:
+      required: true
+  - type: textarea
+    id: why_now
+    attributes:
+      label: Why Now
+      description: Why should this be considered now instead of later?
+  - type: textarea
+    id: mvp_scope
+    attributes:
+      label: MVP Scope
+      description: What is the smallest useful version?
+    validations:
+      required: true
+  - type: textarea
+    id: risks_tradeoffs
+    attributes:
+      label: Risks / Tradeoffs
+      description: Capture the main tradeoffs or concerns.
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      description: One checklist item per line.
+      placeholder: |
+        - [ ] 
+        - [ ] 
+        - [ ] 
