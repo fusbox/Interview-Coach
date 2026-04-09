@@ -27,6 +27,8 @@ export interface Step {
     content: React.ReactNode
     placement?: "auto" | "anchored" | "stacked" | "below"
     mobilePlacement?: "inherit" | "anchored" | "stacked" | "below"
+    matchTargetWidth?: boolean
+    mobileMatchTargetWidth?: boolean
     scrollBehavior?: "auto" | "none"
     showPrevious?: boolean
     cardWidth?: number
@@ -343,7 +345,14 @@ function TourOverlay({
 
     const primaryTarget = targets[0] ?? null
     const viewportPadding = TOUR_LAYOUT_TOKENS.viewportPadding
-    const anchoredCardWidth = Math.min(step.cardWidth ?? TOUR_LAYOUT_TOKENS.anchoredWidth, window.innerWidth - viewportPadding * 2)
+    const usesCompactCardChrome = window.innerWidth < TOUR_LAYOUT_TOKENS.responsiveBreakpoint
+    const shouldMatchTargetWidth =
+        (usesCompactCardChrome
+            ? (step.mobileMatchTargetWidth ?? step.matchTargetWidth)
+            : step.matchTargetWidth) ?? false
+    const anchoredCardWidth = shouldMatchTargetWidth && primaryTarget
+        ? Math.min(primaryTarget.rect.width, window.innerWidth - viewportPadding * 2)
+        : Math.min(step.cardWidth ?? TOUR_LAYOUT_TOKENS.anchoredWidth, window.innerWidth - viewportPadding * 2)
     const estimatedCardWidth = anchoredCardWidth
     const estimatedCardHeight = Math.min(340, window.innerHeight - viewportPadding * 2)
     const availableSpace = {
@@ -436,7 +445,6 @@ function TourOverlay({
         TOUR_LAYOUT_TOKENS.stacked.minContentHeight,
         stackedCardMaxHeight - TOUR_LAYOUT_TOKENS.stacked.reservedChromeHeight
     )
-    const usesCompactCardChrome = window.innerWidth < TOUR_LAYOUT_TOKENS.responsiveBreakpoint
     const cardLayout = usesCompactCardChrome ? TOUR_CARD_LAYOUTS.mobile : TOUR_CARD_LAYOUTS.desktop
     const belowCardWidth = anchoredCardWidth
     const belowCardLeft = Math.min(

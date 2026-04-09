@@ -113,7 +113,10 @@ export const recruiterTours = [
                         that you include it.
                     </p>
                 ),
-                side: "top",
+                placement: "anchored",
+                mobilePlacement: "anchored",
+                mobileMatchTargetWidth: true,
+                side: "bottom",
                 align: "start",
             },
             {
