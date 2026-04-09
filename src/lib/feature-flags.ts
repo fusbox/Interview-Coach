@@ -12,3 +12,19 @@ export const showDemoTools = () => {
 
     return showDemo || isDev;
 };
+
+const REPLAY_TOUR_INTERNAL_EMAILS = [
+    "fu@rangam.com",
+];
+
+export const canShowReplayTourButton = (userEmail?: string | null) => {
+    if (showDemoTools()) {
+        return true;
+    }
+
+    if (!userEmail) {
+        return false;
+    }
+
+    return REPLAY_TOUR_INTERNAL_EMAILS.includes(userEmail.toLowerCase());
+};

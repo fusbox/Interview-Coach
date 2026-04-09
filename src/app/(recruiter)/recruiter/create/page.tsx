@@ -18,7 +18,7 @@ import { RecruiterTemplate } from "@/lib/domain/template";
 import { normalizeRecruiterSignature } from "@/lib/recruiter-signature";
 import { DEFAULT_RECRUITER_COMPANY, DEFAULT_RECRUITER_NAME } from "@/lib/config/recruiter-defaults";
 import { E2E_RECRUITER_EMAIL, isClientE2EMode } from "@/lib/e2e/test-mode";
-import { showDemoTools } from "@/lib/feature-flags";
+import { canShowReplayTourButton, showDemoTools } from "@/lib/feature-flags";
 import { useTour } from "@/components/ui/tour";
 import {
     RECRUITER_CREATE_INVITE_TOUR_ID,
@@ -36,7 +36,6 @@ function createIdempotencyKey() {
 export default function CreateInviteWizard() {
     const router = useRouter();
     const { activeTourId, activeStepId } = useTour();
-    const canReplayTour = showDemoTools();
     const isCreateTourActive = activeTourId === RECRUITER_CREATE_INVITE_TOUR_ID;
     const isCreateTourLocked = isCreateTourActive;
     const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -91,10 +90,12 @@ export default function CreateInviteWizard() {
         title: "",
         company: DEFAULT_RECRUITER_COMPANY
     });
+    const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
 
     // Fetch Recruiter Profile & Templates
     useEffect(() => {
         if (isClientE2EMode()) {
+            setCurrentUserEmail(E2E_RECRUITER_EMAIL);
             setRecruiterProfile(normalizeRecruiterSignature({
                 name: DEFAULT_RECRUITER_NAME,
                 email: E2E_RECRUITER_EMAIL,
@@ -112,6 +113,7 @@ export default function CreateInviteWizard() {
         const fetchData = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
+                setCurrentUserEmail(user.email ?? null);
                 // Fetch Profile
                 const { data } = await supabase
                     .from('recruiter_profiles')
@@ -136,6 +138,8 @@ export default function CreateInviteWizard() {
         };
         fetchData();
     }, []);
+
+    const canReplayTour = canShowReplayTourButton(currentUserEmail);
 
     const searchParams = useSearchParams();
     const templateIdFromUrl = searchParams.get("templateId");

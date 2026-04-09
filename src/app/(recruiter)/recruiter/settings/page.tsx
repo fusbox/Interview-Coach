@@ -10,7 +10,7 @@ import { AlertPanel } from "@/components/patterns/AlertPanel";
 import { PageHeaderBlock } from "@/components/patterns/PageHeaderBlock";
 import { FieldGroup, FieldHint, FieldLabel, selectFieldClassName, textFieldClassName } from "@/components/patterns/FormField";
 import { E2E_RECRUITER_ID, getE2ERecruiterProfile, isClientE2EMode } from "@/lib/e2e/test-mode";
-import { showDemoTools } from "@/lib/feature-flags";
+import { canShowReplayTourButton } from "@/lib/feature-flags";
 import {
     RECRUITER_CREATE_INVITE_TOUR_ID,
     TOUR_RESET_SEARCH_PARAM,
@@ -89,11 +89,11 @@ function formatPhoneNumber(value: string) {
 
 export default function SettingsPage() {
     const router = useRouter();
-    const canReplayTour = showDemoTools();
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
 
     const [initialProfile, setInitialProfile] = useState<RecruiterProfile | null>(null);
     const [profile, setProfile] = useState<RecruiterProfile>({
@@ -117,6 +117,7 @@ export default function SettingsPage() {
 
     useEffect(() => {
         if (isClientE2EMode()) {
+            setCurrentUserEmail(null);
             const e2eProfile = {
                 recruiter_id: E2E_RECRUITER_ID,
                 first_name: getE2ERecruiterProfile().first_name,
@@ -139,6 +140,8 @@ export default function SettingsPage() {
                 router.push("/login");
                 return;
             }
+
+            setCurrentUserEmail(user.email ?? null);
 
             const { data, error } = await supabase
                 .from('recruiter_profiles')
@@ -179,6 +182,7 @@ export default function SettingsPage() {
 
 
     const isDirty = initialProfile && JSON.stringify(profile) !== JSON.stringify(initialProfile);
+    const canReplayTour = canShowReplayTourButton(currentUserEmail);
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
