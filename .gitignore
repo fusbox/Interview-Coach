@@ -48,7 +48,14 @@ coverage/
 .cache/
 .agent
 openspec
+.vscode
 .deprecated
 .todo
 .pfizer
 .webreel
+.codex
+.learning
+.untracked
+tours.md
+
+

@@ -44,6 +44,12 @@ export async function updateSessionCommand(
     const summarizeSession =
         dependencies?.summarizeSession ??
         (async (session: InterviewSession) => (await import("@/lib/server/services/ai-service")).AIService.summarizeSession(session));
+    // Integration handoff note:
+    // This command triggers Flow 3 for outbound email: automatically sending the candidate
+    // debrief when a session completes. The default implementation currently resolves to the
+    // Resend-backed EmailService. When the integration team connects the company's established
+    // enterprise mail service in deployment environments, keep this dependency contract stable
+    // and replace the provider adapter rather than reworking session-completion logic.
     const sendDebriefEmail =
         dependencies?.sendDebriefEmail ??
         (async (session: InterviewSession) => (await import("@/lib/server/services/email-service")).EmailService.sendDebriefEmail(session));

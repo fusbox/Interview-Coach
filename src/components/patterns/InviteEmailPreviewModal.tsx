@@ -40,6 +40,8 @@ interface InviteEmailPreviewModalProps {
     successSecondaryLabel?: string;
     successSecondaryIcon?: React.ReactNode;
     showSuccessFeedbackPrompt?: boolean;
+    disableSend?: boolean;
+    tourMode?: boolean;
 }
 
 export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = ({
@@ -57,6 +59,8 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
     successSecondaryLabel = "Go to Dashboard",
     successSecondaryIcon = <LayoutDashboard size={20} />,
     showSuccessFeedbackPrompt = true,
+    disableSend = false,
+    tourMode = false,
 }) => {
     const fromEmail = "Rangam Interview Coach <interviews@coach.rangam.com>";
     const fromEmailMobile = "interviews@coach.rangam.com";
@@ -139,7 +143,12 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
         <AnimatePresence>
             {isOpen && (
                 <div 
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8"
+                    className={cn(
+                        "fixed inset-0 z-[100] flex justify-center p-4 md:p-8",
+                        tourMode && !sendSuccess
+                            ? "items-end pt-40 md:items-center md:pt-8"
+                            : "items-center"
+                    )}
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby={titleId}
@@ -160,8 +169,13 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                         ref={dialogRef}
                         className={cn(
                             "relative w-full overflow-hidden bg-surface-base border border-border/50 shadow-2xl rounded-[32px] flex flex-col",
-                            sendSuccess ? "max-w-md h-auto" : "max-w-5xl h-[90vh]"
+                            sendSuccess
+                                ? "max-w-md h-auto"
+                                : tourMode
+                                  ? "max-w-5xl h-[calc(100vh-11rem)] md:h-[90vh]"
+                                  : "max-w-5xl h-[90vh]"
                         )}
+                        data-tour-step-id="tour-recruiter-create-preview-modal"
                         tabIndex={-1}
                     >
                         {sendSuccess ? (
@@ -263,7 +277,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                         </Button>
                                         <Button
                                             onClick={onSend}
-                                            disabled={isSending || data.recipientEmails.length === 0}
+                                            disabled={disableSend || isSending || data.recipientEmails.length === 0}
                                             emphasis="primary"
                                             density="compact"
                                             shape="square"
@@ -271,7 +285,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                             className="gap-2 disabled:scale-100"
                                         >
                                             {isSending ? <Loader2 size={14} className="animate-spin" /> : <SendHorizontal size={14} />}
-                                            {isSending ? "Sending..." : "Send"}
+                                            {disableSend ? "Send Disabled During Tour" : isSending ? "Sending..." : "Send"}
                                         </Button>
                                         <div className="mx-1 hidden h-6 w-[1px] bg-border/30 md:block" />
                                         <Button

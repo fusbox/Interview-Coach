@@ -28,6 +28,11 @@ export async function sendInviteEmailCommand(
     dependencies: SendInviteEmailDependencies = {}
 ) {
     const sessionRepository = dependencies.sessionRepository ?? new (await import("@/lib/server/infrastructure/supabase-session-repository")).SupabaseSessionRepository();
+    // Integration handoff note:
+    // This command is Flow 1 for outbound email: the recruiter create-invite experience sending
+    // the initial invite. The provider implementation currently resolves to EmailService, which
+    // is Resend-backed today. When the deployment environment is wired to the company's standard
+    // enterprise mail service, keep this command contract intact and swap the provider behind it.
     const sendInviteEmail = dependencies.sendInviteEmail ?? EmailService.sendInviteEmail.bind(EmailService);
 
     if (input.sessionIds && input.sessionIds.length > 0) {

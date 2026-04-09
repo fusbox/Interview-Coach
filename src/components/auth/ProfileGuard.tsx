@@ -38,7 +38,7 @@ export function ProfileGuard() {
                 .single();
 
             if (error?.code === 'PGRST116' || !data) {
-                router.push('/recruiter/settings');
+                router.push('/recruiter/settings?tour=recruiter-create-invite');
             }
             setChecked(true);
         };

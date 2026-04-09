@@ -16,7 +16,7 @@ function StepFooterStub({ onNext, isNextDisabled, customAction }: StepFooterProp
 }
 
 describe("StepJobAndQuestions", () => {
-    it("keeps next disabled until req id, role, and a question are present", async () => {
+    it("keeps next disabled until req id, role, job description, and a question are present", async () => {
         let details: Details = { role: "", jd: "", firstName: "", lastName: "", candidateEmail: "", reqId: "" };
         let star: QuestionInput[] = [{ id: "s1", text: "", category: "STAR", label: "STAR 1" }];
         const perma: QuestionInput[] = [];
@@ -70,6 +70,9 @@ describe("StepJobAndQuestions", () => {
 
         fireEvent.change(screen.getByLabelText("Req ID"), { target: { value: "REQ-10" } });
         fireEvent.change(screen.getByLabelText("Target Role"), { target: { value: "QA Engineer" } });
+        fireEvent.change(screen.getByLabelText("Job Description"), {
+            target: { value: "Own QA coverage for customer-facing product releases." }
+        });
         fireEvent.change(screen.getByLabelText("STAR question 1"), {
             target: { value: "Tell me about a time you improved quality." }
         });
@@ -177,7 +180,7 @@ describe("StepJobAndQuestions", () => {
         });
     });
 
-    it("prompts for target role before generating AI questions", async () => {
+    it("prompts for target role and job description before generating AI questions", async () => {
         const user = userEvent.setup();
 
         render(
@@ -200,7 +203,7 @@ describe("StepJobAndQuestions", () => {
         await user.click(screen.getByRole("button", { name: /ai generate questions/i }));
 
         expect(await screen.findByRole("status")).toHaveTextContent(
-            "Enter a Target Role first so we can generate relevant interview questions."
+            "Add a Target Role and Job Description first so AI can generate relevant interview questions."
         );
     });
 
@@ -210,7 +213,7 @@ describe("StepJobAndQuestions", () => {
 
         render(
             <StepJobAndQuestions
-                details={{ role: "QA Engineer", jd: "", firstName: "", lastName: "", candidateEmail: "", reqId: "" }}
+                details={{ role: "QA Engineer", jd: "Support release validation and regression coverage.", firstName: "", lastName: "", candidateEmail: "", reqId: "" }}
                 setDetails={vi.fn()}
                 star={[{ id: "s1", text: "", category: "STAR", label: "STAR 1" }]}
                 setStar={vi.fn()}

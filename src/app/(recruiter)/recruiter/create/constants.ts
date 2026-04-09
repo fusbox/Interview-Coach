@@ -35,6 +35,7 @@ export interface StepFooterProps {
     onNext: () => void;
     nextLabel: string | React.ReactNode;
     isNextDisabled?: boolean;
+    disableManualNavigation?: boolean;
     customAction?: React.ReactNode;
 }
 

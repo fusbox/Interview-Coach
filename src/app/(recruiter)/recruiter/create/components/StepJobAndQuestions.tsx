@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Loader2, Save, X } from "lucide-react";
+import { Plus, Sparkles, Trash2, Loader2, Save, X } from "lucide-react";
 import { Details, QuestionInput, StepFooterProps } from "../constants";
 import { useEffect, useState, useLayoutEffect, useRef, useId } from "react";
 import { ChevronRight } from "lucide-react";
@@ -29,6 +29,7 @@ interface StepJobAndQuestionsProps {
     StepFooter: React.ComponentType<StepFooterProps>;
     templates?: RecruiterTemplate[];
     onSaveTemplate: (name: string, isShared: boolean) => Promise<void>;
+    isTourLocked?: boolean;
 }
 
 // Reactive auto-resize textarea helper - Moved outside component to prevent focus loss on re-render
@@ -39,6 +40,7 @@ const AutoResizeTextarea = ({
     className,
     ariaLabel,
     name,
+    disabled = false,
 }: {
     value: string;
     onChange: (val: string) => void;
@@ -46,6 +48,7 @@ const AutoResizeTextarea = ({
     className?: string;
     ariaLabel?: string;
     name?: string;
+    disabled?: boolean;
 }) => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fieldId = useId();
@@ -69,6 +72,8 @@ const AutoResizeTextarea = ({
             rows={1}
             style={{ resize: 'none', overflow: 'hidden' }}
             aria-label={ariaLabel}
+            disabled={disabled}
+            readOnly={disabled}
         />
     );
 };
@@ -84,7 +89,8 @@ export function StepJobAndQuestions({
     isGeneratingQuestions,
     StepFooter,
     templates = [],
-    onSaveTemplate
+    onSaveTemplate,
+    isTourLocked = false
 }: StepJobAndQuestionsProps) {
     const isDemo = showDemoTools();
     const [isSaving, setIsSaving] = useState(false);
@@ -122,10 +128,16 @@ export function StepJobAndQuestions({
     }, []);
 
     useEffect(() => {
-        if (details.role.trim() && generationFeedback?.tone === "warning") {
+        if (details.role.trim() && details.jd.trim() && generationFeedback?.tone === "warning") {
             setGenerationFeedback(null);
         }
-    }, [details.role, generationFeedback?.tone]);
+    }, [details.jd, details.role, generationFeedback?.tone]);
+
+    useEffect(() => {
+        if (isTourLocked) {
+            setShowSaveModal(false);
+        }
+    }, [isTourLocked]);
 
     const addTechnical = () => {
         setTechnical([...technical, {
@@ -185,10 +197,10 @@ export function StepJobAndQuestions({
             generationFeedbackTimeoutRef.current = null;
         }
 
-        if (!details.role.trim()) {
+        if (!details.role.trim() || !details.jd.trim()) {
             setGenerationFeedback({
                 tone: "warning",
-                message: "Enter a Target Role first so we can generate relevant interview questions.",
+                message: "Add a Target Role and Job Description first so AI can generate relevant interview questions.",
             });
             generationFeedbackTimeoutRef.current = window.setTimeout(() => {
                 setGenerationFeedback(null);
@@ -213,7 +225,7 @@ export function StepJobAndQuestions({
         perma.some(q => q.text.trim()) ||
         technical.some(q => q.text.trim());
 
-    const isNextDisabled = !details.role || !details.reqId || !hasAtLeastOneQuestion;
+    const isNextDisabled = !details.role.trim() || !details.reqId.trim() || !details.jd.trim() || !hasAtLeastOneQuestion;
 
     return (
         <div className="space-y-10">
@@ -230,6 +242,7 @@ export function StepJobAndQuestions({
                                     density="compact"
                                     shape="pill"
                                     label="chrome"
+                                    disabled={isTourLocked}
                                     className="border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-400/30 dark:bg-amber-500/15 dark:text-amber-200 dark:hover:bg-amber-500/25"
                                 >
                                     🎲 Random Job
@@ -244,7 +257,10 @@ export function StepJobAndQuestions({
             {/* Cards Section: Job Details & Questions */}
             <div className="space-y-8">
                 {/* Job Details Section */}
-                <Card className="border-border/50 shadow-raised-1">
+                <Card
+                    className="border-border/50 shadow-raised-1"
+                    data-tour-step-id="tour-recruiter-create-job-details"
+                >
                     <CardHeader className="pb-4">
                         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                             <CardTitle className="text-base font-bold font-sans flex items-center gap-2.5">
@@ -263,6 +279,7 @@ export function StepJobAndQuestions({
                                         name="templateId"
                                         className="h-11 w-full rounded-xl border border-border bg-surface-base px-4 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-flat"
                                         defaultValue=""
+                                        disabled={isTourLocked}
                                         onChange={(e) => handleApplyTemplate(e.target.value)}
                                     >
                                         <option value="" disabled>Select a Template...</option>
@@ -280,6 +297,7 @@ export function StepJobAndQuestions({
                                     <FieldLabel htmlFor={reqIdInputId}>Req ID</FieldLabel>
                                     <input id={reqIdInputId} className={`${textFieldClassName} h-11 py-0`}
                                         name="reqId"
+                                        disabled={isTourLocked}
                                         value={details.reqId} onChange={e => setDetails({ ...details, reqId: e.target.value })}
                                         placeholder="e.g. RCI-ENG-101" />
                                 </FieldGroup>
@@ -287,14 +305,16 @@ export function StepJobAndQuestions({
                                     <FieldLabel htmlFor={targetRoleInputId}>Target Role</FieldLabel>
                                     <input id={targetRoleInputId} className={`${textFieldClassName} h-11 py-0`}
                                         name="targetRole"
+                                        disabled={isTourLocked}
                                         value={details.role} onChange={e => setDetails({ ...details, role: e.target.value })}
                                         placeholder="e.g. Senior Product Manager" />
                                 </FieldGroup>
                             </div>
                             <FieldGroup className="space-y-2">
-                                <FieldLabel htmlFor={jobDescriptionInputId}>Job Description <span className="text-text-disabled font-normal lowercase tracking-normal">(Optional)</span></FieldLabel>
+                                <FieldLabel htmlFor={jobDescriptionInputId}>Job Description</FieldLabel>
                                 <textarea id={jobDescriptionInputId} className={textareaFieldClassName}
                                     name="jobDescription"
+                                    disabled={isTourLocked}
                                     value={details.jd} onChange={e => setDetails({ ...details, jd: e.target.value })}
                                     placeholder="Paste the job description here..." />
                             </FieldGroup>
@@ -302,14 +322,14 @@ export function StepJobAndQuestions({
                 </Card>
                 
                 {/* Questions Group: AI Generator + Question Sections */}
-                <div className="space-y-4">
+                <div className="space-y-4" data-tour-step-id="tour-recruiter-create-questions">
                     {/* AI Generator Action - Contextually placed closer to questions */}
                     {onGenerateQuestionsAI && (
                         <div className="space-y-3">
-                            <div className="flex justify-start">
+                            <div className="flex justify-start" data-tour-step-id="tour-recruiter-create-ai-generate">
                                 <Button
                                     onClick={handleGenerateQuestions}
-                                    disabled={isGeneratingQuestions}
+                                    disabled={isGeneratingQuestions || isTourLocked}
                                     emphasis="primary"
                                     density="comfortable"
                                     shape="pill"
@@ -319,7 +339,7 @@ export function StepJobAndQuestions({
                                     {isGeneratingQuestions ? (
                                         <><Loader2 className="w-4 h-4 animate-spin" /> Generating Questions...</>
                                     ) : (
-                                        <>AI Generate Questions</>
+                                        <><Sparkles className="w-4 h-4" /> AI Generate Questions</>
                                     )}
                                 </Button>
                             </div>
@@ -356,11 +376,13 @@ export function StepJobAndQuestions({
                                         placeholder={`STAR Question ${idx + 1}...`}
                                         ariaLabel={`STAR question ${idx + 1}`}
                                         name={`star-question-${idx + 1}`}
+                                        disabled={isTourLocked}
                                     />
                                     {q.text && (
                                         <button
                                             type="button"
                                             onClick={() => clearQuestion(setStar, star, q.id)}
+                                            disabled={isTourLocked}
                                             className="absolute right-3 top-3 p-1 text-rose-700 hover:text-rose-800 transition-all duration-base dark:text-rose-300 dark:hover:text-rose-200"
                                             title="Clear content"
                                             aria-label={`Clear STAR question ${idx + 1}`}
@@ -391,11 +413,13 @@ export function StepJobAndQuestions({
                                         placeholder={`${q.label} Question...`}
                                         ariaLabel={`${q.label} question`}
                                         name={`perma-question-${idx + 1}`}
+                                        disabled={isTourLocked}
                                     />
                                     {q.text && (
                                         <button
                                             type="button"
                                             onClick={() => clearQuestion(setPerma, perma, q.id)}
+                                            disabled={isTourLocked}
                                             className="absolute right-3 top-3 p-1 text-rose-700 hover:text-rose-800 transition-all duration-base dark:text-rose-300 dark:hover:text-rose-200"
                                             title="Clear content"
                                             aria-label={`Clear ${q.label} question`}
@@ -422,6 +446,7 @@ export function StepJobAndQuestions({
                                 label="strong"
                                 onClick={addTechnical}
                                 type="button"
+                                disabled={isTourLocked}
                                 className="hidden sm:flex rounded-xl text-emerald-800 border-emerald-400 hover:bg-emerald-50 hover:border-emerald-500 hover:text-emerald-900 transition-all dark:text-emerald-200 dark:border-emerald-400/50 dark:hover:bg-emerald-500/10"
                             >
                                 <Plus className="w-4 h-4 mr-1" /> Add
@@ -438,11 +463,13 @@ export function StepJobAndQuestions({
                                         placeholder={`Technical Question ${idx + 1}...`}
                                         ariaLabel={`Technical question ${idx + 1}`}
                                         name={`technical-question-${idx + 1}`}
+                                        disabled={isTourLocked}
                                     />
                                         {q.text && (
                                             <button
                                                 type="button"
                                                 onClick={() => clearQuestion(setTechnical, technical, q.id)}
+                                                disabled={isTourLocked}
                                                 className="absolute right-3 top-3 p-1 text-rose-700 hover:text-rose-800 transition-all duration-base dark:text-rose-300 dark:hover:text-rose-200"
                                                 title="Clear content"
                                                 aria-label={`Clear technical question ${idx + 1}`}
@@ -452,7 +479,7 @@ export function StepJobAndQuestions({
                                         )}
                                     </div>
                                     {technical.length > 1 && (
-                                        <Button size="icon" variant="ghost" shape="square" className="text-rose-700 hover:bg-rose-50 shrink-0 dark:text-rose-300 dark:hover:bg-rose-500/10" onClick={() => removeQuestion(setTechnical, technical, q.id)} aria-label={`Remove technical question ${idx + 1}`}>
+                                        <Button size="icon" variant="ghost" shape="square" className="text-rose-700 hover:bg-rose-50 shrink-0 dark:text-rose-300 dark:hover:bg-rose-500/10" onClick={() => removeQuestion(setTechnical, technical, q.id)} aria-label={`Remove technical question ${idx + 1}`} disabled={isTourLocked}>
                                             <Trash2 className="w-4 h-4" />
                                         </Button>
                                     )}
@@ -465,6 +492,7 @@ export function StepJobAndQuestions({
                                 label="strong"
                                 onClick={addTechnical}
                                 type="button"
+                                disabled={isTourLocked}
                                 className="mt-2 w-full border-dashed text-emerald-800 border-emerald-400 hover:bg-emerald-50 hover:border-emerald-500 dark:text-emerald-200 dark:border-emerald-400/50 dark:hover:bg-emerald-500/10 sm:hidden"
                             >
                                 <Plus className="w-4 h-4 mr-2" /> Add Technical Question
@@ -478,6 +506,7 @@ export function StepJobAndQuestions({
                 onNext={onNext}
                 nextLabel={<>Next: Add Candidates <ChevronRight className="ml-2 w-4 h-4" /></>}
                 isNextDisabled={isNextDisabled}
+                disableManualNavigation={isTourLocked}
                 customAction={
                     <Button
                         emphasis="secondary"
@@ -486,7 +515,7 @@ export function StepJobAndQuestions({
                         label="strong"
                         className="w-full text-text-secondary"
                         onClick={() => setShowSaveModal(true)}
-                        disabled={!details.role || !hasAtLeastOneQuestion}
+                        disabled={isTourLocked || !details.role.trim() || !hasAtLeastOneQuestion}
                     >
                         <Save className="w-4 h-4 mr-2" />
                         Save as Template

@@ -5,11 +5,16 @@ import { createBrowserClient } from "@supabase/ssr";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
-import { Loader2, Save, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Loader2, Save, CheckCircle2, AlertTriangle, RotateCcw } from "lucide-react";
 import { AlertPanel } from "@/components/patterns/AlertPanel";
 import { PageHeaderBlock } from "@/components/patterns/PageHeaderBlock";
 import { FieldGroup, FieldHint, FieldLabel, selectFieldClassName, textFieldClassName } from "@/components/patterns/FormField";
 import { E2E_RECRUITER_ID, getE2ERecruiterProfile, isClientE2EMode } from "@/lib/e2e/test-mode";
+import { showDemoTools } from "@/lib/feature-flags";
+import {
+    RECRUITER_CREATE_INVITE_TOUR_ID,
+    TOUR_RESET_SEARCH_PARAM,
+} from "@/features/tours/recruiter-tour-provider";
 
 interface RecruiterProfile {
     recruiter_id: string;
@@ -64,8 +69,27 @@ const getTimezones = () => {
 
 const TIMEZONES = getTimezones();
 
+function formatPhoneNumber(value: string) {
+    const digits = value.replace(/\D/g, "").slice(0, 10);
+
+    if (digits.length === 0) {
+        return "";
+    }
+
+    if (digits.length <= 3) {
+        return `(${digits}`;
+    }
+
+    if (digits.length <= 6) {
+        return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    }
+
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
 export default function SettingsPage() {
     const router = useRouter();
+    const canReplayTour = showDemoTools();
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -130,7 +154,7 @@ export default function SettingsPage() {
                     first_name: data.first_name || "",
                     last_name: data.last_name || "",
                     title: data.title || "",
-                    phone: data.phone || "",
+                    phone: formatPhoneNumber(data.phone || ""),
                     timezone: data.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
                 };
                 setInitialProfile(cleanData);
@@ -206,6 +230,15 @@ export default function SettingsPage() {
         }
     };
 
+    const handleReplayTour = () => {
+        const replayParams = new URLSearchParams({
+            tour: RECRUITER_CREATE_INVITE_TOUR_ID,
+            [TOUR_RESET_SEARCH_PARAM]: "1",
+        });
+
+        router.push(`/recruiter/settings?${replayParams.toString()}`);
+    };
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center p-12">
@@ -219,10 +252,29 @@ export default function SettingsPage() {
             <PageHeaderBlock
                 title="Account Settings"
                 description="Manage your profile and display preferences."
+                actions={
+                    canReplayTour ? (
+                        <Button
+                            type="button"
+                            onClick={handleReplayTour}
+                            emphasis="secondary"
+                            density="compact"
+                            shape="pill"
+                            label="chrome"
+                            className="gap-2"
+                        >
+                            <RotateCcw className="h-4 w-4" />
+                            Replay Tour 1
+                        </Button>
+                    ) : null
+                }
             />
 
             <form onSubmit={handleSave}>
-                <Card className="border-border/50 shadow-raised-1 bg-surface-base overflow-hidden">
+                <Card
+                    className="border-border/50 shadow-raised-1 bg-surface-base overflow-hidden"
+                    data-tour-step-id="tour-recruiter-settings-profile"
+                >
                     <CardHeader className="bg-surface-subtle/30 border-b border-border/10 py-6">
                         <CardTitle className="text-xl font-bold text-text-primary">Profile Details</CardTitle>
                         <CardDescription className="text-sm text-text-muted mt-1">
@@ -285,8 +337,11 @@ export default function SettingsPage() {
                                 name="phone"
                                 className={textFieldClassName}
                                 value={profile.phone}
-                                onChange={e => setProfile({ ...profile, phone: e.target.value })}
+                                onChange={e => setProfile({ ...profile, phone: formatPhoneNumber(e.target.value) })}
                                 type="tel"
+                                inputMode="numeric"
+                                autoComplete="tel-national"
+                                maxLength={14}
                                 placeholder="(555) 123-4567"
                             />
                         </FieldGroup>
@@ -315,7 +370,7 @@ export default function SettingsPage() {
                     </CardContent>
                     <CardFooter className="flex justify-between items-center bg-surface-subtle/50 p-6 border-t border-border/10">
                         <div className="text-micro font-bold uppercase tracking-widest text-text-disabled">
-                            {isDirty ? "Unsaved changes" : "All changes saved"}
+                            {isDirty ? "Unsaved changes" : ""}
                         </div>
                         <div className="flex gap-4">
                             {isDirty && (
@@ -339,6 +394,7 @@ export default function SettingsPage() {
                                 shape="app"
                                 label="strong"
                                 className="gap-2"
+                                data-tour-step-id="tour-recruiter-settings-save"
                             >
                                 {isSaving ? (
                                     <>
@@ -346,7 +402,7 @@ export default function SettingsPage() {
                                     </>
                                 ) : (
                                     <>
-                                        <Save className="w-3.5 h-3.5" /> Save Changes
+                                        <Save className="w-3.5 h-3.5" /> {isDirty ? "Save Changes" : "Saved"}
                                     </>
                                 )}
                             </Button>

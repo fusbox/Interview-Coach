@@ -30,6 +30,9 @@ interface StepPreviewCombinedProps {
     recruiterProfile: RecruiterProfile;
     onNewInvite: () => void;
     onDashboard: () => void;
+    forcedPreviewOpen?: boolean;
+    disableSend?: boolean;
+    isTourLocked?: boolean;
 }
 
 export function StepPreviewCombined({
@@ -44,7 +47,10 @@ export function StepPreviewCombined({
     error,
     recruiterProfile,
     onNewInvite,
-    onDashboard
+    onDashboard,
+    forcedPreviewOpen = false,
+    disableSend = false,
+    isTourLocked = false,
 }: StepPreviewCombinedProps) {
     const [localIsGenerated, setLocalIsGenerated] = useState(isGenerated);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -132,7 +138,7 @@ export function StepPreviewCombined({
     };
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-slow">
+        <div className="space-y-8 animate-in fade-in duration-slow" data-tour-step-id="tour-recruiter-create-preview">
             <SectionHeader
                 title="Confirm Details & Invite"
                 description="Finalize your job requirements and candidate list. Once generated, you can preview and send the invitations."
@@ -157,6 +163,7 @@ export function StepPreviewCombined({
                                         shape="square"
                                         label="strong"
                                         onClick={setDetailStep} 
+                                        disabled={isTourLocked}
                                         className="text-primary hover:bg-brand-glass-start hover:text-primary"
                                     >
                                         <Edit className="w-4 h-4 mr-2" /> Edit
@@ -224,6 +231,7 @@ export function StepPreviewCombined({
                                         shape="square"
                                         label="strong"
                                         onClick={setCandidateStep} 
+                                        disabled={isTourLocked}
                                         className="text-primary hover:bg-brand-glass-start hover:text-primary"
                                     >
                                         <Edit className="w-4 h-4 mr-2" /> Edit
@@ -310,6 +318,7 @@ export function StepPreviewCombined({
                             shape="app"
                             label="strong"
                             onClick={onBack}
+                            disabled={isTourLocked}
                             className="w-full sm:w-auto"
                         >
                             <ChevronLeft className="w-4 h-4 mr-2" /> Back
@@ -319,7 +328,7 @@ export function StepPreviewCombined({
                     <div className="relative w-full sm:w-auto">
                         <Button
                             onClick={handleAction}
-                            disabled={isLoading || isSending || sendSuccess}
+                            disabled={isLoading || isSending || sendSuccess || isTourLocked}
                             emphasis="primary"
                             density="comfortable"
                             shape="app"
@@ -339,7 +348,7 @@ export function StepPreviewCombined({
 
             {recruiterProfile && (
                 <InviteEmailPreviewModal 
-                    isOpen={isPreviewOpen}
+                    isOpen={isPreviewOpen || forcedPreviewOpen}
                     onClose={() => {
                         setIsPreviewOpen(false);
                         setHasUserManuallyClosed(true);
@@ -355,12 +364,14 @@ export function StepPreviewCombined({
                         recruiterPhone: recruiterProfile.phone,
                         recruiterEmail: recruiterProfile.email
                     }}
-                    onSend={handleSendAll}
+                    onSend={disableSend ? () => undefined : handleSendAll}
                     isSending={isSending}
                     sendSuccess={sendSuccess}
                     errorMessage={sendError}
                     onNewInvite={onNewInvite}
                     onDashboard={onDashboard}
+                    disableSend={disableSend}
+                    tourMode={isTourLocked && forcedPreviewOpen}
                 />
             )}
         </div>

@@ -2,10 +2,10 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { Button } from "@/components/ui/button";
-import { Check, ChevronLeft } from "lucide-react";
+import { Check, ChevronLeft, RotateCcw } from "lucide-react";
 import { Details, InviteBatchSummary, QuestionInput, STAR_TEMPLATE, PERMA_TEMPLATE, DEV_CANDIDATE_POOL, DEV_JOB_POOL, RecruiterProfile, InviteFailure, InviteResult } from "./constants";
 
 // Sub-components
@@ -18,6 +18,12 @@ import { RecruiterTemplate } from "@/lib/domain/template";
 import { normalizeRecruiterSignature } from "@/lib/recruiter-signature";
 import { DEFAULT_RECRUITER_COMPANY, DEFAULT_RECRUITER_NAME } from "@/lib/config/recruiter-defaults";
 import { E2E_RECRUITER_EMAIL, isClientE2EMode } from "@/lib/e2e/test-mode";
+import { showDemoTools } from "@/lib/feature-flags";
+import { useTour } from "@/components/ui/tour";
+import {
+    RECRUITER_CREATE_INVITE_TOUR_ID,
+    TOUR_RESET_SEARCH_PARAM,
+} from "@/features/tours/recruiter-tour-provider";
 
 function createIdempotencyKey() {
     if (typeof globalThis !== "undefined" && globalThis.crypto?.randomUUID) {
@@ -28,6 +34,11 @@ function createIdempotencyKey() {
 }
 
 export default function CreateInviteWizard() {
+    const router = useRouter();
+    const { activeTourId, activeStepId } = useTour();
+    const canReplayTour = showDemoTools();
+    const isCreateTourActive = activeTourId === RECRUITER_CREATE_INVITE_TOUR_ID;
+    const isCreateTourLocked = isCreateTourActive;
     const [step, setStep] = useState<1 | 2 | 3>(1);
     const [statusMessage, setStatusMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -70,6 +81,8 @@ export default function CreateInviteWizard() {
 
     const [error, setError] = useState<string | null>(null);
     const [createInviteKey, setCreateInviteKey] = useState(() => createIdempotencyKey());
+    const [tourPreviewOpen, setTourPreviewOpen] = useState(false);
+    const tourAutofillRef = useRef<Set<string>>(new Set());
 
     const [recruiterProfile, setRecruiterProfile] = useState<RecruiterProfile>({
         name: "",
@@ -217,6 +230,30 @@ export default function CreateInviteWizard() {
                 return;
             }
 
+            if (!details.role.trim()) {
+                const message = "Please add the target role before creating invites.";
+                setError(message);
+                setErrorMessage(message);
+                setIsLoading(false);
+                return;
+            }
+
+            if (!details.reqId.trim()) {
+                const message = "Please add the Req ID before creating invites.";
+                setError(message);
+                setErrorMessage(message);
+                setIsLoading(false);
+                return;
+            }
+
+            if (!details.jd.trim()) {
+                const message = "Please add the job description before creating invites.";
+                setError(message);
+                setErrorMessage(message);
+                setIsLoading(false);
+                return;
+            }
+
             if (candidates.length === 0) {
                 const message = "Please add at least one candidate.";
                 setError(message);
@@ -280,7 +317,7 @@ export default function CreateInviteWizard() {
     };
 
 
-    const StepFooter = ({ onBack, onNext, nextLabel, isNextDisabled, customAction }: { onBack?: () => void, onNext: () => void, nextLabel: string | React.ReactNode, isNextDisabled?: boolean, customAction?: React.ReactNode }) => (
+    const StepFooter = ({ onBack, onNext, nextLabel, isNextDisabled, disableManualNavigation, customAction }: { onBack?: () => void, onNext: () => void, nextLabel: string | React.ReactNode, isNextDisabled?: boolean, disableManualNavigation?: boolean, customAction?: React.ReactNode }) => (
         <div className="mt-8 pt-8 border-t border-border/30">
             <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-stretch sm:items-center gap-4 w-full">
                 <div>
@@ -291,6 +328,7 @@ export default function CreateInviteWizard() {
                             shape="app"
                             label="strong"
                             onClick={onBack}
+                            disabled={disableManualNavigation}
                             className="w-full sm:w-auto"
                         >
                             <ChevronLeft className="w-4 h-4 mr-2" /> Back
@@ -301,7 +339,7 @@ export default function CreateInviteWizard() {
                     {customAction}
                     <Button
                         onClick={onNext}
-                        disabled={isNextDisabled}
+                        disabled={isNextDisabled || disableManualNavigation}
                         emphasis="primary"
                         density="comfortable"
                         shape="app"
@@ -337,8 +375,8 @@ export default function CreateInviteWizard() {
     };
 
     const generateQuestionsAI = async () => {
-        if (!details.role.trim()) {
-            const message = "Enter a Target Role first so we can generate relevant interview questions.";
+        if (!details.role.trim() || !details.jd.trim()) {
+            const message = "Add a Target Role and Job Description first so AI can generate relevant interview questions.";
             setErrorMessage(message);
             throw new Error(message);
         }
@@ -383,8 +421,174 @@ export default function CreateInviteWizard() {
         }
     };
 
+    const handleReplayTour = () => {
+        const replayParams = new URLSearchParams({
+            tour: RECRUITER_CREATE_INVITE_TOUR_ID,
+            [TOUR_RESET_SEARCH_PARAM]: "1",
+        });
+
+        router.push(`/recruiter/settings?${replayParams.toString()}`);
+    };
+
+    useEffect(() => {
+        if (activeTourId !== RECRUITER_CREATE_INVITE_TOUR_ID || !activeStepId) {
+            setTourPreviewOpen(false);
+            return;
+        }
+
+        if (
+            activeStepId === "tour-recruiter-create-wizard" ||
+            activeStepId === "tour-recruiter-create-job-details" ||
+            activeStepId === "tour-recruiter-create-questions" ||
+            activeStepId === "tour-recruiter-create-ai-generate"
+        ) {
+            setStep(1);
+        }
+
+        if (
+            activeStepId === "tour-recruiter-create-candidates" ||
+            activeStepId === "tour-recruiter-create-resume"
+        ) {
+            setStep(2);
+        }
+
+        if (
+            activeStepId === "tour-recruiter-create-preview" ||
+            activeStepId === "tour-recruiter-create-preview-modal"
+        ) {
+            setStep(3);
+        }
+
+        if (
+            activeStepId === "tour-recruiter-create-job-details" &&
+            !tourAutofillRef.current.has(activeStepId)
+        ) {
+            setDetails((previous) => ({
+                ...previous,
+                reqId: previous.reqId || "RANG-CS-101",
+                role: previous.role || "Customer Service Representative",
+                jd:
+                    previous.jd ||
+                    "Support candidates and customers with empathy, clear communication, accurate documentation, and timely follow-through across phone, chat, and email channels.",
+            }));
+            tourAutofillRef.current.add(activeStepId);
+        }
+
+        if (
+            activeStepId === "tour-recruiter-create-questions" &&
+            !tourAutofillRef.current.has(activeStepId)
+        ) {
+            setStar((previous) =>
+                previous.map((question, index) => ({
+                    ...question,
+                    text:
+                        question.text ||
+                        [
+                            "Tell me about a time you de-escalated a frustrated customer and what changed by the end of the conversation.",
+                            "Describe a situation where you had to balance empathy with company policy during a support interaction.",
+                        ][index] ||
+                        question.text,
+                }))
+            );
+            setPerma((previous) =>
+                previous.map((question, index) => ({
+                    ...question,
+                    text:
+                        question.text ||
+                        [
+                            "How do you stay positive and helpful during repetitive or high-volume support work?",
+                            "What does a strong team handoff look like when you cannot solve a customer issue on your own?",
+                            "How do you build trust quickly with someone who feels unheard?",
+                            "What kind of manager feedback helps you improve fastest in a service role?",
+                            "How do you keep yourself organized when priorities change throughout the day?",
+                        ][index] ||
+                        question.text,
+                }))
+            );
+            setTechnical([
+                {
+                    id: "tech-tour-1",
+                    text: "How would you document a customer issue so the next teammate can pick it up without losing context?",
+                    category: "Technical",
+                    label: "Technical Q1",
+                },
+                {
+                    id: "tech-tour-2",
+                    text: "What steps would you take before escalating a ticket that has already been reassigned twice?",
+                    category: "Technical",
+                    label: "Technical Q2",
+                },
+            ]);
+            tourAutofillRef.current.add(activeStepId);
+        }
+
+        if (
+            activeStepId === "tour-recruiter-create-candidates" &&
+            !tourAutofillRef.current.has(activeStepId)
+        ) {
+            setCandidates([
+                {
+                    id: "tour-candidate-1",
+                    firstName: "Fu",
+                    lastName: "Chen",
+                    email: "fusbox@gmail.com",
+                    resumeText: "",
+                },
+            ]);
+            tourAutofillRef.current.add(activeStepId);
+        }
+
+        if (
+            activeStepId === "tour-recruiter-create-resume" &&
+            !tourAutofillRef.current.has(activeStepId)
+        ) {
+            tourAutofillRef.current.add(activeStepId);
+            void fetch("/AdminCS_resume.txt")
+                .then((response) => response.text())
+                .then((resumeText) => {
+                    setCandidates((previous) =>
+                        previous.map((candidate, index) =>
+                            index === 0 ? { ...candidate, resumeText } : candidate
+                        )
+                    );
+                })
+                .catch(() => {
+                    setCandidates((previous) =>
+                        previous.map((candidate, index) =>
+                            index === 0
+                                ? {
+                                      ...candidate,
+                                      resumeText:
+                                          candidate.resumeText ||
+                                          "Customer service professional with experience supporting high-volume inbound requests, documenting issues clearly, and collaborating across teams to resolve escalations.",
+                                  }
+                                : candidate
+                        )
+                    );
+                });
+        }
+
+        setTourPreviewOpen(activeStepId === "tour-recruiter-create-preview-modal");
+    }, [activeStepId, activeTourId]);
+
     return (
         <div className="max-w-4xl mx-auto pb-8 pt-24 md:py-8 transition-all duration-300">
+            {canReplayTour && (
+                <div className="mb-4 flex justify-end md:mb-6">
+                    <Button
+                        type="button"
+                        onClick={handleReplayTour}
+                        emphasis="secondary"
+                        density="compact"
+                        shape="pill"
+                        label="chrome"
+                        className="gap-2"
+                    >
+                        <RotateCcw className="h-4 w-4" />
+                        Replay Tour 1
+                    </Button>
+                </div>
+            )}
             <div className="sr-only" aria-live="polite" aria-atomic="true">
                 {statusMessage}
             </div>
@@ -393,13 +597,16 @@ export default function CreateInviteWizard() {
             </div>
             {/* Stepper Header */}
             {step <= 3 && (
-                <div className="fixed top-0 left-0 right-0 z-30 bg-surface-base/95 backdrop-blur-md px-4 py-3 border-b border-border/50 md:static md:bg-transparent md:border-none md:p-0 md:m-0 md:mb-10 transition-all duration-base ease-standard">
+                <div
+                    className="fixed top-0 left-0 right-0 z-30 bg-surface-base/95 backdrop-blur-md px-4 py-3 border-b border-border/50 md:static md:bg-transparent md:border-none md:p-0 md:m-0 md:mb-10 transition-all duration-base ease-standard"
+                    data-tour-step-id="tour-recruiter-create-wizard"
+                >
                     <div className="relative">
                         <div className="absolute left-0 right-0 top-[15px] h-[2px] bg-surface-subtle -z-10" />
                         <div className="flex w-full max-w-2xl mx-auto">
                             {[1, 2, 3].map(s => (
                                 <div key={s} className={`flex-1 flex flex-col items-center group cursor-pointer transition-all duration-base ${s < step ? 'text-emerald-800 dark:text-emerald-200' : (s === step ? 'text-primary' : 'text-text-disabled')}`}
-                                    onClick={() => s <= step ? setStep(s as 1 | 2 | 3) : null}>
+                                    onClick={() => (!isCreateTourLocked && s <= step) ? setStep(s as 1 | 2 | 3) : null}>
                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 mb-2 transition-all duration-base
                                          ${s < step ? 'border-emerald-400 bg-emerald-50 text-emerald-800 dark:border-emerald-400/50 dark:bg-emerald-500/10 dark:text-emerald-200' :
                                             s === step ? 'border-primary bg-primary text-primary-foreground shadow-[0_0_0_4px_hsl(var(--primary)/0.15)]' :
@@ -430,6 +637,7 @@ export default function CreateInviteWizard() {
                     StepFooter={StepFooter}
                     templates={templates}
                     onSaveTemplate={handleSaveTemplate}
+                    isTourLocked={isCreateTourLocked}
                 />
             )}
 
@@ -441,6 +649,7 @@ export default function CreateInviteWizard() {
                     onNext={() => setStep(3)}
                     onRandomizeCandidate={randomizeCandidate}
                     StepFooter={StepFooter}
+                    isTourLocked={isCreateTourLocked}
                 />
             )}
 
@@ -460,6 +669,9 @@ export default function CreateInviteWizard() {
                     summary={inviteSummary}
                     error={error}
                     recruiterProfile={recruiterProfile}
+                    forcedPreviewOpen={tourPreviewOpen}
+                    disableSend={isCreateTourActive}
+                    isTourLocked={isCreateTourLocked}
                     onNewInvite={() => {
                         setCreateInviteKey(createIdempotencyKey());
                         setInviteResults([]);

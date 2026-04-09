@@ -24,6 +24,7 @@ interface StepCandidatesProps {
     onNext: () => void;
     onRandomizeCandidate?: () => void;
     StepFooter: React.ComponentType<StepFooterProps>;
+    isTourLocked?: boolean;
 }
 
 export function StepCandidates({
@@ -32,7 +33,8 @@ export function StepCandidates({
     onBack,
     onNext,
     onRandomizeCandidate,
-    StepFooter
+    StepFooter,
+    isTourLocked = false,
 }: StepCandidatesProps) {
     const isDemo = showDemoTools();
 
@@ -70,6 +72,7 @@ export function StepCandidates({
                             density="compact"
                             shape="pill"
                             label="chrome"
+                            disabled={isTourLocked}
                             className="border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100 dark:border-sky-400/30 dark:bg-sky-500/15 dark:text-sky-200 dark:hover:bg-sky-500/25"
                         >
                             Add Random
@@ -78,7 +81,10 @@ export function StepCandidates({
                 }
             />
 
-            <Card className="overflow-hidden rounded-[1.5rem] border-border/50 shadow-raised-1">
+            <Card
+                className="overflow-hidden rounded-[1.5rem] border-border/50 shadow-raised-1"
+                data-tour-step-id="tour-recruiter-create-candidates"
+            >
                 <CardHeader className="flex flex-row items-center justify-between border-b border-border/30 bg-surface-base py-5">
                     <CardTitle className="flex items-center gap-2.5 font-sans text-base font-bold">
                         <div className="h-4 w-1 rounded-full bg-primary" />
@@ -107,6 +113,7 @@ export function StepCandidates({
                                     name={`candidate-${candidate.id}-first-name`}
                                     className={`${textFieldClassName} h-11 py-0`}
                                     value={candidate.firstName}
+                                    disabled={isTourLocked}
                                     onChange={(e) => updateCandidate(candidate.id, "firstName", e.target.value)}
                                     placeholder="First Name"
                                 />
@@ -115,6 +122,7 @@ export function StepCandidates({
                                     name={`candidate-${candidate.id}-last-name`}
                                     className={`${textFieldClassName} h-11 py-0`}
                                     value={candidate.lastName}
+                                    disabled={isTourLocked}
                                     onChange={(e) => updateCandidate(candidate.id, "lastName", e.target.value)}
                                     placeholder="Last Name"
                                 />
@@ -123,6 +131,7 @@ export function StepCandidates({
                                     name={`candidate-${candidate.id}-email`}
                                     className={`${textFieldClassName} h-11 py-0`}
                                     value={candidate.email}
+                                    disabled={isTourLocked}
                                     onChange={(e) => updateCandidate(candidate.id, "email", e.target.value)}
                                     placeholder="Email Address"
                                     type="email"
@@ -132,8 +141,10 @@ export function StepCandidates({
                                     name={`candidate-${candidate.id}-resume-text`}
                                     className={`${textFieldClassName} h-11 py-0 md:col-span-3`}
                                     value={candidate.resumeText || ""}
+                                    disabled={isTourLocked}
                                     onChange={(e) => updateCandidate(candidate.id, "resumeText", e.target.value)}
                                     placeholder="Paste resume text (optional)"
+                                    data-tour-step-id="tour-recruiter-create-resume"
                                 />
                             </div>
                             <Button
@@ -142,6 +153,7 @@ export function StepCandidates({
                                 shape="square"
                                 className="-mr-2 mt-1 h-8 w-8 shrink-0 rounded-lg px-0 text-destructive hover:bg-rose-50 dark:hover:bg-rose-500/10 md:mr-0 md:h-10 md:w-10 md:rounded-xl"
                                 onClick={() => removeCandidate(candidate.id)}
+                                disabled={isTourLocked}
                             >
                                 <Trash2 className="h-4 w-4" />
                             </Button>
@@ -154,6 +166,7 @@ export function StepCandidates({
                         shape="app"
                         label="strong"
                         onClick={addCandidate}
+                        disabled={isTourLocked}
                         className="mt-4 w-full gap-2 text-emerald-800 border-emerald-400 hover:bg-emerald-50 hover:border-emerald-500 hover:text-emerald-900 dark:text-emerald-200 dark:border-emerald-400/50 dark:hover:bg-emerald-500/10"
                     >
                         <UserPlus className="h-4 w-4" />
@@ -167,6 +180,7 @@ export function StepCandidates({
                 onNext={onNext}
                 nextLabel={<>Next: Preview <ChevronRight className="ml-2 h-4 w-4" /></>}
                 isNextDisabled={!isValid}
+                disableManualNavigation={isTourLocked}
             />
         </div>
     );

@@ -12,9 +12,27 @@ import { ProviderResponseError } from '@/lib/server/provider-errors';
 
 assertProductionServerEnv(["RESEND_API_KEY"], "email delivery configuration");
 
+/**
+ * Integration handoff note:
+ * This service is the current provider-specific adapter for outbound email and is intentionally
+ * implemented with Resend for local/dev rollout. When this app is deployed into the company's
+ * managed environments, replace the Resend-specific client/env wiring in this file with the
+ * company-approved enterprise email service already established there.
+ *
+ * Known business flows that depend on this adapter:
+ * 1. Recruiter create-invite flow sending initial invite emails.
+ * 2. Recruiter dashboard resend flow sending invite emails from existing session data.
+ * 3. Candidate post-session debrief autosend on session completion.
+ *
+ * Keep the command-layer contracts stable when swapping providers so the rest of the app does
+ * not need to change. If the deployment environment uses a Microsoft/enterprise mail stack,
+ * this file is the place to wire that provider in.
+ */
 export class EmailService {
     /**
-     * Helper to get a fresh Resend client with the latest API key from process.env
+     * Provider adapter helper.
+     * Replace this Resend client bootstrap with the deployment environment's established
+     * enterprise mail client when the integration team connects the production provider.
      */
     private static getClient() {
         const apiKey = getOptionalServerEnv("RESEND_API_KEY");
@@ -25,6 +43,8 @@ export class EmailService {
     }
 
     static async sendDebriefEmail(session: InterviewSession) {
+        // Flow 3: post-session debrief autosend. Preserve this method signature when swapping
+        // Resend out for the company's standard outbound email implementation.
         const resend = this.getClient();
         
         if (!resend) {
@@ -115,6 +135,9 @@ export class EmailService {
         recruiterPhone?: string;
         recruiterEmail?: string;
     }) {
+        // Flow 1 and Flow 2: recruiter invite send + recruiter resend from dashboard/session
+        // data. Keep this contract stable so only this provider adapter has to change during
+        // enterprise mail-service integration.
         const resend = this.getClient();
         
         if (!resend) {
