@@ -18,7 +18,7 @@ import { RecruiterTemplate } from "@/lib/domain/template";
 import { normalizeRecruiterSignature } from "@/lib/recruiter-signature";
 import { DEFAULT_RECRUITER_COMPANY, DEFAULT_RECRUITER_NAME } from "@/lib/config/recruiter-defaults";
 import { E2E_RECRUITER_EMAIL, isClientE2EMode } from "@/lib/e2e/test-mode";
-import { canShowReplayTourButton, showDemoTools } from "@/lib/feature-flags";
+import { canShowReplayTourButton } from "@/lib/feature-flags";
 import { useTour } from "@/components/ui/tour";
 import {
     RECRUITER_CREATE_INVITE_TOUR_ID,
