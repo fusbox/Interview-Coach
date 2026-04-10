@@ -26,11 +26,6 @@ const config = {
 					'var(--font-sans)',
 					...fontFamily.sans
 				],
-				tech: ['var(--font-tech)', ...fontFamily.mono],
-				classic: ['var(--font-classic)', ...fontFamily.serif],
-				academic: ['var(--font-academic)', ...fontFamily.serif],
-				industrial: ['var(--font-industrial)', ...fontFamily.sans],
-				signage: ['var(--font-signage)', ...fontFamily.sans],
 			},
 			fontSize: {
 				micro: ['0.625rem', { lineHeight: '1rem', letterSpacing: '0.05em' }]
