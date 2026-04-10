@@ -70,12 +70,16 @@ table
 Filter:
 
 ```text
-Repository = Interview-Coach-Recruiter AND (Label = hardening OR Label = policy OR Type = Bug)
+repo:Rangam-Fu/Interview-Coach-Recruiter label:hardening,policy
 ```
 
 Purpose:
 
 - release-risk management
+
+Operational note:
+
+- if a recruiter-app bug belongs in this hardening lane, also label it `hardening` or `policy`
 
 ### 4. Candidate Discovery
 
@@ -88,12 +92,16 @@ table
 Filter:
 
 ```text
-Repository = interviewcoach AND (Label = research OR Label = policy OR Type = Feature)
+repo:Rangam-Fu/interviewcoach label:research,policy
 ```
 
 Purpose:
 
 - dashboard and privacy/product discovery
+
+Operational note:
+
+- if a candidate-app feature belongs in this discovery lane, also label it `research` or `policy`
 
 ### 5. Blocked
 
@@ -148,18 +156,17 @@ table
 Filter:
 
 ```text
-Status = Done
-```
-
-Sort:
-
-```text
-updated descending
+Status:Done
 ```
 
 Purpose:
 
 - closeout and reporting
+
+Operational note:
+
+- GitHub Projects currently supports `updated` as a filter qualifier, but not as a sortable table field in this view
+- if you want this view to focus on very recent work, add an additional filter such as `updated:>@today-14d`
 
 ## Built-In Workflows
 
