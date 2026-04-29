@@ -8,6 +8,7 @@ import { consumeRateLimit } from "@/lib/server/rate-limit";
 import { createServerLogger } from "@/lib/server/server-logger";
 import { sendInviteEmailCommand } from "@/lib/server/application/invites/send-invite-email";
 import { InviteAccessError } from "@/lib/server/application/invites/errors";
+import { isProductionServer } from "@/lib/server/config/server-env";
 
 const WINDOW_MS = 5 * 60 * 1000;
 const MAX_IP_REQUESTS = 20;
@@ -153,11 +154,15 @@ export async function POST(req: NextRequest) {
         });
         incrementMetric("invite_send_total", { outcome: "error" });
         observeMetric("invite_send_duration_ms", Date.now() - startedAt, { outcome: "error" });
+        const details = !isProductionServer()
+            ? (error instanceof Error ? error.message : String(error))
+            : undefined;
         return errorResponse(500, {
             code: 'INTERNAL_ERROR',
             message: 'Internal server error',
             correlationId,
-            retryable: true
+            retryable: true,
+            details
         });
     }
 }

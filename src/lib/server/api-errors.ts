@@ -15,6 +15,7 @@ export type ApiErrorBody = {
     message: string;
     correlationId: string;
     retryable: boolean;
+    details?: string;
 };
 
 export function createCorrelationId() {

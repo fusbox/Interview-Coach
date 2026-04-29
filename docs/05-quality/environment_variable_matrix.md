@@ -12,8 +12,11 @@ This matrix documents the environment variables currently used by the applicatio
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Client + server | Browser and SSR Supabase access | Public anon key. Safe for client distribution, but should still be scoped to the correct Supabase project and protected by RLS/policies. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes in production server deployments | Server only | Admin Supabase access | High-sensitivity secret. Never expose to client code or logs. Required for admin-path server operations. Protected server paths should fail fast in production when it is missing. |
 | `GEMINI_API_KEY` | Recommended locally, effectively required for production AI features | Server only | Gemini-backed analysis, tips, strong responses, question generation, TTS | In local/test, AI services may degrade/fallback when absent. In production, missing key should be treated as a deployment error via fail-fast server configuration. Treat as a secret. |
-| `RESEND_API_KEY` | Recommended locally, effectively required for production email delivery | Server only | Invite and debrief email delivery | In local/test, email service may skip sends when absent. In production, missing key should be treated as a deployment error via fail-fast server configuration. Treat as a secret. |
-| `RESEND_FROM_EMAIL` | Optional | Server only | Outbound sender identity | Falls back to `Rangam Interview Coach <interviews@coach.rangam.com>`. Configure explicitly in production to match a verified sender. |
+| `SMTP_USERNAME` | Recommended locally, effectively required for production email delivery | Server only | SMTP authentication username for invite and debrief delivery | Treat as a secret. In local/test, email sends may be skipped when absent. In production, missing credentials should be treated as a deployment error via fail-fast server configuration. |
+| `SMTP_PASSWORD` | Recommended locally, effectively required for production email delivery | Server only | SMTP authentication password for invite and debrief delivery | Treat as a secret. In local/test, email sends may be skipped when absent. In production, missing credentials should be treated as a deployment error via fail-fast server configuration. |
+| `SMTP_HOST` | Optional | Server only | SMTP relay hostname | Defaults to `email-smtp.us-east-1.amazonaws.com` for the configured mail relay. Set explicitly in production if infrastructure standards require config-driven host selection. |
+| `SMTP_PORT` | Optional | Server only | SMTP relay port | Defaults to `587`. Use `465` only if your mail service requires implicit TLS instead of STARTTLS. |
+| `SMTP_FROM_EMAIL` | Optional | Server only | Outbound sender identity | Falls back to `Rangam Interview Coach <interviews@coach.rangam.com>`. Configure explicitly in production to match a verified sender identity. |
 | `RATE_LIMIT_BACKEND` | Optional locally, strongly recommended for explicit deployment configuration | Server only | Rate-limit backend selection | Supported values: `memory`, `supabase`. Defaults to `memory` in local/test and `supabase` in production. `memory` must not be used in production. |
 | `METRICS_BACKEND` | Optional locally, required for production release | Server only | Metrics sink selection | Supported values: `memory`, `supabase`. Current implementation still defaults to `memory` unless explicitly set to `supabase`, which is acceptable for local/test only. Production release contract should require `supabase` after the metrics rollup migration is applied. |
 | `TEAMS_ALERT_WEBHOOK_URL` | Optional until Teams delivery is adopted, then required for alert notifications | Server only | Microsoft Teams incoming webhook target for operational alerts | Used by the protected ops metrics `POST` route to deliver the currently triggered alert window to Teams. Treat as a secret webhook URL. Missing configuration does not break metrics collection, but it prevents Teams delivery. |
@@ -25,7 +28,7 @@ This matrix documents the environment variables currently used by the applicatio
 
 ## Security Notes
 
-- Do not expose `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `RESEND_API_KEY`, `ENCRYPTION_SECRET`, or `TEAMS_ALERT_WEBHOOK_URL` in client bundles, browser logs, screenshots, or copied examples.
+- Do not expose `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `ENCRYPTION_SECRET`, or `TEAMS_ALERT_WEBHOOK_URL` in client bundles, browser logs, screenshots, or copied examples.
 - Prefer deployment-managed secrets over committed local files.
 - Set canonical URL variables explicitly in non-local environments. Do not rely on mutable host headers as the primary trust source.
 - Keep `NEXT_PUBLIC_SHOW_DEMO_TOOLS` disabled in production by default.
@@ -40,8 +43,11 @@ Feature-complete local setup:
 - all of the above
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `GEMINI_API_KEY`
-- `RESEND_API_KEY`
-- `RESEND_FROM_EMAIL`
+- `SMTP_USERNAME`
+- `SMTP_PASSWORD`
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_FROM_EMAIL`
 - `RATE_LIMIT_BACKEND`
 - `METRICS_BACKEND`
 - `TEAMS_ALERT_WEBHOOK_URL`

@@ -2,8 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const originalEnv = { ...process.env };
 
-vi.mock("resend", () => ({
-    Resend: class {},
+vi.mock("nodemailer", () => ({
+    default: {
+        createTransport: vi.fn(() => ({
+            sendMail: vi.fn(),
+        })),
+    },
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -20,27 +24,29 @@ afterEach(() => {
 });
 
 describe("email service configuration", () => {
-    it("allows local/test imports without RESEND_API_KEY", async () => {
+    it("allows local/test imports without SMTP credentials", async () => {
         process.env = {
             ...process.env,
             NODE_ENV: "test",
         };
-        delete process.env.RESEND_API_KEY;
+        delete process.env.SMTP_USERNAME;
+        delete process.env.SMTP_PASSWORD;
 
         const { EmailService } = await import("./email-service");
 
         expect(EmailService).toBeDefined();
     });
 
-    it("fails fast in production when RESEND_API_KEY is missing", async () => {
+    it("fails fast in production when SMTP credentials are missing", async () => {
         process.env = {
             ...process.env,
             NODE_ENV: "production",
         };
-        delete process.env.RESEND_API_KEY;
+        delete process.env.SMTP_USERNAME;
+        delete process.env.SMTP_PASSWORD;
 
         await expect(import("./email-service")).rejects.toThrow(
-            "[ServerEnv] Missing required environment variable RESEND_API_KEY for email delivery configuration."
+            "[ServerEnv] Missing required environment variable SMTP_USERNAME for email delivery configuration."
         );
     });
 });

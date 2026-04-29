@@ -81,4 +81,35 @@ describe("resendInviteEmailCommand", () => {
         }));
         expect(markInvitationSent).toHaveBeenCalledWith("session-1");
     });
+
+    it("throws and does not mark the session sent when the provider does not confirm acceptance", async () => {
+        const markInvitationSent = vi.fn().mockResolvedValue(undefined);
+
+        await expect(() =>
+            resendInviteEmailCommand({
+                actorId: "user-1",
+                sessionId: "session-1",
+                recruiterName: "Recruiter",
+                requestUrl: "https://example.com/api/invite/resend"
+            }, {
+                sessionRepository: {
+                    get: vi.fn().mockResolvedValue({
+                        id: "session-1",
+                        recruiterId: "user-1",
+                        inviteToken: "token-1",
+                        role: "QA Engineer",
+                        candidate: {
+                            email: "candidate@example.com",
+                            firstName: "Cand"
+                        }
+                    }),
+                    markInvitationSent
+                } as never,
+                sendInviteEmail: vi.fn().mockResolvedValue(undefined),
+                getOrigin: vi.fn().mockReturnValue("https://example.com")
+            })
+        ).rejects.toThrow("Invite email provider did not confirm delivery acceptance");
+
+        expect(markInvitationSent).not.toHaveBeenCalled();
+    });
 });

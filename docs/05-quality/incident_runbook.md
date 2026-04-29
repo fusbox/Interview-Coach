@@ -22,16 +22,16 @@ Alert ID: `invite_delivery_failures`
 ### Immediate actions
 1. Open `/api/recruiter/ops/metrics` and confirm `sendFailures`, `sendSuccesses`, and failure rate.
 2. Check recent structured logs for `InviteAPI` and `EmailService`.
-3. Verify `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are still present in the deployment environment.
+3. Verify `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_HOST`, `SMTP_PORT`, and `SMTP_FROM_EMAIL` are still present in the deployment environment.
 4. If failures correlate to provider outage, pause bulk recruiter sends and notify the product owner.
 
 ### Likely causes
-- Resend outage or invalid API key
+- SMTP relay outage or invalid SMTP credentials
 - malformed provider response
 - invite payload regression
 
 ### Mitigation
-- Restore/rotate Resend credentials if missing or invalid.
+- Restore or rotate SMTP credentials if missing or invalid.
 - If provider outage persists, communicate temporary degraded state and retry later.
 - Roll back the most recent invite/email change if failures began immediately after deploy.
 

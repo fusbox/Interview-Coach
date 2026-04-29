@@ -47,6 +47,14 @@ export const ResendEmailSendResultSchema = z.object({
     id: z.string().min(1),
 });
 
+export const SmtpEmailSendResultSchema = z.object({
+    messageId: z.string().min(1),
+    accepted: z.array(z.string()).optional(),
+    rejected: z.array(z.string()).optional(),
+    pending: z.array(z.string()).optional(),
+    response: z.string().optional(),
+});
+
 export const QuestionSchema = z.object({
     id: z.string(),
     text: z.string(),

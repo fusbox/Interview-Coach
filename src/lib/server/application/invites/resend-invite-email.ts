@@ -6,6 +6,12 @@ import type {
     ResendInviteEmailInput,
 } from "@/lib/server/application/invites/types";
 
+function assertInviteEmailDispatched(result: InviteEmailResult): asserts result is { id: string } {
+    if (!result?.id) {
+        throw new Error("Invite email provider did not confirm delivery acceptance");
+    }
+}
+
 export type ResendInviteEmailDependencies = {
     sessionRepository?: {
         get(sessionId: string): Promise<{
@@ -74,6 +80,7 @@ export async function resendInviteEmailCommand(
         recruiterPhone: input.recruiterPhone,
         recruiterEmail: input.recruiterEmail
     });
+    assertInviteEmailDispatched(result);
 
     await sessionRepository.markInvitationSent(input.sessionId);
 

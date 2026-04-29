@@ -5,6 +5,12 @@ import type {
     SendInviteEmailInput,
 } from "@/lib/server/application/invites/types";
 
+function assertInviteEmailDispatched(result: InviteEmailResult): asserts result is { id: string } {
+    if (!result?.id) {
+        throw new Error("Invite email provider did not confirm delivery acceptance");
+    }
+}
+
 export type SendInviteEmailDependencies = {
     sessionRepository?: {
         get(sessionId: string): Promise<{ recruiterId?: string } | null>;
@@ -55,6 +61,7 @@ export async function sendInviteEmailCommand(
         recruiterPhone: input.recruiterPhone,
         recruiterEmail: input.recruiterEmail
     });
+    assertInviteEmailDispatched(result);
 
     if (input.sessionIds && input.sessionIds.length > 0) {
         await Promise.all(input.sessionIds.map((sessionId) => sessionRepository.markInvitationSent(sessionId)));

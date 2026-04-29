@@ -1,5 +1,5 @@
-import { Resend } from 'resend';
-import { ResendEmailSendResultSchema } from '@/lib/domain/schemas';
+import nodemailer from 'nodemailer';
+import { SmtpEmailSendResultSchema } from '@/lib/domain/schemas';
 import { InterviewSession } from '@/lib/domain/types';
 import { Logger } from '@/lib/logger';
 import { renderSessionDebriefEmail } from '../emails/SessionDebriefEmail';
@@ -10,47 +10,89 @@ import { assertProductionServerEnv, getOptionalServerEnv } from '@/lib/server/co
 import { getAppOrigin } from '@/lib/server/url/get-app-origin';
 import { ProviderResponseError } from '@/lib/server/provider-errors';
 
-assertProductionServerEnv(["RESEND_API_KEY"], "email delivery configuration");
+const DEFAULT_SMTP_HOST = "email-smtp.us-east-1.amazonaws.com";
+const DEFAULT_SMTP_PORT = 587;
+const DEFAULT_FROM_EMAIL = "Rangam Interview Coach <interviews@coach.rangam.com>";
+const SMTP_PROVIDER = "smtp";
+
+assertProductionServerEnv(["SMTP_USERNAME", "SMTP_PASSWORD"], "email delivery configuration");
+
+type SmtpSendResult = {
+    messageId: string;
+    accepted?: string[];
+    rejected?: string[];
+    pending?: string[];
+    response?: string;
+};
 
 /**
  * Integration handoff note:
- * This service is the current provider-specific adapter for outbound email and is intentionally
- * implemented with Resend for local/dev rollout. When this app is deployed into the company's
- * managed environments, replace the Resend-specific client/env wiring in this file with the
- * company-approved enterprise email service already established there.
+ * This service is the provider-specific adapter for outbound email and is intentionally isolated
+ * so the invite/debrief application flows do not need to change when infrastructure changes.
  *
  * Known business flows that depend on this adapter:
  * 1. Recruiter create-invite flow sending initial invite emails.
  * 2. Recruiter dashboard resend flow sending invite emails from existing session data.
  * 3. Candidate post-session debrief autosend on session completion.
  *
- * Keep the command-layer contracts stable when swapping providers so the rest of the app does
- * not need to change. If the deployment environment uses a Microsoft/enterprise mail stack,
- * this file is the place to wire that provider in.
+ * Keep the command-layer contracts stable so the rest of the app does not need to change.
  */
 export class EmailService {
     /**
      * Provider adapter helper.
-     * Replace this Resend client bootstrap with the deployment environment's established
-     * enterprise mail client when the integration team connects the production provider.
+     * This app now uses the company's SMTP relay for outbound email. Keep this adapter as the
+     * single integration seam so invite and debrief flows stay stable if the provider changes.
      */
     private static getClient() {
-        const apiKey = getOptionalServerEnv("RESEND_API_KEY");
-        if (!apiKey) {
+        const username = getOptionalServerEnv("SMTP_USERNAME");
+        const password = getOptionalServerEnv("SMTP_PASSWORD");
+
+        if (!username || !password) {
             return null;
         }
-        return new Resend(apiKey);
+
+        const host = getOptionalServerEnv("SMTP_HOST") || DEFAULT_SMTP_HOST;
+        const configuredPort = getOptionalServerEnv("SMTP_PORT");
+        const port = configuredPort ? Number.parseInt(configuredPort, 10) : DEFAULT_SMTP_PORT;
+
+        return nodemailer.createTransport({
+            host,
+            port: Number.isFinite(port) ? port : DEFAULT_SMTP_PORT,
+            secure: port === 465,
+            requireTLS: port !== 465,
+            auth: {
+                user: username,
+                pass: password,
+            },
+        });
+    }
+
+    private static getFromEmail() {
+        return getOptionalServerEnv("SMTP_FROM_EMAIL") || DEFAULT_FROM_EMAIL;
+    }
+
+    private static assertSmtpAccepted(result: SmtpSendResult, operation: string) {
+        const acceptedCount = result.accepted?.length ?? 0;
+        const rejectedCount = result.rejected?.length ?? 0;
+
+        if (acceptedCount === 0 || rejectedCount > 0) {
+            throw new ProviderResponseError(
+                SMTP_PROVIDER,
+                operation,
+                "schema_validation",
+                "SMTP provider did not accept all recipients"
+            );
+        }
     }
 
     static async sendDebriefEmail(session: InterviewSession) {
-        // Flow 3: post-session debrief autosend. Preserve this method signature when swapping
-        // Resend out for the company's standard outbound email implementation.
-        const resend = this.getClient();
+        // Flow 3: post-session debrief autosend.
+        const transport = this.getClient();
         
-        if (!resend) {
-            Logger.warn("[EmailService] No RESEND_API_KEY found in environment. Skipping email.", { 
+        if (!transport) {
+            Logger.warn("[EmailService] No SMTP credentials found in environment. Skipping email.", {
                 sessionId: session.id,
-                envKeys: Object.keys(process.env).filter(k => k.includes('RESEND'))
+                envKeys: Object.keys(process.env).filter((key) => key.includes("SMTP") || key.includes("RESEND"))
             }, "EmailService");
             return;
         }
@@ -64,10 +106,10 @@ export class EmailService {
         }
 
         try {
-            const fromEmail = getOptionalServerEnv("RESEND_FROM_EMAIL") || 'Rangam Interview Coach <interviews@coach.rangam.com>';
+            const fromEmail = this.getFromEmail();
             
-            Logger.info("[EmailService] Preparing to send via Resend", { 
-                sessionId: session.id, 
+            Logger.info("[EmailService] Preparing to send via SMTP", {
+                sessionId: session.id,
                 recipient: candidateEmail,
                 from: fromEmail
             }, "EmailService");
@@ -84,39 +126,31 @@ export class EmailService {
                 logoUrl: `${appOrigin}/rangam-logo.png`,
             });
 
-            const { data, error } = await resend.emails.send({
+            const sendResult = await transport.sendMail({
                 from: fromEmail,
                 to: [candidateEmail],
                 subject: 'Your Interview Practice Debrief is Ready',
                 html,
             });
 
-            if (error) {
-                Logger.error("[EmailService] Resend API Error Details", { 
-                    error, 
-                    sessionId: session.id,
-                    from: fromEmail,
-                    to: candidateEmail 
-                }, "EmailService");
-                throw error;
-            }
-
-            const parsedData = parseProviderValue(data, ResendEmailSendResultSchema, {
-                provider: "resend",
+            const parsedData = parseProviderValue(sendResult, SmtpEmailSendResultSchema, {
+                provider: SMTP_PROVIDER,
                 operation: "sendDebriefEmail"
             });
+            this.assertSmtpAccepted(parsedData, "sendDebriefEmail");
 
-            Logger.info("[EmailService] Email dispatched successfully", { 
-                sessionId: session.id, 
-                resendResponse: parsedData,
-                status: 'Check Resend Dashboard for delivery updates'
+            Logger.info("[EmailService] Email dispatched successfully", {
+                sessionId: session.id,
+                smtpResponse: parsedData
             }, "EmailService");
 
-            return parsedData;
+            return {
+                id: parsedData.messageId,
+            };
         } catch (error) {
             Logger.error("[EmailService] Failed to send email", {
                 error,
-                provider: error instanceof ProviderResponseError ? error.provider : "resend",
+                provider: error instanceof ProviderResponseError ? error.provider : SMTP_PROVIDER,
                 operation: error instanceof ProviderResponseError ? error.operation : "sendDebriefEmail",
                 providerErrorKind: error instanceof ProviderResponseError ? error.kind : undefined
             }, "EmailService");
@@ -135,21 +169,19 @@ export class EmailService {
         recruiterPhone?: string;
         recruiterEmail?: string;
     }) {
-        // Flow 1 and Flow 2: recruiter invite send + recruiter resend from dashboard/session
-        // data. Keep this contract stable so only this provider adapter has to change during
-        // enterprise mail-service integration.
-        const resend = this.getClient();
+        // Flow 1 and Flow 2: recruiter invite send + recruiter resend from dashboard/session data.
+        const transport = this.getClient();
         
-        if (!resend) {
-            Logger.warn("[EmailService] No RESEND_API_KEY found in environment. Skipping invite email.", { 
+        if (!transport) {
+            Logger.warn("[EmailService] No SMTP credentials found in environment. Skipping invite email.", {
                 recipientEmails: params.recipientEmails,
-                envKeys: Object.keys(process.env).filter(k => k.includes('RESEND'))
+                envKeys: Object.keys(process.env).filter((key) => key.includes("SMTP") || key.includes("RESEND"))
             }, "EmailService");
             return;
         }
 
         try {
-            const fromEmail = getOptionalServerEnv("RESEND_FROM_EMAIL") || 'Rangam Interview Coach <interviews@coach.rangam.com>';
+            const fromEmail = this.getFromEmail();
             const appOrigin = getAppOrigin();
             
             const html = renderCandidateInviteEmail({
@@ -168,7 +200,7 @@ export class EmailService {
                 supportContactEmail: pilotRollout.supportEmail,
             });
 
-            Logger.info("[EmailService] Preparing to send invite via Resend", { 
+            Logger.info("[EmailService] Preparing to send invite via SMTP", {
                 recipients: params.recipientEmails,
                 from: fromEmail,
                 role: params.role,
@@ -185,7 +217,7 @@ export class EmailService {
             const bcc = params.recipientEmails.length > 1 ? params.recipientEmails : [];
             const cc = params.recruiterEmail ? [params.recruiterEmail] : [];
 
-            const { data, error } = await resend.emails.send({
+            const sendResult = await transport.sendMail({
                 from: fromEmail,
                 to,
                 cc,
@@ -194,32 +226,24 @@ export class EmailService {
                 html,
             });
 
-            if (error) {
-                Logger.error("[EmailService] Resend Invite API Error", { 
-                    error, 
-                    from: fromEmail,
-                    to,
-                    cc,
-                    bcc
-                }, "EmailService");
-                throw error;
-            }
-
-            const parsedData = parseProviderValue(data, ResendEmailSendResultSchema, {
-                provider: "resend",
+            const parsedData = parseProviderValue(sendResult, SmtpEmailSendResultSchema, {
+                provider: SMTP_PROVIDER,
                 operation: "sendInviteEmail"
             });
+            this.assertSmtpAccepted(parsedData, "sendInviteEmail");
 
-            Logger.info("[EmailService] Invite email dispatched", { 
+            Logger.info("[EmailService] Invite email dispatched", {
                 recipientEmails: params.recipientEmails,
-                resendResponse: parsedData 
+                smtpResponse: parsedData
             }, "EmailService");
 
-            return parsedData;
+            return {
+                id: parsedData.messageId,
+            };
         } catch (error) {
             Logger.error("[EmailService] Failed to send invite email", {
                 error,
-                provider: error instanceof ProviderResponseError ? error.provider : "resend",
+                provider: error instanceof ProviderResponseError ? error.provider : SMTP_PROVIDER,
                 operation: error instanceof ProviderResponseError ? error.operation : "sendInviteEmail",
                 providerErrorKind: error instanceof ProviderResponseError ? error.kind : undefined
             }, "EmailService");

@@ -61,7 +61,7 @@ describe("SettingsPage", () => {
                 first_name: "Pat",
                 last_name: "Lee",
                 title: "Lead Recruiter",
-                phone: "555-111-2222",
+                phone: "(555) 111-2222",
                 timezone: "America/Chicago",
             },
             error: null,
@@ -78,15 +78,16 @@ describe("SettingsPage", () => {
         expect(titleInput).toHaveValue("Lead Recruiter");
 
         const firstNameInput = screen.getByRole("textbox", { name: "First Name" });
-        const saveButton = screen.getByRole("button", { name: /save changes/i });
+        const savedButton = screen.getByRole("button", { name: /saved/i });
 
-        expect(screen.getByText("All changes saved")).toBeInTheDocument();
-        expect(saveButton).toBeDisabled();
+        expect(screen.queryByText("Unsaved changes")).not.toBeInTheDocument();
+        expect(savedButton).toBeDisabled();
 
         await user.clear(firstNameInput);
         await user.type(firstNameInput, "Jordan");
 
         expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+        const saveButton = screen.getByRole("button", { name: /save changes/i });
         expect(saveButton).toBeEnabled();
 
         await user.click(saveButton);
@@ -97,14 +98,15 @@ describe("SettingsPage", () => {
                 first_name: "Jordan",
                 last_name: "Lee",
                 title: "Lead Recruiter",
-                phone: "555-111-2222",
+                phone: "(555) 111-2222",
                 timezone: "America/Chicago",
                 updated_at: expect.any(String),
             }));
         });
 
         expect(await screen.findByText("Profile updated successfully.")).toBeInTheDocument();
-        expect(screen.getByText("All changes saved")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /saved/i })).toBeDisabled();
+        expect(screen.queryByText("Unsaved changes")).not.toBeInTheDocument();
     });
 
     it("restores the original values when changes are canceled", async () => {
@@ -119,6 +121,7 @@ describe("SettingsPage", () => {
         await user.click(screen.getByRole("button", { name: "Cancel" }));
 
         expect(screen.getByRole("textbox", { name: /your job title/i })).toHaveValue("Lead Recruiter");
-        expect(screen.getByText("All changes saved")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /saved/i })).toBeDisabled();
+        expect(screen.queryByText("Unsaved changes")).not.toBeInTheDocument();
     });
 });
