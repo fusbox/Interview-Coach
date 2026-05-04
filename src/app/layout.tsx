@@ -21,6 +21,12 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
     title: 'Interview Coach',
     description: 'AI-powered interview practice',
+    icons: {
+        icon: [
+            { url: '/favicon.png?v=20260504', type: 'image/png' },
+        ],
+        shortcut: ['/favicon.png?v=20260504'],
+    },
 }
 
 export default function RootLayout({
