@@ -8,8 +8,8 @@ Scope of this pass:
 
 - Worktree: `C:\tmp\Interview-Coach-Recruiter-postgres`
 - Branch: `feature/postgres-integration`
-- Branch head during review: `5668696 bypass replay tour gate for 1 user`
-- Date: 2026-05-04
+- Branch head during review: `0d16be9 feat: centralize api route auth seam`
+- Date: 2026-05-05
 
 ## Current Classification
 
@@ -23,7 +23,7 @@ Scope of this pass:
 | Database connectivity | Working approach | Support `DATABASE_URL` and individual `POSTGRES_*`, preferring `DATABASE_URL` |
 | Auth approach | Working decision | App-owned email/password auth backed by Postgres for recruiter/admin users |
 | Candidate access | Working decision | Keep token-link access at `/s/[token]`, backed by Postgres token storage |
-| Email provider | Drifted by branch | This Azure branch still uses Resend; current mainline work has moved to SMTP/Microsoft mail |
+| Email provider | Implemented in branch, target config open | Branch uses SMTP/nodemailer. Target should use Microsoft/Office365 SMTP with explicit SMTP env values. |
 | Logs/DB inspection | Open | Needs integration-team answer |
 | Secret store | Open | Needs deployment owner answer |
 
@@ -40,8 +40,8 @@ Scope of this pass:
 | Quality commands | `npm run lint`, `npm run typecheck`, `npm run test:coverage`, `npm run test:stability` | GitHub workflow runs all four. |
 | Public origin requirement | `src/lib/server/url/get-app-origin.ts` | In production, `NEXT_PUBLIC_APP_URL` or `NEXT_PUBLIC_BASE_URL` must be set or URL generation throws. |
 | Current default public origin | `src/lib/config/public-app-origin.ts` | Defaults to `https://coach.rangam.com` outside production when no env/request origin exists. This should not be relied on for migrated production. |
-| Current email implementation in this branch | `src/lib/server/services/email-service.ts` | Uses Resend (`RESEND_API_KEY`, `RESEND_FROM_EMAIL`). This is stale relative to recent SMTP/Microsoft mail work and must be reconciled before migration completion. |
-| Current auth/data provider | `README.md`, `src/lib/supabase/*`, `package.json` | Still Supabase in this branch baseline. |
+| Current email implementation in this branch | `src/lib/server/services/email-service.ts`, `package.json` | Uses `nodemailer` with `SMTP_*` env vars. `SMTP_USERNAME` and `SMTP_PASSWORD` are production-required; `SMTP_HOST` currently defaults to AWS SES if omitted, so Microsoft/Office365 deployments must set it explicitly. |
+| Current auth/data provider | `src/lib/supabase/*`, repository factories, app-auth modules | Supabase remains as migration fallback. App-owned auth and Postgres repositories are now implemented behind backend flags for progressive cutover. |
 | Current DB package readiness | `package.json` | `pg` and `@types/pg` are already installed. |
 | Docker/container config | repo scan | No `Dockerfile` found in this branch. |
 | Vercel config | repo scan | No `vercel.json` found in this branch. |
@@ -56,7 +56,7 @@ Scope of this pass:
 | DB env input | `DATABASE_URL` preferred, `POSTGRES_*` fallback | Medium-high | Matches handoff values and gives integration flexibility. |
 | Auth | App-owned email/password | Medium-high | Product decision made for phase 1; implementation details remain. |
 | Session storage | Postgres-backed app sessions | Medium-high | Needed to replace Supabase SSR cookies. |
-| Email | Microsoft/Office365 SMTP | Medium | Confirmed in current mainline discussion, but this Azure branch still has Resend code. Reconcile branch before final runtime validation. |
+| Email | Microsoft/Office365 SMTP | Medium-high | Branch supports SMTP now. Confirm final host/port/from identity and that SMTP auth is enabled for the sender mailbox. |
 | AI provider | Google Gemini | High | Existing app uses `GEMINI_API_KEY` and Google GenAI SDK. |
 | Runtime install/build | `npm ci`, `npm run build`, `npm run start` | High | Confirmed by package scripts and GitHub workflow. |
 
@@ -77,11 +77,11 @@ This is the expected direction after Supabase removal. Names may be adjusted dur
 | `AUTH_COOKIE_NAME` | Optional | Explicit app session cookie name. Defaults to `ic_app_session`. | Added |
 | `APP_SESSION_TTL_SECONDS` | Optional | App-owned recruiter session lifetime in seconds. Defaults to 8 hours. | Added |
 | `GEMINI_API_KEY` | Required for production AI | Question generation, feedback, hints, strong response, debrief | Existing |
-| `SMTP_HOST` | Required after SMTP reconciliation | Microsoft/enterprise SMTP host | To reconcile from mainline |
-| `SMTP_PORT` | Required after SMTP reconciliation | Expected `587` | To reconcile from mainline |
-| `SMTP_USERNAME` | Required after SMTP reconciliation | SMTP auth user | To reconcile from mainline |
-| `SMTP_PASSWORD` | Required after SMTP reconciliation | SMTP secret | To reconcile from mainline |
-| `SMTP_FROM_EMAIL` | Required after SMTP reconciliation | Verified sender | To reconcile from mainline |
+| `SMTP_HOST` | Required for target Microsoft SMTP | Microsoft/enterprise SMTP host | Branch default is AWS SES, so set explicitly for company deployment |
+| `SMTP_PORT` | Required for target Microsoft SMTP | Expected `587` | Branch supports configurable port |
+| `SMTP_USERNAME` | Required in production | SMTP auth user | Branch fails fast in production if missing |
+| `SMTP_PASSWORD` | Required in production | SMTP secret | Branch fails fast in production if missing |
+| `SMTP_FROM_EMAIL` | Required for target sender identity | Verified sender | Set explicitly to avoid relying on fallback sender |
 | `APP_AUTH_BACKEND` | Optional during migration | Selects recruiter/admin auth lookup: `supabase` default or `postgres` for app-owned auth/session cookies. | Added |
 | `SESSION_REPOSITORY_BACKEND` | Optional during migration | Selects session repository implementation: `supabase` default or `postgres` for migration validation. | Added |
 | `INVITE_REPOSITORY_BACKEND` | Optional during migration | Selects invite repository implementation: `supabase` default or `postgres` for migration validation. | Added |
@@ -99,10 +99,7 @@ Supabase env vars to remove after migration:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
-Resend env vars to remove after SMTP reconciliation:
-
-- `RESEND_API_KEY`
-- `RESEND_FROM_EMAIL`
+Resend provider env vars are no longer expected for this branch. Any remaining "resend" names in code refer to the product action of resending an invite, not the Resend email vendor.
 
 ## Open Integration Questions
 
@@ -122,7 +119,7 @@ These need answers from the deployment/integration/infra side before environment
 12. What rollback mechanism exists for app deployment and DB migrations?
 13. Should recruiter/admin users be self-signup, admin-provisioned, or pre-seeded for phase 1?
 14. Are password complexity, password expiration, MFA, audit logging, or account lockout policies required?
-15. Should Microsoft SMTP be used in this Azure branch too, replacing Resend before DB/auth migration continues?
+15. What are the final Microsoft/Office365 SMTP host, port, sender format, and SMTP-auth policy for `interviews@coach.rangam.com`?
 
 ## Runtime Validation Checklist
 
@@ -169,4 +166,4 @@ Validation result as of May 5, 2026:
 
 - The target runtime facts are now partially confirmed, but the checklist item should remain open until staging/UAT URL, deployment platform, secret store, logs, DB inspection path, and final DB env/user contract are answered.
 - The Postgres client/config layer can still proceed before those answers by supporting both connection-string and split-env formats.
-- Email drift should be reconciled early: this branch uses Resend, while current working app has moved to SMTP/Microsoft mail.
+- Email code is now SMTP-based in this branch. Runtime validation still needs final Microsoft/Office365 SMTP env values because omitting `SMTP_HOST` would fall back to the old AWS SES host default.

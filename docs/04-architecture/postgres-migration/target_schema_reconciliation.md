@@ -46,7 +46,7 @@ These tables do not exist in the Supabase public schema because Supabase Auth cu
 | Target object | Source | Target action | Notes |
 | --- | --- | --- | --- |
 | `app_users` | Migration roadmap | Add. | Primary user record for recruiters, admins, and QA evaluators. Expected fields: `user_id`, normalized `email`, display name/profile basics as needed, `status`, timestamps. Consider lowercased email plus unique index; use `citext` only if target DB allows it. |
-| `app_user_credentials` | Migration roadmap | Add. | Store password hash and password metadata. Use a proven hash such as argon2 or bcrypt. Never store plain passwords. |
+| `app_user_credentials` | Migration roadmap | Add. | Store password hash and password metadata. Current app-auth implementation uses Node `crypto.scrypt` with per-password random salt and encoded hashes. Never store plain passwords. |
 | `app_sessions` | Migration roadmap | Add. | Server-side session records for secure HTTP-only auth cookies. Expected fields: hashed session token, user ID, expiry, revoked timestamp, user agent/IP metadata where useful. |
 | `app_user_roles` | Migration roadmap | Add. | Store recruiter/admin/QA roles. Replaces Supabase metadata and hardcoded allowlists as the long-term source. |
 | `password_reset_tokens` | Migration roadmap | Add. | Store hashed single-use reset tokens with expiry and used timestamp. |
@@ -126,7 +126,7 @@ These tables do not exist in the Supabase public schema because Supabase Auth cu
 | Question | Why it matters | Current working answer |
 | --- | --- | --- |
 | Should `AWAITING_EVAL` and `AWAITING_EVALUATION` both remain? | Duplicate status meanings can cause recovery bugs and query drift. | Preserve both initially to avoid breaking code, then normalize in a later app cleanup if safe. |
-| Should `create_invite_batch()` stay as a DB function? | A function keeps atomic session/question/token creation close to the DB, but current batch tracking happens outside that RPC and repository transactions may be easier to test and evolve. | Keep function in the initial schema draft as source-compatible behavior, but revisit during `PostgresInviteRepository` implementation. |
+| Should `create_invite_batch()` stay as a DB function? | A function keeps atomic session/question/token creation close to the DB, but tracked-batch behavior also needs invite batch and candidate status rows. | Current `PostgresInviteRepository` keeps `create_invite_batch()` for source-compatible batch creation and uses application transactions for tracked batch rows/status updates. Revisit only if this split becomes hard to validate or operate. |
 | Should metrics/SLO tables remain in phase 1? | They add migration scope but support operational visibility. | Keep unless product/integration explicitly cuts ops metrics from phase 1. |
 | Should `ai_generations` have strict FKs? | FKs improve integrity but can block logging if related records are missing or pruned. | Prefer nullable FKs where reliable; preserve logging even when context is partial. |
 | What should production DB role own? | Determines whether app can create schema/functions or only read/write existing objects. | Code can proceed flexibly; integration team must confirm before migration execution. |
@@ -147,5 +147,6 @@ Repository validation has now exercised the neutral `sessions`, `questions`, `an
 2. Validate AI-quality capture in a full local product smoke with `AI_GENERATION_REPOSITORY_BACKEND=postgres` once the surrounding route stack is ready for Postgres validation.
 3. Validate the same migration against a company-provided development or integration Postgres database once credentials/access are available.
 4. Review repository implementation feedback to decide whether `create_invite_batch()` remains a DB function or moves into an application transaction.
-5. Revisit this plan after the remaining auth/profile/browser Supabase work is ported.
+5. Revisit this plan after remaining server components/actions, middleware, and fallback repositories are moved off Supabase.
 6. Confirm with the integration team whether the production app DB user can create extensions, enums, functions, triggers, and indexes, or whether DBA-owned DDL application is required.
+7. Validate a full local product smoke with all implemented backend selectors pinned to `postgres`, including invite create/send/resend/retry, candidate practice, answer feedback, session debrief, and QA explorer reads.
