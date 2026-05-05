@@ -73,8 +73,9 @@ This is the expected direction after Supabase removal. Names may be adjusted dur
 | `POSTGRES_PASSWORD` | Fallback | DB password | Open confirmation |
 | `POSTGRES_DB` | Fallback | DB name | Open confirmation |
 | `NEXT_PUBLIC_APP_URL` | Required in production | Canonical public origin for invite/debrief links | Working target |
-| `APP_SESSION_SECRET` | Required after auth migration | Signs or protects app session cookies/tokens | To add |
-| `AUTH_COOKIE_NAME` | Optional | Explicit app session cookie name | To decide |
+| `APP_SESSION_SECRET` | Not currently required | Earlier placeholder for signed cookies/tokens. Current app-auth foundation uses random opaque session tokens hashed at rest, so there is no signing secret in this first implementation. | Revisit only if signed stateless tokens are introduced |
+| `AUTH_COOKIE_NAME` | Optional | Explicit app session cookie name. Defaults to `ic_app_session`. | Added |
+| `APP_SESSION_TTL_SECONDS` | Optional | App-owned recruiter session lifetime in seconds. Defaults to 8 hours. | Added |
 | `GEMINI_API_KEY` | Required for production AI | Question generation, feedback, hints, strong response, debrief | Existing |
 | `SMTP_HOST` | Required after SMTP reconciliation | Microsoft/enterprise SMTP host | To reconcile from mainline |
 | `SMTP_PORT` | Required after SMTP reconciliation | Expected `587` | To reconcile from mainline |

@@ -1,4 +1,12 @@
-import { User } from "@supabase/supabase-js";
+import type { User } from "@supabase/supabase-js";
+import type { AppUser } from "./user";
+
+type StaffUser = (User | AppUser) & {
+    email?: string;
+    app_metadata?: Record<string, unknown>;
+    user_metadata?: Record<string, unknown>;
+    roles?: string[];
+};
 
 /**
  * Hardcoded whitelist of internal admin emails.
@@ -28,15 +36,18 @@ const QUALITY_EVALUATOR_EMAILS = [
  * to check for MS Entra ID / Azure AD specific claims in the user's metadata 
  * without changing the signature.
  */
-export function isAdmin(user: User | null | undefined): boolean {
+export function isAdmin(user: StaffUser | null | undefined): boolean {
     if (!user?.email) return false;
 
     // Exact match check
-    return ADMIN_EMAILS.includes(user.email.toLowerCase());
+    if (ADMIN_EMAILS.includes(user.email.toLowerCase())) return true;
+
+    return getMetadataRoles(user).includes("admin");
 }
 
-function getMetadataRoles(user: User): string[] {
+function getMetadataRoles(user: StaffUser): string[] {
     const roleValues = [
+        user.roles,
         user.app_metadata?.role,
         user.app_metadata?.roles,
         user.user_metadata?.role,
@@ -56,7 +67,7 @@ function getMetadataRoles(user: User): string[] {
  * but evaluators can be granted it through Supabase app/user metadata roles
  * such as "qa", "quality", "quality_evaluator", or "evaluator".
  */
-export function isQualityEvaluator(user: User | null | undefined): boolean {
+export function isQualityEvaluator(user: StaffUser | null | undefined): boolean {
     if (!user?.email) return false;
 
     const email = user.email.toLowerCase();
@@ -64,6 +75,7 @@ export function isQualityEvaluator(user: User | null | undefined): boolean {
 
     const roles = getMetadataRoles(user);
     return roles.some((role) => [
+        "admin",
         "qa",
         "quality",
         "quality_evaluator",
@@ -75,6 +87,6 @@ export function isQualityEvaluator(user: User | null | undefined): boolean {
  * Checks if a user is an internal staff member (not a candidate).
  * Currently, all authenticated users in this app are recruiters/staff.
  */
-export function isStaff(user: User | null | undefined): boolean {
+export function isStaff(user: StaffUser | null | undefined): boolean {
     return !!user;
 }

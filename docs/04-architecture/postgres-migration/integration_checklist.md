@@ -38,6 +38,7 @@ These are the current working answers as of May 4, 2026. They are safe to use fo
 
 | Date | Status | Note |
 | --- | --- | --- |
+| 2026-05-05 | In Progress | Started app-owned recruiter auth foundation. Added app-user type, scrypt password hashing/verification, opaque hashed app-session tokens, Postgres app-auth store primitives, password-login orchestration, session lookup/revocation helpers, audit-event writes, and DB-role-aware RBAC. Focused auth/RBAC tests and typecheck passed. Login/logout UI and middleware are not wired yet. |
 | 2026-05-05 | In Progress | Ported the AI-quality generation capture workstream into `feature/postgres-integration`. `AI_GENERATION_REPOSITORY_BACKEND=postgres` now supports capture writes plus `/qa/ai-quality` reads, filtered pagination, aggregate summary widgets, and JSON/CSV export through Postgres-backed repositories. Focused AI-quality tests, answer submit/analysis route tests, typecheck, and disposable Docker schema smoke passed. |
 | 2026-05-05 | In Progress | Added Postgres feedback repository and provider seam. `FEEDBACK_REPOSITORY_BACKEND=postgres` now captures candidate/recruiter feedback, preserves session/type update behavior when session context exists, supports recruiter-only feedback inserts, and returns the admin feedback view with session role/intake context. Typecheck, focused factory/UI tests, and disposable Docker Postgres integration tests passed. |
 | 2026-05-05 | In Progress | Added Postgres template repository and provider seam. `TEMPLATE_REPOSITORY_BACKEND=postgres` now preserves recruiter-owned templates, shared-template visibility, template create/update/delete, and explicit admin manage-all behavior; template server actions now use the repository factory. Typecheck, focused factory/UI tests, and disposable Docker Postgres integration tests passed. |
@@ -207,8 +208,8 @@ This roadmap is intentionally broader than the items we are fully confident abou
 | [ ] | Add DB health/diagnostic helper for integration validation. | In progress: added a health helper that confirms connectivity and current database name without exposing secrets or PII. Disposable Docker validation also confirmed direct DB connectivity. Still needs a protected route or CLI wrapper once auth/ops access shape is decided. |
 | [ ] | Define migration application strategy. | Decide whether migrations are applied manually by DBA, via script, or through deployment pipeline. First draft now lives under neutral `db/migrations/`, and local disposable validation passed; execution ownership remains open. |
 | [ ] | Consolidate target schema. | In progress: reconciliation plan created at [target_schema_reconciliation.md](./target_schema_reconciliation.md), first executable draft added at `db/migrations/001_initial_schema.sql`, and disposable Postgres validation passed. Still needs repository implementation feedback and later company DB validation. |
-| [ ] | Add app auth tables. | In progress: initial schema draft includes `app_users`, `app_user_credentials`, `app_sessions`, `app_user_roles`, password reset tokens, email verification tokens, and auth audit events. Needs auth implementation review. |
-| [ ] | Add role/permission model. | In progress: initial schema draft includes `app_user_roles` with recruiter/admin/QA roles. Needs RBAC helper implementation. |
+| [ ] | Add app auth tables. | In progress: initial schema draft includes `app_users`, `app_user_credentials`, `app_sessions`, `app_user_roles`, password reset tokens, email verification tokens, and auth audit events. App-auth store primitives now read/write credentials, sessions, and audit events. Needs login/logout route wiring and integration validation. |
+| [ ] | Add role/permission model. | In progress: initial schema draft includes `app_user_roles` with recruiter/admin/QA roles. RBAC now accepts app-owned DB roles while preserving the current Supabase-shaped user compatibility. |
 | [ ] | Preserve product data tables. | In progress: initial schema draft includes sessions, questions, answers, eval_results, projection_session_now, candidate_tokens, events, recruiter_profiles, recruiter_templates, invite_batches, invite_batch_candidates, user feedback, idempotency keys, metrics rollups, rate-limit buckets, and ai_generations. |
 | [ ] | Port SQL functions/procedures. | In progress: initial schema draft ports invite batch creation, engagement increment, rate-limit consumption, metrics counter/timing rollups, SLO summary functions, and AI-generation summary. Repository implementation may replace some DB functions with app transactions if cleaner. |
 | [ ] | Decide RLS posture. | Working approach is server-side authorization plus DB constraints, not Supabase RLS semantics, unless company DB policy requires RLS. |
@@ -234,17 +235,17 @@ This roadmap is intentionally broader than the items we are fully confident abou
 | Status | Work item | Notes / done when |
 | --- | --- | --- |
 | [ ] | Define account provisioning policy. | Decide whether recruiters can self-sign-up, are admin-created, or are seeded by integration. This drives email verification and invite/admin flows. |
-| [ ] | Implement password hashing. | Use a proven hashing library such as `argon2` or `bcrypt`; never store plain passwords. |
-| [ ] | Implement login route/server action. | Verify credentials server-side, rate-limit attempts, create a server-side session, and set secure HTTP-only cookie. |
-| [ ] | Implement logout. | Invalidate server-side session and clear cookie across desktop/mobile UI paths. |
+| [x] | Implement password hashing. | Done: app auth foundation uses Node `crypto.scrypt` with per-password random salt and stores only encoded hashes. |
+| [ ] | Implement login route/server action. | In progress: `authenticateWithPassword()` verifies credentials, creates a hashed server-side session, and records auth audit events. Next cut should expose this through a route/server action and set the secure HTTP-only cookie. |
+| [ ] | Implement logout. | In progress: `revokeAppSession()` can invalidate a server-side session by hashed token. Next cut should expose this through a logout endpoint/action and clear the cookie across desktop/mobile UI paths. |
 | [ ] | Implement session validation middleware. | Replace Supabase SSR middleware with app session lookup, protected-route handling, and redirect-to-login behavior. |
 | [ ] | Replace `getCachedUser()`. | Return provider-neutral app user with id, email, roles, and display metadata. |
-| [ ] | Replace RBAC helpers. | `isAdmin`, `isQualityEvaluator`, and `isStaff` should use app user roles rather than Supabase `User` metadata. |
+| [ ] | Replace RBAC helpers. | In progress: helpers now accept app-owned users with `roles` while still accepting Supabase-shaped users during migration. Route/layout consumers still need to move to app auth helpers. |
 | [ ] | Implement password reset. | Use single-use hashed reset tokens, expiry, email delivery, and rate limiting. |
 | [ ] | Implement email verification if self-sign-up remains. | If users are admin-provisioned only, document why verification can be skipped or handled out-of-band. |
 | [ ] | Replace browser Supabase auth clients. | Update login, logout button, mobile dock, settings page, recruiter create page, and profile guard. |
 | [ ] | Preserve E2E test auth seam. | Keep local E2E mode useful without live auth credentials. |
-| [ ] | Add auth tests. | Cover login success/failure, lockout/rate limit, logout invalidation, password reset, role gates, middleware redirects, and cookie flags. |
+| [ ] | Add auth tests. | In progress: focused tests cover scrypt password hashing/verification, successful/failed password login orchestration, hashed session lookup/revocation, audit writes, and DB-role RBAC. Still need route, cookie, middleware, password reset, lockout/rate-limit, and browser UI tests. |
 
 ### Phase 4 - Candidate Flow Preservation
 

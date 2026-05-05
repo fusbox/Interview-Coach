@@ -1,16 +1,15 @@
-import type { User } from "@supabase/supabase-js";
 import { describe, expect, it } from "vitest";
+import type { AppUser } from "./user";
 import { isAdmin, isQualityEvaluator, isStaff } from "./rbac";
 
-function user(overrides: Partial<User>): User {
+function user(overrides: Partial<AppUser>): AppUser {
     return {
         id: "user-1",
+        email: "user@example.com",
         app_metadata: {},
         user_metadata: {},
-        aud: "authenticated",
-        created_at: "2026-05-02T00:00:00.000Z",
         ...overrides,
-    } as User;
+    };
 }
 
 describe("rbac", () => {
@@ -42,6 +41,22 @@ describe("rbac", () => {
     it("lets allowlisted QA users access QA tooling without admin access", () => {
         const evaluator = user({ email: "kushal@rangam.com" });
 
+        expect(isAdmin(evaluator)).toBe(false);
+        expect(isQualityEvaluator(evaluator)).toBe(true);
+    });
+
+    it("uses app-owned DB roles when present", () => {
+        const admin = user({
+            email: "db-admin@example.com",
+            roles: ["admin"],
+        });
+        const evaluator = user({
+            email: "db-qa@example.com",
+            roles: ["qa"],
+        });
+
+        expect(isAdmin(admin)).toBe(true);
+        expect(isQualityEvaluator(admin)).toBe(true);
         expect(isAdmin(evaluator)).toBe(false);
         expect(isQualityEvaluator(evaluator)).toBe(true);
     });
