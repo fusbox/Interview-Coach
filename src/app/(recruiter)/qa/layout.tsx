@@ -1,7 +1,8 @@
 import { RecruiterSidebar } from "@/components/layout/RecruiterSidebar";
 import { RecruiterMobileDock } from "@/components/layout/RecruiterMobileDock";
 import { isQualityEvaluator } from "@/lib/auth/rbac";
-import { createClient, getCachedUser } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/server";
+import { getRecruiterProfileSummary } from "@/lib/server/auth/recruiter-profile";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -21,11 +22,7 @@ export default async function QaLayout({
         redirect("/recruiter");
     }
 
-    const { data: profile } = await createClient()
-        .from("recruiter_profiles")
-        .select("first_name, last_name, title")
-        .eq("recruiter_id", user.id)
-        .single();
+    const profile = await getRecruiterProfileSummary(user.id);
 
     return (
         <div className="min-h-screen bg-surface-subtle flex">

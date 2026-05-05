@@ -6,21 +6,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Plus, List, Settings, LogOut, LayoutTemplate, BarChart3, ClipboardCheck } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { createBrowserClient } from "@supabase/ssr";
 import { useRouter } from "next/navigation";
-import { User } from "@supabase/supabase-js";
+import type { AppUser } from "@/lib/auth/user";
+import type { User } from "@supabase/supabase-js";
 import { isAdmin, isQualityEvaluator } from "@/lib/auth/rbac";
 
-export function RecruiterMobileDock({ user }: { user?: User | null }) {
+export function RecruiterMobileDock({ user }: { user?: AppUser | User | null }) {
     const { scrollY } = useScroll();
     const [hidden, setHidden] = useState(false);
     const pathname = usePathname();
     const router = useRouter();
-
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
 
     useMotionValueEvent(scrollY, "change", (latest) => {
         const previous = scrollY.getPrevious() || 0;
@@ -39,7 +34,7 @@ export function RecruiterMobileDock({ user }: { user?: User | null }) {
     };
 
     const handleLogout = async () => {
-        await supabase.auth.signOut();
+        await fetch("/api/auth/logout", { method: "POST" });
         router.refresh();
         router.push('/login');
     };

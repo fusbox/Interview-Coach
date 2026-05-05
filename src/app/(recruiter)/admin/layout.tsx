@@ -1,8 +1,9 @@
-import { createClient, getCachedUser } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/auth/rbac";
 import { redirect } from "next/navigation";
 import { RecruiterSidebar } from "@/components/layout/RecruiterSidebar";
 import { RecruiterMobileDock } from "@/components/layout/RecruiterMobileDock";
+import { getRecruiterProfileSummary } from "@/lib/server/auth/recruiter-profile";
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +12,6 @@ export default async function AdminLayout({
 }: {
     children: React.ReactNode
 }) {
-    const supabase = createClient();
     const user = await getCachedUser();
 
     // Strict Admin Guard
@@ -19,11 +19,7 @@ export default async function AdminLayout({
         redirect("/recruiter");
     }
 
-    const { data: profile } = await supabase
-        .from('recruiter_profiles')
-        .select('first_name, last_name, title')
-        .eq('recruiter_id', user.id)
-        .single();
+    const profile = await getRecruiterProfileSummary(user.id);
 
     return (
         <div className="min-h-screen bg-slate-50 flex">

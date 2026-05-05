@@ -3,6 +3,8 @@ import { cookies } from 'next/headers'
 import { cache } from 'react';
 import { getRequiredServerEnv } from '@/lib/server/config/server-env';
 import { getE2ERecruiterUser, hasE2ERecruiterCookie, isServerE2EMode } from '@/lib/e2e/test-mode';
+import { getAppAuthBackendName, getUserBySessionToken } from '@/lib/server/auth/app-auth';
+import { getAppSessionCookieName } from '@/lib/server/auth/app-session';
 
 export function createClient() {
     return createServerClient(
@@ -57,6 +59,12 @@ export const getCachedUser = cache(async () => {
         if (hasE2ERecruiterCookie(cookieStore)) {
             return getE2ERecruiterUser();
         }
+    }
+
+    if (getAppAuthBackendName() === "postgres") {
+        const cookieStore = await cookies();
+        const sessionToken = cookieStore.get(getAppSessionCookieName())?.value;
+        return getUserBySessionToken(sessionToken);
     }
 
     const supabase = createClient();

@@ -1,10 +1,25 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { Logger } from '@/lib/logger'
+import { getAppAuthBackendName } from '@/lib/server/auth/app-auth';
 
 export async function updateSession(request: NextRequest) {
     const isRecruiter = request.nextUrl.pathname.startsWith('/recruiter');
     const start = Date.now();
+
+    if (getAppAuthBackendName() === "postgres") {
+        const response = NextResponse.next({ request });
+        if (isRecruiter) {
+            Logger.info("Recruiter middleware request processed", {
+                route: request.nextUrl.pathname,
+                actorType: 'recruiter',
+                durationMs: Date.now() - start,
+                method: request.method
+            }, "AppAuthMiddleware");
+        }
+
+        return response;
+    }
 
     let supabaseResponse = NextResponse.next({
         request,

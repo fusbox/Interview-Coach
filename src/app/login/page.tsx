@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createBrowserClient } from "@supabase/ssr";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
@@ -19,11 +18,6 @@ export default function LoginPage() {
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const router = useRouter();
-
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -45,27 +39,29 @@ export default function LoginPage() {
                 return;
             }
 
-            if (activeTab === 'login') {
-                const { error } = await supabase.auth.signInWithPassword({
-                    email,
-                    password
-                });
-                if (error) throw error;
-                router.push("/recruiter/create");
-                router.refresh();
-            } else {
-                const { error } = await supabase.auth.signUp({
+            if (activeTab === 'signup') {
+                setSuccessMessage("Account creation is not available in this migration build yet. Please ask an administrator to create your account.");
+                setPassword("");
+                return;
+            }
+
+            const response = await fetch("/api/auth/login", {
+                method: "POST",
+                headers: {
+                    "content-type": "application/json",
+                },
+                body: JSON.stringify({
                     email,
                     password,
-                    options: {
-                        emailRedirectTo: `${window.location.origin}/auth/callback?next=/recruiter/create`
-                    }
-                });
-                if (error) throw error;
-                setSuccessMessage("Check your email for the confirmation link!");
-                setEmail("");
-                setPassword("");
+                }),
+            });
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(body.message || "Authentication failed");
             }
+
+            router.push("/recruiter/create");
+            router.refresh();
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Authentication failed");
         } finally {

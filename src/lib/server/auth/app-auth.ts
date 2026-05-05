@@ -1,5 +1,6 @@
 import type { AppUser } from "@/lib/auth/user";
 import { Logger } from "@/lib/logger";
+import { getOptionalServerEnv } from "@/lib/server/config/server-env";
 import {
     generateAppSessionToken,
     getAppSessionExpiresAt,
@@ -34,6 +35,21 @@ export type LoginResult =
 export type AppAuthDependencies = {
     store?: AppAuthStore;
 };
+
+export type AppAuthBackendName = "supabase" | "postgres";
+
+export function getAppAuthBackendName(): AppAuthBackendName {
+    const configured = getOptionalServerEnv("APP_AUTH_BACKEND")?.toLowerCase();
+    if (!configured) {
+        return "supabase";
+    }
+
+    if (configured === "supabase" || configured === "postgres") {
+        return configured;
+    }
+
+    throw new Error(`Unsupported APP_AUTH_BACKEND value "${configured}". Expected "supabase" or "postgres".`);
+}
 
 export async function authenticateWithPassword(
     email: string,
@@ -155,4 +171,3 @@ async function recordLoginAudit(
         Logger.warn("[AppAuth] Failed to record auth audit event", { error }, "AppAuth");
     }
 }
-

@@ -82,6 +82,7 @@ This is the expected direction after Supabase removal. Names may be adjusted dur
 | `SMTP_USERNAME` | Required after SMTP reconciliation | SMTP auth user | To reconcile from mainline |
 | `SMTP_PASSWORD` | Required after SMTP reconciliation | SMTP secret | To reconcile from mainline |
 | `SMTP_FROM_EMAIL` | Required after SMTP reconciliation | Verified sender | To reconcile from mainline |
+| `APP_AUTH_BACKEND` | Optional during migration | Selects recruiter/admin auth lookup: `supabase` default or `postgres` for app-owned auth/session cookies. | Added |
 | `SESSION_REPOSITORY_BACKEND` | Optional during migration | Selects session repository implementation: `supabase` default or `postgres` for migration validation. | Added |
 | `INVITE_REPOSITORY_BACKEND` | Optional during migration | Selects invite repository implementation: `supabase` default or `postgres` for migration validation. | Added |
 | `TEMPLATE_REPOSITORY_BACKEND` | Optional during migration | Selects recruiter template repository implementation: `supabase` default or `postgres` for migration validation. | Added |

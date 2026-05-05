@@ -5,22 +5,23 @@ import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { cn } from '@/lib/cn';
 
-import { User } from '@supabase/supabase-js';
+import type { User } from '@supabase/supabase-js';
+import type { AppUser } from '@/lib/auth/user';
 import { LogoutButton } from '@/components/auth/LogoutButton';
 import { isAdmin, isQualityEvaluator } from '@/lib/auth/rbac';
 import { Plus, List, LayoutTemplate, Settings, BarChart3, ChevronRight, ClipboardCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface RecruiterProfile {
-    first_name: string;
-    last_name: string;
-    title?: string;
+    first_name: string | null;
+    last_name: string | null;
+    title?: string | null;
 }
 
 interface RecruiterSidebarProps {
     className?: string;
     onNavigate?: () => void;
-    user?: User | null;
+    user?: User | AppUser | null;
     profile?: RecruiterProfile | null;
 }
 
