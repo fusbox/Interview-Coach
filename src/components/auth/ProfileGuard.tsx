@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createBrowserClient } from "@supabase/ssr";
 import { useRouter, usePathname } from "next/navigation";
 import { isClientE2EMode } from "@/lib/e2e/test-mode";
 
@@ -22,22 +21,16 @@ export function ProfileGuard() {
         }
 
         const checkProfile = async () => {
-            const supabase = createBrowserClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-            );
-            const { data: { user } } = await supabase.auth.getUser();
+            const response = await fetch("/api/recruiter/profile", { cache: "no-store" });
 
-            if (!user) return; // Auth guard likely handles this, or public route
+            if (response.status === 401) return;
+            if (!response.ok) {
+                setChecked(true);
+                return;
+            }
 
-            // Check if profile exists
-            const { data, error } = await supabase
-                .from('recruiter_profiles')
-                .select('recruiter_id')
-                .eq('recruiter_id', user.id)
-                .single();
-
-            if (error?.code === 'PGRST116' || !data) {
+            const data = await response.json();
+            if (!data.profileExists) {
                 router.push('/recruiter/settings?tour=recruiter-create-invite');
             }
             setChecked(true);

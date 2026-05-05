@@ -5,7 +5,6 @@ import { ProfileGuard } from '@/components/auth/ProfileGuard';
 import { RecruiterTourProvider } from '@/features/tours/recruiter-tour-provider';
 import { redirect } from 'next/navigation';
 import { E2E_RECRUITER_ID, getE2ERecruiterProfile, isServerE2EMode } from '@/lib/e2e/test-mode';
-import { getAppAuthBackendName } from '@/lib/server/auth/app-auth';
 import { getRecruiterProfileSummary } from '@/lib/server/auth/recruiter-profile';
 
 export const dynamic = 'force-dynamic';
@@ -24,12 +23,11 @@ export default async function RecruiterLayout({
     const profile = isServerE2EMode() && user.id === E2E_RECRUITER_ID
         ? getE2ERecruiterProfile()
         : await getRecruiterProfileSummary(user.id);
-    const shouldRunProfileGuard = getAppAuthBackendName() !== "postgres";
 
     return (
         <div className="min-h-screen bg-surface-subtle flex">
             <RecruiterTourProvider>
-                {shouldRunProfileGuard ? <ProfileGuard /> : null}
+                <ProfileGuard />
                 <RecruiterSidebar
                     className="hidden md:flex w-64 shrink-0"
                     user={user}

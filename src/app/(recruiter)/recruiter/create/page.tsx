@@ -3,7 +3,6 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createBrowserClient } from "@supabase/ssr";
 import { Button } from "@/components/ui/button";
 import { Check, ChevronLeft, RotateCcw } from "lucide-react";
 import { Details, InviteBatchSummary, QuestionInput, STAR_TEMPLATE, PERMA_TEMPLATE, DEV_CANDIDATE_POOL, DEV_JOB_POOL, RecruiterProfile, InviteFailure, InviteResult } from "./constants";
@@ -105,39 +104,40 @@ export default function CreateInviteWizard() {
             return;
         }
 
-        const supabase = createBrowserClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
-
         const fetchData = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                setCurrentUserEmail(user.email ?? null);
-                // Fetch Profile
-                const { data } = await supabase
-                    .from('recruiter_profiles')
-                    .select('*')
-                    .eq('recruiter_id', user.id)
-                    .single();
-
-                const name = data ? `${data.first_name} ${data.last_name || ''}`.trim() : DEFAULT_RECRUITER_NAME;
-
-                setRecruiterProfile(normalizeRecruiterSignature({
-                    name,
-                    email: user.email || "",
-                    phone: data?.phone,
-                    title: data?.title,
-                    company: data?.company
-                }));
-
-                // Fetch Templates
-                const { templates: t } = await fetchTemplates();
-                setTemplates(t);
+            const profileResponse = await fetch("/api/recruiter/profile", { cache: "no-store" });
+            if (profileResponse.status === 401) {
+                router.push("/login");
+                return;
             }
+
+            const [{ templates: t }, profileBody] = await Promise.all([
+                fetchTemplates(),
+                profileResponse.ok ? profileResponse.json() : Promise.resolve(null),
+            ]);
+            setTemplates(t);
+
+            const user = profileBody?.user;
+            const profile = profileBody?.profile;
+            if (!user) {
+                return;
+            }
+
+            setCurrentUserEmail(user.email ?? null);
+            const name = profile
+                ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim()
+                : DEFAULT_RECRUITER_NAME;
+
+            setRecruiterProfile(normalizeRecruiterSignature({
+                name: name || DEFAULT_RECRUITER_NAME,
+                email: user.email || "",
+                phone: profile?.phone,
+                title: profile?.title,
+                company: DEFAULT_RECRUITER_COMPANY
+            }));
         };
         fetchData();
-    }, []);
+    }, [router]);
 
     const canReplayTour = canShowReplayTourButton(currentUserEmail);
 

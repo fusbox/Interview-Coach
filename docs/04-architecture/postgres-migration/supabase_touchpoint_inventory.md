@@ -9,7 +9,7 @@ Scope of this pass:
 - Worktree: `C:\tmp\Interview-Coach-Recruiter-postgres`
 - Branch: `feature/postgres-integration`
 - Branch head during initial inventory: `5668696 bypass replay tour gate for 1 user`
-- Date: initial inventory 2026-05-04; refreshed 2026-05-05 after porting AI-quality generation capture.
+- Date: initial inventory 2026-05-04; refreshed 2026-05-05 after porting AI-quality generation capture and browser profile/auth client cleanup.
 
 ## Replacement Direction
 
@@ -39,7 +39,7 @@ rg -n "create table|create type|create or replace function|create policy|enable 
 | Product repositories | Session, invite, template, feedback repositories call Supabase query API directly. | Implement Postgres-backed repositories behind the same domain/application contracts. | High | In progress |
 | Operational stores | Rate limits, metrics, idempotency, candidate tokens, and AI-quality generation records use service-role Supabase access and RPCs/tables. | Port tables/functions/backends to Postgres. | High | In progress |
 | Schema/RLS | `supabase/schema.sql` and migrations contain app schema plus Supabase RLS and `auth.uid()` policies. | Convert to neutral Postgres migrations; replace RLS reliance with app authorization or explicit DB policy. | High | Open |
-| Browser Supabase usage | Login/logout/settings/create/profile guard/mobile dock used `createBrowserClient`. Login and desktop/mobile logout now call app auth API routes; settings/create/profile guard still contain browser Supabase clients. | Replace remaining profile/current-user browser calls with server actions/API routes and app session endpoints. | High | In progress |
+| Browser Supabase usage | Login/logout/settings/create/profile guard/mobile dock used `createBrowserClient`. Those runtime browser paths now call app API routes instead. | Continue server-side auth/helper migration; no runtime `createBrowserClient` path should remain. | High | Done |
 | Env/dependencies | Supabase packages and env vars are required by runtime and tests. | Remove after replacement paths land. | Medium | Open |
 | Docs/tests | Production docs, runbooks, tests, and mocks assume Supabase. | Update after code migration and preserve E2E-only test seam. | Medium | Open |
 
@@ -55,10 +55,10 @@ rg -n "create table|create type|create or replace function|create policy|enable 
 | `src/components/auth/LogoutButton.tsx` | Previously called browser Supabase `signOut()`. | Now calls `/api/auth/logout`, which revokes the app session and clears the cookie. | Desktop logout path moved. | In progress |
 | `src/components/layout/RecruiterMobileDock.tsx` | Previously called browser Supabase `signOut()`. | Now calls `/api/auth/logout`; prop typing accepts app-owned users and Supabase-shaped users during migration. | Mobile logout path moved. | In progress |
 | `src/components/layout/RecruiterSidebar.tsx` | Imports Supabase `User` type for recruiter identity. | Use app user type. | Type-only replacement, but linked to RBAC change. | Open |
-| `src/components/auth/ProfileGuard.tsx` | Browser Supabase `getUser()` and profile lookup from `recruiter_profiles`. | Temporarily skipped in recruiter layout when `APP_AUTH_BACKEND=postgres`; replace with app session/profile endpoint or server-provided profile state. | Guard should not make browser-direct DB calls in final cutover. | In progress |
-| `src/app/(recruiter)/recruiter/settings/page.tsx` | Browser Supabase client reads/writes recruiter profile. | Replace with server action/API route using authenticated app user id. | Preserve profile fields and save UX. | Open |
-| `src/app/(recruiter)/recruiter/create/page.tsx` | Browser Supabase `getUser()` and `recruiter_profiles` lookup. | Replace with app session/profile fetch. | Create-invite flow depends on current user email/profile for sender info. | Open |
-| `src/app/(recruiter)/recruiter/layout.tsx` | Uses `getCachedUser()` and previously used Supabase profile lookup. | `getCachedUser()` can read app sessions when `APP_AUTH_BACKEND=postgres`; layout now uses a server profile loader that reads Postgres in app-auth mode. | ProfileGuard remains skipped in app-auth mode until replaced. | In progress |
+| `src/components/auth/ProfileGuard.tsx` | Previously used browser Supabase `getUser()` and profile lookup from `recruiter_profiles`. | Now calls `/api/recruiter/profile`; the server endpoint resolves the current user and profile through the selected auth/data backend. | Guard no longer needs browser-direct DB access and now runs under app auth. | Done |
+| `src/app/(recruiter)/recruiter/settings/page.tsx` | Previously used a browser Supabase client to read/write recruiter profile. | Now uses `/api/recruiter/profile` for load/save and hydrates saved state from the returned server record. | Preserve profile fields and save UX. | Done |
+| `src/app/(recruiter)/recruiter/create/page.tsx` | Previously used browser Supabase `getUser()` and `recruiter_profiles` lookup. | Now fetches `/api/recruiter/profile` for current user email/profile and still loads templates through existing server actions. | Create-invite flow depends on current user email/profile for sender info. | Done |
+| `src/app/(recruiter)/recruiter/layout.tsx` | Uses `getCachedUser()` and previously used Supabase profile lookup. | `getCachedUser()` can read app sessions when `APP_AUTH_BACKEND=postgres`; layout uses a server profile loader and always renders ProfileGuard. | Remaining work is replacing broader server-side auth helpers, not profile-guard bypass cleanup. | In progress |
 | `src/app/(recruiter)/recruiter/page.tsx` | Uses `getCachedUser()` and Supabase profile lookup. | Use app auth helper and Postgres profile repository. | Dashboard/session list entry point. | Open |
 | `src/app/(recruiter)/recruiter/sessions/[id]/page.tsx` | Uses `getCachedUser()` plus repository factory for session reads. | Replace `getCachedUser()` with app auth helper after auth migration. Session data can already select Postgres with `SESSION_REPOSITORY_BACKEND=postgres`. | Must preserve recruiter ownership/admin access checks. | In progress |
 | `src/app/(recruiter)/admin/layout.tsx` | Uses `getCachedUser()` and previously used Supabase profile lookup. | `getCachedUser()` can read app sessions when `APP_AUTH_BACKEND=postgres`; layout now uses DB-backed RBAC-compatible roles and a server profile loader. | Some admin child pages may still call Supabase directly. | In progress |
@@ -146,12 +146,12 @@ rg -n "create table|create type|create or replace function|create policy|enable 
 
 | File | Supabase dependency | Replacement direction | Risk/notes | Status |
 | --- | --- | --- | --- | --- |
-| `src/app/login/page.tsx` | Previously used `createBrowserClient` for sign in/sign up. | Login now posts to `/api/auth/login`; self-sign-up remains open until provisioning policy is decided. | Keep UI, replace remaining signup plumbing once policy is decided. | In progress |
-| `src/components/auth/LogoutButton.tsx` | Previously used `createBrowserClient` for sign out. | Now posts to `/api/auth/logout`. | Desktop logout moved. | In progress |
-| `src/components/layout/RecruiterMobileDock.tsx` | Previously used `createBrowserClient` for sign out. | Now posts to `/api/auth/logout`. | Mobile logout moved. | In progress |
-| `src/components/auth/ProfileGuard.tsx` | Browser `getUser()` and DB query. | Skipped in app-auth mode for now; replace with server-backed profile state or app profile API. | Avoid browser DB access entirely. | In progress |
-| `src/app/(recruiter)/recruiter/settings/page.tsx` | Browser Supabase profile operations. | Server actions/API routes. | Profile UX. | Open |
-| `src/app/(recruiter)/recruiter/create/page.tsx` | Browser Supabase current-user/profile lookup. | App user/profile loader. | Invite creation depends on recruiter metadata. | Open |
+| `src/app/login/page.tsx` | Previously used `createBrowserClient` for sign in/sign up. | Login now posts to `/api/auth/login`; self-sign-up remains open until provisioning policy is decided. | Browser Supabase login path moved. | Done |
+| `src/components/auth/LogoutButton.tsx` | Previously used `createBrowserClient` for sign out. | Now posts to `/api/auth/logout`. | Desktop logout moved. | Done |
+| `src/components/layout/RecruiterMobileDock.tsx` | Previously used `createBrowserClient` for sign out. | Now posts to `/api/auth/logout`. | Mobile logout moved. | Done |
+| `src/components/auth/ProfileGuard.tsx` | Previously used browser `getUser()` and DB query. | Now calls `/api/recruiter/profile`. | Avoid browser DB access entirely. | Done |
+| `src/app/(recruiter)/recruiter/settings/page.tsx` | Previously used browser Supabase profile operations. | Now calls `/api/recruiter/profile` for load/save. | Profile UX. | Done |
+| `src/app/(recruiter)/recruiter/create/page.tsx` | Previously used browser Supabase current-user/profile lookup. | Now calls `/api/recruiter/profile` for current user/profile state. | Invite creation depends on recruiter metadata. | Done |
 
 ## Packages, Env, And Configuration
 
@@ -170,7 +170,7 @@ rg -n "create table|create type|create or replace function|create policy|enable 
 | `src/lib/server/infrastructure/supabase-session-repository.test.ts` | Tests Supabase repository behavior/mocking. | Replace or port to Postgres repository tests. | Use query-level mocks or test DB strategy. | Open |
 | API route tests under `src/app/api/**` | Many mock `@/lib/supabase/server` or Supabase repositories. | Replace with app auth/repository mocks. | Useful coverage should be preserved, not deleted blindly. | Open |
 | `src/app/(recruiter)/recruiter/actions.test.ts` | Mocks Supabase auth/repository. | Replace with app auth/repository mocks. | Dashboard actions coverage. | Open |
-| `src/app/(recruiter)/recruiter/settings/page.test.tsx` | Mocks `@supabase/ssr`. | Replace with app profile/auth API mocks. | UI behavior should remain covered. | Open |
+| `src/app/(recruiter)/recruiter/settings/page.test.tsx` | Previously mocked `@supabase/ssr`. | Now mocks `/api/recruiter/profile` fetch responses. | UI behavior remains covered. | Done |
 | `src/lib/server/rate-limit.test.ts` | Covers memory, Supabase, and Postgres backend selection/query contract. | Later update production default expectations when the branch cuts over from Supabase fallback to Postgres-only runtime. | Release guard. | In progress |
 | `src/lib/server/metrics/backend.test.ts` and metrics integration tests | Covers memory, Supabase, and Postgres backend selection plus durable snapshot/SLO normalization. | Later update production default expectations when the branch cuts over from Supabase fallback to Postgres-only runtime. | Docker-backed Postgres metrics integration test now validates rollup writes, snapshot reads, and SLO reads. | In progress |
 | `src/lib/server/auth/candidate-token.test.ts` | Covers Supabase fallback and Postgres backend selector/query behavior. | Later update production default expectations when the branch cuts over from Supabase fallback to Postgres-only runtime. | Docker-backed Postgres candidate-token integration test validates hash-at-rest storage, session binding, and expired/revoked rejection. | In progress |

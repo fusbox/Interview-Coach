@@ -6,36 +6,14 @@ import SettingsPage from "./page";
 const {
     pushMock,
     routerMock,
-    getUserMock,
-    singleMock,
-    upsertMock,
-    supabaseClientMock,
+    fetchMock,
 } = vi.hoisted(() => {
-    const getUserMock = vi.fn();
-    const singleMock = vi.fn();
-    const upsertMock = vi.fn();
-
     return {
         pushMock: vi.fn(),
         routerMock: {
             push: vi.fn(),
         },
-        getUserMock,
-        singleMock,
-        upsertMock,
-        supabaseClientMock: {
-            auth: {
-                getUser: getUserMock,
-            },
-            from: () => ({
-                select: () => ({
-                    eq: () => ({
-                        single: singleMock,
-                    }),
-                }),
-                upsert: upsertMock,
-            }),
-        },
+        fetchMock: vi.fn(),
     };
 });
 
@@ -45,28 +23,39 @@ vi.mock("next/navigation", () => ({
 
 routerMock.push = pushMock;
 
-vi.mock("@supabase/ssr", () => ({
-    createBrowserClient: () => supabaseClientMock,
-}));
+function createJsonResponse(body: unknown, status = 200) {
+    return new Response(JSON.stringify(body), {
+        status,
+        headers: {
+            "content-type": "application/json",
+        },
+    });
+}
+
+function createProfileBody(overrides: Record<string, unknown> = {}) {
+    return {
+        user: {
+            id: "recruiter-1",
+            email: "recruiter@example.com",
+        },
+        profileExists: true,
+        profile: {
+            recruiter_id: "recruiter-1",
+            first_name: "Pat",
+            last_name: "Lee",
+            title: "Lead Recruiter",
+            phone: "(555) 111-2222",
+            timezone: "America/Chicago",
+            ...overrides,
+        },
+    };
+}
 
 describe("SettingsPage", () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        getUserMock.mockResolvedValue({
-            data: { user: { id: "recruiter-1" } },
-            error: null,
-        });
-        singleMock.mockResolvedValue({
-            data: {
-                first_name: "Pat",
-                last_name: "Lee",
-                title: "Lead Recruiter",
-                phone: "(555) 111-2222",
-                timezone: "America/Chicago",
-            },
-            error: null,
-        });
-        upsertMock.mockResolvedValue({ error: null });
+        vi.stubGlobal("fetch", fetchMock);
+        fetchMock.mockResolvedValueOnce(createJsonResponse(createProfileBody()));
     });
 
     it("loads the recruiter profile and saves updates", async () => {
@@ -90,17 +79,30 @@ describe("SettingsPage", () => {
         const saveButton = screen.getByRole("button", { name: /save changes/i });
         expect(saveButton).toBeEnabled();
 
-        await user.click(saveButton);
-
-        await waitFor(() => {
-            expect(upsertMock).toHaveBeenCalledWith(expect.objectContaining({
+        fetchMock.mockResolvedValueOnce(createJsonResponse({
+            success: true,
+            profile: {
                 recruiter_id: "recruiter-1",
                 first_name: "Jordan",
                 last_name: "Lee",
                 title: "Lead Recruiter",
                 phone: "(555) 111-2222",
                 timezone: "America/Chicago",
-                updated_at: expect.any(String),
+            },
+        }));
+
+        await user.click(saveButton);
+
+        await waitFor(() => {
+            expect(fetchMock).toHaveBeenCalledWith("/api/recruiter/profile", expect.objectContaining({
+                method: "PUT",
+                body: JSON.stringify({
+                    first_name: "Jordan",
+                    last_name: "Lee",
+                    title: "Lead Recruiter",
+                    phone: "(555) 111-2222",
+                    timezone: "America/Chicago",
+                }),
             }));
         });
 

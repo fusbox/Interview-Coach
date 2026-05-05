@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useId } from "react";
-import { createBrowserClient } from "@supabase/ssr";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
@@ -110,11 +109,6 @@ export default function SettingsPage() {
     const phoneInputId = useId();
     const timezoneInputId = useId();
 
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-
     useEffect(() => {
         if (isClientE2EMode()) {
             setCurrentUserEmail(null);
@@ -134,35 +128,36 @@ export default function SettingsPage() {
 
         const fetchProfile = async () => {
             setIsLoading(true);
-            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            const response = await fetch("/api/recruiter/profile", { cache: "no-store" });
 
-            if (authError || !user) {
+            if (response.status === 401) {
                 router.push("/login");
                 return;
             }
 
-            setCurrentUserEmail(user.email ?? null);
-
-            const { data, error } = await supabase
-                .from('recruiter_profiles')
-                .select('*')
-                .eq('recruiter_id', user.id)
-                .single();
-
-            if (error && error.code !== 'PGRST116') { // PGRST116 = JSON object requested, multiple (or no) rows returned
+            if (!response.ok) {
                 setError("Failed to load profile.");
-            } else if (data) {
+                setIsLoading(false);
+                return;
+            }
+
+            const data = await response.json();
+            const user = data.user;
+            const loadedProfile = data.profile;
+            setCurrentUserEmail(user?.email ?? null);
+
+            if (user && loadedProfile) {
                 const cleanData = {
-                    recruiter_id: user.id,
-                    first_name: data.first_name || "",
-                    last_name: data.last_name || "",
-                    title: data.title || "",
-                    phone: formatPhoneNumber(data.phone || ""),
-                    timezone: data.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
+                    recruiter_id: loadedProfile.recruiter_id || user.id,
+                    first_name: loadedProfile.first_name || "",
+                    last_name: loadedProfile.last_name || "",
+                    title: loadedProfile.title || "",
+                    phone: formatPhoneNumber(loadedProfile.phone || ""),
+                    timezone: loadedProfile.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
                 };
                 setInitialProfile(cleanData);
                 setProfile(cleanData);
-            } else {
+            } else if (user) {
                 const emptyProfile = {
                     recruiter_id: user.id,
                     first_name: "",
@@ -173,12 +168,14 @@ export default function SettingsPage() {
                 };
                 setInitialProfile(emptyProfile);
                 setProfile(emptyProfile);
+            } else {
+                setError("Failed to load profile.");
             }
             setIsLoading(false);
         };
 
         fetchProfile();
-    }, [router, supabase]);
+    }, [router]);
 
 
     const isDirty = initialProfile && JSON.stringify(profile) !== JSON.stringify(initialProfile);
@@ -200,21 +197,37 @@ export default function SettingsPage() {
                 return;
             }
 
-            const { error } = await supabase
-                .from('recruiter_profiles')
-                .upsert({
-                    recruiter_id: profile.recruiter_id,
+            const response = await fetch("/api/recruiter/profile", {
+                method: "PUT",
+                headers: {
+                    "content-type": "application/json",
+                },
+                body: JSON.stringify({
                     first_name: profile.first_name,
                     last_name: profile.last_name,
                     title: profile.title,
                     phone: profile.phone,
                     timezone: profile.timezone,
-                    updated_at: new Date().toISOString()
-                });
+                }),
+            });
 
-            if (error) throw error;
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(body.message || "Failed to save profile.");
+            }
 
-            setInitialProfile({ ...profile });
+            const savedProfile = body.profile ?? profile;
+            const cleanSavedProfile = {
+                recruiter_id: savedProfile.recruiter_id || profile.recruiter_id,
+                first_name: savedProfile.first_name || "",
+                last_name: savedProfile.last_name || "",
+                title: savedProfile.title || "",
+                phone: formatPhoneNumber(savedProfile.phone || ""),
+                timezone: savedProfile.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
+            };
+
+            setInitialProfile(cleanSavedProfile);
+            setProfile(cleanSavedProfile);
             setSuccessMessage("Profile updated successfully.");
 
             setTimeout(() => setSuccessMessage(null), 3000);
