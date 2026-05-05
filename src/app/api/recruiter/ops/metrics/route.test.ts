@@ -1,15 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { incrementMetric, observeMetric, resetMetrics } from "@/lib/server/metrics";
 
-const getUserMock = vi.fn();
+const getAuthenticatedRouteUserMock = vi.fn();
 const sendTriggeredAlertsToTeamsMock = vi.fn();
 
-vi.mock("@/lib/supabase/server", () => ({
-    createClient: () => ({
-        auth: {
-            getUser: getUserMock
-        }
-    })
+vi.mock("@/lib/server/auth/current-user", () => ({
+    getAuthenticatedRouteUser: getAuthenticatedRouteUserMock
 }));
 
 vi.mock("@/lib/server/teams-alerts", () => ({
@@ -20,7 +16,7 @@ describe("GET /api/recruiter/ops/metrics", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         resetMetrics();
-        getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
+        getAuthenticatedRouteUserMock.mockResolvedValue({ id: "user-1", email: "recruiter@example.com" });
         sendTriggeredAlertsToTeamsMock.mockResolvedValue({
             status: "sent",
             triggeredAlertIds: ["ai_latency_spike"],
@@ -29,7 +25,7 @@ describe("GET /api/recruiter/ops/metrics", () => {
     });
 
     it("returns 401 when unauthenticated", async () => {
-        getUserMock.mockResolvedValue({ data: { user: null }, error: null });
+        getAuthenticatedRouteUserMock.mockResolvedValue(null);
         const { GET } = await import("./route");
 
         const res = await GET();

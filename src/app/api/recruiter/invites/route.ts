@@ -9,8 +9,8 @@ import {
 } from "@/lib/server/idempotency";
 import { createInviteRepository } from "@/lib/server/infrastructure/invite-repository";
 import { consumeRateLimit } from "@/lib/server/rate-limit";
-import { incrementMetric, observeMetric, recordAuthDenial, recordRateLimitDenial } from "@/lib/server/metrics";
-import { createClient } from "@/lib/supabase/server";
+import { incrementMetric, observeMetric, recordRateLimitDenial } from "@/lib/server/metrics";
+import { getAuthenticatedRouteUser } from "@/lib/server/auth/current-user";
 import { createServerLogger } from "@/lib/server/server-logger";
 import { getAppOrigin } from "@/lib/server/url/get-app-origin";
 import { createInviteBatch } from "@/lib/server/application/invites/create-invite-batch";
@@ -40,15 +40,12 @@ export async function POST(request: NextRequest) {
     let idempotencyReserved = false;
 
     try {
-        const supabase = createClient();
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const user = await getAuthenticatedRouteUser({
+            actorType: "recruiter",
+            route: "/api/recruiter/invites",
+        });
 
-        if (authError || !user) {
-            recordAuthDenial({
-                actorType: "recruiter",
-                route: "/api/recruiter/invites",
-                reason: "missing_supabase_user"
-            });
+        if (!user) {
             incrementMetric("recruiter_invite_create_total", { outcome: "unauthorized" });
             observeMetric("recruiter_invite_create_duration_ms", Date.now() - startedAt, { outcome: "unauthorized" });
             return errorResponse(401, {

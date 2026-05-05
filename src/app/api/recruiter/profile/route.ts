@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getCachedUser } from "@/lib/supabase/server";
+import { getAuthenticatedRouteUser } from "@/lib/server/auth/current-user";
 import {
     getRecruiterProfileRecord,
     upsertRecruiterProfileRecord,
@@ -15,7 +15,10 @@ const ProfileUpdateSchema = z.object({
 });
 
 export async function GET() {
-    const user = await getCachedUser();
+    const user = await getAuthenticatedRouteUser({
+        actorType: "recruiter",
+        route: "/api/recruiter/profile",
+    });
 
     if (!user) {
         return NextResponse.json({
@@ -37,7 +40,10 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-    const user = await getCachedUser();
+    const user = await getAuthenticatedRouteUser({
+        actorType: "recruiter",
+        route: "/api/recruiter/profile",
+    });
 
     if (!user) {
         return NextResponse.json({
@@ -71,4 +77,3 @@ export async function PUT(request: Request) {
         profile,
     });
 }
-

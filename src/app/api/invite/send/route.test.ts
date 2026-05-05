@@ -1,16 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const getUserMock = vi.fn();
+const getAuthenticatedRouteUserMock = vi.fn();
 const sendInviteEmailMock = vi.fn();
 const getSessionMock = vi.fn();
 const markInvitationSentMock = vi.fn();
 
-vi.mock('@/lib/supabase/server', () => ({
-    createClient: () => ({
-        auth: {
-            getUser: getUserMock
-        }
-    })
+vi.mock('@/lib/server/auth/current-user', () => ({
+    getAuthenticatedRouteUser: getAuthenticatedRouteUserMock
 }));
 
 vi.mock('@/lib/server/services/email-service', () => ({
@@ -41,14 +37,14 @@ vi.mock('@/lib/server/rate-limit', () => ({
 describe('POST /api/invite/send', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        getUserMock.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
+        getAuthenticatedRouteUserMock.mockResolvedValue({ id: 'user-1', email: 'recruiter@example.com' });
         sendInviteEmailMock.mockResolvedValue({ id: 'email-1' });
         getSessionMock.mockResolvedValue({ id: 's1', recruiterId: 'user-1' });
         markInvitationSentMock.mockResolvedValue(undefined);
     });
 
     it('returns 401 when unauthenticated', async () => {
-        getUserMock.mockResolvedValue({ data: { user: null }, error: null });
+        getAuthenticatedRouteUserMock.mockResolvedValue(null);
         const { POST } = await import('./route');
 
         const req = new Request('http://localhost/api/invite/send', {

@@ -1,14 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const getUserMock = vi.fn();
+const getAuthenticatedRouteUserMock = vi.fn();
 const captureAiGenerationMock = vi.fn();
 
-vi.mock("@/lib/supabase/server", () => ({
-    createClient: () => ({
-        auth: {
-            getUser: getUserMock
-        }
-    })
+vi.mock("@/lib/server/auth/current-user", () => ({
+    getAuthenticatedRouteUser: getAuthenticatedRouteUserMock
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -37,7 +33,7 @@ describe("POST /api/questions/generate", () => {
     });
 
     it("returns 401 when recruiter auth is missing", async () => {
-        getUserMock.mockResolvedValue({ data: { user: null }, error: null });
+        getAuthenticatedRouteUserMock.mockResolvedValue(null);
         const { POST } = await import("./route");
 
         const req = new Request("http://localhost/api/questions/generate", {
@@ -53,7 +49,7 @@ describe("POST /api/questions/generate", () => {
     });
 
     it("returns 400 when the request body is missing a valid role", async () => {
-        getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
+        getAuthenticatedRouteUserMock.mockResolvedValue({ id: "user-1", email: "recruiter@example.com" });
         const { POST } = await import("./route");
 
         const req = new Request("http://localhost/api/questions/generate", {
@@ -73,7 +69,7 @@ describe("POST /api/questions/generate", () => {
     });
 
     it("captures mock fallback generations when the AI provider is not configured", async () => {
-        getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
+        getAuthenticatedRouteUserMock.mockResolvedValue({ id: "user-1", email: "recruiter@example.com" });
         const { POST } = await import("./route");
 
         const req = new Request("http://localhost/api/questions/generate", {

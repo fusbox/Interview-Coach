@@ -1,28 +1,24 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createCorrelationId, internalErrorResponse, unauthorizedResponse } from "@/lib/server/api-errors";
 import { buildOperationsAlerts } from "@/lib/server/alerts";
 import { createServerLogger } from "@/lib/server/server-logger";
 import {
     buildOperationsDashboard,
     getOperationalMetricsSnapshot,
-    getOperationalSloSummary,
-    recordAuthDenial
+    getOperationalSloSummary
 } from "@/lib/server/metrics";
 import { sendTriggeredAlertsToTeams } from "@/lib/server/teams-alerts";
 import { getAppOrigin } from "@/lib/server/url/get-app-origin";
+import { getAuthenticatedRouteUser } from "@/lib/server/auth/current-user";
 
 export async function GET() {
     const correlationId = createCorrelationId();
-    const supabase = createClient();
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const user = await getAuthenticatedRouteUser({
+        actorType: "recruiter",
+        route: "/api/recruiter/ops/metrics",
+    });
 
-    if (error || !user) {
-        recordAuthDenial({
-            actorType: "recruiter",
-            route: "/api/recruiter/ops/metrics",
-            reason: "missing_supabase_user"
-        });
+    if (!user) {
         return unauthorizedResponse(correlationId, "Authentication required");
     }
 
@@ -48,15 +44,12 @@ export async function POST(request: Request) {
         route,
         actorType: "recruiter"
     });
-    const supabase = createClient();
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const user = await getAuthenticatedRouteUser({
+        actorType: "recruiter",
+        route,
+    });
 
-    if (error || !user) {
-        recordAuthDenial({
-            actorType: "recruiter",
-            route,
-            reason: "missing_supabase_user"
-        });
+    if (!user) {
         return unauthorizedResponse(correlationId, "Authentication required");
     }
 

@@ -1,17 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
-    getCachedUserMock,
+    getAuthenticatedRouteUserMock,
     getRecruiterProfileRecordMock,
     upsertRecruiterProfileRecordMock,
 } = vi.hoisted(() => ({
-    getCachedUserMock: vi.fn(),
+    getAuthenticatedRouteUserMock: vi.fn(),
     getRecruiterProfileRecordMock: vi.fn(),
     upsertRecruiterProfileRecordMock: vi.fn(),
 }));
 
-vi.mock("@/lib/supabase/server", () => ({
-    getCachedUser: getCachedUserMock,
+vi.mock("@/lib/server/auth/current-user", () => ({
+    getAuthenticatedRouteUser: getAuthenticatedRouteUserMock,
 }));
 
 vi.mock("@/lib/server/auth/recruiter-profile", () => ({
@@ -22,7 +22,7 @@ vi.mock("@/lib/server/auth/recruiter-profile", () => ({
 describe("/api/recruiter/profile", () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        getCachedUserMock.mockResolvedValue({
+        getAuthenticatedRouteUserMock.mockResolvedValue({
             id: "11111111-1111-4111-8111-111111111111",
             email: "recruiter@example.com",
         });
@@ -94,7 +94,7 @@ describe("/api/recruiter/profile", () => {
     });
 
     it("returns 401 when unauthenticated", async () => {
-        getCachedUserMock.mockResolvedValue(null);
+        getAuthenticatedRouteUserMock.mockResolvedValue(null);
         const { GET } = await import("./route");
 
         const response = await GET();

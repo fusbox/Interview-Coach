@@ -1,18 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const getUserMock = vi.fn();
+const getAuthenticatedRouteUserMock = vi.fn();
 const generateContentMock = vi.fn();
 const incrementMetricMock = vi.fn();
 const observeMetricMock = vi.fn();
 const routeLoggerErrorMock = vi.fn();
 const captureAiGenerationMock = vi.fn();
 
-vi.mock("@/lib/supabase/server", () => ({
-    createClient: () => ({
-        auth: {
-            getUser: getUserMock
-        }
-    })
+vi.mock("@/lib/server/auth/current-user", () => ({
+    getAuthenticatedRouteUser: getAuthenticatedRouteUserMock
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -56,7 +52,7 @@ describe("POST /api/questions/generate provider validation", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         captureAiGenerationMock.mockResolvedValue("generation-1");
-        getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
+        getAuthenticatedRouteUserMock.mockResolvedValue({ id: "user-1", email: "recruiter@example.com" });
     });
 
     it("captures successful provider generations with raw and parsed output", async () => {

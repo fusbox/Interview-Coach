@@ -11,8 +11,8 @@ import {
     validationErrorResponse
 } from "@/lib/server/api-errors";
 import { enforceIpRateLimit } from "@/lib/server/abuse-protection";
-import { incrementMetric, observeMetric, recordAuthDenial } from "@/lib/server/metrics";
-import { createClient } from "@/lib/supabase/server";
+import { incrementMetric, observeMetric } from "@/lib/server/metrics";
+import { getAuthenticatedRouteUser } from "@/lib/server/auth/current-user";
 import { parseProviderJson } from "@/lib/server/provider-response";
 import { createServerLogger } from "@/lib/server/server-logger";
 import { ProviderResponseError } from "@/lib/server/provider-errors";
@@ -55,13 +55,18 @@ export async function POST(req: NextRequest) {
             return rateLimitResponse;
         }
 
-        const supabase = createClient();
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) {
-            recordAuthDenial({
-                actorType: "recruiter",
-                route: "/api/questions/generate",
-                reason: "missing_supabase_user"
+        const user = await getAuthenticatedRouteUser({
+            actorType: "recruiter",
+            route: "/api/questions/generate",
+        });
+        if (!user) {
+            incrementMetric("ai_requests_total", {
+                operation: "question_generation",
+                outcome: "unauthorized"
+            });
+            observeMetric("ai_request_duration_ms", Date.now() - startedAt, {
+                operation: "question_generation",
+                outcome: "unauthorized"
             });
             return unauthorizedResponse(correlationId, "Authentication required");
         }

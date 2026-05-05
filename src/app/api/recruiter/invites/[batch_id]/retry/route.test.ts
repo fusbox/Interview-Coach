@@ -1,17 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const getUserMock = vi.fn();
+const getAuthenticatedRouteUserMock = vi.fn();
 const retryInviteBatchMock = vi.fn();
 const beginIdempotentRequestMock = vi.fn();
 const completeIdempotentRequestMock = vi.fn();
 const releaseIdempotentRequestMock = vi.fn();
 
-vi.mock("@/lib/supabase/server", () => ({
-    createClient: () => ({
-        auth: {
-            getUser: getUserMock
-        }
-    })
+vi.mock("@/lib/server/auth/current-user", () => ({
+    getAuthenticatedRouteUser: getAuthenticatedRouteUserMock
 }));
 
 vi.mock("@/lib/server/application/invites/retry-invite-batch", () => ({
@@ -37,7 +33,7 @@ vi.mock("@/lib/logger", () => ({
 describe("POST /api/recruiter/invites/[batch_id]/retry", () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
+        getAuthenticatedRouteUserMock.mockResolvedValue({ id: "user-1", email: "recruiter@example.com" });
         beginIdempotentRequestMock.mockResolvedValue({ kind: "acquired" });
         completeIdempotentRequestMock.mockResolvedValue(undefined);
         releaseIdempotentRequestMock.mockResolvedValue(undefined);
@@ -64,7 +60,7 @@ describe("POST /api/recruiter/invites/[batch_id]/retry", () => {
     });
 
     it("returns 401 when unauthenticated", async () => {
-        getUserMock.mockResolvedValue({ data: { user: null }, error: null });
+        getAuthenticatedRouteUserMock.mockResolvedValue(null);
         const { POST } = await import("./route");
 
         const res = await POST(

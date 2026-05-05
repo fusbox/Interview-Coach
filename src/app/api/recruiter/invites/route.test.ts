@@ -1,18 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const getUserMock = vi.fn();
+const getAuthenticatedRouteUserMock = vi.fn();
 const createInviteBatchMock = vi.fn();
 const consumeRateLimitMock = vi.fn();
 const beginIdempotentRequestMock = vi.fn();
 const completeIdempotentRequestMock = vi.fn();
 const releaseIdempotentRequestMock = vi.fn();
 
+vi.mock("@/lib/server/auth/current-user", () => ({
+    getAuthenticatedRouteUser: getAuthenticatedRouteUserMock
+}));
+
 vi.mock("@/lib/supabase/server", () => ({
-    createClient: () => ({
-        auth: {
-            getUser: getUserMock
-        }
-    }),
     createAdminClient: () => ({
         rpc: vi.fn().mockResolvedValue({ data: null, error: null })
     })
@@ -59,7 +58,7 @@ const validPayload = {
 describe("POST /api/recruiter/invites", () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
+        getAuthenticatedRouteUserMock.mockResolvedValue({ id: "user-1", email: "recruiter@example.com" });
         createInviteBatchMock.mockResolvedValue({
             batchId: "batch-1",
             results: [{
@@ -88,7 +87,7 @@ describe("POST /api/recruiter/invites", () => {
 
     it("returns 401 when unauthenticated even in development", async () => {
         vi.stubEnv("NODE_ENV", "development");
-        getUserMock.mockResolvedValue({ data: { user: null }, error: null });
+        getAuthenticatedRouteUserMock.mockResolvedValue(null);
         const { POST } = await import("./route");
 
         const req = new Request("http://localhost/api/recruiter/invites", {

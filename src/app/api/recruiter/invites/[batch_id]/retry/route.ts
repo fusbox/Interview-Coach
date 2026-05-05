@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { errorResponse } from "@/lib/server/api-errors";
 import { createServerLogger } from "@/lib/server/server-logger";
 import { getAppOrigin } from "@/lib/server/url/get-app-origin";
 import { retryInviteBatch, InviteBatchRetryNotFoundError, InviteBatchRetryValidationError } from "@/lib/server/application/invites/retry-invite-batch";
+import { getAuthenticatedRouteUser } from "@/lib/server/auth/current-user";
 import {
     beginIdempotentRequest,
     completeIdempotentRequest,
@@ -29,10 +29,12 @@ export async function POST(
     });
 
     try {
-        const supabase = createClient();
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const user = await getAuthenticatedRouteUser({
+            actorType: "recruiter",
+            route: "/api/recruiter/invites/[batch_id]/retry",
+        });
 
-        if (authError || !user) {
+        if (!user) {
             return errorResponse(401, {
                 code: "UNAUTHORIZED",
                 message: "Authentication required",

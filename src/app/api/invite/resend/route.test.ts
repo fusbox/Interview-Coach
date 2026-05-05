@@ -1,17 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getMetricsSnapshot, resetMetrics } from "@/lib/server/metrics";
 
-const getUserMock = vi.fn();
+const getAuthenticatedRouteUserMock = vi.fn();
 const getSessionMock = vi.fn();
 const markInvitationSentMock = vi.fn();
 const sendInviteEmailMock = vi.fn();
 
-vi.mock("@/lib/supabase/server", () => ({
-    createClient: () => ({
-        auth: {
-            getUser: getUserMock,
-        },
-    }),
+vi.mock("@/lib/server/auth/current-user", () => ({
+    getAuthenticatedRouteUser: getAuthenticatedRouteUserMock,
 }));
 
 vi.mock("@/lib/server/infrastructure/supabase-session-repository", () => ({
@@ -35,7 +31,7 @@ describe("POST /api/invite/resend", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         resetMetrics();
-        getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
+        getAuthenticatedRouteUserMock.mockResolvedValue({ id: "user-1", email: "recruiter@example.com" });
         getSessionMock.mockResolvedValue({
             id: "session-1",
             recruiterId: "user-1",

@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { InviteResendRequestSchema } from "@/lib/domain/schemas";
-import { createClient } from "@/lib/supabase/server";
 import { EmailService } from "@/lib/server/services/email-service";
 import { errorResponse } from "@/lib/server/api-errors";
 import { consumeRateLimit } from "@/lib/server/rate-limit";
 import { createServerLogger } from "@/lib/server/server-logger";
-import { incrementMetric, observeMetric, recordAuthDenial, recordRateLimitDenial } from "@/lib/server/metrics";
+import { incrementMetric, observeMetric, recordRateLimitDenial } from "@/lib/server/metrics";
 import { resendInviteEmailCommand } from "@/lib/server/application/invites/resend-invite-email";
 import { InviteAccessError, InviteInputError } from "@/lib/server/application/invites/errors";
 import { isProductionServer } from "@/lib/server/config/server-env";
+import { getAuthenticatedRouteUser } from "@/lib/server/auth/current-user";
 
 const WINDOW_MS = 5 * 60 * 1000;
 const MAX_IP_REQUESTS = 20;
@@ -30,15 +30,12 @@ export async function POST(req: NextRequest) {
     });
 
     try {
-        const supabase = createClient();
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const user = await getAuthenticatedRouteUser({
+            actorType: "recruiter",
+            route: "/api/invite/resend",
+        });
 
-        if (authError || !user) {
-            recordAuthDenial({
-                actorType: "recruiter",
-                route: "/api/invite/resend",
-                reason: "missing_supabase_user",
-            });
+        if (!user) {
             incrementMetric("invite_resend_total", { outcome: "unauthorized" });
             observeMetric("invite_resend_duration_ms", Date.now() - startedAt, { outcome: "unauthorized" });
             return errorResponse(401, {

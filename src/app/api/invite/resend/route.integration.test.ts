@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getMetricsSnapshot, resetMetrics } from "@/lib/server/metrics";
 
 const {
-    getUserMock,
+    getAuthenticatedRouteUserMock,
     sendInviteEmailMock,
     consumeRateLimitMock,
     repositoryState,
@@ -23,7 +23,7 @@ const {
     };
 
     return {
-        getUserMock: vi.fn(),
+        getAuthenticatedRouteUserMock: vi.fn(),
         sendInviteEmailMock: vi.fn(),
         consumeRateLimitMock: vi.fn(),
         repositoryState,
@@ -33,12 +33,8 @@ const {
     };
 });
 
-vi.mock("@/lib/supabase/server", () => ({
-    createClient: () => ({
-        auth: {
-            getUser: getUserMock,
-        },
-    }),
+vi.mock("@/lib/server/auth/current-user", () => ({
+    getAuthenticatedRouteUser: getAuthenticatedRouteUserMock,
 }));
 
 vi.mock("@/lib/server/services/email-service", () => ({
@@ -74,7 +70,7 @@ describe("POST /api/invite/resend integration", () => {
         vi.clearAllMocks();
         resetMetrics();
         resetRepositoryState();
-        getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
+        getAuthenticatedRouteUserMock.mockResolvedValue({ id: "user-1", email: "recruiter@example.com" });
         sendInviteEmailMock.mockResolvedValue({ id: "email-1" });
         consumeRateLimitMock.mockResolvedValue({ allowed: true, remaining: 10, resetAt: Date.now() + 1000 });
         vi.stubEnv("NODE_ENV", "test");
