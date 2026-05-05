@@ -5,7 +5,7 @@ import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getCachedUser } from "@/lib/supabase/server";
-import { createClient } from "@/lib/supabase/server";
+import { getRecruiterProfileRecord } from "@/lib/server/auth/recruiter-profile";
 import { AlertPanel } from "@/components/patterns/AlertPanel";
 import { PageHeaderBlock } from "@/components/patterns/PageHeaderBlock";
 import { CandidateEfficacyChart } from "./components/CandidateEfficacyChart";
@@ -148,12 +148,7 @@ export default async function AdminFeedbackPage() {
     const user = await getCachedUser();
     let recruiterTimezone: string | undefined;
     if (user) {
-        const supabase = createClient();
-        const { data: profile } = await supabase
-            .from('recruiter_profiles')
-            .select('timezone')
-            .eq('recruiter_id', user.id)
-            .single();
+        const profile = await getRecruiterProfileRecord(user.id);
         recruiterTimezone = profile?.timezone || undefined;
     }
 

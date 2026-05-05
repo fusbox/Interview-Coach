@@ -38,6 +38,7 @@ These are the current working answers as of May 4, 2026. They are safe to use fo
 
 | Date | Status | Note |
 | --- | --- | --- |
+| 2026-05-05 | In Progress | Removed the direct server-page `recruiter_profiles` Supabase reads from the recruiter dashboard and admin feedback page. Both pages now resolve profile/timezone data through `getRecruiterProfileRecord()`, which reads Postgres in app-auth mode and keeps Supabase only as migration fallback. Typecheck and lint passed. |
 | 2026-05-05 | In Progress | Added `getAuthenticatedRouteUser()` as the shared server route auth seam and moved the direct API-route Supabase auth checks for question generation, invite create/send/resend/retry, ops metrics, and recruiter profile onto it. These routes now authenticate through `getCachedUser()`, which can resolve app sessions when `APP_AUTH_BACKEND=postgres` and Supabase users during fallback. Typecheck, lint, and focused route/helper tests passed. |
 | 2026-05-05 | In Progress | Removed the remaining browser-side Supabase profile/current-user calls from recruiter settings, recruiter invite creation, and ProfileGuard. Added `/api/recruiter/profile` as the app-auth-compatible profile contract, backed by Postgres when `APP_AUTH_BACKEND=postgres` and Supabase during migration fallback. ProfileGuard now runs under app auth instead of being skipped. Typecheck and focused auth/profile tests passed. |
 | 2026-05-05 | In Progress | Wired first app-owned auth runtime path. Added `/api/auth/login` and `/api/auth/logout`, set/clear the HTTP-only app session cookie, taught `getCachedUser()` and middleware to use app sessions when `APP_AUTH_BACKEND=postgres`, switched login plus desktop/mobile logout away from browser Supabase auth, and added a server profile loader that reads Postgres in app-auth mode. Focused auth route tests, auth/RBAC tests, and typecheck passed. |
@@ -198,8 +199,8 @@ This roadmap is intentionally broader than the items we are fully confident abou
 | Status | Work item | Notes / done when |
 | --- | --- | --- |
 | [x] | Create or use a separate worktree for `feature/postgres-integration`. | Done: `C:\tmp\Interview-Coach-Recruiter-postgres` created and tracks `azure/feature/postgres-integration`. Original dirty worktree was not switched. |
-| [x] | Inspect the Azure `feature/postgres-integration` branch. | Done: active branch is `feature/postgres-integration`; latest reviewed/pushed head is `0d16be9 feat: centralize api route auth seam`. |
-| [x] | Inventory every Supabase touchpoint. | Done: implementation inventory created at [supabase_touchpoint_inventory.md](./supabase_touchpoint_inventory.md) and refreshed through browser-client cleanup and API-route auth seam work. |
+| [x] | Inspect the Azure `feature/postgres-integration` branch. | Done: active branch is `feature/postgres-integration`; latest reviewed/pushed head before this slice is `a5b29ea docs: refresh postgres migration context`. |
+| [x] | Inventory every Supabase touchpoint. | Done: implementation inventory created at [supabase_touchpoint_inventory.md](./supabase_touchpoint_inventory.md) and refreshed through browser-client cleanup, API-route auth seam work, and server-page profile lookup cleanup. |
 | [x] | Confirm full Supabase replacement as phase-1 scope. | Working decision captured: phase 1 should fully replace Supabase, including data access and auth/session behavior. Treat any Supabase runtime dependency as temporary debt. |
 | [ ] | Confirm target runtime facts. | In progress: current facts and open confirmations are documented in [target_runtime_facts.md](./target_runtime_facts.md). Still needs integration-team answers for staging/UAT URL, deployment platform, secret store, logs, DB inspection path, final Postgres env contract, and production DB user. |
 | [x] | Define acceptance ownership. | Working model captured: local automated tests first, integration-team validation in company deployment environment second, QA product testing third. |
@@ -232,7 +233,7 @@ This roadmap is intentionally broader than the items we are fully confident abou
 | [x] | Port idempotency store. | Done behind migration flag: `IDEMPOTENCY_BACKEND=postgres` uses the Postgres table/constraints and preserves reserve, pending duplicate, conflict, complete/replay, and pending release behavior. Supabase remains the default until the surrounding auth/rate-limit/session repository paths are migrated. |
 | [x] | Port rate-limit backend. | Done behind migration flag: `RATE_LIMIT_BACKEND=postgres` uses the neutral Postgres function and preserves window reset, over-limit denial, and concurrent atomic consumption. Supabase remains accepted/default during migration until production env is intentionally pinned to Postgres. |
 | [x] | Port metrics backend. | Done behind migration flag: `METRICS_BACKEND=postgres` uses the neutral Postgres metrics functions and preserves counter/timing writes, rollup reads, and operational SLO summaries. Supabase remains accepted during migration until production env is intentionally pinned to Postgres. |
-| [ ] | Replace direct Supabase query calls in routes/pages/actions. | In progress: direct API-route `auth.getUser()` checks for question generation, invite create/send/resend/retry, ops metrics, and recruiter profile now go through `getAuthenticatedRouteUser()`. Remaining work includes server components/actions, Supabase fallback repositories, admin feedback timezone lookup, auth callback/middleware, and final package/env cleanup. |
+| [ ] | Replace direct Supabase query calls in routes/pages/actions. | In progress: direct API-route `auth.getUser()` checks for question generation, invite create/send/resend/retry, ops metrics, and recruiter profile now go through `getAuthenticatedRouteUser()`. Recruiter dashboard and admin feedback profile/timezone reads now go through the app-auth-compatible profile helper. Remaining work includes server components/actions, Supabase fallback repositories, auth callback/middleware, and final package/env cleanup. |
 
 ### Phase 3 - App-Owned Recruiter Auth
 
@@ -290,7 +291,6 @@ This roadmap is intentionally broader than the items we are fully confident abou
 These items can proceed locally without waiting for the remaining integration answers:
 
 - Replace remaining server component/action `getCachedUser()` usage with provider-neutral helpers where doing so does not force deployment-policy decisions.
-- Port recruiter dashboard/profile timezone lookups that still call Supabase directly.
 - Add app-auth middleware/protected-route handling to replace Supabase SSR cookie refresh.
 - Add account provisioning/seeding support for phase-1 app users, while keeping self-sign-up disabled until policy is confirmed.
 - Implement password reset route/token flow, unless the team confirms all users will be manually provisioned and reset handled out-of-band for phase 1.

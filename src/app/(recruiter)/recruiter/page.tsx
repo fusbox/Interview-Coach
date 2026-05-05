@@ -3,7 +3,7 @@ import { getRecruiterSessions } from "./actions";
 import Link from "next/link";
 import { isAdmin } from "@/lib/auth/rbac";
 import { Plus } from "lucide-react";
-import { createClient, getCachedUser } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/server";
 import { RecruiterSessionsTable } from "./components/RecruiterSessionsTable";
 import { DashboardStats } from "./components/DashboardStats";
 import { InviteProgressWidget } from "./components/InviteProgressWidget";
@@ -13,6 +13,7 @@ import { computeDashboardStats } from "@/lib/services/compute-dashboard-stats";
 import { PageHeaderBlock } from "@/components/patterns/PageHeaderBlock";
 import { normalizeRecruiterSignature } from "@/lib/recruiter-signature";
 import { E2E_RECRUITER_ID, getE2ERecruiterProfile, isServerE2EMode } from "@/lib/e2e/test-mode";
+import { getRecruiterProfileRecord } from "@/lib/server/auth/recruiter-profile";
 export const dynamic = 'force-dynamic';
 
 export default async function RecruiterDashboard() {
@@ -20,23 +21,23 @@ export default async function RecruiterDashboard() {
     if (!user) redirect("/login");
 
     const isE2ERecruiter = isServerE2EMode() && user.id === E2E_RECRUITER_ID;
-    const [sessions, profileData] = await Promise.all([
+    const [sessions, profile] = await Promise.all([
         getRecruiterSessions(),
         isE2ERecruiter
-            ? Promise.resolve({ data: getE2ERecruiterProfile(), error: null })
-            : createClient().from('recruiter_profiles').select('*').eq('recruiter_id', user.id).single()
+            ? Promise.resolve(getE2ERecruiterProfile())
+            : getRecruiterProfileRecord(user.id)
     ]);
 
-    const recruiterTimezone = profileData.data?.timezone;
-    const recruiterName = [profileData.data?.first_name, profileData.data?.last_name]
+    const recruiterTimezone = profile?.timezone ?? undefined;
+    const recruiterName = [profile?.first_name, profile?.last_name]
         .filter((value): value is string => Boolean(value && value.trim()))
         .join(" ");
     const recruiterProfile = normalizeRecruiterSignature({
         name: recruiterName,
-        title: profileData.data?.title,
-        company: profileData.data?.company,
-        phone: profileData.data?.phone,
-        email: profileData.data?.email || user.email,
+        title: profile?.title ?? undefined,
+        company: profile && "company" in profile ? profile.company : undefined,
+        phone: profile?.phone ?? undefined,
+        email: profile && "email" in profile ? profile.email : user.email,
     });
 
     const basicStats = computeDashboardStats(sessions);
