@@ -79,7 +79,19 @@ export async function POST(request: Request) {
             answerText,
             audioData,
             blueprint as Blueprint | undefined,
-            intakeData
+            intakeData,
+            undefined,
+            undefined,
+            {
+                appName: "candidate_app",
+                correlationId,
+                sessionId,
+                sourceRefs: [
+                    { type: "route", route: "/api/analysis" },
+                    { type: "question", questionId: questionObj.id },
+                ],
+                privacyFlags: audioData ? ["contains_audio_input"] : [],
+            }
         );
 
         return NextResponse.json(analysis);

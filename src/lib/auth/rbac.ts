@@ -10,6 +10,18 @@ const ADMIN_EMAILS = [
 ];
 
 /**
+ * Temporary quality-evaluator allowlist for the first /qa surface.
+ *
+ * Long-term, this should move to database-managed roles or identity-provider
+ * group claims. Metadata role checks below let us grant QA access without
+ * making someone an app admin.
+ */
+const QUALITY_EVALUATOR_EMAILS = [
+    ...ADMIN_EMAILS,
+    "kushal@rangam.com",
+];
+
+/**
  * RBAC Utility to determine if a user has administrative privileges.
  * 
  * NOTE: This is an abstraction layer. In the future, this can be updated 
@@ -21,6 +33,42 @@ export function isAdmin(user: User | null | undefined): boolean {
 
     // Exact match check
     return ADMIN_EMAILS.includes(user.email.toLowerCase());
+}
+
+function getMetadataRoles(user: User): string[] {
+    const roleValues = [
+        user.app_metadata?.role,
+        user.app_metadata?.roles,
+        user.user_metadata?.role,
+        user.user_metadata?.roles,
+    ];
+
+    return roleValues
+        .flatMap((value) => Array.isArray(value) ? value : [value])
+        .filter((value): value is string => typeof value === "string")
+        .map((value) => value.toLowerCase());
+}
+
+/**
+ * Checks whether an authenticated staff user can access /qa tooling.
+ *
+ * QA access is intentionally separate from admin access. Admins inherit it,
+ * but evaluators can be granted it through Supabase app/user metadata roles
+ * such as "qa", "quality", "quality_evaluator", or "evaluator".
+ */
+export function isQualityEvaluator(user: User | null | undefined): boolean {
+    if (!user?.email) return false;
+
+    const email = user.email.toLowerCase();
+    if (QUALITY_EVALUATOR_EMAILS.includes(email)) return true;
+
+    const roles = getMetadataRoles(user);
+    return roles.some((role) => [
+        "qa",
+        "quality",
+        "quality_evaluator",
+        "evaluator",
+    ].includes(role));
 }
 
 /**

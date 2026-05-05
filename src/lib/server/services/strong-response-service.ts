@@ -7,30 +7,27 @@ import { getReadingLevelContext } from "@/lib/ai/prompts";
 import { parseProviderJson } from "@/lib/server/provider-response";
 import { incrementMetric, observeMetric } from "@/lib/server/metrics";
 import { ProviderResponseError } from "@/lib/server/provider-errors";
+import { captureAiGeneration } from "@/lib/server/ai-quality/capture-ai-generation";
+import { redactPii } from "@/lib/server/ai-quality/redaction";
+import { serializeAiQualityError } from "@/lib/server/ai-quality/error-serialization";
+import { buildResumeContextArtifacts } from "@/lib/server/ai-quality/context-artifacts";
+import type { AiGenerationCaptureContext } from "@/lib/server/ai-quality/types";
+
+const STRONG_RESPONSE_PROMPT_VERSION = "strong-response-v1";
 
 export class StrongResponseService {
     static async generateStrongResponse(
         questionText: string,
         role: string,
-        resumeText?: string
+        resumeText?: string,
+        captureContext: AiGenerationCaptureContext = {}
     ): Promise<StrongResponseResult> {
         const startedAt = Date.now();
+        let rawProviderOutput: string | undefined;
 
-        if (!ai) {
-            Logger.warn("[StrongResponseService] No API Key, returning mock response.");
-            incrementMetric("ai_requests_total", { operation: "strong_response", outcome: "mock_fallback" });
-            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "strong_response", outcome: "mock_fallback" });
-            return {
-                strongResponse: "This is a mock strong response because the API key is missing. It would usually be a comprehensive answer following best practices for this role.",
-                whyThisWorks: "This response demonstrates specificity, clear ownership of actions, and a measurable outcome — the three key differentiators that separate top-20% answers from the rest."
-            };
-        }
-
-        // --- Reading Level (shared utility) ---
         const readingLevelContext = getReadingLevelContext(role);
 
-        // --- Resume Context (Optional) ---
-        let resumeContext = '';
+        let resumeContext = "";
         if (resumeText && resumeText.trim().length > 0) {
             resumeContext = `
 CANDIDATE RESUME (use to anchor the example response):
@@ -72,28 +69,105 @@ Return strictly JSON matching this structure:
 }
 `;
 
+        const privacyFlags = Array.from(new Set([
+            ...(captureContext.privacyFlags ?? []),
+            ...(resumeText ? ["contains_resume"] : []),
+        ]));
+        const inputSnapshot = redactPii({
+            questionText,
+            role,
+            hasResumeText: !!resumeText,
+        });
+        const contextArtifacts = buildResumeContextArtifacts(resumeText);
+        const promptSnapshot = {
+            prompt: redactPii(prompt),
+            promptVersion: STRONG_RESPONSE_PROMPT_VERSION,
+        };
+
+        if (!ai) {
+            Logger.warn("[StrongResponseService] No API Key, returning mock response.");
+            const mockResponse = {
+                strongResponse: "This is a mock strong response because the API key is missing. It would usually be a comprehensive answer following best practices for this role.",
+                whyThisWorks: "This response demonstrates specificity, clear ownership of actions, and a measurable outcome - the three key differentiators that separate top-20% answers from the rest.",
+            };
+            await captureAiGeneration({
+                appName: captureContext.appName ?? "candidate_app",
+                surface: "strong_response",
+                status: "success",
+                inputSnapshot,
+                contextArtifacts,
+                promptSnapshot: { promptVersion: STRONG_RESPONSE_PROMPT_VERSION, providerConfigured: false },
+                promptVersion: STRONG_RESPONSE_PROMPT_VERSION,
+                modelProvider: "mock",
+                modelName: "mock-strong-response-generator",
+                modelParams: {},
+                rawOutput: redactPii(mockResponse),
+                parsedOutput: redactPii(mockResponse),
+                latencyMs: Date.now() - startedAt,
+                correlationId: captureContext.correlationId,
+                traceId: captureContext.traceId,
+                sourceRefs: captureContext.sourceRefs ?? [{ type: "service", service: "StrongResponseService.generateStrongResponse" }],
+                createdBy: captureContext.createdBy,
+                sessionId: captureContext.sessionId,
+                inviteBatchId: captureContext.inviteBatchId,
+                candidateId: captureContext.candidateId,
+                privacyFlags,
+                redactionStatus: "redacted",
+                retentionClass: "eval_redacted",
+            });
+            incrementMetric("ai_requests_total", { operation: "strong_response", outcome: "mock_fallback" });
+            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "strong_response", outcome: "mock_fallback" });
+            return mockResponse;
+        }
+
         try {
             const response = await ai.models.generateContent({
                 model: AI_MODELS.STRONG_RESPONSE,
                 contents: prompt,
                 config: {
-                    responseMimeType: 'application/json',
+                    responseMimeType: "application/json",
                     responseSchema: {
                         type: Type.OBJECT,
                         properties: {
                             strongResponse: { type: Type.STRING },
                             whyThisWorks: { type: Type.STRING },
                         },
-                        required: ['strongResponse', 'whyThisWorks'],
+                        required: ["strongResponse", "whyThisWorks"],
                     },
                 },
             });
 
-            const parsedData: StrongResponseResult = parseProviderJson(response.text, StrongResponseResultSchema, {
+            rawProviderOutput = response.text;
+            const parsedData: StrongResponseResult = parseProviderJson(rawProviderOutput, StrongResponseResultSchema, {
                 provider: "gemini",
-                operation: "generateStrongResponse"
+                operation: "generateStrongResponse",
             });
             parsedData.__debugPrompt = prompt;
+            await captureAiGeneration({
+                appName: captureContext.appName ?? "candidate_app",
+                surface: "strong_response",
+                status: "success",
+                inputSnapshot,
+                contextArtifacts,
+                promptSnapshot,
+                promptVersion: STRONG_RESPONSE_PROMPT_VERSION,
+                modelProvider: "gemini",
+                modelName: AI_MODELS.STRONG_RESPONSE,
+                modelParams: { responseMimeType: "application/json" },
+                rawOutput: redactPii(rawProviderOutput),
+                parsedOutput: redactPii(parsedData),
+                latencyMs: Date.now() - startedAt,
+                correlationId: captureContext.correlationId,
+                traceId: captureContext.traceId,
+                sourceRefs: captureContext.sourceRefs ?? [{ type: "service", service: "StrongResponseService.generateStrongResponse" }],
+                createdBy: captureContext.createdBy,
+                sessionId: captureContext.sessionId,
+                inviteBatchId: captureContext.inviteBatchId,
+                candidateId: captureContext.candidateId,
+                privacyFlags,
+                redactionStatus: "redacted",
+                retentionClass: "eval_redacted",
+            });
             incrementMetric("ai_requests_total", { operation: "strong_response", outcome: "success" });
             observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "strong_response", outcome: "success" });
 
@@ -101,11 +175,37 @@ Return strictly JSON matching this structure:
 
         } catch (error) {
             const outcome = error instanceof ProviderResponseError ? "malformed_response" : "error";
+            await captureAiGeneration({
+                appName: captureContext.appName ?? "candidate_app",
+                surface: "strong_response",
+                status: "failed",
+                inputSnapshot,
+                contextArtifacts,
+                promptSnapshot,
+                promptVersion: STRONG_RESPONSE_PROMPT_VERSION,
+                modelProvider: error instanceof ProviderResponseError ? error.provider : "gemini",
+                modelName: AI_MODELS.STRONG_RESPONSE,
+                modelParams: { responseMimeType: "application/json" },
+                rawOutput: rawProviderOutput ? redactPii(rawProviderOutput) : undefined,
+                parsedOutput: null,
+                latencyMs: Date.now() - startedAt,
+                correlationId: captureContext.correlationId,
+                traceId: captureContext.traceId,
+                sourceRefs: captureContext.sourceRefs ?? [{ type: "service", service: "StrongResponseService.generateStrongResponse" }],
+                createdBy: captureContext.createdBy,
+                sessionId: captureContext.sessionId,
+                inviteBatchId: captureContext.inviteBatchId,
+                candidateId: captureContext.candidateId,
+                error: serializeAiQualityError(error),
+                privacyFlags,
+                redactionStatus: "redacted",
+                retentionClass: "eval_redacted",
+            });
             Logger.error("[StrongResponseService] Generation Failed", {
                 error,
                 provider: error instanceof ProviderResponseError ? error.provider : "gemini",
                 operation: error instanceof ProviderResponseError ? error.operation : "generateStrongResponse",
-                providerErrorKind: error instanceof ProviderResponseError ? error.kind : undefined
+                providerErrorKind: error instanceof ProviderResponseError ? error.kind : undefined,
             });
             incrementMetric("ai_requests_total", { operation: "strong_response", outcome });
             observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "strong_response", outcome });

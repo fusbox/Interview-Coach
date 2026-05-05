@@ -1,7 +1,8 @@
 import { useCallback } from "react";
 import { ApiClient } from "@/lib/api-client";
 import { InterviewSessionSchema } from "@/lib/domain/schemas";
-import { InterviewSession } from "@/lib/domain/types";
+import { Answer, InterviewSession } from "@/lib/domain/types";
+import { buildAnalysisIdempotencyKey } from "@/lib/domain/idempotency-keys";
 import { Logger } from "@/lib/logger";
 import { SESSION_STATUS } from "@/lib/constants";
 import { buildSubmitIdempotencyKey, CommandGate, SessionMutationWithNow } from "./shared";
@@ -9,6 +10,8 @@ import { buildSubmitIdempotencyKey, CommandGate, SessionMutationWithNow } from "
 type AnsweringArgs = SessionMutationWithNow & {
     commandGate: CommandGate;
 };
+
+const inFlightAnalysisRequests = new Map<string, Promise<InterviewSession>>();
 
 export function useSessionAnswerMutations({
     session,
@@ -18,22 +21,45 @@ export function useSessionAnswerMutations({
     now,
     commandGate
 }: AnsweringArgs) {
-    const analyzeCurrentQuestion = useCallback(async (audioData?: { base64: string; mimeType: string }) => {
-        if (!session || !now.currentQuestionId) return;
+    const analyzeCurrentQuestion = useCallback(async (
+        audioData?: { base64: string; mimeType: string },
+        analysisAnswer?: Answer
+    ) => {
+        if (!session || !now.currentQuestionId) return false;
+
+        const questionId = now.currentQuestionId;
+        const idempotencyAnswer = analysisAnswer ?? session.answers[questionId];
+        const idempotencyKey = buildAnalysisIdempotencyKey(session.id, questionId, idempotencyAnswer);
 
         try {
-            const updated = await ApiClient.post<InterviewSession>(
-                `/api/session/${session.id}/questions/${now.currentQuestionId}/analysis`,
-                { audioData },
-                { token: candidateToken, schema: InterviewSessionSchema }
-            );
+            let request = inFlightAnalysisRequests.get(idempotencyKey);
+            if (!request) {
+                request = ApiClient.post<InterviewSession>(
+                    `/api/session/${session.id}/questions/${questionId}/analysis`,
+                    { audioData },
+                    {
+                        token: candidateToken,
+                        schema: InterviewSessionSchema,
+                        headers: {
+                            "Idempotency-Key": idempotencyKey,
+                        },
+                    }
+                ).finally(() => {
+                    inFlightAnalysisRequests.delete(idempotencyKey);
+                });
+                inFlightAnalysisRequests.set(idempotencyKey, request);
+            }
+
+            const updated = await request;
             mergeSession(updated);
+            return Boolean(updated.answers[questionId]?.analysis);
         } catch (e) {
             Logger.error("Analysis trigger failed", e);
+            return false;
         }
     }, [session, now.currentQuestionId, candidateToken, mergeSession]);
 
-    const submit = useCallback(async (answerText: string, audioBlob?: Blob | null) => {
+    const submit = useCallback(async (answerText: string, audioBlob?: Blob | null, modality: "text" | "voice" = audioBlob ? "voice" : "text") => {
         if (!session || !now.currentQuestionId) return;
         if (!commandGate.tryBeginCommand("submit", session.id)) return;
 
@@ -52,6 +78,7 @@ export function useSessionAnswerMutations({
                             ...prev.answers[qid],
                             questionId: qid,
                             transcript: answerText,
+                            modality,
                             submittedAt: Date.now(),
                             analysis: undefined,
                             draft: undefined
@@ -62,12 +89,12 @@ export function useSessionAnswerMutations({
 
             const updated = await ApiClient.post<InterviewSession>(
                 `/api/session/${session.id}/questions/${now.currentQuestionId}/submit`,
-                { text: answerText },
+                { text: answerText, modality },
                 {
                     token: candidateToken,
                     schema: InterviewSessionSchema,
                     headers: {
-                        "Idempotency-Key": buildSubmitIdempotencyKey(session.id, now.currentQuestionId, answerText)
+                        "Idempotency-Key": buildSubmitIdempotencyKey(session.id, now.currentQuestionId, answerText, modality)
                     }
                 }
             );
@@ -89,7 +116,7 @@ export function useSessionAnswerMutations({
                 audioData = { base64, mimeType: audioBlob.type };
             }
 
-            await analyzeCurrentQuestion(audioData);
+            await analyzeCurrentQuestion(audioData, updated.answers[now.currentQuestionId]);
         } catch (e) {
             Logger.error("Submit failed with exception", e);
             setSession(previousSessionSnapshot);

@@ -16,13 +16,24 @@ import { createClient } from "@/lib/supabase/server";
 import { parseProviderJson } from "@/lib/server/provider-response";
 import { createServerLogger } from "@/lib/server/server-logger";
 import { ProviderResponseError } from "@/lib/server/provider-errors";
+import { captureAiGeneration } from "@/lib/server/ai-quality/capture-ai-generation";
+import { redactPii } from "@/lib/server/ai-quality/redaction";
+import {
+    buildJobDescriptionContextArtifacts,
+    buildResumeContextArtifacts,
+} from "@/lib/server/ai-quality/context-artifacts";
 
 const WINDOW_MS = 5 * 60 * 1000;
 const MAX_QUESTION_GENERATION_REQUESTS = 15;
+const QUESTION_GENERATION_PROMPT_VERSION = "question-generation-v1";
 
 export async function POST(req: NextRequest) {
     const correlationId = createCorrelationId();
     const startedAt = Date.now();
+    let actorId: string | undefined;
+    let generationInput: { role: string; jobDescription?: string; resume?: string } | null = null;
+    let rawProviderOutput: string | undefined;
+    let redactedPromptSnapshot: { prompt: string; promptVersion: string } | undefined;
     const routeLogger = createServerLogger("QuestionsAPI", {
         correlationId,
         route: "/api/questions/generate",
@@ -54,6 +65,7 @@ export async function POST(req: NextRequest) {
             });
             return unauthorizedResponse(correlationId, "Authentication required");
         }
+        actorId = user.id;
 
         const body = await req.json().catch(() => null);
         const parseResult = GenerateQuestionsRequestSchema.safeParse(body);
@@ -62,10 +74,47 @@ export async function POST(req: NextRequest) {
         }
 
         const { role, jobDescription, resume } = parseResult.data;
+        generationInput = { role, jobDescription, resume };
+        const privacyFlags = resume ? ["contains_resume"] : [];
+        const contextArtifacts = [
+            ...buildJobDescriptionContextArtifacts(jobDescription),
+            ...buildResumeContextArtifacts(resume),
+        ];
+        const redactedGenerationInput = redactPii({
+            role,
+            hasJobDescription: !!jobDescription,
+            hasResumeText: !!resume,
+        });
 
         if (!ai) {
             routeLogger.warn("AI API key missing; returning mock questions", {
                 outcome: "mock_fallback"
+            });
+            const mockQuestions = getMockQuestions(role);
+            const redactedMockQuestions = redactPii(mockQuestions);
+            await captureAiGeneration({
+                appName: "recruiter_app",
+                surface: "question_generation",
+                status: "success",
+                inputSnapshot: redactedGenerationInput,
+                contextArtifacts,
+                promptSnapshot: {
+                    promptVersion: QUESTION_GENERATION_PROMPT_VERSION,
+                    providerConfigured: false,
+                },
+                promptVersion: QUESTION_GENERATION_PROMPT_VERSION,
+                modelProvider: "mock",
+                modelName: "mock-question-generator",
+                modelParams: {},
+                rawOutput: redactedMockQuestions,
+                parsedOutput: redactedMockQuestions,
+                latencyMs: Date.now() - startedAt,
+                correlationId,
+                sourceRefs: [{ type: "route", route: "/api/questions/generate" }],
+                createdBy: actorId,
+                privacyFlags,
+                redactionStatus: "redacted",
+                retentionClass: "eval_redacted",
             });
             incrementMetric("ai_requests_total", {
                 operation: "question_generation",
@@ -75,7 +124,7 @@ export async function POST(req: NextRequest) {
                 operation: "question_generation",
                 outcome: "mock_fallback"
             });
-            return NextResponse.json(getMockQuestions(role));
+            return NextResponse.json(mockQuestions);
         }
 
         const readingLevelContext = getReadingLevelContext(role);
@@ -137,6 +186,10 @@ RULES:
 - Use plain, supportive language for entry-level roles.
 - Do not mention the word "STAR" or "PERMA" in the question text.
 - Output ONLY valid JSON.`;
+        redactedPromptSnapshot = {
+            prompt: redactPii(prompt),
+            promptVersion: QUESTION_GENERATION_PROMPT_VERSION,
+        };
 
         routeLogger.info("Generating questions", {
             actorId: user.id,
@@ -148,10 +201,34 @@ RULES:
             contents: { parts: [{ text: prompt }] },
             config: { responseMimeType: 'application/json' },
         });
+        rawProviderOutput = response.text;
 
-        const result = parseProviderJson(response.text, GeneratedInterviewQuestionsSchema, {
+        const result = parseProviderJson(rawProviderOutput, GeneratedInterviewQuestionsSchema, {
             provider: "gemini",
             operation: "generateQuestions"
+        });
+        const redactedRawProviderOutput = redactPii(rawProviderOutput);
+        const redactedResult = redactPii(result);
+        await captureAiGeneration({
+            appName: "recruiter_app",
+            surface: "question_generation",
+            status: "success",
+            inputSnapshot: redactedGenerationInput,
+            contextArtifacts,
+            promptSnapshot: redactedPromptSnapshot,
+            promptVersion: QUESTION_GENERATION_PROMPT_VERSION,
+            modelProvider: "gemini",
+            modelName: AI_MODELS.QUESTION_GEN,
+            modelParams: { responseMimeType: "application/json" },
+            rawOutput: redactedRawProviderOutput,
+            parsedOutput: redactedResult,
+            latencyMs: Date.now() - startedAt,
+            correlationId,
+            sourceRefs: [{ type: "route", route: "/api/questions/generate" }],
+            createdBy: actorId,
+            privacyFlags,
+            redactionStatus: "redacted",
+            retentionClass: "eval_redacted",
         });
         
         routeLogger.info("Questions generated successfully", {
@@ -172,6 +249,39 @@ RULES:
 
     } catch (error) {
         const outcome = error instanceof ProviderResponseError ? "malformed_response" : "error";
+        if (generationInput) {
+            const privacyFlags = generationInput.resume ? ["contains_resume"] : [];
+            const contextArtifacts = [
+                ...buildJobDescriptionContextArtifacts(generationInput.jobDescription),
+                ...buildResumeContextArtifacts(generationInput.resume),
+            ];
+            await captureAiGeneration({
+                appName: "recruiter_app",
+                surface: "question_generation",
+                status: "failed",
+                inputSnapshot: redactPii({
+                    role: generationInput.role,
+                    hasJobDescription: !!generationInput.jobDescription,
+                    hasResumeText: !!generationInput.resume,
+                }),
+                contextArtifacts,
+                promptSnapshot: redactedPromptSnapshot,
+                promptVersion: QUESTION_GENERATION_PROMPT_VERSION,
+                modelProvider: error instanceof ProviderResponseError ? error.provider : "gemini",
+                modelName: AI_MODELS.QUESTION_GEN,
+                modelParams: { responseMimeType: "application/json" },
+                rawOutput: rawProviderOutput ? redactPii(rawProviderOutput) : undefined,
+                parsedOutput: null,
+                latencyMs: Date.now() - startedAt,
+                correlationId,
+                sourceRefs: [{ type: "route", route: "/api/questions/generate" }],
+                createdBy: actorId,
+                error: serializeAiGenerationError(error),
+                privacyFlags,
+                redactionStatus: "redacted",
+                retentionClass: "eval_redacted",
+            });
+        }
         routeLogger.error("Question generation failed", {
             error,
             errorCode: "QUESTION_GENERATION_FAILED",
@@ -189,6 +299,27 @@ RULES:
         });
         return internalErrorResponse(correlationId);
     }
+}
+
+function serializeAiGenerationError(error: unknown) {
+    if (error instanceof ProviderResponseError) {
+        return {
+            name: error.name,
+            message: error.message,
+            provider: error.provider,
+            operation: error.operation,
+            kind: error.kind,
+        };
+    }
+
+    if (error instanceof Error) {
+        return {
+            name: error.name,
+            message: error.message,
+        };
+    }
+
+    return { message: String(error) };
 }
 
 function getMockQuestions(role: string) {

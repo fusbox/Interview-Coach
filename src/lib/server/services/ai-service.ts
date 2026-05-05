@@ -8,6 +8,19 @@ import { FEEDBACK_DIMENSIONS } from "@/lib/constants";
 import { NonEmptyProviderTextSchema, parseProviderJson, parseProviderValue } from "@/lib/server/provider-response";
 import { incrementMetric, observeMetric } from "@/lib/server/metrics";
 import { ProviderResponseError } from "@/lib/server/provider-errors";
+import { captureAiGeneration } from "@/lib/server/ai-quality/capture-ai-generation";
+import { redactPii } from "@/lib/server/ai-quality/redaction";
+import { serializeAiQualityError } from "@/lib/server/ai-quality/error-serialization";
+import {
+    buildBlueprintContextArtifacts,
+    buildIntakeContextArtifacts,
+    buildIntakeSnapshot,
+    buildJobDescriptionContextArtifacts,
+} from "@/lib/server/ai-quality/context-artifacts";
+import type { AiGenerationCaptureContext } from "@/lib/server/ai-quality/types";
+
+const ANSWER_FEEDBACK_PROMPT_VERSION = "answer-feedback-v1";
+const SESSION_DEBRIEF_PROMPT_VERSION = "session-debrief-v1";
 
 export class AIService {
     private static readonly detectabilityLevels = ["clear", "moderate", "ambiguous", "thin"] as const;
@@ -53,9 +66,11 @@ export class AIService {
         blueprint?: Blueprint,
         intakeData?: Record<string, unknown>,
         retryContext?: { trigger: 'user' | 'coach'; focus?: string },
-        progress?: { current: number; total: number }
+        progress?: { current: number; total: number },
+        captureContext: AiGenerationCaptureContext = {}
     ): Promise<AnalysisResult> {
         const startedAt = Date.now();
+        let rawProviderOutput: string | undefined;
 
         // 1. Context Construction
         const contextPrompt = buildAnalysisContext(question, blueprint, intakeData, retryContext);
@@ -177,23 +192,80 @@ Generate feedback as strict JSON matching this schema:
   }
 }
 `;
+        const combinedPrompt = `${systemPrompt}\n\n${contextPrompt}\n\n${progressPrompt}\n\n${schemaPrompt}\n\n${audioData ? "Analyze this recording. Provide a high-quality transcription in the 'transcript' field of the JSON, including correct punctuation and sentence structure. Do NOT mention being an AI in the transcription." : `USER ANSWER: "${answerText}"`}`;
+        const privacyFlags = Array.from(new Set([
+            ...(captureContext.privacyFlags ?? []),
+            ...(audioData ? ["contains_audio_input"] : []),
+            ...(intakeData ? ["contains_intake_context"] : []),
+        ]));
+        const inputSnapshot = redactPii({
+            question,
+            answer: audioData
+                ? {
+                    modality: "voice",
+                    mimeType: audioData.mimeType,
+                    hasAudio: true,
+                    transcriptHint: answerText,
+                }
+                : {
+                    modality: "text",
+                    text: answerText,
+                },
+            hasBlueprint: !!blueprint,
+            intakeData: buildIntakeSnapshot(intakeData),
+            retryContext,
+            progress,
+        });
+        const contextArtifacts = [
+            ...buildBlueprintContextArtifacts(blueprint),
+            ...buildIntakeContextArtifacts(intakeData),
+        ];
+        const promptSnapshot = {
+            prompt: redactPii(combinedPrompt),
+            promptVersion: ANSWER_FEEDBACK_PROMPT_VERSION,
+        };
+
         // 3. Assemble Gemini Prompt Parts
         if (!ai) {
             Logger.warn("AI Service: No API Key, returning mock analysis.");
             await new Promise(r => setTimeout(r, 800));
-            incrementMetric("ai_requests_total", { operation: "analysis", outcome: "mock_fallback" });
-            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "analysis", outcome: "mock_fallback" });
-            return {
+            const mockResult: AnalysisResult = {
                 ack: "I noted your answer. (No API Key)",
                 meta: { tier: 1, modality: audioData ? "voice" : "text", confidence: "medium", readinessLevel: "RL4" },
                 transcript: answerText || "Audio Answer (Mock)",
                 contentPulse: { dimension: "focus_relevance", headline: "Setup Needed", body: "Please add your Gemini API key to evaluate your response.", quote: "" }
             };
+            await captureAiGeneration({
+                appName: captureContext.appName ?? "candidate_app",
+                surface: "answer_feedback",
+                status: "success",
+                inputSnapshot,
+                contextArtifacts,
+                promptSnapshot: { promptVersion: ANSWER_FEEDBACK_PROMPT_VERSION, providerConfigured: false },
+                promptVersion: ANSWER_FEEDBACK_PROMPT_VERSION,
+                modelProvider: "mock",
+                modelName: "mock-answer-feedback",
+                modelParams: {},
+                rawOutput: redactPii(mockResult),
+                parsedOutput: redactPii(mockResult),
+                latencyMs: Date.now() - startedAt,
+                correlationId: captureContext.correlationId,
+                traceId: captureContext.traceId,
+                sourceRefs: captureContext.sourceRefs ?? [{ type: "service", service: "AIService.analyzeAnswer" }],
+                createdBy: captureContext.createdBy,
+                sessionId: captureContext.sessionId,
+                inviteBatchId: captureContext.inviteBatchId,
+                candidateId: captureContext.candidateId,
+                privacyFlags,
+                redactionStatus: "redacted",
+                retentionClass: "eval_redacted",
+            });
+            incrementMetric("ai_requests_total", { operation: "analysis", outcome: "mock_fallback" });
+            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "analysis", outcome: "mock_fallback" });
+            return mockResult;
         }
 
         try {
-            const combinedPrompt = `${systemPrompt}\n\n${contextPrompt}\n\n${progressPrompt}\n\n${schemaPrompt}\n\n${audioData ? "Analyze this recording. Provide a high-quality transcription in the 'transcript' field of the JSON, including correct punctuation and sentence structure. Do NOT mention being an AI in the transcription." : `USER ANSWER: "${answerText}"`}`;
-
             const promptParts: Part[] = [{ text: combinedPrompt }];
 
             if (audioData) {
@@ -214,7 +286,8 @@ Generate feedback as strict JSON matching this schema:
             });
 
             const text = response.text;
-            Logger.info("AI Raw Response", { textLength: text?.length, textPreview: text?.substring(0, 100) });
+            rawProviderOutput = text;
+            Logger.info("AI Raw Response Received", { textLength: text?.length, operation: "analyzeAnswer" });
             const result = parseProviderJson(text, AnalysisResultSchema, {
                 provider: "gemini",
                 operation: "analyzeAnswer"
@@ -246,6 +319,32 @@ Generate feedback as strict JSON matching this schema:
                 __debugPrompt: combinedPrompt
             };
 
+            await captureAiGeneration({
+                appName: captureContext.appName ?? "candidate_app",
+                surface: "answer_feedback",
+                status: "success",
+                inputSnapshot,
+                contextArtifacts,
+                promptSnapshot,
+                promptVersion: ANSWER_FEEDBACK_PROMPT_VERSION,
+                modelProvider: "gemini",
+                modelName: AI_MODELS.ANALYSIS,
+                modelParams: { responseMimeType: "application/json" },
+                rawOutput: redactPii(rawProviderOutput),
+                parsedOutput: redactPii(mappedResult),
+                latencyMs: Date.now() - startedAt,
+                correlationId: captureContext.correlationId,
+                traceId: captureContext.traceId,
+                sourceRefs: captureContext.sourceRefs ?? [{ type: "service", service: "AIService.analyzeAnswer" }],
+                createdBy: captureContext.createdBy,
+                sessionId: captureContext.sessionId,
+                inviteBatchId: captureContext.inviteBatchId,
+                candidateId: captureContext.candidateId,
+                privacyFlags,
+                redactionStatus: "redacted",
+                retentionClass: "eval_redacted",
+            });
+
             incrementMetric("ai_requests_total", { operation: "analysis", outcome: "success" });
             observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "analysis", outcome: "success" });
 
@@ -253,6 +352,32 @@ Generate feedback as strict JSON matching this schema:
 
         } catch (error) {
             const outcome = error instanceof ProviderResponseError ? "malformed_response" : "error";
+            await captureAiGeneration({
+                appName: captureContext.appName ?? "candidate_app",
+                surface: "answer_feedback",
+                status: "failed",
+                inputSnapshot,
+                contextArtifacts,
+                promptSnapshot,
+                promptVersion: ANSWER_FEEDBACK_PROMPT_VERSION,
+                modelProvider: error instanceof ProviderResponseError ? error.provider : "gemini",
+                modelName: AI_MODELS.ANALYSIS,
+                modelParams: { responseMimeType: "application/json" },
+                rawOutput: rawProviderOutput ? redactPii(rawProviderOutput) : undefined,
+                parsedOutput: null,
+                latencyMs: Date.now() - startedAt,
+                correlationId: captureContext.correlationId,
+                traceId: captureContext.traceId,
+                sourceRefs: captureContext.sourceRefs ?? [{ type: "service", service: "AIService.analyzeAnswer" }],
+                createdBy: captureContext.createdBy,
+                sessionId: captureContext.sessionId,
+                inviteBatchId: captureContext.inviteBatchId,
+                candidateId: captureContext.candidateId,
+                error: serializeAiQualityError(error),
+                privacyFlags,
+                redactionStatus: "redacted",
+                retentionClass: "eval_redacted",
+            });
             Logger.error("AI Analysis Failed", {
                 error,
                 provider: error instanceof ProviderResponseError ? error.provider : "gemini",
@@ -276,31 +401,40 @@ Generate feedback as strict JSON matching this schema:
     }
 
     static async summarizeSession(
-        session: InterviewSession
+        session: InterviewSession,
+        captureContext: AiGenerationCaptureContext = {}
     ): Promise<string> {
         const startedAt = Date.now();
-        if (!ai) {
-            incrementMetric("ai_requests_total", { operation: "session_summary", outcome: "mock_fallback" });
-            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "session_summary", outcome: "mock_fallback" });
-            return "Session completed. No automated debrief available.";
-        }
+        let rawProviderOutput: string | undefined;
 
-        const answersContext = Object.values(session.answers as Record<string, Answer> || {})
+        const answerSnapshots = Object.values(session.answers as Record<string, Answer> || {})
             .map((a: Answer, i: number) => {
                 const qText = session.questions.find((q: Question) => q.id === a.questionId)?.text || "Unknown Question";
 
                 // Extract hidden telemetry to feed the debrief engine
+                const modality = a.analysis?.meta?.modality || 'text';
+
+                return {
+                    index: i + 1,
+                    questionId: a.questionId,
+                    questionText: qText,
+                    modality,
+                    transcript: a.transcript || "No transcript",
+                    scores: a.analysis?.scores ?? null,
+                };
+            });
+
+        const answersContext = answerSnapshots
+            .map((answer) => {
                 let scoreContext = "No telemetry recorded.";
-                if (a.analysis?.scores) {
-                    const scoreMap = Object.entries(a.analysis.scores).map(([dim, data]) => {
+                if (answer.scores) {
+                    const scoreMap = Object.entries(answer.scores).map(([dim, data]) => {
                         return `${dim}: ${data.score}/5 (${data.label})`;
                     });
                     scoreContext = scoreMap.join('\n');
                 }
 
-                const modality = a.analysis?.meta?.modality || 'text';
-
-                return `--- Question ${i + 1} ---\nQ: ${qText}\nMODALITY: ${modality === 'voice' ? 'VOICE (SPOKEN)' : 'TEXT (TYPED)'}\nTRANSCRIPT: ${a.transcript || 'No transcript'}\n\nHIDDEN TELEMETRY SCORES:\n${scoreContext}\n`;
+                return `--- Question ${answer.index} ---\nQ: ${answer.questionText}\nMODALITY: ${answer.modality === 'voice' ? 'VOICE (SPOKEN)' : 'TEXT (TYPED)'}\nTRANSCRIPT: ${answer.transcript}\n\nHIDDEN TELEMETRY SCORES:\n${scoreContext}\n`;
             })
             .join("\n\n");
 
@@ -349,6 +483,53 @@ ${answersContext}
 ROLE CONTEXT:
 ${session.jobDescription || "No specific job description provided."}
 `;
+        const privacyFlags = Array.from(new Set([
+            ...(captureContext.privacyFlags ?? []),
+            "contains_session_transcripts",
+        ]));
+        const contextArtifacts = buildJobDescriptionContextArtifacts(session.jobDescription);
+        const inputSnapshot = redactPii({
+            sessionId: session.id,
+            role: session.role,
+            hasJobDescription: !!session.jobDescription,
+            answers: answerSnapshots,
+        });
+        const promptSnapshot = {
+            prompt: redactPii(prompt),
+            promptVersion: SESSION_DEBRIEF_PROMPT_VERSION,
+        };
+
+        if (!ai) {
+            const mockSummary = "Session completed. No automated debrief available.";
+            await captureAiGeneration({
+                appName: captureContext.appName ?? "candidate_app",
+                surface: "session_debrief",
+                status: "success",
+                inputSnapshot,
+                contextArtifacts,
+                promptSnapshot: { promptVersion: SESSION_DEBRIEF_PROMPT_VERSION, providerConfigured: false },
+                promptVersion: SESSION_DEBRIEF_PROMPT_VERSION,
+                modelProvider: "mock",
+                modelName: "mock-session-debrief",
+                modelParams: {},
+                rawOutput: mockSummary,
+                parsedOutput: mockSummary,
+                latencyMs: Date.now() - startedAt,
+                correlationId: captureContext.correlationId,
+                traceId: captureContext.traceId,
+                sourceRefs: captureContext.sourceRefs ?? [{ type: "service", service: "AIService.summarizeSession" }],
+                createdBy: captureContext.createdBy ?? session.recruiterId,
+                sessionId: captureContext.sessionId ?? session.id,
+                inviteBatchId: captureContext.inviteBatchId,
+                candidateId: captureContext.candidateId,
+                privacyFlags,
+                redactionStatus: "redacted",
+                retentionClass: "eval_redacted",
+            });
+            incrementMetric("ai_requests_total", { operation: "session_summary", outcome: "mock_fallback" });
+            observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "session_summary", outcome: "mock_fallback" });
+            return mockSummary;
+        }
 
         try {
             const response = await ai.models.generateContent({
@@ -356,15 +537,67 @@ ${session.jobDescription || "No specific job description provided."}
                 contents: [{ text: prompt }]
             });
 
-            const summary = parseProviderValue(response.text, NonEmptyProviderTextSchema, {
+            rawProviderOutput = response.text;
+            const summary = parseProviderValue(rawProviderOutput, NonEmptyProviderTextSchema, {
                 provider: "gemini",
                 operation: "summarizeSession"
+            });
+            await captureAiGeneration({
+                appName: captureContext.appName ?? "candidate_app",
+                surface: "session_debrief",
+                status: "success",
+                inputSnapshot,
+                contextArtifacts,
+                promptSnapshot,
+                promptVersion: SESSION_DEBRIEF_PROMPT_VERSION,
+                modelProvider: "gemini",
+                modelName: AI_MODELS.ANALYSIS,
+                modelParams: {},
+                rawOutput: redactPii(rawProviderOutput),
+                parsedOutput: redactPii(summary),
+                latencyMs: Date.now() - startedAt,
+                correlationId: captureContext.correlationId,
+                traceId: captureContext.traceId,
+                sourceRefs: captureContext.sourceRefs ?? [{ type: "service", service: "AIService.summarizeSession" }],
+                createdBy: captureContext.createdBy ?? session.recruiterId,
+                sessionId: captureContext.sessionId ?? session.id,
+                inviteBatchId: captureContext.inviteBatchId,
+                candidateId: captureContext.candidateId,
+                privacyFlags,
+                redactionStatus: "redacted",
+                retentionClass: "eval_redacted",
             });
             incrementMetric("ai_requests_total", { operation: "session_summary", outcome: "success" });
             observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "session_summary", outcome: "success" });
             return summary;
         } catch (error) {
             const outcome = error instanceof ProviderResponseError ? "malformed_response" : "error";
+            await captureAiGeneration({
+                appName: captureContext.appName ?? "candidate_app",
+                surface: "session_debrief",
+                status: "failed",
+                inputSnapshot,
+                contextArtifacts,
+                promptSnapshot,
+                promptVersion: SESSION_DEBRIEF_PROMPT_VERSION,
+                modelProvider: error instanceof ProviderResponseError ? error.provider : "gemini",
+                modelName: AI_MODELS.ANALYSIS,
+                modelParams: {},
+                rawOutput: rawProviderOutput ? redactPii(rawProviderOutput) : undefined,
+                parsedOutput: null,
+                latencyMs: Date.now() - startedAt,
+                correlationId: captureContext.correlationId,
+                traceId: captureContext.traceId,
+                sourceRefs: captureContext.sourceRefs ?? [{ type: "service", service: "AIService.summarizeSession" }],
+                createdBy: captureContext.createdBy ?? session.recruiterId,
+                sessionId: captureContext.sessionId ?? session.id,
+                inviteBatchId: captureContext.inviteBatchId,
+                candidateId: captureContext.candidateId,
+                error: serializeAiQualityError(error),
+                privacyFlags,
+                redactionStatus: "redacted",
+                retentionClass: "eval_redacted",
+            });
             Logger.error("Session Summarization Failed", {
                 error,
                 provider: error instanceof ProviderResponseError ? error.provider : "gemini",

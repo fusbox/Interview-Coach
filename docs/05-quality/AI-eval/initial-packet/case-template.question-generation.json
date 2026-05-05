@@ -1,0 +1,55 @@
+{
+  "case_id": "QG-001",
+  "surface": "question_generation",
+  "metadata": {
+    "source": {
+      "ai_generation_id": "",
+      "invite_batch_id": ""
+    },
+    "app_name": "recruiter_app",
+    "prompt_version": "",
+    "model_provider": "",
+    "model_name": "",
+    "redaction_status": "redacted",
+    "created_at": ""
+  },
+  "input": {
+    "target_role": "",
+    "job_description": "",
+    "resume_context": {
+      "present": false,
+      "handling": "none",
+      "excerpt": ""
+    },
+    "question_requirements": {
+      "behavioral_count": 4,
+      "culture_count": 5,
+      "technical_count": "1-2"
+    }
+  },
+  "prompt_snapshot": {
+    "prompt_version": "",
+    "prompt": ""
+  },
+  "baseline_output": {
+    "behavioral": {
+      "Conflict/Resolution": "",
+      "Adaptability": "",
+      "Initiative/Growth": "",
+      "Role-Specific Scenario": ""
+    },
+    "culture": {
+      "Positive Emotion": "",
+      "Engagement": "",
+      "Relationships": "",
+      "Meaning": "",
+      "Accomplishment": ""
+    },
+    "technical": [
+      {
+        "text": ""
+      }
+    ]
+  },
+  "final_accepted_question_set": []
+}

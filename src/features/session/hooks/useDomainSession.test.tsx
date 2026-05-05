@@ -96,6 +96,10 @@ describe('useDomainSession', () => {
 
         // 4. Expectation: guarded by isSubmittingRef
         expect(mockFetch).toHaveBeenCalledTimes(3); // 1 for init, 1 for first submit, 1 for follow-up analysis.
+        const analysisCall = mockFetch.mock.calls.find(([url]) => String(url).includes('/analysis'));
+        expect(analysisCall?.[1]?.headers).toMatchObject({
+            'Idempotency-Key': expect.stringContaining('analysis:123:q1:')
+        });
     });
 
     // Verification Test for Cross-Action Race Class

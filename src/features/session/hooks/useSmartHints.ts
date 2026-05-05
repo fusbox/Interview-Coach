@@ -2,7 +2,25 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Question, Blueprint, QuestionTips } from '@/lib/domain/types';
 import { Logger } from '@/lib/logger';
 
-const CACHE_KEY_PREFIX = 'smart_hints_';
+const CACHE_KEY_PREFIX = 'smart_hints:';
+const inFlightHintRequests = new Map<string, Promise<QuestionTips>>();
+
+function buildCacheKey(sessionId: string | undefined | null, questionId: string | undefined | null) {
+    return sessionId && questionId ? `${CACHE_KEY_PREFIX}${sessionId}:${questionId}` : '';
+}
+
+function readCachedHints(cacheKey: string) {
+    const cached = sessionStorage.getItem(cacheKey);
+    if (!cached) return null;
+
+    try {
+        return JSON.parse(cached) as QuestionTips;
+    } catch (error) {
+        Logger.error("Failed to parse cached hints", error);
+        sessionStorage.removeItem(cacheKey);
+        return null;
+    }
+}
 
 export interface SmartHintsState {
     hints: QuestionTips | null;
@@ -25,14 +43,14 @@ export function useSmartHints(
     });
 
     const isFetchingRef = useRef(false);
-    const cacheKey = question ? `${CACHE_KEY_PREFIX}${question.id}` : '';
+    const cacheKey = buildCacheKey(sessionId, question?.id);
 
     const fetchHints = useCallback(async () => {
-        if (!question || !sessionId || !candidateToken || isFetchingRef.current) return;
+        if (!question || !sessionId || !candidateToken || !cacheKey || isFetchingRef.current) return;
 
-        const cached = sessionStorage.getItem(cacheKey);
+        const cached = readCachedHints(cacheKey);
         if (cached) {
-            setState(prev => ({ ...prev, hints: JSON.parse(cached) }));
+            setState(prev => ({ ...prev, hints: cached, isLoading: false, error: null }));
             return;
         }
 
@@ -40,30 +58,40 @@ export function useSmartHints(
         setState(prev => ({ ...prev, isLoading: true, error: null }));
 
         try {
-            const response = await fetch('/api/tips/generate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-candidate-token': candidateToken,
-                },
-                body: JSON.stringify({
-                    sessionId,
-                    question: question.text,
-                    role: role,
-                    competency: question.competencyId ? { name: question.competencyId } : undefined,
-                    blueprint: blueprint,
-                    resumeText: resumeText || undefined
-                })
-            });
+            let request = inFlightHintRequests.get(cacheKey);
 
-            if (!response.ok) {
-                throw new Error('Failed to fetch hints');
+            if (!request) {
+                request = fetch('/api/tips/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-candidate-token': candidateToken,
+                        'Idempotency-Key': cacheKey,
+                    },
+                    body: JSON.stringify({
+                        sessionId,
+                        question: question.text,
+                        role: role,
+                        competency: question.competencyId ? { name: question.competencyId } : undefined,
+                        blueprint: blueprint,
+                        resumeText: resumeText || undefined
+                    })
+                }).then(async (response) => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch hints');
+                    }
+
+                    const data = await response.json() as QuestionTips;
+                    sessionStorage.setItem(cacheKey, JSON.stringify(data));
+                    return data;
+                }).finally(() => {
+                    inFlightHintRequests.delete(cacheKey);
+                });
+
+                inFlightHintRequests.set(cacheKey, request);
             }
 
-            const data = await response.json();
-
-            sessionStorage.setItem(cacheKey, JSON.stringify(data));
-
+            const data = await request;
             setState({ hints: data, isLoading: false, error: null });
 
         } catch (err) {
@@ -77,10 +105,10 @@ export function useSmartHints(
     useEffect(() => {
         isFetchingRef.current = false;
         setState({ hints: null, isLoading: false, error: null });
-    }, [question?.id]);
+    }, [cacheKey]);
 
     useEffect(() => {
-        if (!question) return;
+        if (!question || !cacheKey) return;
         const cached = sessionStorage.getItem(cacheKey);
         if (cached) {
             try {

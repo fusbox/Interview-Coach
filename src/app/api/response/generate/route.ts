@@ -9,9 +9,11 @@ import {
 } from '@/lib/server/api-errors';
 import { enforceIpRateLimit } from '@/lib/server/abuse-protection';
 import { authorizeCandidateSessionRequest } from '@/lib/server/candidate-route-auth';
+import { SupabaseSessionRepository } from '@/lib/server/infrastructure/supabase-session-repository';
 
 const WINDOW_MS = 5 * 60 * 1000;
 const MAX_STRONG_RESPONSE_REQUESTS = 30;
+const repository = new SupabaseSessionRepository();
 
 export async function POST(req: NextRequest) {
     const correlationId = createCorrelationId();
@@ -43,9 +45,22 @@ export async function POST(req: NextRequest) {
         if (authResponse) {
             return authResponse;
         }
+        const session = await repository.get(sessionId);
 
         // Generate content (fully self-sufficient — no tips dependency)
-        const data = await StrongResponseService.generateStrongResponse(question, role || "Professional", resumeText);
+        const data = await StrongResponseService.generateStrongResponse(
+            question,
+            role || "Professional",
+            resumeText,
+            {
+                appName: "candidate_app",
+                correlationId,
+                sessionId,
+                sourceRefs: [{ type: "route", route: "/api/response/generate" }],
+                createdBy: session?.recruiterId,
+                privacyFlags: resumeText ? ["contains_resume"] : [],
+            }
+        );
 
         return NextResponse.json(data);
 

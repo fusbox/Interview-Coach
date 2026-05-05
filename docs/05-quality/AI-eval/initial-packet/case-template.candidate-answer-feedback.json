@@ -1,0 +1,61 @@
+{
+  "case_id": "CAF-001",
+  "surface": "candidate_answer_feedback",
+  "metadata": {
+    "source": {
+      "ai_generation_id": "",
+      "session_id": "",
+      "question_id": "",
+      "answer_attempt": "",
+      "eval_result_attempt": ""
+    },
+    "app_name": "recruiter_app",
+    "prompt_version": "",
+    "model_provider": "",
+    "model_name": "",
+    "redaction_status": "redacted",
+    "created_at": ""
+  },
+  "input": {
+    "target_role": "",
+    "job_description": "",
+    "question": {
+      "index": 0,
+      "category": "",
+      "text": ""
+    },
+    "candidate_answer": {
+      "modality": "text",
+      "transcript": ""
+    },
+    "resume_context": {
+      "present": false,
+      "handling": "none",
+      "excerpt": ""
+    },
+    "retry_context": {
+      "present": false,
+      "trigger": "",
+      "focus": ""
+    },
+    "progress": {
+      "current": 1,
+      "total": 1
+    }
+  },
+  "prompt_snapshot": {
+    "prompt_version": "",
+    "prompt": ""
+  },
+  "baseline_feedback_output": {
+    "feedbackPlan": null,
+    "ack": "",
+    "scores": {},
+    "contentPulse": null,
+    "deliveryPulse": null,
+    "nextAction": null,
+    "recommendation": "",
+    "meta": null,
+    "transcript": ""
+  }
+}

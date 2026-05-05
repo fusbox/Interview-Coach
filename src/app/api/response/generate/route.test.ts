@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const enforceIpRateLimitMock = vi.fn();
 const authorizeCandidateSessionRequestMock = vi.fn();
 const generateStrongResponseMock = vi.fn();
+const getSessionMock = vi.fn();
 
 vi.mock("@/lib/server/abuse-protection", () => ({
     enforceIpRateLimit: enforceIpRateLimitMock,
@@ -18,6 +19,12 @@ vi.mock("@/lib/server/services/strong-response-service", () => ({
     },
 }));
 
+vi.mock("@/lib/server/infrastructure/supabase-session-repository", () => ({
+    SupabaseSessionRepository: class {
+        get = getSessionMock;
+    },
+}));
+
 vi.mock("@/lib/logger", () => ({
     Logger: {
         warn: vi.fn(),
@@ -30,6 +37,7 @@ describe("POST /api/response/generate", () => {
         vi.clearAllMocks();
         enforceIpRateLimitMock.mockResolvedValue(null);
         authorizeCandidateSessionRequestMock.mockResolvedValue(null);
+        getSessionMock.mockResolvedValue({ id: "session-1", recruiterId: "recruiter-1" });
         generateStrongResponseMock.mockResolvedValue({
             strongResponse: "Example answer",
             whyThisWorks: "Because it is grounded and specific",
@@ -74,6 +82,17 @@ describe("POST /api/response/generate", () => {
         expect(res.status).toBe(200);
         expect(body.strongResponse).toBe("Example answer");
         expect(authorizeCandidateSessionRequestMock).toHaveBeenCalledWith(req, "session-1", expect.any(String));
-        expect(generateStrongResponseMock).toHaveBeenCalledWith("Tell me about yourself", "QA Engineer", "Resume text");
+        expect(generateStrongResponseMock).toHaveBeenCalledWith(
+            "Tell me about yourself",
+            "QA Engineer",
+            "Resume text",
+            expect.objectContaining({
+                appName: "candidate_app",
+                sessionId: "session-1",
+                sourceRefs: [{ type: "route", route: "/api/response/generate" }],
+                createdBy: "recruiter-1",
+                privacyFlags: ["contains_resume"]
+            })
+        );
     });
 });

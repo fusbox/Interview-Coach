@@ -4,12 +4,12 @@ import { useScroll, motion, useMotionValueEvent } from "framer-motion";
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Plus, List, Settings, LogOut, LayoutTemplate, BarChart3 } from "lucide-react";
+import { Plus, List, Settings, LogOut, LayoutTemplate, BarChart3, ClipboardCheck } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { createBrowserClient } from "@supabase/ssr";
 import { useRouter } from "next/navigation";
 import { User } from "@supabase/supabase-js";
-import { isAdmin } from "@/lib/auth/rbac";
+import { isAdmin, isQualityEvaluator } from "@/lib/auth/rbac";
 
 export function RecruiterMobileDock({ user }: { user?: User | null }) {
     const { scrollY } = useScroll();
@@ -54,6 +54,10 @@ export function RecruiterMobileDock({ user }: { user?: User | null }) {
     // Add Admin Feedback link if applicable
     if (isAdmin(user)) {
         navItems.push({ icon: BarChart3, label: "Feedback", href: "/admin/feedback" });
+    }
+
+    if (isQualityEvaluator(user)) {
+        navItems.push({ icon: ClipboardCheck, label: "AI Quality", href: "/qa/ai-quality" });
     }
 
     return (
