@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-session-repository";
+import { createSessionRepository } from "@/lib/server/infrastructure/session-repository";
 import { requireCandidateToken } from "@/lib/server/auth/candidate-token";
 import { InterviewSession } from "@/lib/domain/types";
 import {
@@ -10,8 +10,6 @@ import {
     unauthorizedResponse
 } from "@/lib/server/api-errors";
 import { createServerLogger } from "@/lib/server/server-logger";
-
-const repository = new SupabaseSessionRepository();
 
 export type ValidatedSessionHandler = (
     request: Request,
@@ -53,6 +51,7 @@ export async function validatedSessionHandler(
         }
 
         // 2. Session Existence
+        const repository = await createSessionRepository();
         const session = await repository.get(params.session_id);
         if (!session) {
             return notFoundResponse(correlationId, "Session not found");

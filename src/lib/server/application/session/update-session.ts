@@ -40,7 +40,7 @@ export async function updateSessionCommand(
 ) {
     const repository =
         dependencies?.repository ??
-        new (await import("@/lib/server/infrastructure/supabase-session-repository")).SupabaseSessionRepository();
+        await (await import("@/lib/server/infrastructure/session-repository")).createSessionRepository();
     const summarizeSession =
         dependencies?.summarizeSession ??
         (async (session: InterviewSession) => (await import("@/lib/server/services/ai-service")).AIService.summarizeSession(session));

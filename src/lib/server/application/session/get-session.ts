@@ -17,7 +17,7 @@ export async function getSessionCommand(
 ) {
     const repository =
         dependencies?.repository ??
-        new (await import("@/lib/server/infrastructure/supabase-session-repository")).SupabaseSessionRepository();
+        await (await import("@/lib/server/infrastructure/session-repository")).createSessionRepository();
 
     const session = await repository.get(sessionId);
     if (!session) {

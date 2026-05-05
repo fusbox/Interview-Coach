@@ -1,16 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { Logger } from "@/lib/logger";
+import type { FeedbackRecord, FeedbackRepository } from "@/lib/server/infrastructure/feedback-repository";
 
-export interface FeedbackRecord {
-    sessionId?: string;
-    recruiterId?: string;
-    type: string;
-    rating?: number;
-    comment?: string;
-    metadata?: Record<string, unknown>;
-}
+export type { FeedbackRecord };
 
-export class SupabaseFeedbackRepository {
+export class SupabaseFeedbackRepository implements FeedbackRepository {
     private supabase = createClient();
 
     async capture(record: FeedbackRecord) {

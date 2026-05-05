@@ -1,4 +1,4 @@
-import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-session-repository";
+import { createSessionRepository } from "@/lib/server/infrastructure/session-repository";
 import { notFound, redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,8 +11,6 @@ import { StatusBadge } from "@/components/patterns/StatusBadge";
 import { InterviewSession } from "@/lib/domain/types";
 import { E2E_RECRUITER_ID, getE2EInterviewSession, isServerE2EMode } from "@/lib/e2e/test-mode";
 
-const sessionRepo = new SupabaseSessionRepository();
-
 export const dynamic = 'force-dynamic';
 
 export default async function SessionDetailsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -22,7 +20,7 @@ export default async function SessionDetailsPage({ params }: { params: Promise<{
 
     const session: InterviewSession | null = isServerE2EMode() && user.id === E2E_RECRUITER_ID
         ? getE2EInterviewSession(id)
-        : await sessionRepo.get(id);
+        : await (await createSessionRepository()).get(id);
 
     if (!session) {
         notFound();

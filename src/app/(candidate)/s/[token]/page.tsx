@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { SupabaseInviteRepository } from "@/lib/server/infrastructure/supabase-invite-repository";
+import { createInviteRepository } from "@/lib/server/infrastructure/invite-repository";
 import InterviewSessionScreen from "@/features/session/components/InterviewSessionScreen";
 import { pilotRollout } from "@/lib/config/pilot-rollout";
 
@@ -21,7 +21,7 @@ export default async function CandidateSessionPage({ params }: PageProps) {
         return <InterviewSessionScreen initialConfig={{ role: 'Product Manager' }} />;
     }
 
-    const repository = new SupabaseInviteRepository();
+    const repository = await createInviteRepository();
     const invite = await repository.getByToken(token);
 
     if (!invite) {

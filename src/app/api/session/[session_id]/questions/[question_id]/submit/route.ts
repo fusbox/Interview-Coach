@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { submitAnswer } from "@/lib/server/session/orchestrator";
-import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-session-repository";
+import { createSessionRepository } from "@/lib/server/infrastructure/session-repository";
 import { validatedSessionHandler } from "@/lib/server/api-handler-utils";
 import { SubmitAnswerRequestSchema } from "@/lib/domain/schemas";
 import {
@@ -14,7 +14,6 @@ import {
 } from "@/lib/server/idempotency";
 import { incrementMetric } from "@/lib/server/metrics";
 
-const repository = new SupabaseSessionRepository();
 const SUBMIT_SCOPE_PREFIX = "session_submit";
 
 export async function POST(
@@ -102,6 +101,7 @@ export async function POST(
             const updatedSession = submitAnswer(session, resolvedParams.question_id, answer, analysis || undefined);
 
             // Ensure atomic state by clearing existing analysis before update
+            const repository = await createSessionRepository();
             await repository.deleteAnalysis(resolvedParams.session_id, resolvedParams.question_id);
             await repository.update(updatedSession);
 

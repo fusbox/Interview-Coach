@@ -1,7 +1,7 @@
 "use server";
 
 import { NextRequest, NextResponse } from "next/server";
-import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-session-repository";
+import { createSessionRepository } from "@/lib/server/infrastructure/session-repository";
 import { Logger } from "@/lib/logger";
 import {
     EVAL_RUBRIC_DIMENSIONS,
@@ -15,8 +15,6 @@ import {
     internalErrorResponse,
     notFoundResponse
 } from "@/lib/server/api-errors";
-
-const sessionRepo = new SupabaseSessionRepository();
 
 export async function GET(
     req: NextRequest,
@@ -32,6 +30,7 @@ export async function GET(
     }
 
     try {
+        const sessionRepo = await createSessionRepository();
         const session = await sessionRepo.get(sessionId);
         if (!session) {
             return notFoundResponse(correlationId, "Session not found");

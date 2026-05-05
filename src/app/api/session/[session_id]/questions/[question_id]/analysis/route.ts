@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-session-repository";
+import { createSessionRepository } from "@/lib/server/infrastructure/session-repository";
 import { AIService } from "@/lib/server/services/ai-service";
 import { getAnalysisContext } from "@/lib/server/session/orchestrator";
 import { SessionStatus } from "@/lib/domain/types";
@@ -10,8 +10,6 @@ import {
     validationErrorResponse
 } from "@/lib/server/api-errors";
 import { transitionSessionStatus } from "@/lib/domain/session-state-machine";
-
-const repository = new SupabaseSessionRepository();
 
 export async function POST(
     request: Request,
@@ -69,6 +67,7 @@ export async function POST(
             }
         };
 
+        const repository = await createSessionRepository();
         await repository.update(updatedSession);
 
         return NextResponse.json(updatedSession);

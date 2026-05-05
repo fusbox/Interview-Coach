@@ -7,7 +7,7 @@ import {
     completeIdempotentRequest,
     releaseIdempotentRequest
 } from "@/lib/server/idempotency";
-import { SupabaseInviteRepository } from "@/lib/server/infrastructure/supabase-invite-repository";
+import { createInviteRepository } from "@/lib/server/infrastructure/invite-repository";
 import { consumeRateLimit } from "@/lib/server/rate-limit";
 import { incrementMetric, observeMetric, recordAuthDenial, recordRateLimitDenial } from "@/lib/server/metrics";
 import { createClient } from "@/lib/supabase/server";
@@ -16,7 +16,6 @@ import { getAppOrigin } from "@/lib/server/url/get-app-origin";
 import { createInviteBatch } from "@/lib/server/application/invites/create-invite-batch";
 import { CreateInviteRequestSchema } from "@/lib/domain/schemas";
 
-const repository = new SupabaseInviteRepository();
 const IDEMPOTENCY_SCOPE = "recruiter_invites:create";
 const WINDOW_MS = 5 * 60 * 1000;
 const MAX_IP_REQUESTS = 10;
@@ -163,7 +162,7 @@ export async function POST(request: NextRequest) {
                 appBaseUrl,
             },
             {
-                repository,
+                repository: await createInviteRepository(),
                 createSessionId: () => uuidv7(),
                 createToken: () => randomBytes(16).toString("hex"),
             }

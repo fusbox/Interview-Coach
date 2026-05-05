@@ -7,6 +7,7 @@ import type {
     RetryInviteBatchResult,
     CreateInviteBatchCandidateInput
 } from "./types";
+import { createInviteRepository } from "@/lib/server/infrastructure/invite-repository";
 
 export class InviteBatchRetryNotFoundError extends Error {
     constructor(message: string) {
@@ -54,7 +55,7 @@ export async function retryInviteBatch(
 ): Promise<RetryInviteBatchResult> {
     const repository =
         dependencies.repository ??
-        new (await import("@/lib/server/infrastructure/supabase-invite-repository")).SupabaseInviteRepository();
+        await createInviteRepository();
     const createSessionId = dependencies.createSessionId ?? (() => uuidv7());
     const createToken = dependencies.createToken ?? (() => randomBytes(16).toString("hex"));
 

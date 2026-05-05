@@ -1,19 +1,21 @@
 "use server";
 
-import { SupabaseTemplateRepository } from "@/lib/server/infrastructure/supabase-template-repository";
+import { createTemplateRepository } from "@/lib/server/infrastructure/template-repository";
 import { RecruiterTemplate } from "@/lib/domain/template";
 import { revalidatePath } from "next/cache";
 
 import { getCachedUser } from "@/lib/supabase/server";
 
 import { isAdmin } from "@/lib/auth/rbac";
-import { createAdminClient } from "@/lib/supabase/server";
 
 export async function fetchTemplates() {
     const user = await getCachedUser();
     const admin = isAdmin(user);
-    const repo = new SupabaseTemplateRepository();
     try {
+        const repo = await createTemplateRepository({
+            userId: user?.id,
+            canManageAllTemplates: admin
+        });
         const templates = await repo.list();
         return { templates, recruiterId: user?.id, isAdmin: admin };
     } catch (error) {
@@ -23,8 +25,9 @@ export async function fetchTemplates() {
 }
 
 export async function saveTemplateAction(template: Partial<RecruiterTemplate>) {
-    const repo = new SupabaseTemplateRepository();
+    const user = await getCachedUser();
     try {
+        const repo = await createTemplateRepository({ userId: user?.id });
         const newTemplate = await repo.create(template);
         revalidatePath("/recruiter/create");
         revalidatePath("/recruiter/templates");
@@ -39,11 +42,12 @@ export async function saveTemplateAction(template: Partial<RecruiterTemplate>) {
 export async function deleteTemplateAction(id: string) {
     const user = await getCachedUser();
     const admin = isAdmin(user);
-    const repo = admin 
-        ? new SupabaseTemplateRepository(createAdminClient()) 
-        : new SupabaseTemplateRepository();
-    
+
     try {
+        const repo = await createTemplateRepository({
+            userId: user?.id,
+            canManageAllTemplates: admin
+        });
         await repo.delete(id);
         revalidatePath("/recruiter/templates");
         revalidatePath("/recruiter/create");
@@ -58,11 +62,12 @@ export async function deleteTemplateAction(id: string) {
 export async function updateTemplateNameAction(id: string, name: string) {
     const user = await getCachedUser();
     const admin = isAdmin(user);
-    const repo = admin 
-        ? new SupabaseTemplateRepository(createAdminClient()) 
-        : new SupabaseTemplateRepository();
-    
+
     try {
+        const repo = await createTemplateRepository({
+            userId: user?.id,
+            canManageAllTemplates: admin
+        });
         await repo.update(id, { name } as Partial<RecruiterTemplate>);
         revalidatePath("/recruiter/templates");
         return { success: true };

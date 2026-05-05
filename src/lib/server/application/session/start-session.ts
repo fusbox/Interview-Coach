@@ -30,7 +30,7 @@ export async function startSessionCommand(
     input: StartSessionInput,
     dependencies?: Partial<StartSessionDependencies>
 ) {
-    const repository = dependencies?.repository ?? new (await import("@/lib/server/infrastructure/supabase-session-repository")).SupabaseSessionRepository();
+    const repository = dependencies?.repository ?? await (await import("@/lib/server/infrastructure/session-repository")).createSessionRepository();
     const requireCandidateToken = dependencies?.requireCandidateToken ?? (await import("@/lib/server/auth/candidate-token")).requireCandidateToken;
     const generateQuestions = dependencies?.generateQuestions ?? QuestionService.generateQuestions;
     const issueCandidateToken = dependencies?.issueCandidateToken ?? (await import("@/lib/server/auth/candidate-token")).issueCandidateToken;

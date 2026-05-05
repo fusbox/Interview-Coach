@@ -41,7 +41,7 @@ export async function resendInviteEmailCommand(
     input: ResendInviteEmailInput,
     dependencies: ResendInviteEmailDependencies = {}
 ) {
-    const sessionRepository = dependencies.sessionRepository ?? new (await import("@/lib/server/infrastructure/supabase-session-repository")).SupabaseSessionRepository();
+    const sessionRepository = dependencies.sessionRepository ?? await (await import("@/lib/server/infrastructure/session-repository")).createSessionRepository();
     // Integration handoff note:
     // This command is Flow 2 for outbound email: resending an invite from recruiter dashboard
     // session data. The provider implementation currently resolves to EmailService, which is

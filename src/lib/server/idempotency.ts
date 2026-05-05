@@ -1,7 +1,6 @@
-import { createAdminClient } from "@/lib/supabase/server";
 import { createHash } from "crypto";
+import { getOptionalServerEnv } from "@/lib/server/config/server-env";
 
-const IDEMPOTENCY_SCOPE_TABLE = "api_idempotency_keys";
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;
 
 export type IdempotencyReservation =
@@ -10,14 +9,34 @@ export type IdempotencyReservation =
     | { kind: "pending" }
     | { kind: "conflict" };
 
-type IdempotencyRow = {
+export type IdempotencyBackend = "supabase" | "postgres";
+
+export type IdempotencyBeginInput = {
     scope: string;
-    actor_id: string;
-    key_hash: string;
-    request_hash: string;
-    status: "pending" | "completed";
-    status_code: number | null;
-    response_body: unknown;
+    actorId: string;
+    keyHash: string;
+    requestHash: string;
+    expiresAtIso: string;
+};
+
+export type IdempotencyCompleteInput = {
+    scope: string;
+    actorId: string;
+    keyHash: string;
+    statusCode: number;
+    body: unknown;
+};
+
+export type IdempotencyReleaseInput = {
+    scope: string;
+    actorId: string;
+    keyHash: string;
+};
+
+export type IdempotencyStore = {
+    begin(params: IdempotencyBeginInput): Promise<IdempotencyReservation>;
+    complete(params: IdempotencyCompleteInput): Promise<void>;
+    release(params: IdempotencyReleaseInput): Promise<void>;
 };
 
 function sha256(value: string): string {
@@ -48,6 +67,29 @@ function requestHash(payload: unknown): string {
     return sha256(stableStringify(payload));
 }
 
+export function getIdempotencyBackend(): IdempotencyBackend {
+    const rawBackend = getOptionalServerEnv("IDEMPOTENCY_BACKEND") ?? "supabase";
+    const backend = rawBackend.toLowerCase();
+
+    if (backend === "supabase" || backend === "postgres") {
+        return backend;
+    }
+
+    throw new Error("[Idempotency] IDEMPOTENCY_BACKEND must be either 'supabase' or 'postgres'.");
+}
+
+async function createIdempotencyStore(): Promise<IdempotencyStore> {
+    const backend = getIdempotencyBackend();
+
+    if (backend === "postgres") {
+        const { PostgresIdempotencyStore } = await import("@/lib/server/idempotency/postgres-idempotency-store");
+        return new PostgresIdempotencyStore();
+    }
+
+    const { SupabaseIdempotencyStore } = await import("@/lib/server/idempotency/supabase-idempotency-store");
+    return new SupabaseIdempotencyStore();
+}
+
 export async function beginIdempotentRequest(params: {
     scope: string;
     actorId: string;
@@ -55,52 +97,15 @@ export async function beginIdempotentRequest(params: {
     payload: unknown;
     ttlMs?: number;
 }): Promise<IdempotencyReservation> {
-    const supabase = createAdminClient();
-    const hashedKey = keyHash(params.scope, params.key);
-    const hashedPayload = requestHash(params.payload);
-    const expiresAt = new Date(Date.now() + (params.ttlMs ?? DEFAULT_TTL_MS)).toISOString();
+    const store = await createIdempotencyStore();
 
-    const { error: insertError } = await supabase
-        .from(IDEMPOTENCY_SCOPE_TABLE)
-        .insert({
-            scope: params.scope,
-            actor_id: params.actorId,
-            key_hash: hashedKey,
-            request_hash: hashedPayload,
-            status: "pending",
-            expires_at: expiresAt
-        });
-
-    if (!insertError) {
-        return { kind: "acquired" };
-    }
-
-    const { data: existing, error: selectError } = await supabase
-        .from(IDEMPOTENCY_SCOPE_TABLE)
-        .select("scope, actor_id, key_hash, request_hash, status, status_code, response_body")
-        .eq("scope", params.scope)
-        .eq("actor_id", params.actorId)
-        .eq("key_hash", hashedKey)
-        .gt("expires_at", new Date().toISOString())
-        .maybeSingle<IdempotencyRow>();
-
-    if (selectError || !existing) {
-        throw new Error("Failed to resolve idempotency state");
-    }
-
-    if (existing.request_hash !== hashedPayload) {
-        return { kind: "conflict" };
-    }
-
-    if (existing.status === "completed" && existing.status_code !== null) {
-        return {
-            kind: "replay",
-            statusCode: existing.status_code,
-            body: existing.response_body
-        };
-    }
-
-    return { kind: "pending" };
+    return store.begin({
+        scope: params.scope,
+        actorId: params.actorId,
+        keyHash: keyHash(params.scope, params.key),
+        requestHash: requestHash(params.payload),
+        expiresAtIso: new Date(Date.now() + (params.ttlMs ?? DEFAULT_TTL_MS)).toISOString()
+    });
 }
 
 export async function completeIdempotentRequest(params: {
@@ -110,23 +115,15 @@ export async function completeIdempotentRequest(params: {
     statusCode: number;
     body: unknown;
 }): Promise<void> {
-    const supabase = createAdminClient();
-    const hashedKey = keyHash(params.scope, params.key);
+    const store = await createIdempotencyStore();
 
-    const { error } = await supabase
-        .from(IDEMPOTENCY_SCOPE_TABLE)
-        .update({
-            status: "completed",
-            status_code: params.statusCode,
-            response_body: params.body
-        })
-        .eq("scope", params.scope)
-        .eq("actor_id", params.actorId)
-        .eq("key_hash", hashedKey);
-
-    if (error) {
-        throw new Error("Failed to persist idempotent response");
-    }
+    await store.complete({
+        scope: params.scope,
+        actorId: params.actorId,
+        keyHash: keyHash(params.scope, params.key),
+        statusCode: params.statusCode,
+        body: params.body
+    });
 }
 
 export async function releaseIdempotentRequest(params: {
@@ -134,14 +131,11 @@ export async function releaseIdempotentRequest(params: {
     actorId: string;
     key: string;
 }): Promise<void> {
-    const supabase = createAdminClient();
-    const hashedKey = keyHash(params.scope, params.key);
+    const store = await createIdempotencyStore();
 
-    await supabase
-        .from(IDEMPOTENCY_SCOPE_TABLE)
-        .delete()
-        .eq("scope", params.scope)
-        .eq("actor_id", params.actorId)
-        .eq("key_hash", hashedKey)
-        .eq("status", "pending");
+    await store.release({
+        scope: params.scope,
+        actorId: params.actorId,
+        keyHash: keyHash(params.scope, params.key)
+    });
 }

@@ -1,10 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const rpcMock = vi.fn();
+const postgresQueryMock = vi.fn();
 
 vi.mock("@/lib/supabase/server", () => ({
     createAdminClient: () => ({
         rpc: rpcMock
+    })
+}));
+
+vi.mock("@/lib/server/db/postgres", () => ({
+    getPostgresPool: () => ({
+        query: postgresQueryMock
     })
 }));
 
@@ -15,6 +22,7 @@ describe("consumeRateLimit", () => {
         process.env = { ...originalEnv, NODE_ENV: "test" };
         vi.resetModules();
         rpcMock.mockReset();
+        postgresQueryMock.mockReset();
     });
 
     afterEach(async () => {
@@ -62,6 +70,22 @@ describe("consumeRateLimit", () => {
             p_now_ms: 2000
         });
         expect(decision).toEqual({ allowed: true, remaining: 4, resetAt: 5000 });
+    });
+
+    it("uses the postgres backend when configured", async () => {
+        process.env = { ...process.env, RATE_LIMIT_BACKEND: "postgres" };
+        postgresQueryMock.mockResolvedValue({
+            rows: [{ allowed: true, remaining: 2, reset_at_ms: "7000" }]
+        });
+
+        const { consumeRateLimit } = await import("./rate-limit");
+        const decision = await consumeRateLimit("bucket-pg", 3, 1000, 6000);
+
+        expect(postgresQueryMock).toHaveBeenCalledWith(
+            expect.stringContaining("public.consume_rate_limit_bucket($1, $2, $3, $4)"),
+            ["bucket-pg", 3, 1000, 6000]
+        );
+        expect(decision).toEqual({ allowed: true, remaining: 2, resetAt: 7000 });
     });
 
     it("enforces limits across isolated module instances with the shared supabase backend", async () => {

@@ -1,3 +1,4 @@
+import { getPostgresPool } from "@/lib/server/db/postgres";
 import { getOptionalServerEnv, isProductionServer } from "@/lib/server/config/server-env";
 import type {
     CounterMetric,
@@ -12,7 +13,7 @@ import type {
     TimingMetric
 } from "@/lib/server/metrics/types";
 
-export type MetricsBackendName = "memory" | "supabase";
+export type MetricsBackendName = "memory" | "supabase" | "postgres";
 
 export interface DurableMetricsBackend {
     writeCounter(params: {
@@ -394,16 +395,111 @@ export class SupabaseDurableMetricsBackend implements DurableMetricsBackend {
     }
 }
 
+export class PostgresDurableMetricsBackend implements DurableMetricsBackend {
+    async writeCounter(params: {
+        name: string;
+        value: number;
+        tags: Record<string, string>;
+        tagsKey: string;
+        recordedAt: string;
+    }): Promise<void> {
+        const pool = getPostgresPool();
+        const bucketStart = floorToMinute(new Date(params.recordedAt)).toISOString();
+
+        await pool.query(
+            `
+                select public.record_metric_counter_rollup($1, $2, $3::jsonb, $4, $5)
+            `,
+            [
+                bucketStart,
+                params.name,
+                JSON.stringify(params.tags),
+                params.tagsKey,
+                params.value
+            ]
+        );
+    }
+
+    async writeTiming(params: {
+        name: string;
+        durationMs: number;
+        tags: Record<string, string>;
+        tagsKey: string;
+        recordedAt: string;
+    }): Promise<void> {
+        const pool = getPostgresPool();
+        const bucketStart = floorToMinute(new Date(params.recordedAt)).toISOString();
+
+        await pool.query(
+            `
+                select public.record_metric_timing_rollup($1, $2, $3::jsonb, $4, $5)
+            `,
+            [
+                bucketStart,
+                params.name,
+                JSON.stringify(params.tags),
+                params.tagsKey,
+                params.durationMs
+            ]
+        );
+    }
+
+    async readSnapshot(options?: { sinceMs?: number }): Promise<MetricsSnapshot> {
+        const pool = getPostgresPool();
+        const since = new Date(Date.now() - (options?.sinceMs ?? DEFAULT_WINDOW_MS)).toISOString();
+
+        const [counterResult, timingResult] = await Promise.all([
+            pool.query("select * from public.get_metric_counter_rollups($1)", [since]),
+            pool.query("select * from public.get_metric_timing_rollups($1)", [since])
+        ]);
+
+        return buildSnapshotFromRollups(
+            counterResult.rows.map(normalizeCounterRollup),
+            timingResult.rows.map(normalizeTimingRollup)
+        );
+    }
+
+    async readSloSummary(options?: { sinceMs?: number }): Promise<OperationalSloSummary> {
+        const pool = getPostgresPool();
+        const since = new Date(Date.now() - (options?.sinceMs ?? DEFAULT_WINDOW_MS)).toISOString();
+
+        const [
+            sessionStartResult,
+            sessionProgressResult,
+            aiReliabilityResult,
+            aiLatencyResult
+        ] = await Promise.all([
+            pool.query("select * from public.get_slo_session_start($1)", [since]),
+            pool.query("select * from public.get_slo_session_progress($1)", [since]),
+            pool.query("select * from public.get_slo_ai_reliability($1)", [since]),
+            pool.query("select * from public.get_slo_ai_latency($1)", [since])
+        ]);
+
+        return buildSloSummaryFromRows(
+            since,
+            normalizeSessionStartRow(sessionStartResult.rows[0]),
+            normalizeSessionProgressRow(sessionProgressResult.rows[0]),
+            aiReliabilityResult.rows
+                .map(normalizeAiReliabilityRow)
+                .filter((row): row is SloAiReliabilityRow => row !== null),
+            aiLatencyResult.rows
+                .map(normalizeAiLatencyRow)
+                .filter((row): row is SloAiLatencyRow => row !== null)
+        );
+    }
+}
+
 let backendInstance: DurableMetricsBackend | null | undefined;
+let backendInstanceName: MetricsBackendName | null = null;
 
 export function getMetricsBackendName(): MetricsBackendName {
     const configured = getOptionalServerEnv("METRICS_BACKEND")?.toLowerCase();
-    if (configured && configured !== "memory" && configured !== "supabase") {
-        throw new Error(`Unsupported METRICS_BACKEND value "${configured}". Expected "memory" or "supabase".`);
+    if (configured && configured !== "memory" && configured !== "supabase" && configured !== "postgres") {
+        throw new Error(`Unsupported METRICS_BACKEND value "${configured}". Expected "memory", "supabase", or "postgres".`);
     }
 
-    if (configured === "supabase") {
-        return "supabase";
+    if (configured === "supabase" || configured === "postgres") {
+        return configured;
     }
 
     if (isProductionServer()) {
@@ -411,7 +507,7 @@ export function getMetricsBackendName(): MetricsBackendName {
             throw new Error("[ServerEnv] Missing required environment variable METRICS_BACKEND for durable metrics backend.");
         }
 
-        throw new Error('METRICS_BACKEND must be set to "supabase" in production.');
+        throw new Error('METRICS_BACKEND must be set to "supabase" or "postgres" in production.');
     }
 
     return "memory";
@@ -423,8 +519,11 @@ export function getDurableMetricsBackend(): DurableMetricsBackend | null {
         return null;
     }
 
-    if (!backendInstance) {
-        backendInstance = new SupabaseDurableMetricsBackend();
+    if (!backendInstance || backendInstanceName !== backendName) {
+        backendInstance = backendName === "postgres"
+            ? new PostgresDurableMetricsBackend()
+            : new SupabaseDurableMetricsBackend();
+        backendInstanceName = backendName;
     }
 
     return backendInstance;
@@ -432,6 +531,7 @@ export function getDurableMetricsBackend(): DurableMetricsBackend | null {
 
 export function resetDurableMetricsBackendForTests() {
     backendInstance = undefined;
+    backendInstanceName = null;
 }
 
 export {

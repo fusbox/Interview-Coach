@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-session-repository";
+import { createSessionRepository } from "@/lib/server/infrastructure/session-repository";
 import { validatedSessionHandler } from "@/lib/server/api-handler-utils";
 import { transitionSessionStatus } from "@/lib/domain/session-state-machine";
 import { QuestionRetryRequestSchema } from "@/lib/domain/schemas";
 import { validationErrorResponse } from "@/lib/server/api-errors";
-
-const repository = new SupabaseSessionRepository();
 
 export async function POST(
     request: Request,
@@ -37,6 +35,7 @@ export async function POST(
             session.status = transitionSessionStatus(session, "IN_SESSION").status;
         }
 
+        const repository = await createSessionRepository();
         await repository.deleteAnalysis(resolvedParams.session_id, resolvedParams.question_id);
         await repository.update(session);
 

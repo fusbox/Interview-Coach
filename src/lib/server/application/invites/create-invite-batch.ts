@@ -8,6 +8,7 @@ import {
     InviteBatchSuccess,
 } from "@/lib/server/application/invites/types";
 import type { PersistedInviteBatch } from "@/lib/server/application/invites/types";
+import { createInviteRepository } from "@/lib/server/infrastructure/invite-repository";
 
 export type CreateInviteBatchDependencies = {
     repository?: InviteRepository & {
@@ -55,7 +56,7 @@ export async function createInviteBatch(
     input: CreateInviteBatchInput,
     dependencies: CreateInviteBatchDependencies = {}
 ): Promise<CreateInviteBatchResult> {
-    const repository = dependencies.repository ?? new (await import("@/lib/server/infrastructure/supabase-invite-repository")).SupabaseInviteRepository();
+    const repository = dependencies.repository ?? await createInviteRepository();
     const createSessionId = dependencies.createSessionId ?? (() => uuidv7());
     const createToken = dependencies.createToken ?? (() => randomBytes(16).toString("hex"));
     const invites = input.candidates.map((candidate) => {

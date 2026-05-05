@@ -1,3 +1,4 @@
+import { getPostgresPool } from "@/lib/server/db/postgres";
 import type { RateLimitBackend, RateLimitConsumeParams, RateLimitDecision } from "@/lib/server/rate-limit/types";
 
 type Bucket = {
@@ -9,6 +10,12 @@ type SupabaseRateLimitRow = {
     allowed: boolean;
     remaining: number;
     reset_at_ms: number;
+};
+
+type PostgresRateLimitRow = {
+    allowed: boolean;
+    remaining: number;
+    reset_at_ms: number | string;
 };
 
 export class MemoryRateLimitBackend implements RateLimitBackend {
@@ -67,6 +74,43 @@ export class SupabaseRateLimitBackend implements RateLimitBackend {
             allowed: row.allowed,
             remaining: row.remaining,
             resetAt: row.reset_at_ms
+        };
+    }
+}
+
+export class PostgresRateLimitBackend implements RateLimitBackend {
+    async consume(params: RateLimitConsumeParams): Promise<RateLimitDecision> {
+        const pool = getPostgresPool();
+        const { rows } = await pool.query<PostgresRateLimitRow>(
+            `
+                select
+                    allowed,
+                    remaining,
+                    reset_at_ms
+                from public.consume_rate_limit_bucket($1, $2, $3, $4)
+            `,
+            [
+                params.key,
+                params.maxRequests,
+                params.windowMs,
+                params.now ?? Date.now()
+            ]
+        );
+
+        const row = rows[0];
+        if (
+            !row
+            || typeof row.allowed !== "boolean"
+            || typeof row.remaining !== "number"
+            || (typeof row.reset_at_ms !== "string" && typeof row.reset_at_ms !== "number")
+        ) {
+            throw new Error("Failed to consume rate limit bucket: invalid backend response");
+        }
+
+        return {
+            allowed: row.allowed,
+            remaining: row.remaining,
+            resetAt: Number(row.reset_at_ms)
         };
     }
 }

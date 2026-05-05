@@ -1,11 +1,11 @@
 "use server";
 
-import { SupabaseFeedbackRepository, FeedbackRecord } from "@/lib/server/infrastructure/supabase-feedback-repository";
+import { createFeedbackRepository, FeedbackRecord } from "@/lib/server/infrastructure/feedback-repository";
 import { getCachedUser } from "@/lib/supabase/server";
 
 export async function captureFeedbackAction(record: FeedbackRecord) {
     try {
-        const feedbackRepo = new SupabaseFeedbackRepository();
+        const feedbackRepo = await createFeedbackRepository();
 
         // If it's a recruiter-side signal, try to associate the recruiter ID
         if (record.type.startsWith('recruiter_')) {

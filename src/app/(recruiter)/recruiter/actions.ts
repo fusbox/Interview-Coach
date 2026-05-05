@@ -2,12 +2,10 @@
 
 import { E2E_RECRUITER_ID, getE2ERecruiterSessions, isServerE2EMode } from "@/lib/e2e/test-mode";
 import { getCachedUser } from "@/lib/supabase/server";
-import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-session-repository";
+import { createSessionRepository } from "@/lib/server/infrastructure/session-repository";
 import { redirect } from "next/navigation";
 import { SessionSummary } from "@/lib/domain/types";
 import { revalidatePath } from "next/cache";
-
-const sessionRepo = new SupabaseSessionRepository();
 
 export async function getRecruiterSessions(): Promise<SessionSummary[]> {
     const user = await getCachedUser();
@@ -21,6 +19,7 @@ export async function getRecruiterSessions(): Promise<SessionSummary[]> {
     }
 
     try {
+        const sessionRepo = await createSessionRepository();
         const allSessions = await sessionRepo.listByRecruiter(user.id);
 
         // Map to quickly find parent sessions
@@ -50,6 +49,7 @@ export async function deleteSession(sessionId: string) {
     if (!user) throw new Error("Unauthorized");
 
     try {
+        const sessionRepo = await createSessionRepository();
         await sessionRepo.delete(sessionId);
         revalidatePath("/recruiter");
     } catch (error) {

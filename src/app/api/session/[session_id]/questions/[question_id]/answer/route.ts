@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-session-repository";
+import { createSessionRepository } from "@/lib/server/infrastructure/session-repository";
 import { z } from "zod";
 import { validatedSessionHandler } from "@/lib/server/api-handler-utils";
 import { validationErrorResponse } from "@/lib/server/api-errors";
-
-const repository = new SupabaseSessionRepository();
 
 const DraftSchema = z.object({
     text: z.string(),
@@ -28,6 +26,7 @@ export async function PUT(
 
         // ATOMIC DRAFT SAVE (Fixes race condition with Submit/Analyze)
         // We do NOT fetch the whole session to avoid overwriting status with stale data.
+        const repository = await createSessionRepository();
         await repository.saveDraft(resolvedParams.session_id, resolvedParams.question_id, text);
 
         return NextResponse.json({ success: true });

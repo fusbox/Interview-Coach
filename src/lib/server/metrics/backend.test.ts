@@ -10,6 +10,7 @@ import {
     normalizeSessionProgressRow,
     normalizeSessionStartRow,
     normalizeTimingRollup,
+    PostgresDurableMetricsBackend,
     resetDurableMetricsBackendForTests,
     SupabaseDurableMetricsBackend
 } from "./backend";
@@ -18,6 +19,7 @@ describe("metrics backend", () => {
     afterEach(() => {
         delete process.env.METRICS_BACKEND;
         resetDurableMetricsBackendForTests();
+        vi.unstubAllEnvs();
         vi.resetModules();
     });
 
@@ -35,6 +37,15 @@ describe("metrics backend", () => {
         expect(backend).toBeInstanceOf(SupabaseDurableMetricsBackend);
     });
 
+    it("selects postgres backend when configured", () => {
+        process.env.METRICS_BACKEND = "postgres";
+
+        const backend = getDurableMetricsBackend();
+
+        expect(getMetricsBackendName()).toBe("postgres");
+        expect(backend).toBeInstanceOf(PostgresDurableMetricsBackend);
+    });
+
     it("fails fast in production when metrics backend is unset", () => {
         vi.stubEnv("NODE_ENV", "production");
 
@@ -47,14 +58,14 @@ describe("metrics backend", () => {
         vi.stubEnv("NODE_ENV", "production");
         vi.stubEnv("METRICS_BACKEND", "memory");
 
-        expect(() => getMetricsBackendName()).toThrow('METRICS_BACKEND must be set to "supabase" in production.');
+        expect(() => getMetricsBackendName()).toThrow('METRICS_BACKEND must be set to "supabase" or "postgres" in production.');
     });
 
     it("rejects unsupported backend values", () => {
         process.env.METRICS_BACKEND = "file";
 
         expect(() => getMetricsBackendName()).toThrow(
-            'Unsupported METRICS_BACKEND value "file". Expected "memory" or "supabase".'
+            'Unsupported METRICS_BACKEND value "file". Expected "memory", "supabase", or "postgres".'
         );
     });
 

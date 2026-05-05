@@ -1,4 +1,4 @@
-import { SupabaseInviteRepository } from "@/lib/server/infrastructure/supabase-invite-repository";
+import { createInviteRepository } from "@/lib/server/infrastructure/invite-repository";
 import { CandidateLayoutClient } from "./CandidateLayoutClient";
 
 export default async function CandidateTokenLayout({
@@ -9,7 +9,7 @@ export default async function CandidateTokenLayout({
     params: Promise<{ token: string }>;
 }) {
     const { token } = await params;
-    const repository = new SupabaseInviteRepository();
+    const repository = await createInviteRepository();
     const invite = await repository.getByToken(token);
 
     // For "demo-invite-token" fallback:

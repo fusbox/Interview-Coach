@@ -1,4 +1,4 @@
-import { SupabaseSessionRepository } from "@/lib/server/infrastructure/supabase-session-repository";
+import { createSessionRepository } from "@/lib/server/infrastructure/session-repository";
 import { notFound, redirect } from "next/navigation";
 import { getCachedUser } from "@/lib/supabase/server";
 import { SessionEvalForm } from "../components/SessionEvalForm";
@@ -6,8 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { showDemoTools } from "@/lib/feature-flags";
-
-const sessionRepo = new SupabaseSessionRepository();
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +20,7 @@ export default async function DevEvalDetailPage({ params }: { params: Promise<{ 
     const user = await getCachedUser();
     if (!user) redirect("/login");
 
-    const session = await sessionRepo.get(id);
+    const session = await (await createSessionRepository()).get(id);
     if (!session) notFound();
 
     return (

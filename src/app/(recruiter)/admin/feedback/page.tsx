@@ -1,5 +1,5 @@
 import { AlertCircle, Mail, User } from "lucide-react";
-import { SupabaseFeedbackRepository } from "@/lib/server/infrastructure/supabase-feedback-repository";
+import { createFeedbackRepository } from "@/lib/server/infrastructure/feedback-repository";
 import { cn } from "@/lib/cn";
 import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -139,7 +139,7 @@ function getCandidateName(f: Record<string, unknown>): string {
 }
 
 export default async function AdminFeedbackPage() {
-    const repo = new SupabaseFeedbackRepository();
+    const repo = await createFeedbackRepository();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let feedback: any[] = [];
     let error: string | null = null;
