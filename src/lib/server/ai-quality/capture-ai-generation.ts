@@ -1,7 +1,7 @@
 import { Logger } from "@/lib/logger";
 import type { AiGenerationRecord } from "./types";
 import {
-    SupabaseAiGenerationRepository,
+    createAiGenerationRepository,
     type AiGenerationRepository,
 } from "./ai-generation-repository";
 
@@ -13,7 +13,7 @@ export async function captureAiGeneration(
     record: AiGenerationRecord,
     dependencies: CaptureAiGenerationDependencies = {}
 ): Promise<string | null> {
-    const repository = dependencies.repository ?? new SupabaseAiGenerationRepository();
+    const repository = dependencies.repository ?? createAiGenerationRepository();
 
     try {
         return await repository.create(record);

@@ -10,6 +10,7 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 vi.mock("./ai-generation-repository", () => ({
+    createAiGenerationRepository: vi.fn(),
     SupabaseAiGenerationRepository: vi.fn(),
 }));
 

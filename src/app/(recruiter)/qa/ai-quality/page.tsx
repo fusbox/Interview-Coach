@@ -13,7 +13,7 @@ import {
     type AiGenerationSurface,
 } from "@/lib/server/ai-quality/types";
 import {
-    SupabaseAiGenerationReadRepository,
+    createAiGenerationReadRepository,
     type AiGenerationSummary,
     type AiGenerationListItem,
 } from "@/lib/server/ai-quality/ai-generation-read-repository";
@@ -234,7 +234,7 @@ export default async function AiQualityPage({ searchParams }: PageProps) {
     const pageSize = parsePageSize(firstParam(params.page_size));
     const groupBy = parseGroupBy(firstParam(params.group_by));
     const exportLimit = parseLimit(firstParam(params.limit)) || pageSize;
-    const repo = new SupabaseAiGenerationReadRepository();
+    const repo = createAiGenerationReadRepository();
 
     let rows: AiGenerationListItem[] = [];
     let selectedGeneration: AiGenerationListItem | null = null;
@@ -263,7 +263,7 @@ export default async function AiQualityPage({ searchParams }: PageProps) {
             : rows[0] ?? null;
     } catch (err) {
         console.error("Failed to load AI generations", err);
-        error = "Failed to load AI generation records. Check Supabase connectivity and service-role configuration.";
+        error = "Failed to load AI generation records. Check AI-quality repository connectivity and server configuration.";
     }
 
     const groups = groupRows(rows, groupBy);

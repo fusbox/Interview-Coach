@@ -509,10 +509,83 @@ create table if not exists public.ai_generations (
 
 create index if not exists idx_ai_generations_created_at on public.ai_generations(created_at desc);
 create index if not exists idx_ai_generations_surface_status on public.ai_generations(surface, status);
+create index if not exists idx_ai_generations_surface_created_at on public.ai_generations(surface, created_at desc);
+create index if not exists idx_ai_generations_status_created_at on public.ai_generations(status, created_at desc);
 create index if not exists idx_ai_generations_session_id on public.ai_generations(session_id);
 create index if not exists idx_ai_generations_created_by on public.ai_generations(created_by);
+create index if not exists idx_ai_generations_created_by_created_at on public.ai_generations(created_by, created_at desc);
 create index if not exists idx_ai_generations_trace_id on public.ai_generations(trace_id);
 create index if not exists idx_ai_generations_correlation_id on public.ai_generations(correlation_id);
+create index if not exists idx_ai_generations_retention_until on public.ai_generations(retention_until)
+  where retention_until is not null;
+create index if not exists idx_ai_generations_source_refs on public.ai_generations using gin(source_refs);
+
+comment on table public.ai_generations is
+  'AI quality and observability records for captured model generations. Access is mediated by server app authorization.';
+
+comment on column public.ai_generations.prompt_snapshot is
+  'Structured prompt snapshot for replay/eval. Prefer redacted content and source references over raw PII.';
+
+comment on column public.ai_generations.source_refs is
+  'Pointers to source operational records used to create this generation, such as session/question/answer/eval IDs.';
+
+comment on column public.ai_generations.retention_class is
+  'Retention posture for the captured generation: eval_redacted, eval_raw_restricted, or operational_debug.';
+
+create or replace function public.get_ai_generation_summary(
+  p_surface text default null,
+  p_status text default null,
+  p_search text default null
+)
+returns table (
+  total_count bigint,
+  success_count bigint,
+  partial_count bigint,
+  failed_count bigint,
+  average_latency_ms numeric
+)
+language sql
+stable
+as $$
+  with normalized as (
+    select nullif(btrim(p_search), '') as search_value
+  ),
+  filtered as (
+    select ag.*
+    from public.ai_generations ag
+    cross join normalized n
+    where (p_surface is null or ag.surface = p_surface)
+      and (p_status is null or ag.status = p_status)
+      and (
+        n.search_value is null
+        or ag.generation_id::text ilike '%' || n.search_value || '%'
+        or ag.app_name ilike '%' || n.search_value || '%'
+        or ag.surface ilike '%' || n.search_value || '%'
+        or ag.status ilike '%' || n.search_value || '%'
+        or ag.prompt_version ilike '%' || n.search_value || '%'
+        or ag.model_provider ilike '%' || n.search_value || '%'
+        or ag.model_name ilike '%' || n.search_value || '%'
+        or coalesce(ag.trace_id, '') ilike '%' || n.search_value || '%'
+        or coalesce(ag.correlation_id, '') ilike '%' || n.search_value || '%'
+        or coalesce(ag.created_by::text, '') ilike '%' || n.search_value || '%'
+        or coalesce(ag.session_id::text, '') ilike '%' || n.search_value || '%'
+        or coalesce(ag.invite_batch_id::text, '') ilike '%' || n.search_value || '%'
+        or coalesce(ag.candidate_id, '') ilike '%' || n.search_value || '%'
+        or ag.redaction_status ilike '%' || n.search_value || '%'
+        or ag.retention_class ilike '%' || n.search_value || '%'
+      )
+  )
+  select
+    count(*) as total_count,
+    count(*) filter (where status = 'success') as success_count,
+    count(*) filter (where status = 'partial') as partial_count,
+    count(*) filter (where status = 'failed') as failed_count,
+    avg(latency_ms)::numeric as average_latency_ms
+  from filtered;
+$$;
+
+comment on function public.get_ai_generation_summary(text, text, text) is
+  'Filtered aggregate summary for the AI Quality Center generation explorer.';
 
 create or replace function public.increment_session_engagement(
   p_session_id uuid,

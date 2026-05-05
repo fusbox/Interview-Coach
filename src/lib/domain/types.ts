@@ -51,6 +51,7 @@ export interface StrongResponseResult {
 export interface Answer {
     questionId: string;
     transcript?: string;
+    modality?: 'text' | 'voice';
     audioUrl?: string;
     submittedAt?: number;
     analysis?: AnalysisResult;

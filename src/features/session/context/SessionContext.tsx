@@ -30,13 +30,13 @@ export interface SessionContextType {
     loadTipsForQuestion: (questionId: string) => Promise<void>;
     saveAnswer: (
         questionId: string,
-        answer: { audioBlob?: Blob; text?: string; transcript?: string; analysis: AnalysisResult | null }
+        answer: { audioBlob?: Blob; text?: string; transcript?: string; modality?: 'text' | 'voice'; analysis: AnalysisResult | null }
     ) => void;
     clearAnswer: (questionId: string) => void;
     updateAnswerAnalysis: (questionId: string, partialAnalysis: Partial<AnalysisResult>) => void;
     finishSession: () => Promise<void>;
     resetSession: () => void;
-    analyzeCurrentQuestion: () => Promise<void>;
+    analyzeCurrentQuestion: () => Promise<boolean>;
     audioUrls: Record<string, string>;
     cacheAudioUrl: (questionId: string, url: string) => void;
     updateSession: (sessionId: string, updates: Partial<InterviewSession>) => Promise<void>;
@@ -127,10 +127,10 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
         actions.retry(context);
     };
 
-    const saveAnswer = async (_qid: string, ans: { audioBlob?: Blob; text?: string; transcript?: string; analysis: AnalysisResult | null }) => {
+    const saveAnswer = async (_qid: string, ans: { audioBlob?: Blob; text?: string; transcript?: string; modality?: 'text' | 'voice'; analysis: AnalysisResult | null }) => {
         if (ans.text || ans.audioBlob) {
             tracker.flush();
-            await actions.submit(ans.text || "", ans.audioBlob);
+            await actions.submit(ans.text || "", ans.audioBlob, ans.modality);
         }
     };
 

@@ -237,4 +237,7 @@ from public.get_slo_session_start(now() - interval '1 hour');
 select *
 from public.get_slo_ai_latency(now() - interval '1 hour');
 
+select *
+from public.get_ai_generation_summary('answer_feedback', 'success', 'schema-smoke');
+
 rollback;

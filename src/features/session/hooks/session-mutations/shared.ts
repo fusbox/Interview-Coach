@@ -29,9 +29,9 @@ export type SessionMutationWithNow = SessionMutationBase & {
     now: NowState;
 };
 
-export function buildSubmitIdempotencyKey(sessionId: string, questionId: string, answerText: string): string {
+export function buildSubmitIdempotencyKey(sessionId: string, questionId: string, answerText: string, modality: "text" | "voice" = "text"): string {
     let hash = 0;
-    const input = `${sessionId}:${questionId}:${answerText}`;
+    const input = `${sessionId}:${questionId}:${modality}:${answerText}`;
     for (let index = 0; index < input.length; index += 1) {
         hash = ((hash << 5) - hash + input.charCodeAt(index)) | 0;
     }

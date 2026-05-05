@@ -12,8 +12,8 @@ It is not executable DDL. Its job is to make the target database shape explicit 
 | --- | --- | --- | --- |
 | [db_schema.md](./db_schema.md) | Current exported Supabase `public` table snapshot. Best source for observed public tables and columns, including newer `ai_generations`. | Medium-high for table/column inventory. | Header says it is context-only and not runnable. Omits enum definitions, indexes, triggers, functions, RLS policies, auth schema, and executable ordering. |
 | `supabase/schema.sql` | Original walking-skeleton schema, core enums, core tables, indexes, triggers, and RLS context. | High for original product tables and enum intent. | Stale relative to later migrations and live schema. Contains Supabase RLS/auth assumptions that should not carry forward unchanged. |
-| `supabase/migrations/*.sql` | Incremental schema additions, operational functions, metrics/rate-limit functions, invite batch behavior, and indexes. | High for repo-known behavior. | Does not include AI-quality `ai_generations` on this Azure branch; branch predates that workstream. |
-| [supabase_touchpoint_inventory.md](./supabase_touchpoint_inventory.md) | Runtime behavior inventory of app reads/writes and Supabase APIs to replace. | High for code-path scope in this branch. | Must be revisited after AI-quality workstream is merged. |
+| `supabase/migrations/*.sql` | Incremental schema additions, operational functions, metrics/rate-limit functions, invite batch behavior, AI-quality generation capture, and indexes. | High for repo-known behavior. | Includes both historical Supabase/RLS assumptions and newer AI-quality migrations; neutral schema intentionally keeps table/function behavior without Supabase RLS. |
+| [supabase_touchpoint_inventory.md](./supabase_touchpoint_inventory.md) | Runtime behavior inventory of app reads/writes and Supabase APIs to replace. | High for code-path scope in this branch. | Refreshed after porting AI-quality generation capture. |
 
 ## Target Principles
 
@@ -69,7 +69,7 @@ These tables do not exist in the Supabase public schema because Supabase Auth cu
 | `user_feedback` | `db_schema.md`, `src/lib/server/infrastructure/user_feedback_schema.sql` | Keep with FK replacement. | Replace FK to `auth.users(id)` with FK to `app_users(user_id)`. `PostgresFeedbackRepository` now validates feedback capture, session/type update behavior, recruiter-only feedback inserts, admin read shape, session FK, and JSON metadata. |
 | `invite_batches` | `db_schema.md`, `20260328_add_invite_batch_tracking.sql` | Keep with FK addition. | `created_by` should reference `app_users(user_id)` once app auth exists. Preserve parent/retry lineage and status counts. |
 | `invite_batch_candidates` | `db_schema.md`, `20260328_add_invite_batch_tracking.sql` | Keep. | Preserve candidate-level retry/error tracking. `session_id` should FK to `sessions` if target migration can enforce it without blocking failed candidate rows. |
-| `ai_generations` | `db_schema.md`, AI-quality workstream | Keep, but reconcile after merge. | This Azure branch predates the AI-quality code, but the target DB must include this table for all five AI surfaces. Consider FKs from `created_by`, `session_id`, and `invite_batch_id` once repository behavior is confirmed. |
+| `ai_generations` | `db_schema.md`, AI-quality workstream | Keep. | Neutral schema includes all current capture columns, filter/export indexes, nullable FKs for reliable context links, and `get_ai_generation_summary()`. Postgres write/read repositories now validate the runtime shape behind `AI_GENERATION_REPOSITORY_BACKEND=postgres`. |
 
 ## Operational Tables
 
@@ -109,7 +109,7 @@ These tables do not exist in the Supabase public schema because Supabase Auth cu
 | Rate-limit reset index | `20260325_add_rate_limit_buckets.sql` | Keep. | Needed for cleanup/maintenance. |
 | Invite batch indexes | `20260328_add_invite_batch_tracking.sql` | Keep. | Preserve created-by/date, parent batch, candidate batch/index, and candidate status indexes. |
 | Updated-at triggers | `supabase/schema.sql`, profile/template migrations | Keep. | Preserve triggers for `sessions`, `answers`, `eval_results`, `projection_session_now`, `recruiter_profiles`, `recruiter_templates`, and consider `rate_limit_buckets`/metrics rollups if functions do not manage timestamps. |
-| AI-quality indexes | AI-quality workstream | Add after merge. | Likely need indexes for created date, surface/status, session, trace/correlation, created_by, and filter/export use cases. Confirm from final QA explorer queries. |
+| AI-quality indexes | AI-quality workstream | Keep. | Neutral schema includes created date, surface/status, surface/date, status/date, session, trace/correlation, created_by/date, retention, and `source_refs` GIN indexes for QA explorer filter/export use cases. |
 
 ## Supabase-Specific Objects To Remove Or Replace
 
@@ -137,15 +137,15 @@ The first executable draft now lives at `db/migrations/001_initial_schema.sql`.
 
 It includes extensions, enums, app auth tables, product tables, operational tables, constraints, indexes, triggers, and functions in intended dependency order.
 
-Disposable validation passed on May 5, 2026 against `interviewcoach-postgres-test`, a Docker container using `ankane/pgvector:latest` with PostgreSQL 15.4. The migration applied successfully, reran successfully against the existing schema, and passed rollback-only smoke validation via `db/validation/001_initial_schema_smoke.sql`.
+Disposable validation passed on May 5, 2026 against `interviewcoach-postgres-test`, a Docker container using `ankane/pgvector:latest` with PostgreSQL 15.4. The migration applied successfully, reran successfully against the existing schema, and passed rollback-only smoke validation via `db/validation/001_initial_schema_smoke.sql`. After the AI-quality port, the updated schema reapplied successfully and smoke validation passed with the AI-generation summary function included.
 
-Repository validation has now exercised the neutral `sessions`, `questions`, `answers`, `eval_results`, `candidate_tokens`, `recruiter_templates`, and `user_feedback` tables through Postgres-backed stores. The session repository test specifically covers session create/read/update/delete, dashboard summary counts, draft saves, answer feedback persistence, analysis deletion, summary expiry metadata, invitation sent timestamp updates, and atomic engagement increments. The template repository test covers recruiter-owned templates, shared-template visibility, private-template exclusion, create/update/delete behavior, and explicit admin manage-all behavior. The feedback repository test covers capture, session/type updates, recruiter-only inserts, and the admin view join shape.
+Repository validation has now exercised the neutral `sessions`, `questions`, `answers`, `eval_results`, `candidate_tokens`, `recruiter_templates`, `user_feedback`, and `ai_generations` tables through Postgres-backed stores. The session repository test specifically covers session create/read/update/delete, dashboard summary counts, draft saves, answer feedback persistence, analysis deletion, summary expiry metadata, invitation sent timestamp updates, and atomic engagement increments. The template repository test covers recruiter-owned templates, shared-template visibility, private-template exclusion, create/update/delete behavior, and explicit admin manage-all behavior. The feedback repository test covers capture, session/type updates, recruiter-only inserts, and the admin view join shape. The AI-quality repository tests cover capture insert serialization plus QA explorer list, page, summary, and row mapping behavior.
 
 ## Next Implementation Cut
 
 1. Add a repeatable local schema validation command/script that can apply `db/migrations/001_initial_schema.sql` and run `db/validation/001_initial_schema_smoke.sql` against a developer Postgres database.
-2. Implement remaining AI-quality data access once the AI-quality branch is merged or ported into this worktree.
+2. Validate AI-quality capture in a full local product smoke with `AI_GENERATION_REPOSITORY_BACKEND=postgres` once the surrounding route stack is ready for Postgres validation.
 3. Validate the same migration against a company-provided development or integration Postgres database once credentials/access are available.
 4. Review repository implementation feedback to decide whether `create_invite_batch()` remains a DB function or moves into an application transaction.
-5. Revisit this plan after the AI-quality workstream merges into `feature/postgres-integration`.
+5. Revisit this plan after the remaining auth/profile/browser Supabase work is ported.
 6. Confirm with the integration team whether the production app DB user can create extensions, enums, functions, triggers, and indexes, or whether DBA-owned DDL application is required.

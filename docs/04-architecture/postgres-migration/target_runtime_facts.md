@@ -85,6 +85,7 @@ This is the expected direction after Supabase removal. Names may be adjusted dur
 | `INVITE_REPOSITORY_BACKEND` | Optional during migration | Selects invite repository implementation: `supabase` default or `postgres` for migration validation. | Added |
 | `TEMPLATE_REPOSITORY_BACKEND` | Optional during migration | Selects recruiter template repository implementation: `supabase` default or `postgres` for migration validation. | Added |
 | `FEEDBACK_REPOSITORY_BACKEND` | Optional during migration | Selects app feedback repository implementation: `supabase` default or `postgres` for migration validation. | Added |
+| `AI_GENERATION_REPOSITORY_BACKEND` | Optional during migration | Selects AI-quality generation write/read repository implementation: `supabase` default or `postgres` for migration validation. | Added |
 | `CANDIDATE_TOKEN_BACKEND` | Optional during migration | Selects candidate token implementation: `supabase` default or `postgres` for migration validation. | Added |
 | `IDEMPOTENCY_BACKEND` | Optional during migration | Selects idempotency store implementation: `supabase` default or `postgres` for migration validation. | Added |
 | `RATE_LIMIT_BACKEND` | Required in production | Supported values during migration: `memory`, `supabase`, `postgres`. `postgres` is implemented and should be pinned in migrated environments; `memory` must not be used in production. | Postgres backend added |
@@ -160,6 +161,7 @@ Validation result as of May 5, 2026:
 - Migration result: `db/migrations/001_initial_schema.sql` applied successfully.
 - Idempotency result: migration reran successfully against the already-created schema; only expected `already exists` notices appeared.
 - Smoke result: `db/validation/001_initial_schema_smoke.sql` passed and rolled back, leaving no smoke rows in checked tables.
+- AI-quality revalidation result: after porting generation capture on May 5, 2026, the updated schema reapplied successfully and the smoke validation passed with `get_ai_generation_summary()` included.
 
 ## Notes For Roadmap
 

@@ -136,6 +136,7 @@ export const AnalysisResultSchema = z.object({
 export const AnswerSchema = z.object({
     questionId: z.string(),
     transcript: z.string().optional(),
+    modality: z.enum(['text', 'voice']).optional(),
     audioUrl: z.string().optional(),
     submittedAt: z.number().optional(),
     analysis: AnalysisResultSchema.optional(),
@@ -419,5 +420,6 @@ export const QuestionAnalysisRequestSchema = z.object({
 
 export const SubmitAnswerRequestSchema = z.object({
     text: z.string(),
+    modality: z.enum(['text', 'voice']).optional().default('text'),
     analysis: AnalysisResultSchema.optional(),
 });

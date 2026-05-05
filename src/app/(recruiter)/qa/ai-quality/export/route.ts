@@ -7,7 +7,7 @@ import {
     type AiGenerationSurface,
 } from "@/lib/server/ai-quality/types";
 import {
-    SupabaseAiGenerationReadRepository,
+    createAiGenerationReadRepository,
     type AiGenerationListFilters,
 } from "@/lib/server/ai-quality/ai-generation-read-repository";
 import {
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
         maxLimit: 1000,
     };
     const exportedAt = new Date().toISOString();
-    const repo = new SupabaseAiGenerationReadRepository();
+    const repo = createAiGenerationReadRepository();
     const records = await repo.listRecent(filters);
     const filename = buildAiGenerationExportFilename({
         format,
