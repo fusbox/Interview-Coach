@@ -62,9 +62,8 @@ export default function InitialsScreen() {
                         src="/rangam-logo.webp"
                         alt="Rangam"
                         width={200}
-                        height={48}
-                        className="h-12 w-auto object-contain"
-                        style={{ width: 'auto', height: 'auto' }}
+                        height={58}
+                        className="object-contain"
                         priority
                         unoptimized
                     />

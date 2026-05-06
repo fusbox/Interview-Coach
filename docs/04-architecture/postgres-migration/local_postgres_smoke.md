@@ -217,8 +217,37 @@ Current result as of May 6, 2026:
 - The browser pass also found and fixed stale vendor copy in the invite preview footer: `Secure automated delivery via Resend` is now vendor-neutral.
 - Non-blocking browser warnings found during the pass were cleaned up where low risk: login password autocomplete metadata and invite-preview logo aspect-ratio styles.
 
+### Level 6 - Browser-Visible Candidate Practice Flow
+
+Done when:
+
+- A candidate invite link opens through `/s/[token]`.
+- Initials entry gates access and then resumes the same candidate session.
+- The candidate can enter the welcome screen, select readiness, and begin the first question.
+- Hints and strong example response render from the app's AI surfaces.
+- Text-mode answer submission works when microphone access is unavailable in an automated browser.
+- Candidate-only answer feedback renders after each submitted answer.
+- Completing the final question renders the browser debrief summary.
+- The session row is `COMPLETED`, has all answer/eval rows, and has a persisted `summary_narrative`.
+- The debrief screen only claims an email copy when provider acceptance set `summary_expires_at`.
+
+Current result as of May 6, 2026:
+
+- Browser smoke passed against `http://127.0.0.1:3100` with the disposable Postgres DB and a real `GEMINI_API_KEY`.
+- Fresh invite batch `15564a3b-9a47-48d6-bff6-f3cf8f44ea18` created candidate session `019dfd69-a227-776c-b2bd-c2a2d084a88c`.
+- Candidate link opened at `/s/04d874a0ec5ee869277441c099f6a835`.
+- Initials `CB` were accepted, the welcome screen loaded, readiness rating was selected, and practice started.
+- Automated Chromium blocked microphone access as expected; the UI showed the microphone warning and the test continued through text mode.
+- Hints and the example strong response rendered for question 1.
+- All three text answers were submitted successfully; answer feedback rendered for each question.
+- The final summary screen rendered the debrief narrative, session survey, close button, and practice-again button.
+- Smoke DB verification found session status `COMPLETED`, `current_question_index = 3`, `answer_count = 3`, `eval_count = 3`, `summary_narrative` present, and `summary_expires_at = null`.
+- AI-generation verification found successful rows for `answer_feedback` x3, `hint` x3, `strong_response` x1, and `session_debrief` x1.
+- The pass exposed and fixed a no-SMTP copy bug: when SMTP env is absent and debrief email is skipped, the summary screen no longer says the report was emailed.
+- The pass also corrected candidate-screen Rangam logo dimensions to match the actual image asset and remove the Next image warning.
+
 ## Final Handoff Language
 
-If Level 1-5 pass locally, we can say:
+If Level 1-6 pass locally, we can say:
 
-> The migration branch is functional against a disposable plain Postgres database using app-owned auth, Postgres-backed repositories, Gemini-backed AI surfaces, real SMTP invite/debrief delivery, and the browser-visible recruiter invite flow. Remaining work is target-environment integration: final AWS hosting shape, managed Postgres endpoint and credentials, network/TLS policy, secret store, least-privilege DB user, production URL, and deployment validation.
+> The migration branch is functional against a disposable plain Postgres database using app-owned auth, Postgres-backed repositories, Gemini-backed AI surfaces, real SMTP invite/debrief delivery, and browser-visible recruiter plus candidate flows. Remaining work is target-environment integration: final AWS hosting shape, managed Postgres endpoint and credentials, network/TLS policy, secret store, least-privilege DB user, production URL, and deployment validation.

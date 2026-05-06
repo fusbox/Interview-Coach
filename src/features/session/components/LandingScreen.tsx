@@ -110,9 +110,8 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                         src="/rangam-logo.webp"
                         alt="Rangam"
                         width={180}
-                        height={40}
-                        className="h-10 w-auto object-contain"
-                        style={{ width: 'auto', height: 'auto' }}
+                        height={52}
+                        className="object-contain"
                         priority
                         unoptimized
                     />

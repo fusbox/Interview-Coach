@@ -149,11 +149,13 @@ The Level 4 email smoke validates real Office365 SMTP delivery against the same 
 
 The first browser-visible recruiter smoke passed against the same smoke DB: `/login`, the protected recruiter shell, manual create-invite steps, preview modal, visible send/delivered state, dashboard visibility, and direct DB verification all worked. The pass found stale Resend-vendor footer copy in the preview modal, which was changed to vendor-neutral delivery copy.
 
+The first browser-visible candidate smoke also passed against the same smoke DB: `/s/[token]`, initials, welcome/readiness, hints, strong response, text-mode answers, answer feedback for all three questions, final debrief, `COMPLETED` session status, answer/eval row counts, summary narrative, and AI-generation rows all validated. The pass found and fixed candidate summary copy that claimed an email debrief was sent even when SMTP was not configured and no `summary_expires_at` was set.
+
 ## Next Implementation Cut
 
-1. Extend local product smoke to cover browser-visible candidate practice UX, not only route-stack HTTP calls.
-2. Validate recruiter review, invite resend/retry, practice-again, profile/settings, and negative permission checks against the smoke DB.
-3. Continue SMTP coverage with the product resend path, since initial invite send and debrief send now pass through real Office365 SMTP locally.
+1. Validate recruiter review, invite resend/retry, practice-again, profile/settings, and negative permission checks against the smoke DB.
+2. Continue SMTP coverage with the product resend path, since initial invite send and debrief send now pass through real Office365 SMTP locally.
+3. Decide whether the browser-visible smoke should remain manually documented or become a repeatable scripted smoke before handoff.
 4. Expand QA explorer validation from page/export `200` checks to browser-visible filter/reset/detail interactions if needed for handoff confidence.
 5. Validate the same migration against a company-provided development or integration Postgres database once credentials/access are available.
 6. Review repository implementation feedback to decide whether `create_invite_batch()` remains a DB function or moves into an application transaction.

@@ -29,6 +29,7 @@ export default function SummaryScreen() {
     const router = useRouter();
 
     const hasNarrative = session?.summaryNarrative && !STOCK_NARRATIVES.includes(session.summaryNarrative);
+    const hasDebriefEmailCopy = Boolean(session?.summaryExpiresAt);
 
     // Dynamic Greeting Logic (Replicated from LandingScreen)
     const titleText = useMemo(() => {
@@ -44,8 +45,10 @@ export default function SummaryScreen() {
         return defaultTitle;
     }, [session?.enteredInitials, session?.candidate?.firstName, session?.candidate?.lastName]);
 
-    const descriptionText = hasNarrative 
-        ? "Here's your feedback summary. You'll also receive an email of this report."
+    const descriptionText = hasNarrative
+        ? hasDebriefEmailCopy
+            ? "Here's your feedback summary. You'll also receive an email of this report."
+            : "Here's your feedback summary."
         : session?.summaryExpired
             ? "Your browser summary has been cleared for privacy. Use the email copy of your full debrief if you want to review it again."
             : "One moment while I create your feedback summary";
@@ -101,9 +104,8 @@ export default function SummaryScreen() {
                             src="/rangam-logo.webp"
                             alt="Rangam"
                             width={200}
-                            height={48}
-                            className="h-12 w-auto object-contain"
-                            style={{ width: 'auto', height: 'auto' }}
+                            height={58}
+                            className="object-contain"
                             priority
                             unoptimized
                         />
@@ -277,9 +279,11 @@ export default function SummaryScreen() {
                     <p className="text-text-secondary text-sm font-medium">
                         Your completion progress has been shared with your recruiter.
                     </p>
-                    <p className="text-text-muted text-xs">
-                        Your full debrief has also been sent to email for safekeeping.
-                    </p>
+                    {hasDebriefEmailCopy && (
+                        <p className="text-text-muted text-xs">
+                            Your full debrief has also been sent to email for safekeeping.
+                        </p>
+                    )}
                 </motion.div>
 
                 {/* Tagline Lockup (Aligned with Landing) */}
@@ -292,13 +296,14 @@ export default function SummaryScreen() {
                     <span className="uppercase text-micro sm:text-xs tracking-widest translate-y-px">
                         Interview Practice Powered By
                     </span>
-                    <div className="relative h-4 w-16 sm:h-5 sm:w-20 flex-shrink-0">
+                    <div className="flex-shrink-0">
                         <Image
                             src="/rangam-logo.webp"
                             alt="Rangam"
-                            fill
-                            sizes="(max-width: 640px) 64px, 80px"
+                            width={80}
+                            height={23}
                             className="object-contain opacity-80"
+                            priority
                             unoptimized
                         />
                     </div>
