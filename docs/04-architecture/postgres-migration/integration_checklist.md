@@ -320,9 +320,7 @@ These are the remaining questions that materially affect deployment readiness:
 9. Acceptance: Which checks belong to local development, integration-team environment validation, and QA product regression before production cutover?
 10. Recovery patch timing: Should the answer-submitted/feedback-failed recovery hardening patch be merged into this branch before target-environment validation, or released separately?
 
-## Senior Readout
-
-With confidence, a senior engineer can say:
+## Summary Readout
 
 - The Supabase-backed app was already a working product before this migration branch.
 - This branch now has a validated Postgres-backed runtime path that can run independent of Supabase when backend selectors are pinned to `postgres`.

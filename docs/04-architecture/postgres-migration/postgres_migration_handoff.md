@@ -2,26 +2,25 @@
 
 ## Purpose
 
-This handoff is for code reviewers and the integration/deployment team reviewing `feature/postgres-integration`.
+This handoff is for code reviewers and the integration/deployment team reviewing the Azure project `Interview_Coach_AI`, branch `feature/postgres-integration`.
 
-The main point: the Interview Coach app was already fully functional before this migration work. In the Supabase/Vercel-backed version, recruiter invite creation, candidate practice, AI feedback, email delivery, admin feedback review, QA AI-quality review, and practice-again flows were all working. If the company deployment had not required Supabase removal, the app would have been ready to run in that shape.
+The main point: the Interview Coach app was already fully functional before this migration work. In the Supabase/Vercel-backed version, recruiter invite creation, candidate practice, AI feedback, email delivery, admin feedback review, QA AI-quality review, and practice-again flows were all working. If the Rangam deployment had not required Supabase removal, the app would have been ready to run in that shape.
 
-This branch implements a Supabase-free runtime and validates it locally against a disposable plain Postgres database. The app has been validated end to end without writing to Supabase: recruiter flows, candidate flows, AI generation capture, SMTP email, admin/QA access, resend/retry, chained practice-again attempts, and negative permission checks.
+This branch removes the active Supabase runtime dependency and replaces it with a Postgres-backed runtime validated locally against a disposable plain Postgres database. Recruiter flows, candidate flows, AI generation capture, SMTP email, admin/QA access, resend/retry, chained practice-again attempts, and negative permission checks have all been validated without writing to Supabase.
 
-The Supabase runtime fallback has now been removed from this branch. Supabase references that remain in migration docs or the `supabase/` directory are historical schema/context material, not active runtime dependencies.
+Supabase references that remain in migration docs or the `supabase/` directory are historical schema/context material, not active runtime dependencies.
 
-## Start Here
+## Executive Summary
 
-Supporting working docs:
-
-| Doc | Use |
+| Area | Current branch state |
 | --- | --- |
-| [integration_checklist.md](./integration_checklist.md) | Detailed migration checklist, roadmap status, and open questions. |
-| [supabase_touchpoint_inventory.md](./supabase_touchpoint_inventory.md) | File-by-file inventory of Supabase touchpoints and replacement status. |
-| [target_runtime_facts.md](./target_runtime_facts.md) | Runtime facts, env contract, smoke DB details, and target-environment questions. |
-| [target_schema_reconciliation.md](./target_schema_reconciliation.md) | Schema reconciliation from Supabase public schema/migrations to neutral Postgres DDL. |
-| [local_postgres_smoke.md](./local_postgres_smoke.md) | Local validation evidence and repeatable smoke commands. |
-| [app_user_provisioning.md](./app_user_provisioning.md) | Local/UAT app-user provisioning runbook for the temporary app-owned auth bridge. |
+| Runtime data store | Postgres via server-only `pg` helpers and Postgres repositories. |
+| Internal-user auth | App-owned Postgres auth/session bridge for local/UAT; target production should use ATS/Okta or equivalent identity handoff. |
+| Candidate auth | Preserved token-link flow at `/s/[token]`; candidate APIs enforce `x-candidate-token`. |
+| Schema | Neutral executable migration lives at `db/migrations/001_initial_schema.sql`. |
+| Email | SMTP/nodemailer; Office365 SMTP passed local smoke validation. |
+| AI provider | Google Gemini via `GEMINI_API_KEY`; all five AI surfaces capture to Postgres-backed `ai_generations`. |
+| Supabase | Active runtime fallback, packages, helper modules, service-role access, env requirements, and `User` type imports removed. |
 
 ## Architecture Before Migration
 
@@ -38,7 +37,7 @@ Supabase was not only a database in the original app. It provided several platfo
 
 Candidate access was already independent of Supabase Auth at the product level: candidates enter via `/s/[token]`, and candidate APIs use `x-candidate-token`.
 
-## Current App Flow
+## Migrated App Flow
 
 The migrated product flow preserves the existing app behavior:
 
@@ -67,22 +66,38 @@ The migrated product flow preserves the existing app behavior:
 | Practice-again fix | Persisted issued candidate tokens into repeat-attempt metadata so attempt 2 can create attempt 3 and debrief email links point to the current attempt token. |
 | Permissions | Validated owner-scoped recruiter review, cross-recruiter denial, recruiter-only admin/QA denial, QA export denial, and candidate-token missing/mismatch denial. |
 
-## Runtime Selector Contract
+## Code Review Focus
 
-These selector env vars are optional guardrails for the migrated runtime. When set, use `postgres`; unsupported legacy values now fail fast.
+Reviewers should focus on these seams:
 
-```env
-APP_AUTH_BACKEND=postgres
-SESSION_REPOSITORY_BACKEND=postgres
-INVITE_REPOSITORY_BACKEND=postgres
-TEMPLATE_REPOSITORY_BACKEND=postgres
-FEEDBACK_REPOSITORY_BACKEND=postgres
-AI_GENERATION_REPOSITORY_BACKEND=postgres
-CANDIDATE_TOKEN_BACKEND=postgres
-IDEMPOTENCY_BACKEND=postgres
-RATE_LIMIT_BACKEND=postgres
-METRICS_BACKEND=postgres
-```
+| Area | What to check |
+| --- | --- |
+| Repository behavior | Postgres implementations preserve the existing domain contracts without changing route behavior. |
+| Auth seam | App-owned auth is acceptable as local/UAT bridge, but target production identity should be an ATS/Okta handoff that creates or maps to an app session. |
+| Candidate access | Token-link candidate entry remains simple and account-free; raw tokens are not stored in plaintext, and candidate APIs enforce session-bound token checks. |
+| Schema | Neutral DDL includes the tables/functions/indexes/triggers needed by the product and does not carry forward Supabase `auth.uid()` or broad public RLS assumptions. |
+| Operational stores | Idempotency, rate limiting, metrics, candidate tokens, and AI-quality capture are not forgotten hidden dependencies. |
+| Runtime cleanup | No runtime path should require Supabase packages, Supabase env vars, Supabase auth helpers, service-role access, or direct Supabase client access. |
+| Validation | Local smoke evidence is strong; target-environment validation still belongs to the integration/deployment team. |
+
+## Deployment Workflow
+
+Recommended deployment sequence:
+
+1. Provision a dev/UAT Postgres database.
+2. Confirm who applies DDL and whether the app DB user can create extensions, enums, functions, triggers, and indexes.
+3. Apply `db/migrations/001_initial_schema.sql`.
+4. Configure runtime secrets and environment variables.
+5. For local/UAT bridge testing, provision at least one app user with `npm run auth:provision-user`.
+6. For target production UX, implement or connect the ATS/Okta identity handoff so internal users land on `/recruiter/create` with recruiter/admin/QA roles mapped.
+7. Run quality gates: `npm run lint`, `npm run typecheck`, `npm run test:coverage`, and `npm run test:stability`.
+8. Run the Postgres smoke scripts or their target-environment equivalents.
+9. Manually validate the core product flows in the target environment.
+10. Confirm DB writes and logs through integration-owned tooling.
+11. Have QA run product regression before production cutover.
+12. After target validation, decide whether to retire, archive, or keep historical Supabase schema/docs material for provenance.
+
+## Runtime Contract
 
 Database config supports either:
 
@@ -100,7 +115,7 @@ POSTGRES_PASSWORD=
 POSTGRES_DB=
 ```
 
-Other required target env values:
+Required target env values:
 
 ```env
 NEXT_PUBLIC_APP_URL=https://interviewcoach.talentarbor.com
@@ -113,17 +128,24 @@ SMTP_PASSWORD=<mailbox/app password as provided by admin>
 SMTP_FROM_EMAIL=Rangam Interview Coach <interviews@coach.rangam.com>
 ```
 
-`SMTP_FROM_NAME` may be set if the deployment wants display-name formatting, but `SMTP_FROM_EMAIL` should be the verified sender mailbox.
-
-Supabase env values should not be required in the final migrated environment after fallback removal:
+Optional selector guardrails should use `postgres` if set:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
-SUPABASE_SERVICE_ROLE_KEY
+APP_AUTH_BACKEND=postgres
+SESSION_REPOSITORY_BACKEND=postgres
+INVITE_REPOSITORY_BACKEND=postgres
+TEMPLATE_REPOSITORY_BACKEND=postgres
+FEEDBACK_REPOSITORY_BACKEND=postgres
+AI_GENERATION_REPOSITORY_BACKEND=postgres
+CANDIDATE_TOKEN_BACKEND=postgres
+IDEMPOTENCY_BACKEND=postgres
+RATE_LIMIT_BACKEND=postgres
+METRICS_BACKEND=postgres
 ```
 
-## Local Validation Evidence
+`RATE_LIMIT_BACKEND` and `METRICS_BACKEND` also support `memory` for local/test usage; production defaults to Postgres and rejects memory.
+
+## Validation Evidence
 
 The branch was validated against a disposable Docker Postgres DB:
 
@@ -162,41 +184,18 @@ Manual validation was also completed against the Postgres-migrated local app:
 - Candidate session completion
 - Two additional practice-again attempts
 
-Reported result: everything worked.
+Reported result: All pass.
 
-## Code Review Focus
+Most recent automated verification from the Supabase-sunset checkpoint:
 
-Reviewers should focus on these seams:
+- Runtime Supabase scan over `src`, package files, and `.env.example`: no active references.
+- `npm run lint`: passed.
+- `npx tsc --noEmit`: passed.
+- Focused auth/repository/operational-store/API tests: 16 files / 63 tests passed.
+- `npm run test:coverage`: 85 files / 288 tests passed.
+- `npm run test:stability`: 20/20 iterations passed.
 
-| Area | What to check |
-| --- | --- |
-| Repository behavior | Postgres implementations preserve the existing domain contracts without changing route behavior. |
-| Auth seam | App-owned auth is acceptable as local/UAT bridge, but target production identity should be an ATS/Okta handoff that creates or maps to an app session. |
-| Candidate access | Token-link candidate entry remains simple and account-free; raw tokens are not stored in plaintext, and candidate APIs enforce session-bound token checks. |
-| Schema | Neutral DDL includes the tables/functions/indexes/triggers needed by the product and does not carry forward Supabase `auth.uid()` or broad public RLS assumptions. |
-| Operational stores | Idempotency, rate limiting, metrics, candidate tokens, and AI-quality capture are not forgotten hidden Supabase dependencies. |
-| Runtime cleanup | No runtime path should require Supabase packages, Supabase env vars, Supabase auth helpers, or direct Supabase client access. |
-| Historical context | The `supabase/` directory and older migration docs remain source material for schema reconciliation only, not final deployment architecture. |
-| Validation | Local smoke evidence is strong; target-environment validation still belongs to the integration/deployment team. |
-
-## Integration Deployment Plan
-
-Recommended deployment sequence:
-
-1. Provision a dev/UAT Postgres database.
-2. Decide who applies DDL and whether the app DB user can create extensions, enums, functions, triggers, and indexes.
-3. Apply `db/migrations/001_initial_schema.sql`.
-4. Configure runtime secrets and backend selectors.
-5. For local/UAT bridge testing, provision at least one app user with `npm run auth:provision-user`.
-6. For target production UX, implement or connect the ATS/Okta identity handoff so internal users land on `/recruiter/create` with recruiter/admin/QA roles mapped.
-7. Run quality gates: `npm run lint`, `npm run typecheck`, `npm run test:coverage`, and `npm run test:stability`.
-8. Run the Postgres smoke scripts or their target-environment equivalents.
-9. Manually validate the core product flows in the target environment.
-10. Confirm DB writes and logs through integration-owned tooling.
-11. Have QA run product regression before production cutover.
-12. After the Postgres/identity target is validated, retire or archive stale Supabase historical docs/scripts that are no longer useful to reviewers.
-
-## Remaining Integration Work
+## Remaining Integration Work for the Team
 
 These items are not blocked on proving local app functionality; they are target-environment ownership items:
 
@@ -208,8 +207,9 @@ These items are not blocked on proving local app functionality; they are target-
 - Validate Microsoft/Office365 SMTP in the company environment.
 - Validate `NEXT_PUBLIC_APP_URL` so invite and debrief links use `https://interviewcoach.talentarbor.com` or the confirmed target host.
 - Decide whether the separate session-recovery hardening patch should merge before production cutover.
+- Decide whether to archive or remove the historical `supabase/` schema/migration directory after reviewers no longer need original schema provenance.
 
-## Current Open Questions
+## Open Deployment Questions
 
 1. What staging/UAT URL should be used before production?
 2. What exact hosting runtime will run the Next app, and is Node 22 approved?
@@ -225,3 +225,16 @@ These items are not blocked on proving local app functionality; they are target-
 ## Bottom Line
 
 This branch takes the app from "working Supabase-backed product" to "working Postgres-backed product validated independent of Supabase." The remaining work is to deploy that path in the company environment, connect enterprise identity, and prove DB/log/email behavior there.
+
+## Appendix: Working Docs
+
+These documents were useful while building and validating the migration. They are preserved as supporting material, but the handoff above should be treated as the review/deployment starting point.
+
+| Doc | Notes |
+| --- | --- |
+| [integration_checklist.md](./integration_checklist.md) | Historical planning/checklist artifact. It contains progress notes, backlog items, and open questions from earlier migration phases. |
+| [supabase_touchpoint_inventory.md](./supabase_touchpoint_inventory.md) | Historical touchpoint inventory showing what Supabase runtime dependencies were removed or replaced. |
+| [target_runtime_facts.md](./target_runtime_facts.md) | Runtime/env appendix with more detail on deployment facts, validation checklist, and local disposable DB evidence. |
+| [target_schema_reconciliation.md](./target_schema_reconciliation.md) | Schema provenance appendix explaining how Supabase schema/migrations were reconciled into the neutral Postgres migration. |
+| [local_postgres_smoke.md](./local_postgres_smoke.md) | Detailed local validation evidence and repeatable smoke-command notes. |
+| [app_user_provisioning.md](./app_user_provisioning.md) | Local/UAT app-user provisioning runbook for the temporary app-owned auth bridge. |
