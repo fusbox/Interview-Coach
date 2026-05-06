@@ -104,4 +104,22 @@ describe("/api/recruiter/profile", () => {
             code: "UNAUTHORIZED",
         });
     });
+
+    it("rejects invalid profile updates", async () => {
+        const { PUT } = await import("./route");
+
+        const response = await PUT(new Request("http://localhost/api/recruiter/profile", {
+            method: "PUT",
+            body: JSON.stringify({
+                first_name: "",
+                last_name: "Lee",
+            }),
+        }));
+
+        expect(response.status).toBe(400);
+        expect(await response.json()).toMatchObject({
+            code: "INVALID_REQUEST",
+        });
+        expect(upsertRecruiterProfileRecordMock).not.toHaveBeenCalled();
+    });
 });

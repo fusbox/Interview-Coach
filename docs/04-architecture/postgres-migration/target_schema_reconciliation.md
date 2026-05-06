@@ -153,9 +153,11 @@ The first browser-visible candidate smoke also passed against the same smoke DB:
 
 The practice-again chain smoke passed against the same smoke DB: the route stack created attempt 2 from attempt 1 and attempt 3 from attempt 2, each repeat attempt received its own active candidate-token row, and each repeat session persisted encrypted `intake_json.invite_token` metadata. This validates the schema shape for chained attempts and debrief-email practice-again links without adding new tables.
 
+The profile/settings smoke passed against the same smoke DB: app-owned auth loaded `/recruiter/settings`, `/api/recruiter/profile` read and updated `public.recruiter_profiles`, the DB row matched the API response, and the script restored the original smoke-user profile. This confirms the current schema supports recruiter profile load/save without Supabase Auth/RLS.
+
 ## Next Implementation Cut
 
-1. Validate recruiter review, invite resend/retry, profile/settings, and negative permission checks against the smoke DB.
+1. Validate recruiter review, invite resend/retry, and negative permission checks against the smoke DB.
 2. Continue SMTP coverage with the product resend path, since initial invite send and debrief send now pass through real Office365 SMTP locally.
 3. Decide whether the browser-visible smoke should remain manually documented or become a repeatable scripted smoke before handoff.
 4. Expand QA explorer validation from page/export `200` checks to browser-visible filter/reset/detail interactions if needed for handoff confidence.

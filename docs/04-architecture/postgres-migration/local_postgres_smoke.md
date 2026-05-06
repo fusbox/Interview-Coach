@@ -277,8 +277,37 @@ Current result as of May 6, 2026:
 - Smoke DB verification found three active candidate-token rows and confirmed attempts 2 and 3 both have encrypted `intake_json.invite_token` metadata.
 - The pass fixed the underlying core-app bug by persisting each newly issued session token back onto the session as encrypted invite-token metadata after session start.
 
+## Level 8 - Profile And Settings Smoke
+
+Goal: verify recruiter profile/settings can load and save through app-owned auth and the Postgres-backed `recruiter_profiles` path.
+
+Repeatable command:
+
+```powershell
+npm run postgres:smoke:profile-settings
+```
+
+Done when:
+
+- A recruiter can log in through `/api/auth/login` with app-owned Postgres auth.
+- The protected `/recruiter/settings` page returns `200`.
+- `/api/recruiter/profile` returns the current app user and profile.
+- `PUT /api/recruiter/profile` persists profile edits through the Postgres profile helper.
+- A follow-up profile fetch returns the saved profile.
+- The smoke DB `public.recruiter_profiles` row reflects the saved values.
+- The script restores the original smoke-user profile after validation so the smoke can be rerun.
+
+Current result as of May 6, 2026:
+
+- Route-stack smoke passed against `http://127.0.0.1:3100` with the disposable Postgres DB.
+- Login succeeded for `fu@rangam.com` / user `576627b5-cb54-4f7b-b22b-828ee03ed495`.
+- `/recruiter/settings` returned `200`.
+- The profile API saved title `Profile Smoke 20260506142506` and timezone `America/New_York`.
+- Smoke DB verification confirmed the updated `recruiter_profiles` row.
+- The script restored the original profile before exit.
+
 ## Final Handoff Language
 
-If Level 1-7 pass locally, we can say:
+If Level 1-8 pass locally, we can say:
 
 > The migration branch is functional against a disposable plain Postgres database using app-owned auth, Postgres-backed repositories, Gemini-backed AI surfaces, real SMTP invite/debrief delivery, and browser-visible recruiter plus candidate flows. Remaining work is target-environment integration: final AWS hosting shape, managed Postgres endpoint and credentials, network/TLS policy, secret store, least-privilege DB user, production URL, and deployment validation.
