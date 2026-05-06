@@ -18,7 +18,7 @@ Scope of this pass:
 - Keep candidate access token-link based. Preserve `/s/[token]` entry and `x-candidate-token` API protection.
 - Replace Supabase JS clients with server-only Postgres access through `pg`.
 - Move authorization checks into server application code and DB constraints, not Supabase RLS semantics, unless company DB policy requires RLS.
-- Preserve SQL functions/procedures where they provide useful atomic behavior.
+- Preserve SQL functions/procedures where they provide useful atomic behavior. Current working assumption: target Postgres can accept/run SQL queries, functions, and stored-procedure-style logic.
 - Remove Supabase packages and env vars only after all runtime/test imports are gone.
 
 ## Scan Commands Used

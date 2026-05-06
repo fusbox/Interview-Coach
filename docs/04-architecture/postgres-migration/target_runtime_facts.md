@@ -23,6 +23,7 @@ Scope of this pass:
 | Database connectivity | Working approach | Support `DATABASE_URL` and individual `POSTGRES_*`, preferring `DATABASE_URL` |
 | Auth approach | Working decision | App-owned email/password auth backed by Postgres for recruiter/admin users |
 | Account provisioning | Working approach | Operator/developer provisioning with `npm run auth:provision-user`; self-signup remains paused until policy is confirmed |
+| SQL functions/procedures | Working assumption | Target DB can accept/run SQL queries, functions, and stored-procedure-style logic |
 | Candidate access | Working decision | Keep token-link access at `/s/[token]`, backed by Postgres token storage |
 | Email provider | Implemented in branch, target config open | Branch uses SMTP/nodemailer. Target should use Microsoft/Office365 SMTP with explicit SMTP env values. |
 | Logs/DB inspection | Open | Needs integration-team answer |
@@ -154,16 +155,27 @@ Preferred local validation approach:
 
 Validation result as of May 5, 2026:
 
-- Container: `interviewcoach-postgres-test`
+- Earlier schema-validation container: `interviewcoach-postgres-test`
+- Repeatable local smoke container: `interviewcoach-postgres-smoke`
 - Image: `ankane/pgvector:latest`
-- PostgreSQL version reported by container: `15.4`
-- Host port: `5433`
-- Database: `interviewcoach_test`
+- Host port: `5434` for the repeatable smoke container
+- Database: `interviewcoach_smoke`
 - Migration result: `db/migrations/001_initial_schema.sql` applied successfully.
 - Idempotency result: migration reran successfully against the already-created schema; only expected `already exists` notices appeared.
 - Smoke result: `db/validation/001_initial_schema_smoke.sql` passed and rolled back, leaving no smoke rows in checked tables.
 - AI-quality revalidation result: after porting generation capture on May 5, 2026, the updated schema reapplied successfully and the smoke validation passed with `get_ai_generation_summary()` included.
-- App-user provisioning validation: pending against disposable Docker DB. The container was confirmed running on May 6, 2026, but provisioning was not executed because test DB credentials were not explicitly provided for this run.
+- App-user provisioning validation: `fu@rangam.com` provisioned successfully into `interviewcoach-postgres-smoke` on May 6, 2026 with recruiter/admin/QA roles.
+- HTTP app-auth smoke: local Next dev server on port `3100` returned `200` for `/api/auth/login`, `/recruiter`, `/qa/ai-quality`, and `/admin/feedback` using the smoke DB and Postgres backend selectors.
+
+Repeatable commands:
+
+```powershell
+npm run postgres:smoke:start
+npm run db:apply-schema
+npm run db:smoke-schema
+```
+
+See [local_postgres_smoke.md](./local_postgres_smoke.md).
 
 ## Notes For Roadmap
 

@@ -24,7 +24,7 @@ It is not executable DDL. Its job is to make the target database shape explicit 
 | Recruiter/admin/QA identity | Replace Supabase Auth with app-owned users, credentials, sessions, and roles in Postgres. |
 | Authorization | Prefer server-side authorization in application code plus DB constraints. Do not depend on Supabase RLS semantics unless company DB policy requires RLS. |
 | Historical data | Fresh target DB is acceptable for phase 1. Existing Supabase records remain in the current Supabase project if needed later. |
-| SQL functions | Proceed assuming functions/procedures are allowed. Keep DB-side functions where atomicity is valuable, especially invite creation, rate limit consumption, metrics rollups, and engagement increments. |
+| SQL functions | Proceed assuming functions/procedures are allowed. Keep DB-side functions where atomicity is valuable, especially invite creation, rate limit consumption, metrics rollups, and engagement increments. User confirmed we can continue with the assumption that the company DB can accept/run queries/functions and that stored procedures are used. |
 | Schema source of truth | Create new neutral Postgres migration SQL under a non-Supabase path. Keep `supabase/` as historical source material unless/until intentionally removed. |
 
 ## Extensions And Enums
@@ -143,8 +143,7 @@ Repository validation has now exercised the neutral `sessions`, `questions`, `an
 
 ## Next Implementation Cut
 
-1. Add a repeatable local schema validation command/script that can apply `db/migrations/001_initial_schema.sql` and run `db/validation/001_initial_schema_smoke.sql` against a developer Postgres database.
-2. Validate AI-quality capture in a full local product smoke with `AI_GENERATION_REPOSITORY_BACKEND=postgres` once the surrounding route stack is ready for Postgres validation.
+1. Validate AI-quality capture in a full local product smoke with `AI_GENERATION_REPOSITORY_BACKEND=postgres` once a real `GEMINI_API_KEY` is available in the smoke environment.
 3. Validate the same migration against a company-provided development or integration Postgres database once credentials/access are available.
 4. Review repository implementation feedback to decide whether `create_invite_batch()` remains a DB function or moves into an application transaction.
 5. Revisit this plan after remaining server components/actions, middleware, and fallback repositories are moved off Supabase.

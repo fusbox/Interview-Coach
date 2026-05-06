@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { randomBytes, scrypt } from "node:crypto";
 import { Pool } from "pg";
+import { getSmokeDatabaseUrl } from "./smoke-postgres-config.mjs";
 
 const VALID_ROLES = new Set(["recruiter", "admin", "qa"]);
 const VALID_STATUSES = new Set(["active", "invited", "disabled"]);
@@ -29,7 +30,7 @@ async function main() {
     const password = options.password ?? process.env[passwordEnvName];
     validateProvisionOptions(options, password, passwordEnvName);
 
-    const pool = new Pool(getPostgresPoolConfig(process.env));
+    const pool = new Pool(getPostgresPoolConfig(process.env, options));
     try {
         const result = await provisionAppUser(pool, options, password);
         console.log(JSON.stringify(result, null, 2));
@@ -51,6 +52,11 @@ function parseArgs(args) {
         const arg = args[index];
         if (arg === "--help" || arg === "-h") {
             options.help = true;
+            continue;
+        }
+
+        if (arg === "--smoke-defaults") {
+            options.smokeDefaults = true;
             continue;
         }
 
@@ -364,8 +370,9 @@ function derivePasswordKey(password, salt) {
     });
 }
 
-function getPostgresPoolConfig(env) {
-    const databaseUrl = readOptionalEnv(env, "DATABASE_URL");
+function getPostgresPoolConfig(env, options = {}) {
+    const databaseUrl = readOptionalEnv(env, "DATABASE_URL")
+        ?? (options.smokeDefaults ? getSmokeDatabaseUrl() : undefined);
     const shared = {
         max: parsePositiveInt(readOptionalEnv(env, "POSTGRES_POOL_MAX"), 2, "POSTGRES_POOL_MAX"),
         idleTimeoutMillis: parsePositiveInt(readOptionalEnv(env, "POSTGRES_IDLE_TIMEOUT_MS"), 30_000, "POSTGRES_IDLE_TIMEOUT_MS"),
@@ -434,7 +441,7 @@ function readOptionalEnv(env, name) {
 function readRequiredEnv(env, name) {
     const value = readOptionalEnv(env, name);
     if (!value) {
-        throw new Error(`Missing required environment variable ${name}. Provide DATABASE_URL or POSTGRES_* values.`);
+        throw new Error(`Missing required environment variable ${name}. Provide DATABASE_URL or POSTGRES_* values, or pass --smoke-defaults.`);
     }
 
     return value;
@@ -478,5 +485,6 @@ Options:
   --status <status>                active, invited, or disabled. Default: active.
   --no-verify-email                Leave email_verified_at unset.
   --allow-weak-password            Allow passwords shorter than ${MIN_PASSWORD_LENGTH} chars for disposable local users.
+  --smoke-defaults                 Use the local disposable smoke DB connection.
 `);
 }
