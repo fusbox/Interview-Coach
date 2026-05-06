@@ -169,7 +169,7 @@ Validation result as of May 5, 2026:
 - HTTP app-auth smoke: local Next dev server on port `3100` returned `200` for `/api/auth/login`, `/recruiter`, `/qa/ai-quality`, and `/admin/feedback` using the smoke DB and Postgres backend selectors.
 - Product-flow smoke: `npm run postgres:smoke:product` passed against `http://127.0.0.1:3100` on May 6, 2026 after starting the app with a local-only `ENCRYPTION_SECRET`. The script logged in, created a Postgres-backed invite batch, opened `/s/[token]`, fetched the candidate session, submitted initials, started practice, saved a draft, submitted one answer, ran answer analysis through the local mock fallback, and verified Postgres rows for questions, answer, eval result, candidate token, idempotency, rate-limit, metrics, and `ai_generations`.
 - AI-surface smoke: `npm run postgres:smoke:ai` passed against `http://127.0.0.1:3100` on May 6, 2026 after starting the app with a real `GEMINI_API_KEY`. The script logged in, generated recruiter questions, created a Postgres-backed invite, opened `/s/[token]`, generated hints and a strong response, submitted/analyzed one answer, completed the session to generate the debrief, verified successful `gemini` / `gemini-2.5-flash` `ai_generations` rows for `question_generation`, `hint`, `strong_response`, `answer_feedback`, and `session_debrief`, and confirmed `/qa/ai-quality` plus JSON export returned `200`.
-- Email-send smoke remains separate: no SMTP credentials were used in the local product-flow smoke, so `/api/invite/send` delivery acceptance and `invitation_sent_at` marking still require target SMTP env values.
+- Email-send smoke: `npm run postgres:smoke:email` passed against `http://127.0.0.1:3100` on May 6, 2026 with Office365 SMTP env values and intentional recipient `fusbox@gmail.com`. The script logged in, created invite batch `eb13a647-e9cf-48d1-ac84-632c8427491a`, sent the invite through `/api/invite/send`, received provider message id `<4ebd8382-3e15-bf17-d17e-e02e5d5bf234@coach.rangam.com>`, completed the candidate session, sent the debrief email, and verified `invitation_sent_at`, `summary_narrative`, `intake_json.summary_expires_at`, and success metrics in Postgres.
 
 Repeatable commands:
 
@@ -179,6 +179,7 @@ npm run db:apply-schema
 npm run db:smoke-schema
 npm run postgres:smoke:product
 npm run postgres:smoke:ai
+npm run postgres:smoke:email
 ```
 
 See [local_postgres_smoke.md](./local_postgres_smoke.md).
@@ -187,4 +188,4 @@ See [local_postgres_smoke.md](./local_postgres_smoke.md).
 
 - The target runtime facts are now partially confirmed, but the checklist item should remain open until staging/UAT URL, deployment platform, secret store, logs, DB inspection path, and final DB env/user contract are answered.
 - The Postgres client/config layer can still proceed before those answers by supporting both connection-string and split-env formats.
-- Email code is now SMTP-based in this branch. Runtime validation still needs final Microsoft/Office365 SMTP env values because omitting `SMTP_HOST` would fall back to the old AWS SES host default.
+- Email code is now SMTP-based in this branch, and real Office365 SMTP delivery passed locally against the disposable Postgres smoke DB. Target deployment still needs final Microsoft/Office365 SMTP env values because omitting `SMTP_HOST` would fall back to the old AWS SES host default.

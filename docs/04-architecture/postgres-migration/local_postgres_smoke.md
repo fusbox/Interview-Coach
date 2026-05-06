@@ -74,6 +74,19 @@ $env:GEMINI_API_KEY = "<real key for AI surfaces, or a placeholder for auth-only
 SMTP variables are required only if the smoke includes actual email delivery.
 `ENCRYPTION_SECRET` is required before invite creation because candidate invite tokens are encrypted into session intake metadata. The value above is local-only and disposable; do not use it outside the smoke container.
 
+For real local email smoke, also set the Office365 SMTP values in the server process:
+
+```powershell
+$env:SMTP_HOST = "smtp.office365.com"
+$env:SMTP_PORT = "587"
+$env:SMTP_USERNAME = "<mailbox>"
+$env:SMTP_PASSWORD = "<password>"
+$env:SMTP_FROM_EMAIL = "<from address>"
+$env:SMOKE_EMAIL_RECIPIENT = "<recipient for test emails>"
+```
+
+`SMOKE_EMAIL_RECIPIENT` is optional. If omitted, `npm run postgres:smoke:email` sends to `SMTP_USERNAME`.
+
 ## Smoke Levels
 
 ### Level 1 - Database And Auth
@@ -149,8 +162,38 @@ Current result as of May 6, 2026:
 
 The Level 2 script can run without `GEMINI_API_KEY`; answer analysis will use the app's local mock fallback and still exercises the Postgres `ai_generations` write path. Level 3 requires a real `GEMINI_API_KEY`; actual email delivery also requires valid `SMTP_*` values.
 
+### Level 4 - Real SMTP Email
+
+Done when:
+
+- `/api/invite/send` sends an initial invite through the configured SMTP provider.
+- The provider returns a message id and accepted-recipient response.
+- The session row has `invitation_sent_at`.
+- Completing a candidate session sends the debrief email through the same SMTP provider.
+- The session row has `summary_narrative` and `intake_json.summary_expires_at`, proving the debrief send returned provider acceptance.
+
+Repeatable command after the app is running on port `3100` with the Postgres env values and real SMTP env values:
+
+```powershell
+npm run postgres:smoke:email
+```
+
+This smoke sends real email. It defaults the recipient to `SMTP_USERNAME` unless `SMOKE_EMAIL_RECIPIENT` is set.
+
+Current result as of May 6, 2026:
+
+- `npm run postgres:smoke:email`: passed against `http://127.0.0.1:3100` with Office365 SMTP env values loaded from local development configuration.
+- The intentional smoke recipient was `fusbox@gmail.com`.
+- Recruiter login succeeded for `fu@rangam.com`.
+- Invite batch `eb13a647-e9cf-48d1-ac84-632c8427491a` completed with candidate session `019dfd58-d217-7f2d-876c-1fa6178a88b8`.
+- `/api/invite/send` returned provider message id `<4ebd8382-3e15-bf17-d17e-e02e5d5bf234@coach.rangam.com>`.
+- Verified `sessions.invitation_sent_at` was set.
+- Candidate session opened, initials submitted, practice started, one answer submitted, answer analysis completed, and session completion generated the debrief.
+- Verified `summary_narrative` and `intake_json.summary_expires_at` were persisted after debrief email provider acceptance.
+- Verified Postgres metrics included successful `invite_send_total` and `session_completion_total` rows.
+
 ## Final Handoff Language
 
-If Level 1-3 pass locally, we can say:
+If Level 1-4 pass locally, we can say:
 
-> The migration branch is functional against a disposable plain Postgres database using app-owned auth and Postgres-backed repositories. Remaining work is target-environment integration: final AWS hosting shape, managed Postgres endpoint and credentials, network/TLS policy, secret store, least-privilege DB user, SMTP policy, production URL, and deployment validation.
+> The migration branch is functional against a disposable plain Postgres database using app-owned auth, Postgres-backed repositories, Gemini-backed AI surfaces, and real SMTP invite/debrief delivery. Remaining work is target-environment integration: final AWS hosting shape, managed Postgres endpoint and credentials, network/TLS policy, secret store, least-privilege DB user, production URL, and deployment validation.

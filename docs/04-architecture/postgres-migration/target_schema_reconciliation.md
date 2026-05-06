@@ -145,11 +145,13 @@ The Level 2 local product-flow smoke now also validates the route-stack shape ag
 
 The Level 3 AI-surface smoke validates real provider capture against the same smoke DB: recruiter question generation, candidate hints, strong response, answer feedback, and session debrief all produced successful `gemini` / `gemini-2.5-flash` `ai_generations` rows, and `/qa/ai-quality` plus JSON export read the records successfully. This pass also removed direct `SupabaseSessionRepository` use from the tips and strong-response routes so those surfaces now honor `SESSION_REPOSITORY_BACKEND=postgres`.
 
+The Level 4 email smoke validates real Office365 SMTP delivery against the same smoke DB: `/api/invite/send` returned a provider message id, `sessions.invitation_sent_at` was set, completing the candidate session sent the debrief email, and the session row persisted both `summary_narrative` and `intake_json.summary_expires_at`.
+
 ## Next Implementation Cut
 
 1. Extend local product smoke to cover browser-visible login/create-invite/candidate UX, not only route-stack HTTP calls.
-2. Validate SMTP-backed `/api/invite/send`, invitation-sent timestamps, resend, and debrief email with target Microsoft/Office365 SMTP env values.
-3. Validate recruiter review, invite resend/retry, practice-again, and negative permission checks against the smoke DB.
+2. Validate recruiter review, invite resend/retry, practice-again, and negative permission checks against the smoke DB.
+3. Continue SMTP coverage with the product resend path, since initial invite send and debrief send now pass through real Office365 SMTP locally.
 4. Expand QA explorer validation from page/export `200` checks to browser-visible filter/reset/detail interactions if needed for handoff confidence.
 5. Validate the same migration against a company-provided development or integration Postgres database once credentials/access are available.
 6. Review repository implementation feedback to decide whether `create_invite_batch()` remains a DB function or moves into an application transaction.
