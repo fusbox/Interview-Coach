@@ -416,3 +416,15 @@ Current result as of May 6, 2026:
 If Level 1-11 pass locally, we can say:
 
 > The migration branch is functional against a disposable plain Postgres database using app-owned auth, Postgres-backed repositories, candidate-token access controls, role-gated admin/QA pages, Gemini-backed AI surfaces, real SMTP invite/debrief delivery, and browser-visible recruiter plus candidate flows. Remaining work is target-environment integration: final AWS hosting shape, managed Postgres endpoint and credentials, network/TLS policy, secret store, least-privilege DB user, production URL, and deployment validation.
+
+## Manual Validation
+
+Current result as of May 6, 2026:
+
+- User ran comprehensive manual validation against the Postgres-migrated local app.
+- Recruiter create/send invite, invite resend, dashboard, and session details review worked.
+- Admin user-feedback review worked.
+- QA AI-quality review worked.
+- Candidate session completion worked.
+- Two additional practice-again attempts worked.
+- User reported: "Everything worked perfectly."

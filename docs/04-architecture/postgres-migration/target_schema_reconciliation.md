@@ -21,7 +21,7 @@ It is not executable DDL. Its job is to make the target database shape explicit 
 | --- | --- |
 | Supabase replacement scope | Treat phase 1 as full Supabase replacement: database access, auth/session behavior, service-role reads/writes, and RPC/function calls. |
 | Candidate entry | Preserve token-link candidate access. Candidates should not need accounts in phase 1. |
-| Recruiter/admin/QA identity | Replace Supabase Auth with app-owned users, credentials, sessions, and roles in Postgres. |
+| Recruiter/admin/QA identity | Replace Supabase Auth. Current schema includes app-owned users, credentials, sessions, and roles for local/UAT validation. Target deployment is expected to receive internal-user identity from ATS/Okta or equivalent, so credentials/password tables may remain bridge/fallback infrastructure rather than the final production identity source. |
 | Authorization | Prefer server-side authorization in application code plus DB constraints. Do not depend on Supabase RLS semantics unless company DB policy requires RLS. |
 | Historical data | Fresh target DB is acceptable for phase 1. Existing Supabase records remain in the current Supabase project if needed later. |
 | SQL functions | Proceed assuming functions/procedures are allowed. Keep DB-side functions where atomicity is valuable, especially invite creation, rate limit consumption, metrics rollups, and engagement increments. User confirmed we can continue with the assumption that the company DB can accept/run queries/functions and that stored procedures are used. |
@@ -41,16 +41,16 @@ It is not executable DDL. Its job is to make the target database shape explicit 
 
 ## New App-Owned Auth Tables
 
-These tables do not exist in the Supabase public schema because Supabase Auth currently owns identity/session state.
+These tables do not exist in the Supabase public schema because Supabase Auth currently owns identity/session state. They are included in the neutral schema because they let the branch validate the migrated app without Supabase and provide a local/UAT auth bridge. Updated May 6, 2026: target production internal-user identity is expected to come from ATS/Okta or equivalent, so the final integration may use only a subset of these tables or adapt them as local session/role mapping records.
 
 | Target object | Source | Target action | Notes |
 | --- | --- | --- | --- |
-| `app_users` | Migration roadmap | Add. | Primary user record for recruiters, admins, and QA evaluators. Expected fields: `user_id`, normalized `email`, display name/profile basics as needed, `status`, timestamps. Consider lowercased email plus unique index; use `citext` only if target DB allows it. |
-| `app_user_credentials` | Migration roadmap | Add. | Store password hash and password metadata. Current app-auth implementation uses Node `crypto.scrypt` with per-password random salt and encoded hashes. Never store plain passwords. |
-| `app_sessions` | Migration roadmap | Add. | Server-side session records for secure HTTP-only auth cookies. Expected fields: hashed session token, user ID, expiry, revoked timestamp, user agent/IP metadata where useful. |
-| `app_user_roles` | Migration roadmap | Add. | Store recruiter/admin/QA roles. Replaces Supabase metadata and hardcoded allowlists as the long-term source. |
-| `password_reset_tokens` | Migration roadmap | Add. | Store hashed single-use reset tokens with expiry and used timestamp. |
-| `email_verification_tokens` | Migration roadmap | Conditional add. | Needed only if self-sign-up remains. If users are admin-provisioned, verification may be handled out-of-band. |
+| `app_users` | Migration roadmap | Add. | Primary local identity/session subject for recruiters, admins, and QA evaluators. For target ATS/Okta launch, this may map to the stable upstream subject plus email/display fields provided by enterprise identity. |
+| `app_user_credentials` | Migration roadmap | Add for bridge/fallback. | Store password hash and password metadata for local/UAT app-auth. Current implementation uses Node `crypto.scrypt` with per-password random salt and encoded hashes. Final production may not use credentials if ATS/Okta owns auth. |
+| `app_sessions` | Migration roadmap | Add. | Server-side session records for secure HTTP-only auth cookies. Final target may create these sessions from ATS/Okta identity handoff rather than password login. |
+| `app_user_roles` | Migration roadmap | Add. | Store recruiter/admin/QA roles for local/UAT. Target production should map ATS/Okta claims/groups into these roles or an equivalent role mapping. |
+| `password_reset_tokens` | Migration roadmap | Bridge/fallback only. | Store hashed single-use reset tokens with expiry and used timestamp only if app-owned password auth remains in production. Enterprise identity should own password lifecycle otherwise. |
+| `email_verification_tokens` | Migration roadmap | Bridge/fallback only. | Needed only if self-sign-up remains. Enterprise identity should own verification otherwise. |
 | `auth_audit_events` | Migration roadmap | Add or defer. | Useful for login/reset/security visibility. Can be lean in phase 1 if time-constrained. |
 
 ## Product Tables
@@ -64,7 +64,7 @@ These tables do not exist in the Supabase public schema because Supabase Auth cu
 | `candidate_tokens` | `db_schema.md`, `supabase/schema.sql` | Keep. | Preserve hash-at-rest token storage and session FK. Neutral schema adds `revoked_at` and `expires_at`; `PostgresCandidateTokenStore` validates raw token by hash and rejects expired/revoked rows. |
 | `events` | `db_schema.md`, `supabase/schema.sql` | Keep. | Preserve append-only behavior, correlation ID, schema version/hash, and idempotency constraint from base schema. |
 | `projection_session_now` | `db_schema.md`, `supabase/schema.sql` | Keep or replace after repository design. | If the app still needs `/now` projection behavior, keep. Otherwise repository can compute state from normalized tables. |
-| `recruiter_profiles` | `db_schema.md`, `20240208_recruiter_profiles.sql` | Keep with FK replacement. | Replace FK to `auth.users(id)` with FK to `app_users(user_id)`. Preserve profile fields and updated-at trigger. |
+| `recruiter_profiles` | `db_schema.md`, `20240208_recruiter_profiles.sql` | Keep with FK replacement for now. | Replace FK to `auth.users(id)` with FK to `app_users(user_id)`. Preserve profile fields and updated-at trigger for local/UAT; target deployment may deprecate user-editable name/email/phone profile fields once ATS/Okta provides authoritative identity. |
 | `recruiter_templates` | `db_schema.md`, `20240224_create_recruiter_templates.sql` | Keep with FK replacement. | Replace FK to `auth.users(id)` with FK to `app_users(user_id)`. `PostgresTemplateRepository` now validates the target shape and enforces recruiter-owned, shared, private, and admin manage-all behavior explicitly in application code. |
 | `user_feedback` | `db_schema.md`, `src/lib/server/infrastructure/user_feedback_schema.sql` | Keep with FK replacement. | Replace FK to `auth.users(id)` with FK to `app_users(user_id)`. `PostgresFeedbackRepository` now validates feedback capture, session/type update behavior, recruiter-only feedback inserts, admin read shape, session FK, and JSON metadata. |
 | `invite_batches` | `db_schema.md`, `20260328_add_invite_batch_tracking.sql` | Keep with FK addition. | `created_by` should reference `app_users(user_id)` once app auth exists. Preserve parent/retry lineage and status counts. |

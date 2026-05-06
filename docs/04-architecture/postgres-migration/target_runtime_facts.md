@@ -8,7 +8,7 @@ Scope of this pass:
 
 - Worktree: `C:\tmp\Interview-Coach-Recruiter-postgres`
 - Branch: `feature/postgres-integration`
-- Branch head during review: `2230874 test postgres invite resend retry flow`
+- Branch head during review: `bb20083 test postgres negative permissions`
 - Date: 2026-05-06
 
 ## Current Classification
@@ -21,8 +21,8 @@ Scope of this pass:
 | Node version | Confirmed for GitHub CI, open for deployment | GitHub quality workflow uses Node 22; target deployment Node runtime still needs confirmation |
 | Build/start commands | Confirmed from repo | `npm ci`, `npm run build`, `npm run start` |
 | Database connectivity | Working approach | Support `DATABASE_URL` and individual `POSTGRES_*`, preferring `DATABASE_URL` |
-| Auth approach | Working decision | App-owned email/password auth backed by Postgres for recruiter/admin users |
-| Account provisioning | Working approach | Operator/developer provisioning with `npm run auth:provision-user`; self-signup remains paused until policy is confirmed |
+| Auth approach | Updated working direction | Target deployment should use ATS-launched enterprise identity handoff, potentially Okta or equivalent. App-owned Postgres auth remains the local/UAT bridge and Supabase-removal proof. |
+| Account provisioning | Local/UAT bridge | Operator/developer provisioning with `npm run auth:provision-user`; target production user lifecycle should be owned upstream by ATS/enterprise identity. |
 | SQL functions/procedures | Working assumption | Target DB can accept/run SQL queries, functions, and stored-procedure-style logic |
 | Candidate access | Working decision | Keep token-link access at `/s/[token]`, backed by Postgres token storage |
 | Email provider | Implemented in branch, target config open | Branch uses SMTP/nodemailer. Target should use Microsoft/Office365 SMTP with explicit SMTP env values. |
@@ -56,8 +56,8 @@ Scope of this pass:
 | Candidate URL shape | `https://interviewcoach.talentarbor.com/s/[token]` | Medium-high | Preserves current candidate entry model. |
 | Public origin env | `NEXT_PUBLIC_APP_URL=https://interviewcoach.talentarbor.com` | Medium-high | Existing code already supports this. |
 | DB env input | `DATABASE_URL` preferred, `POSTGRES_*` fallback | Medium-high | Matches handoff values and gives integration flexibility. |
-| Auth | App-owned email/password | Medium-high | Product decision made for phase 1; implementation details remain. |
-| Session storage | Postgres-backed app sessions | Medium-high | Needed to replace Supabase SSR cookies. |
+| Auth | ATS-launched enterprise identity handoff | Medium | Updated May 6, 2026. Internal users are expected to launch from the ATS, likely with Okta or equivalent identity passed through by an integration-owned service. |
+| Session storage | Postgres-backed app sessions or equivalent server session | Medium-high | Needed to replace Supabase SSR cookies. Current app-auth session storage proves the app can run without Supabase; final session creation may come from ATS/Okta rather than password login. |
 | Email | Microsoft/Office365 SMTP | Medium-high | Branch supports SMTP now. Confirm final host/port/from identity and that SMTP auth is enabled for the sender mailbox. |
 | AI provider | Google Gemini | High | Existing app uses `GEMINI_API_KEY` and Google GenAI SDK. |
 | Runtime install/build | `npm ci`, `npm run build`, `npm run start` | High | Confirmed by package scripts and GitHub workflow. |
@@ -85,7 +85,7 @@ This is the expected direction after Supabase removal. Names may be adjusted dur
 | `SMTP_USERNAME` | Required in production | SMTP auth user | Branch fails fast in production if missing |
 | `SMTP_PASSWORD` | Required in production | SMTP secret | Branch fails fast in production if missing |
 | `SMTP_FROM_EMAIL` | Required for target sender identity | Verified sender | Set explicitly to avoid relying on fallback sender |
-| `APP_AUTH_BACKEND` | Optional during migration | Selects recruiter/admin auth lookup: `supabase` default or `postgres` for app-owned auth/session cookies. | Added |
+| `APP_AUTH_BACKEND` | Optional during migration | Selects recruiter/admin auth lookup: `supabase` default or `postgres` for app-owned auth/session cookies. A future value or adapter may be needed for ATS/Okta identity handoff. | Added; target auth adapter still open |
 | `SESSION_REPOSITORY_BACKEND` | Optional during migration | Selects session repository implementation: `supabase` default or `postgres` for migration validation. | Added |
 | `INVITE_REPOSITORY_BACKEND` | Optional during migration | Selects invite repository implementation: `supabase` default or `postgres` for migration validation. | Added |
 | `TEMPLATE_REPOSITORY_BACKEND` | Optional during migration | Selects recruiter template repository implementation: `supabase` default or `postgres` for migration validation. | Added |
@@ -121,9 +121,10 @@ These need answers from the deployment/integration/infra side before environment
 10. Who can inspect target DB records during validation?
 11. Where are application/API logs available, and who can view them?
 12. What rollback mechanism exists for app deployment and DB migrations?
-13. Should recruiter/admin users be self-signup, admin-provisioned, or pre-seeded for phase 1?
-14. Are password complexity, password expiration, MFA, audit logging, or account lockout policies required?
-15. What are the final Microsoft/Office365 SMTP host, port, sender format, and SMTP-auth policy for `interviews@coach.rangam.com`?
+13. What is the ATS launch contract: URL, request method, identity token format, trusted issuer, signing/validation keys, required claims, and replay protection?
+14. How should ATS/Okta groups or claims map to recruiter/admin/QA roles?
+15. Should standalone login/create-account/settings-profile/logout UI be disabled immediately in target deployment, hidden behind a local/UAT flag, or removed after integration validates the ATS launch path?
+16. What are the final Microsoft/Office365 SMTP host, port, sender format, and SMTP-auth policy for `interviews@coach.rangam.com`?
 
 ## Runtime Validation Checklist
 
@@ -133,7 +134,7 @@ These need answers from the deployment/integration/infra side before environment
 | [ ] | Public origin configured | Invite links generated with the expected host. |
 | [ ] | Postgres connection succeeds | Health/diagnostic endpoint or startup log confirms DB connectivity without exposing secrets. |
 | [ ] | DB migrations applied | Schema version or table/function inventory confirmed in target DB. |
-| [ ] | App auth works | Provision user with `npm run auth:provision-user`; recruiter can log in, session persists, logout invalidates session. |
+| [ ] | Internal auth works | For local/UAT, provision user with `npm run auth:provision-user`; recruiter can log in, session persists, logout invalidates session. For target deployment, ATS/Okta launch creates an authenticated app session and lands the user on `/recruiter/create`. |
 | [ ] | Candidate token access works | `/s/[token]` opens and candidate APIs validate token/session correctly. |
 | [ ] | Email sends | Invite and debrief email deliver through the company mail system. |
 | [ ] | AI works | Gemini-backed surfaces work with `GEMINI_API_KEY`. |
@@ -177,6 +178,7 @@ Validation result as of May 5, 2026:
 - Invite resend/retry smoke: `npm run postgres:smoke:resend-retry` passed against `http://127.0.0.1:3100` on May 6, 2026. It created a Postgres-backed invite, resent it through Office365 SMTP to the intentional smoke recipient, verified `invitation_sent_at` and resend success metrics, seeded a failed retryable batch, retried it through the route stack, and verified parent/child batch state, child session creation, and completed retry idempotency in Postgres.
 - Recruiter review smoke: `npm run postgres:smoke:recruiter-review` passed against `http://127.0.0.1:3100` on May 6, 2026. It created a Postgres-backed invite/session, submitted a candidate answer, opened `/recruiter/sessions/[id]` as the owning recruiter, verified the visible review contract, confirmed the page does not expose candidate AI feedback pulse labels, and verified the owner-scoped session plus answer rows in Postgres.
 - Negative-permissions smoke: `npm run postgres:smoke:negative-permissions` passed against `http://127.0.0.1:3100` on May 6, 2026. It provisioned a recruiter-only second user, verified missing and mismatched candidate-token denials, cross-recruiter review/resend denial, admin/QA page redirects, QA export `403`, anonymous protected-page redirect, and owner/role state in Postgres.
+- Manual full-flow validation: user ran comprehensive manual validation on May 6, 2026 against the Postgres-migrated local app. Recruiter create/send invite, resend, dashboard/session details review, admin user-feedback review, QA AI-quality review, candidate session completion, and two additional practice-again attempts all worked.
 
 Repeatable commands:
 
