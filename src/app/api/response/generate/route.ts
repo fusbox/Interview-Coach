@@ -9,11 +9,10 @@ import {
 } from '@/lib/server/api-errors';
 import { enforceIpRateLimit } from '@/lib/server/abuse-protection';
 import { authorizeCandidateSessionRequest } from '@/lib/server/candidate-route-auth';
-import { SupabaseSessionRepository } from '@/lib/server/infrastructure/supabase-session-repository';
+import { createSessionRepository } from '@/lib/server/infrastructure/session-repository';
 
 const WINDOW_MS = 5 * 60 * 1000;
 const MAX_STRONG_RESPONSE_REQUESTS = 30;
-const repository = new SupabaseSessionRepository();
 
 export async function POST(req: NextRequest) {
     const correlationId = createCorrelationId();
@@ -45,6 +44,7 @@ export async function POST(req: NextRequest) {
         if (authResponse) {
             return authResponse;
         }
+        const repository = await createSessionRepository();
         const session = await repository.get(sessionId);
 
         // Generate content (fully self-sufficient — no tips dependency)

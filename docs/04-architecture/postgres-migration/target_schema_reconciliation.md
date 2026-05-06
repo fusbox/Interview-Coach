@@ -143,12 +143,14 @@ Repository validation has now exercised the neutral `sessions`, `questions`, `an
 
 The Level 2 local product-flow smoke now also validates the route-stack shape against the repeatable smoke DB: app-owned recruiter login, Postgres invite batch creation, candidate `/s/[token]` access, candidate session fetch, initials, draft save, answer submit, answer analysis through local mock fallback, and DB row verification for invite tracking, sessions, questions, answers, eval results, candidate tokens, idempotency, rate limits, metrics, and `ai_generations`.
 
+The Level 3 AI-surface smoke validates real provider capture against the same smoke DB: recruiter question generation, candidate hints, strong response, answer feedback, and session debrief all produced successful `gemini` / `gemini-2.5-flash` `ai_generations` rows, and `/qa/ai-quality` plus JSON export read the records successfully. This pass also removed direct `SupabaseSessionRepository` use from the tips and strong-response routes so those surfaces now honor `SESSION_REPOSITORY_BACKEND=postgres`.
+
 ## Next Implementation Cut
 
 1. Extend local product smoke to cover browser-visible login/create-invite/candidate UX, not only route-stack HTTP calls.
-2. Validate Gemini-backed AI-quality capture with a real `GEMINI_API_KEY`: question generation, hints, strong response, answer feedback, and session debrief.
-3. Validate SMTP-backed `/api/invite/send`, invitation-sent timestamps, resend, and debrief email with target Microsoft/Office365 SMTP env values.
-4. Validate QA explorer UI reads/exports against the smoke DB records created by product-flow smoke.
+2. Validate SMTP-backed `/api/invite/send`, invitation-sent timestamps, resend, and debrief email with target Microsoft/Office365 SMTP env values.
+3. Validate recruiter review, invite resend/retry, practice-again, and negative permission checks against the smoke DB.
+4. Expand QA explorer validation from page/export `200` checks to browser-visible filter/reset/detail interactions if needed for handoff confidence.
 5. Validate the same migration against a company-provided development or integration Postgres database once credentials/access are available.
 6. Review repository implementation feedback to decide whether `create_invite_batch()` remains a DB function or moves into an application transaction.
 7. Revisit this plan after remaining server components/actions, middleware, and fallback repositories are moved off Supabase.

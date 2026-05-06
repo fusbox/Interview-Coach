@@ -130,6 +130,23 @@ Done when:
 - `ai_generations` rows are written to Postgres.
 - `/qa/ai-quality` reads the smoke DB records.
 
+Repeatable command after the app is running on port `3100` with the env values above and a real `GEMINI_API_KEY`:
+
+```powershell
+npm run postgres:smoke:ai
+```
+
+Current result as of May 6, 2026:
+
+- `npm run postgres:smoke:ai`: passed against `http://127.0.0.1:3100`.
+- Recruiter login succeeded for `fu@rangam.com`.
+- Gemini-backed question generation created a successful `question_generation` row.
+- Postgres-backed invite batch `e60b2d5f-5658-4770-87db-2fcd9e1a99a0` completed with candidate session `019dfd4c-6a06-7ceb-8706-7dbea5062d10`.
+- Candidate link opened through `/s/[token]`.
+- Gemini-backed hints, strong response, answer feedback, and session debrief all completed.
+- Verified successful `ai_generations` rows for `question_generation`, `hint`, `strong_response`, `answer_feedback`, and `session_debrief`, all with `model_provider = gemini` and `model_name = gemini-2.5-flash`.
+- `/qa/ai-quality` returned `200`; `/qa/ai-quality/export?format=json&status=success&limit=100` returned `200` with records.
+
 The Level 2 script can run without `GEMINI_API_KEY`; answer analysis will use the app's local mock fallback and still exercises the Postgres `ai_generations` write path. Level 3 requires a real `GEMINI_API_KEY`; actual email delivery also requires valid `SMTP_*` values.
 
 ## Final Handoff Language

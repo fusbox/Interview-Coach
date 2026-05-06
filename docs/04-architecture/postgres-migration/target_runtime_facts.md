@@ -168,6 +168,7 @@ Validation result as of May 5, 2026:
 - App-user provisioning validation: `fu@rangam.com` provisioned successfully into `interviewcoach-postgres-smoke` on May 6, 2026 with recruiter/admin/QA roles.
 - HTTP app-auth smoke: local Next dev server on port `3100` returned `200` for `/api/auth/login`, `/recruiter`, `/qa/ai-quality`, and `/admin/feedback` using the smoke DB and Postgres backend selectors.
 - Product-flow smoke: `npm run postgres:smoke:product` passed against `http://127.0.0.1:3100` on May 6, 2026 after starting the app with a local-only `ENCRYPTION_SECRET`. The script logged in, created a Postgres-backed invite batch, opened `/s/[token]`, fetched the candidate session, submitted initials, started practice, saved a draft, submitted one answer, ran answer analysis through the local mock fallback, and verified Postgres rows for questions, answer, eval result, candidate token, idempotency, rate-limit, metrics, and `ai_generations`.
+- AI-surface smoke: `npm run postgres:smoke:ai` passed against `http://127.0.0.1:3100` on May 6, 2026 after starting the app with a real `GEMINI_API_KEY`. The script logged in, generated recruiter questions, created a Postgres-backed invite, opened `/s/[token]`, generated hints and a strong response, submitted/analyzed one answer, completed the session to generate the debrief, verified successful `gemini` / `gemini-2.5-flash` `ai_generations` rows for `question_generation`, `hint`, `strong_response`, `answer_feedback`, and `session_debrief`, and confirmed `/qa/ai-quality` plus JSON export returned `200`.
 - Email-send smoke remains separate: no SMTP credentials were used in the local product-flow smoke, so `/api/invite/send` delivery acceptance and `invitation_sent_at` marking still require target SMTP env values.
 
 Repeatable commands:
@@ -177,6 +178,7 @@ npm run postgres:smoke:start
 npm run db:apply-schema
 npm run db:smoke-schema
 npm run postgres:smoke:product
+npm run postgres:smoke:ai
 ```
 
 See [local_postgres_smoke.md](./local_postgres_smoke.md).
