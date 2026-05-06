@@ -13,7 +13,8 @@
     "test:coverage": "vitest run --coverage",
     "test:stability": "node scripts/run-stability-suite.mjs",
     "test:e2e": "playwright test",
-    "ci:quality": "npm run lint && npm run typecheck && npm run test:coverage"
+    "ci:quality": "npm run lint && npm run typecheck && npm run test:coverage",
+    "auth:provision-user": "node scripts/provision-app-user.mjs"
   },
   "dependencies": {
     "@google/genai": "1.39.0",

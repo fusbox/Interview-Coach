@@ -8,8 +8,8 @@ Scope of this pass:
 
 - Worktree: `C:\tmp\Interview-Coach-Recruiter-postgres`
 - Branch: `feature/postgres-integration`
-- Branch head during review: `0d16be9 feat: centralize api route auth seam`
-- Date: 2026-05-05
+- Branch head during review: `b7756a2 feat: add app auth middleware guard`
+- Date: 2026-05-06
 
 ## Current Classification
 
@@ -22,6 +22,7 @@ Scope of this pass:
 | Build/start commands | Confirmed from repo | `npm ci`, `npm run build`, `npm run start` |
 | Database connectivity | Working approach | Support `DATABASE_URL` and individual `POSTGRES_*`, preferring `DATABASE_URL` |
 | Auth approach | Working decision | App-owned email/password auth backed by Postgres for recruiter/admin users |
+| Account provisioning | Working approach | Operator/developer provisioning with `npm run auth:provision-user`; self-signup remains paused until policy is confirmed |
 | Candidate access | Working decision | Keep token-link access at `/s/[token]`, backed by Postgres token storage |
 | Email provider | Implemented in branch, target config open | Branch uses SMTP/nodemailer. Target should use Microsoft/Office365 SMTP with explicit SMTP env values. |
 | Logs/DB inspection | Open | Needs integration-team answer |
@@ -92,6 +93,7 @@ This is the expected direction after Supabase removal. Names may be adjusted dur
 | `IDEMPOTENCY_BACKEND` | Optional during migration | Selects idempotency store implementation: `supabase` default or `postgres` for migration validation. | Added |
 | `RATE_LIMIT_BACKEND` | Required in production | Supported values during migration: `memory`, `supabase`, `postgres`. `postgres` is implemented and should be pinned in migrated environments; `memory` must not be used in production. | Postgres backend added |
 | `METRICS_BACKEND` | Required in production | Supported values during migration: `memory`, `supabase`, `postgres`. `postgres` is implemented and should be pinned in migrated environments; `memory` must not be used in production. | Postgres backend added |
+| `APP_USER_PASSWORD` | Provisioning only | One-time shell variable consumed by `npm run auth:provision-user`; do not store as a persistent deployment secret. | Added |
 
 Supabase env vars to remove after migration:
 
@@ -129,7 +131,7 @@ These need answers from the deployment/integration/infra side before environment
 | [ ] | Public origin configured | Invite links generated with the expected host. |
 | [ ] | Postgres connection succeeds | Health/diagnostic endpoint or startup log confirms DB connectivity without exposing secrets. |
 | [ ] | DB migrations applied | Schema version or table/function inventory confirmed in target DB. |
-| [ ] | App auth works | Recruiter can log in, session persists, logout invalidates session. |
+| [ ] | App auth works | Provision user with `npm run auth:provision-user`; recruiter can log in, session persists, logout invalidates session. |
 | [ ] | Candidate token access works | `/s/[token]` opens and candidate APIs validate token/session correctly. |
 | [ ] | Email sends | Invite and debrief email deliver through the company mail system. |
 | [ ] | AI works | Gemini-backed surfaces work with `GEMINI_API_KEY`. |
@@ -161,6 +163,7 @@ Validation result as of May 5, 2026:
 - Idempotency result: migration reran successfully against the already-created schema; only expected `already exists` notices appeared.
 - Smoke result: `db/validation/001_initial_schema_smoke.sql` passed and rolled back, leaving no smoke rows in checked tables.
 - AI-quality revalidation result: after porting generation capture on May 5, 2026, the updated schema reapplied successfully and the smoke validation passed with `get_ai_generation_summary()` included.
+- App-user provisioning validation: pending against disposable Docker DB. The container was confirmed running on May 6, 2026, but provisioning was not executed because test DB credentials were not explicitly provided for this run.
 
 ## Notes For Roadmap
 
