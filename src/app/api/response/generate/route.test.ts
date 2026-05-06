@@ -19,8 +19,8 @@ vi.mock("@/lib/server/services/strong-response-service", () => ({
     },
 }));
 
-vi.mock("@/lib/server/infrastructure/supabase-session-repository", () => ({
-    SupabaseSessionRepository: class {
+vi.mock("@/lib/server/infrastructure/postgres-session-repository", () => ({
+    PostgresSessionRepository: class {
         get = getSessionMock;
     },
 }));

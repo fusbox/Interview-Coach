@@ -45,7 +45,7 @@ Scope of this pass:
 | Public origin requirement | `src/lib/server/url/get-app-origin.ts` | In production, `NEXT_PUBLIC_APP_URL` or `NEXT_PUBLIC_BASE_URL` must be set or URL generation throws. |
 | Current default public origin | `src/lib/config/public-app-origin.ts` | Defaults to `https://coach.rangam.com` outside production when no env/request origin exists. This should not be relied on for migrated production. |
 | Current email implementation in this branch | `src/lib/server/services/email-service.ts`, `package.json` | Uses `nodemailer` with `SMTP_*` env vars. `SMTP_USERNAME` and `SMTP_PASSWORD` are production-required; `SMTP_HOST` currently defaults to AWS SES if omitted, so Microsoft/Office365 deployments must set it explicitly. |
-| Current auth/data provider | `src/lib/supabase/*`, repository factories, app-auth modules | Supabase remains as migration fallback. App-owned auth and Postgres repositories are now implemented behind backend flags for progressive cutover. |
+| Current auth/data provider | Postgres repositories plus app-owned auth/session bridge | Runtime Supabase fallback has been removed. App-owned auth proves Supabase Auth can be removed for local/UAT; target production identity should be ATS/Okta or equivalent. |
 | Current DB package readiness | `package.json` | `pg` and `@types/pg` are already installed. |
 | Docker/container config | repo scan | No `Dockerfile` found in this branch. |
 | Vercel config | repo scan | No `vercel.json` found in this branch. |
@@ -66,7 +66,7 @@ Scope of this pass:
 
 ## Target Environment Variables
 
-This is the expected direction after Supabase removal. Names may be adjusted during implementation.
+This is the migrated runtime contract after Supabase removal. Names may still be adjusted by the integration team during target deployment.
 
 | Env var | Required? | Purpose | Status |
 | --- | --- | --- | --- |
@@ -87,19 +87,19 @@ This is the expected direction after Supabase removal. Names may be adjusted dur
 | `SMTP_USERNAME` | Required in production | SMTP auth user | Branch fails fast in production if missing |
 | `SMTP_PASSWORD` | Required in production | SMTP secret | Branch fails fast in production if missing |
 | `SMTP_FROM_EMAIL` | Required for target sender identity | Verified sender | Set explicitly to avoid relying on fallback sender |
-| `APP_AUTH_BACKEND` | Optional during migration | Selects recruiter/admin auth lookup: `supabase` default or `postgres` for app-owned auth/session cookies. A future value or adapter may be needed for ATS/Okta identity handoff. | Added; target auth adapter still open |
-| `SESSION_REPOSITORY_BACKEND` | Optional during migration | Selects session repository implementation: `supabase` default or `postgres` for migration validation. | Added |
-| `INVITE_REPOSITORY_BACKEND` | Optional during migration | Selects invite repository implementation: `supabase` default or `postgres` for migration validation. | Added |
-| `TEMPLATE_REPOSITORY_BACKEND` | Optional during migration | Selects recruiter template repository implementation: `supabase` default or `postgres` for migration validation. | Added |
-| `FEEDBACK_REPOSITORY_BACKEND` | Optional during migration | Selects app feedback repository implementation: `supabase` default or `postgres` for migration validation. | Added |
-| `AI_GENERATION_REPOSITORY_BACKEND` | Optional during migration | Selects AI-quality generation write/read repository implementation: `supabase` default or `postgres` for migration validation. | Added |
-| `CANDIDATE_TOKEN_BACKEND` | Optional during migration | Selects candidate token implementation: `supabase` default or `postgres` for migration validation. | Added |
-| `IDEMPOTENCY_BACKEND` | Optional during migration | Selects idempotency store implementation: `supabase` default or `postgres` for migration validation. | Added |
-| `RATE_LIMIT_BACKEND` | Required in production | Supported values during migration: `memory`, `supabase`, `postgres`. `postgres` is implemented and should be pinned in migrated environments; `memory` must not be used in production. | Postgres backend added |
-| `METRICS_BACKEND` | Required in production | Supported values during migration: `memory`, `supabase`, `postgres`. `postgres` is implemented and should be pinned in migrated environments; `memory` must not be used in production. | Postgres backend added |
+| `APP_AUTH_BACKEND` | Optional | Postgres-only guardrail for app-owned auth/session cookies. A future value or adapter may be needed for ATS/Okta identity handoff. | Runtime accepts `postgres` only |
+| `SESSION_REPOSITORY_BACKEND` | Optional | Postgres-only guardrail for session repository implementation. | Runtime accepts `postgres` only |
+| `INVITE_REPOSITORY_BACKEND` | Optional | Postgres-only guardrail for invite repository implementation. | Runtime accepts `postgres` only |
+| `TEMPLATE_REPOSITORY_BACKEND` | Optional | Postgres-only guardrail for recruiter template repository implementation. | Runtime accepts `postgres` only |
+| `FEEDBACK_REPOSITORY_BACKEND` | Optional | Postgres-only guardrail for app feedback repository implementation. | Runtime accepts `postgres` only |
+| `AI_GENERATION_REPOSITORY_BACKEND` | Optional | Postgres-only guardrail for AI-quality generation write/read repository implementation. | Runtime accepts `postgres` only |
+| `CANDIDATE_TOKEN_BACKEND` | Optional | Postgres-only guardrail for candidate token implementation. | Runtime accepts `postgres` only |
+| `IDEMPOTENCY_BACKEND` | Optional | Postgres-only guardrail for idempotency store implementation. | Runtime accepts `postgres` only |
+| `RATE_LIMIT_BACKEND` | Required in production | Supported values: `memory` for local/test or `postgres` for durable runtime. Production defaults to `postgres`; `memory` is rejected in production. | Supabase value removed |
+| `METRICS_BACKEND` | Required in production | Supported values: `memory` for local/test or `postgres` for durable runtime. Production defaults to `postgres`; `memory` is rejected in production. | Supabase value removed |
 | `APP_USER_PASSWORD` | Provisioning only | One-time shell variable consumed by `npm run auth:provision-user`; do not store as a persistent deployment secret. | Added |
 
-Supabase env vars to remove after migration:
+Supabase env vars are no longer part of the migrated runtime contract:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`

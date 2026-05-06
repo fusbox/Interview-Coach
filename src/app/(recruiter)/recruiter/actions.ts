@@ -1,7 +1,7 @@
 "use server";
 
 import { E2E_RECRUITER_ID, getE2ERecruiterSessions, isServerE2EMode } from "@/lib/e2e/test-mode";
-import { getCachedUser } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/server/auth/current-user";
 import { createSessionRepository } from "@/lib/server/infrastructure/session-repository";
 import { redirect } from "next/navigation";
 import { SessionSummary } from "@/lib/domain/types";

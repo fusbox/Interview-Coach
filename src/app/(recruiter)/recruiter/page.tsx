@@ -3,7 +3,7 @@ import { getRecruiterSessions } from "./actions";
 import Link from "next/link";
 import { isAdmin } from "@/lib/auth/rbac";
 import { Plus } from "lucide-react";
-import { getCachedUser } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/server/auth/current-user";
 import { RecruiterSessionsTable } from "./components/RecruiterSessionsTable";
 import { DashboardStats } from "./components/DashboardStats";
 import { InviteProgressWidget } from "./components/InviteProgressWidget";

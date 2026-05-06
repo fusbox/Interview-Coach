@@ -6,8 +6,8 @@ const requireCandidateTokenMock = vi.fn();
 const updateSessionCommandMock = vi.fn();
 const getSessionCommandMock = vi.fn();
 
-vi.mock("@/lib/server/infrastructure/supabase-session-repository", () => ({
-    SupabaseSessionRepository: class {
+vi.mock("@/lib/server/infrastructure/postgres-session-repository", () => ({
+    PostgresSessionRepository: class {
         get = getMock;
         markViewed = markViewedMock;
     }

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getAuthenticatedRouteUserMock = vi.fn();
+const createInviteRepositoryMock = vi.fn();
 const createInviteBatchMock = vi.fn();
 const consumeRateLimitMock = vi.fn();
 const beginIdempotentRequestMock = vi.fn();
@@ -11,10 +12,8 @@ vi.mock("@/lib/server/auth/current-user", () => ({
     getAuthenticatedRouteUser: getAuthenticatedRouteUserMock
 }));
 
-vi.mock("@/lib/supabase/server", () => ({
-    createAdminClient: () => ({
-        rpc: vi.fn().mockResolvedValue({ data: null, error: null })
-    })
+vi.mock("@/lib/server/infrastructure/invite-repository", () => ({
+    createInviteRepository: createInviteRepositoryMock
 }));
 
 vi.mock("@/lib/server/application/invites/create-invite-batch", () => ({
@@ -59,6 +58,7 @@ describe("POST /api/recruiter/invites", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         getAuthenticatedRouteUserMock.mockResolvedValue({ id: "user-1", email: "recruiter@example.com" });
+        createInviteRepositoryMock.mockResolvedValue({ kind: "invite-repository" });
         createInviteBatchMock.mockResolvedValue({
             batchId: "batch-1",
             results: [{
@@ -206,7 +206,7 @@ describe("POST /api/recruiter/invites", () => {
                     lastName: "Date",
                     email: "candidate@example.com",
                     code: "INVITE_CREATE_FAILED",
-                    message: "Supabase Invite Batch Create Error: duplicate key",
+                    message: "Postgres Invite Batch Create Error: duplicate key",
                     retryable: true,
                 },
                 {
@@ -215,7 +215,7 @@ describe("POST /api/recruiter/invites", () => {
                     lastName: "Chy",
                     email: "patchy@example.com",
                     code: "INVITE_CREATE_FAILED",
-                    message: "Supabase Invite Batch Create Error: duplicate key",
+                    message: "Postgres Invite Batch Create Error: duplicate key",
                     retryable: true,
                 },
             ],
@@ -260,7 +260,7 @@ describe("POST /api/recruiter/invites", () => {
                     lastName: "Date",
                     email: "candidate@example.com",
                     code: "INVITE_CREATE_FAILED",
-                    message: "Supabase Invite Batch Create Error: duplicate key",
+                    message: "Postgres Invite Batch Create Error: duplicate key",
                     retryable: true,
                 },
                 {
@@ -269,7 +269,7 @@ describe("POST /api/recruiter/invites", () => {
                     lastName: "Chy",
                     email: "patchy@example.com",
                     code: "INVITE_CREATE_FAILED",
-                    message: "Supabase Invite Batch Create Error: duplicate key",
+                    message: "Postgres Invite Batch Create Error: duplicate key",
                     retryable: true,
                 },
             ],
@@ -288,7 +288,7 @@ describe("POST /api/recruiter/invites", () => {
                 lastName: "Date",
                 email: "candidate@example.com",
                 code: "INVITE_CREATE_FAILED",
-                message: "Supabase Invite Batch Create Error: duplicate key",
+                message: "Postgres Invite Batch Create Error: duplicate key",
                 retryable: true,
             },
             {
@@ -297,7 +297,7 @@ describe("POST /api/recruiter/invites", () => {
                 lastName: "Chy",
                 email: "patchy@example.com",
                 code: "INVITE_CREATE_FAILED",
-                message: "Supabase Invite Batch Create Error: duplicate key",
+                message: "Postgres Invite Batch Create Error: duplicate key",
                 retryable: true,
             },
         ]);
@@ -325,7 +325,7 @@ describe("POST /api/recruiter/invites", () => {
                     lastName: "Chy",
                     email: "patchy@example.com",
                     code: "INVITE_CREATE_FAILED",
-                    message: "Supabase Session Create Error: duplicate key",
+                    message: "Postgres Session Create Error: duplicate key",
                     retryable: true,
                 }],
                 summary: {
@@ -364,7 +364,7 @@ describe("POST /api/recruiter/invites", () => {
                 lastName: "Chy",
                 email: "patchy@example.com",
                 code: "INVITE_CREATE_FAILED",
-                message: "Supabase Session Create Error: duplicate key",
+                message: "Postgres Session Create Error: duplicate key",
                 retryable: true,
             }],
             summary: {
@@ -417,7 +417,7 @@ describe("POST /api/recruiter/invites", () => {
 
     it("returns 500 in production when NEXT_PUBLIC_APP_URL is missing", async () => {
         vi.stubEnv("NODE_ENV", "production");
-        vi.stubEnv("METRICS_BACKEND", "supabase");
+        vi.stubEnv("METRICS_BACKEND", "postgres");
         vi.stubEnv("NEXT_PUBLIC_APP_URL", "");
         vi.stubEnv("NEXT_PUBLIC_BASE_URL", "");
         const { POST } = await import("./route");

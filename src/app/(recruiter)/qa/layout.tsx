@@ -1,7 +1,7 @@
 import { RecruiterSidebar } from "@/components/layout/RecruiterSidebar";
 import { RecruiterMobileDock } from "@/components/layout/RecruiterMobileDock";
 import { isQualityEvaluator } from "@/lib/auth/rbac";
-import { getCachedUser } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/server/auth/current-user";
 import { getRecruiterProfileSummary } from "@/lib/server/auth/recruiter-profile";
 import { redirect } from "next/navigation";
 

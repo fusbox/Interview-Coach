@@ -1,7 +1,7 @@
 import { getOptionalServerEnv } from "@/lib/server/config/server-env";
 import type { SessionRepository } from "@/lib/domain/repository";
 
-export type SessionRepositoryBackend = "supabase" | "postgres";
+export type SessionRepositoryBackend = "postgres";
 
 export type TrackedSessionRepository = SessionRepository & {
     markViewed(sessionId: string): Promise<void>;
@@ -12,24 +12,18 @@ export type TrackedSessionRepository = SessionRepository & {
 export function getSessionRepositoryBackend(): SessionRepositoryBackend {
     const configured = getOptionalServerEnv("SESSION_REPOSITORY_BACKEND")?.toLowerCase();
     if (!configured) {
-        return "supabase";
+        return "postgres";
     }
 
-    if (configured === "supabase" || configured === "postgres") {
+    if (configured === "postgres") {
         return configured;
     }
 
-    throw new Error(`Unsupported SESSION_REPOSITORY_BACKEND value "${configured}". Expected "supabase" or "postgres".`);
+    throw new Error(`Unsupported SESSION_REPOSITORY_BACKEND value "${configured}". Expected "postgres".`);
 }
 
 export async function createSessionRepository(): Promise<TrackedSessionRepository> {
-    const backend = getSessionRepositoryBackend();
-
-    if (backend === "postgres") {
-        const { PostgresSessionRepository } = await import("@/lib/server/infrastructure/postgres-session-repository");
-        return new PostgresSessionRepository();
-    }
-
-    const { SupabaseSessionRepository } = await import("@/lib/server/infrastructure/supabase-session-repository");
-    return new SupabaseSessionRepository();
+    getSessionRepositoryBackend();
+    const { PostgresSessionRepository } = await import("@/lib/server/infrastructure/postgres-session-repository");
+    return new PostgresSessionRepository();
 }

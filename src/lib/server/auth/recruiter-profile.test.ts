@@ -1,21 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
-    createClientMock,
-    getAppAuthBackendNameMock,
     queryPostgresMock,
 } = vi.hoisted(() => ({
-    createClientMock: vi.fn(),
-    getAppAuthBackendNameMock: vi.fn(),
     queryPostgresMock: vi.fn(),
-}));
-
-vi.mock("@/lib/supabase/server", () => ({
-    createClient: createClientMock,
-}));
-
-vi.mock("@/lib/server/auth/app-auth-config", () => ({
-    getAppAuthBackendName: getAppAuthBackendNameMock,
 }));
 
 vi.mock("@/lib/server/db/postgres", () => ({
@@ -25,10 +13,9 @@ vi.mock("@/lib/server/db/postgres", () => ({
 describe("recruiter profile helpers", () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        getAppAuthBackendNameMock.mockReturnValue("postgres");
     });
 
-    it("reads profile records from Postgres in app-auth mode", async () => {
+    it("reads profile records from Postgres", async () => {
         queryPostgresMock.mockResolvedValue({
             rows: [{
                 recruiter_id: "user-1",
@@ -51,10 +38,9 @@ describe("recruiter profile helpers", () => {
             expect.stringContaining("from public.recruiter_profiles"),
             ["user-1"]
         );
-        expect(createClientMock).not.toHaveBeenCalled();
     });
 
-    it("upserts profile records through Postgres in app-auth mode", async () => {
+    it("upserts profile records through Postgres", async () => {
         queryPostgresMock.mockResolvedValue({
             rows: [{
                 recruiter_id: "user-1",
@@ -90,6 +76,5 @@ describe("recruiter profile helpers", () => {
                 "America/New_York",
             ]
         );
-        expect(createClientMock).not.toHaveBeenCalled();
     });
 });

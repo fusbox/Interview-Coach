@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { getCachedUser } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/server/auth/current-user";
 import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { StatusBadge as SessionStatusBadge } from "../../components/session-badges";
 import { StatusBadge } from "@/components/patterns/StatusBadge";

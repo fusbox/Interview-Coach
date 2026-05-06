@@ -10,8 +10,8 @@ vi.mock("@/lib/server/auth/current-user", () => ({
     getAuthenticatedRouteUser: getAuthenticatedRouteUserMock,
 }));
 
-vi.mock("@/lib/server/infrastructure/supabase-session-repository", () => ({
-    SupabaseSessionRepository: class {
+vi.mock("@/lib/server/infrastructure/postgres-session-repository", () => ({
+    PostgresSessionRepository: class {
         get = getSessionMock;
         markInvitationSent = markInvitationSentMock;
     },

@@ -8,11 +8,11 @@ afterEach(() => {
 });
 
 describe("template repository backend selection", () => {
-    it("defaults to Supabase during migration", async () => {
+    it("defaults to Postgres", async () => {
         delete process.env.TEMPLATE_REPOSITORY_BACKEND;
         const { getTemplateRepositoryBackend } = await import("./template-repository");
 
-        expect(getTemplateRepositoryBackend()).toBe("supabase");
+        expect(getTemplateRepositoryBackend()).toBe("postgres");
     });
 
     it("accepts the Postgres backend flag", async () => {
@@ -27,7 +27,7 @@ describe("template repository backend selection", () => {
         const { getTemplateRepositoryBackend } = await import("./template-repository");
 
         expect(() => getTemplateRepositoryBackend()).toThrow(
-            'Unsupported TEMPLATE_REPOSITORY_BACKEND value "file". Expected "supabase" or "postgres".'
+            'Unsupported TEMPLATE_REPOSITORY_BACKEND value "file". Expected "postgres".'
         );
     });
 
@@ -36,7 +36,7 @@ describe("template repository backend selection", () => {
         const { createTemplateRepository } = await import("./template-repository");
 
         await expect(createTemplateRepository()).rejects.toThrow(
-            "[TemplateRepository] userId is required when TEMPLATE_REPOSITORY_BACKEND=postgres."
+            "[TemplateRepository] userId is required."
         );
     });
 });

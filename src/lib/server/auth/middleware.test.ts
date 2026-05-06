@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { updateSession } from "./middleware";
 
@@ -21,7 +21,7 @@ function makeRequest(path: string, cookie?: string) {
 
 describe("updateSession app-auth middleware", () => {
     beforeEach(() => {
-        process.env = { ...ORIGINAL_ENV, APP_AUTH_BACKEND: "postgres" };
+        process.env = { ...ORIGINAL_ENV };
     });
 
     afterEach(() => {
@@ -29,8 +29,8 @@ describe("updateSession app-auth middleware", () => {
         vi.clearAllMocks();
     });
 
-    it("redirects protected recruiter pages without an app session cookie", async () => {
-        const response = await updateSession(makeRequest("/recruiter?tab=open"));
+    it("redirects protected recruiter pages without an app session cookie", () => {
+        const response = updateSession(makeRequest("/recruiter?tab=open"));
 
         expect(response.status).toBe(307);
         expect(response.headers.get("location")).toBe(
@@ -38,33 +38,33 @@ describe("updateSession app-auth middleware", () => {
         );
     });
 
-    it("allows protected recruiter pages with an app session cookie", async () => {
-        const response = await updateSession(makeRequest("/recruiter", "ic_app_session=session-token"));
+    it("allows protected recruiter pages with an app session cookie", () => {
+        const response = updateSession(makeRequest("/recruiter", "ic_app_session=session-token"));
 
         expect(response.status).toBe(200);
         expect(response.headers.get("location")).toBeNull();
     });
 
-    it("uses the configured app session cookie name", async () => {
+    it("uses the configured app session cookie name", () => {
         process.env.AUTH_COOKIE_NAME = "custom_session";
 
-        const response = await updateSession(makeRequest("/qa/ai-quality", "custom_session=session-token"));
+        const response = updateSession(makeRequest("/qa/ai-quality", "custom_session=session-token"));
 
         expect(response.status).toBe(200);
         expect(response.headers.get("location")).toBeNull();
     });
 
-    it("allows public candidate pages without an app session cookie", async () => {
-        const response = await updateSession(makeRequest("/s/invite-token"));
+    it("allows public candidate pages without an app session cookie", () => {
+        const response = updateSession(makeRequest("/s/invite-token"));
 
         expect(response.status).toBe(200);
         expect(response.headers.get("location")).toBeNull();
     });
 
-    it("allows E2E recruiter sessions without an app session cookie", async () => {
+    it("allows E2E recruiter sessions without an app session cookie", () => {
         process.env.E2E_TEST_MODE = "true";
 
-        const response = await updateSession(makeRequest("/recruiter", "e2e-auth=recruiter"));
+        const response = updateSession(makeRequest("/recruiter", "e2e-auth=recruiter"));
 
         expect(response.status).toBe(200);
         expect(response.headers.get("location")).toBeNull();

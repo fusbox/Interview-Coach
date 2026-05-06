@@ -29,29 +29,23 @@ export interface FeedbackRepository {
     listAdminView(): Promise<AdminFeedbackRecord[]>;
 }
 
-export type FeedbackRepositoryBackend = "supabase" | "postgres";
+export type FeedbackRepositoryBackend = "postgres";
 
 export function getFeedbackRepositoryBackend(): FeedbackRepositoryBackend {
     const configured = getOptionalServerEnv("FEEDBACK_REPOSITORY_BACKEND")?.toLowerCase();
     if (!configured) {
-        return "supabase";
+        return "postgres";
     }
 
-    if (configured === "supabase" || configured === "postgres") {
+    if (configured === "postgres") {
         return configured;
     }
 
-    throw new Error(`Unsupported FEEDBACK_REPOSITORY_BACKEND value "${configured}". Expected "supabase" or "postgres".`);
+    throw new Error(`Unsupported FEEDBACK_REPOSITORY_BACKEND value "${configured}". Expected "postgres".`);
 }
 
 export async function createFeedbackRepository(): Promise<FeedbackRepository> {
-    const backend = getFeedbackRepositoryBackend();
-
-    if (backend === "postgres") {
-        const { PostgresFeedbackRepository } = await import("@/lib/server/infrastructure/postgres-feedback-repository");
-        return new PostgresFeedbackRepository();
-    }
-
-    const { SupabaseFeedbackRepository } = await import("@/lib/server/infrastructure/supabase-feedback-repository");
-    return new SupabaseFeedbackRepository();
+    getFeedbackRepositoryBackend();
+    const { PostgresFeedbackRepository } = await import("@/lib/server/infrastructure/postgres-feedback-repository");
+    return new PostgresFeedbackRepository();
 }

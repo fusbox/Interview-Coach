@@ -6,12 +6,6 @@ type Bucket = {
     resetAt: number;
 };
 
-type SupabaseRateLimitRow = {
-    allowed: boolean;
-    remaining: number;
-    reset_at_ms: number;
-};
-
 type PostgresRateLimitRow = {
     allowed: boolean;
     remaining: number;
@@ -47,34 +41,6 @@ export class MemoryRateLimitBackend implements RateLimitBackend {
 
     clear(): void {
         this.buckets.clear();
-    }
-}
-
-export class SupabaseRateLimitBackend implements RateLimitBackend {
-    async consume(params: RateLimitConsumeParams): Promise<RateLimitDecision> {
-        const { createAdminClient } = await import("@/lib/supabase/server");
-        const supabase = createAdminClient();
-        const { data, error } = await supabase.rpc("consume_rate_limit_bucket", {
-            p_bucket_key: params.key,
-            p_max_requests: params.maxRequests,
-            p_window_ms: params.windowMs,
-            p_now_ms: params.now ?? Date.now()
-        });
-
-        if (error) {
-            throw new Error(`Failed to consume rate limit bucket: ${error.message}`);
-        }
-
-        const row = Array.isArray(data) ? data[0] : data as SupabaseRateLimitRow | null;
-        if (!row || typeof row.allowed !== "boolean" || typeof row.remaining !== "number" || typeof row.reset_at_ms !== "number") {
-            throw new Error("Failed to consume rate limit bucket: invalid backend response");
-        }
-
-        return {
-            allowed: row.allowed,
-            remaining: row.remaining,
-            resetAt: row.reset_at_ms
-        };
     }
 }
 

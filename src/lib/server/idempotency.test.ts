@@ -8,11 +8,11 @@ afterEach(() => {
 });
 
 describe("idempotency backend selection", () => {
-    it("defaults to Supabase during migration", async () => {
+    it("defaults to Postgres", async () => {
         delete process.env.IDEMPOTENCY_BACKEND;
         const { getIdempotencyBackend } = await import("./idempotency");
 
-        expect(getIdempotencyBackend()).toBe("supabase");
+        expect(getIdempotencyBackend()).toBe("postgres");
     });
 
     it("accepts the Postgres backend flag", async () => {
@@ -27,7 +27,7 @@ describe("idempotency backend selection", () => {
         const { getIdempotencyBackend } = await import("./idempotency");
 
         expect(() => getIdempotencyBackend()).toThrow(
-            "[Idempotency] IDEMPOTENCY_BACKEND must be either 'supabase' or 'postgres'."
+            "[Idempotency] IDEMPOTENCY_BACKEND must be 'postgres'."
         );
     });
 });

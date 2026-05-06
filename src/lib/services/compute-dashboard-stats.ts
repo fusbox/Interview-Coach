@@ -3,7 +3,7 @@
  *
  * This is a Layer 2 derived computation. By computing these client-side
  * from the already-fetched SessionSummary[], we eliminate a redundant
- * Supabase round-trip that previously duplicated the sessions query.
+ * database round-trip that previously duplicated the sessions query.
  */
 
 import { SessionSummary } from '@/lib/domain/types';

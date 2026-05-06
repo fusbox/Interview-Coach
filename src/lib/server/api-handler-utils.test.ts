@@ -8,8 +8,8 @@ vi.mock("@/lib/server/auth/candidate-token", () => ({
     requireCandidateToken: requireCandidateTokenMock
 }));
 
-vi.mock("@/lib/server/infrastructure/supabase-session-repository", () => ({
-    SupabaseSessionRepository: class {
+vi.mock("@/lib/server/infrastructure/postgres-session-repository", () => ({
+    PostgresSessionRepository: class {
         get = getSessionMock;
     }
 }));

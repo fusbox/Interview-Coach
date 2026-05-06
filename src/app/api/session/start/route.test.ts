@@ -9,8 +9,8 @@ const createRepoMock = vi.fn();
 const issueCandidateTokenMock = vi.fn();
 const requireCandidateTokenMock = vi.fn();
 
-vi.mock("@/lib/server/infrastructure/supabase-session-repository", () => ({
-    SupabaseSessionRepository: class {
+vi.mock("@/lib/server/infrastructure/postgres-session-repository", () => ({
+    PostgresSessionRepository: class {
         get = getSessionMock;
         create = createRepoMock;
     }

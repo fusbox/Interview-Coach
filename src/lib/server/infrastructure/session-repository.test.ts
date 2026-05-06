@@ -8,11 +8,11 @@ afterEach(() => {
 });
 
 describe("session repository backend selection", () => {
-    it("defaults to Supabase during migration", async () => {
+    it("defaults to Postgres", async () => {
         delete process.env.SESSION_REPOSITORY_BACKEND;
         const { getSessionRepositoryBackend } = await import("./session-repository");
 
-        expect(getSessionRepositoryBackend()).toBe("supabase");
+        expect(getSessionRepositoryBackend()).toBe("postgres");
     });
 
     it("accepts the Postgres backend flag", async () => {
@@ -27,7 +27,7 @@ describe("session repository backend selection", () => {
         const { getSessionRepositoryBackend } = await import("./session-repository");
 
         expect(() => getSessionRepositoryBackend()).toThrow(
-            'Unsupported SESSION_REPOSITORY_BACKEND value "file". Expected "supabase" or "postgres".'
+            'Unsupported SESSION_REPOSITORY_BACKEND value "file". Expected "postgres".'
         );
     });
 });

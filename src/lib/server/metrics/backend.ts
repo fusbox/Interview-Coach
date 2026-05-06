@@ -13,7 +13,7 @@ import type {
     TimingMetric
 } from "@/lib/server/metrics/types";
 
-export type MetricsBackendName = "memory" | "supabase" | "postgres";
+export type MetricsBackendName = "memory" | "postgres";
 
 export interface DurableMetricsBackend {
     writeCounter(params: {
@@ -272,129 +272,6 @@ function buildSloSummaryFromRows(
     };
 }
 
-export class SupabaseDurableMetricsBackend implements DurableMetricsBackend {
-    async writeCounter(params: {
-        name: string;
-        value: number;
-        tags: Record<string, string>;
-        tagsKey: string;
-        recordedAt: string;
-    }): Promise<void> {
-        const { createAdminClient } = await import("@/lib/supabase/server");
-        const supabase = createAdminClient();
-        const bucketStart = floorToMinute(new Date(params.recordedAt)).toISOString();
-
-        const { error } = await supabase.rpc("record_metric_counter_rollup", {
-            p_bucket_start: bucketStart,
-            p_metric_name: params.name,
-            p_tags: params.tags,
-            p_tags_key: params.tagsKey,
-            p_value: params.value
-        });
-
-        if (error) {
-            throw new Error(`Failed to record counter metric: ${error.message}`);
-        }
-    }
-
-    async writeTiming(params: {
-        name: string;
-        durationMs: number;
-        tags: Record<string, string>;
-        tagsKey: string;
-        recordedAt: string;
-    }): Promise<void> {
-        const { createAdminClient } = await import("@/lib/supabase/server");
-        const supabase = createAdminClient();
-        const bucketStart = floorToMinute(new Date(params.recordedAt)).toISOString();
-
-        const { error } = await supabase.rpc("record_metric_timing_rollup", {
-            p_bucket_start: bucketStart,
-            p_metric_name: params.name,
-            p_tags: params.tags,
-            p_tags_key: params.tagsKey,
-            p_duration_ms: params.durationMs
-        });
-
-        if (error) {
-            throw new Error(`Failed to record timing metric: ${error.message}`);
-        }
-    }
-
-    async readSnapshot(options?: { sinceMs?: number }): Promise<MetricsSnapshot> {
-        const { createAdminClient } = await import("@/lib/supabase/server");
-        const supabase = createAdminClient();
-        const since = new Date(Date.now() - (options?.sinceMs ?? DEFAULT_WINDOW_MS)).toISOString();
-
-        const [
-            { data: counterData, error: counterError },
-            { data: timingData, error: timingError }
-        ] = await Promise.all([
-            supabase.rpc("get_metric_counter_rollups", {
-                p_since: since
-            }),
-            supabase.rpc("get_metric_timing_rollups", {
-                p_since: since
-            })
-        ]);
-
-        if (counterError) {
-            throw new Error(`Failed to read counter metrics: ${counterError.message}`);
-        }
-        if (timingError) {
-            throw new Error(`Failed to read timing metrics: ${timingError.message}`);
-        }
-
-        return buildSnapshotFromRollups(
-            Array.isArray(counterData) ? counterData.map(normalizeCounterRollup) : [],
-            Array.isArray(timingData) ? timingData.map(normalizeTimingRollup) : []
-        );
-    }
-
-    async readSloSummary(options?: { sinceMs?: number }): Promise<OperationalSloSummary> {
-        const { createAdminClient } = await import("@/lib/supabase/server");
-        const supabase = createAdminClient();
-        const since = new Date(Date.now() - (options?.sinceMs ?? DEFAULT_WINDOW_MS)).toISOString();
-
-        const [
-            { data: sessionStartData, error: sessionStartError },
-            { data: sessionProgressData, error: sessionProgressError },
-            { data: aiReliabilityData, error: aiReliabilityError },
-            { data: aiLatencyData, error: aiLatencyError }
-        ] = await Promise.all([
-            supabase.rpc("get_slo_session_start", { p_since: since }),
-            supabase.rpc("get_slo_session_progress", { p_since: since }),
-            supabase.rpc("get_slo_ai_reliability", { p_since: since }),
-            supabase.rpc("get_slo_ai_latency", { p_since: since })
-        ]);
-
-        if (sessionStartError) {
-            throw new Error(`Failed to read session start SLO summary: ${sessionStartError.message}`);
-        }
-        if (sessionProgressError) {
-            throw new Error(`Failed to read session progress SLO summary: ${sessionProgressError.message}`);
-        }
-        if (aiReliabilityError) {
-            throw new Error(`Failed to read AI reliability SLO summary: ${aiReliabilityError.message}`);
-        }
-        if (aiLatencyError) {
-            throw new Error(`Failed to read AI latency SLO summary: ${aiLatencyError.message}`);
-        }
-
-        return buildSloSummaryFromRows(
-            since,
-            Array.isArray(sessionStartData) ? normalizeSessionStartRow(sessionStartData[0]) : null,
-            Array.isArray(sessionProgressData) ? normalizeSessionProgressRow(sessionProgressData[0]) : null,
-            Array.isArray(aiReliabilityData)
-                ? aiReliabilityData.map(normalizeAiReliabilityRow).filter((row): row is SloAiReliabilityRow => row !== null)
-                : [],
-            Array.isArray(aiLatencyData)
-                ? aiLatencyData.map(normalizeAiLatencyRow).filter((row): row is SloAiLatencyRow => row !== null)
-                : []
-        );
-    }
-}
-
 export class PostgresDurableMetricsBackend implements DurableMetricsBackend {
     async writeCounter(params: {
         name: string;
@@ -494,20 +371,20 @@ let backendInstanceName: MetricsBackendName | null = null;
 
 export function getMetricsBackendName(): MetricsBackendName {
     const configured = getOptionalServerEnv("METRICS_BACKEND")?.toLowerCase();
-    if (configured && configured !== "memory" && configured !== "supabase" && configured !== "postgres") {
-        throw new Error(`Unsupported METRICS_BACKEND value "${configured}". Expected "memory", "supabase", or "postgres".`);
+    if (configured && configured !== "memory" && configured !== "postgres") {
+        throw new Error(`Unsupported METRICS_BACKEND value "${configured}". Expected "memory" or "postgres".`);
     }
 
-    if (configured === "supabase" || configured === "postgres") {
+    if (configured === "postgres") {
         return configured;
     }
 
     if (isProductionServer()) {
-        if (!configured) {
-            throw new Error("[ServerEnv] Missing required environment variable METRICS_BACKEND for durable metrics backend.");
+        if (configured === "memory") {
+            throw new Error("METRICS_BACKEND=memory is not allowed in production.");
         }
 
-        throw new Error('METRICS_BACKEND must be set to "supabase" or "postgres" in production.');
+        return "postgres";
     }
 
     return "memory";
@@ -520,9 +397,7 @@ export function getDurableMetricsBackend(): DurableMetricsBackend | null {
     }
 
     if (!backendInstance || backendInstanceName !== backendName) {
-        backendInstance = backendName === "postgres"
-            ? new PostgresDurableMetricsBackend()
-            : new SupabaseDurableMetricsBackend();
+        backendInstance = new PostgresDurableMetricsBackend();
         backendInstanceName = backendName;
     }
 

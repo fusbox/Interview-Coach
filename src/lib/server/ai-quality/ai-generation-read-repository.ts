@@ -1,5 +1,4 @@
 import type { Pool, QueryResultRow } from "pg";
-import { createAdminClient } from "@/lib/supabase/server";
 import { getOptionalServerEnv } from "@/lib/server/config/server-env";
 import { getPostgresPool } from "@/lib/server/db/postgres";
 import type {
@@ -102,7 +101,7 @@ export type AiGenerationListItem = {
     created_at: string;
 };
 
-type AiGenerationReadRepositoryBackend = "supabase" | "postgres";
+type AiGenerationReadRepositoryBackend = "postgres";
 
 export interface AiGenerationReadRepository {
     listRecent(filters?: AiGenerationListFilters): Promise<AiGenerationListItem[]>;
@@ -114,180 +113,19 @@ export interface AiGenerationReadRepository {
 export function getAiGenerationReadRepositoryBackend(): AiGenerationReadRepositoryBackend {
     const configured = getOptionalServerEnv("AI_GENERATION_REPOSITORY_BACKEND")?.toLowerCase();
     if (!configured) {
-        return "supabase";
+        return "postgres";
     }
 
-    if (configured === "supabase" || configured === "postgres") {
+    if (configured === "postgres") {
         return configured;
     }
 
-    throw new Error(`Unsupported AI_GENERATION_REPOSITORY_BACKEND value "${configured}". Expected "supabase" or "postgres".`);
+    throw new Error(`Unsupported AI_GENERATION_REPOSITORY_BACKEND value "${configured}". Expected "postgres".`);
 }
 
 export function createAiGenerationReadRepository(): AiGenerationReadRepository {
-    const backend = getAiGenerationReadRepositoryBackend();
-
-    if (backend === "postgres") {
-        return new PostgresAiGenerationReadRepository();
-    }
-
-    return new SupabaseAiGenerationReadRepository();
-}
-
-export class SupabaseAiGenerationReadRepository {
-    async listRecent(filters: AiGenerationListFilters = {}): Promise<AiGenerationListItem[]> {
-        const supabase = createAdminClient();
-        const maxLimit = Math.max(filters.maxLimit ?? 250, 1);
-        const limit = Math.min(Math.max(filters.limit ?? 100, 1), maxLimit);
-
-        let query = supabase
-            .from("ai_generations")
-            .select(AI_GENERATION_SELECT);
-
-        query = applyFilters(query, filters);
-
-        const { data, error } = await query
-            .order("created_at", { ascending: false })
-            .limit(limit);
-
-        if (error) {
-            throw new Error(`Supabase AI Generation Read Error: ${error.message}`);
-        }
-
-        return (data ?? []) as AiGenerationListItem[];
-    }
-
-    async listPage(filters: AiGenerationPageFilters = {}): Promise<AiGenerationPage> {
-        const supabase = createAdminClient();
-        const pageSize = Math.min(Math.max(filters.pageSize ?? filters.limit ?? 25, 1), 100);
-        const page = Math.max(filters.page ?? 1, 1);
-        const from = (page - 1) * pageSize;
-        const to = from + pageSize - 1;
-
-        let query = supabase
-            .from("ai_generations")
-            .select(AI_GENERATION_SELECT, { count: "exact" });
-
-        query = applyFilters(query, filters);
-
-        const { data, error, count } = await query
-            .order("created_at", { ascending: false })
-            .range(from, to);
-
-        if (error) {
-            throw new Error(`Supabase AI Generation Read Error: ${error.message}`);
-        }
-
-        const total = count ?? 0;
-
-        return {
-            records: (data ?? []) as AiGenerationListItem[],
-            total,
-            page,
-            pageSize,
-            totalPages: Math.max(Math.ceil(total / pageSize), 1),
-        };
-    }
-
-    async getSummary(filters: AiGenerationListFilters = {}): Promise<AiGenerationSummary> {
-        const supabase = createAdminClient();
-        const { data, error } = await supabase.rpc("get_ai_generation_summary", {
-            p_surface: filters.surface ?? null,
-            p_status: filters.status ?? null,
-            p_search: filters.search ?? null,
-        });
-
-        if (!error) {
-            const summary = Array.isArray(data) ? data[0] : data;
-            return {
-                total: Number(summary?.total_count ?? 0),
-                success: Number(summary?.success_count ?? 0),
-                partial: Number(summary?.partial_count ?? 0),
-                failed: Number(summary?.failed_count ?? 0),
-                averageLatencyMs: Math.round(Number(summary?.average_latency_ms ?? 0)),
-            };
-        }
-
-        if (isMissingSummaryFunctionError(error)) {
-            return this.getSummaryFallback(filters);
-        }
-
-        throw new Error(`Supabase AI Generation Summary Error: ${error.message}`);
-    }
-
-    async findById(generationId: string): Promise<AiGenerationListItem | null> {
-        const supabase = createAdminClient();
-
-        const { data, error } = await supabase
-            .from("ai_generations")
-            .select(AI_GENERATION_SELECT)
-            .eq("generation_id", generationId)
-            .maybeSingle();
-
-        if (error) {
-            throw new Error(`Supabase AI Generation Read Error: ${error.message}`);
-        }
-
-        return data as AiGenerationListItem | null;
-    }
-
-    private async getSummaryFallback(filters: AiGenerationListFilters): Promise<AiGenerationSummary> {
-        const [total, success, partial, failed, averageLatencyMs] = await Promise.all([
-            this.countRecords(filters),
-            filters.status && filters.status !== "success" ? Promise.resolve(0) : this.countRecords({ ...filters, status: "success" }),
-            filters.status && filters.status !== "partial" ? Promise.resolve(0) : this.countRecords({ ...filters, status: "partial" }),
-            filters.status && filters.status !== "failed" ? Promise.resolve(0) : this.countRecords({ ...filters, status: "failed" }),
-            this.averageLatencyFallback(filters),
-        ]);
-
-        return {
-            total,
-            success,
-            partial,
-            failed,
-            averageLatencyMs,
-        };
-    }
-
-    private async countRecords(filters: AiGenerationListFilters): Promise<number> {
-        const supabase = createAdminClient();
-        let query = supabase
-            .from("ai_generations")
-            .select("generation_id", { count: "exact", head: true });
-
-        query = applyFilters(query, filters);
-
-        const { error, count } = await query.limit(0);
-
-        if (error) {
-            throw new Error(`Supabase AI Generation Summary Error: ${error.message}`);
-        }
-
-        return count ?? 0;
-    }
-
-    private async averageLatencyFallback(filters: AiGenerationListFilters): Promise<number> {
-        const supabase = createAdminClient();
-        let query = supabase
-            .from("ai_generations")
-            .select("latency_ms");
-
-        query = applyFilters(query, filters);
-
-        const { data, error } = await query.limit(1000);
-
-        if (error) {
-            throw new Error(`Supabase AI Generation Summary Error: ${error.message}`);
-        }
-
-        const values = (data ?? [])
-            .map((row: { latency_ms?: unknown }) => Number(row.latency_ms))
-            .filter((value) => Number.isFinite(value));
-
-        if (values.length === 0) return 0;
-
-        return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
-    }
+    getAiGenerationReadRepositoryBackend();
+    return new PostgresAiGenerationReadRepository();
 }
 
 type AiGenerationRow = QueryResultRow & {
@@ -424,74 +262,6 @@ export class PostgresAiGenerationReadRepository implements AiGenerationReadRepos
 
         return result.rows[0] ? mapPostgresRow(result.rows[0]) : null;
     }
-}
-
-type FilterableQuery<T> = {
-    eq(column: string, value: string): T;
-    or(filters: string): T;
-};
-
-function applyFilters<T extends FilterableQuery<T>>(query: T, filters: AiGenerationListFilters): T {
-    let filteredQuery = query;
-
-    if (filters.surface) {
-        filteredQuery = filteredQuery.eq("surface", filters.surface);
-    }
-
-    if (filters.status) {
-        filteredQuery = filteredQuery.eq("status", filters.status);
-    }
-
-    const searchClauses = buildSearchClauses(filters.search);
-    if (searchClauses.length > 0) {
-        filteredQuery = filteredQuery.or(searchClauses.join(","));
-    }
-
-    return filteredQuery;
-}
-
-function buildSearchClauses(search?: string): string[] {
-    const normalized = search?.trim();
-    if (!normalized) return [];
-
-    const safeSearch = normalized
-        .replace(/[%_]/g, "")
-        .replace(/[(),]/g, " ")
-        .trim();
-
-    if (!safeSearch) return [];
-
-    const pattern = `%${safeSearch}%`;
-    const clauses = [
-        `app_name.ilike.${pattern}`,
-        `surface.ilike.${pattern}`,
-        `status.ilike.${pattern}`,
-        `prompt_version.ilike.${pattern}`,
-        `model_provider.ilike.${pattern}`,
-        `model_name.ilike.${pattern}`,
-        `trace_id.ilike.${pattern}`,
-        `correlation_id.ilike.${pattern}`,
-        `candidate_id.ilike.${pattern}`,
-        `redaction_status.ilike.${pattern}`,
-        `retention_class.ilike.${pattern}`,
-    ];
-
-    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(safeSearch)) {
-        clauses.push(
-            `generation_id.eq.${safeSearch}`,
-            `created_by.eq.${safeSearch}`,
-            `session_id.eq.${safeSearch}`,
-            `invite_batch_id.eq.${safeSearch}`,
-        );
-    }
-
-    return clauses;
-}
-
-function isMissingSummaryFunctionError(error: { code?: string; message?: string }) {
-    return error.code === "PGRST202"
-        || error.code === "42883"
-        || Boolean(error.message?.includes("get_ai_generation_summary"));
 }
 
 function buildPostgresFilter(filters: AiGenerationListFilters): { sql: string; values: unknown[] } {

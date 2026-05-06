@@ -6,9 +6,9 @@ This handoff is for code reviewers and the integration/deployment team reviewing
 
 The main point: the Interview Coach app was already fully functional before this migration work. In the Supabase/Vercel-backed version, recruiter invite creation, candidate practice, AI feedback, email delivery, admin feedback review, QA AI-quality review, and practice-again flows were all working. If the company deployment had not required Supabase removal, the app would have been ready to run in that shape.
 
-This branch implements a Supabase-free runtime path and validates it locally against a disposable plain Postgres database. With all backend selectors pinned to `postgres`, the app has been validated end to end without writing to Supabase: recruiter flows, candidate flows, AI generation capture, SMTP email, admin/QA access, resend/retry, chained practice-again attempts, and negative permission checks.
+This branch implements a Supabase-free runtime and validates it locally against a disposable plain Postgres database. The app has been validated end to end without writing to Supabase: recruiter flows, candidate flows, AI generation capture, SMTP email, admin/QA access, resend/retry, chained practice-again attempts, and negative permission checks.
 
-Supabase code still exists as migration fallback while the branch is reviewed and integrated. The intended migrated environment should pin the Postgres selectors and then remove fallback packages/env once the integration team confirms the target DB and identity path.
+The Supabase runtime fallback has now been removed from this branch. Supabase references that remain in migration docs or the `supabase/` directory are historical schema/context material, not active runtime dependencies.
 
 ## Start Here
 
@@ -58,10 +58,10 @@ The migrated product flow preserves the existing app behavior:
 | --- | --- |
 | Postgres foundation | Added server-only `pg` config/pool helpers that accept `DATABASE_URL` or split `POSTGRES_*` values, with SSL/pooling/query-timeout support. |
 | Neutral schema | Added `db/migrations/001_initial_schema.sql` and validation SQL under `db/validation`, replacing Supabase Auth/RLS assumptions with app-owned user/session/role tables and server-side authorization. |
-| Product repositories | Added Postgres-backed session, invite, template, feedback, and AI-quality repositories behind backend selectors. |
-| Operational stores | Added Postgres-backed candidate-token, idempotency, rate-limit, and metrics implementations. |
+| Product repositories | Replaced runtime product repositories with Postgres-backed session, invite, template, feedback, and AI-quality repositories. Backend selector env vars now accept only `postgres` for the migrated runtime. |
+| Operational stores | Replaced candidate-token, idempotency, rate-limit, and metrics runtime stores with Postgres-backed implementations. Local/test memory remains available only where intentionally supported. |
 | Auth bridge | Added local/UAT app-owned auth using app users, scrypt password hashes, opaque hashed server sessions, role rows, login/logout routes, middleware redirects, profile loading, and provisioning script. |
-| Browser cleanup | Removed runtime browser Supabase usage from login/logout/settings/create/ProfileGuard paths; these now use app API routes. |
+| Browser/runtime cleanup | Removed runtime browser and server Supabase usage, Supabase auth middleware/helpers, Supabase repository implementations, Supabase package dependencies, Supabase env requirements, and Supabase `User` type imports. |
 | AI quality | Ported all five AI surfaces to capture records in Postgres-backed `ai_generations`: question generation, answer feedback, hints, strong response, and session debrief. |
 | Email | Preserved SMTP/nodemailer delivery and validated Office365 SMTP locally for invite and debrief emails. |
 | Practice-again fix | Persisted issued candidate tokens into repeat-attempt metadata so attempt 2 can create attempt 3 and debrief email links point to the current attempt token. |
@@ -69,7 +69,7 @@ The migrated product flow preserves the existing app behavior:
 
 ## Runtime Selector Contract
 
-For a migrated environment, pin these values to `postgres`:
+These selector env vars are optional guardrails for the migrated runtime. When set, use `postgres`; unsupported legacy values now fail fast.
 
 ```env
 APP_AUTH_BACKEND=postgres
@@ -110,7 +110,7 @@ SMTP_HOST=smtp.office365.com
 SMTP_PORT=587
 SMTP_USERNAME=interviews@coach.rangam.com
 SMTP_PASSWORD=<mailbox/app password as provided by admin>
-SMTP_FROM_EMAIL=interviews@coach.rangam.com
+SMTP_FROM_EMAIL=Rangam Interview Coach <interviews@coach.rangam.com>
 ```
 
 `SMTP_FROM_NAME` may be set if the deployment wants display-name formatting, but `SMTP_FROM_EMAIL` should be the verified sender mailbox.
@@ -170,13 +170,13 @@ Reviewers should focus on these seams:
 
 | Area | What to check |
 | --- | --- |
-| Repository selection | Postgres implementations preserve the existing domain contracts and are selected by env flags without changing route behavior. |
+| Repository behavior | Postgres implementations preserve the existing domain contracts without changing route behavior. |
 | Auth seam | App-owned auth is acceptable as local/UAT bridge, but target production identity should be an ATS/Okta handoff that creates or maps to an app session. |
 | Candidate access | Token-link candidate entry remains simple and account-free; raw tokens are not stored in plaintext, and candidate APIs enforce session-bound token checks. |
 | Schema | Neutral DDL includes the tables/functions/indexes/triggers needed by the product and does not carry forward Supabase `auth.uid()` or broad public RLS assumptions. |
 | Operational stores | Idempotency, rate limiting, metrics, candidate tokens, and AI-quality capture are not forgotten hidden Supabase dependencies. |
-| Browser runtime | No recruiter browser path should require direct Supabase client access in the migrated runtime. |
-| Fallback cleanup | Any remaining Supabase imports should be understood as transitional fallback or historical context, not final deployment architecture. |
+| Runtime cleanup | No runtime path should require Supabase packages, Supabase env vars, Supabase auth helpers, or direct Supabase client access. |
+| Historical context | The `supabase/` directory and older migration docs remain source material for schema reconciliation only, not final deployment architecture. |
 | Validation | Local smoke evidence is strong; target-environment validation still belongs to the integration/deployment team. |
 
 ## Integration Deployment Plan
@@ -194,7 +194,7 @@ Recommended deployment sequence:
 9. Manually validate the core product flows in the target environment.
 10. Confirm DB writes and logs through integration-owned tooling.
 11. Have QA run product regression before production cutover.
-12. After the Postgres/identity target is validated, remove Supabase fallback packages, env vars, helper modules, and stale docs.
+12. After the Postgres/identity target is validated, retire or archive stale Supabase historical docs/scripts that are no longer useful to reviewers.
 
 ## Remaining Integration Work
 
@@ -220,8 +220,8 @@ These items are not blocked on proving local app functionality; they are target-
 7. What is the ATS/Okta handoff contract and role mapping?
 8. Where can reviewers/integration confirm app logs and DB writes?
 9. What is the final SMTP policy for `interviews@coach.rangam.com`?
-10. Who owns final Supabase fallback removal after target validation?
+10. Who owns final archival/removal of historical Supabase schema material after target validation?
 
 ## Bottom Line
 
-This branch takes the app from "working Supabase-backed product" to "working Postgres-backed product path validated independent of Supabase." The remaining work is to deploy that path in the company environment, connect enterprise identity, prove DB/log/email behavior there, and then remove the migration fallback scaffolding.
+This branch takes the app from "working Supabase-backed product" to "working Postgres-backed product validated independent of Supabase." The remaining work is to deploy that path in the company environment, connect enterprise identity, and prove DB/log/email behavior there.

@@ -47,8 +47,8 @@ vi.mock("@/lib/server/rate-limit", () => ({
     consumeRateLimit: consumeRateLimitMock,
 }));
 
-vi.mock("@/lib/server/infrastructure/supabase-session-repository", () => ({
-    SupabaseSessionRepository: class {
+vi.mock("@/lib/server/infrastructure/postgres-session-repository", () => ({
+    PostgresSessionRepository: class {
         async get(sessionId: string) {
             const session = repositoryState.sessions.get(sessionId);
             return session ? structuredClone(session) : null;

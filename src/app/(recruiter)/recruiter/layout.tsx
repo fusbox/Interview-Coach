@@ -1,4 +1,4 @@
-import { getCachedUser } from '@/lib/supabase/server';
+import { getCachedUser } from '@/lib/server/auth/current-user';
 import { RecruiterSidebar } from '@/components/layout/RecruiterSidebar';
 import { RecruiterMobileDock } from '@/components/layout/RecruiterMobileDock';
 import { ProfileGuard } from '@/components/auth/ProfileGuard';

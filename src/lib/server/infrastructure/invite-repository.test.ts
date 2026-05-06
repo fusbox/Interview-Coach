@@ -8,11 +8,11 @@ afterEach(() => {
 });
 
 describe("invite repository factory", () => {
-    it("defaults to the Supabase backend during migration", async () => {
+    it("defaults to the Postgres backend", async () => {
         delete process.env.INVITE_REPOSITORY_BACKEND;
         const { getInviteRepositoryBackend } = await import("./invite-repository");
 
-        expect(getInviteRepositoryBackend()).toBe("supabase");
+        expect(getInviteRepositoryBackend()).toBe("postgres");
     });
 
     it("accepts the Postgres backend flag", async () => {
@@ -27,7 +27,7 @@ describe("invite repository factory", () => {
         const { getInviteRepositoryBackend } = await import("./invite-repository");
 
         expect(() => getInviteRepositoryBackend()).toThrow(
-            "[InviteRepository] INVITE_REPOSITORY_BACKEND must be either 'supabase' or 'postgres'."
+            "[InviteRepository] INVITE_REPOSITORY_BACKEND must be 'postgres'."
         );
     });
 });

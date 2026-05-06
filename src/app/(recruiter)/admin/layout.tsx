@@ -1,4 +1,4 @@
-import { getCachedUser } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/server/auth/current-user";
 import { isAdmin } from "@/lib/auth/rbac";
 import { redirect } from "next/navigation";
 import { RecruiterSidebar } from "@/components/layout/RecruiterSidebar";

@@ -7,7 +7,7 @@ const deleteMock = vi.fn();
 const revalidatePathMock = vi.fn();
 const listByRecruiterMock = vi.fn();
 
-vi.mock("@/lib/supabase/server", () => ({
+vi.mock("@/lib/server/auth/current-user", () => ({
     getCachedUser: getCachedUserMock
 }));
 
@@ -19,8 +19,8 @@ vi.mock("next/cache", () => ({
     revalidatePath: revalidatePathMock
 }));
 
-vi.mock("@/lib/server/infrastructure/supabase-session-repository", () => ({
-    SupabaseSessionRepository: class {
+vi.mock("@/lib/server/infrastructure/postgres-session-repository", () => ({
+    PostgresSessionRepository: class {
         listByRecruiter = listByRecruiterMock;
         delete = deleteMock;
     }

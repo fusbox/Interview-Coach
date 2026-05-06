@@ -4,7 +4,7 @@ import { cn } from "@/lib/cn";
 import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getCachedUser } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/server/auth/current-user";
 import { getRecruiterProfileRecord } from "@/lib/server/auth/recruiter-profile";
 import { AlertPanel } from "@/components/patterns/AlertPanel";
 import { PageHeaderBlock } from "@/components/patterns/PageHeaderBlock";

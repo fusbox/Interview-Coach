@@ -1,7 +1,6 @@
-import type { User } from "@supabase/supabase-js";
 import type { AppUser } from "./user";
 
-type StaffUser = (User | AppUser) & {
+type StaffUser = AppUser & {
     email?: string;
     app_metadata?: Record<string, unknown>;
     user_metadata?: Record<string, unknown>;
@@ -64,8 +63,8 @@ function getMetadataRoles(user: StaffUser): string[] {
  * Checks whether an authenticated staff user can access /qa tooling.
  *
  * QA access is intentionally separate from admin access. Admins inherit it,
- * but evaluators can be granted it through Supabase app/user metadata roles
- * such as "qa", "quality", "quality_evaluator", or "evaluator".
+ * but evaluators can be granted it through app or identity-provider metadata
+ * roles such as "qa", "quality", "quality_evaluator", or "evaluator".
  */
 export function isQualityEvaluator(user: StaffUser | null | undefined): boolean {
     if (!user?.email) return false;

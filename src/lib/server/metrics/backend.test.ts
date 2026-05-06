@@ -11,8 +11,7 @@ import {
     normalizeSessionStartRow,
     normalizeTimingRollup,
     PostgresDurableMetricsBackend,
-    resetDurableMetricsBackendForTests,
-    SupabaseDurableMetricsBackend
+    resetDurableMetricsBackendForTests
 } from "./backend";
 
 describe("metrics backend", () => {
@@ -28,15 +27,6 @@ describe("metrics backend", () => {
         expect(getDurableMetricsBackend()).toBeNull();
     });
 
-    it("selects supabase backend when configured", () => {
-        process.env.METRICS_BACKEND = "supabase";
-
-        const backend = getDurableMetricsBackend();
-
-        expect(getMetricsBackendName()).toBe("supabase");
-        expect(backend).toBeInstanceOf(SupabaseDurableMetricsBackend);
-    });
-
     it("selects postgres backend when configured", () => {
         process.env.METRICS_BACKEND = "postgres";
 
@@ -46,26 +36,24 @@ describe("metrics backend", () => {
         expect(backend).toBeInstanceOf(PostgresDurableMetricsBackend);
     });
 
-    it("fails fast in production when metrics backend is unset", () => {
+    it("defaults to postgres in production when metrics backend is unset", () => {
         vi.stubEnv("NODE_ENV", "production");
 
-        expect(() => getMetricsBackendName()).toThrow(
-            "[ServerEnv] Missing required environment variable METRICS_BACKEND for durable metrics backend."
-        );
+        expect(getMetricsBackendName()).toBe("postgres");
     });
 
     it('fails fast in production when metrics backend is set to "memory"', () => {
         vi.stubEnv("NODE_ENV", "production");
         vi.stubEnv("METRICS_BACKEND", "memory");
 
-        expect(() => getMetricsBackendName()).toThrow('METRICS_BACKEND must be set to "supabase" or "postgres" in production.');
+        expect(() => getMetricsBackendName()).toThrow("METRICS_BACKEND=memory is not allowed in production.");
     });
 
     it("rejects unsupported backend values", () => {
         process.env.METRICS_BACKEND = "file";
 
         expect(() => getMetricsBackendName()).toThrow(
-            'Unsupported METRICS_BACKEND value "file". Expected "memory", "supabase", or "postgres".'
+            'Unsupported METRICS_BACKEND value "file". Expected "memory" or "postgres".'
         );
     });
 
@@ -195,7 +183,7 @@ describe("metrics backend", () => {
         });
     });
 
-    it("normalizes stringly typed SLO RPC rows from Supabase", () => {
+    it("normalizes stringly typed SLO rows from durable storage", () => {
         expect(normalizeSessionStartRow({
             success_count: "3",
             failure_count: "1",

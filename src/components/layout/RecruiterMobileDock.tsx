@@ -8,10 +8,9 @@ import { Plus, List, Settings, LogOut, LayoutTemplate, BarChart3, ClipboardCheck
 import { cn } from "@/lib/cn";
 import { useRouter } from "next/navigation";
 import type { AppUser } from "@/lib/auth/user";
-import type { User } from "@supabase/supabase-js";
 import { isAdmin, isQualityEvaluator } from "@/lib/auth/rbac";
 
-export function RecruiterMobileDock({ user }: { user?: AppUser | User | null }) {
+export function RecruiterMobileDock({ user }: { user?: AppUser | null }) {
     const { scrollY } = useScroll();
     const [hidden, setHidden] = useState(false);
     const pathname = usePathname();

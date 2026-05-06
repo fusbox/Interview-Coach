@@ -1,11 +1,11 @@
 import { hashToken } from "@/lib/server/crypto";
 import { Logger } from "@/lib/logger";
 import { recordAuthDenial } from "@/lib/server/metrics";
-import { assertProductionServerEnv, getOptionalServerEnv } from "@/lib/server/config/server-env";
+import { getOptionalServerEnv } from "@/lib/server/config/server-env";
 
 const TOKEN_HEADER = "x-candidate-token";
 
-export type CandidateTokenBackendName = "supabase" | "postgres";
+export type CandidateTokenBackendName = "postgres";
 
 interface CandidateTokenResult {
     ok: boolean;
@@ -25,30 +25,20 @@ export interface CandidateTokenStore {
 export function getCandidateTokenBackendName(): CandidateTokenBackendName {
     const configured = getOptionalServerEnv("CANDIDATE_TOKEN_BACKEND")?.toLowerCase();
     if (!configured) {
-        return "supabase";
+        return "postgres";
     }
 
-    if (configured === "supabase" || configured === "postgres") {
+    if (configured === "postgres") {
         return configured;
     }
 
-    throw new Error(`Unsupported CANDIDATE_TOKEN_BACKEND value "${configured}". Expected "supabase" or "postgres".`);
+    throw new Error(`Unsupported CANDIDATE_TOKEN_BACKEND value "${configured}". Expected "postgres".`);
 }
 
 async function createCandidateTokenStore(): Promise<CandidateTokenStore> {
-    const backend = getCandidateTokenBackendName();
-
-    if (backend === "postgres") {
-        const { PostgresCandidateTokenStore } = await import("@/lib/server/auth/candidate-token/postgres-candidate-token-store");
-        return new PostgresCandidateTokenStore();
-    }
-
-    assertProductionServerEnv(
-        ["SUPABASE_SERVICE_ROLE_KEY"],
-        "candidate token authentication"
-    );
-    const { SupabaseCandidateTokenStore } = await import("@/lib/server/auth/candidate-token/supabase-candidate-token-store");
-    return new SupabaseCandidateTokenStore();
+    getCandidateTokenBackendName();
+    const { PostgresCandidateTokenStore } = await import("@/lib/server/auth/candidate-token/postgres-candidate-token-store");
+    return new PostgresCandidateTokenStore();
 }
 
 export async function requireCandidateToken(request: Request, sessionId: string): Promise<CandidateTokenResult> {

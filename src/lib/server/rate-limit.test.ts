@@ -1,13 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const rpcMock = vi.fn();
 const postgresQueryMock = vi.fn();
-
-vi.mock("@/lib/supabase/server", () => ({
-    createAdminClient: () => ({
-        rpc: rpcMock
-    })
-}));
 
 vi.mock("@/lib/server/db/postgres", () => ({
     getPostgresPool: () => ({
@@ -21,7 +14,6 @@ describe("consumeRateLimit", () => {
     beforeEach(() => {
         process.env = { ...originalEnv, NODE_ENV: "test" };
         vi.resetModules();
-        rpcMock.mockReset();
         postgresQueryMock.mockReset();
     });
 
@@ -53,25 +45,6 @@ describe("consumeRateLimit", () => {
         expect((await consumeRateLimit(key, 1, 10, now + 11)).allowed).toBe(true);
     });
 
-    it("uses the supabase backend when configured", async () => {
-        process.env = { ...process.env, RATE_LIMIT_BACKEND: "supabase" };
-        rpcMock.mockResolvedValue({
-            data: [{ allowed: true, remaining: 4, reset_at_ms: 5000 }],
-            error: null
-        });
-
-        const { consumeRateLimit } = await import("./rate-limit");
-        const decision = await consumeRateLimit("bucket-1", 5, 1000, 2000);
-
-        expect(rpcMock).toHaveBeenCalledWith("consume_rate_limit_bucket", {
-            p_bucket_key: "bucket-1",
-            p_max_requests: 5,
-            p_window_ms: 1000,
-            p_now_ms: 2000
-        });
-        expect(decision).toEqual({ allowed: true, remaining: 4, resetAt: 5000 });
-    });
-
     it("uses the postgres backend when configured", async () => {
         process.env = { ...process.env, RATE_LIMIT_BACKEND: "postgres" };
         postgresQueryMock.mockResolvedValue({
@@ -88,44 +61,27 @@ describe("consumeRateLimit", () => {
         expect(decision).toEqual({ allowed: true, remaining: 2, resetAt: 7000 });
     });
 
-    it("enforces limits across isolated module instances with the shared supabase backend", async () => {
-        process.env = { ...process.env, RATE_LIMIT_BACKEND: "supabase" };
+    it("enforces limits across isolated module instances with the shared postgres backend", async () => {
+        process.env = { ...process.env, RATE_LIMIT_BACKEND: "postgres" };
         const sharedBuckets = new Map<string, { count: number; resetAt: number }>();
 
-        rpcMock.mockImplementation(async (_name, params: {
-            p_bucket_key: string;
-            p_max_requests: number;
-            p_window_ms: number;
-            p_now_ms: number;
-        }) => {
-            const existing = sharedBuckets.get(params.p_bucket_key);
+        postgresQueryMock.mockImplementation(async (_query, params: [string, number, number, number]) => {
+            const [bucketKey, maxRequests, windowMs, nowMs] = params;
+            const existing = sharedBuckets.get(bucketKey);
 
-            if (!existing || existing.resetAt <= params.p_now_ms) {
-                const resetAt = params.p_now_ms + params.p_window_ms;
-                sharedBuckets.set(params.p_bucket_key, { count: 1, resetAt });
-                return {
-                    data: [{ allowed: true, remaining: params.p_max_requests - 1, reset_at_ms: resetAt }],
-                    error: null
-                };
+            if (!existing || existing.resetAt <= nowMs) {
+                const resetAt = nowMs + windowMs;
+                sharedBuckets.set(bucketKey, { count: 1, resetAt });
+                return { rows: [{ allowed: true, remaining: maxRequests - 1, reset_at_ms: resetAt }] };
             }
 
-            if (existing.count >= params.p_max_requests) {
-                return {
-                    data: [{ allowed: false, remaining: 0, reset_at_ms: existing.resetAt }],
-                    error: null
-                };
+            if (existing.count >= maxRequests) {
+                return { rows: [{ allowed: false, remaining: 0, reset_at_ms: existing.resetAt }] };
             }
 
             existing.count += 1;
-            sharedBuckets.set(params.p_bucket_key, existing);
-            return {
-                data: [{
-                    allowed: true,
-                    remaining: params.p_max_requests - existing.count,
-                    reset_at_ms: existing.resetAt
-                }],
-                error: null
-            };
+            sharedBuckets.set(bucketKey, existing);
+            return { rows: [{ allowed: true, remaining: maxRequests - existing.count, reset_at_ms: existing.resetAt }] };
         });
 
         const firstModule = await import("./rate-limit");
@@ -140,15 +96,14 @@ describe("consumeRateLimit", () => {
         expect(firstDecision).toEqual({ allowed: true, remaining: 1, resetAt: 2000 });
         expect(secondDecision).toEqual({ allowed: true, remaining: 0, resetAt: 2000 });
         expect(thirdDecision).toEqual({ allowed: false, remaining: 0, resetAt: 2000 });
-        expect(rpcMock).toHaveBeenCalledTimes(3);
+        expect(postgresQueryMock).toHaveBeenCalledTimes(3);
     });
 
-    it("defaults to the supabase backend in production", async () => {
+    it("defaults to the postgres backend in production", async () => {
         process.env = { ...process.env, NODE_ENV: "production" };
         delete process.env.RATE_LIMIT_BACKEND;
-        rpcMock.mockResolvedValue({
-            data: [{ allowed: false, remaining: 0, reset_at_ms: 9000 }],
-            error: null
+        postgresQueryMock.mockResolvedValue({
+            rows: [{ allowed: false, remaining: 0, reset_at_ms: "9000" }]
         });
 
         const { consumeRateLimit } = await import("./rate-limit");

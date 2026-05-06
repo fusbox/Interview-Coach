@@ -1,7 +1,7 @@
 "use server";
 
 import { createFeedbackRepository, FeedbackRecord } from "@/lib/server/infrastructure/feedback-repository";
-import { getCachedUser } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/server/auth/current-user";
 
 export async function captureFeedbackAction(record: FeedbackRecord) {
     try {

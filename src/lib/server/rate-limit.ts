@@ -1,8 +1,8 @@
 import { getOptionalServerEnv, isProductionServer } from "@/lib/server/config/server-env";
-import { MemoryRateLimitBackend, PostgresRateLimitBackend, SupabaseRateLimitBackend } from "@/lib/server/rate-limit/backend";
+import { MemoryRateLimitBackend, PostgresRateLimitBackend } from "@/lib/server/rate-limit/backend";
 import type { RateLimitBackend, RateLimitDecision } from "@/lib/server/rate-limit/types";
 
-type RateLimitBackendName = "memory" | "supabase" | "postgres";
+type RateLimitBackendName = "memory" | "postgres";
 
 let cachedBackend: RateLimitBackend | null = null;
 let cachedBackendName: RateLimitBackendName | null = null;
@@ -10,23 +10,19 @@ let cachedBackendName: RateLimitBackendName | null = null;
 function resolveBackendName(): RateLimitBackendName {
     const configured = getOptionalServerEnv("RATE_LIMIT_BACKEND");
     if (configured) {
-        if (configured === "memory" || configured === "supabase" || configured === "postgres") {
+        if (configured === "memory" || configured === "postgres") {
             return configured;
         }
 
         throw new Error(`Unsupported RATE_LIMIT_BACKEND value: ${configured}`);
     }
 
-    return isProductionServer() ? "supabase" : "memory";
+    return isProductionServer() ? "postgres" : "memory";
 }
 
 function createBackend(name: RateLimitBackendName): RateLimitBackend {
     if (name === "postgres") {
         return new PostgresRateLimitBackend();
-    }
-
-    if (name === "supabase") {
-        return new SupabaseRateLimitBackend();
     }
 
     if (isProductionServer()) {

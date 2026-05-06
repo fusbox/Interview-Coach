@@ -2,216 +2,122 @@
 
 ## Purpose
 
-This inventory maps the runtime, schema, test, and documentation dependencies that must be replaced to fully unwire Supabase while preserving current app functionality.
-
-For the code-review and deployment-facing summary, start with [postgres_migration_handoff.md](./postgres_migration_handoff.md). This inventory remains the detailed touchpoint appendix.
+This inventory maps the Supabase dependencies that existed before the Postgres migration and records their current replacement status. For the code-review and deployment-facing summary, start with [postgres_migration_handoff.md](./postgres_migration_handoff.md). This file is the detailed appendix for reviewers who want to confirm no active Supabase runtime dependency remains.
 
 Scope of this pass:
 
 - Worktree: `C:\tmp\Interview-Coach-Recruiter-postgres`
 - Branch: `feature/postgres-integration`
-- Branch head during initial inventory: `5668696 bypass replay tour gate for 1 user`
-- Latest reviewed head before this handoff slice: `4cc0c63 docs update target identity handoff`
-- Date: initial inventory 2026-05-04; refreshed 2026-05-06 after porting AI-quality generation capture, browser profile/auth client cleanup, API-route auth seam work, server-page profile lookup cleanup, app-auth middleware protected-page redirects, app-user provisioning, Level 2/3 local Postgres smoke validation, tips/strong-response route repository cleanup, practice-again chain validation, profile/settings smoke validation, invite resend/retry validation, recruiter review validation, and negative-permissions validation.
+- Initial inventory: 2026-05-04
+- Latest refresh: 2026-05-06 after Supabase runtime fallback removal
+
+## Current State
+
+The migrated runtime no longer imports Supabase packages or helper modules from `src`. Supabase remains only as historical schema/source material in the `supabase/` directory and in older docs that describe pre-migration architecture.
+
+Validation for this refresh:
+
+```powershell
+rg -n "@/lib/supabase|@supabase|NEXT_PUBLIC_SUPABASE|SUPABASE_SERVICE_ROLE_KEY|createAdminClient|Supabase[A-Za-z]+Repository|supabase-[a-z-]+|METRICS_BACKEND.*supabase|RATE_LIMIT_BACKEND.*supabase|APP_AUTH_BACKEND.*supabase" src package.json package-lock.json .env.example
+npx tsc --noEmit
+npx vitest run src/lib/server/auth/current-user.test.ts src/lib/server/auth/middleware.test.ts src/lib/server/auth/candidate-token.test.ts src/lib/server/auth/recruiter-profile.test.ts src/lib/server/rate-limit.test.ts src/lib/server/metrics/backend.test.ts src/lib/server/idempotency.test.ts src/lib/server/infrastructure/session-repository.test.ts src/lib/server/infrastructure/invite-repository.test.ts src/lib/server/infrastructure/template-repository.test.ts src/lib/server/infrastructure/feedback-repository.test.ts src/lib/server/ai-quality/ai-generation-repository.test.ts src/lib/server/ai-quality/ai-generation-read-repository.test.ts src/app/api/recruiter/invites/route.test.ts src/lib/server/metrics-pipeline.integration.test.ts src/lib/server/production-contract.integration.test.ts
+```
+
+Results:
+
+- Runtime Supabase scan over `src`, package files, and `.env.example`: no active references.
+- TypeScript: passed.
+- Focused tests: 16 files / 63 tests passed.
 
 ## Replacement Direction
 
-- Target deployment should use ATS-launched enterprise identity handoff for internal users, potentially Okta or equivalent. Keep app-owned Postgres auth as the local/UAT bridge and Supabase-removal proof.
-- Keep candidate access token-link based. Preserve `/s/[token]` entry and `x-candidate-token` API protection.
-- Replace Supabase JS clients with server-only Postgres access through `pg`.
-- Move authorization checks into server application code and DB constraints, not Supabase RLS semantics, unless company DB policy requires RLS.
-- Preserve SQL functions/procedures where they provide useful atomic behavior. Current working assumption: target Postgres can accept/run SQL queries, functions, and stored-procedure-style logic.
-- Remove Supabase packages and env vars only after all runtime/test imports are gone.
-
-## Scan Commands Used
-
-```powershell
-rg -n "@supabase|supabase|Supabase|SUPABASE|createClient\(|createAdminClient\(|createBrowserClient\(|getCachedUser\(|\.auth\.|\.rpc\(|auth\.uid\(|METRICS_BACKEND|RATE_LIMIT_BACKEND" src supabase docs package.json
-rg -l "createBrowserClient|supabase\.auth|auth\.getUser|signInWithPassword|signUp|signOut|exchangeCodeForSession|getCachedUser" src
-rg -l "createAdminClient|SUPABASE_SERVICE_ROLE_KEY|\.rpc\(" src
-rg -n "create table|create type|create or replace function|create policy|enable row level security|auth\.uid\(" supabase/schema.sql supabase/migrations
-```
+- Target deployment should use ATS-launched enterprise identity handoff for internal users, potentially Okta or equivalent.
+- App-owned Postgres auth remains the local/UAT bridge and Supabase-removal proof.
+- Candidate access remains token-link based: `/s/[token]` entry plus `x-candidate-token` API protection.
+- Runtime data access uses server-only Postgres access through `pg`.
+- Authorization is enforced in server application code plus DB constraints, not Supabase RLS semantics.
+- SQL functions/procedures are preserved where they provide useful atomic behavior. Current working assumption: target Postgres can accept/run SQL queries, functions, and stored-procedure-style logic.
 
 ## Summary
 
-| Area | Current dependency | Replacement direction | Risk | Status |
-| --- | --- | --- | --- | --- |
-| Supabase client wrappers | `src/lib/supabase/server.ts`, `src/lib/supabase/middleware.ts` own current server auth fallback/session behavior. Browser Supabase clients have been removed from runtime app paths, and app-auth middleware mode now avoids importing Supabase/Postgres auth internals for protected-page redirects. | Replace remaining server wrapper/middleware fallback with app auth/session helpers and Postgres pool. | High | In progress |
-| Recruiter auth | Supabase email/password, signup, auth callback, SSR cookies remain as fallback concepts; app-owned login/logout/session code and operator provisioning now exist for local/UAT. | Target deployment should replace standalone login with ATS/Okta identity handoff that creates an app session and lands users on `/recruiter/create`; app-owned email/password remains a bridge/fallback. | High | In progress |
-| Candidate access | Candidate token data is still selectable through Supabase fallback, but the candidate auth model is app-token based and has a Postgres backend seam. | Pin candidate token/session/invite backends to Postgres and validate UX unchanged. | Medium | In progress; positive and negative token checks passed locally with Postgres |
-| Product repositories | Session, invite, template, feedback repositories call Supabase query API directly. | Implement Postgres-backed repositories behind the same domain/application contracts. | High | In progress |
-| Operational stores | Rate limits, metrics, idempotency, candidate tokens, and AI-quality generation records use service-role Supabase access and RPCs/tables. | Port tables/functions/backends to Postgres. | High | In progress |
-| Schema/RLS | `supabase/schema.sql` and migrations contain app schema plus Supabase RLS and `auth.uid()` policies. Neutral migration SQL now exists separately. | Validate neutral Postgres migrations in target DB; replace RLS reliance with app authorization or explicit DB policy. | High | In progress |
-| Browser Supabase usage | Login/logout/settings/create/profile guard/mobile dock used `createBrowserClient`. Those runtime browser paths now call app API routes instead. | Continue server-side auth/helper migration; no runtime `createBrowserClient` path should remain. | High | Done |
-| Env/dependencies | Supabase packages and env vars are required by runtime and tests. | Remove after replacement paths land. | Medium | Open |
-| Docs/tests | Production docs, runbooks, tests, and mocks assume Supabase. | Update after code migration and preserve E2E-only test seam. | Medium | Open |
+| Area | Prior Supabase dependency | Current replacement | Status |
+| --- | --- | --- | --- |
+| Supabase client wrappers | `src/lib/supabase/server.ts` and `src/lib/supabase/middleware.ts` owned SSR auth/session behavior and service-role access. | Files removed. `src/middleware.ts` delegates to app-auth middleware, and current-user lookup uses app-session cookies plus E2E cookie support. | Done |
+| Recruiter auth | Supabase email/password, signup/callback, SSR cookies, browser login/logout. | Local/UAT app-owned auth uses Postgres app users, scrypt credentials, hashed server sessions, roles, login/logout routes, and provisioning. Target production should replace/bypass with ATS/Okta handoff. | Done for bridge; target identity open |
+| Candidate access | Product flow was already token-link based, but token lookup could use Supabase fallback. | Candidate tokens are issued/validated through Postgres, stored hashed at rest, and checked against active session-bound rows. | Done |
+| Product repositories | Supabase query API repositories for sessions, invites, templates, feedback, and AI generations. | Runtime repositories are Postgres-backed and selected through the existing factory contracts. | Done |
+| Operational stores | Supabase service-role/RPC paths for rate limits, metrics, idempotency, candidate tokens, and AI-generation records. | Postgres implementations are active; memory remains only for local/test rate-limit and metrics paths. | Done |
+| Schema/RLS | `supabase/schema.sql` and migrations contained app schema plus Supabase RLS and `auth.uid()` policies. | Neutral executable schema exists at `db/migrations/001_initial_schema.sql`; authorization moved to app code and DB constraints. | Done locally; target DB validation open |
+| Browser Supabase usage | Login/logout/settings/create/profile guard/mobile dock used browser Supabase clients. | Browser paths call app API routes and no longer import Supabase. | Done |
+| Env/dependencies | `@supabase/ssr`, `@supabase/supabase-js`, and Supabase env vars were runtime dependencies. | Packages removed; `.env.example` uses Postgres/app-auth/SMTP env. | Done |
+| Docs/tests | Tests and docs previously mocked/described Supabase as current runtime. | Core migration docs and touched tests now reflect Postgres runtime. Broader historical docs may still mention Supabase as prior-state context. | Core done; broader docs optional |
 
 ## Auth, Session, And Identity
 
-| File | Supabase dependency | Replacement direction | Risk/notes | Status |
-| --- | --- | --- | --- | --- |
-| `src/lib/supabase/server.ts` | Creates user-scoped Supabase SSR client, service-role client, and fallback `getCachedUser()` via `supabase.auth.getUser()`. Requires `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` while fallback remains. | `getCachedUser()` now resolves app sessions when `APP_AUTH_BACKEND=postgres`; new required route auth goes through `getAuthenticatedRouteUser()`. Later rename/retire the Supabase module after fallback runtime is removed. | Central seam. Keep E2E test mode behavior when replacing `getCachedUser()`. | In progress |
-| `src/lib/supabase/middleware.ts` | Supabase mode still refreshes Supabase cookies and calls `supabase.auth.getUser()` when `sb-` cookies exist. App-auth mode now checks only for the app session cookie/E2E cookie and redirects missing-session recruiter/admin/QA page requests to login. | Retire Supabase fallback after app auth is the only runtime, and eventually rename/move this module out of `supabase/`. | Must preserve no-auth candidate/public route behavior. Middleware remains lightweight; layouts/route handlers provide authoritative DB-backed auth. | In progress |
-| `src/middleware.ts` | Delegates all middleware behavior to the migration middleware module. | Later delegate to renamed app-auth middleware after Supabase fallback removal. | Keep static asset exclusions. | In progress |
-| `src/app/login/page.tsx` | Previously called browser Supabase `signInWithPassword()` and `signUp()`. | Login now posts to `/api/auth/login` for the local/UAT bridge. Target deployment should likely bypass or hide this page when ATS/Okta launch is implemented. | Internal users should launch from ATS and land on create invite; standalone login/create-account UI is transitional. | In progress |
-| `scripts/provision-app-user.mjs` | New operator/developer provisioning path for app-owned auth users. | Uses Postgres credentials to create/update app user, credential hash, DB roles, recruiter profile, and audit event. | Intended for local/UAT setup unless app-owned auth becomes the final production fallback. See [app_user_provisioning.md](./app_user_provisioning.md). | In progress |
-| `src/app/auth/callback/route.ts` | Exchanges Supabase auth code for session. | Remove Supabase auth-code exchange. Future target may add an ATS/Okta identity handoff endpoint that creates an app session. | Delete only after all links/routes stop using it or replace with enterprise identity callback/handoff. | Open |
-| `src/components/auth/LogoutButton.tsx` | Previously called browser Supabase `signOut()`. | Now calls `/api/auth/logout`, which revokes the app session and clears the cookie for local/UAT. | Target deployment expects no visible logout button if session/auth is owned by ATS/enterprise identity. | Done for bridge; target cleanup open |
-| `src/components/layout/RecruiterMobileDock.tsx` | Previously called browser Supabase `signOut()`. | Now calls `/api/auth/logout`; prop typing accepts app-owned users and Supabase-shaped users during migration. | Target deployment expects no visible logout button if session/auth is owned by ATS/enterprise identity. | Done for bridge; target cleanup open |
-| `src/components/layout/RecruiterSidebar.tsx` | Imports Supabase `User` type for recruiter identity. | Use app user type. | Type-only replacement, but linked to RBAC change. | Open |
-| `src/components/auth/ProfileGuard.tsx` | Previously used browser Supabase `getUser()` and profile lookup from `recruiter_profiles`. | Now calls `/api/recruiter/profile`; the server endpoint resolves the current user and profile through the selected auth/data backend. | Guard no longer needs browser-direct DB access and now runs under app auth. | Done |
-| `src/app/(recruiter)/recruiter/settings/page.tsx` | Previously used a browser Supabase client to read/write recruiter profile. | Now uses `/api/recruiter/profile` for load/save and hydrates saved state from the returned server record. `npm run postgres:smoke:profile-settings` validates page load, profile API GET/PUT, and DB persistence with Postgres backends. | Target deployment may deprecate editable name/email/phone fields once ATS/Okta identity is authoritative. | Done for bridge; target cleanup open |
-| `src/app/(recruiter)/recruiter/create/page.tsx` | Previously used browser Supabase `getUser()` and `recruiter_profiles` lookup. | Now fetches `/api/recruiter/profile` for current user email/profile and still loads templates through existing server actions. | Target internal users should land here directly from ATS launch. Create flow may receive recruiter identity from enterprise handoff rather than settings/profile UI. | Done |
-| `src/app/(recruiter)/recruiter/layout.tsx` | Uses `getCachedUser()` and previously used Supabase profile lookup. | `getCachedUser()` can read app sessions when `APP_AUTH_BACKEND=postgres`; layout uses a server profile loader and always renders ProfileGuard. | Remaining work is replacing broader server-side auth helpers, not profile-guard bypass cleanup. | In progress |
-| `src/app/(recruiter)/recruiter/page.tsx` | Uses `getCachedUser()` plus the app-auth-compatible profile helper. Direct Supabase profile lookup has been removed from the page. | Replace `getCachedUser()` with a neutral server-component auth helper after auth migration. Dashboard session/profile data can already select Postgres through repository/profile seams. | Dashboard/session list entry point. | In progress |
-| `src/app/(recruiter)/recruiter/sessions/[id]/page.tsx` | Uses `getCachedUser()` plus repository factory for session reads. | Replace `getCachedUser()` with app auth helper after auth migration. Session data can already select Postgres with `SESSION_REPOSITORY_BACKEND=postgres`; `npm run postgres:smoke:recruiter-review` validates the owning-recruiter review contract and `npm run postgres:smoke:negative-permissions` validates cross-recruiter denial. | Current UI shows session metadata, questions, submitted state, and candidate transcript. It does not expose candidate AI feedback. | In progress |
-| `src/app/(recruiter)/admin/layout.tsx` | Uses `getCachedUser()` and previously used Supabase profile lookup. | `getCachedUser()` can read app sessions when `APP_AUTH_BACKEND=postgres`; layout now uses DB-backed RBAC-compatible roles and a server profile loader. | Some admin child pages may still call Supabase directly. | In progress |
-| `src/app/(recruiter)/admin/feedback/page.tsx` | Uses `getCachedUser()` plus the app-auth-compatible profile helper for timezone and the repository factory for feedback admin rows. Direct Supabase profile lookup has been removed from the page. | Replace `getCachedUser()` with a neutral server-component auth helper after auth migration. Feedback data can already select Postgres with `FEEDBACK_REPOSITORY_BACKEND=postgres`. | Admin-only data view; route-level authorization still depends on admin layout/RBAC migration. | In progress |
-| `src/app/(recruiter)/recruiter/dev-eval/page.tsx` and `[id]/page.tsx` | Previously used `getCachedUser()` for internal dev-eval routes. | Retired by the AI-quality port in favor of `/qa/ai-quality` handoff/evaluator surfaces. | Confirm no deployment links still point to these routes before final cleanup. | Done |
-| `src/lib/auth/rbac.ts` | Previously imported Supabase `User` directly and relied on hardcoded admin/QA allowlists plus metadata roles. | App-owned `AppUser` shape and DB-backed `roles` are now accepted while Supabase-shaped users remain compatible during migration. | Temporary allowlists still bridge migration but should not be final. Route/layout consumers still need app auth helper wiring. | In progress |
-| `src/lib/e2e/test-mode.ts` | Uses Supabase `User` type for E2E fake user. | Replace with app user type while preserving E2E cookie behavior. | Important for local smoke tests without live auth. | Open |
+| File / area | Prior dependency | Current state | Status |
+| --- | --- | --- | --- |
+| `src/lib/server/auth/current-user.ts` | Re-exported Supabase `getCachedUser()`. | Resolves app-session cookie through Postgres app-auth store, with E2E cookie support. | Done |
+| `src/lib/server/auth/middleware.ts` | Replaces deleted Supabase middleware. | Redirects unauthenticated recruiter/admin/QA page requests to `/login?next=...`; public candidate pages remain open. | Done |
+| `src/middleware.ts` | Delegated to Supabase migration middleware. | Delegates to app-auth middleware. | Done |
+| `src/app/auth/callback/route.ts` | Exchanged Supabase auth code for session. | Supabase exchange removed. Future ATS/Okta callback/handoff can use this route or a new route if needed. | Done for Supabase removal; target identity open |
+| `src/app/login/page.tsx` | Browser Supabase sign-in/sign-up. | Posts to `/api/auth/login` for local/UAT bridge. | Done for bridge; target UI cleanup open |
+| `src/components/auth/LogoutButton.tsx`, `src/components/layout/RecruiterMobileDock.tsx` | Browser Supabase sign-out. | Post to `/api/auth/logout`. | Done for bridge; target UI cleanup open |
+| `src/components/layout/RecruiterSidebar.tsx`, `src/components/layout/RecruiterMobileDock.tsx`, `src/lib/auth/rbac.ts`, `src/lib/e2e/test-mode.ts` | Supabase `User` type assumptions. | Use app-owned `AppUser` shape with DB-backed `roles`. | Done |
+| `scripts/provision-app-user.mjs` | Not applicable. | Provisions local/UAT app users, credentials, roles, recruiter profile, and audit event directly in Postgres. | Done |
 
-## Auth Checks In API Routes And Server Actions
+## Routes, Actions, And Pages
 
-| File | Supabase dependency | Replacement direction | Risk/notes | Status |
-| --- | --- | --- | --- | --- |
-| `src/app/api/invite/send/route.ts` | Previously called `createClient().auth.getUser()` and recorded `missing_supabase_user`. | Now uses `getAuthenticatedRouteUser()`, which can resolve app sessions or Supabase fallback users through `getCachedUser()`. | Invite send is core recruiter flow. | Done |
-| `src/app/api/invite/resend/route.ts` | Previously called `createClient().auth.getUser()`. | Now uses `getAuthenticatedRouteUser()`. `npm run postgres:smoke:resend-retry` validates route-stack auth, SMTP acceptance, `invitation_sent_at`, and Postgres resend metrics. | Preserve resend authorization and logging. | Done |
-| `src/app/api/questions/generate/route.ts` | Previously called `createClient().auth.getUser()` before generating questions. | Now uses `getAuthenticatedRouteUser()` and preserves unauthorized metrics. | Core recruiter AI surface. | Done |
-| `src/app/api/recruiter/invites/route.ts` | Previously called `createClient().auth.getUser()`; invite repository already goes through `createInviteRepository()`. | Now uses `getAuthenticatedRouteUser()`. Postgres invite repository can be selected with `INVITE_REPOSITORY_BACKEND=postgres` once final route-stack env is ready. | Batch invite creation still depends on idempotency and rate-limit backend selectors being pinned to Postgres for cutover. | Done |
-| `src/app/api/recruiter/invites/[batch_id]/retry/route.ts` | Previously called `createClient().auth.getUser()`; retry app default already goes through `createInviteRepository()`. | Now uses `getAuthenticatedRouteUser()`. `npm run postgres:smoke:resend-retry` validates failed-batch retry through Postgres invite and idempotency backends. | Must preserve batch ownership. | Done |
-| `src/app/api/recruiter/ops/metrics/route.ts` | Previously called `createClient().auth.getUser()` for GET/POST. | Now uses `getAuthenticatedRouteUser()`. Add stricter admin/ops role gating before production cutover if this endpoint is retained. | Operational visibility should not be broad recruiter access. | In progress |
-| `src/app/api/tips/generate/route.ts` | Previously instantiated `SupabaseSessionRepository` directly after candidate-token auth to recover session/recruiter context for AI capture metadata. | Now uses `createSessionRepository()`, so hints honor `SESSION_REPOSITORY_BACKEND=postgres`. | Level 3 AI smoke validated successful Gemini hint capture with Postgres session lookup. | Done |
-| `src/app/api/response/generate/route.ts` | Previously instantiated `SupabaseSessionRepository` directly after candidate-token auth to recover session/recruiter context for AI capture metadata. | Now uses `createSessionRepository()`, so strong response honors `SESSION_REPOSITORY_BACKEND=postgres`. | Level 3 AI smoke validated successful Gemini strong-response capture with Postgres session lookup. | Done |
-| `src/app/actions/feedback.ts` | Uses `getCachedUser()` only to attach recruiter ID for `recruiter_` signals; feedback persistence uses repository factory. | Replace `getCachedUser()` with app session helper after auth migration. Feedback data can already select Postgres with `FEEDBACK_REPOSITORY_BACKEND=postgres`. | Candidate feedback remains unauthenticated; recruiter ID remains optional unless signal is recruiter-side and user is available. | In progress |
-| `src/app/(recruiter)/recruiter/actions.ts` | Uses `getCachedUser()` plus repository factory for session list/delete. | Replace `getCachedUser()` with app session helper after auth migration. Session data can already select Postgres with `SESSION_REPOSITORY_BACKEND=postgres`. | Dashboard/session actions. | In progress |
-| `src/app/(recruiter)/recruiter/templates/actions.ts` | Uses `getCachedUser()` and `isAdmin()` plus repository factory for template list/create/update/delete. | Replace `getCachedUser()`/hardcoded admin email with app session helper and DB roles after auth migration. Template data can already select Postgres with `TEMPLATE_REPOSITORY_BACKEND=postgres`. | Admin/shared template behavior is now explicit in repository scope. | In progress |
+| Area | Prior dependency | Current state | Status |
+| --- | --- | --- | --- |
+| Recruiter API auth | Direct `createClient().auth.getUser()` checks in invite/question/profile/ops routes. | Routes use `getAuthenticatedRouteUser()` and app-session current-user lookup. | Done |
+| Recruiter pages/actions | Server components/actions used Supabase current-user/profile paths. | Pages/actions use app-session current-user plus Postgres profile/repository helpers. | Done |
+| Admin/QA pages | Layouts used Supabase current-user/profile paths. | Layouts use app-session current-user, app roles, and Postgres profile/repository helpers. | Done |
+| Candidate routes | Candidate entry and APIs could select Supabase repositories during migration. | Candidate entry, token validation, session reads/writes, answer submission, feedback, hints, strong response, debrief, and practice-again use Postgres stores. | Done |
+| AI quality routes | AI generation capture/read/export could select Supabase repositories during migration. | All five AI surfaces and `/qa/ai-quality` read/export use Postgres repositories. | Done |
 
-## Product Data Repositories
+## Repositories And Operational Stores
 
-| File | Supabase dependency | Replacement direction | Risk/notes | Status |
-| --- | --- | --- | --- | --- |
-| `src/lib/server/infrastructure/supabase-session-repository.ts` | Direct `.from()` operations on `sessions`, `questions`, `answers`, `eval_results`; service-role access; RPC `increment_session_engagement`. | `PostgresSessionRepository` exists behind `createSessionRepository()` and `SESSION_REPOSITORY_BACKEND=postgres`. Keep Supabase implementation only as migration fallback until final cutover. | High blast radius: dashboard, candidate practice, answer save, analysis, debrief, recovery. Docker-backed Postgres integration coverage exists. | In progress |
-| `src/lib/server/infrastructure/supabase-invite-repository.ts` | Direct `.from()` on `sessions`, `questions`, `candidate_tokens`, `invite_batches`, `invite_batch_candidates`; RPC `create_invite_batch`; Supabase client injection. | `PostgresInviteRepository` exists and is selected through `createInviteRepository()`. Keep Supabase implementation only as migration fallback until final Supabase unwiring. | Core invite flow; batch retry/ownership validated locally with Postgres route-stack smokes. | Done locally |
-| `src/lib/server/infrastructure/supabase-template-repository.ts` | Supabase client, `SupabaseClient` type, `auth.getUser()`, `recruiter_templates` table/RLS. | `PostgresTemplateRepository` exists behind `createTemplateRepository()` and `TEMPLATE_REPOSITORY_BACKEND=postgres`. Keep Supabase implementation only as migration fallback until final cutover. | Ownership/shared visibility/admin override are enforced explicitly by `userId` and `canManageAllTemplates`. Docker-backed Postgres integration coverage exists. | In progress |
-| `src/lib/server/infrastructure/supabase-feedback-repository.ts` | Supabase client writes/reads `user_feedback` and joins `sessions`. | `PostgresFeedbackRepository` exists behind `createFeedbackRepository()` and `FEEDBACK_REPOSITORY_BACKEND=postgres`. Keep Supabase implementation only as migration fallback until final cutover. | Docker-backed Postgres integration coverage validates capture, update, recruiter-only insert, and admin view join shape. | In progress |
-| `src/lib/server/infrastructure/user_feedback_schema.sql` | SQL schema for feedback table and policies. | Neutral `user_feedback` table, indexes, constraints, and app-owned user FK are included in `db/migrations/001_initial_schema.sql`; Supabase RLS policies remain historical only. | Admin-read authorization is handled in app route/layout code, not RLS. | In progress |
-| `src/lib/server/ai-quality/ai-generation-repository.ts` | `SupabaseAiGenerationRepository` writes `ai_generations` through service-role Supabase access. | `PostgresAiGenerationRepository` exists behind `createAiGenerationRepository()` and `AI_GENERATION_REPOSITORY_BACKEND=postgres`. Keep Supabase implementation only as migration fallback until final cutover. | Capture must not block AI user flows; fallback capture behavior remains in `capture-ai-generation.ts`. Focused Postgres query/serialization tests exist. | In progress |
-| `src/lib/server/ai-quality/ai-generation-read-repository.ts` | `SupabaseAiGenerationReadRepository` reads `ai_generations` through service-role access and optionally calls `get_ai_generation_summary`. | `PostgresAiGenerationReadRepository` exists behind `createAiGenerationReadRepository()` and supports list, page, summary, and find-by-id queries. | `/qa/ai-quality` widgets must count filtered total records, not just current page rows. Focused Postgres read tests exist. | In progress |
-| `src/lib/server/api-handler-utils.ts` | Uses repository factory for session lookup. | Complete for session repository selection. Continue auth migration separately. | Shared API helper can select Supabase or Postgres by env. | Done |
-| `src/lib/server/application/session/get-session.ts` | Uses repository factory. | Complete for session repository selection. | Application layer no longer names Supabase for session lookup. | Done |
-| `src/lib/server/application/session/start-session.ts` | Uses repository factory. | Complete for session repository selection. | Candidate start path can select Supabase or Postgres by env. | Done |
-| `src/lib/server/application/session/update-session.ts` | Uses repository factory. | Complete for session repository selection. | Candidate progress/update path can select Supabase or Postgres by env. | Done |
-| `src/lib/server/application/invites/create-invite-batch.ts` | Previously dynamically imported `SupabaseInviteRepository`; now uses `createInviteRepository()`. | Complete for invite repository selection. Continue auth/idempotency/rate-limit migration separately. | Batch creation path can select Supabase or Postgres by env. | Done |
-| `src/lib/server/application/invites/retry-invite-batch.ts` | Previously dynamically imported `SupabaseInviteRepository`; now uses `createInviteRepository()`. | Complete for invite repository selection. Continue auth/idempotency/rate-limit migration separately. | Retry path can select Supabase or Postgres by env. | Done |
-| `src/lib/server/application/invites/send-invite-email.ts` | Uses repository factory for marking invitation sent. | Complete for session repository selection. Continue auth/email branch reconciliation separately. | Email sent-state write can select Supabase or Postgres by env. | Done |
-| `src/lib/server/application/invites/resend-invite-email.ts` | Uses repository factory for marking invitation sent. | Complete for session repository selection. | Invite resend path can select Supabase or Postgres by env. Email provider is SMTP/nodemailer at the adapter layer. | Done |
-
-## Candidate Token And Candidate Routes
-
-| File | Supabase dependency | Replacement direction | Risk/notes | Status |
-| --- | --- | --- | --- | --- |
-| `src/lib/server/auth/candidate-token.ts` | Previously used `createAdminClient()` and `candidate_tokens`; now delegates through a candidate-token backend seam. | `CANDIDATE_TOKEN_BACKEND=postgres` selects `PostgresCandidateTokenStore`; Supabase remains the default during migration. | Candidate UX can stay unchanged. Postgres validates hash-at-rest tokens, session binding, `revoked_at`, and `expires_at`; Level 11 smoke confirms missing-token `401` and mismatched-token `403` through the route stack. | In progress |
-| `src/app/(candidate)/s/[token]/page.tsx` | Previously used `SupabaseInviteRepository.getByToken()` directly; now uses `createInviteRepository()`. | Complete for invite repository selection. Candidate token validation deeper in APIs remains separate. | Initial candidate entry can select Supabase or Postgres by env. | Done |
-| `src/app/(candidate)/s/[token]/layout.tsx` | Previously used `SupabaseInviteRepository.getByToken()` directly; now uses `createInviteRepository()`. | Complete for invite repository selection. Candidate token validation deeper in APIs remains separate. | Layout metadata/session lookup can select Supabase or Postgres by env. | Done |
-| `src/app/(candidate)/s/[token]/practice-again/page.tsx` | Indirectly depends on invite/session repository behavior. | Complete for local Postgres validation. Session start now persists each issued token as encrypted invite-token metadata, and `npm run postgres:smoke:practice-again` validates attempt 1 -> attempt 2 -> attempt 3 with Postgres backends. | Final host still needs target-environment validation for emailed debrief links. | Done |
-| `src/app/api/session/[session_id]/questions/[question_id]/answer/route.ts` | Uses repository factory for draft saves. | Complete for session repository selection. Set `SESSION_REPOSITORY_BACKEND=postgres` with `CANDIDATE_TOKEN_BACKEND=postgres` when validating the migrated candidate route stack. | Candidate answer draft/read path. | Done |
-| `src/app/api/session/[session_id]/questions/[question_id]/submit/route.ts` | Uses repository factory for analysis cleanup and session update; uses candidate token auth through shared path. | Complete for session repository selection. Set `SESSION_REPOSITORY_BACKEND=postgres` and `CANDIDATE_TOKEN_BACKEND=postgres` together when route dependencies are ready. | Core submit path; include session-recovery patch before final validation. | Done |
-| `src/app/api/session/[session_id]/questions/[question_id]/analysis/route.ts` | Uses repository factory for feedback/session updates. | Complete for session repository selection. | Answer feedback path can select Supabase or Postgres by env. | Done |
-| `src/app/api/session/[session_id]/questions/[question_id]/retry/route.ts` | Uses repository factory for analysis deletion. | Complete for session repository selection. | Retry behavior must preserve attempts. | Done |
-
-## Operational Backends
-
-| File | Supabase dependency | Replacement direction | Risk/notes | Status |
-| --- | --- | --- | --- | --- |
-| `src/lib/server/rate-limit.ts` | Backend names now include `memory`, `supabase`, and `postgres`; production still defaults to Supabase during migration. | Pin `RATE_LIMIT_BACKEND=postgres` for migrated environments once surrounding runtime dependencies are ready. Preserve memory local/test behavior only. | Production cannot use memory. | In progress |
-| `src/lib/server/rate-limit/backend.ts` | `SupabaseRateLimitBackend` still calls RPC `consume_rate_limit_bucket`; `PostgresRateLimitBackend` now calls the neutral Postgres function directly through `pg`. | Keep both during migration, remove Supabase backend after full cutover. | Postgres implementation has been validated for concurrent consumption against disposable Docker Postgres. | In progress |
-| `src/lib/server/metrics/backend.ts` | `MetricsBackendName` now includes `memory`, `supabase`, and `postgres`; `SupabaseDurableMetricsBackend` remains for migration fallback and `PostgresDurableMetricsBackend` now uses `pg`. | Pin `METRICS_BACKEND=postgres` in migrated environments and remove Supabase backend after full cutover. | Dashboard/ops route contract is preserved through the same snapshot and SLO summary shapes. | In progress |
-| `src/lib/server/idempotency.ts` | Previously used `createAdminClient()` with `api_idempotency_keys`; now delegates through an idempotency backend seam. | `IDEMPOTENCY_BACKEND=postgres` selects `PostgresIdempotencyStore`; Supabase remains the default during migration. | Core protection for replay/retry. Final cutover needs route-stack validation with auth, rate-limit, idempotency, invite, and session backends pinned to Postgres. | In progress |
-| `src/lib/server/auth/app-auth.ts`, `app-auth-config.ts`, `app-session.ts`, `app-session-cookie.ts`, `password.ts`, `postgres-app-auth-store.ts`, `current-user.ts` | New app-owned auth foundation replacing Supabase Auth concepts for local/UAT. Edge-safe config/cookie helpers are split from heavier auth/session modules for middleware use. | Uses scrypt password hashes, opaque hashed app-session tokens, `app_users`, `app_user_credentials`, `app_sessions`, `app_user_roles`, and `auth_audit_events`. `APP_AUTH_BACKEND=postgres` activates app-session lookup through `getCachedUser()`; `getAuthenticatedRouteUser()` now centralizes required API-route auth and auth-denial metrics. | Runtime login/logout, protected-page redirects, operator provisioning, and key recruiter API routes are active through the migration seam. Remaining work is server components/actions, final Supabase fallback removal, and a future ATS/Okta session-establishment adapter. | In progress |
-| `src/lib/server/ai-quality/capture-ai-generation.ts` | Previously defaulted directly to `SupabaseAiGenerationRepository`. | Defaults through `createAiGenerationRepository()` so migrated environments can capture to Postgres with `AI_GENERATION_REPOSITORY_BACKEND=postgres`. | Capture fallback remains best-effort so AI surfaces can continue if persistence fails. | In progress |
-| `src/lib/server/production-contract.integration.test.ts` | Production contract stubs Supabase-oriented env/backend values. | Update to Postgres env and app-auth requirements. | Important release guard. | Open |
+| Prior file / dependency | Current replacement | Status |
+| --- | --- | --- |
+| `src/lib/server/infrastructure/supabase-session-repository.ts` | `PostgresSessionRepository` | Done; Supabase file removed |
+| `src/lib/server/infrastructure/supabase-invite-repository.ts` | `PostgresInviteRepository` | Done; Supabase file removed |
+| `src/lib/server/infrastructure/supabase-template-repository.ts` | `PostgresTemplateRepository` | Done; Supabase file removed |
+| `src/lib/server/infrastructure/supabase-feedback-repository.ts` | `PostgresFeedbackRepository` | Done; Supabase file removed |
+| `src/lib/server/infrastructure/user_feedback_schema.sql` | `db/migrations/001_initial_schema.sql` | Done; stale Supabase/RLS helper removed |
+| `SupabaseAiGenerationRepository` / `SupabaseAiGenerationReadRepository` | `PostgresAiGenerationRepository` / `PostgresAiGenerationReadRepository` | Done; Supabase classes removed |
+| `supabase-candidate-token-store.ts` | Postgres candidate-token store in `candidate-token.ts` | Done; Supabase file removed |
+| `supabase-idempotency-store.ts` | Postgres idempotency store in `idempotency.ts` | Done; Supabase file removed |
+| `SupabaseRateLimitBackend` | `PostgresRateLimitBackend` | Done; Supabase backend removed |
+| `SupabaseDurableMetricsBackend` | `PostgresDurableMetricsBackend` | Done; Supabase backend removed |
 
 ## Schema, Migrations, And RLS
 
-| File | Supabase dependency | Replacement direction | Risk/notes | Status |
-| --- | --- | --- | --- | --- |
-| `supabase/schema.sql` | Base DDL plus Supabase RLS, public policies, `auth.uid()`, Supabase-friendly comments. | Convert to neutral Postgres schema/migrations. Preserve tables/enums/constraints; remove or replace Supabase policies. | Do not copy permissive public policies blindly. | Open |
-| `supabase/migrations/20240208_recruiter_profiles.sql` | `recruiter_profiles` plus RLS using `auth.uid()`. | Port table; map `recruiter_id` to app user id. Authorization in app code or neutral DB policy. | Auth identity migration hinge. | Open |
-| `supabase/migrations/20240224_create_recruiter_templates.sql` | `recruiter_templates` plus RLS using `auth.uid()`. | Table/indexes are included in neutral schema; ownership/shared rules are now enforced by `PostgresTemplateRepository` instead of Supabase RLS. | Docker-backed template repository test validates recruiter-owned, shared, private, and admin paths. | In progress |
-| `supabase/migrations/20260317_add_api_idempotency_keys.sql` | `api_idempotency_keys` plus policies using `auth.uid()`. | Table/constraints are included in neutral schema and validated locally; Supabase RLS policies are not carried forward. | Race-safety matters more than RLS here. `actor_id` remains UUID-shaped for now. | In progress |
-| `supabase/migrations/20260317_add_atomic_engagement_increment.sql` | Function `increment_session_engagement`. | Included in neutral schema and called by `PostgresSessionRepository`. | Docker-backed session repository integration test validates the function path. | In progress |
-| `supabase/migrations/20260325_add_metrics_rollups.sql` | Metrics rollup tables and functions. | Tables/functions are included in neutral schema and validated locally through `PostgresDurableMetricsBackend`. | Used by metrics backend and ops route. | In progress |
-| `supabase/migrations/20260325_add_rate_limit_buckets.sql` | Rate-limit table and function `consume_rate_limit_bucket`. | Table/function are included in neutral schema and validated locally. | Atomic consumption validated through the Postgres backend integration test. | In progress |
-| `supabase/migrations/20260326_add_atomic_invite_batch.sql` | Function `create_invite_batch`. | Port function or implement app transaction. | Core batch invite consistency. | Open |
-| `supabase/migrations/20260328_add_invite_batch_tracking.sql` | Invite batch tracking tables. | Port tables and constraints. | Used by batch retry and send status. | Open |
-| `supabase/migrations/20260429_add_ai_generations.sql`, `20260429_harden_ai_generations.sql`, `20260503_add_ai_generation_summary_rpc.sql` | AI-quality table, indexes, retention/source columns, and summary function. | Included in neutral schema, with no Supabase RLS dependency. Postgres read repository computes summary directly and the function is retained for compatibility/smoke validation. | AI-quality table is used by all five AI surfaces and `/qa/ai-quality`. | In progress |
-| `supabase/fix_public_read.sql`, `supabase/fix_sessions_rls.sql`, `supabase/updates.sql` | Supabase policy repair scripts and `auth.uid()` assumptions. | Treat as historical context only unless specific data shape changes are still needed. | Avoid carrying old public access policy into new DB. | Open |
-
-## Browser Supabase Usage
-
-| File | Supabase dependency | Replacement direction | Risk/notes | Status |
-| --- | --- | --- | --- | --- |
-| `src/app/login/page.tsx` | Previously used `createBrowserClient` for sign in/sign up. | Login now posts to `/api/auth/login` for local/UAT. | Browser Supabase login path moved; target deployment may hide/remove standalone login. | Done for bridge; target cleanup open |
-| `src/components/auth/LogoutButton.tsx` | Previously used `createBrowserClient` for sign out. | Now posts to `/api/auth/logout`. | Desktop logout moved; target deployment may remove visible logout. | Done for bridge; target cleanup open |
-| `src/components/layout/RecruiterMobileDock.tsx` | Previously used `createBrowserClient` for sign out. | Now posts to `/api/auth/logout`. | Mobile logout moved; target deployment may remove visible logout. | Done for bridge; target cleanup open |
-| `src/components/auth/ProfileGuard.tsx` | Previously used browser `getUser()` and DB query. | Now calls `/api/recruiter/profile`. | Avoid browser DB access entirely. | Done |
-| `src/app/(recruiter)/recruiter/settings/page.tsx` | Previously used browser Supabase profile operations. | Now calls `/api/recruiter/profile` for load/save. | Profile UX. | Done |
-| `src/app/(recruiter)/recruiter/create/page.tsx` | Previously used browser Supabase current-user/profile lookup. | Now calls `/api/recruiter/profile` for current user/profile state. | Invite creation depends on recruiter metadata. | Done |
+| Source | Current role | Notes |
+| --- | --- | --- |
+| `db/migrations/001_initial_schema.sql` | Target executable schema | Use this for migrated Postgres environments. It includes app-owned auth/session/role tables, product tables, operational tables, indexes, triggers, and SQL functions. |
+| `db/validation/*` | Local validation SQL | Used by repeatable disposable-DB smoke checks. |
+| `supabase/schema.sql`, `supabase/migrations/*.sql` | Historical source material | Keep only if reviewers need provenance for original table/function intent. Do not deploy these files to the company Postgres environment. |
+| Supabase RLS / `auth.uid()` policies | Not part of migrated runtime | Authorization is handled by app code plus DB constraints unless company DB policy later requires explicit RLS. |
 
 ## Packages, Env, And Configuration
 
-| File | Supabase dependency | Replacement direction | Risk/notes | Status |
-| --- | --- | --- | --- | --- |
-| `package.json` | Dependencies `@supabase/ssr`, `@supabase/supabase-js`; `pg` and `@types/pg` already present. | Remove Supabase packages after runtime/test imports are gone. Keep/use `pg`. | Package cleanup should be late in migration. | Open |
-| `docs/05-quality/environment_variable_matrix.md` | Documents Supabase URL, anon key, service role, `METRICS_BACKEND=supabase`, `RATE_LIMIT_BACKEND=supabase`. | Replace with Postgres/app-auth env matrix. | Docs should change after implementation decisions are stable. | Open |
-| Production/deployment docs | `docs/05-quality/production_deployment_validation_checklist_2026-03-26.md` and related docs require Supabase access/backends. | Replace with Postgres migration/app-auth validation. | Should align with integration team signoff path. | Open |
-| Runtime env usage | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. | Replace with `DATABASE_URL`/`POSTGRES_*`, app auth secrets, cookie/session env, and app DB user config. | Remove client-exposed DB/auth identifiers. | Open |
-| Backend selector env | `SESSION_REPOSITORY_BACKEND`, `INVITE_REPOSITORY_BACKEND`, `TEMPLATE_REPOSITORY_BACKEND`, `FEEDBACK_REPOSITORY_BACKEND`, `AI_GENERATION_REPOSITORY_BACKEND`, `CANDIDATE_TOKEN_BACKEND`, `IDEMPOTENCY_BACKEND`, `RATE_LIMIT_BACKEND`, and `METRICS_BACKEND` now accept `postgres` in addition to migration fallback values. | Pin these to `postgres` in migrated environments and update production contract tests before final cutover. | Consider transitional Supabase compatibility only during migration. | In progress |
+| Item | Current state | Status |
+| --- | --- | --- |
+| `@supabase/ssr`, `@supabase/supabase-js` | Removed from `package.json` and `package-lock.json`. | Done |
+| Supabase env vars | Removed from `.env.example`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. | Done |
+| Postgres env vars | `.env.example` includes `DATABASE_URL` plus split `POSTGRES_*` fallback. | Done |
+| Backend selector env vars | Existing names remain, but migrated runtime accepts `postgres` only for repository/auth/idempotency/candidate-token selectors. Rate-limit and metrics accept `memory` for local/test and `postgres` for durable runtime. | Done |
+| SMTP env vars | `.env.example` models Office365 SMTP values without storing a password. | Done |
 
-## Tests And Mocks
+## Remaining Historical Cleanup
 
-| File family | Supabase dependency | Replacement direction | Risk/notes | Status |
-| --- | --- | --- | --- | --- |
-| `src/lib/server/infrastructure/supabase-session-repository.test.ts` | Tests Supabase repository behavior/mocking. | Replace or port to Postgres repository tests. | Use query-level mocks or test DB strategy. | Open |
-| API route tests under `src/app/api/**` | Many mock `@/lib/supabase/server` or Supabase repositories. | Replace with app auth/repository mocks. | Useful coverage should be preserved, not deleted blindly. | Open |
-| `src/app/(recruiter)/recruiter/actions.test.ts` | Mocks Supabase auth/repository. | Replace with app auth/repository mocks. | Dashboard actions coverage. | Open |
-| `src/app/(recruiter)/recruiter/settings/page.test.tsx` | Previously mocked `@supabase/ssr`. | Now mocks `/api/recruiter/profile` fetch responses. | UI behavior remains covered. | Done |
-| `src/lib/server/rate-limit.test.ts` | Covers memory, Supabase, and Postgres backend selection/query contract. | Later update production default expectations when the branch cuts over from Supabase fallback to Postgres-only runtime. | Release guard. | In progress |
-| `src/lib/server/metrics/backend.test.ts` and metrics integration tests | Covers memory, Supabase, and Postgres backend selection plus durable snapshot/SLO normalization. | Later update production default expectations when the branch cuts over from Supabase fallback to Postgres-only runtime. | Docker-backed Postgres metrics integration test now validates rollup writes, snapshot reads, and SLO reads. | In progress |
-| `src/lib/server/auth/candidate-token.test.ts` | Covers Supabase fallback and Postgres backend selector/query behavior. | Later update production default expectations when the branch cuts over from Supabase fallback to Postgres-only runtime. | Docker-backed Postgres candidate-token integration test validates hash-at-rest storage, session binding, and expired/revoked rejection. | In progress |
-| `src/lib/server/auth/app-auth.test.ts`, `src/lib/auth/rbac.test.ts`, `src/app/api/auth/*/route.test.ts`, `src/lib/supabase/middleware.test.ts` | New app-auth foundation, route, and middleware tests. | Preserve and expand as remaining browser UI, middleware, password reset, and product smoke paths are wired. | Covers password hashing, password login orchestration, session token hashing, session revocation, audit writes, app-role RBAC, login cookie setting, logout cookie clearing, and app-auth middleware redirect/allow behavior. | In progress |
-| E2E test mode | `src/lib/e2e/test-mode.ts` returns Supabase-shaped user. | Return app-user shaped fake user. | Keep E2E smoke tests independent of live auth. | Open |
+These are not blockers to proving the migrated app works, but they affect repository neatness:
 
-## Documentation Follow-Up
-
-| File / area | Supabase dependency | Replacement direction | Status |
-| --- | --- | --- | --- |
-| `docs/02-requirements/use-cases/v2/UC-R0-Recruiter-Login.md` | Names Supabase Auth in recruiter login use case. | Update once app-owned auth lands. | Open |
-| `docs/04-architecture/e2e-flow.md` | Names Supabase Postgres/Auth. | Update to company Postgres/app auth. | Open |
-| `docs/04-architecture/state-and-streaming-contract.md` | Mentions Postgres/Supabase and RLS. | Update storage/auth boundary after migration. | Open |
-| `docs/04-architecture/adr-rate-limit-backend.md` | Selects Supabase/Postgres RPC backend. | Revise to company Postgres implementation. | Open |
-| `docs/04-architecture/adr-invite-batch-consistency.md` | References Supabase invite repository. | Revise repository details after port. | Open |
-| `docs/05-quality/*production*`, `docs/05-quality/ops_alert_policy.md` | Supabase deployment/backend assumptions. | Update release validation and ops runbooks. | Open |
-
-## Implementation Order Suggested By Inventory
-
-1. Add neutral Postgres client and migration strategy.
-2. Create app auth/user/session/role schema.
-3. Port schema/functions without relying on Supabase RLS.
-4. Replace `src/lib/supabase/server.ts` consumers with app auth helpers or repository access.
-5. Port candidate token storage/validation.
-6. Port session and invite repositories first.
-7. Port templates, feedback, idempotency, rate limit, and metrics.
-8. Replace remaining server components/actions and middleware Supabase auth usage.
-9. Replace tests/mocks and production contract env expectations.
-10. Remove Supabase packages/env/docs.
+1. Decide whether to archive or delete the historical `supabase/` directory after reviewers no longer need original schema provenance.
+2. Update broad non-migration docs that still describe Supabase as the active provider, especially older architecture, production validation, and quality/ops documents.
+3. Decide target UI cleanup after ATS/Okta handoff: hide or remove standalone login/create-account/logout/settings identity fields.
+4. Replace app-owned login bridge with enterprise identity handoff in the target deployment path.
 
 ## Open Questions Carried From Checklist
 
-- Final staging/UAT URL and deployment platform.
-- Final env contract: `DATABASE_URL`, individual `POSTGRES_*`, or both.
-- Final production DB user and privileges.
-- ATS/Okta identity handoff contract, trusted claims, session exchange, and role/group mapping.
-- Whether standalone login/create-account/settings-profile/logout UI should be hidden by target-deployment config or removed after identity integration.
-- DB inspection/log access path for integration validation.
+See [integration_checklist.md](./integration_checklist.md#coalesced-open-questions) for deployment-level open questions: hosting/runtime, DB connection and privileges, migration execution, identity handoff, observability, SMTP policy, target UI posture, and acceptance ownership.

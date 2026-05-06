@@ -9,7 +9,7 @@ export type IdempotencyReservation =
     | { kind: "pending" }
     | { kind: "conflict" };
 
-export type IdempotencyBackend = "supabase" | "postgres";
+export type IdempotencyBackend = "postgres";
 
 export type IdempotencyBeginInput = {
     scope: string;
@@ -68,26 +68,20 @@ function requestHash(payload: unknown): string {
 }
 
 export function getIdempotencyBackend(): IdempotencyBackend {
-    const rawBackend = getOptionalServerEnv("IDEMPOTENCY_BACKEND") ?? "supabase";
+    const rawBackend = getOptionalServerEnv("IDEMPOTENCY_BACKEND") ?? "postgres";
     const backend = rawBackend.toLowerCase();
 
-    if (backend === "supabase" || backend === "postgres") {
+    if (backend === "postgres") {
         return backend;
     }
 
-    throw new Error("[Idempotency] IDEMPOTENCY_BACKEND must be either 'supabase' or 'postgres'.");
+    throw new Error("[Idempotency] IDEMPOTENCY_BACKEND must be 'postgres'.");
 }
 
 async function createIdempotencyStore(): Promise<IdempotencyStore> {
-    const backend = getIdempotencyBackend();
-
-    if (backend === "postgres") {
-        const { PostgresIdempotencyStore } = await import("@/lib/server/idempotency/postgres-idempotency-store");
-        return new PostgresIdempotencyStore();
-    }
-
-    const { SupabaseIdempotencyStore } = await import("@/lib/server/idempotency/supabase-idempotency-store");
-    return new SupabaseIdempotencyStore();
+    getIdempotencyBackend();
+    const { PostgresIdempotencyStore } = await import("@/lib/server/idempotency/postgres-idempotency-store");
+    return new PostgresIdempotencyStore();
 }
 
 export async function beginIdempotentRequest(params: {

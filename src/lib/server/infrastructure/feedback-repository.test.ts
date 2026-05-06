@@ -8,11 +8,11 @@ afterEach(() => {
 });
 
 describe("feedback repository backend selection", () => {
-    it("defaults to Supabase during migration", async () => {
+    it("defaults to Postgres", async () => {
         delete process.env.FEEDBACK_REPOSITORY_BACKEND;
         const { getFeedbackRepositoryBackend } = await import("./feedback-repository");
 
-        expect(getFeedbackRepositoryBackend()).toBe("supabase");
+        expect(getFeedbackRepositoryBackend()).toBe("postgres");
     });
 
     it("accepts the Postgres backend flag", async () => {
@@ -27,7 +27,7 @@ describe("feedback repository backend selection", () => {
         const { getFeedbackRepositoryBackend } = await import("./feedback-repository");
 
         expect(() => getFeedbackRepositoryBackend()).toThrow(
-            'Unsupported FEEDBACK_REPOSITORY_BACKEND value "file". Expected "supabase" or "postgres".'
+            'Unsupported FEEDBACK_REPOSITORY_BACKEND value "file". Expected "postgres".'
         );
     });
 });

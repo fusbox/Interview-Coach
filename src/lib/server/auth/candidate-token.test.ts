@@ -1,14 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const createAdminClientMock = vi.fn();
 const recordAuthDenialMock = vi.fn();
 const loggerErrorMock = vi.fn();
 const hashTokenMock = vi.fn((value: string) => `hash:${value}`);
 const postgresQueryMock = vi.fn();
-
-vi.mock("@/lib/supabase/server", () => ({
-    createAdminClient: createAdminClientMock,
-}));
 
 vi.mock("@/lib/server/crypto", () => ({
     hashToken: hashTokenMock,
@@ -38,35 +33,10 @@ describe("candidate token auth", () => {
             ...process.env,
             NODE_ENV: "test",
         };
-        delete process.env.SUPABASE_SERVICE_ROLE_KEY;
         delete process.env.CANDIDATE_TOKEN_BACKEND;
     });
 
-    it("uses the admin client to validate candidate tokens", async () => {
-        const singleMock = vi.fn().mockResolvedValue({
-            data: { session_id: "session-1" },
-            error: null,
-        });
-        const eqMock = vi.fn().mockReturnValue({ single: singleMock });
-        const selectMock = vi.fn().mockReturnValue({ eq: eqMock });
-        createAdminClientMock.mockReturnValue({
-            from: vi.fn().mockReturnValue({ select: selectMock }),
-        });
-
-        const { requireCandidateToken } = await import("./candidate-token");
-        const request = new Request("http://localhost/api/session/session-1", {
-            headers: { "x-candidate-token": "token-1" },
-        });
-
-        const result = await requireCandidateToken(request, "session-1");
-
-        expect(result).toEqual({ ok: true, status: 200 });
-        expect(createAdminClientMock).toHaveBeenCalledTimes(1);
-        expect(hashTokenMock).toHaveBeenCalledWith("token-1");
-    });
-
-    it("uses postgres to validate candidate tokens when configured", async () => {
-        process.env.CANDIDATE_TOKEN_BACKEND = "postgres";
+    it("uses postgres to validate candidate tokens", async () => {
         postgresQueryMock.mockResolvedValue({
             rows: [{ session_id: "session-1" }],
         });
@@ -80,7 +50,6 @@ describe("candidate token auth", () => {
 
         expect(getCandidateTokenBackendName()).toBe("postgres");
         expect(result).toEqual({ ok: true, status: 200 });
-        expect(createAdminClientMock).not.toHaveBeenCalled();
         expect(postgresQueryMock).toHaveBeenCalledWith(
             expect.stringContaining("from public.candidate_tokens"),
             ["hash:token-1"]
@@ -94,7 +63,6 @@ describe("candidate token auth", () => {
         const result = await requireCandidateToken(request, "session-1");
 
         expect(result).toEqual({ ok: false, status: 401, error: "Missing candidate token" });
-        expect(createAdminClientMock).not.toHaveBeenCalled();
         expect(recordAuthDenialMock).toHaveBeenCalledWith(expect.objectContaining({
             actorType: "candidate",
             reason: "missing_candidate_token",
@@ -102,14 +70,8 @@ describe("candidate token auth", () => {
     });
 
     it("returns 403 when the token does not match the session", async () => {
-        const singleMock = vi.fn().mockResolvedValue({
-            data: { session_id: "different-session" },
-            error: null,
-        });
-        const eqMock = vi.fn().mockReturnValue({ single: singleMock });
-        const selectMock = vi.fn().mockReturnValue({ eq: eqMock });
-        createAdminClientMock.mockReturnValue({
-            from: vi.fn().mockReturnValue({ select: selectMock }),
+        postgresQueryMock.mockResolvedValue({
+            rows: [{ session_id: "different-session" }],
         });
 
         const { requireCandidateToken } = await import("./candidate-token");
@@ -126,28 +88,7 @@ describe("candidate token auth", () => {
         }));
     });
 
-    it("issues candidate tokens with the admin client", async () => {
-        const insertMock = vi.fn().mockResolvedValue({ error: null });
-        createAdminClientMock.mockReturnValue({
-            from: vi.fn().mockReturnValue({ insert: insertMock }),
-        });
-        const randomUuidSpy = vi.spyOn(crypto, "randomUUID").mockReturnValue("issued-token");
-
-        const { issueCandidateToken } = await import("./candidate-token");
-        const token = await issueCandidateToken("session-1");
-
-        expect(token).toBe("issued-token");
-        expect(createAdminClientMock).toHaveBeenCalledTimes(1);
-        expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({
-            session_id: "session-1",
-            token_hash: "hash:issued-token",
-        }));
-
-        randomUuidSpy.mockRestore();
-    });
-
-    it("issues candidate tokens with postgres when configured", async () => {
-        process.env.CANDIDATE_TOKEN_BACKEND = "postgres";
+    it("issues candidate tokens with postgres", async () => {
         postgresQueryMock.mockResolvedValue({ rows: [] });
         const randomUuidSpy = vi.spyOn(crypto, "randomUUID").mockReturnValue("issued-token");
 
@@ -155,7 +96,6 @@ describe("candidate token auth", () => {
         const token = await issueCandidateToken("session-1");
 
         expect(token).toBe("issued-token");
-        expect(createAdminClientMock).not.toHaveBeenCalled();
         expect(postgresQueryMock).toHaveBeenCalledWith(
             expect.stringContaining("insert into public.candidate_tokens"),
             expect.arrayContaining(["session-1", "hash:issued-token"])
@@ -170,7 +110,7 @@ describe("candidate token auth", () => {
         const { getCandidateTokenBackendName } = await import("./candidate-token");
 
         expect(() => getCandidateTokenBackendName()).toThrow(
-            'Unsupported CANDIDATE_TOKEN_BACKEND value "file". Expected "supabase" or "postgres".'
+            'Unsupported CANDIDATE_TOKEN_BACKEND value "file". Expected "postgres".'
         );
     });
 });

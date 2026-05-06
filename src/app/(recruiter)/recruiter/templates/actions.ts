@@ -4,7 +4,7 @@ import { createTemplateRepository } from "@/lib/server/infrastructure/template-r
 import { RecruiterTemplate } from "@/lib/domain/template";
 import { revalidatePath } from "next/cache";
 
-import { getCachedUser } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/server/auth/current-user";
 
 import { isAdmin } from "@/lib/auth/rbac";
 

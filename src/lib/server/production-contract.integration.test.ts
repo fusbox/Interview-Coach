@@ -1,31 +1,29 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
-    getUserMock,
+    getAuthenticatedRouteUserMock,
     consumeRateLimitMock,
     beginIdempotentRequestMock,
     completeIdempotentRequestMock,
     releaseIdempotentRequestMock,
     createInviteBatchMock,
+    createInviteRepositoryMock,
     durableSnapshotMock,
     durableSloSummaryMock,
 } = vi.hoisted(() => ({
-    getUserMock: vi.fn(),
+    getAuthenticatedRouteUserMock: vi.fn(),
     consumeRateLimitMock: vi.fn(),
     beginIdempotentRequestMock: vi.fn(),
     completeIdempotentRequestMock: vi.fn(),
     releaseIdempotentRequestMock: vi.fn(),
     createInviteBatchMock: vi.fn(),
+    createInviteRepositoryMock: vi.fn(),
     durableSnapshotMock: vi.fn(),
     durableSloSummaryMock: vi.fn(),
 }));
 
-vi.mock("@/lib/supabase/server", () => ({
-    createClient: () => ({
-        auth: {
-            getUser: getUserMock,
-        },
-    }),
+vi.mock("@/lib/server/auth/current-user", () => ({
+    getAuthenticatedRouteUser: getAuthenticatedRouteUserMock,
 }));
 
 vi.mock("@/lib/server/rate-limit", () => ({
@@ -42,6 +40,10 @@ vi.mock("@/lib/server/application/invites/create-invite-batch", () => ({
     createInviteBatch: createInviteBatchMock,
 }));
 
+vi.mock("@/lib/server/infrastructure/invite-repository", () => ({
+    createInviteRepository: createInviteRepositoryMock,
+}));
+
 vi.mock("@/lib/server/metrics/backend", async () => {
     const actual = await vi.importActual<typeof import("@/lib/server/metrics/backend")>("@/lib/server/metrics/backend");
 
@@ -53,13 +55,7 @@ vi.mock("@/lib/server/metrics/backend", async () => {
             writeCounter: vi.fn().mockResolvedValue(undefined),
             writeTiming: vi.fn().mockResolvedValue(undefined),
         }),
-        getMetricsBackendName: () => {
-            if (process.env.NODE_ENV === "production" && !process.env.METRICS_BACKEND?.trim()) {
-                throw new Error("[ServerEnv] Missing required environment variable METRICS_BACKEND for durable metrics backend.");
-            }
-
-            return "supabase" as const;
-        },
+        getMetricsBackendName: () => "postgres" as const,
     };
 });
 
@@ -79,11 +75,12 @@ describe("production contract integration", () => {
         vi.resetModules();
         process.env = { ...originalEnv };
 
-        getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
+        getAuthenticatedRouteUserMock.mockResolvedValue({ id: "user-1", email: "recruiter@example.com" });
         consumeRateLimitMock.mockResolvedValue({ allowed: true, remaining: 10, resetAt: Date.now() + 1000 });
         beginIdempotentRequestMock.mockResolvedValue({ kind: "acquired" });
         completeIdempotentRequestMock.mockResolvedValue(undefined);
         releaseIdempotentRequestMock.mockResolvedValue(undefined);
+        createInviteRepositoryMock.mockResolvedValue({ kind: "invite-repository" });
         createInviteBatchMock.mockResolvedValue({
             batchId: "batch-1",
             results: [{
@@ -156,7 +153,7 @@ describe("production contract integration", () => {
 
     it("fails recruiter invite creation in production when no configured public origin is set", async () => {
         vi.stubEnv("NODE_ENV", "production");
-        vi.stubEnv("METRICS_BACKEND", "supabase");
+        vi.stubEnv("METRICS_BACKEND", "postgres");
         vi.stubEnv("NEXT_PUBLIC_APP_URL", "");
         vi.stubEnv("NEXT_PUBLIC_BASE_URL", "");
 
@@ -197,7 +194,7 @@ describe("production contract integration", () => {
 
     it("accepts NEXT_PUBLIC_BASE_URL as the production public origin contract through the invite route", async () => {
         vi.stubEnv("NODE_ENV", "production");
-        vi.stubEnv("METRICS_BACKEND", "supabase");
+        vi.stubEnv("METRICS_BACKEND", "postgres");
         vi.stubEnv("NEXT_PUBLIC_APP_URL", "");
         vi.stubEnv("NEXT_PUBLIC_BASE_URL", "https://base.example.com");
 
@@ -237,7 +234,7 @@ describe("production contract integration", () => {
 
     it("surfaces durable ops metrics in production when the metrics backend contract is satisfied", async () => {
         vi.stubEnv("NODE_ENV", "production");
-        vi.stubEnv("METRICS_BACKEND", "supabase");
+        vi.stubEnv("METRICS_BACKEND", "postgres");
 
         const { GET } = await import("@/app/api/recruiter/ops/metrics/route");
 

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
-    getUserMock,
+    getAuthenticatedRouteUserMock,
     durableState,
     resetDurableState,
 } = vi.hoisted(() => {
@@ -28,7 +28,7 @@ const {
     };
 
     return {
-        getUserMock: vi.fn(),
+        getAuthenticatedRouteUserMock: vi.fn(),
         durableState,
         resetDurableState: () => {
             durableState.counters.clear();
@@ -37,12 +37,8 @@ const {
     };
 });
 
-vi.mock("@/lib/supabase/server", () => ({
-    createClient: () => ({
-        auth: {
-            getUser: getUserMock,
-        },
-    }),
+vi.mock("@/lib/server/auth/current-user", () => ({
+    getAuthenticatedRouteUser: getAuthenticatedRouteUserMock,
 }));
 
 vi.mock("@/lib/server/metrics/backend", async () => {
@@ -202,7 +198,7 @@ vi.mock("@/lib/server/metrics/backend", async () => {
 
     return {
         ...actual,
-        getMetricsBackendName: () => "supabase" as const,
+        getMetricsBackendName: () => "postgres" as const,
         getDurableMetricsBackend: () => backend,
         resetDurableMetricsBackendForTests: resetDurableState,
     };
@@ -224,7 +220,7 @@ describe("metrics pipeline integration", () => {
         vi.clearAllMocks();
         resetMetrics();
         resetDurableState();
-        getUserMock.mockResolvedValue({ data: { user: { id: "recruiter-1" } }, error: null });
+        getAuthenticatedRouteUserMock.mockResolvedValue({ id: "recruiter-1", email: "recruiter@example.com" });
     });
 
     it("writes operational events into the durable backend and surfaces them through snapshot, slo, dashboard, alerts, and the ops route", async () => {

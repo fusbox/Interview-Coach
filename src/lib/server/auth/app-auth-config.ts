@@ -1,16 +1,16 @@
 import { getOptionalServerEnv } from "@/lib/server/config/server-env";
 
-export type AppAuthBackendName = "supabase" | "postgres";
+export type AppAuthBackendName = "postgres";
 
 export function getAppAuthBackendName(): AppAuthBackendName {
     const configured = getOptionalServerEnv("APP_AUTH_BACKEND")?.toLowerCase();
     if (!configured) {
-        return "supabase";
+        return "postgres";
     }
 
-    if (configured === "supabase" || configured === "postgres") {
+    if (configured === "postgres") {
         return configured;
     }
 
-    throw new Error(`Unsupported APP_AUTH_BACKEND value "${configured}". Expected "supabase" or "postgres".`);
+    throw new Error(`Unsupported APP_AUTH_BACKEND value "${configured}". Expected "postgres".`);
 }

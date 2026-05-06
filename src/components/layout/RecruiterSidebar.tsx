@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { cn } from '@/lib/cn';
 
-import type { User } from '@supabase/supabase-js';
 import type { AppUser } from '@/lib/auth/user';
 import { LogoutButton } from '@/components/auth/LogoutButton';
 import { isAdmin, isQualityEvaluator } from '@/lib/auth/rbac';
@@ -21,7 +20,7 @@ interface RecruiterProfile {
 interface RecruiterSidebarProps {
     className?: string;
     onNavigate?: () => void;
-    user?: User | AppUser | null;
+    user?: AppUser | null;
     profile?: RecruiterProfile | null;
 }
 

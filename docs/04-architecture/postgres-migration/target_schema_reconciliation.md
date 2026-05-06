@@ -169,5 +169,5 @@ The negative-permissions smoke passed against the same smoke DB: missing candida
 2. Confirm with the integration team whether the production app DB user can create extensions, enums, functions, triggers, and indexes, or whether DBA-owned DDL application is required.
 3. Implement or adapt the ATS/Okta identity handoff so internal users map to `app_users`/roles or an equivalent session/role model and land on `/recruiter/create`.
 4. Review repository implementation feedback to decide whether `create_invite_batch()` remains a DB function or moves fully into application transactions.
-5. Remove Supabase fallback packages/env/helper modules after the target Postgres and identity runtime is validated.
+5. Decide whether the historical `supabase/` schema/migration directory should remain for reviewer provenance, be archived, or be removed after target validation.
 6. Decide whether the separate session-recovery hardening patch should merge before final production cutover.

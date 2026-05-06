@@ -26,8 +26,8 @@ vi.mock("@/lib/server/api-handler-utils", () => ({
         })
 }));
 
-vi.mock("@/lib/server/infrastructure/supabase-session-repository", () => ({
-    SupabaseSessionRepository: class {
+vi.mock("@/lib/server/infrastructure/postgres-session-repository", () => ({
+    PostgresSessionRepository: class {
         deleteAnalysis = deleteAnalysisMock;
         update = updateMock;
     }

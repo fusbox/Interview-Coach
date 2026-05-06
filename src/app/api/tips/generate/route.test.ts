@@ -28,8 +28,8 @@ vi.mock("@/lib/server/idempotency", () => ({
     releaseIdempotentRequest: releaseIdempotentRequestMock,
 }));
 
-vi.mock("@/lib/server/infrastructure/supabase-session-repository", () => ({
-    SupabaseSessionRepository: class {
+vi.mock("@/lib/server/infrastructure/postgres-session-repository", () => ({
+    PostgresSessionRepository: class {
         get = getSessionMock;
     },
 }));

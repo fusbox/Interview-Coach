@@ -37,8 +37,8 @@ vi.mock("@/lib/server/api-handler-utils", () => ({
     ) => handler(request, { params, session, correlationId: "corr-1" })
 }));
 
-vi.mock("@/lib/server/infrastructure/supabase-session-repository", () => ({
-    SupabaseSessionRepository: class {
+vi.mock("@/lib/server/infrastructure/postgres-session-repository", () => ({
+    PostgresSessionRepository: class {
         update = updateMock;
     }
 }));

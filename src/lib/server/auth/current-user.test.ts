@@ -1,12 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getCachedUserMock, recordAuthDenialMock } = vi.hoisted(() => ({
-    getCachedUserMock: vi.fn(),
+const { cookiesMock, getUserBySessionTokenMock, recordAuthDenialMock } = vi.hoisted(() => ({
+    cookiesMock: vi.fn(),
+    getUserBySessionTokenMock: vi.fn(),
     recordAuthDenialMock: vi.fn(),
 }));
 
-vi.mock("@/lib/supabase/server", () => ({
-    getCachedUser: getCachedUserMock,
+vi.mock("next/headers", () => ({
+    cookies: cookiesMock,
+}));
+
+vi.mock("react", () => ({
+    cache: <T extends (...args: never[]) => unknown>(fn: T) => fn,
+}));
+
+vi.mock("@/lib/server/auth/app-auth", () => ({
+    getUserBySessionToken: getUserBySessionTokenMock,
 }));
 
 vi.mock("@/lib/server/metrics", () => ({
@@ -16,10 +25,13 @@ vi.mock("@/lib/server/metrics", () => ({
 describe("getAuthenticatedRouteUser", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        cookiesMock.mockResolvedValue({
+            get: vi.fn(() => ({ value: "session-token" })),
+        });
     });
 
     it("returns the current cached user", async () => {
-        getCachedUserMock.mockResolvedValue({
+        getUserBySessionTokenMock.mockResolvedValue({
             id: "user-1",
             email: "recruiter@example.com",
         });
@@ -35,7 +47,7 @@ describe("getAuthenticatedRouteUser", () => {
     });
 
     it("records an auth denial when no user is present", async () => {
-        getCachedUserMock.mockResolvedValue(null);
+        getUserBySessionTokenMock.mockResolvedValue(null);
         const { getAuthenticatedRouteUser } = await import("./current-user");
 
         await expect(getAuthenticatedRouteUser({

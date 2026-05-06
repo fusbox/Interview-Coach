@@ -7,7 +7,7 @@ import type {
 } from "@/lib/server/application/invites/types";
 import type { Invite } from "@/lib/domain/invite";
 
-export type InviteRepositoryBackend = "supabase" | "postgres";
+export type InviteRepositoryBackend = "postgres";
 
 export type TrackedInviteRepository = InviteRepository & {
     createTrackedBatch(input: CreateInviteBatchInput, invites: Invite[]): Promise<string>;
@@ -18,24 +18,18 @@ export type TrackedInviteRepository = InviteRepository & {
 };
 
 export function getInviteRepositoryBackend(): InviteRepositoryBackend {
-    const rawBackend = getOptionalServerEnv("INVITE_REPOSITORY_BACKEND") ?? "supabase";
+    const rawBackend = getOptionalServerEnv("INVITE_REPOSITORY_BACKEND") ?? "postgres";
     const backend = rawBackend.toLowerCase();
 
-    if (backend === "supabase" || backend === "postgres") {
+    if (backend === "postgres") {
         return backend;
     }
 
-    throw new Error("[InviteRepository] INVITE_REPOSITORY_BACKEND must be either 'supabase' or 'postgres'.");
+    throw new Error("[InviteRepository] INVITE_REPOSITORY_BACKEND must be 'postgres'.");
 }
 
 export async function createInviteRepository(): Promise<TrackedInviteRepository> {
-    const backend = getInviteRepositoryBackend();
-
-    if (backend === "postgres") {
-        const { PostgresInviteRepository } = await import("@/lib/server/infrastructure/postgres-invite-repository");
-        return new PostgresInviteRepository();
-    }
-
-    const { SupabaseInviteRepository } = await import("@/lib/server/infrastructure/supabase-invite-repository");
-    return new SupabaseInviteRepository();
+    getInviteRepositoryBackend();
+    const { PostgresInviteRepository } = await import("@/lib/server/infrastructure/postgres-invite-repository");
+    return new PostgresInviteRepository();
 }

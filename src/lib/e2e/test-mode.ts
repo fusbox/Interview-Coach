@@ -1,5 +1,5 @@
 import type { InterviewSession, SessionSummary } from "@/lib/domain/types";
-import type { User } from "@supabase/supabase-js";
+import type { AppUser } from "@/lib/auth/user";
 
 const E2E_RECRUITER_COOKIE = "e2e-auth";
 const E2E_RECRUITER_COOKIE_VALUE = "recruiter";
@@ -23,16 +23,15 @@ export function hasE2ERecruiterCookie(
 
 export function getE2ERecruiterUser() {
     return {
-        aud: "authenticated",
         id: E2E_RECRUITER_ID,
         email: E2E_RECRUITER_EMAIL,
+        roles: ["recruiter"],
         app_metadata: {
             provider: "email",
             providers: ["email"],
         },
         user_metadata: {},
-        created_at: "2026-03-29T00:00:00.000Z",
-    } satisfies User;
+    } satisfies AppUser;
 }
 
 export function getE2ERecruiterProfile() {

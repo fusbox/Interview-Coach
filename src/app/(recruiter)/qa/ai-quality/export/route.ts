@@ -16,7 +16,7 @@ import {
     formatAiGenerationsCsv,
     type AiGenerationExportFormat,
 } from "@/lib/server/ai-quality/ai-generation-export";
-import { getCachedUser } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/server/auth/current-user";
 
 export const dynamic = "force-dynamic";
 
