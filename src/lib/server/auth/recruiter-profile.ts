@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getAppAuthBackendName } from "@/lib/server/auth/app-auth";
+import { getAppAuthBackendName } from "@/lib/server/auth/app-auth-config";
 import { queryPostgres } from "@/lib/server/db/postgres";
 import type { QueryResultRow } from "pg";
 

@@ -1,6 +1,5 @@
 import type { AppUser } from "@/lib/auth/user";
 import { Logger } from "@/lib/logger";
-import { getOptionalServerEnv } from "@/lib/server/config/server-env";
 import {
     generateAppSessionToken,
     getAppSessionExpiresAt,
@@ -9,6 +8,8 @@ import {
 import { type AppAuthStore } from "./app-auth-store";
 import { PostgresAppAuthStore } from "./postgres-app-auth-store";
 import { verifyPassword } from "./password";
+export { getAppAuthBackendName } from "./app-auth-config";
+export type { AppAuthBackendName } from "./app-auth-config";
 
 const LOCKED_LOGIN_MESSAGE = "Account is locked. Please try again later or contact an administrator.";
 const INVALID_LOGIN_MESSAGE = "Invalid email or password.";
@@ -35,21 +36,6 @@ export type LoginResult =
 export type AppAuthDependencies = {
     store?: AppAuthStore;
 };
-
-export type AppAuthBackendName = "supabase" | "postgres";
-
-export function getAppAuthBackendName(): AppAuthBackendName {
-    const configured = getOptionalServerEnv("APP_AUTH_BACKEND")?.toLowerCase();
-    if (!configured) {
-        return "supabase";
-    }
-
-    if (configured === "supabase" || configured === "postgres") {
-        return configured;
-    }
-
-    throw new Error(`Unsupported APP_AUTH_BACKEND value "${configured}". Expected "supabase" or "postgres".`);
-}
 
 export async function authenticateWithPassword(
     email: string,

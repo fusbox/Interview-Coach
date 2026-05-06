@@ -3,7 +3,8 @@ import { cookies } from 'next/headers'
 import { cache } from 'react';
 import { getRequiredServerEnv } from '@/lib/server/config/server-env';
 import { getE2ERecruiterUser, hasE2ERecruiterCookie, isServerE2EMode } from '@/lib/e2e/test-mode';
-import { getAppAuthBackendName, getUserBySessionToken } from '@/lib/server/auth/app-auth';
+import { getUserBySessionToken } from '@/lib/server/auth/app-auth';
+import { getAppAuthBackendName } from '@/lib/server/auth/app-auth-config';
 import { getAppSessionCookieName } from '@/lib/server/auth/app-session';
 
 export function createClient() {
