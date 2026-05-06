@@ -246,8 +246,39 @@ Current result as of May 6, 2026:
 - The pass exposed and fixed a no-SMTP copy bug: when SMTP env is absent and debrief email is skipped, the summary screen no longer says the report was emailed.
 - The pass also corrected candidate-screen Rangam logo dimensions to match the actual image asset and remove the Next image warning.
 
+## Level 7 - Practice Again Chain Smoke
+
+Goal: verify repeat-practice attempts can chain beyond the first retry while all Postgres-backed candidate token and session repositories are pinned to `postgres`.
+
+Repeatable command:
+
+```powershell
+npm run postgres:smoke:practice-again
+```
+
+Done when:
+
+- A Postgres-backed invite is created through the app route stack.
+- Attempt 2 is created from the original invite session using the original candidate token.
+- Attempt 2 receives a distinct `x-candidate-token`.
+- Attempt 2 can be fetched with its own candidate token and exposes that token as its `inviteToken` for practice-again links.
+- Attempt 3 is created from attempt 2 using attempt 2's token.
+- Attempt 3 receives a distinct `x-candidate-token`.
+- Postgres has active `candidate_tokens` rows for attempts 1, 2, and 3.
+- Postgres session rows preserve lineage and encrypted invite-token metadata for repeat attempts.
+
+Current result as of May 6, 2026:
+
+- Route-stack smoke passed against `http://127.0.0.1:3100` with the disposable Postgres DB.
+- Fresh invite batch `592def5a-6cad-4468-b379-72eb243ec239` created attempt 1 session `019dfd8d-927f-7846-999f-fdf9fa4e6906`.
+- Attempt 2 session `019dfd8d-95e3-7078-9a8d-46d21c9f301b` was created from attempt 1 with its own returned candidate token.
+- Attempt 3 session `019dfd8d-9da9-7ace-a533-fab933f1f261` was created from attempt 2 with its own returned candidate token.
+- API fetches for attempts 2 and 3 succeeded only with their respective issued tokens and returned matching `inviteToken` values.
+- Smoke DB verification found three active candidate-token rows and confirmed attempts 2 and 3 both have encrypted `intake_json.invite_token` metadata.
+- The pass fixed the underlying core-app bug by persisting each newly issued session token back onto the session as encrypted invite-token metadata after session start.
+
 ## Final Handoff Language
 
-If Level 1-6 pass locally, we can say:
+If Level 1-7 pass locally, we can say:
 
 > The migration branch is functional against a disposable plain Postgres database using app-owned auth, Postgres-backed repositories, Gemini-backed AI surfaces, real SMTP invite/debrief delivery, and browser-visible recruiter plus candidate flows. Remaining work is target-environment integration: final AWS hosting shape, managed Postgres endpoint and credentials, network/TLS policy, secret store, least-privilege DB user, production URL, and deployment validation.

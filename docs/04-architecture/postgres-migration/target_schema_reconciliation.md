@@ -151,9 +151,11 @@ The first browser-visible recruiter smoke passed against the same smoke DB: `/lo
 
 The first browser-visible candidate smoke also passed against the same smoke DB: `/s/[token]`, initials, welcome/readiness, hints, strong response, text-mode answers, answer feedback for all three questions, final debrief, `COMPLETED` session status, answer/eval row counts, summary narrative, and AI-generation rows all validated. The pass found and fixed candidate summary copy that claimed an email debrief was sent even when SMTP was not configured and no `summary_expires_at` was set.
 
+The practice-again chain smoke passed against the same smoke DB: the route stack created attempt 2 from attempt 1 and attempt 3 from attempt 2, each repeat attempt received its own active candidate-token row, and each repeat session persisted encrypted `intake_json.invite_token` metadata. This validates the schema shape for chained attempts and debrief-email practice-again links without adding new tables.
+
 ## Next Implementation Cut
 
-1. Validate recruiter review, invite resend/retry, practice-again, profile/settings, and negative permission checks against the smoke DB.
+1. Validate recruiter review, invite resend/retry, profile/settings, and negative permission checks against the smoke DB.
 2. Continue SMTP coverage with the product resend path, since initial invite send and debrief send now pass through real Office365 SMTP locally.
 3. Decide whether the browser-visible smoke should remain manually documented or become a repeatable scripted smoke before handoff.
 4. Expand QA explorer validation from page/export `200` checks to browser-visible filter/reset/detail interactions if needed for handoff confidence.

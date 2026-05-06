@@ -230,4 +230,80 @@ describe("candidate session lifecycle integration", () => {
         }));
         expect(Object.keys(persisted?.answers ?? {})).toEqual(["question-1", "question-2"]);
     });
+
+    it("can create a third attempt from a second attempt using the second attempt token", async () => {
+        const repository = new InMemorySessionRepository();
+        const questions: Question[] = [{
+            id: "question-1",
+            text: "Tell me about a bug you found.",
+            category: "STAR",
+            index: 0,
+        }];
+        const issuedTokens = ["attempt-1-token", "attempt-2-token", "attempt-3-token"];
+        const issueCandidateTokenMock = vi.fn(async () => issuedTokens.shift() || "extra-token");
+
+        const attempt1 = await startSessionCommand(
+            new Request("http://localhost/api/session/start", { method: "POST" }),
+            { role: "QA Engineer" },
+            {
+                repository,
+                requireCandidateToken: async () => ({ ok: true, status: 200 }),
+                generateQuestions: async () => questions,
+                issueCandidateToken: issueCandidateTokenMock,
+            }
+        );
+        expect(attempt1.session.inviteToken).toBe("attempt-1-token");
+
+        const attempt2 = await startSessionCommand(
+            new Request("http://localhost/api/session/start", {
+                method: "POST",
+                headers: { "x-candidate-token": "attempt-1-token" },
+            }),
+            { role: "QA Engineer", parentId: attempt1.session.id },
+            {
+                repository,
+                requireCandidateToken: async (_request, sessionId) => ({
+                    ok: sessionId === attempt1.session.id,
+                    status: 200,
+                }),
+                generateQuestions: async () => {
+                    throw new Error("Repeat attempts should reuse cloned questions.");
+                },
+                issueCandidateToken: issueCandidateTokenMock,
+            }
+        );
+        expect(attempt2.session).toEqual(expect.objectContaining({
+            parentSessionId: attempt1.session.id,
+            attemptNumber: 2,
+            inviteToken: "attempt-2-token",
+        }));
+
+        const persistedAttempt2 = await repository.get(attempt2.session.id);
+        expect(persistedAttempt2?.inviteToken).toBe("attempt-2-token");
+
+        const attempt3 = await startSessionCommand(
+            new Request("http://localhost/api/session/start", {
+                method: "POST",
+                headers: { "x-candidate-token": "attempt-2-token" },
+            }),
+            { role: "QA Engineer", parentId: attempt2.session.id },
+            {
+                repository,
+                requireCandidateToken: async (_request, sessionId) => ({
+                    ok: sessionId === attempt2.session.id,
+                    status: 200,
+                }),
+                generateQuestions: async () => {
+                    throw new Error("Repeat attempts should reuse cloned questions.");
+                },
+                issueCandidateToken: issueCandidateTokenMock,
+            }
+        );
+
+        expect(attempt3.session).toEqual(expect.objectContaining({
+            parentSessionId: attempt2.session.id,
+            attemptNumber: 3,
+            inviteToken: "attempt-3-token",
+        }));
+    });
 });

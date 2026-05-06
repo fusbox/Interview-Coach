@@ -135,7 +135,8 @@ runIntegration("PostgresSessionRepository integration", () => {
         await repository.updatePartial(sessionId, {
             status: "IN_SESSION",
             engagedTimeSeconds: 8,
-            engagedTimeDelta: 5
+            engagedTimeDelta: 5,
+            inviteToken: "repeat-attempt-token"
         });
         await repository.markViewed(sessionId);
         await repository.markInvitationSent(sessionId);
@@ -143,7 +144,8 @@ runIntegration("PostgresSessionRepository integration", () => {
         stored = await repository.get(sessionId);
         expect(stored).toMatchObject({
             status: "IN_SESSION",
-            engagedTimeSeconds: 15
+            engagedTimeSeconds: 15,
+            inviteToken: "repeat-attempt-token"
         });
         expect(stored?.viewedAt).toEqual(expect.any(Number));
         expect(stored?.answers[questionId]?.draft).toBe("revised draft");

@@ -3,7 +3,7 @@ import type { SessionRepository } from "@/lib/domain/repository";
 import type { AnalysisResult, Answer, InterviewSession, Question, SessionStatus, SessionSummary } from "@/lib/domain/types";
 import { AnalysisResultSchema } from "@/lib/domain/schemas";
 import { Logger } from "@/lib/logger";
-import { decrypt } from "@/lib/server/encryption";
+import { decrypt, encrypt } from "@/lib/server/encryption";
 import { getPostgresPool } from "@/lib/server/db/postgres";
 
 type SessionIntake = {
@@ -527,7 +527,10 @@ export class PostgresSessionRepository implements SessionRepository {
                 ...currentIntake,
                 candidate: { ...currentIntake.candidate, ...session.candidate },
                 entered_initials: session.enteredInitials || currentIntake.entered_initials,
-                engaged_time_seconds: session.engagedTimeSeconds ?? currentIntake.engaged_time_seconds
+                engaged_time_seconds: session.engagedTimeSeconds ?? currentIntake.engaged_time_seconds,
+                invite_token: session.inviteToken
+                    ? encrypt(session.inviteToken)
+                    : currentIntake.invite_token
             };
 
             await client.query(
@@ -600,7 +603,8 @@ export class PostgresSessionRepository implements SessionRepository {
 
         const shouldPatchIntake =
             updates.enteredInitials !== undefined
-            || updates.engagedTimeSeconds !== undefined;
+            || updates.engagedTimeSeconds !== undefined
+            || updates.inviteToken !== undefined;
 
         if (shouldPatchIntake) {
             const currentIntake = await this.fetchIntake(id);
@@ -615,6 +619,10 @@ export class PostgresSessionRepository implements SessionRepository {
                     this.asNumber(nextIntake.engaged_time_seconds) || 0,
                     updates.engagedTimeSeconds
                 );
+            }
+
+            if (updates.inviteToken !== undefined) {
+                nextIntake.invite_token = encrypt(updates.inviteToken);
             }
 
             addUpdate("intake_json", JSON.stringify(nextIntake), "::jsonb");

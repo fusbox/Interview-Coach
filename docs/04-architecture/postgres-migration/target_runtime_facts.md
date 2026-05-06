@@ -172,6 +172,7 @@ Validation result as of May 5, 2026:
 - Email-send smoke: `npm run postgres:smoke:email` passed against `http://127.0.0.1:3100` on May 6, 2026 with Office365 SMTP env values and intentional recipient `fusbox@gmail.com`. The script logged in, created invite batch `eb13a647-e9cf-48d1-ac84-632c8427491a`, sent the invite through `/api/invite/send`, received provider message id `<4ebd8382-3e15-bf17-d17e-e02e5d5bf234@coach.rangam.com>`, completed the candidate session, sent the debrief email, and verified `invitation_sent_at`, `summary_narrative`, `intake_json.summary_expires_at`, and success metrics in Postgres.
 - Browser-visible recruiter smoke: Playwright CLI drove `/login` through the visible recruiter create-invite flow on May 6, 2026. Login, create steps, preview modal, visible delivered state, dashboard visibility, and DB verification passed for session `019dfd5f-e191-7320-ab8d-836b4c8f0b6d`. The browser pass also cleaned up stale Resend-vendor copy and two non-blocking browser warnings.
 - Browser-visible candidate smoke: Playwright CLI drove `/s/[token]` through initials, welcome/readiness, hints, strong example response, text-mode answer submission, answer feedback for three questions, and final debrief on May 6, 2026. DB verification passed for session `019dfd69-a227-776c-b2bd-c2a2d084a88c`: `COMPLETED`, `current_question_index = 3`, three answers, three eval results, `summary_narrative` present, and successful AI-generation rows for `hint`, `strong_response`, `answer_feedback`, and `session_debrief`. This pass also confirmed visible candidate smoke needs `GEMINI_API_KEY` because the candidate UI touches TTS and AI surfaces.
+- Practice-again chain smoke: `npm run postgres:smoke:practice-again` passed against `http://127.0.0.1:3100` on May 6, 2026. It created a Postgres-backed invite, created attempt 2 from attempt 1, created attempt 3 from attempt 2, fetched attempts 2 and 3 with their own issued tokens, and verified three active candidate-token rows plus encrypted invite-token metadata on repeat-attempt session rows.
 
 Repeatable commands:
 
@@ -182,6 +183,7 @@ npm run db:smoke-schema
 npm run postgres:smoke:product
 npm run postgres:smoke:ai
 npm run postgres:smoke:email
+npm run postgres:smoke:practice-again
 ```
 
 See [local_postgres_smoke.md](./local_postgres_smoke.md).

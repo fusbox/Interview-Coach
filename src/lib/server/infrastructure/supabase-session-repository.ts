@@ -3,7 +3,7 @@ import { InterviewSession, Answer, Question, SessionSummary, SessionStatus, Anal
 import { AnalysisResultSchema } from "@/lib/domain/schemas";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { Logger } from "@/lib/logger";
-import { decrypt } from "@/lib/server/encryption";
+import { decrypt, encrypt } from "@/lib/server/encryption";
 
 interface SessionIntake {
     candidate?: { firstName?: string; lastName?: string; name?: string; email?: string; resumeText?: string };
@@ -434,7 +434,10 @@ export class SupabaseSessionRepository implements SessionRepository {
             ...currentIntake,
             candidate: { ...currentIntake.candidate, ...session.candidate },
             entered_initials: session.enteredInitials || currentIntake.entered_initials,
-            engaged_time_seconds: session.engagedTimeSeconds ?? currentIntake.engaged_time_seconds
+            engaged_time_seconds: session.engagedTimeSeconds ?? currentIntake.engaged_time_seconds,
+            invite_token: session.inviteToken
+                ? encrypt(session.inviteToken)
+                : currentIntake.invite_token
         };
 
         const { error: sessionError } = await supabase
@@ -506,7 +509,8 @@ export class SupabaseSessionRepository implements SessionRepository {
         // Handle intake_json updates (Initials, Engagement)
         const shouldPatchIntake =
             updates.enteredInitials !== undefined ||
-            updates.engagedTimeSeconds !== undefined;
+            updates.engagedTimeSeconds !== undefined ||
+            updates.inviteToken !== undefined;
 
         if (shouldPatchIntake) {
             const { data: current } = await supabase
@@ -525,6 +529,10 @@ export class SupabaseSessionRepository implements SessionRepository {
             if (updates.engagedTimeSeconds !== undefined) {
                 // Absolute update (ensure it never goes backwards)
                 newIntake.engaged_time_seconds = Math.max(newIntake.engaged_time_seconds || 0, updates.engagedTimeSeconds);
+            }
+
+            if (updates.inviteToken !== undefined) {
+                newIntake.invite_token = encrypt(updates.inviteToken);
             }
 
             dbUpdates.intake_json = newIntake;

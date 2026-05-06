@@ -16,6 +16,7 @@ type CandidateAuthResult = {
 type SessionRepository = {
     get(id: string): Promise<InterviewSession | null>;
     create(session: InterviewSession): Promise<void>;
+    update(session: InterviewSession): Promise<void>;
 };
 
 type StartSessionDependencies = {
@@ -58,6 +59,11 @@ export async function startSessionCommand(
 
     await repository.create(session);
     const candidateToken = await issueCandidateToken(session.id);
+    session = {
+        ...session,
+        inviteToken: candidateToken,
+    };
+    await repository.update(session);
 
     return { session, candidateToken };
 }

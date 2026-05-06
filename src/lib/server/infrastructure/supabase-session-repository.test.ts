@@ -9,7 +9,8 @@ const updateMock = vi.fn();
 const orMock = vi.fn();
 
 vi.mock("@/lib/server/encryption", () => ({
-    decrypt: vi.fn((value: string) => value)
+    decrypt: vi.fn((value: string) => value),
+    encrypt: vi.fn((value: string) => `encrypted:${value}`)
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -75,6 +76,19 @@ describe("SupabaseSessionRepository.updatePartial", () => {
         expect(selectMock).toHaveBeenCalled();
         expect(updateMock).toHaveBeenCalled();
         expect(rpcMock).not.toHaveBeenCalled();
+    });
+
+    it("encrypts invite tokens when patching session intake", async () => {
+        const { SupabaseSessionRepository } = await import("./supabase-session-repository");
+        const repository = new SupabaseSessionRepository();
+
+        await repository.updatePartial("session-1", { inviteToken: "attempt-2-token" });
+
+        expect(updateMock).toHaveBeenCalledWith({
+            intake_json: {
+                invite_token: "encrypted:attempt-2-token",
+            },
+        });
     });
 });
 
