@@ -155,10 +155,12 @@ The practice-again chain smoke passed against the same smoke DB: the route stack
 
 The profile/settings smoke passed against the same smoke DB: app-owned auth loaded `/recruiter/settings`, `/api/recruiter/profile` read and updated `public.recruiter_profiles`, the DB row matched the API response, and the script restored the original smoke-user profile. This confirms the current schema supports recruiter profile load/save without Supabase Auth/RLS.
 
+The invite resend/retry smoke passed against the same smoke DB: `/api/invite/resend` marked `sessions.invitation_sent_at` and wrote resend metrics after Office365 SMTP acceptance, while `/api/recruiter/invites/[batch_id]/retry` moved a seeded failed parent batch to `retry_issued`, completed a child batch, created a child session, and persisted completed idempotency state. This validates the current `invite_batches`, `invite_batch_candidates`, `sessions`, `candidate_tokens`, metrics, and idempotency schema shape for resend/retry behavior.
+
 ## Next Implementation Cut
 
-1. Validate recruiter review, invite resend/retry, and negative permission checks against the smoke DB.
-2. Continue SMTP coverage with the product resend path, since initial invite send and debrief send now pass through real Office365 SMTP locally.
+1. Validate recruiter review and negative permission checks against the smoke DB.
+2. Expand browser-visible coverage for resend/retry only if the route-stack smoke is not enough for handoff confidence.
 3. Decide whether the browser-visible smoke should remain manually documented or become a repeatable scripted smoke before handoff.
 4. Expand QA explorer validation from page/export `200` checks to browser-visible filter/reset/detail interactions if needed for handoff confidence.
 5. Validate the same migration against a company-provided development or integration Postgres database once credentials/access are available.

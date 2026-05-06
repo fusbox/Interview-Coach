@@ -306,8 +306,43 @@ Current result as of May 6, 2026:
 - Smoke DB verification confirmed the updated `recruiter_profiles` row.
 - The script restored the original profile before exit.
 
+## Level 9 - Invite Resend And Batch Retry Smoke
+
+Goal: verify invite resend and failed-batch retry work through app-owned auth, Postgres-backed repositories, durable idempotency/rate-limit/metrics stores, and real SMTP delivery.
+
+Repeatable command:
+
+```powershell
+$env:SMOKE_EMAIL_RECIPIENT = "recipient@example.com"
+npm run postgres:smoke:resend-retry
+```
+
+For the May 6 local validation, the command was run directly with `--recipient-email fusbox@gmail.com` so the real resend email had an intentional recipient.
+
+Done when:
+
+- A recruiter can log in through `/api/auth/login` with app-owned Postgres auth.
+- A Postgres-backed invite can be created for the resend target.
+- `POST /api/invite/resend` sends through the SMTP adapter and returns a provider message id.
+- The resend updates `sessions.invitation_sent_at`.
+- The resend writes success metrics through the Postgres metrics backend.
+- A failed, retryable invite batch can be retried through `POST /api/recruiter/invites/[batch_id]/retry`.
+- The retry route writes a completed idempotency record through the Postgres idempotency backend.
+- The failed parent batch becomes `retry_issued` and points to the child batch.
+- The failed parent candidate becomes `retry_issued`, `retryable = false`, and increments `retry_count`.
+- The child batch is `completed` and creates a child session/candidate token.
+
+Current result as of May 6, 2026:
+
+- Route-stack smoke passed against `http://127.0.0.1:3100` with the disposable Postgres DB and Office365 SMTP env values.
+- Login succeeded for `fu@rangam.com` / user `576627b5-cb54-4f7b-b22b-828ee03ed495`.
+- Resend session `019dfdb6-1429-73c3-baa5-3700f62b0c59` returned provider message id `<298058a4-7ef5-25f9-5960-2d4cc55caaeb@coach.rangam.com>`.
+- Smoke DB verification confirmed `invitation_sent_at = 2026-05-06T14:34:23.397Z` and one `invite_resend_total{outcome=success}` metric.
+- Seeded retry parent batch `930b723c-044f-4f25-a2ff-509d9dfdc1b1` retried into child batch `a1bf46e9-1212-4965-a493-53036dd36aa4`.
+- Smoke DB verification confirmed parent status `retry_issued`, child status `completed`, child session `019dfdb6-255e-7aad-b887-62066f285bf5`, and one completed retry idempotency row.
+
 ## Final Handoff Language
 
-If Level 1-8 pass locally, we can say:
+If Level 1-9 pass locally, we can say:
 
 > The migration branch is functional against a disposable plain Postgres database using app-owned auth, Postgres-backed repositories, Gemini-backed AI surfaces, real SMTP invite/debrief delivery, and browser-visible recruiter plus candidate flows. Remaining work is target-environment integration: final AWS hosting shape, managed Postgres endpoint and credentials, network/TLS policy, secret store, least-privilege DB user, production URL, and deployment validation.

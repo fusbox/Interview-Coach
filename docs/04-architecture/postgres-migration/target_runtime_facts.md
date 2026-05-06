@@ -174,6 +174,7 @@ Validation result as of May 5, 2026:
 - Browser-visible candidate smoke: Playwright CLI drove `/s/[token]` through initials, welcome/readiness, hints, strong example response, text-mode answer submission, answer feedback for three questions, and final debrief on May 6, 2026. DB verification passed for session `019dfd69-a227-776c-b2bd-c2a2d084a88c`: `COMPLETED`, `current_question_index = 3`, three answers, three eval results, `summary_narrative` present, and successful AI-generation rows for `hint`, `strong_response`, `answer_feedback`, and `session_debrief`. This pass also confirmed visible candidate smoke needs `GEMINI_API_KEY` because the candidate UI touches TTS and AI surfaces.
 - Practice-again chain smoke: `npm run postgres:smoke:practice-again` passed against `http://127.0.0.1:3100` on May 6, 2026. It created a Postgres-backed invite, created attempt 2 from attempt 1, created attempt 3 from attempt 2, fetched attempts 2 and 3 with their own issued tokens, and verified three active candidate-token rows plus encrypted invite-token metadata on repeat-attempt session rows.
 - Profile/settings smoke: `npm run postgres:smoke:profile-settings` passed against `http://127.0.0.1:3100` on May 6, 2026. It logged in with app-owned auth, loaded `/recruiter/settings`, fetched and updated `/api/recruiter/profile`, verified the saved profile row in Postgres, and restored the original smoke-user profile.
+- Invite resend/retry smoke: `npm run postgres:smoke:resend-retry` passed against `http://127.0.0.1:3100` on May 6, 2026. It created a Postgres-backed invite, resent it through Office365 SMTP to the intentional smoke recipient, verified `invitation_sent_at` and resend success metrics, seeded a failed retryable batch, retried it through the route stack, and verified parent/child batch state, child session creation, and completed retry idempotency in Postgres.
 
 Repeatable commands:
 
@@ -186,6 +187,7 @@ npm run postgres:smoke:ai
 npm run postgres:smoke:email
 npm run postgres:smoke:practice-again
 npm run postgres:smoke:profile-settings
+npm run postgres:smoke:resend-retry
 ```
 
 See [local_postgres_smoke.md](./local_postgres_smoke.md).
