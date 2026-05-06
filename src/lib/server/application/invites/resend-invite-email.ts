@@ -44,9 +44,8 @@ export async function resendInviteEmailCommand(
     const sessionRepository = dependencies.sessionRepository ?? await (await import("@/lib/server/infrastructure/session-repository")).createSessionRepository();
     // Integration handoff note:
     // This command is Flow 2 for outbound email: resending an invite from recruiter dashboard
-    // session data. The provider implementation currently resolves to EmailService, which is
-    // Resend-backed today. When integrating the company's established enterprise mail service,
-    // preserve this command surface and replace the provider wiring underneath it.
+    // session data. The provider implementation currently resolves to EmailService.
+    // Preserve this command surface if provider wiring changes again.
     const sendInviteEmail = dependencies.sendInviteEmail ?? EmailService.sendInviteEmail.bind(EmailService);
     const getOrigin = dependencies.getOrigin ?? getAppOrigin;
 

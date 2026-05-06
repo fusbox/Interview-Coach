@@ -43,10 +43,6 @@ export const GeneratedInterviewQuestionsSchema = z.object({
     ).min(1).max(2),
 });
 
-export const ResendEmailSendResultSchema = z.object({
-    id: z.string().min(1),
-});
-
 export const SmtpEmailSendResultSchema = z.object({
     messageId: z.string().min(1),
     accepted: z.array(z.string()).optional(),

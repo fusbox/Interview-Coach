@@ -191,9 +191,34 @@ Current result as of May 6, 2026:
 - Candidate session opened, initials submitted, practice started, one answer submitted, answer analysis completed, and session completion generated the debrief.
 - Verified `summary_narrative` and `intake_json.summary_expires_at` were persisted after debrief email provider acceptance.
 - Verified Postgres metrics included successful `invite_send_total` and `session_completion_total` rows.
+- Human receipt confirmation: the invite email arrived for both the candidate recipient and recruiter sender mailbox, and the debrief email arrived for the candidate recipient.
+
+### Level 5 - Browser-Visible Recruiter Flow
+
+Done when:
+
+- A recruiter can log in through `/login`.
+- The protected recruiter shell renders the expected role/navigation.
+- The recruiter can create a manual invite through the visible multi-step create flow.
+- The preview modal renders the correct recipient, sender, subject, and invite content.
+- Sending from the preview modal shows the visible delivered state.
+- The recruiter dashboard shows the created candidate/session with `Invite Sent`.
+- The smoke DB has the new session row and `invitation_sent_at`.
+
+Current result as of May 6, 2026:
+
+- Browser smoke passed against `http://127.0.0.1:3100` with the disposable Postgres DB and Office365 SMTP env values.
+- Recruiter login succeeded for `fu@rangam.com` and redirected to `/recruiter/create`.
+- The visible create flow used `UI-SMOKE-001`, role `Warehouse Associate`, one behavioral question, and candidate `Browser Smoke` at `fusbox@gmail.com`.
+- The preview modal displayed the Office365 sender, candidate recipient, recruiter Cc, and `Practice Interview Invitation: Warehouse Associate`.
+- The modal send action returned the visible `Delivered!` state.
+- The dashboard showed `Browser Smoke` under `Not Started` and the detailed table with status `Invite Sent`.
+- Smoke DB verification found session `019dfd5f-e191-7320-ab8d-836b4c8f0b6d`, status `NOT_STARTED`, target role `Warehouse Associate`, and `invitation_sent_at = 2026-05-06T13:01:00.342Z`.
+- The browser pass also found and fixed stale vendor copy in the invite preview footer: `Secure automated delivery via Resend` is now vendor-neutral.
+- Non-blocking browser warnings found during the pass were cleaned up where low risk: login password autocomplete metadata and invite-preview logo aspect-ratio styles.
 
 ## Final Handoff Language
 
-If Level 1-4 pass locally, we can say:
+If Level 1-5 pass locally, we can say:
 
-> The migration branch is functional against a disposable plain Postgres database using app-owned auth, Postgres-backed repositories, Gemini-backed AI surfaces, and real SMTP invite/debrief delivery. Remaining work is target-environment integration: final AWS hosting shape, managed Postgres endpoint and credentials, network/TLS policy, secret store, least-privilege DB user, production URL, and deployment validation.
+> The migration branch is functional against a disposable plain Postgres database using app-owned auth, Postgres-backed repositories, Gemini-backed AI surfaces, real SMTP invite/debrief delivery, and the browser-visible recruiter invite flow. Remaining work is target-environment integration: final AWS hosting shape, managed Postgres endpoint and credentials, network/TLS policy, secret store, least-privilege DB user, production URL, and deployment validation.

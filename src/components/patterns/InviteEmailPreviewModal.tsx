@@ -348,6 +348,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                                     width={140} 
                                                     height={36} 
                                                     className="h-9 w-auto" 
+                                                    style={{ width: "auto", height: "36px" }}
                                                     unoptimized
                                                 />
                                             </div>
@@ -412,6 +413,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                                             width={80} 
                                                             height={20} 
                                                             className="h-5 w-auto" 
+                                                            style={{ width: "auto", height: "20px" }}
                                                             unoptimized
                                                         />
                                                     </div>
@@ -429,7 +431,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                     <ShieldCheck size={14} className="text-emerald-700 dark:text-emerald-300" />
                                     <div className="space-y-1">
                                         <span className="block text-[10px] font-bold text-text-disabled uppercase tracking-widest">
-                                            Secure automated delivery via Resend
+                                            Secure automated delivery
                                         </span>
                                         {pilotRollout.enabled && (
                                             <span className="block text-[11px] text-text-secondary">

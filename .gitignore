@@ -40,6 +40,7 @@ yarn-error.log*
 # Testing
 coverage/
 .nyc_output/
+.playwright-cli/
  
 # TypeScript
 *.tsbuildinfo

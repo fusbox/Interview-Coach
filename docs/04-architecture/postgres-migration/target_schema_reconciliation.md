@@ -147,10 +147,12 @@ The Level 3 AI-surface smoke validates real provider capture against the same sm
 
 The Level 4 email smoke validates real Office365 SMTP delivery against the same smoke DB: `/api/invite/send` returned a provider message id, `sessions.invitation_sent_at` was set, completing the candidate session sent the debrief email, and the session row persisted both `summary_narrative` and `intake_json.summary_expires_at`.
 
+The first browser-visible recruiter smoke passed against the same smoke DB: `/login`, the protected recruiter shell, manual create-invite steps, preview modal, visible send/delivered state, dashboard visibility, and direct DB verification all worked. The pass found stale Resend-vendor footer copy in the preview modal, which was changed to vendor-neutral delivery copy.
+
 ## Next Implementation Cut
 
-1. Extend local product smoke to cover browser-visible login/create-invite/candidate UX, not only route-stack HTTP calls.
-2. Validate recruiter review, invite resend/retry, practice-again, and negative permission checks against the smoke DB.
+1. Extend local product smoke to cover browser-visible candidate practice UX, not only route-stack HTTP calls.
+2. Validate recruiter review, invite resend/retry, practice-again, profile/settings, and negative permission checks against the smoke DB.
 3. Continue SMTP coverage with the product resend path, since initial invite send and debrief send now pass through real Office365 SMTP locally.
 4. Expand QA explorer validation from page/export `200` checks to browser-visible filter/reset/detail interactions if needed for handoff confidence.
 5. Validate the same migration against a company-provided development or integration Postgres database once credentials/access are available.

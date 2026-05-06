@@ -156,6 +156,7 @@ export default function LoginPage() {
                                     className="w-full h-11 pl-11 pr-11 rounded-xl border border-border bg-surface-subtle/30 focus:bg-surface-base focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all duration-base placeholder:text-text-disabled text-sm text-text-primary"
                                     placeholder={activeTab === 'signup' ? "Create a strong password" : "Enter your password"}
                                     type={showPassword ? "text" : "password"}
+                                    autoComplete={activeTab === 'signup' ? "new-password" : "current-password"}
                                     value={password}
                                     onChange={e => setPassword(e.target.value)}
                                 />

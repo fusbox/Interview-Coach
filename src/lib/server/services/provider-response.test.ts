@@ -4,7 +4,7 @@ import { parseProviderJson, parseProviderValue } from "@/lib/server/provider-res
 import { ProviderResponseError } from "@/lib/server/provider-errors";
 import {
     GeneratedInterviewQuestionsSchema,
-    ResendEmailSendResultSchema,
+    SmtpEmailSendResultSchema,
     StrongResponseResultSchema
 } from "@/lib/domain/schemas";
 
@@ -63,10 +63,10 @@ describe("provider response parsing", () => {
         expect(result.technical).toHaveLength(1);
     });
 
-    it("throws a typed provider error for invalid resend payloads", () => {
+    it("throws a typed provider error for invalid SMTP payloads", () => {
         try {
-            parseProviderValue({ notId: "123" }, ResendEmailSendResultSchema, {
-                provider: "resend",
+            parseProviderValue({ notId: "123" }, SmtpEmailSendResultSchema, {
+                provider: "smtp",
                 operation: "sendInviteEmail"
             });
         } catch (error) {
