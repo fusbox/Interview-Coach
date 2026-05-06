@@ -341,8 +341,41 @@ Current result as of May 6, 2026:
 - Seeded retry parent batch `930b723c-044f-4f25-a2ff-509d9dfdc1b1` retried into child batch `a1bf46e9-1212-4965-a493-53036dd36aa4`.
 - Smoke DB verification confirmed parent status `retry_issued`, child status `completed`, child session `019dfdb6-255e-7aad-b887-62066f285bf5`, and one completed retry idempotency row.
 
+## Level 10 - Recruiter Review Smoke
+
+Goal: verify a recruiter can open a session review page for their own candidate session through app-owned auth and Postgres-backed session storage.
+
+Current product contract:
+
+- Recruiter review currently shows session summary, status, question text, submitted/pending state, and candidate transcripts.
+- Recruiter review does not expose the candidate-facing AI coaching feedback. AI feedback is rendered in candidate session surfaces and evaluated in QA/admin surfaces, not on `/recruiter/sessions/[id]`.
+
+Repeatable command:
+
+```powershell
+npm run postgres:smoke:recruiter-review
+```
+
+Done when:
+
+- A recruiter can log in through `/api/auth/login` with app-owned Postgres auth.
+- A Postgres-backed invite/session can be created for that recruiter.
+- A candidate answer can be submitted through the candidate token route stack.
+- `/recruiter/sessions/[id]` returns `200` for the owning recruiter.
+- The review page includes the session title, candidate name, target role, question text, submitted response heading, and transcript.
+- The review page does not expose candidate AI feedback pulse labels such as `Content Pulse` or `Delivery Pulse`.
+- Postgres contains the owner-scoped session row and submitted answer row.
+
+Current result as of May 6, 2026:
+
+- Route-stack smoke passed against `http://127.0.0.1:3100` with the disposable Postgres DB.
+- Login succeeded for `fu@rangam.com` / user `576627b5-cb54-4f7b-b22b-828ee03ed495`.
+- Review session `019dfdc4-03c6-7f40-a088-cbe21ba53353` returned `200`.
+- The page included candidate `Smoke Review`, role `Warehouse Associate`, the question text, the `Candidate Response` heading, and the submitted transcript excerpt.
+- Smoke DB verification confirmed session status `AWAITING_EVAL`, one answer row, and one final answer row.
+
 ## Final Handoff Language
 
-If Level 1-9 pass locally, we can say:
+If Level 1-10 pass locally, we can say:
 
 > The migration branch is functional against a disposable plain Postgres database using app-owned auth, Postgres-backed repositories, Gemini-backed AI surfaces, real SMTP invite/debrief delivery, and browser-visible recruiter plus candidate flows. Remaining work is target-environment integration: final AWS hosting shape, managed Postgres endpoint and credentials, network/TLS policy, secret store, least-privilege DB user, production URL, and deployment validation.

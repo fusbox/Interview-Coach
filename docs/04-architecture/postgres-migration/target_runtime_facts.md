@@ -8,7 +8,7 @@ Scope of this pass:
 
 - Worktree: `C:\tmp\Interview-Coach-Recruiter-postgres`
 - Branch: `feature/postgres-integration`
-- Branch head during review: `b7756a2 feat: add app auth middleware guard`
+- Branch head during review: `2230874 test postgres invite resend retry flow`
 - Date: 2026-05-06
 
 ## Current Classification
@@ -175,6 +175,7 @@ Validation result as of May 5, 2026:
 - Practice-again chain smoke: `npm run postgres:smoke:practice-again` passed against `http://127.0.0.1:3100` on May 6, 2026. It created a Postgres-backed invite, created attempt 2 from attempt 1, created attempt 3 from attempt 2, fetched attempts 2 and 3 with their own issued tokens, and verified three active candidate-token rows plus encrypted invite-token metadata on repeat-attempt session rows.
 - Profile/settings smoke: `npm run postgres:smoke:profile-settings` passed against `http://127.0.0.1:3100` on May 6, 2026. It logged in with app-owned auth, loaded `/recruiter/settings`, fetched and updated `/api/recruiter/profile`, verified the saved profile row in Postgres, and restored the original smoke-user profile.
 - Invite resend/retry smoke: `npm run postgres:smoke:resend-retry` passed against `http://127.0.0.1:3100` on May 6, 2026. It created a Postgres-backed invite, resent it through Office365 SMTP to the intentional smoke recipient, verified `invitation_sent_at` and resend success metrics, seeded a failed retryable batch, retried it through the route stack, and verified parent/child batch state, child session creation, and completed retry idempotency in Postgres.
+- Recruiter review smoke: `npm run postgres:smoke:recruiter-review` passed against `http://127.0.0.1:3100` on May 6, 2026. It created a Postgres-backed invite/session, submitted a candidate answer, opened `/recruiter/sessions/[id]` as the owning recruiter, verified the visible review contract, confirmed the page does not expose candidate AI feedback pulse labels, and verified the owner-scoped session plus answer rows in Postgres.
 
 Repeatable commands:
 
@@ -188,6 +189,7 @@ npm run postgres:smoke:email
 npm run postgres:smoke:practice-again
 npm run postgres:smoke:profile-settings
 npm run postgres:smoke:resend-retry
+npm run postgres:smoke:recruiter-review
 ```
 
 See [local_postgres_smoke.md](./local_postgres_smoke.md).

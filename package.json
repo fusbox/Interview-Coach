@@ -23,7 +23,8 @@
     "postgres:smoke:email": "node scripts/smoke-postgres-email-flow.mjs --smoke-defaults",
     "postgres:smoke:practice-again": "node scripts/smoke-postgres-practice-again.mjs --smoke-defaults",
     "postgres:smoke:profile-settings": "node scripts/smoke-postgres-profile-settings.mjs --smoke-defaults",
-    "postgres:smoke:resend-retry": "node scripts/smoke-postgres-resend-retry.mjs --smoke-defaults"
+    "postgres:smoke:resend-retry": "node scripts/smoke-postgres-resend-retry.mjs --smoke-defaults",
+    "postgres:smoke:recruiter-review": "node scripts/smoke-postgres-recruiter-review.mjs --smoke-defaults"
   },
   "dependencies": {
     "@google/genai": "1.39.0",

@@ -157,9 +157,11 @@ The profile/settings smoke passed against the same smoke DB: app-owned auth load
 
 The invite resend/retry smoke passed against the same smoke DB: `/api/invite/resend` marked `sessions.invitation_sent_at` and wrote resend metrics after Office365 SMTP acceptance, while `/api/recruiter/invites/[batch_id]/retry` moved a seeded failed parent batch to `retry_issued`, completed a child batch, created a child session, and persisted completed idempotency state. This validates the current `invite_batches`, `invite_batch_candidates`, `sessions`, `candidate_tokens`, metrics, and idempotency schema shape for resend/retry behavior.
 
+The recruiter review smoke passed against the same smoke DB: `/recruiter/sessions/[id]` returned the owner-scoped session summary, question text, submitted state, and candidate transcript from Postgres-backed session storage. The page intentionally did not expose candidate AI feedback pulse labels, matching the current product contract where AI coaching feedback is candidate-facing and QA/admin-evaluated rather than recruiter-visible.
+
 ## Next Implementation Cut
 
-1. Validate recruiter review and negative permission checks against the smoke DB.
+1. Validate negative permission checks against the smoke DB, including cross-recruiter session access, admin/QA route gating, and candidate token/session mismatch rejection.
 2. Expand browser-visible coverage for resend/retry only if the route-stack smoke is not enough for handoff confidence.
 3. Decide whether the browser-visible smoke should remain manually documented or become a repeatable scripted smoke before handoff.
 4. Expand QA explorer validation from page/export `200` checks to browser-visible filter/reset/detail interactions if needed for handoff confidence.
