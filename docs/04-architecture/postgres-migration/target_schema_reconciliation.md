@@ -159,13 +159,14 @@ The invite resend/retry smoke passed against the same smoke DB: `/api/invite/res
 
 The recruiter review smoke passed against the same smoke DB: `/recruiter/sessions/[id]` returned the owner-scoped session summary, question text, submitted state, and candidate transcript from Postgres-backed session storage. The page intentionally did not expose candidate AI feedback pulse labels, matching the current product contract where AI coaching feedback is candidate-facing and QA/admin-evaluated rather than recruiter-visible.
 
+The negative-permissions smoke passed against the same smoke DB: missing candidate tokens returned `401`, mismatched candidate tokens returned `403`, cross-recruiter session review returned `404`, cross-recruiter invite resend returned `403`, recruiter-only admin/QA page requests redirected away, QA export returned `403`, and the DB confirmed test sessions remained owner-scoped. This validates the current schema shape for app-owned roles, session ownership, and hash-backed candidate-token isolation.
+
 ## Next Implementation Cut
 
-1. Validate negative permission checks against the smoke DB, including cross-recruiter session access, admin/QA route gating, and candidate token/session mismatch rejection.
-2. Expand browser-visible coverage for resend/retry only if the route-stack smoke is not enough for handoff confidence.
-3. Decide whether the browser-visible smoke should remain manually documented or become a repeatable scripted smoke before handoff.
-4. Expand QA explorer validation from page/export `200` checks to browser-visible filter/reset/detail interactions if needed for handoff confidence.
-5. Validate the same migration against a company-provided development or integration Postgres database once credentials/access are available.
-6. Review repository implementation feedback to decide whether `create_invite_batch()` remains a DB function or moves into an application transaction.
-7. Revisit this plan after remaining server components/actions, middleware, and fallback repositories are moved off Supabase.
-8. Confirm with the integration team whether the production app DB user can create extensions, enums, functions, triggers, and indexes, or whether DBA-owned DDL application is required.
+1. Expand browser-visible coverage for resend/retry only if the route-stack smoke is not enough for handoff confidence.
+2. Decide whether the browser-visible smoke should remain manually documented or become a repeatable scripted smoke before handoff.
+3. Expand QA explorer validation from page/export `200` checks to browser-visible filter/reset/detail interactions if needed for handoff confidence.
+4. Validate the same migration against a company-provided development or integration Postgres database once credentials/access are available.
+5. Review repository implementation feedback to decide whether `create_invite_batch()` remains a DB function or moves into an application transaction.
+6. Revisit this plan after remaining server components/actions, middleware, and fallback repositories are moved off Supabase.
+7. Confirm with the integration team whether the production app DB user can create extensions, enums, functions, triggers, and indexes, or whether DBA-owned DDL application is required.

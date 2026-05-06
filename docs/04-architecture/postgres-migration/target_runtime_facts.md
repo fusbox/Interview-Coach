@@ -176,6 +176,7 @@ Validation result as of May 5, 2026:
 - Profile/settings smoke: `npm run postgres:smoke:profile-settings` passed against `http://127.0.0.1:3100` on May 6, 2026. It logged in with app-owned auth, loaded `/recruiter/settings`, fetched and updated `/api/recruiter/profile`, verified the saved profile row in Postgres, and restored the original smoke-user profile.
 - Invite resend/retry smoke: `npm run postgres:smoke:resend-retry` passed against `http://127.0.0.1:3100` on May 6, 2026. It created a Postgres-backed invite, resent it through Office365 SMTP to the intentional smoke recipient, verified `invitation_sent_at` and resend success metrics, seeded a failed retryable batch, retried it through the route stack, and verified parent/child batch state, child session creation, and completed retry idempotency in Postgres.
 - Recruiter review smoke: `npm run postgres:smoke:recruiter-review` passed against `http://127.0.0.1:3100` on May 6, 2026. It created a Postgres-backed invite/session, submitted a candidate answer, opened `/recruiter/sessions/[id]` as the owning recruiter, verified the visible review contract, confirmed the page does not expose candidate AI feedback pulse labels, and verified the owner-scoped session plus answer rows in Postgres.
+- Negative-permissions smoke: `npm run postgres:smoke:negative-permissions` passed against `http://127.0.0.1:3100` on May 6, 2026. It provisioned a recruiter-only second user, verified missing and mismatched candidate-token denials, cross-recruiter review/resend denial, admin/QA page redirects, QA export `403`, anonymous protected-page redirect, and owner/role state in Postgres.
 
 Repeatable commands:
 
@@ -190,6 +191,7 @@ npm run postgres:smoke:practice-again
 npm run postgres:smoke:profile-settings
 npm run postgres:smoke:resend-retry
 npm run postgres:smoke:recruiter-review
+npm run postgres:smoke:negative-permissions
 ```
 
 See [local_postgres_smoke.md](./local_postgres_smoke.md).

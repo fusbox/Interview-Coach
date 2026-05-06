@@ -374,8 +374,45 @@ Current result as of May 6, 2026:
 - The page included candidate `Smoke Review`, role `Warehouse Associate`, the question text, the `Candidate Response` heading, and the submitted transcript excerpt.
 - Smoke DB verification confirmed session status `AWAITING_EVAL`, one answer row, and one final answer row.
 
+## Level 11 - Negative Permissions Smoke
+
+Goal: verify the migrated app denies common cross-boundary access attempts while app-owned auth, Postgres-backed repositories, candidate-token auth, rate limits, metrics, and route/page guards are active.
+
+Repeatable command:
+
+```powershell
+npm run postgres:smoke:negative-permissions
+```
+
+Done when:
+
+- A disposable second recruiter can be provisioned in the smoke DB with only the `recruiter` role.
+- The owner recruiter can create two Postgres-backed candidate sessions.
+- A candidate session fetch without `x-candidate-token` returns `401`.
+- A candidate token issued for one session cannot fetch another session and returns `403`.
+- A non-owning recruiter cannot open another recruiter's session review page and receives `404`.
+- A non-owning recruiter cannot resend another recruiter's invite and receives `403`.
+- A recruiter without admin/QA privileges is redirected away from `/admin/feedback` and `/qa/ai-quality`.
+- A recruiter without QA privileges cannot use `/qa/ai-quality/export` and receives `403`.
+- Anonymous protected-page access redirects to `/login?next=...`.
+- The smoke DB confirms both test sessions belong to the owner and the second user has only the `recruiter` role.
+
+Current result as of May 6, 2026:
+
+- Route-stack smoke passed against `http://127.0.0.1:3100` with the disposable Postgres DB.
+- Owner login succeeded for `fu@rangam.com` / user `576627b5-cb54-4f7b-b22b-828ee03ed495`.
+- Disposable non-admin/non-QA recruiter `smoke.negative.recruiter+20260506150421@example.com` was provisioned with user id `0cfe91c9-f306-4f6e-83f3-6381e7411865`.
+- Candidate session fetch without token returned `401`.
+- Candidate session fetch with a token from the other smoke session returned `403`.
+- Cross-recruiter session review returned `404`.
+- Cross-recruiter invite resend returned `403`.
+- Non-admin `/admin/feedback` and non-QA `/qa/ai-quality` page requests redirected to `/recruiter`.
+- Non-QA `/qa/ai-quality/export` returned `403`.
+- Anonymous `/recruiter` access redirected to `/login?next=%2Frecruiter`.
+- Smoke DB verification confirmed two owner-scoped session rows and only the `recruiter` role on the second user.
+
 ## Final Handoff Language
 
-If Level 1-10 pass locally, we can say:
+If Level 1-11 pass locally, we can say:
 
-> The migration branch is functional against a disposable plain Postgres database using app-owned auth, Postgres-backed repositories, Gemini-backed AI surfaces, real SMTP invite/debrief delivery, and browser-visible recruiter plus candidate flows. Remaining work is target-environment integration: final AWS hosting shape, managed Postgres endpoint and credentials, network/TLS policy, secret store, least-privilege DB user, production URL, and deployment validation.
+> The migration branch is functional against a disposable plain Postgres database using app-owned auth, Postgres-backed repositories, candidate-token access controls, role-gated admin/QA pages, Gemini-backed AI surfaces, real SMTP invite/debrief delivery, and browser-visible recruiter plus candidate flows. Remaining work is target-environment integration: final AWS hosting shape, managed Postgres endpoint and credentials, network/TLS policy, secret store, least-privilege DB user, production URL, and deployment validation.
