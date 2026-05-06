@@ -4,12 +4,14 @@
 
 This inventory maps the runtime, schema, test, and documentation dependencies that must be replaced to fully unwire Supabase while preserving current app functionality.
 
+For the code-review and deployment-facing summary, start with [postgres_migration_handoff.md](./postgres_migration_handoff.md). This inventory remains the detailed touchpoint appendix.
+
 Scope of this pass:
 
 - Worktree: `C:\tmp\Interview-Coach-Recruiter-postgres`
 - Branch: `feature/postgres-integration`
 - Branch head during initial inventory: `5668696 bypass replay tour gate for 1 user`
-- Latest reviewed head before this slice: `bb20083 test postgres negative permissions`
+- Latest reviewed head before this handoff slice: `4cc0c63 docs update target identity handoff`
 - Date: initial inventory 2026-05-04; refreshed 2026-05-06 after porting AI-quality generation capture, browser profile/auth client cleanup, API-route auth seam work, server-page profile lookup cleanup, app-auth middleware protected-page redirects, app-user provisioning, Level 2/3 local Postgres smoke validation, tips/strong-response route repository cleanup, practice-again chain validation, profile/settings smoke validation, invite resend/retry validation, recruiter review validation, and negative-permissions validation.
 
 ## Replacement Direction

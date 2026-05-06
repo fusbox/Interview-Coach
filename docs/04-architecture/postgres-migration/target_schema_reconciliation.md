@@ -6,6 +6,8 @@ This document reconciles the current Supabase-backed schema sources into a neutr
 
 It is not executable DDL. Its job is to make the target database shape explicit before creating migration SQL.
 
+For the code-review and deployment-facing summary, start with [postgres_migration_handoff.md](./postgres_migration_handoff.md). This file remains the schema reconciliation appendix.
+
 ## Source Inputs
 
 | Source | Use | Confidence | Gaps |
@@ -163,10 +165,9 @@ The negative-permissions smoke passed against the same smoke DB: missing candida
 
 ## Next Implementation Cut
 
-1. Expand browser-visible coverage for resend/retry only if the route-stack smoke is not enough for handoff confidence.
-2. Decide whether the browser-visible smoke should remain manually documented or become a repeatable scripted smoke before handoff.
-3. Expand QA explorer validation from page/export `200` checks to browser-visible filter/reset/detail interactions if needed for handoff confidence.
-4. Validate the same migration against a company-provided development or integration Postgres database once credentials/access are available.
-5. Review repository implementation feedback to decide whether `create_invite_batch()` remains a DB function or moves into an application transaction.
-6. Revisit this plan after remaining server components/actions, middleware, and fallback repositories are moved off Supabase.
-7. Confirm with the integration team whether the production app DB user can create extensions, enums, functions, triggers, and indexes, or whether DBA-owned DDL application is required.
+1. Validate the same migration against a company-provided development or integration Postgres database once credentials/access are available.
+2. Confirm with the integration team whether the production app DB user can create extensions, enums, functions, triggers, and indexes, or whether DBA-owned DDL application is required.
+3. Implement or adapt the ATS/Okta identity handoff so internal users map to `app_users`/roles or an equivalent session/role model and land on `/recruiter/create`.
+4. Review repository implementation feedback to decide whether `create_invite_batch()` remains a DB function or moves fully into application transactions.
+5. Remove Supabase fallback packages/env/helper modules after the target Postgres and identity runtime is validated.
+6. Decide whether the separate session-recovery hardening patch should merge before final production cutover.

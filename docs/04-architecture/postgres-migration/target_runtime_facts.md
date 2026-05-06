@@ -4,11 +4,13 @@
 
 This document captures the runtime facts needed before the Postgres migration can be validated in the company environment. It separates facts confirmed from this branch, current working assumptions, and open confirmations for the integration/infra team.
 
+For the code-review and deployment-facing summary, start with [postgres_migration_handoff.md](./postgres_migration_handoff.md). This file remains the runtime/env appendix.
+
 Scope of this pass:
 
 - Worktree: `C:\tmp\Interview-Coach-Recruiter-postgres`
 - Branch: `feature/postgres-integration`
-- Branch head during review: `bb20083 test postgres negative permissions`
+- Branch head during review before this handoff slice: `4cc0c63 docs update target identity handoff`
 - Date: 2026-05-06
 
 ## Current Classification
