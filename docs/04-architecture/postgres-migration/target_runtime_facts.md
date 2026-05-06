@@ -78,6 +78,7 @@ This is the expected direction after Supabase removal. Names may be adjusted dur
 | `APP_SESSION_SECRET` | Not currently required | Earlier placeholder for signed cookies/tokens. Current app-auth foundation uses random opaque session tokens hashed at rest, so there is no signing secret in this first implementation. | Revisit only if signed stateless tokens are introduced |
 | `AUTH_COOKIE_NAME` | Optional | Explicit app session cookie name. Defaults to `ic_app_session`. | Added |
 | `APP_SESSION_TTL_SECONDS` | Optional | App-owned recruiter session lifetime in seconds. Defaults to 8 hours. | Added |
+| `ENCRYPTION_SECRET` | Required for encrypted-at-rest invite token metadata | Candidate invite tokens are encrypted into session intake metadata. Must be stable per environment and at least 32 characters. | Existing, now explicit in local smoke |
 | `GEMINI_API_KEY` | Required for production AI | Question generation, feedback, hints, strong response, debrief | Existing |
 | `SMTP_HOST` | Required for target Microsoft SMTP | Microsoft/enterprise SMTP host | Branch default is AWS SES, so set explicitly for company deployment |
 | `SMTP_PORT` | Required for target Microsoft SMTP | Expected `587` | Branch supports configurable port |
@@ -166,6 +167,8 @@ Validation result as of May 5, 2026:
 - AI-quality revalidation result: after porting generation capture on May 5, 2026, the updated schema reapplied successfully and the smoke validation passed with `get_ai_generation_summary()` included.
 - App-user provisioning validation: `fu@rangam.com` provisioned successfully into `interviewcoach-postgres-smoke` on May 6, 2026 with recruiter/admin/QA roles.
 - HTTP app-auth smoke: local Next dev server on port `3100` returned `200` for `/api/auth/login`, `/recruiter`, `/qa/ai-quality`, and `/admin/feedback` using the smoke DB and Postgres backend selectors.
+- Product-flow smoke: `npm run postgres:smoke:product` passed against `http://127.0.0.1:3100` on May 6, 2026 after starting the app with a local-only `ENCRYPTION_SECRET`. The script logged in, created a Postgres-backed invite batch, opened `/s/[token]`, fetched the candidate session, submitted initials, started practice, saved a draft, submitted one answer, ran answer analysis through the local mock fallback, and verified Postgres rows for questions, answer, eval result, candidate token, idempotency, rate-limit, metrics, and `ai_generations`.
+- Email-send smoke remains separate: no SMTP credentials were used in the local product-flow smoke, so `/api/invite/send` delivery acceptance and `invitation_sent_at` marking still require target SMTP env values.
 
 Repeatable commands:
 
@@ -173,6 +176,7 @@ Repeatable commands:
 npm run postgres:smoke:start
 npm run db:apply-schema
 npm run db:smoke-schema
+npm run postgres:smoke:product
 ```
 
 See [local_postgres_smoke.md](./local_postgres_smoke.md).

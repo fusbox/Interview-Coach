@@ -141,11 +141,15 @@ Disposable validation passed on May 5, 2026 against `interviewcoach-postgres-tes
 
 Repository validation has now exercised the neutral `sessions`, `questions`, `answers`, `eval_results`, `candidate_tokens`, `recruiter_templates`, `user_feedback`, and `ai_generations` tables through Postgres-backed stores. The session repository test specifically covers session create/read/update/delete, dashboard summary counts, draft saves, answer feedback persistence, analysis deletion, summary expiry metadata, invitation sent timestamp updates, and atomic engagement increments. The template repository test covers recruiter-owned templates, shared-template visibility, private-template exclusion, create/update/delete behavior, and explicit admin manage-all behavior. The feedback repository test covers capture, session/type updates, recruiter-only inserts, and the admin view join shape. The AI-quality repository tests cover capture insert serialization plus QA explorer list, page, summary, and row mapping behavior.
 
+The Level 2 local product-flow smoke now also validates the route-stack shape against the repeatable smoke DB: app-owned recruiter login, Postgres invite batch creation, candidate `/s/[token]` access, candidate session fetch, initials, draft save, answer submit, answer analysis through local mock fallback, and DB row verification for invite tracking, sessions, questions, answers, eval results, candidate tokens, idempotency, rate limits, metrics, and `ai_generations`.
+
 ## Next Implementation Cut
 
-1. Validate AI-quality capture in a full local product smoke with `AI_GENERATION_REPOSITORY_BACKEND=postgres` once a real `GEMINI_API_KEY` is available in the smoke environment.
-3. Validate the same migration against a company-provided development or integration Postgres database once credentials/access are available.
-4. Review repository implementation feedback to decide whether `create_invite_batch()` remains a DB function or moves into an application transaction.
-5. Revisit this plan after remaining server components/actions, middleware, and fallback repositories are moved off Supabase.
-6. Confirm with the integration team whether the production app DB user can create extensions, enums, functions, triggers, and indexes, or whether DBA-owned DDL application is required.
-7. Validate a full local product smoke with all implemented backend selectors pinned to `postgres`, including invite create/send/resend/retry, candidate practice, answer feedback, session debrief, and QA explorer reads.
+1. Extend local product smoke to cover browser-visible login/create-invite/candidate UX, not only route-stack HTTP calls.
+2. Validate Gemini-backed AI-quality capture with a real `GEMINI_API_KEY`: question generation, hints, strong response, answer feedback, and session debrief.
+3. Validate SMTP-backed `/api/invite/send`, invitation-sent timestamps, resend, and debrief email with target Microsoft/Office365 SMTP env values.
+4. Validate QA explorer UI reads/exports against the smoke DB records created by product-flow smoke.
+5. Validate the same migration against a company-provided development or integration Postgres database once credentials/access are available.
+6. Review repository implementation feedback to decide whether `create_invite_batch()` remains a DB function or moves into an application transaction.
+7. Revisit this plan after remaining server components/actions, middleware, and fallback repositories are moved off Supabase.
+8. Confirm with the integration team whether the production app DB user can create extensions, enums, functions, triggers, and indexes, or whether DBA-owned DDL application is required.

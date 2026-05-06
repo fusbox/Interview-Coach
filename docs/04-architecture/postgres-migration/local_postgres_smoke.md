@@ -67,10 +67,12 @@ $env:IDEMPOTENCY_BACKEND = "postgres"
 $env:RATE_LIMIT_BACKEND = "postgres"
 $env:METRICS_BACKEND = "postgres"
 $env:NEXT_PUBLIC_APP_URL = "http://localhost:3000"
+$env:ENCRYPTION_SECRET = "interviewcoach-local-smoke-encryption-secret-32plus"
 $env:GEMINI_API_KEY = "<real key for AI surfaces, or a placeholder for auth-only smoke>"
 ```
 
 SMTP variables are required only if the smoke includes actual email delivery.
+`ENCRYPTION_SECRET` is required before invite creation because candidate invite tokens are encrypted into session intake metadata. The value above is local-only and disposable; do not use it outside the smoke container.
 
 ## Smoke Levels
 
@@ -97,11 +99,28 @@ Current result as of May 6, 2026:
 
 Done when:
 
-- Recruiter can create an invite through the visible UI.
+- Recruiter login and invite creation work through the app route stack.
 - Questions are persisted to Postgres.
 - Candidate link opens through `/s/[token]`.
 - Candidate can start practice and submit an answer.
-- Session, question, answer, eval, token, idempotency, rate-limit, and metric rows are visible in the smoke DB.
+- Session, question, answer, eval, token, idempotency, rate-limit, metric, and AI-generation rows are visible in the smoke DB.
+
+Repeatable command after the app is running on port `3100` with the env values above:
+
+```powershell
+npm run postgres:smoke:product
+```
+
+Current result as of May 6, 2026:
+
+- `npm run postgres:smoke:product`: passed against `http://127.0.0.1:3100`.
+- Recruiter login succeeded for `fu@rangam.com`.
+- Invite batch `7b89aa1e-6c67-4fa3-a3b9-e994f5e420aa` completed with candidate session `019dfd3f-9937-7ea5-94c0-cdec2204b61e`.
+- Candidate link opened through `/s/[token]`.
+- Candidate session fetched, initials submitted, session started, draft saved, answer submitted, and answer analysis completed.
+- Verified Postgres rows: 3 questions, 1 answer, 1 eval result, 1 active candidate token, 2 idempotency rows for the candidate session, rate-limit rows, metric counter rows, and 1 AI-generation row for the session.
+
+This script does not send email. Actual invite/debrief email delivery remains a separate SMTP smoke because `/api/invite/send` expects a provider acceptance result before it marks invitations sent.
 
 ### Level 3 - AI And QA Explorer
 
@@ -111,7 +130,7 @@ Done when:
 - `ai_generations` rows are written to Postgres.
 - `/qa/ai-quality` reads the smoke DB records.
 
-Level 2 and Level 3 require a real `GEMINI_API_KEY`; actual email delivery also requires valid `SMTP_*` values.
+The Level 2 script can run without `GEMINI_API_KEY`; answer analysis will use the app's local mock fallback and still exercises the Postgres `ai_generations` write path. Level 3 requires a real `GEMINI_API_KEY`; actual email delivery also requires valid `SMTP_*` values.
 
 ## Final Handoff Language
 

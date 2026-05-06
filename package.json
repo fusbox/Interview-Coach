@@ -17,7 +17,8 @@
     "auth:provision-user": "node scripts/provision-app-user.mjs",
     "postgres:smoke:start": "node scripts/start-postgres-smoke-db.mjs",
     "db:apply-schema": "node scripts/run-postgres-sql.mjs --file db/migrations/001_initial_schema.sql --smoke-defaults",
-    "db:smoke-schema": "node scripts/run-postgres-sql.mjs --file db/validation/001_initial_schema_smoke.sql --smoke-defaults"
+    "db:smoke-schema": "node scripts/run-postgres-sql.mjs --file db/validation/001_initial_schema_smoke.sql --smoke-defaults",
+    "postgres:smoke:product": "node scripts/smoke-postgres-product-flow.mjs --smoke-defaults"
   },
   "dependencies": {
     "@google/genai": "1.39.0",
