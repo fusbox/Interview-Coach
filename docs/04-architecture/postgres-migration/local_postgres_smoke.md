@@ -45,10 +45,12 @@ What this does:
 
 ```powershell
 $env:APP_USER_PASSWORD = "interviewcoach-local-user-password"
-npm run auth:provision-user -- --smoke-defaults --email fu@rangam.com --roles recruiter,admin,qa --first-name Fu --last-name Box --timezone America/Chicago
+node scripts/provision-app-user.mjs --smoke-defaults --email fu@rangam.com --roles recruiter,admin,qa --first-name Fu --last-name Box --timezone America/Chicago
 ```
 
 This creates a Postgres-backed app user with recruiter, admin, and QA roles. The provisioner is idempotent for the same email.
+
+Use the direct `node scripts/provision-app-user.mjs ...` command for smoke provisioning. In some Windows/npm shells, `npm run auth:provision-user -- --email ... --roles ...` can forward only option values while dropping the flag names, causing the provisioner to fail with `Unexpected positional argument`.
 
 ## App Env For Local Smoke
 
@@ -105,7 +107,7 @@ Current result as of May 6, 2026:
 - `npm run postgres:smoke:start`: passed.
 - `npm run db:apply-schema`: passed.
 - `npm run db:smoke-schema`: passed.
-- `npm run auth:provision-user -- --smoke-defaults ...`: passed for `fu@rangam.com`.
+- `node scripts/provision-app-user.mjs --smoke-defaults ...`: passed for `fu@rangam.com`.
 - Local HTTP smoke on `http://localhost:3100`: `/api/auth/login`, `/recruiter`, `/qa/ai-quality`, and `/admin/feedback` all returned `200`.
 
 ### Level 2 - Recruiter And Candidate Data Flow

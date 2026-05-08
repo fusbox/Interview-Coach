@@ -88,7 +88,7 @@ Recommended deployment sequence:
 2. Confirm who applies DDL and whether the app DB user can create extensions, enums, functions, triggers, and indexes.
 3. Apply `db/migrations/001_initial_schema.sql`.
 4. Configure runtime secrets and environment variables.
-5. For local/UAT bridge testing, provision at least one app user with `npm run auth:provision-user`.
+5. For local/UAT bridge testing, provision at least one app user with the direct `node scripts/provision-app-user.mjs ...` command shown below.
 6. For target production UX, implement or connect the ATS/Okta identity handoff so internal users land on `/recruiter/create` with recruiter/admin/QA roles mapped.
 7. Run quality gates: `npm run lint`, `npm run typecheck`, `npm run test:coverage`, and `npm run test:stability`.
 8. Run the Postgres smoke scripts or their target-environment equivalents.
@@ -144,6 +144,49 @@ METRICS_BACKEND=postgres
 ```
 
 `RATE_LIMIT_BACKEND` and `METRICS_BACKEND` also support `memory` for local/test usage; production defaults to Postgres and rejects memory.
+
+## Reviewer Local Quickstart
+
+Use this path when a reviewer wants to run the migrated branch locally against the disposable smoke database.
+
+```powershell
+cd <repo-root>
+
+npm run postgres:smoke:start
+npm run db:apply-schema
+npm run db:smoke-schema
+
+$env:DATABASE_URL = "postgresql://postgres:interviewcoach-local-smoke-password@127.0.0.1:5434/interviewcoach_smoke"
+$env:APP_AUTH_BACKEND = "postgres"
+$env:SESSION_REPOSITORY_BACKEND = "postgres"
+$env:INVITE_REPOSITORY_BACKEND = "postgres"
+$env:TEMPLATE_REPOSITORY_BACKEND = "postgres"
+$env:FEEDBACK_REPOSITORY_BACKEND = "postgres"
+$env:AI_GENERATION_REPOSITORY_BACKEND = "postgres"
+$env:CANDIDATE_TOKEN_BACKEND = "postgres"
+$env:IDEMPOTENCY_BACKEND = "postgres"
+$env:RATE_LIMIT_BACKEND = "postgres"
+$env:METRICS_BACKEND = "postgres"
+$env:NEXT_PUBLIC_APP_URL = "http://localhost:3000"
+$env:ENCRYPTION_SECRET = "interviewcoach-local-smoke-encryption-secret-32plus"
+$env:GEMINI_API_KEY = "<real key for AI surfaces, or a placeholder for auth-only review>"
+
+$env:APP_USER_PASSWORD = "interviewcoach-local-user-password"
+node scripts/provision-app-user.mjs --smoke-defaults --email fu@rangam.com --roles recruiter,admin,qa --first-name Fu --last-name Box --timezone America/Chicago
+
+npm run dev
+```
+
+Then sign in at `/login` with:
+
+```text
+fu@rangam.com
+interviewcoach-local-user-password
+```
+
+The provisioning command is idempotent. Re-running it for the same email updates profile fields, replaces roles, and resets the password hash to the current `APP_USER_PASSWORD` value.
+
+Important: use the direct `node scripts/provision-app-user.mjs ...` command for reviewer/UAT provisioning. In some Windows/npm shells, `npm run auth:provision-user -- --email ... --roles ...` can forward only option values while dropping the flag names, causing the provisioner to fail with `Unexpected positional argument`. The direct `node` command avoids that wrapper ambiguity.
 
 ## Validation Evidence
 

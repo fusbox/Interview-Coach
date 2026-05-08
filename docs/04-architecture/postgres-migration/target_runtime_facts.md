@@ -24,7 +24,7 @@ Scope of this pass:
 | Build/start commands | Confirmed from repo | `npm ci`, `npm run build`, `npm run start` |
 | Database connectivity | Working approach | Support `DATABASE_URL` and individual `POSTGRES_*`, preferring `DATABASE_URL` |
 | Auth approach | Updated working direction | Target deployment should use ATS-launched enterprise identity handoff, potentially Okta or equivalent. App-owned Postgres auth remains the local/UAT bridge and Supabase-removal proof. |
-| Account provisioning | Local/UAT bridge | Operator/developer provisioning with `npm run auth:provision-user`; target production user lifecycle should be owned upstream by ATS/enterprise identity. |
+| Account provisioning | Local/UAT bridge | Operator/developer provisioning with `node scripts/provision-app-user.mjs ...`; target production user lifecycle should be owned upstream by ATS/enterprise identity. |
 | SQL functions/procedures | Working assumption | Target DB can accept/run SQL queries, functions, and stored-procedure-style logic |
 | Candidate access | Working decision | Keep token-link access at `/s/[token]`, backed by Postgres token storage |
 | Email provider | Implemented in branch, target config open | Branch uses SMTP/nodemailer. Target should use Microsoft/Office365 SMTP with explicit SMTP env values. |
@@ -97,7 +97,7 @@ This is the migrated runtime contract after Supabase removal. Names may still be
 | `IDEMPOTENCY_BACKEND` | Optional | Postgres-only guardrail for idempotency store implementation. | Runtime accepts `postgres` only |
 | `RATE_LIMIT_BACKEND` | Required in production | Supported values: `memory` for local/test or `postgres` for durable runtime. Production defaults to `postgres`; `memory` is rejected in production. | Supabase value removed |
 | `METRICS_BACKEND` | Required in production | Supported values: `memory` for local/test or `postgres` for durable runtime. Production defaults to `postgres`; `memory` is rejected in production. | Supabase value removed |
-| `APP_USER_PASSWORD` | Provisioning only | One-time shell variable consumed by `npm run auth:provision-user`; do not store as a persistent deployment secret. | Added |
+| `APP_USER_PASSWORD` | Provisioning only | One-time shell variable consumed by `node scripts/provision-app-user.mjs ...`; do not store as a persistent deployment secret. | Added |
 
 Supabase env vars are no longer part of the migrated runtime contract:
 
@@ -136,7 +136,7 @@ These need answers from the deployment/integration/infra side before environment
 | [ ] | Public origin configured | Invite links generated with the expected host. |
 | [ ] | Postgres connection succeeds | Health/diagnostic endpoint or startup log confirms DB connectivity without exposing secrets. |
 | [ ] | DB migrations applied | Schema version or table/function inventory confirmed in target DB. |
-| [ ] | Internal auth works | For local/UAT, provision user with `npm run auth:provision-user`; recruiter can log in, session persists, logout invalidates session. For target deployment, ATS/Okta launch creates an authenticated app session and lands the user on `/recruiter/create`. |
+| [ ] | Internal auth works | For local/UAT, provision user with `node scripts/provision-app-user.mjs ...`; recruiter can log in, session persists, logout invalidates session. For target deployment, ATS/Okta launch creates an authenticated app session and lands the user on `/recruiter/create`. |
 | [ ] | Candidate token access works | `/s/[token]` opens and candidate APIs validate token/session correctly. |
 | [ ] | Email sends | Invite and debrief email deliver through the company mail system. |
 | [ ] | AI works | Gemini-backed surfaces work with `GEMINI_API_KEY`. |

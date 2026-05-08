@@ -16,10 +16,12 @@ Set the database connection through either `DATABASE_URL` or the individual `POS
 
 ```powershell
 $env:APP_USER_PASSWORD = "use-a-long-temporary-password"
-npm run auth:provision-user -- --email user@rangam.com --roles recruiter,qa --first-name First --last-name Last --timezone America/Chicago
+node scripts/provision-app-user.mjs --email user@rangam.com --roles recruiter,qa --first-name First --last-name Last --timezone America/Chicago
 ```
 
 Prefer `APP_USER_PASSWORD` over `--password` so the password is not stored in shell history. The command requires a password of at least 12 characters unless `--allow-weak-password` is used for a disposable local user.
+
+Use the direct `node scripts/provision-app-user.mjs ...` command rather than `npm run auth:provision-user -- ...` for reviewer/UAT provisioning. In some Windows/npm shells, the npm wrapper can forward only option values while dropping the flag names, causing the provisioner to fail with `Unexpected positional argument`. The direct `node` command avoids that wrapper ambiguity.
 
 ## Roles
 
@@ -47,10 +49,10 @@ The command is idempotent for the same email. Rerunning it updates profile field
 
 ```powershell
 $env:APP_USER_PASSWORD = "temporary-password-for-fu"
-npm run auth:provision-user -- --email fu@rangam.com --roles recruiter,admin,qa --first-name Fu --last-name Box --timezone America/Chicago
+node scripts/provision-app-user.mjs --email fu@rangam.com --roles recruiter,admin,qa --first-name Fu --last-name Box --timezone America/Chicago
 
 $env:APP_USER_PASSWORD = "temporary-password-for-kushal"
-npm run auth:provision-user -- --email kushal@rangam.com --roles recruiter,qa --first-name Kushal --timezone America/Chicago
+node scripts/provision-app-user.mjs --email kushal@rangam.com --roles recruiter,qa --first-name Kushal --timezone America/Chicago
 ```
 
 ## Validation
