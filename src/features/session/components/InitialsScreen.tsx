@@ -59,7 +59,7 @@ export default function InitialsScreen() {
                 {/* 1. Logo Area */}
                 <div className="flex justify-between items-center shrink-0">
                     <Image
-                        src="/rangam-logo.webp"
+                        src="/TA-logo.webp"
                         alt="Rangam"
                         width={200}
                         height={58}

@@ -48,9 +48,9 @@ export function RecruiterSidebar({ className, onNavigate, user, profile }: Recru
                     className="mb-8 flex items-center gap-3 hover:opacity-80 transition-opacity"
                     onClick={onNavigate}
                 >
-                    <div className="relative h-8 w-28">
+                    <div className="relative h-8 w-36">
                         <Image
-                            src="/rangam-logo.webp"
+                            src="/TA-logo.webp"
                             alt="Rangam"
                             fill
                             className="object-contain"

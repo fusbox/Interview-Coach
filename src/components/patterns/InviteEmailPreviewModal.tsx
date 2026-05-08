@@ -343,7 +343,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                         <div className="max-w-[600px] mx-auto bg-white shadow-card-1 rounded-2xl overflow-hidden border border-border/10">
                                             <div className="px-10 py-10 pb-6">
                                                 <Image 
-                                                    src="/rangam-logo.png" 
+                                                    src="/TA-logo.png" 
                                                     alt="Rangam" 
                                                     width={140} 
                                                     height={36} 
@@ -408,7 +408,7 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                                                     
                                                     <div className="pt-4">
                                                         <Image 
-                                                            src="/rangam-logo.png" 
+                                                            src="/TA-logo.png" 
                                                             alt="Rangam" 
                                                             width={80} 
                                                             height={20} 

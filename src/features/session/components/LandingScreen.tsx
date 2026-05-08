@@ -107,7 +107,7 @@ export default function LandingScreen({ onStart, role = "Candidate" }: LandingSc
                 {/* 1. Logo Area */}
                 <motion.div variants={fadeUp} className="flex justify-between items-center shrink-0">
                     <Image
-                        src="/rangam-logo.webp"
+                        src="/TA-logo.webp"
                         alt="Rangam"
                         width={180}
                         height={52}

@@ -101,7 +101,7 @@ export default function SummaryScreen() {
                         className="relative h-12 w-auto mb-6 shrink-0"
                     >
                         <Image
-                            src="/rangam-logo.webp"
+                            src="/TA-logo.webp"
                             alt="Rangam"
                             width={200}
                             height={58}
@@ -298,7 +298,7 @@ export default function SummaryScreen() {
                     </span>
                     <div className="flex-shrink-0">
                         <Image
-                            src="/rangam-logo.webp"
+                            src="/TA-logo.webp"
                             alt="Rangam"
                             width={80}
                             height={23}

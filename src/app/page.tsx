@@ -57,11 +57,11 @@ export default function Home() {
             >
                 <motion.div variants={fadeUp} className="flex items-center">
                     <Image
-                        src="/rangam-logo.webp"
+                        src="/TA-logo.webp"
                         alt="Rangam"
-                        width={180}
-                        height={40}
-                        className="h-10 w-auto object-contain"
+                        width={360}
+                        height={80}
+                        className="h-16 w-auto object-contain"
                         priority
                         unoptimized
                     />

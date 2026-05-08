@@ -123,7 +123,7 @@ export class EmailService {
                 role: session.role,
                 summaryNarrative: session.summaryNarrative || '',
                 practiceAgainUrl,
-                logoUrl: `${appOrigin}/rangam-logo.png`,
+                logoUrl: `${appOrigin}/TA-logo.png`,
             });
 
             const sendResult = await transport.sendMail({
@@ -188,7 +188,7 @@ export class EmailService {
                 firstName: params.recipientFirstName,
                 role: params.role,
                 inviteLink: params.inviteLink,
-                logoUrl: `${appOrigin}/rangam-logo.png`,
+                logoUrl: `${appOrigin}/TA-logo.png`,
                 recruiterName: params.recruiterName,
                 recruiterTitle: params.recruiterTitle,
                 recruiterCompany: params.recruiterCompany,
