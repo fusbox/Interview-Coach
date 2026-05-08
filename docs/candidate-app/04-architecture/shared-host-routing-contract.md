@@ -1,0 +1,77 @@
+# Shared Host Routing Contract
+
+Date: 2026-05-08
+Status: Confirmed deployment direction
+
+## Purpose
+
+This document records the confirmed route and deployment shape for Interview Coach now that recruiter and candidate implementations are expected to share the same app host.
+
+## Confirmed Facts
+
+- `https://interviewcoach.talentarbor.com` is the confirmed host for both recruiter-led and candidate-led Interview Coach.
+- `/` is the public Interview Coach home page. The current candidate landing page at [src/app/page.tsx](/c:/dev/Interview-Coach-Candidate/src/app/page.tsx) is the source design, though content and CTA behavior still need edits.
+- `/recruiter` is the deployed recruiter create landing target when recruiters launch from the ATS.
+- Existing recruiter/admin/QA pages keep their relative paths: `/recruiter/dashboard`, `/recruiter/templates`, `/recruiter/settings`, `/admin/feedback`, and `/qa/ai-quality`.
+- Candidate protected routes live at the same path level as recruiter/admin/QA routes, not under `/candidate`.
+- Authenticated candidate launch should land at `/dashboard`.
+- Candidate code should be integrated into the existing Azure project/repo branch path rather than deployed as a separate Azure project.
+
+## Route Map
+
+| Path | Owner | Access | Notes |
+| --- | --- | --- | --- |
+| `/` | Candidate/public | Public | Public Interview Coach page and funnel. |
+| `/practice` | Candidate | Candidate auth required | Self-serve candidate practice setup. |
+| `/dashboard` | Candidate | Candidate auth required | Candidate post-login landing target and history dashboard. |
+| `/session/[sessionId]` | Candidate | Candidate auth required | Candidate-owned session resume path. |
+| `/summary` or `/summary/[sessionId]` | Candidate | Candidate auth required | Candidate-owned review/summary surface. Exact final path can evolve. |
+| `/settings` | Candidate | Candidate auth required | Candidate settings/profile if shipped. |
+| `/recruiter` | Recruiter | Recruiter auth/ATS launch required | Deployed recruiter create landing page. |
+| `/recruiter/create` | Recruiter | Recruiter auth required | Keep as compatibility alias or redirect to `/recruiter`. |
+| `/recruiter/dashboard` | Recruiter | Recruiter auth required | Existing recruiter dashboard. |
+| `/recruiter/templates` | Recruiter | Recruiter auth required | Existing recruiter templates. |
+| `/recruiter/settings` | Recruiter | Recruiter auth required | Existing recruiter settings. |
+| `/admin/feedback` | Admin | Admin auth required | Existing admin feedback. |
+| `/qa/ai-quality` | QA | QA auth required | Existing QA AI-quality review. |
+| `/s/[token]` | Recruiter invite candidate flow | Candidate token required | Preserve for recruiter-issued candidate invite links. |
+
+## Namespace Rules
+
+- Reserve `/recruiter/**`, `/admin/**`, and `/qa/**` for recruiter-led app roles.
+- Reserve `/practice`, `/dashboard`, `/session/**`, `/summary/**`, and candidate settings/history routes for authenticated candidate self-serve flows.
+- Preserve `/s/[token]` for recruiter-issued invite-token sessions.
+- Namespace APIs by actor wherever possible:
+  - `/api/candidate/**`
+  - `/api/recruiter/**`
+  - `/api/admin/**`
+  - `/api/qa/**`
+  - `/api/auth/**` only for shared or clearly routed auth concerns
+- Avoid new generic API paths such as `/api/session` unless the route resolves ownership through a shared access boundary and is tested for recruiter invite and candidate self-serve modes.
+
+## Deployment Implication
+
+The least risky target is one deployable Next app for `interviewcoach.talentarbor.com`.
+
+Two independently deployed Next apps behind one host can work only with careful proxying and path partitioning. It becomes brittle when both apps expect to own `/_next/**`, `/api/**`, middleware, cookies, public assets, and shared host headers.
+
+The standalone candidate repo can still be useful as an incubation workspace, but the deployable implementation should be ported into an Azure branch based on the migrated recruiter Postgres branch.
+
+## Watch-Outs
+
+- Cookie names and middleware must not confuse recruiter sessions with candidate sessions.
+- Candidate `/dashboard` is intentionally top-level; recruiter dashboard must remain `/recruiter/dashboard`.
+- Public `/` should not load candidate-only private data or require auth.
+- `NEXT_PUBLIC_APP_URL` should resolve to `https://interviewcoach.talentarbor.com` in production so invite, debrief, and redirect links use the canonical host.
+- CTA login redirects must preserve only allowlisted internal targets such as `/practice` and `/dashboard`.
+- Route tests should include unauthenticated, candidate-authenticated, recruiter-authenticated, admin, QA, and invite-token contexts.
+- Analytics and observability should label actor mode so candidate funnel events do not mix with recruiter workflow metrics.
+
+## Acceptance Criteria
+
+- `/recruiter` renders or redirects to the recruiter create experience without breaking existing `/recruiter/create` links.
+- `/dashboard` is candidate-owned and never resolves to recruiter dashboard data.
+- `/practice` requires candidate access and supports return-after-login.
+- `/s/[token]` remains invite-token based.
+- Route ownership is documented in PRs that add or move top-level paths.
+- Branch and PR strategy follows [ADR-0006](../08-decisions/ADR-0006-shared-host-and-azure-branch-integration.md).
