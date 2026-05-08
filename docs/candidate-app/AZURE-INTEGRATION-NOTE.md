@@ -26,11 +26,12 @@ Planning: Fu-Lab Azure Boards #643
 ## What To Read First
 
 1. [README.md](./README.md)
-2. [Working Backlog](./00-working-backlog.md)
-3. [Shared Host Routing Contract](./04-architecture/shared-host-routing-contract.md)
-4. [Candidate Login Redirect Contract](./02-requirements/candidate-login-redirect-contract.md)
-5. [Azure DevOps Operating Model](./07-ops/azure-devops-operating-model.md)
-6. [ADR-0006: Shared Host And Azure Branch Integration](./08-decisions/ADR-0006-shared-host-and-azure-branch-integration.md)
+2. [Candidate Integration Work Pass Checklist](./START-WORK-PASS.md)
+3. [Working Backlog](./00-working-backlog.md)
+4. [Shared Host Routing Contract](./04-architecture/shared-host-routing-contract.md)
+5. [Candidate Login Redirect Contract](./02-requirements/candidate-login-redirect-contract.md)
+6. [Azure DevOps Operating Model](./07-ops/azure-devops-operating-model.md)
+7. [ADR-0006: Shared Host And Azure Branch Integration](./08-decisions/ADR-0006-shared-host-and-azure-branch-integration.md)
 
 ## Source-Of-Truth Rule
 

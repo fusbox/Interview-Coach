@@ -11,6 +11,7 @@ This folder is organized to keep product requirements, UX/design rules, and arch
 ### Active working plan
 
 - [Working Backlog](00-working-backlog.md)
+- [Candidate Integration Work Pass Checklist](START-WORK-PASS.md)
 
 ### Product operating model
 
