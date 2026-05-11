@@ -13,6 +13,15 @@ As a candidate, I want to set up a practice interview around the role I am prepa
 
 ## Current `/practice` Scope
 
+Current route/feature boundary:
+
+- [Practice route](/c:/tmp/Interview-Coach-Recruiter-postgres/src/app/practice/page.tsx)
+- [Practice route test](/c:/tmp/Interview-Coach-Recruiter-postgres/src/app/practice/page.test.tsx)
+- [Practice setup feature](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/PracticeSetupPage.tsx)
+- [Practice setup feature tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/PracticeSetupPage.test.tsx)
+
+The route delegates rendering to `src/features/practice-setup`, keeping the page shell thin before server-backed draft lifecycle work begins.
+
 ### Required input
 
 - Target role
