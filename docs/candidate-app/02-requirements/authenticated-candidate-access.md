@@ -90,6 +90,13 @@ type CandidateAccessContext = {
 
 Feature code should consume this context instead of reading cookies, provider-specific claims, or raw user IDs directly.
 
+Current auth adapter boundary:
+
+- [Candidate auth adapter](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-auth-adapter.ts)
+- [Candidate auth adapter tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-auth-adapter.test.ts)
+
+Adapters should resolve a provider-neutral `CandidateAuthHandoff` with `provider`, `issuer`, `subject`, `email`, `displayName`, and `workspace`, then pass normalized values into the candidate profile repository.
+
 ## Acceptance Criteria
 
 - unauthenticated access to protected routes redirects to the appropriate entry flow

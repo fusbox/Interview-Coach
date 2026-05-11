@@ -1,4 +1,11 @@
 export {
+    createStaticCandidateAuthAdapter,
+    toCandidateProfileResolutionInput,
+    type CandidateAuthAdapter,
+    type CandidateAuthAdapterSource,
+    type CandidateAuthHandoff,
+} from "./candidate-auth-adapter";
+export {
     buildCandidateAuthSubject,
     findCandidateProfileByIdentity,
     resolveCandidateProfileFromIdentity,

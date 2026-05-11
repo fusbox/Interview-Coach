@@ -159,11 +159,11 @@ Ground truth:
 
 | ID | Azure ID | Level | State | Assigned To | Item | Acceptance Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| AUTH-F01 | 675 | Feature | New | Fu Chen <fu@rangam.com> | Candidate profile and identity persistence | Candidate profile and external identity records exist in Postgres |
-| AUTH-S01 | 676 | Story | New | Fu Chen <fu@rangam.com> | Create candidate profile and identity schema | Migration defines `candidate_profiles` and `candidate_identities` |
-| AUTH-T01 | 677 | Task | New | Fu Chen <fu@rangam.com> | Add ownership indexes and constraints | Schema supports candidate-scoped reads efficiently |
-| AUTH-F02 | 678 | Feature | New | Fu Chen <fu@rangam.com> | Candidate access resolver | Feature code consumes `CandidateAccessContext`, not provider-specific cookies or claims |
-| AUTH-S02 | 679 | Story | New | Fu Chen <fu@rangam.com> | Define SSO/auth adapter interface | Interface captures issuer, subject, email, workspace, provider, and display name |
+| AUTH-F01 | 675 | Feature | Active | Fu Chen <fu@rangam.com> | Candidate profile and identity persistence | Candidate profile and external identity records exist in Postgres |
+| AUTH-S01 | 676 | Story | Resolved | Fu Chen <fu@rangam.com> | Create candidate profile and identity schema | Migration defines `candidate_profiles` and `candidate_identities` |
+| AUTH-T01 | 677 | Task | Closed | Fu Chen <fu@rangam.com> | Add ownership indexes and constraints | Schema supports candidate-scoped reads efficiently |
+| AUTH-F02 | 678 | Feature | Active | Fu Chen <fu@rangam.com> | Candidate access resolver | Feature code consumes `CandidateAccessContext`, not provider-specific cookies or claims |
+| AUTH-S02 | 679 | Story | Resolved | Fu Chen <fu@rangam.com> | Define SSO/auth adapter interface | Interface captures issuer, subject, email, workspace, provider, and display name |
 | AUTH-S03 | 680 | Story | New | Fu Chen <fu@rangam.com> | Add password-backed dev auth and explicit mock mode | Local protected routes resolve a stable candidate context |
 | AUTH-S04 | 681 | Story | New | Fu Chen <fu@rangam.com> | Protect candidate route group | `/practice`, `/dashboard`, `/session/[sessionId]`, and summary/history routes reject missing auth |
 | AUTH-S05 | 682 | Story | New | Fu Chen <fu@rangam.com> | Add negative ownership behavior | Cross-candidate access returns forbidden or not found without leaking data |
@@ -194,7 +194,7 @@ Ground truth:
 | --- | --- | --- | --- | --- | --- | --- |
 | DATA-F01 | 685 | Feature | Active | Fu Chen <fu@rangam.com> | Postgres client and config foundation | Server-only DB client supports `DATABASE_URL` and split `POSTGRES_*` env values |
 | DATA-S01 | 686 | Story | Resolved | Fu Chen <fu@rangam.com> | Port Postgres config/client patterns from migrated recruiter app | Config parsing and query wrapper tests pass |
-| DATA-T01 | 687 | Task | Resolved | Fu Chen <fu@rangam.com> | Add env validation for candidate backend selectors | Invalid production backend values fail clearly |
+| DATA-T01 | 687 | Task | Closed | Fu Chen <fu@rangam.com> | Add env validation for candidate backend selectors | Invalid production backend values fail clearly |
 | DATA-F02 | 688 | Feature | Active | Fu Chen <fu@rangam.com> | Candidate repository layer | Candidate profiles, drafts, sessions, resumes, and dashboard reads use repository boundaries |
 | DATA-S02 | 689 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate profile repository | Create/read/update behavior is tested |
 | DATA-S03 | 690 | Story | New | Fu Chen <fu@rangam.com> | Add draft/session repository boundaries | Candidate-owned drafts and sessions are persisted through server code |
@@ -365,7 +365,7 @@ Ground truth:
 | --- | --- | --- | --- | --- | --- | --- |
 | OPS-F01 | 643 | Feature | Active | Fu Chen <fu@rangam.com> | Candidate app integration planning control plane | Fu-Lab Feature 643 tracks planning while company repo owns code |
 | OPS-S00 | 645 | Story | Closed | Fu Chen <fu@rangam.com> | Create candidate integration context branch in company Azure repo | Historical setup item retained for traceability |
-| OPS-S01 | 750 | Story | Active | Fu Chen <fu@rangam.com> | Create candidate integration branch in company Azure repo | `feature/candidate-app-integration` exists from `feature/postgres-integration` |
+| OPS-S01 | 750 | Story | Resolved | Fu Chen <fu@rangam.com> | Create candidate integration branch in company Azure repo | `feature/candidate-app-integration` exists from `feature/postgres-integration` |
 | OPS-S02 | 650 | Story | Resolved | Fu Chen <fu@rangam.com> | Port candidate docs into company Azure branch | `docs/candidate-app` exists in `feature/candidate-app-integration` |
 | OPS-S03 | 651 | Story | Resolved | Fu Chen <fu@rangam.com> | Open candidate integration PR in company Azure repo | Draft PR `!593` targets `feature/postgres-integration` |
 | OPS-S04 | 647 | Story | Resolved | Fu Chen <fu@rangam.com> | Create candidate integration dashboard | Dashboard includes context and active/blocked query widgets |
@@ -401,13 +401,15 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 14 | Resolved | DATA-S05 | 693 | Fu Chen <fu@rangam.com> | Add candidate DB migration | Candidate profile/identity migration and smoke validation pass |
 | 15 | Resolved | DATA-S02 | 689 | Fu Chen <fu@rangam.com> | Add candidate profile repository | Provider identity lookup and resolve/create tests pass |
 | 16 | Resolved | DATA-S01 | 686 | Fu Chen <fu@rangam.com> | Add Postgres config/client | Existing migrated Postgres config/client tests pass |
-| 17 | Resolved | DATA-T01 | 687 | Fu Chen <fu@rangam.com> | Add candidate backend selector validation | Candidate data backend and auth mode guardrail tests pass |
-| 18 | New | AUTH-S01 | 676 | Fu Chen <fu@rangam.com> | Add candidate profile/identity migration | Migration applies locally |
-| 19 | New | AUTH-S03 | 680 | Fu Chen <fu@rangam.com> | Add dev auth and mock mode | Protected routes resolve local candidate context |
-| 20 | New | DRFT-S01 | 697 | Fu Chen <fu@rangam.com> | Extract practice setup feature slice | Route delegates to feature |
-| 21 | New | DRFT-S03 | 701 | Fu Chen <fu@rangam.com> | Add server-backed draft lifecycle | Draft repository tests pass |
-| 22 | New | SESS-S02 | 712 | Fu Chen <fu@rangam.com> | Add candidate session creation service | Draft creates owned session |
-| 23 | New | DASH-S01 | 732 | Fu Chen <fu@rangam.com> | Define dashboard query contract | Empty/active/completed/forbidden states are represented |
+| 17 | Closed | DATA-T01 | 687 | Fu Chen <fu@rangam.com> | Add candidate backend selector validation | Candidate data backend and auth mode guardrail tests pass |
+| 18 | Resolved | AUTH-S01 | 676 | Fu Chen <fu@rangam.com> | Add candidate profile/identity migration | Migration applies locally |
+| 19 | Closed | AUTH-T01 | 677 | Fu Chen <fu@rangam.com> | Add ownership indexes and constraints | Candidate profile and identity constraints exist |
+| 20 | Resolved | AUTH-S02 | 679 | Fu Chen <fu@rangam.com> | Define SSO/auth adapter interface | Provider-neutral auth handoff tests pass |
+| 21 | New | AUTH-S03 | 680 | Fu Chen <fu@rangam.com> | Add dev auth and mock mode | Protected routes resolve local candidate context |
+| 22 | New | DRFT-S01 | 697 | Fu Chen <fu@rangam.com> | Extract practice setup feature slice | Route delegates to feature |
+| 23 | New | DRFT-S03 | 701 | Fu Chen <fu@rangam.com> | Add server-backed draft lifecycle | Draft repository tests pass |
+| 24 | New | SESS-S02 | 712 | Fu Chen <fu@rangam.com> | Add candidate session creation service | Draft creates owned session |
+| 25 | New | DASH-S01 | 732 | Fu Chen <fu@rangam.com> | Define dashboard query contract | Empty/active/completed/forbidden states are represented |
 
 ## Open Questions
 
