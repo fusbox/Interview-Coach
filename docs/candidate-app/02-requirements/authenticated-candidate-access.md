@@ -106,6 +106,13 @@ Local development can now produce the same handoff shape through:
 
 These modes are local/test only; production still fails closed through candidate runtime config.
 
+Current route protection:
+
+- [Shared auth middleware](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/auth/middleware.ts)
+- [Shared auth middleware tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/auth/middleware.test.ts)
+
+The middleware keeps recruiter/admin/QA auth separate from candidate routes. Candidate protected routes redirect through `/auth/talentarbor/start` when `CANDIDATE_AUTH_MODE=external`, while explicit local `mock` or `password` modes are allowed through for development.
+
 ## Acceptance Criteria
 
 - unauthenticated access to protected routes redirects to the appropriate entry flow

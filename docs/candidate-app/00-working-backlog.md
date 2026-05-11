@@ -165,7 +165,7 @@ Ground truth:
 | AUTH-F02 | 678 | Feature | Active | Fu Chen <fu@rangam.com> | Candidate access resolver | Feature code consumes `CandidateAccessContext`, not provider-specific cookies or claims |
 | AUTH-S02 | 679 | Story | Resolved | Fu Chen <fu@rangam.com> | Define SSO/auth adapter interface | Interface captures issuer, subject, email, workspace, provider, and display name |
 | AUTH-S03 | 680 | Story | Resolved | Fu Chen <fu@rangam.com> | Add password-backed dev auth and explicit mock mode | Local protected routes resolve a stable candidate context |
-| AUTH-S04 | 681 | Story | New | Fu Chen <fu@rangam.com> | Protect candidate route group | `/practice`, `/dashboard`, `/session/[sessionId]`, and summary/history routes reject missing auth |
+| AUTH-S04 | 681 | Story | Resolved | Fu Chen <fu@rangam.com> | Protect candidate route group | `/practice`, `/dashboard`, `/session/[sessionId]`, and summary/history routes reject missing auth |
 | AUTH-S05 | 682 | Story | New | Fu Chen <fu@rangam.com> | Add negative ownership behavior | Cross-candidate access returns forbidden or not found without leaking data |
 | AUTH-T02 | 683 | Task | New | Fu Chen <fu@rangam.com> | Add auth-denial logging without secrets | Denials include route, reason, and actor mode only |
 | AUTH-F03 | 755 | Feature | Active | Himanshu Sagar <himanshusagar@rangam.com> | TalentArbor login return and identity handoff | Public CTAs can preserve candidate intent through login when integration supports it |
@@ -406,10 +406,11 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 19 | Closed | AUTH-T01 | 677 | Fu Chen <fu@rangam.com> | Add ownership indexes and constraints | Candidate profile and identity constraints exist |
 | 20 | Resolved | AUTH-S02 | 679 | Fu Chen <fu@rangam.com> | Define SSO/auth adapter interface | Provider-neutral auth handoff tests pass |
 | 21 | Resolved | AUTH-S03 | 680 | Fu Chen <fu@rangam.com> | Add dev auth and mock mode | Local candidate auth handoff resolver tests pass |
-| 22 | New | DRFT-S01 | 697 | Fu Chen <fu@rangam.com> | Extract practice setup feature slice | Route delegates to feature |
-| 23 | New | DRFT-S03 | 701 | Fu Chen <fu@rangam.com> | Add server-backed draft lifecycle | Draft repository tests pass |
-| 24 | New | SESS-S02 | 712 | Fu Chen <fu@rangam.com> | Add candidate session creation service | Draft creates owned session |
-| 25 | New | DASH-S01 | 732 | Fu Chen <fu@rangam.com> | Define dashboard query contract | Empty/active/completed/forbidden states are represented |
+| 22 | Resolved | AUTH-S04 | 681 | Fu Chen <fu@rangam.com> | Protect candidate route group | Middleware redirects external-mode candidate protected routes and allows explicit local modes |
+| 23 | New | DRFT-S01 | 697 | Fu Chen <fu@rangam.com> | Extract practice setup feature slice | Route delegates to feature |
+| 24 | New | DRFT-S03 | 701 | Fu Chen <fu@rangam.com> | Add server-backed draft lifecycle | Draft repository tests pass |
+| 25 | New | SESS-S02 | 712 | Fu Chen <fu@rangam.com> | Add candidate session creation service | Draft creates owned session |
+| 26 | New | DASH-S01 | 732 | Fu Chen <fu@rangam.com> | Define dashboard query contract | Empty/active/completed/forbidden states are represented |
 
 ## Open Questions
 

@@ -60,11 +60,36 @@ describe("updateSession app-auth middleware", () => {
     });
 
     it.each([
-        ["/"],
+        ["/practice", "https://interviewcoach.test/auth/talentarbor/start?next=%2Fpractice"],
+        ["/dashboard", "https://interviewcoach.test/auth/talentarbor/start?next=%2Fdashboard"],
+        ["/settings", "https://interviewcoach.test/auth/talentarbor/start?next=%2Fdashboard"],
+        ["/session/session_123", "https://interviewcoach.test/auth/talentarbor/start?next=%2Fsession%2Fsession_123"],
+        ["/summary/session_123", "https://interviewcoach.test/auth/talentarbor/start?next=%2Fsummary%2Fsession_123"],
+    ])("redirects candidate protected route %s through candidate login when external auth is active", (path, expectedLocation) => {
+        process.env.CANDIDATE_AUTH_MODE = "external";
+
+        const response = updateSession(makeRequest(path));
+
+        expect(response.status).toBe(307);
+        expect(response.headers.get("location")).toBe(expectedLocation);
+    });
+
+    it.each([
         ["/practice"],
         ["/dashboard"],
         ["/session/session_123"],
         ["/summary/session_123"],
+    ])("allows candidate protected route %s in explicit local mock mode", (path) => {
+        process.env.CANDIDATE_AUTH_MODE = "mock";
+
+        const response = updateSession(makeRequest(path));
+
+        expect(response.status).toBe(200);
+        expect(response.headers.get("location")).toBeNull();
+    });
+
+    it.each([
+        ["/"],
         ["/auth/talentarbor/start?next=/practice"],
         ["/s/invite-token"],
     ])("does not let recruiter middleware claim candidate or public route %s", (path) => {
