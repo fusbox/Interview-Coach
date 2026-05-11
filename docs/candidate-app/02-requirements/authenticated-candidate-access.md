@@ -94,8 +94,17 @@ Current auth adapter boundary:
 
 - [Candidate auth adapter](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-auth-adapter.ts)
 - [Candidate auth adapter tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-auth-adapter.test.ts)
+- [Candidate dev auth resolver](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-dev-auth-resolver.ts)
+- [Candidate dev auth resolver tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-dev-auth-resolver.test.ts)
 
 Adapters should resolve a provider-neutral `CandidateAuthHandoff` with `provider`, `issuer`, `subject`, `email`, `displayName`, and `workspace`, then pass normalized values into the candidate profile repository.
+
+Local development can now produce the same handoff shape through:
+
+- `CANDIDATE_AUTH_MODE=password` with `CANDIDATE_DEV_EMAIL`, optional `CANDIDATE_DEV_SUBJECT`, and optional `CANDIDATE_DEV_DISPLAY_NAME`
+- `CANDIDATE_AUTH_MODE=mock` with optional `CANDIDATE_MOCK_EMAIL` and `CANDIDATE_MOCK_DISPLAY_NAME`
+
+These modes are local/test only; production still fails closed through candidate runtime config.
 
 ## Acceptance Criteria
 

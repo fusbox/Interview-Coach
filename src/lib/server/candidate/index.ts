@@ -6,6 +6,9 @@ export {
     type CandidateAuthHandoff,
 } from "./candidate-auth-adapter";
 export {
+    resolveLocalCandidateAuthHandoff,
+} from "./candidate-dev-auth-resolver";
+export {
     buildCandidateAuthSubject,
     findCandidateProfileByIdentity,
     resolveCandidateProfileFromIdentity,

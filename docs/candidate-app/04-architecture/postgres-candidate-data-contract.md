@@ -129,12 +129,16 @@ Current repository boundary:
 - [Candidate profile repository tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-profile-repository.test.ts)
 - [Candidate auth adapter](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-auth-adapter.ts)
 - [Candidate auth adapter tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-auth-adapter.test.ts)
+- [Candidate dev auth resolver](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-dev-auth-resolver.ts)
+- [Candidate dev auth resolver tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-dev-auth-resolver.test.ts)
 - [Candidate runtime config](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-runtime-config.ts)
 - [Candidate runtime config tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-runtime-config.test.ts)
 
 The first repository resolves or creates candidate profiles from provider identity handoffs and maps provider identities to a `CandidateProfileAccessRecord` for future auth and route-guard code.
 
 The auth adapter contract normalizes trusted identity handoffs from TalentArbor, RangamWorks, local password auth, or mock auth before repository resolution.
+
+The dev auth resolver produces local `password` or `dev_mock` handoffs for candidate route work before the external identity handoff is finalized.
 
 Candidate runtime config currently enforces:
 
@@ -175,6 +179,8 @@ Candidate-specific selectors:
 - `CANDIDATE_AUTH_MODE=external`
 - `CANDIDATE_AUTH_MODE=password` for local password-backed dev auth
 - `CANDIDATE_AUTH_MODE=mock` for explicit local/test mock candidate mode
+- `CANDIDATE_DEV_EMAIL`, `CANDIDATE_DEV_SUBJECT`, and `CANDIDATE_DEV_DISPLAY_NAME` for local password-mode identity simulation
+- `CANDIDATE_MOCK_EMAIL` and `CANDIDATE_MOCK_DISPLAY_NAME` for stable mock identity simulation
 
 Production should use a least-privilege app user, not an admin or generic `postgres` user.
 
