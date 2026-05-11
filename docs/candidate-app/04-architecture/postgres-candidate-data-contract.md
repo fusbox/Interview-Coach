@@ -54,6 +54,13 @@ Recommended fields:
 - `created_at`
 - `last_seen_at`
 
+Current migration:
+
+- [Candidate identity schema migration](/c:/tmp/Interview-Coach-Recruiter-postgres/db/migrations/002_candidate_identity_schema.sql)
+- [Candidate identity rollback smoke](/c:/tmp/Interview-Coach-Recruiter-postgres/db/validation/002_candidate_identity_schema_smoke.sql)
+
+The initial migration creates `candidate_profiles` and `candidate_identities`, enforces provider/issuer/subject uniqueness, and keeps ownership anchored on `candidate_profile_id`.
+
 ### Practice Draft
 
 Server-backed setup state for `/practice`.

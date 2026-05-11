@@ -168,28 +168,39 @@ The dashboard should answer, at a glance:
 - What is blocked?
 - What evidence exists?
 
-## Code Wiki Strategy
+## Wiki Strategy
 
-Because the available wiki path is "publish code as wiki", keep durable docs in the repo under `/docs` and publish that folder as a code wiki from the candidate integration branch.
+The Fu-Lab Azure project can use a manually edited project wiki now. Use it as a lightweight navigation hub, not as the durable source of truth.
 
-Recommended wiki:
+Current wiki:
+
+```text
+Name: Candidate Docs Hub
+Project: Fu-Lab / Interview-Coach-Candidate
+Purpose: navigation hub for planning context, company repo links, active contracts, and durable repo docs
+```
+
+Durable docs should still live in the repository under `/docs/candidate-app` and be reviewed through PRs. If the company Azure project later allows publishing docs as code wiki, publish the repo docs from the candidate integration branch.
+
+Potential company code wiki later:
 
 ```text
 Name: Interview Coach Candidate Docs
 Repo: Interview_Coach_AI
 Branch: feature/candidate-app-integration
-Folder: /docs
+Folder: /docs/candidate-app
 ```
 
 Working rules:
 
+- Keep the Fu-Lab wiki short and link-oriented.
 - Do not duplicate durable docs into manually edited wiki pages.
-- Let PR review control doc changes.
-- Use the Azure dashboard Markdown widget as the short link hub.
-- Keep exploratory notes in work item Discussion fields or this repo only when they become durable context.
-- Add or update `.order` files later if Azure wiki page order becomes noisy.
+- Let PR review control durable doc changes.
+- Use the Azure dashboard Markdown widget as the short operational link hub.
+- Keep exploratory notes in work item Discussion fields or promote them into repo docs when they become durable context.
+- Add or update `.order` files later if a code wiki page order becomes noisy.
 
-Publishing code as wiki is useful here because docs remain versioned with the code branch and can be reviewed in PRs before the team treats them as shared truth.
+A code wiki is still useful later because docs remain versioned with the code branch and can be reviewed in PRs before the team treats them as shared truth.
 
 ## PR Policy
 
@@ -262,7 +273,7 @@ Suggested PR description fields:
 
 1. Create `feature/candidate-app-integration` from `feature/postgres-integration`.
 2. Push a candidate docs/context commit first.
-3. Publish `/docs` from that branch as a code wiki.
+3. Create the Fu-Lab wiki hub with links to the company repo, branch, PR, dashboard, board queries, and durable repo docs.
 4. Create the dashboard with a Markdown link hub and blocked-query widgets.
 5. Create only the initial Epics and highest-value Features.
 6. Create work items for unresolved external contracts:
@@ -272,6 +283,7 @@ Suggested PR description fields:
    - candidate route auth and middleware
    - dashboard destination after portal launch
 7. Link the first candidate integration PR to those work items.
+8. Publish `/docs/candidate-app` from the company repo as code wiki later if company project access allows it.
 
 ## References
 

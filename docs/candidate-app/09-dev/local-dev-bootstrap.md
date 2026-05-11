@@ -19,6 +19,10 @@ Current commands:
 - `npm run typecheck`
 - `npm run test:coverage`
 - `npm run build`
+- `npm run postgres:smoke:start`
+- `npm run db:apply-schema`
+- `npm run db:apply-candidate-schema`
+- `npm run db:smoke-candidate-schema`
 
 Current development server:
 
@@ -37,6 +41,17 @@ npm run dev
 ```
 
 The commands can be added incrementally as backend work lands.
+
+Current candidate schema smoke flow:
+
+```powershell
+npm run postgres:smoke:start
+npm run db:apply-schema
+npm run db:apply-candidate-schema
+npm run db:smoke-candidate-schema
+```
+
+This applies the recruiter Postgres baseline, applies the candidate identity/profile migration, and validates candidate profile plus provider identity constraints inside a rollback-only smoke script.
 
 ## Environment Setup
 
@@ -70,4 +85,3 @@ Production-like development should use:
 - Should local Postgres run through Docker, native Postgres, Azure-hosted dev DB, or all three?
 - Should seed data include multiple candidate profiles for ownership tests?
 - Should mock auth be enabled by cookie, env, or a test-only route?
-

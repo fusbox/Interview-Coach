@@ -29,13 +29,18 @@ describe("updateSession app-auth middleware", () => {
         vi.clearAllMocks();
     });
 
-    it("redirects protected recruiter pages without an app session cookie", () => {
-        const response = updateSession(makeRequest("/recruiter?tab=open"));
+    it.each([
+        ["/recruiter?tab=open", "https://interviewcoach.test/login?next=%2Frecruiter%3Ftab%3Dopen"],
+        ["/recruiter/dashboard", "https://interviewcoach.test/login?next=%2Frecruiter%2Fdashboard"],
+        ["/recruiter/templates", "https://interviewcoach.test/login?next=%2Frecruiter%2Ftemplates"],
+        ["/recruiter/settings", "https://interviewcoach.test/login?next=%2Frecruiter%2Fsettings"],
+        ["/admin/feedback", "https://interviewcoach.test/login?next=%2Fadmin%2Ffeedback"],
+        ["/qa/ai-quality", "https://interviewcoach.test/login?next=%2Fqa%2Fai-quality"],
+    ])("redirects recruiter-owned protected page %s without an app session cookie", (path, expectedLocation) => {
+        const response = updateSession(makeRequest(path));
 
         expect(response.status).toBe(307);
-        expect(response.headers.get("location")).toBe(
-            "https://interviewcoach.test/login?next=%2Frecruiter%3Ftab%3Dopen"
-        );
+        expect(response.headers.get("location")).toBe(expectedLocation);
     });
 
     it("allows protected recruiter pages with an app session cookie", () => {
@@ -54,8 +59,16 @@ describe("updateSession app-auth middleware", () => {
         expect(response.headers.get("location")).toBeNull();
     });
 
-    it("allows public candidate pages without an app session cookie", () => {
-        const response = updateSession(makeRequest("/s/invite-token"));
+    it.each([
+        ["/"],
+        ["/practice"],
+        ["/dashboard"],
+        ["/session/session_123"],
+        ["/summary/session_123"],
+        ["/auth/talentarbor/start?next=/practice"],
+        ["/s/invite-token"],
+    ])("does not let recruiter middleware claim candidate or public route %s", (path) => {
+        const response = updateSession(makeRequest(path));
 
         expect(response.status).toBe(200);
         expect(response.headers.get("location")).toBeNull();
