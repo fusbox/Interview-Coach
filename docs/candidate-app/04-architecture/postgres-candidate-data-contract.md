@@ -123,6 +123,13 @@ Invite sessions can preserve token access separately when needed.
 - Candidate ownership must be enforced in server-side queries.
 - Tests should cover permission-denied and not-found cases separately.
 
+Current repository boundary:
+
+- [Candidate profile repository](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-profile-repository.ts)
+- [Candidate profile repository tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-profile-repository.test.ts)
+
+The first repository resolves or creates candidate profiles from provider identity handoffs and maps provider identities to a `CandidateProfileAccessRecord` for future auth and route-guard code.
+
 ## Migration Rule
 
 Everything Supabase-related must convert to standard Postgres patterns before it is introduced here.
