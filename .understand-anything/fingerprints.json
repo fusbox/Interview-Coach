@@ -1,0 +1,2234 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2026-05-10T19:14:37.414Z",
+  "files": {
+    "src/app/(recruiter)/recruiter/page.test.tsx": {
+      "path": "src/app/(recruiter)/recruiter/page.test.tsx",
+      "contentHash": "a189a4c2320406347c99b7f425af0a51717c20460b6bf3ebce4d2f2cbd611f56"
+    },
+    "src/app/auth/talentarbor/start/route.test.ts": {
+      "path": "src/app/auth/talentarbor/start/route.test.ts",
+      "contentHash": "9edec883744d281ccb4d2e4197ccacbac2c5aa1caaa5de8bcd311db8eb05df14"
+    },
+    "src/app/auth/talentarbor/start/route.ts": {
+      "path": "src/app/auth/talentarbor/start/route.ts",
+      "contentHash": "def5b7933127f0d0e4fb619db60e17dd31c8f0167dc5dd5abc04491f3ccb777b"
+    },
+    "src/components/demo/DesignSystemDemoOverlay.tsx": {
+      "path": "src/components/demo/DesignSystemDemoOverlay.tsx",
+      "contentHash": "b9a93db84c36a5351b0ea011949ab9a5d8b62eb47ca40307a89afccc6efdad60"
+    },
+    "src/components/shell/CandidateMobileDock.tsx": {
+      "path": "src/components/shell/CandidateMobileDock.tsx",
+      "contentHash": "3107be0e68f2f612f2ddf9605f666b5905efb8afe83003b6fa064501987a6ec1"
+    },
+    "src/components/shell/CandidateShell.tsx": {
+      "path": "src/components/shell/CandidateShell.tsx",
+      "contentHash": "706b97b57d8efc55b0c49832930cf060c7a8379c7627272b69fb9adcf992d494"
+    },
+    "src/components/shell/CandidateSidebar.tsx": {
+      "path": "src/components/shell/CandidateSidebar.tsx",
+      "contentHash": "a6a62b468871ae6723a7d5a7cda97e5eb04f7979ca4759025afdab635fa2fc28"
+    },
+    "src/components/ui/ActionButton.tsx": {
+      "path": "src/components/ui/ActionButton.tsx",
+      "contentHash": "85f64b2169d10db0d45607d13ba1a52835f44ec25cc82f6461469581db509af8"
+    },
+    "src/components/ui/FormField.tsx": {
+      "path": "src/components/ui/FormField.tsx",
+      "contentHash": "32ee6b17d08a8b72c49cce1cb5391f55a9932a8e2cf69c2a9b5e7facdfdcaace"
+    },
+    "src/components/ui/PageIntro.tsx": {
+      "path": "src/components/ui/PageIntro.tsx",
+      "contentHash": "7084e1c98f03286ad9c4a1d3e5ff545d492423786e6d5db26341c32ded2ff795"
+    },
+    "src/components/ui/SurfaceCard.tsx": {
+      "path": "src/components/ui/SurfaceCard.tsx",
+      "contentHash": "bcfb5c0fba70b361e694530b108bbf55187dd9681f16b74fe23773e5c60f384c"
+    },
+    "src/lib/mock-data.ts": {
+      "path": "src/lib/mock-data.ts",
+      "contentHash": "39a25785c3d0e08b3fb4cf4e6ce4011b3c1e7446c497a509f4665761971963ae"
+    },
+    "src/lib/navigation.ts": {
+      "path": "src/lib/navigation.ts",
+      "contentHash": "e3f6a0cb7615b65bdf418efd2b247f87733e2ecc561507fc347cda1df97fe37f"
+    },
+    "src/lib/server/candidate-login-intent.test.ts": {
+      "path": "src/lib/server/candidate-login-intent.test.ts",
+      "contentHash": "6aa2b26bf0d0ecf4b76dcd8dd1a29b33fdfc388dc57e9f94939a184dd18482be"
+    },
+    "src/lib/server/candidate-login-intent.ts": {
+      "path": "src/lib/server/candidate-login-intent.ts",
+      "contentHash": "27ac9411e2fff7e732d422c2e8e31010d577bf73ac146c303f4023da2ad588fc"
+    },
+    ".data/invites/067be40f77096621dcc4651fd69e318b.json": {
+      "path": ".data/invites/067be40f77096621dcc4651fd69e318b.json",
+      "contentHash": "ea14a5de9b38a28ea85924eb6a603637c9759ec19b8d086c127850be76235068"
+    },
+    ".data/invites/e1ee794164c9b0902afa2c30e0fc9e79.json": {
+      "path": ".data/invites/e1ee794164c9b0902afa2c30e0fc9e79.json",
+      "contentHash": "25bae73e03cebc1c51d0d1cc509c145e0b1ec6f303ca1d433e0d213dfe1cf844"
+    },
+    ".data/sessions/019c288a-95ca-7bc6-b04c-79450189e5a6.json": {
+      "path": ".data/sessions/019c288a-95ca-7bc6-b04c-79450189e5a6.json",
+      "contentHash": "c7eba15f39267fdb7d904e5b70b74f803230b35ccf8ebbeb19e4cd98f2e4d3df"
+    },
+    ".data/sessions/019c288a-95d4-72b9-92bd-b01b53397c9c.json": {
+      "path": ".data/sessions/019c288a-95d4-72b9-92bd-b01b53397c9c.json",
+      "contentHash": "5da9f76b076b420142e8292bd1b31a8a86ea9016028e462423793a571c517654"
+    },
+    ".data/sessions/019c288b-0c63-7b98-bcc8-02b30ea6802a.json": {
+      "path": ".data/sessions/019c288b-0c63-7b98-bcc8-02b30ea6802a.json",
+      "contentHash": "c886d65673f29b4de376eb9f2d4e3870679755e6baed8bac01886164c7ba813a"
+    },
+    ".data/sessions/019c288b-0e04-7c30-8f5c-f699282a2475.json": {
+      "path": ".data/sessions/019c288b-0e04-7c30-8f5c-f699282a2475.json",
+      "contentHash": "e0a8f48e78353d740125121c335afa41e63a96fda1fdc201948737196fb520cb"
+    },
+    ".data/sessions/019c29d6-ce45-7a3c-aeb9-78279ee7f1dc.json": {
+      "path": ".data/sessions/019c29d6-ce45-7a3c-aeb9-78279ee7f1dc.json",
+      "contentHash": "9eaa47396af8687bd6a6ad626e57393a2b787467fdb511b65a5305c48c9b0190"
+    },
+    ".data/sessions/019c29e7-cb37-7146-8f72-291bad499c4a.json": {
+      "path": ".data/sessions/019c29e7-cb37-7146-8f72-291bad499c4a.json",
+      "contentHash": "7026bae1511ae4268c14eb9bd3e21bfa0797f291d9727c480676f55c44638da7"
+    },
+    ".env.example": {
+      "path": ".env.example",
+      "contentHash": "a8b99ec82614529a414939ed54780626aec280285d0a165e5ad44c4e61848038"
+    },
+    ".eslintrc.json": {
+      "path": ".eslintrc.json",
+      "contentHash": "29bc706bd967a5d6f5e8a9c332da48390225a15661538fb512d66e7c10992f9c"
+    },
+    ".github/ISSUE_TEMPLATE/config.yml": {
+      "path": ".github/ISSUE_TEMPLATE/config.yml",
+      "contentHash": "c52d10b8c32f2f217469fee19791bfd643de944a33bb79e5463d085611a27741"
+    },
+    ".github/ISSUE_TEMPLATE/hardening-risk-gap.yml": {
+      "path": ".github/ISSUE_TEMPLATE/hardening-risk-gap.yml",
+      "contentHash": "69b1a4ea1358d006943af403f693fcf917fc260f76783f1be178429e5f759df5"
+    },
+    ".github/ISSUE_TEMPLATE/product-ux-idea.yml": {
+      "path": ".github/ISSUE_TEMPLATE/product-ux-idea.yml",
+      "contentHash": "84908dedfaf71e909f49ceb2b26e98447a5c3e1b7aebe6780817f26b78021ea6"
+    },
+    ".github/ISSUE_TEMPLATE/research-decision.yml": {
+      "path": ".github/ISSUE_TEMPLATE/research-decision.yml",
+      "contentHash": "f76e22ca544c10c9c59430d158b9e4db0bc38c373248281f89cc646c31cb0805"
+    },
+    ".github/workflows/quality-gates.yml": {
+      "path": ".github/workflows/quality-gates.yml",
+      "contentHash": "28877f982d070a0fe253446283852fcc975d8df9a1e441f2c252fbc635a60acb"
+    },
+    ".gitignore": {
+      "path": ".gitignore",
+      "contentHash": "e3d2d039b93af4c0dc23e59bd3970a6eb0253fef656acc5a4e98fa4f19601ea0"
+    },
+    ".ralph/guardrails.md": {
+      "path": ".ralph/guardrails.md",
+      "contentHash": "9fd16285886ed453aaa45444d5e22b5407d521559a59966f0c491e2e055b4da0"
+    },
+    ".ralph/preflight_color_update.md": {
+      "path": ".ralph/preflight_color_update.md",
+      "contentHash": "0f2291751effba68fd882ad8e6044d80ecfe19dae7ee669d6f9fdf5d63cf946c"
+    },
+    ".ralph/telemetry.jsonl": {
+      "path": ".ralph/telemetry.jsonl",
+      "contentHash": "698f2ccc05160b2399c105338662ff80783957ddcf6d516ade0cd03def4c33f8"
+    },
+    ".ralph/tool_trace.jsonl": {
+      "path": ".ralph/tool_trace.jsonl",
+      "contentHash": "e24768df0615d1f17a5cbc35d8aa4ea7d5da82682a9e0ef5fd4bf23f181b77d6"
+    },
+    "CONTRIBUTING.md": {
+      "path": "CONTRIBUTING.md",
+      "contentHash": "efe2731fac5fd51f51dbc36d12e471631812704082b08cab2c2dfd1e03363373"
+    },
+    "DECISION_LOG.md": {
+      "path": "DECISION_LOG.md",
+      "contentHash": "7a99933b2ddc9559deab7419917150b75266c8fa4b51897018d47f77f4c0c6e4"
+    },
+    "README.md": {
+      "path": "README.md",
+      "contentHash": "599a75ba5d85346e4a4687717d62e98a43133f00c5d0b0ba6a85d48f645ac0a1"
+    },
+    "components.json": {
+      "path": "components.json",
+      "contentHash": "086b1b9cc7346c742edc5f3c27499b79dc8329758e17dd126fc9b902aed7b2d5"
+    },
+    "db/migrations/001_initial_schema.sql": {
+      "path": "db/migrations/001_initial_schema.sql",
+      "contentHash": "caa5410578208d97be3f3ad7130cee666dea4191da43a738f8b8a042379ca32e"
+    },
+    "db/validation/001_initial_schema_smoke.sql": {
+      "path": "db/validation/001_initial_schema_smoke.sql",
+      "contentHash": "fecd645db34f7bfa5b4ae4e1440fe5a3edbba26a65faa6f58547f91e2fc59e1f"
+    },
+    "docs/01-project/Interview Coach App - By Recruiter Invitation.docx": {
+      "path": "docs/01-project/Interview Coach App - By Recruiter Invitation.docx",
+      "contentHash": "6a6129acf447791acb98e8783497f64c99bc35812c14ac25c866419e9be4c707"
+    },
+    "docs/01-project/README.md": {
+      "path": "docs/01-project/README.md",
+      "contentHash": "098ebf4bba44ee4554efbf93b7194a53058be63d7d18249b83967aa03ea83144"
+    },
+    "docs/01-project/interview_coach_prd_v1.docx": {
+      "path": "docs/01-project/interview_coach_prd_v1.docx",
+      "contentHash": "88ee3245393c4c3eebc29d76252908f5efcf768f65c5be38aa3a919069148c97"
+    },
+    "docs/01-project/project-charter.md": {
+      "path": "docs/01-project/project-charter.md",
+      "contentHash": "a11dbfcc373fffff6365284d467a118131c2a67f0182758a27580b738973e7b2"
+    },
+    "docs/01-project/recruiter-team-description-brief.md": {
+      "path": "docs/01-project/recruiter-team-description-brief.md",
+      "contentHash": "a372f4b5ef9e2adf0af4e2546db66aa8b78794169b840dbc67f6269d99d99366"
+    },
+    "docs/01-project/stakeholder-map.md": {
+      "path": "docs/01-project/stakeholder-map.md",
+      "contentHash": "a0f1e634ee38e0ac24b49842f05dc53da1e184dfe6d8d1e85b5a7a8ccec8e1d4"
+    },
+    "docs/02-requirements/personas/candidate-persona.md": {
+      "path": "docs/02-requirements/personas/candidate-persona.md",
+      "contentHash": "506d5a5026c349d02db2e0b938c232794cacb425c344dfca85363a3f55a567f6"
+    },
+    "docs/02-requirements/personas/recruiter-persona.md": {
+      "path": "docs/02-requirements/personas/recruiter-persona.md",
+      "contentHash": "56ea633a7c74933052fc757f435ef9f85048cfec643f95c31654bc8c0030b5e4"
+    },
+    "docs/02-requirements/use-cases/template.md": {
+      "path": "docs/02-requirements/use-cases/template.md",
+      "contentHash": "dd4308246aa4cc5e399c3b132fc6347743eebf4e6b83f0f21086d4b9e4fe7ae1"
+    },
+    "docs/02-requirements/use-cases/v2/UC-C1-Candidate-Accesses-the-Interview-Session.md": {
+      "path": "docs/02-requirements/use-cases/v2/UC-C1-Candidate-Accesses-the-Interview-Session.md",
+      "contentHash": "0ebaae582556d1d6edb3180ca2116526afc4d667f2f4e36abf1d9b3bd12d62c1"
+    },
+    "docs/02-requirements/use-cases/v2/UC-C2-Candidate-Responds-to-a-Question.md": {
+      "path": "docs/02-requirements/use-cases/v2/UC-C2-Candidate-Responds-to-a-Question.md",
+      "contentHash": "7bd9b3843ffafe9d6c9c533e64c7e07232bfcb90323502b1df46ee9c1303d169"
+    },
+    "docs/02-requirements/use-cases/v2/UC-C3 Candidate Updates a Draft Answer.md": {
+      "path": "docs/02-requirements/use-cases/v2/UC-C3 Candidate Updates a Draft Answer.md",
+      "contentHash": "29736ab62ef22853d9c61aeddeba3507d3d081dfc3a72fea03e632641a1560ea"
+    },
+    "docs/02-requirements/use-cases/v2/UC-C4-Candidate-Reviews-AI-Feedback-and-Retries.md": {
+      "path": "docs/02-requirements/use-cases/v2/UC-C4-Candidate-Reviews-AI-Feedback-and-Retries.md",
+      "contentHash": "d257dcd3aae2a9b16287f8564a8a2a07d3afa88a6c6d21b2822b0976f94a0955"
+    },
+    "docs/02-requirements/use-cases/v2/UC-C5-Candidate-Views-Session-Summary-and-Concludes.md": {
+      "path": "docs/02-requirements/use-cases/v2/UC-C5-Candidate-Views-Session-Summary-and-Concludes.md",
+      "contentHash": "863336662c339380adc79b0393eed25b0792a51d98253cc059df05c68e223700"
+    },
+    "docs/02-requirements/use-cases/v2/UC-R0-Recruiter-Login.md": {
+      "path": "docs/02-requirements/use-cases/v2/UC-R0-Recruiter-Login.md",
+      "contentHash": "1f882be777c3da579d65170d3ccfa9719ee9c5df0477a96d6ed617ce4ec83146"
+    },
+    "docs/02-requirements/use-cases/v2/UC-R1-Recruiter-Configures-an-Interview-Session.md": {
+      "path": "docs/02-requirements/use-cases/v2/UC-R1-Recruiter-Configures-an-Interview-Session.md",
+      "contentHash": "c341c90de7cb7799b931c122d39db60cb63bccded1a1047421f95b7fd8287c12"
+    },
+    "docs/02-requirements/use-cases/v2/UC-R2-Recruiter-Reviews-a-Candidate-Interview-Session.md": {
+      "path": "docs/02-requirements/use-cases/v2/UC-R2-Recruiter-Reviews-a-Candidate-Interview-Session.md",
+      "contentHash": "9ecc6f1f78a2d16c58b29a684359070004093db6dee1d42f965ebba36fa6e8e7"
+    },
+    "docs/02-requirements/use-cases/v2/UC-R3 Recruiter Views a List of Interview Sessions.md": {
+      "path": "docs/02-requirements/use-cases/v2/UC-R3 Recruiter Views a List of Interview Sessions.md",
+      "contentHash": "ae271243dc54cd7fec4599d1878285e777bb375974a5998d1b24e9f7e18e33d8"
+    },
+    "docs/02-requirements/user-stories.md": {
+      "path": "docs/02-requirements/user-stories.md",
+      "contentHash": "382fb526acfacacf72f33253d3a4d88fd2ae00b88b1ef57d9be0baae11b7a8a9"
+    },
+    "docs/03-design/CANONICAL_DESIGN_SYSTEM_SPEC.md": {
+      "path": "docs/03-design/CANONICAL_DESIGN_SYSTEM_SPEC.md",
+      "contentHash": "b8cebfeafe316fde94914025c64747245758f45699fa9fe2cb94e676923ad998"
+    },
+    "docs/03-design/ROUTING_AND_RENDERING.md": {
+      "path": "docs/03-design/ROUTING_AND_RENDERING.md",
+      "contentHash": "43f983a43adaeba49870a2ddcbd5e3455a9342b38cf192c5f0acad6f222748e7"
+    },
+    "docs/03-design/SCREEN_STATE_MODEL.md": {
+      "path": "docs/03-design/SCREEN_STATE_MODEL.md",
+      "contentHash": "d71a75af5c7403e1e4652f7f8ddbba24f079fa4044783acadb922769bee87c0a"
+    },
+    "docs/03-design/TYPOGRAPHY & THEME_TOKENS.md": {
+      "path": "docs/03-design/TYPOGRAPHY & THEME_TOKENS.md",
+      "contentHash": "a4d64f237566c2c743e81b2b595c604693624827e225902e3c82656e8ec85e72"
+    },
+    "docs/03-design/user-flows/UF-C1 Candidate Starts Interview Session.md": {
+      "path": "docs/03-design/user-flows/UF-C1 Candidate Starts Interview Session.md",
+      "contentHash": "fe52948821c0c3a99e9e9c003abba35e01be0c6e96a7c04e60abdd9f698ccd03"
+    },
+    "docs/03-design/user-flows/UF-C2 Candidate Answers Question + Autosave + Submit.md": {
+      "path": "docs/03-design/user-flows/UF-C2 Candidate Answers Question + Autosave + Submit.md",
+      "contentHash": "98e4b1e4d8ecd7f36c0c20d8fceba380bd4a1cbe0bb40be3771960ca75125ce1"
+    },
+    "docs/03-design/user-flows/UF-C3 Evaluation Completes → Feedback Shown.md": {
+      "path": "docs/03-design/user-flows/UF-C3 Evaluation Completes → Feedback Shown.md",
+      "contentHash": "2b6543927d870e1b8716a2f8a7a6c6fb70a00fa32434787fe97da0c1bd3c29a5"
+    },
+    "docs/03-design/user-flows/UF-C4 Candidate Retries Question.md": {
+      "path": "docs/03-design/user-flows/UF-C4 Candidate Retries Question.md",
+      "contentHash": "4daa4cdc665b5b1f154804fac97c7ceea770120352e8fa3eb16c74d18a97c7f5"
+    },
+    "docs/03-design/user-flows/UF-C5 Candidate Resumes In-Progress Session.md": {
+      "path": "docs/03-design/user-flows/UF-C5 Candidate Resumes In-Progress Session.md",
+      "contentHash": "5b09069fffa52220af58781deb290a8726cf284553daef2ab14b2765770af261"
+    },
+    "docs/03-design/user-flows/UF-R1 Recruiter Configures an Interview Session.md": {
+      "path": "docs/03-design/user-flows/UF-R1 Recruiter Configures an Interview Session.md",
+      "contentHash": "b041c8191f613c027aed3fd33a76a769af20900cb6b4b21510fe2133b59c2a80"
+    },
+    "docs/03-design/user-flows/UF-R2 Recruiter Views Session Status & Evidence.md": {
+      "path": "docs/03-design/user-flows/UF-R2 Recruiter Views Session Status & Evidence.md",
+      "contentHash": "a4b733f1fd235674ee1a4f0544800ccd920a8351ef846bb54eecceaa96918400"
+    },
+    "docs/04-architecture/README.md": {
+      "path": "docs/04-architecture/README.md",
+      "contentHash": "1756eb28f9e6ba642a3de1f7ca9b4aacd4c61c7bf0833f6ebe7b11229d3e7974"
+    },
+    "docs/04-architecture/adr-application-boundaries.md": {
+      "path": "docs/04-architecture/adr-application-boundaries.md",
+      "contentHash": "70a69fae4ac20ba391a20ea60d9b6d23cea2cba3a88709e6e2ab1f464e0e1392"
+    },
+    "docs/04-architecture/adr-invite-batch-consistency.md": {
+      "path": "docs/04-architecture/adr-invite-batch-consistency.md",
+      "contentHash": "a3c6eae2c00a170fc7cc8a9fca51337164eb29b44229920975e98610dc448429"
+    },
+    "docs/04-architecture/adr-rate-limit-backend.md": {
+      "path": "docs/04-architecture/adr-rate-limit-backend.md",
+      "contentHash": "e08ce2dbd59667c7fd372a37c42603547c05f3ea2e44f2e6c813348236d8ca38"
+    },
+    "docs/04-architecture/api-surface.md": {
+      "path": "docs/04-architecture/api-surface.md",
+      "contentHash": "d992082010a0a9ad350ce34924a1724e1f5f954d75929065dc7bd93c1dffe45c"
+    },
+    "docs/04-architecture/architecture-overview.md": {
+      "path": "docs/04-architecture/architecture-overview.md",
+      "contentHash": "4c7a1d00812f58b73ff3168f4e905ce307a86741e2846a4faacd823d614fd957"
+    },
+    "docs/04-architecture/code-organization.md": {
+      "path": "docs/04-architecture/code-organization.md",
+      "contentHash": "352b25670ab397d20603471d76c8090103d9c34a048e8a65322672d918733f85"
+    },
+    "docs/04-architecture/design-gates.md": {
+      "path": "docs/04-architecture/design-gates.md",
+      "contentHash": "64b035b3380433e732c45daaaf867c2af1f1e39579d638d631eac9638cdab2b2"
+    },
+    "docs/04-architecture/e2e-flow.md": {
+      "path": "docs/04-architecture/e2e-flow.md",
+      "contentHash": "33f9b499d39d36703c5cf6f7f503eebe1cbf286ebe20ac9e24ed9121cbc6988a"
+    },
+    "docs/04-architecture/gate-decisions.md": {
+      "path": "docs/04-architecture/gate-decisions.md",
+      "contentHash": "479fe176ce1500d89d7af4b5070f59038d415acd329b684633ea696911035c07"
+    },
+    "docs/04-architecture/postgres-migration/app_user_provisioning.md": {
+      "path": "docs/04-architecture/postgres-migration/app_user_provisioning.md",
+      "contentHash": "239fc860b7a5cdd83b655c8f531f2a8d9bda1983477d34467151b6ed58b10e46"
+    },
+    "docs/04-architecture/postgres-migration/db_schema.md": {
+      "path": "docs/04-architecture/postgres-migration/db_schema.md",
+      "contentHash": "2787f9469155fa9f8d2b461d844aa900e5bc600e561a9d8c7927830da4e0edea"
+    },
+    "docs/04-architecture/postgres-migration/integration_checklist.md": {
+      "path": "docs/04-architecture/postgres-migration/integration_checklist.md",
+      "contentHash": "28313bf1c59c526ff68442d663eb69e7a8b3110be23150e21a860d890560a10c"
+    },
+    "docs/04-architecture/postgres-migration/local_postgres_smoke.md": {
+      "path": "docs/04-architecture/postgres-migration/local_postgres_smoke.md",
+      "contentHash": "16e1aee64d6c1aa1b29e6e6163fc2442a247a1374804bdd90f08a293fcfc4bb1"
+    },
+    "docs/04-architecture/postgres-migration/postgres_migration_handoff.md": {
+      "path": "docs/04-architecture/postgres-migration/postgres_migration_handoff.md",
+      "contentHash": "b20551022e0dae6e9d42d58f5cc37b2ae89f08582b7e091ebcccb60638b754d4"
+    },
+    "docs/04-architecture/postgres-migration/supabase_touchpoint_inventory.md": {
+      "path": "docs/04-architecture/postgres-migration/supabase_touchpoint_inventory.md",
+      "contentHash": "1c585707b555534c4889988406f284f3c4edd53b478f22ff8d23a045187aa35d"
+    },
+    "docs/04-architecture/postgres-migration/target_runtime_facts.md": {
+      "path": "docs/04-architecture/postgres-migration/target_runtime_facts.md",
+      "contentHash": "bd17f0961839c06ba8b11ac065f30cae34ed26b370a067157c03570eb4c1cafa"
+    },
+    "docs/04-architecture/postgres-migration/target_schema_reconciliation.md": {
+      "path": "docs/04-architecture/postgres-migration/target_schema_reconciliation.md",
+      "contentHash": "4b58d40b1a628631f4fe840837961243dbe10b26efb97448cf68b7e98e97e3b2"
+    },
+    "docs/04-architecture/stability-and-change-policy.md": {
+      "path": "docs/04-architecture/stability-and-change-policy.md",
+      "contentHash": "ef4ae8b3f4093212c5e6a0393675305b89401f575478ae1c131aab5068792cd4"
+    },
+    "docs/04-architecture/state-and-streaming-contract.md": {
+      "path": "docs/04-architecture/state-and-streaming-contract.md",
+      "contentHash": "badd0f3a7309c63b46a802e57f6a3902255eaea25f896805da480689a09e6e34"
+    },
+    "docs/04-architecture/vertical-slice-contracts.md": {
+      "path": "docs/04-architecture/vertical-slice-contracts.md",
+      "contentHash": "cfc86e502b2be87743d48ead129527830f83d0102b6bf5334f4db842c9ac88fd"
+    },
+    "docs/05-quality/AI-eval/AI_quality_platform_overview.md": {
+      "path": "docs/05-quality/AI-eval/AI_quality_platform_overview.md",
+      "contentHash": "49a14752812341e6c2c6bf92d6455b5f98f516bcb751e7683768a863ed9050a1"
+    },
+    "docs/05-quality/AI-eval/initial-packet/00_packet_manifest.template.yaml": {
+      "path": "docs/05-quality/AI-eval/initial-packet/00_packet_manifest.template.yaml",
+      "contentHash": "0588fca4e1309649c9c3ed0ab64ca48ef24b7f2cb133fb2db870e3bd582c2650"
+    },
+    "docs/05-quality/AI-eval/initial-packet/01_data_selection_checklist.md": {
+      "path": "docs/05-quality/AI-eval/initial-packet/01_data_selection_checklist.md",
+      "contentHash": "4ca30803f2e7382f6fd12ebfd6ef906bb2aeae22824fabe1b7d7f951886bb3be"
+    },
+    "docs/05-quality/AI-eval/initial-packet/02_redaction_and_handling.md": {
+      "path": "docs/05-quality/AI-eval/initial-packet/02_redaction_and_handling.md",
+      "contentHash": "551d7fc33e542581a04fb830650995764817b5cbe311da789464221ea2a94d58"
+    },
+    "docs/05-quality/AI-eval/initial-packet/03_question_generation_case_template.md": {
+      "path": "docs/05-quality/AI-eval/initial-packet/03_question_generation_case_template.md",
+      "contentHash": "57f9e99709b283308111d7184df8a9772ba2f1fff18deae1816d5f23140c0dc8"
+    },
+    "docs/05-quality/AI-eval/initial-packet/04_candidate_answer_feedback_case_template.md": {
+      "path": "docs/05-quality/AI-eval/initial-packet/04_candidate_answer_feedback_case_template.md",
+      "contentHash": "936883dd95fb92d4805c21c5cc8482109bb928facb3777a72b525b4cf3bf5220"
+    },
+    "docs/05-quality/AI-eval/initial-packet/05_eval_rubrics.md": {
+      "path": "docs/05-quality/AI-eval/initial-packet/05_eval_rubrics.md",
+      "contentHash": "8c1549269b3c49c53cbb47c9c22295df6282d9f3f7fb1f8bb1c3e43b604b63c3"
+    },
+    "docs/05-quality/AI-eval/initial-packet/06_evaluator_response_sheet.md": {
+      "path": "docs/05-quality/AI-eval/initial-packet/06_evaluator_response_sheet.md",
+      "contentHash": "127cfededcb0d06334e899ed4041defc1642e61a7fcb54d65f1a5318db841475"
+    },
+    "docs/05-quality/AI-eval/initial-packet/07_local_llm_run_instructions.md": {
+      "path": "docs/05-quality/AI-eval/initial-packet/07_local_llm_run_instructions.md",
+      "contentHash": "9d0f999e46283b3ff593dd68c4aa7221f3371f711fdce4d7f554ae044cf105ea"
+    },
+    "docs/05-quality/AI-eval/initial-packet/README.md": {
+      "path": "docs/05-quality/AI-eval/initial-packet/README.md",
+      "contentHash": "26ec5a9f0b049c224e060fa5373547b828af5e5131a8ba10c93ecaf9a3b68fe4"
+    },
+    "docs/05-quality/AI-eval/initial-packet/case-template.candidate-answer-feedback.json": {
+      "path": "docs/05-quality/AI-eval/initial-packet/case-template.candidate-answer-feedback.json",
+      "contentHash": "db38bd79cd1d1e069fa54316901d4ebc86fc92746fbc5372459a48d99d23474e"
+    },
+    "docs/05-quality/AI-eval/initial-packet/case-template.question-generation.json": {
+      "path": "docs/05-quality/AI-eval/initial-packet/case-template.question-generation.json",
+      "contentHash": "df42502ffddfb8ebcc6c23de96cdd3cf2190345566acb710016238d892259cff"
+    },
+    "docs/05-quality/AI-eval/initial-packet/evaluator-response-template.json": {
+      "path": "docs/05-quality/AI-eval/initial-packet/evaluator-response-template.json",
+      "contentHash": "13a7048d5935ea026b9cee2fab2f0592a724dbbf4996d0050d2e6fd9ef7179a0"
+    },
+    "docs/05-quality/AI-eval/queries/recent-ai-generations-all-fields.sql": {
+      "path": "docs/05-quality/AI-eval/queries/recent-ai-generations-all-fields.sql",
+      "contentHash": "a49cc719ddc7aa1e28864bb684f45dd9e1fb4fa052b912359f5cf40deab1718f"
+    },
+    "docs/05-quality/QA-checklist.md": {
+      "path": "docs/05-quality/QA-checklist.md",
+      "contentHash": "d3893485d13e90ff82d9027107ac955fa2f765277dd788f89447e2af8ffb256a"
+    },
+    "docs/05-quality/README.md": {
+      "path": "docs/05-quality/README.md",
+      "contentHash": "1dea62528ff70783ac9969cc2c74a05208d9d5df91cc6df19d59f6caa6c1ffd8"
+    },
+    "docs/05-quality/debug/ai_context.md": {
+      "path": "docs/05-quality/debug/ai_context.md",
+      "contentHash": "cd4b375f473b85ef74c72735ccb0e5a10a1da2e4614e045097c0126552f3f138"
+    },
+    "docs/05-quality/environment_variable_matrix.md": {
+      "path": "docs/05-quality/environment_variable_matrix.md",
+      "contentHash": "ae82af8bc3a93373698f799c1ca8839d5572a2fee8f8d9af3c1558278e06d98c"
+    },
+    "docs/05-quality/feedback-chain-spec.md": {
+      "path": "docs/05-quality/feedback-chain-spec.md",
+      "contentHash": "b93f51b15dafb22f805386db7674693725296bb72cadab2875ad4a8a9e176618"
+    },
+    "docs/05-quality/implementation-docs-alignment-review_2026-03-30.md": {
+      "path": "docs/05-quality/implementation-docs-alignment-review_2026-03-30.md",
+      "contentHash": "490597a8ad6089154a8e7746b6e905c68053af452d40a1629cea48d300189a57"
+    },
+    "docs/05-quality/incident_runbook.md": {
+      "path": "docs/05-quality/incident_runbook.md",
+      "contentHash": "e983bcf52e03413f46805fc0b6aaa13d465a5d49308281f3a3f8cfde625f60ed"
+    },
+    "docs/05-quality/initial_slos_2026-03-26.md": {
+      "path": "docs/05-quality/initial_slos_2026-03-26.md",
+      "contentHash": "a62ab25051c82b50192a3f46b22be80a931c6c370f81369e9ae25cd2bd854958"
+    },
+    "docs/05-quality/ops improvement/github-project_issue-form_hardening-risk-gap.yml": {
+      "path": "docs/05-quality/ops improvement/github-project_issue-form_hardening-risk-gap.yml",
+      "contentHash": "69b1a4ea1358d006943af403f693fcf917fc260f76783f1be178429e5f759df5"
+    },
+    "docs/05-quality/ops improvement/github-project_issue-form_product-ux-idea.yml": {
+      "path": "docs/05-quality/ops improvement/github-project_issue-form_product-ux-idea.yml",
+      "contentHash": "84908dedfaf71e909f49ceb2b26e98447a5c3e1b7aebe6780817f26b78021ea6"
+    },
+    "docs/05-quality/ops improvement/github-project_issue-form_research-decision.yml": {
+      "path": "docs/05-quality/ops improvement/github-project_issue-form_research-decision.yml",
+      "contentHash": "f76e22ca544c10c9c59430d158b9e4db0bc38c373248281f89cc646c31cb0805"
+    },
+    "docs/05-quality/ops improvement/github-project_issue-template-config.yml": {
+      "path": "docs/05-quality/ops improvement/github-project_issue-template-config.yml",
+      "contentHash": "c52d10b8c32f2f217469fee19791bfd643de944a33bb79e5463d085611a27741"
+    },
+    "docs/05-quality/ops improvement/github-project_issue-types-and-fields.md": {
+      "path": "docs/05-quality/ops improvement/github-project_issue-types-and-fields.md",
+      "contentHash": "5ef4d91b8a3b754455eab77ec2124bf834d21c75f7f601ffa5574172475bf1d1"
+    },
+    "docs/05-quality/ops improvement/github-project_label-taxonomy.md": {
+      "path": "docs/05-quality/ops improvement/github-project_label-taxonomy.md",
+      "contentHash": "6bd2807b70997aa9655164cce88da18fcef9a2352f9bad65dd436893939ba44d"
+    },
+    "docs/05-quality/ops improvement/github-project_system-blueprint.md": {
+      "path": "docs/05-quality/ops improvement/github-project_system-blueprint.md",
+      "contentHash": "a07cf83cf2440927ec55db7f379d5752bc94953f9d8c0ed83fd879c09d3b6f58"
+    },
+    "docs/05-quality/ops improvement/github-project_views-and-workflows.md": {
+      "path": "docs/05-quality/ops improvement/github-project_views-and-workflows.md",
+      "contentHash": "be3f63c3f4219d9cf8a0e6ea4575ebb473873ba998a9df7e702ef241b75852aa"
+    },
+    "docs/05-quality/ops improvement/operational-improvement_working_doc_2026-04-06.md": {
+      "path": "docs/05-quality/ops improvement/operational-improvement_working_doc_2026-04-06.md",
+      "contentHash": "60cdf9734a1d84a05c5abd972e1e829eb8caf51557fb525efa7a6fb55b5f3562"
+    },
+    "docs/05-quality/ops improvement/seed-issues.md": {
+      "path": "docs/05-quality/ops improvement/seed-issues.md",
+      "contentHash": "7dc141f35cf3136c7a4d49f5fd9a4f8155ac3fb2cf4cf3e5ad7eaebccfea453b"
+    },
+    "docs/05-quality/ops improvement/weekly-triage-checklist.md": {
+      "path": "docs/05-quality/ops improvement/weekly-triage-checklist.md",
+      "contentHash": "2577b264a26d31d3e19dcb6de787ba07a9aa2ca03ce0a7257199fbef12c3ea2d"
+    },
+    "docs/05-quality/ops_alert_policy.md": {
+      "path": "docs/05-quality/ops_alert_policy.md",
+      "contentHash": "815c1b9c094e45181b04975560a2668b765e834435f0eef95be7f08f8cf0fc8b"
+    },
+    "docs/05-quality/production-hardening-runbook.md": {
+      "path": "docs/05-quality/production-hardening-runbook.md",
+      "contentHash": "132637dba0f8331b40b2f382ef5ae3e2805bf8604834982753e9fc0cd3de18ec"
+    },
+    "docs/05-quality/production_deployment_validation_checklist_2026-03-26.md": {
+      "path": "docs/05-quality/production_deployment_validation_checklist_2026-03-26.md",
+      "contentHash": "a9046713dccca7feec3a6866553c6b64f25b1040e54e15cc3d28295d1e3a465c"
+    },
+    "docs/05-quality/production_execution_plan_2026-03-26.md": {
+      "path": "docs/05-quality/production_execution_plan_2026-03-26.md",
+      "contentHash": "55cb6335963ecb210389ea8a279bec0868da9cafd7f75c50cb46673a53842373"
+    },
+    "docs/05-quality/production_remediation_tracker_2026-03-25.md": {
+      "path": "docs/05-quality/production_remediation_tracker_2026-03-25.md",
+      "contentHash": "b850c50aab6a965b9860ddf7c71539023a35fd0df575452ee6b0431d258f5935"
+    },
+    "docs/05-quality/readiness-band-definition.md": {
+      "path": "docs/05-quality/readiness-band-definition.md",
+      "contentHash": "98cb200a07c5df3134ca8b74de40789b2da2ffa3af30250933023cd9aecb8203"
+    },
+    "docs/05-quality/readiness-code-inventory_2026-03-31.md": {
+      "path": "docs/05-quality/readiness-code-inventory_2026-03-31.md",
+      "contentHash": "acee14dec25c431f50022ea7d37fe00d31ca3379879907a84661e3542c849959"
+    },
+    "docs/05-quality/readiness-disposition-plan_2026-03-31.md": {
+      "path": "docs/05-quality/readiness-disposition-plan_2026-03-31.md",
+      "contentHash": "1c96362ccb04c4fe8f1e0b3b50408f33cccd01f651197dbf90bb4ce2fb8a662e"
+    },
+    "docs/05-quality/readiness-eval-scenarios.md": {
+      "path": "docs/05-quality/readiness-eval-scenarios.md",
+      "contentHash": "119e2eae241b69e422b9344cbd6c15c1db9bffc8e7e40f588a96a06b373431c7"
+    },
+    "docs/05-quality/release-gate-checklist.md": {
+      "path": "docs/05-quality/release-gate-checklist.md",
+      "contentHash": "2df950e01198f6a3a3fa9cb2390a790de27d2ee5a29713166021e929229ff937"
+    },
+    "docs/05-quality/test_pyramid_plan_2026-03-29.md": {
+      "path": "docs/05-quality/test_pyramid_plan_2026-03-29.md",
+      "contentHash": "667dc7f33938426c1ca480c97e3ed4076ed6e496c58b41337ad543377932f976"
+    },
+    "docs/README.md": {
+      "path": "docs/README.md",
+      "contentHash": "10fe7abeac1a2a245d272d794a7f2974d701f9c7dd8a4aa205808c6a07ff189a"
+    },
+    "docs/candidate-app/00-working-backlog.md": {
+      "path": "docs/candidate-app/00-working-backlog.md",
+      "contentHash": "b2d28144235410863b955e317e96cf77e32de1d1f7dd20fd129dc5ca8b6514e8"
+    },
+    "docs/candidate-app/01-product/candidate-app-operating-model.md": {
+      "path": "docs/candidate-app/01-product/candidate-app-operating-model.md",
+      "contentHash": "787a57eb94711057ae6d3bca77763f1be61e6d9c44fe259373bb5d38e7a0ea87"
+    },
+    "docs/candidate-app/02-requirements/README.md": {
+      "path": "docs/candidate-app/02-requirements/README.md",
+      "contentHash": "6070c095498d045e6af36cc35deb089ace0bcbbf0b60cc8124ae361398e46415"
+    },
+    "docs/candidate-app/02-requirements/authenticated-candidate-access.md": {
+      "path": "docs/candidate-app/02-requirements/authenticated-candidate-access.md",
+      "contentHash": "4f29acddcc7c5249b3ddf155111d0ab16deec948fa694bbb8b3cf01621a471ec"
+    },
+    "docs/candidate-app/02-requirements/candidate-login-redirect-contract.md": {
+      "path": "docs/candidate-app/02-requirements/candidate-login-redirect-contract.md",
+      "contentHash": "0be090c5247d699f3d43394309b3a302a3d943f4f1362764a9da613f93ee5a3e"
+    },
+    "docs/candidate-app/02-requirements/practice-setup-scope.md": {
+      "path": "docs/candidate-app/02-requirements/practice-setup-scope.md",
+      "contentHash": "f18ece1bfd6c91ed4166c4768f8b915d43e591ac716d1c977c375b3eca487203"
+    },
+    "docs/candidate-app/03-design/design-system-foundation.md": {
+      "path": "docs/candidate-app/03-design/design-system-foundation.md",
+      "contentHash": "c3a908f7f45568c15af05976928cd694e8a929ca3666a04f68cc088a87c423be"
+    },
+    "docs/candidate-app/04-architecture/README.md": {
+      "path": "docs/candidate-app/04-architecture/README.md",
+      "contentHash": "4bb1318bf6aa1a7003cfb6a27850b81533da118c275347e289fb62acc7f85250"
+    },
+    "docs/candidate-app/04-architecture/candidate-driven-implementation-plan.md": {
+      "path": "docs/candidate-app/04-architecture/candidate-driven-implementation-plan.md",
+      "contentHash": "b5b162ccb672011cbfabeae58f19637e2d8b56cd29a6676212ac329e49bcbd0b"
+    },
+    "docs/candidate-app/04-architecture/current-foundation.md": {
+      "path": "docs/candidate-app/04-architecture/current-foundation.md",
+      "contentHash": "f7003f091ca97b664050fecf5233ea809a1d3cb2b4e1b5b57d8cb4ff153cc0a7"
+    },
+    "docs/candidate-app/04-architecture/postgres-candidate-data-contract.md": {
+      "path": "docs/candidate-app/04-architecture/postgres-candidate-data-contract.md",
+      "contentHash": "36c87a7ebf8c8adec5de81db317cc10d3a2ce291ffc3e2eafbd23aaddbefe0e6"
+    },
+    "docs/candidate-app/04-architecture/practice-session-draft-contract.md": {
+      "path": "docs/candidate-app/04-architecture/practice-session-draft-contract.md",
+      "contentHash": "cd1329c12bdc2b660c98c97d8c23531f10e3ccf26ffdf37744fde5c25b83299e"
+    },
+    "docs/candidate-app/04-architecture/shared-host-routing-contract.md": {
+      "path": "docs/candidate-app/04-architecture/shared-host-routing-contract.md",
+      "contentHash": "bf591fe6fd5df24a6a66311fbc7905ef51ce5fcfbd223d9e007fc6faaf4706f4"
+    },
+    "docs/candidate-app/04-architecture/storage-and-resume-ingestion.md": {
+      "path": "docs/candidate-app/04-architecture/storage-and-resume-ingestion.md",
+      "contentHash": "ee07798f8313169fdee04a42f92fc11cb4d870b03d50406a5411bfb34a79d0a8"
+    },
+    "docs/candidate-app/05-quality/accessibility-baseline.md": {
+      "path": "docs/candidate-app/05-quality/accessibility-baseline.md",
+      "contentHash": "93fd8a8796dce8f6e735906b9352aea8e5930386f9c4bdaf54ea332e9c968a94"
+    },
+    "docs/candidate-app/05-quality/test-strategy.md": {
+      "path": "docs/candidate-app/05-quality/test-strategy.md",
+      "contentHash": "33be8ac6daec1cd7a295f45c276d7f0c406c30a5d59d30ecff37e79dd223dba9"
+    },
+    "docs/candidate-app/06-security/data-retention-policy.md": {
+      "path": "docs/candidate-app/06-security/data-retention-policy.md",
+      "contentHash": "869bba86d0f0f8b8374e35786fb33136e92d0c0b4f9ade7fcfdf6e88ecd1ed2c"
+    },
+    "docs/candidate-app/06-security/threat-model.md": {
+      "path": "docs/candidate-app/06-security/threat-model.md",
+      "contentHash": "f94ee3808aaf7ab52b4c4a746cbcfd306bb7de76f12e334788224ae1ccc41be4"
+    },
+    "docs/candidate-app/07-ops/azure-devops-operating-model.md": {
+      "path": "docs/candidate-app/07-ops/azure-devops-operating-model.md",
+      "contentHash": "01cce8b84ac62081c72addaed8eef1933fae0d2edb5ff679e3dcb3090bcefebb"
+    },
+    "docs/candidate-app/08-decisions/ADR-0001-separate-candidate-app-repository.md": {
+      "path": "docs/candidate-app/08-decisions/ADR-0001-separate-candidate-app-repository.md",
+      "contentHash": "9fbfc6c8e7366e4c227dc42ac1d182c7504be3ab27e974503b2a46b865c33859"
+    },
+    "docs/candidate-app/08-decisions/ADR-0002-postgres-only-backend-direction.md": {
+      "path": "docs/candidate-app/08-decisions/ADR-0002-postgres-only-backend-direction.md",
+      "contentHash": "b2ed7e3ce7f750fd3afb50e38e717808f5b73ce2cbba9c5080a9e10c7cd9f7c3"
+    },
+    "docs/candidate-app/08-decisions/ADR-0003-dev-auth-and-mock-candidate-mode.md": {
+      "path": "docs/candidate-app/08-decisions/ADR-0003-dev-auth-and-mock-candidate-mode.md",
+      "contentHash": "63cd4f3d668a0c0654a1e02981527bb3931225985edcc259a46d44c765e07fb6"
+    },
+    "docs/candidate-app/08-decisions/ADR-0004-multiple-active-practice-drafts.md": {
+      "path": "docs/candidate-app/08-decisions/ADR-0004-multiple-active-practice-drafts.md",
+      "contentHash": "032fdfe908ec1b5e48a3313e7cee8108409023688ecd218230835243d2f52204"
+    },
+    "docs/candidate-app/08-decisions/ADR-0005-processed-resume-retention-by-default.md": {
+      "path": "docs/candidate-app/08-decisions/ADR-0005-processed-resume-retention-by-default.md",
+      "contentHash": "4accaf89d7277fab5bc74f6cc205e5982cfefa449d1e91dace5805afa28d7827"
+    },
+    "docs/candidate-app/08-decisions/ADR-0006-shared-host-and-azure-branch-integration.md": {
+      "path": "docs/candidate-app/08-decisions/ADR-0006-shared-host-and-azure-branch-integration.md",
+      "contentHash": "85e154abe5722dd2b6ca9135f9f0a99b3b63f59488e0ca6c841a78cb670d157b"
+    },
+    "docs/candidate-app/08-decisions/README.md": {
+      "path": "docs/candidate-app/08-decisions/README.md",
+      "contentHash": "c9841041bc04db9e05d7fae0b828e882773edae2dce2a56788c9847e29f93578"
+    },
+    "docs/candidate-app/09-dev/local-dev-bootstrap.md": {
+      "path": "docs/candidate-app/09-dev/local-dev-bootstrap.md",
+      "contentHash": "1783e3c3991c362c1891c1f604f3e14733a73730207d4ca73216fa6c53162b24"
+    },
+    "docs/candidate-app/10-agent-workflows/workpass.md": {
+      "path": "docs/candidate-app/10-agent-workflows/workpass.md",
+      "contentHash": "93d06afbefd5429dab3a934c69679467230395bd62d15ef4cff1edabd9b388fc"
+    },
+    "docs/candidate-app/AZURE-INTEGRATION-NOTE.md": {
+      "path": "docs/candidate-app/AZURE-INTEGRATION-NOTE.md",
+      "contentHash": "39c0f65000284e89ed5d0392e16a511bb79b4200d7e14c5e14a8c0df69aa9dca"
+    },
+    "docs/candidate-app/README.md": {
+      "path": "docs/candidate-app/README.md",
+      "contentHash": "9aec210fffaf5060339aaa118ea5545c8c9d64afccd29cf396a6e0b4b40cf074"
+    },
+    "docs/candidate-app/START-WORK-PASS.md": {
+      "path": "docs/candidate-app/START-WORK-PASS.md",
+      "contentHash": "c3dd496f9438f920c6ec79fa4a15a9128e0b9db5affe7597068cec376089a08f"
+    },
+    "e2e/candidate/practice-session.spec.ts": {
+      "path": "e2e/candidate/practice-session.spec.ts",
+      "contentHash": "0ffa8a7c6ab50f910c90c98fc959feb3cb2cc5e2349640204dd014437fbc7e48"
+    },
+    "e2e/recruiter/auth-and-settings.spec.ts": {
+      "path": "e2e/recruiter/auth-and-settings.spec.ts",
+      "contentHash": "36b622c9ee1758c1b6008507d96e5269d521ec3a7a5c7aa3b1f39eb4642c62f0"
+    },
+    "e2e/recruiter/create-invite.spec.ts": {
+      "path": "e2e/recruiter/create-invite.spec.ts",
+      "contentHash": "d388a874b3e94d6afba8a8fe91e8d1d5ff2ee4ea1ebd4ae21a9ac2b4232cdc6b"
+    },
+    "e2e/recruiter/manage-invites.spec.ts": {
+      "path": "e2e/recruiter/manage-invites.spec.ts",
+      "contentHash": "8d7a2356e0765b5e8247d2cc3aae9d020af3f983f34013bf8dc0c4e500f67c77"
+    },
+    "e2e/recruiter/retry-failed-batch.spec.ts": {
+      "path": "e2e/recruiter/retry-failed-batch.spec.ts",
+      "contentHash": "e213bcd96792727dbc803069c482bfa0c15e07da8d46de8c400009f50853c6c6"
+    },
+    "feedback_schema.json": {
+      "path": "feedback_schema.json",
+      "contentHash": "9957e9e2c33c21157e9f71878b7db9c12cbb18cde94d15c2b62b747bf2e83357"
+    },
+    "lint-report.json": {
+      "path": "lint-report.json",
+      "contentHash": "3824759fdab1b3a5d19c4dd896e5607c7804325463092399fee8a9a5aafa6ecd"
+    },
+    "next-env.d.ts": {
+      "path": "next-env.d.ts",
+      "contentHash": "f4e8976c19fc926644d72610bf1058bd6bf52add97e46a02bc0b912a751625c0"
+    },
+    "next.config.mjs": {
+      "path": "next.config.mjs",
+      "contentHash": "abe88afcca1c3c3645d9eaeeaf566e4b83fc56d3d0e5e77769830ab0a7c97ef1"
+    },
+    "package-lock.json": {
+      "path": "package-lock.json",
+      "contentHash": "57c4a8f55252aa24ee47019d95912d6253afe37def329f0c1f42c5142c041055"
+    },
+    "package.json": {
+      "path": "package.json",
+      "contentHash": "d0c6f5157cd30bd1f9d65d3723c6d39f6dd266451cf42174fb65415a09307afd"
+    },
+    "playwright.config.ts": {
+      "path": "playwright.config.ts",
+      "contentHash": "e2a46808e1ee04250b660ba4e9c64c75ede4f84d6343aa193f0b54178bae6ec8"
+    },
+    "postcss.config.js": {
+      "path": "postcss.config.js",
+      "contentHash": "a1227454ab4fee8a05706b8fe6971169cbc09da97676c638a175282bb2a7f0be"
+    },
+    "public/AdminCS_resume.txt": {
+      "path": "public/AdminCS_resume.txt",
+      "contentHash": "f68846e4c289bd4e55fa7f150439b44ce07b48a9fa38168de9ed1d7630582e43"
+    },
+    "public/Labor-IntensiveCleanliness_resume.txt": {
+      "path": "public/Labor-IntensiveCleanliness_resume.txt",
+      "contentHash": "4b3c2f9444143ade24ca78f4f0b860a4561e6b0bb50d719f9a3741ad10a7dfa4"
+    },
+    "public/SurvivalistGig_resume.txt": {
+      "path": "public/SurvivalistGig_resume.txt",
+      "contentHash": "a26013db575eea54add3e40c3bd744f7f27a41a7f08024533e50ec5849fb2201"
+    },
+    "public/Survivalist_resume.txt": {
+      "path": "public/Survivalist_resume.txt",
+      "contentHash": "e612e5ae686e397bcc34fc7727206e83becd097ed7b253276dc544ccfb3c109b"
+    },
+    "scripts/provision-app-user.mjs": {
+      "path": "scripts/provision-app-user.mjs",
+      "contentHash": "622a603d5ecb46c2d3715fa5a4a303c27b069c5e48c6e68bbeb29222e267a397"
+    },
+    "scripts/run-postgres-sql.mjs": {
+      "path": "scripts/run-postgres-sql.mjs",
+      "contentHash": "d3663e47b792dcd927943b2c3c60b868ef5c8826fefa797aa05050c716b4e936"
+    },
+    "scripts/run-stability-suite.mjs": {
+      "path": "scripts/run-stability-suite.mjs",
+      "contentHash": "78c3b18de96117d6335bba1aa6c2244e9b7326fc7ea9b4665d565df75fd48b28"
+    },
+    "scripts/smoke-postgres-ai-surfaces.mjs": {
+      "path": "scripts/smoke-postgres-ai-surfaces.mjs",
+      "contentHash": "e9ecde0372ae40d2a12d96c99b3eebedc5095dd6878e439221597d08b69fe3f6"
+    },
+    "scripts/smoke-postgres-config.mjs": {
+      "path": "scripts/smoke-postgres-config.mjs",
+      "contentHash": "e3ae3317bd8cb97f78bb6fbe41b6c0f744858f0b58aa8f55971e98e1569df947"
+    },
+    "scripts/smoke-postgres-email-flow.mjs": {
+      "path": "scripts/smoke-postgres-email-flow.mjs",
+      "contentHash": "337c3fd80c12e4c251516545da6de825d2236f29f93bc59b9c41382016da426b"
+    },
+    "scripts/smoke-postgres-negative-permissions.mjs": {
+      "path": "scripts/smoke-postgres-negative-permissions.mjs",
+      "contentHash": "acfacfb52a6a457af0de9f9ac16bbba7ec6588f12b5f767dfb5415ac11a5f2ee"
+    },
+    "scripts/smoke-postgres-practice-again.mjs": {
+      "path": "scripts/smoke-postgres-practice-again.mjs",
+      "contentHash": "74bb1b76898afc1ec4b1713097db929f7cdba30282758e4c426fe6aea90cb4a4"
+    },
+    "scripts/smoke-postgres-product-flow.mjs": {
+      "path": "scripts/smoke-postgres-product-flow.mjs",
+      "contentHash": "ca6d8c9e0184da9e3773fc122d0008390096f8cb0c05c09bbb0c3b701a5fc1bd"
+    },
+    "scripts/smoke-postgres-profile-settings.mjs": {
+      "path": "scripts/smoke-postgres-profile-settings.mjs",
+      "contentHash": "4adfc31486146be8a476a72037637c14539bb667e1d0c431a5b840264c26690b"
+    },
+    "scripts/smoke-postgres-recruiter-review.mjs": {
+      "path": "scripts/smoke-postgres-recruiter-review.mjs",
+      "contentHash": "62666ff04072b2b7b946f3e3b799682d71cbb7882a6f69e8f26f4321aba1b015"
+    },
+    "scripts/smoke-postgres-resend-retry.mjs": {
+      "path": "scripts/smoke-postgres-resend-retry.mjs",
+      "contentHash": "2b90f68f69fd88940bdc3bafe6f2ed3eea77b565dc13440c9afac12b139128b5"
+    },
+    "scripts/start-postgres-smoke-db.mjs": {
+      "path": "scripts/start-postgres-smoke-db.mjs",
+      "contentHash": "1c92c654755159736f51f9a5b8be7177c486976056c0690968955d49a0bae580"
+    },
+    "src/app/(candidate)/s/[token]/CandidateLayoutClient.tsx": {
+      "path": "src/app/(candidate)/s/[token]/CandidateLayoutClient.tsx",
+      "contentHash": "743d510ee8093eae963b9bf6e2da3251ebf8212637bdbcc0eb5c002e2c2b8fb1"
+    },
+    "src/app/(candidate)/s/[token]/coaching/page.tsx": {
+      "path": "src/app/(candidate)/s/[token]/coaching/page.tsx",
+      "contentHash": "ce767605df3c5735493db9af363c607776be18de582aa9bb98f195bbe59b7880"
+    },
+    "src/app/(candidate)/s/[token]/layout.tsx": {
+      "path": "src/app/(candidate)/s/[token]/layout.tsx",
+      "contentHash": "d7d3d6087e38b221b209c0df84433b6bdba52163b3e6973a94ecf818258be118"
+    },
+    "src/app/(candidate)/s/[token]/page.tsx": {
+      "path": "src/app/(candidate)/s/[token]/page.tsx",
+      "contentHash": "1dc69e13f7939ff1514c40e5c9c20bdcad19adb6efdae45dfc5318569e6bdc8c"
+    },
+    "src/app/(candidate)/s/[token]/practice-again/page.tsx": {
+      "path": "src/app/(candidate)/s/[token]/practice-again/page.tsx",
+      "contentHash": "497db4d317a21afe05e5d019b983229e702b9b2f4a9e6c52b81f736f90c30dc9"
+    },
+    "src/app/(recruiter)/admin/feedback/components/AIFeedbackQualityChart.tsx": {
+      "path": "src/app/(recruiter)/admin/feedback/components/AIFeedbackQualityChart.tsx",
+      "contentHash": "d7334a4095d06e5eef6ec1e5e88a33f109f34d1e01425c2b9261208989882ff3"
+    },
+    "src/app/(recruiter)/admin/feedback/components/CandidateEfficacyChart.tsx": {
+      "path": "src/app/(recruiter)/admin/feedback/components/CandidateEfficacyChart.tsx",
+      "contentHash": "192bbaa20983d1762bc25e55f53a47f8c8c395faa6282f9ef20963f4c7361b53"
+    },
+    "src/app/(recruiter)/admin/feedback/components/PlatformTrustChart.tsx": {
+      "path": "src/app/(recruiter)/admin/feedback/components/PlatformTrustChart.tsx",
+      "contentHash": "967e6a3b4c3e6a2b9cd4a1e0c6b2237c7c697c41240df29b1628444b2d2b2a98"
+    },
+    "src/app/(recruiter)/admin/feedback/components/RecruiterMetricsChart.tsx": {
+      "path": "src/app/(recruiter)/admin/feedback/components/RecruiterMetricsChart.tsx",
+      "contentHash": "8057d5ca38934772a659703f24e80ba1b2929a0948b5e39b956cac22fece8110"
+    },
+    "src/app/(recruiter)/admin/feedback/components/RolePatternsChart.tsx": {
+      "path": "src/app/(recruiter)/admin/feedback/components/RolePatternsChart.tsx",
+      "contentHash": "1f9e0c8ca96a057fb48ff2b4c295e21f067422cd0a1fe8114fa3897e9ed236f0"
+    },
+    "src/app/(recruiter)/admin/feedback/page.tsx": {
+      "path": "src/app/(recruiter)/admin/feedback/page.tsx",
+      "contentHash": "ab6ec10889beab53edcc642ae5e2a4ff7b99c4aebb846345b67037265daa7b09"
+    },
+    "src/app/(recruiter)/admin/layout.tsx": {
+      "path": "src/app/(recruiter)/admin/layout.tsx",
+      "contentHash": "0a1cb4e54236475c0948caca639d15465502b729236755fb1fcca0e3a5a0f68c"
+    },
+    "src/app/(recruiter)/qa/ai-quality/export/route.ts": {
+      "path": "src/app/(recruiter)/qa/ai-quality/export/route.ts",
+      "contentHash": "a77d0ec595345ea17be93cf7ce05c18737cd1e51e7122883424bbb48da7b0d7e"
+    },
+    "src/app/(recruiter)/qa/ai-quality/page.tsx": {
+      "path": "src/app/(recruiter)/qa/ai-quality/page.tsx",
+      "contentHash": "5c710becf2710d05e3c7ebd05615a29c90a8ba6fe4743504b4e5c9702c610f92"
+    },
+    "src/app/(recruiter)/qa/layout.tsx": {
+      "path": "src/app/(recruiter)/qa/layout.tsx",
+      "contentHash": "fc21fcb18bcb9bcc873becfe61bd6b3b953a178b2e6923f220dbec4548cb6135"
+    },
+    "src/app/(recruiter)/qa/page.tsx": {
+      "path": "src/app/(recruiter)/qa/page.tsx",
+      "contentHash": "3887e9fb278ab9891c5322c18ff4e9516278d76eb93d165080ddad090e63d4cb"
+    },
+    "src/app/(recruiter)/recruiter/actions.test.ts": {
+      "path": "src/app/(recruiter)/recruiter/actions.test.ts",
+      "contentHash": "86f6030b924b26903251aae78f196de02f14a715e2766e0bc5824c44e3578c27"
+    },
+    "src/app/(recruiter)/recruiter/actions.ts": {
+      "path": "src/app/(recruiter)/recruiter/actions.ts",
+      "contentHash": "9c8f050511b038f583637552ff4ab00deb85f9abc6915ae50856005ee3a1d14c"
+    },
+    "src/app/(recruiter)/recruiter/components/CollapsibleSection.tsx": {
+      "path": "src/app/(recruiter)/recruiter/components/CollapsibleSection.tsx",
+      "contentHash": "e1b9e8d8a742e866503b4dd5301e9f56e2bc05cbdc966a72c4c66670ac3e62e6"
+    },
+    "src/app/(recruiter)/recruiter/components/DashboardStats.tsx": {
+      "path": "src/app/(recruiter)/recruiter/components/DashboardStats.tsx",
+      "contentHash": "91ef373001babfe3471921e3cadd91ca8ccf8757d1796cfceec3406031f452f3"
+    },
+    "src/app/(recruiter)/recruiter/components/InviteProgressWidget.tsx": {
+      "path": "src/app/(recruiter)/recruiter/components/InviteProgressWidget.tsx",
+      "contentHash": "5d71728a1ee9d86c9c880ea70aaa210596a8edd8b92790ec3edcc12ae6f4d9d1"
+    },
+    "src/app/(recruiter)/recruiter/components/RecruiterSessionsTable.test.tsx": {
+      "path": "src/app/(recruiter)/recruiter/components/RecruiterSessionsTable.test.tsx",
+      "contentHash": "7c7aed47b2fd6c092f465f42c80600fe78648d99434f6d8d2779dec8f2f57ce9"
+    },
+    "src/app/(recruiter)/recruiter/components/RecruiterSessionsTable.tsx": {
+      "path": "src/app/(recruiter)/recruiter/components/RecruiterSessionsTable.tsx",
+      "contentHash": "716b9c61d1a0e982a0cbc82499610dd87dc3c1e3d08b96a4d787b814a1223132"
+    },
+    "src/app/(recruiter)/recruiter/components/ResendInviteButton.test.tsx": {
+      "path": "src/app/(recruiter)/recruiter/components/ResendInviteButton.test.tsx",
+      "contentHash": "69b9bb8e5c2a6af5246c8de8b862babc3c1273483ed04b4f404b27076d97b41d"
+    },
+    "src/app/(recruiter)/recruiter/components/ResendInviteButton.tsx": {
+      "path": "src/app/(recruiter)/recruiter/components/ResendInviteButton.tsx",
+      "contentHash": "8da3171cba48356cc7aff02433de02c376397dedad843015325dc4366f0c96da"
+    },
+    "src/app/(recruiter)/recruiter/components/session-badges.tsx": {
+      "path": "src/app/(recruiter)/recruiter/components/session-badges.tsx",
+      "contentHash": "b48f97c3c6f4650ef05ca858dd3c801ac508121abb9b5e9472f74ac88e40980f"
+    },
+    "src/app/(recruiter)/recruiter/create/components/StepCandidates.test.tsx": {
+      "path": "src/app/(recruiter)/recruiter/create/components/StepCandidates.test.tsx",
+      "contentHash": "f7ac9c17541e4b0e6d80ae0c261ec6fbfaad7d05cccee18dfe4eeecbd006482d"
+    },
+    "src/app/(recruiter)/recruiter/create/components/StepCandidates.tsx": {
+      "path": "src/app/(recruiter)/recruiter/create/components/StepCandidates.tsx",
+      "contentHash": "211fba3c348cab5bbf067b8a349127c596a767fdf83f793197959f897a857dc1"
+    },
+    "src/app/(recruiter)/recruiter/create/components/StepJobAndQuestions.test.tsx": {
+      "path": "src/app/(recruiter)/recruiter/create/components/StepJobAndQuestions.test.tsx",
+      "contentHash": "e8a12e1253e86446173728bc63d69cfb397d4412d67e5db1b54c7e465535adbc"
+    },
+    "src/app/(recruiter)/recruiter/create/components/StepJobAndQuestions.tsx": {
+      "path": "src/app/(recruiter)/recruiter/create/components/StepJobAndQuestions.tsx",
+      "contentHash": "d9f52bf1b41e07f4d47a5ca713cbfa21cfbf31e72e8b488623951e3898c7f7a4"
+    },
+    "src/app/(recruiter)/recruiter/create/components/StepPreviewCombined.test.tsx": {
+      "path": "src/app/(recruiter)/recruiter/create/components/StepPreviewCombined.test.tsx",
+      "contentHash": "b46197d0c5ffa2ff4d986721359ab87a4d5765e945383615ffaf429de6de319e"
+    },
+    "src/app/(recruiter)/recruiter/create/components/StepPreviewCombined.tsx": {
+      "path": "src/app/(recruiter)/recruiter/create/components/StepPreviewCombined.tsx",
+      "contentHash": "1cfd8b0c27d16f4ee269ed050d7445d2ce1841299f74a248a99f4f259e961c01"
+    },
+    "src/app/(recruiter)/recruiter/create/constants.ts": {
+      "path": "src/app/(recruiter)/recruiter/create/constants.ts",
+      "contentHash": "62399b1b88b96ab9a6ee68a33707709fd565fde6250ede82672951b2d0fc4bae"
+    },
+    "src/app/(recruiter)/recruiter/create/page.tsx": {
+      "path": "src/app/(recruiter)/recruiter/create/page.tsx",
+      "contentHash": "10d914bbddb80c1e12b4deff7cba3ac5dcd127d37081fd9a60d9b1f69cf8e0b2"
+    },
+    "src/app/(recruiter)/recruiter/layout.tsx": {
+      "path": "src/app/(recruiter)/recruiter/layout.tsx",
+      "contentHash": "04e1c840a8b0630dc6d23d1e99039c716d04225a57b620ef29e98397cd5761ca"
+    },
+    "src/app/(recruiter)/recruiter/page.tsx": {
+      "path": "src/app/(recruiter)/recruiter/page.tsx",
+      "contentHash": "8de4c949e0d43a1909ca4d53e30bf61023cc5ca5a6ba6f9346f79224b7f86d09"
+    },
+    "src/app/(recruiter)/recruiter/sessions/[id]/page.tsx": {
+      "path": "src/app/(recruiter)/recruiter/sessions/[id]/page.tsx",
+      "contentHash": "91aadaea62ebc90067599acf90b3dc30dad1abf0ef7c8329a9e7ef43dcc470bd"
+    },
+    "src/app/(recruiter)/recruiter/settings/page.test.tsx": {
+      "path": "src/app/(recruiter)/recruiter/settings/page.test.tsx",
+      "contentHash": "b4b54b8f5f182973bcf3f73c8417c546719b358817a0615610a0027645284074"
+    },
+    "src/app/(recruiter)/recruiter/settings/page.tsx": {
+      "path": "src/app/(recruiter)/recruiter/settings/page.tsx",
+      "contentHash": "46df60f97e55044162557484f14a2301dc3b1180cd7e807e2dc2b8c3f0a5fd30"
+    },
+    "src/app/(recruiter)/recruiter/templates/actions.ts": {
+      "path": "src/app/(recruiter)/recruiter/templates/actions.ts",
+      "contentHash": "ba28301e12ac1605e09afd2a9966654403bae86aa4bd63a10d80d1e8705a7cfa"
+    },
+    "src/app/(recruiter)/recruiter/templates/page.test.tsx": {
+      "path": "src/app/(recruiter)/recruiter/templates/page.test.tsx",
+      "contentHash": "b2520f9ba132e8ea097c98e3b922038941adce8f7069f4bebb76b7eeaadefff5"
+    },
+    "src/app/(recruiter)/recruiter/templates/page.tsx": {
+      "path": "src/app/(recruiter)/recruiter/templates/page.tsx",
+      "contentHash": "e16fd550bdd6ba5d0f9ee988c065aab2d9c2ea2ea2c8afdbb5872fc446ea1488"
+    },
+    "src/app/actions/feedback.ts": {
+      "path": "src/app/actions/feedback.ts",
+      "contentHash": "25bf535e4ede8f52aa9d7166d89bc1b949f0971fdaa9963a2a48c877b342382f"
+    },
+    "src/app/api/analysis/route.test.ts": {
+      "path": "src/app/api/analysis/route.test.ts",
+      "contentHash": "fdf353e8ee3533e399e05238f9a53b4592489a25f264a3723038ce71a867192f"
+    },
+    "src/app/api/analysis/route.ts": {
+      "path": "src/app/api/analysis/route.ts",
+      "contentHash": "73953d2ef9032205cc2ad1968462addca1d9cc53413568ca62d04ae2e5a44dcb"
+    },
+    "src/app/api/auth/login/route.test.ts": {
+      "path": "src/app/api/auth/login/route.test.ts",
+      "contentHash": "08e59215c4141a9a6432b6bca35c86a1bb32e8b0a114f5d5553a93556b03d575"
+    },
+    "src/app/api/auth/login/route.ts": {
+      "path": "src/app/api/auth/login/route.ts",
+      "contentHash": "ab5c7421776317c46113f2c461873005726746002f4fe464dcad9b2bc84e5d1a"
+    },
+    "src/app/api/auth/logout/route.test.ts": {
+      "path": "src/app/api/auth/logout/route.test.ts",
+      "contentHash": "2ad8360c2d0771dc183b98cfc93dc8a82adcb446c66284633610b161a8d8c0dd"
+    },
+    "src/app/api/auth/logout/route.ts": {
+      "path": "src/app/api/auth/logout/route.ts",
+      "contentHash": "b9f811f307982c398cfe47bd379b7c278b8b1f422e48ccea4613f330abdc051a"
+    },
+    "src/app/api/invite/resend/route.integration.test.ts": {
+      "path": "src/app/api/invite/resend/route.integration.test.ts",
+      "contentHash": "15986657135c225283d76a00c4d3cef20be02ba6c2730d1f030172c7e795a615"
+    },
+    "src/app/api/invite/resend/route.test.ts": {
+      "path": "src/app/api/invite/resend/route.test.ts",
+      "contentHash": "369a3ea60e53d60bb7409e4edc7ca2b70c1f120b1a14be01456ddedf9d21411d"
+    },
+    "src/app/api/invite/resend/route.ts": {
+      "path": "src/app/api/invite/resend/route.ts",
+      "contentHash": "165c0bb6779c78838c7832c8e7648f7176d9a3f56424c087e59f7058a3d7d8c5"
+    },
+    "src/app/api/invite/send/route.test.ts": {
+      "path": "src/app/api/invite/send/route.test.ts",
+      "contentHash": "0301ffa732bc609740f92c4bcf6c1e0988e87e36f226c6002e9858c4df57a1fa"
+    },
+    "src/app/api/invite/send/route.ts": {
+      "path": "src/app/api/invite/send/route.ts",
+      "contentHash": "dbc099697bcf4ce6ab44f2c19e4808cef447a2c4f92b562636570773dfde5f31"
+    },
+    "src/app/api/questions/generate/route.provider.test.ts": {
+      "path": "src/app/api/questions/generate/route.provider.test.ts",
+      "contentHash": "d44c1aa65c1c48bfcdc401dac2c4e9b1dc77fddd4477d9d3d13a9ef7c18c6e57"
+    },
+    "src/app/api/questions/generate/route.test.ts": {
+      "path": "src/app/api/questions/generate/route.test.ts",
+      "contentHash": "9979299c1e9f601978048ccc3a2860d4b78139e8fc9ba740dd8976b1ebcacf67"
+    },
+    "src/app/api/questions/generate/route.ts": {
+      "path": "src/app/api/questions/generate/route.ts",
+      "contentHash": "f8d262af3817aa694a35b91271473f90085a869ff1d1be325f221643e49d9001"
+    },
+    "src/app/api/recruiter/invites/[batch_id]/retry/route.test.ts": {
+      "path": "src/app/api/recruiter/invites/[batch_id]/retry/route.test.ts",
+      "contentHash": "d01711ceaca25211dcd6b1673c2ac02e9b71d168df37b376665d4e5b77d39c5c"
+    },
+    "src/app/api/recruiter/invites/[batch_id]/retry/route.ts": {
+      "path": "src/app/api/recruiter/invites/[batch_id]/retry/route.ts",
+      "contentHash": "64b1a9782749260321c22e5c1e2838549a4ad0846388ae0c0f6fd0fded624bb3"
+    },
+    "src/app/api/recruiter/invites/route.test.ts": {
+      "path": "src/app/api/recruiter/invites/route.test.ts",
+      "contentHash": "dbaaa2d94c247c8dd5d8f363c31bcc541736cbe29b8485bf7bb528e607a41f3e"
+    },
+    "src/app/api/recruiter/invites/route.ts": {
+      "path": "src/app/api/recruiter/invites/route.ts",
+      "contentHash": "634005f8e77b1566bae23b818da06beb4cc73e9efdf71bebc2ba64c5de4712ca"
+    },
+    "src/app/api/recruiter/ops/metrics/route.test.ts": {
+      "path": "src/app/api/recruiter/ops/metrics/route.test.ts",
+      "contentHash": "b77739449a6c63ac0c268d16ef0135848fd26bc46e5282b316b26f2b1633ce56"
+    },
+    "src/app/api/recruiter/ops/metrics/route.ts": {
+      "path": "src/app/api/recruiter/ops/metrics/route.ts",
+      "contentHash": "2fdd3a2337a37c914e3971ae8a63ecb509d768e2050750230b64873e33a0f74f"
+    },
+    "src/app/api/recruiter/profile/route.test.ts": {
+      "path": "src/app/api/recruiter/profile/route.test.ts",
+      "contentHash": "48aef3461bbcfb37d7fc7fc74a59cf22f2c1b5b81ff0c891972d6256e884d847"
+    },
+    "src/app/api/recruiter/profile/route.ts": {
+      "path": "src/app/api/recruiter/profile/route.ts",
+      "contentHash": "a856952c1d592c311b4898ec85b682d2c5eca6e3925e5c59d256ed296d7c8975"
+    },
+    "src/app/api/response/generate/route.test.ts": {
+      "path": "src/app/api/response/generate/route.test.ts",
+      "contentHash": "c45c201d40466f5a7d8965f4e836cb98a8c935dc47829f07677952dd58b31e17"
+    },
+    "src/app/api/response/generate/route.ts": {
+      "path": "src/app/api/response/generate/route.ts",
+      "contentHash": "f83a6546bdb4fcdce28393dd3909859d09d286045cba6d4654d87ee6c13dd6e5"
+    },
+    "src/app/api/session/[session_id]/questions/[question_id]/analysis/route.test.ts": {
+      "path": "src/app/api/session/[session_id]/questions/[question_id]/analysis/route.test.ts",
+      "contentHash": "ed8b9c8b2beb385b5113176872c6f132f6806aff299079d2f8ed86852c10bbcd"
+    },
+    "src/app/api/session/[session_id]/questions/[question_id]/analysis/route.ts": {
+      "path": "src/app/api/session/[session_id]/questions/[question_id]/analysis/route.ts",
+      "contentHash": "e239b8bd16d659922a9660d2e8209d500ec9e2549b94670bb19b1dc621853660"
+    },
+    "src/app/api/session/[session_id]/questions/[question_id]/answer/route.ts": {
+      "path": "src/app/api/session/[session_id]/questions/[question_id]/answer/route.ts",
+      "contentHash": "c3b6a4d7e239b977c4030bf6425655d03fb596418c34acbe3ec6479ae9f1cfcc"
+    },
+    "src/app/api/session/[session_id]/questions/[question_id]/retry/route.test.ts": {
+      "path": "src/app/api/session/[session_id]/questions/[question_id]/retry/route.test.ts",
+      "contentHash": "41a9b7bfc4a8077ebb1254db77ef204780afcaf1307e162c0b45c52d59101555"
+    },
+    "src/app/api/session/[session_id]/questions/[question_id]/retry/route.ts": {
+      "path": "src/app/api/session/[session_id]/questions/[question_id]/retry/route.ts",
+      "contentHash": "9528a050db714a77819d7357aca8d16cde85eeb4e53cac01762c19ddb63a08f0"
+    },
+    "src/app/api/session/[session_id]/questions/[question_id]/submit/route.test.ts": {
+      "path": "src/app/api/session/[session_id]/questions/[question_id]/submit/route.test.ts",
+      "contentHash": "a57ae1544f46b173e6af158ff544a47a216e9f15c3338f1dd0e4478e9bcd9fa9"
+    },
+    "src/app/api/session/[session_id]/questions/[question_id]/submit/route.ts": {
+      "path": "src/app/api/session/[session_id]/questions/[question_id]/submit/route.ts",
+      "contentHash": "3df52717aa6dc398c532d8c9109b3a3546ad37966edb0863a27d72af08965bd4"
+    },
+    "src/app/api/session/[session_id]/route.test.ts": {
+      "path": "src/app/api/session/[session_id]/route.test.ts",
+      "contentHash": "da1d08c87a78e1ffb9200e8f41aade0915546928aeb476e72a7b1f7b80bad30f"
+    },
+    "src/app/api/session/[session_id]/route.ts": {
+      "path": "src/app/api/session/[session_id]/route.ts",
+      "contentHash": "cd5a89c61e05515c9bdf27775548b5dab45e2a08924f2f426835fa5599253216"
+    },
+    "src/app/api/session/start/route.test.ts": {
+      "path": "src/app/api/session/start/route.test.ts",
+      "contentHash": "ba5f949c56b8ba2fba172ea994e6ef4eb14718f6452fe2fcce9daec138160ff4"
+    },
+    "src/app/api/session/start/route.ts": {
+      "path": "src/app/api/session/start/route.ts",
+      "contentHash": "9f4d9d807552fe2a0cc1b27afb7d3593caa19afad0577edb50e00ac39391020b"
+    },
+    "src/app/api/tips/generate/route.test.ts": {
+      "path": "src/app/api/tips/generate/route.test.ts",
+      "contentHash": "5f6667fc70298720280c08887abc813fa8c1f9d31decedb5827dab4089e6f451"
+    },
+    "src/app/api/tips/generate/route.ts": {
+      "path": "src/app/api/tips/generate/route.ts",
+      "contentHash": "8b4094a2210bd137bfe2bbd9811fcba8628ff8bb21792dc2c8d21fe868ecee58"
+    },
+    "src/app/api/tts/route.test.ts": {
+      "path": "src/app/api/tts/route.test.ts",
+      "contentHash": "3f12bf499c18e233d79c71d6835cea13da01512d07e9297d69acf986bf80296b"
+    },
+    "src/app/api/tts/route.ts": {
+      "path": "src/app/api/tts/route.ts",
+      "contentHash": "51c9ef81be5893f9bd17363df808958a30d362746490aec7d34f3a42033a2855"
+    },
+    "src/app/auth/callback/route.ts": {
+      "path": "src/app/auth/callback/route.ts",
+      "contentHash": "5c22314813dd75c12f3c0e3b8b725450f6043ae8297067538ce3e91091699f8d"
+    },
+    "src/app/error.tsx": {
+      "path": "src/app/error.tsx",
+      "contentHash": "2971e019f9b8b3c6f1122f07c7ef4939621c95bcd6c3f123754a215080a5295d"
+    },
+    "src/app/favicon.ico/route.ts": {
+      "path": "src/app/favicon.ico/route.ts",
+      "contentHash": "ba90a4274da01e20cc6d6337ce6508e94b6e2a62eeed1557d8c16f7e27ffeec2"
+    },
+    "src/app/layout.tsx": {
+      "path": "src/app/layout.tsx",
+      "contentHash": "39d5b5f9d6c1afc45380b735de0c6d3049f8a8b83a27ee94a35a9334850a4c41"
+    },
+    "src/app/login/page.tsx": {
+      "path": "src/app/login/page.tsx",
+      "contentHash": "bf67eff6fe8149242c378f9c641be75bec0116c1abf9d13f54f5e2f3f179ced9"
+    },
+    "src/app/page.tsx": {
+      "path": "src/app/page.tsx",
+      "contentHash": "ab213b8591d135a89ecd5387185adf7f5d8e223b30b857a0d993b810ddff3b8c"
+    },
+    "src/components/auth/LogoutButton.tsx": {
+      "path": "src/components/auth/LogoutButton.tsx",
+      "contentHash": "5ac39e390e448d842a0816c53d20fa954bc560e8bd1f0f52c095b2b617e1fd57"
+    },
+    "src/components/auth/ProfileGuard.tsx": {
+      "path": "src/components/auth/ProfileGuard.tsx",
+      "contentHash": "0b4c52081edc6609b1384a9805704ce276d42c61523558cd15c448e6568932c7"
+    },
+    "src/components/debug/EngagementDebugOverlay.tsx": {
+      "path": "src/components/debug/EngagementDebugOverlay.tsx",
+      "contentHash": "3907c426baa5e1f35596d3f63b19e02854c81722d193149ad0465666780f466f"
+    },
+    "src/components/layout/MobileSidebar.tsx": {
+      "path": "src/components/layout/MobileSidebar.tsx",
+      "contentHash": "75ca13d9992517c42bd32ad519a19283e1d183d51ca95bc042102ac259e786d6"
+    },
+    "src/components/layout/RecruiterMobileDock.tsx": {
+      "path": "src/components/layout/RecruiterMobileDock.tsx",
+      "contentHash": "d8ae05ea311e6fbe2121403d432cd3b1922f01e29333adbf9a690fe35f0744f7"
+    },
+    "src/components/layout/RecruiterSidebar.tsx": {
+      "path": "src/components/layout/RecruiterSidebar.tsx",
+      "contentHash": "f5cdcbe12fb849577faae1d768c86f8bd9ebcad3919227bc4af625f48075bf77"
+    },
+    "src/components/navigation/ScrollToTop.tsx": {
+      "path": "src/components/navigation/ScrollToTop.tsx",
+      "contentHash": "95fa38b3865fd0fbc875fdf84d66c6c78d131f5bc15a37c39cbb65a5e5566f6f"
+    },
+    "src/components/patterns/AlertPanel.tsx": {
+      "path": "src/components/patterns/AlertPanel.tsx",
+      "contentHash": "6af445cb19d6f3e83282f3b9726039e6694da22dcd6beae6ecb316eb265e10a3"
+    },
+    "src/components/patterns/ContentCard.tsx": {
+      "path": "src/components/patterns/ContentCard.tsx",
+      "contentHash": "01733e9ad97085c5e032cab077ec3afc1cd437b66ca0f2584ce928efc4528199"
+    },
+    "src/components/patterns/DataTable.tsx": {
+      "path": "src/components/patterns/DataTable.tsx",
+      "contentHash": "7d7f9fb83dc43048d98493dd7196a8b041f6e5c39c79500e7a261df5a616d9e2"
+    },
+    "src/components/patterns/EmptyState.tsx": {
+      "path": "src/components/patterns/EmptyState.tsx",
+      "contentHash": "c1b203c9f4b3a3079db36645b463b5f8991f3aa3226c9f259b313b25450e18cf"
+    },
+    "src/components/patterns/ErrorState.tsx": {
+      "path": "src/components/patterns/ErrorState.tsx",
+      "contentHash": "642df281273208b093bc8bd42e5083c6f893f840c98cb56f0121461527b51033"
+    },
+    "src/components/patterns/FeedbackCard.tsx": {
+      "path": "src/components/patterns/FeedbackCard.tsx",
+      "contentHash": "4238e5e4870fb29c7ebefee83dc71783d2b2cb62928cb29e427a9e70abc8ce2f"
+    },
+    "src/components/patterns/FeedbackChoiceButton.tsx": {
+      "path": "src/components/patterns/FeedbackChoiceButton.tsx",
+      "contentHash": "3adaa09d2011293f265cddd71dc4838103e5906d0d3e7dc357f389d13d2d93cd"
+    },
+    "src/components/patterns/FeedbackPanel.tsx": {
+      "path": "src/components/patterns/FeedbackPanel.tsx",
+      "contentHash": "a726b4ab2efa6f4fc7022e1b94475dede06a52e43f48aaa451ca60163929b5fd"
+    },
+    "src/components/patterns/FeedbackPill.tsx": {
+      "path": "src/components/patterns/FeedbackPill.tsx",
+      "contentHash": "d2c1e659803a226e3ea40c19c062bcdfb6946b659ad6da00fba72aea50c8d683"
+    },
+    "src/components/patterns/FormField.tsx": {
+      "path": "src/components/patterns/FormField.tsx",
+      "contentHash": "ae9c3cbff7445710721baf2a6cf1f7879b79b8d7508c46c06bda65d498baafc5"
+    },
+    "src/components/patterns/IconBadge.tsx": {
+      "path": "src/components/patterns/IconBadge.tsx",
+      "contentHash": "42d7d16566f92a0e8e8596fdb4997107c27c65056bc02c63cdc9cb059657c198"
+    },
+    "src/components/patterns/InsightCard.tsx": {
+      "path": "src/components/patterns/InsightCard.tsx",
+      "contentHash": "e097beec564a702d63d210df5f050d6033066e87b6f07037cedccf59ea3f3954"
+    },
+    "src/components/patterns/InviteEmailPreviewModal.test.tsx": {
+      "path": "src/components/patterns/InviteEmailPreviewModal.test.tsx",
+      "contentHash": "b5e441261bdb1e6290ed0640b9eea6a0b58a574a1eb996d2c3f8d718a3aebbbc"
+    },
+    "src/components/patterns/InviteEmailPreviewModal.tsx": {
+      "path": "src/components/patterns/InviteEmailPreviewModal.tsx",
+      "contentHash": "f0280d6cc64075e62aeaa8d459299063c9922405eb5fe04792c70ae2e060e581"
+    },
+    "src/components/patterns/MetricCard.tsx": {
+      "path": "src/components/patterns/MetricCard.tsx",
+      "contentHash": "b7319da5114a7471697678b42ced116e775f04502e2b610ad2ae1b678fd87abc"
+    },
+    "src/components/patterns/PageHeaderBlock.tsx": {
+      "path": "src/components/patterns/PageHeaderBlock.tsx",
+      "contentHash": "d6d75ecb125f4b30297d6ff7add9b35ba5ba6e82026d476dc442ed76d10a6fbf"
+    },
+    "src/components/patterns/SearchField.tsx": {
+      "path": "src/components/patterns/SearchField.tsx",
+      "contentHash": "b6fecc1578334c27267d8634a58c2c9970cb85f49423041bfa6abafd6635ee64"
+    },
+    "src/components/patterns/SectionHeader.tsx": {
+      "path": "src/components/patterns/SectionHeader.tsx",
+      "contentHash": "3e6f389fd5628449b03ed9029a08cbda335dde472c50326deed040a02ebcd044"
+    },
+    "src/components/patterns/SessionPromptShell.tsx": {
+      "path": "src/components/patterns/SessionPromptShell.tsx",
+      "contentHash": "583df7027a0aae43644700cfd455d7394b78d6fae9827720cf018b7f061b55a2"
+    },
+    "src/components/patterns/StatusBadge.tsx": {
+      "path": "src/components/patterns/StatusBadge.tsx",
+      "contentHash": "eb9c8f4d3503b222923058f3651664bdc01c6c956d400f55235b20c53af2c0c6"
+    },
+    "src/components/ui/badge.tsx": {
+      "path": "src/components/ui/badge.tsx",
+      "contentHash": "4b1c09300d2238c00ad8703c43fb565b65ff9e10695ba4a645c9eb08812ef17e"
+    },
+    "src/components/ui/button.tsx": {
+      "path": "src/components/ui/button.tsx",
+      "contentHash": "368363cdb85c8c87c8a63c06e11f71bdb9f64c797978378ec963e346a1bf42b4"
+    },
+    "src/components/ui/card.tsx": {
+      "path": "src/components/ui/card.tsx",
+      "contentHash": "77d5f8cdf30a4d7863e1a53a85e48423abac6965bb18dc781f182c317805b98b"
+    },
+    "src/components/ui/input.tsx": {
+      "path": "src/components/ui/input.tsx",
+      "contentHash": "e66f2f1a16132c96d0999213250ece94edce6fe62d2bc9695acbd2112d1ac1fe"
+    },
+    "src/components/ui/popover.tsx": {
+      "path": "src/components/ui/popover.tsx",
+      "contentHash": "c3d9a7d19b88cc86898a8608089ef188d6d969ec61423a750f80437f8e76f694"
+    },
+    "src/components/ui/progress.tsx": {
+      "path": "src/components/ui/progress.tsx",
+      "contentHash": "1b2531f55055008f71b4050734d1329cb2e895be71a76ce300f4488d5de0a061"
+    },
+    "src/components/ui/skeleton.tsx": {
+      "path": "src/components/ui/skeleton.tsx",
+      "contentHash": "74b678cad31d9ebe932c72bc4cf30bc1d1d274ba4dff20975e7aefe3952fb615"
+    },
+    "src/components/ui/table.tsx": {
+      "path": "src/components/ui/table.tsx",
+      "contentHash": "1674acd437c6a795a1092f59c538a617271154da2f07ae705ceb072a6a7bc636"
+    },
+    "src/components/ui/tooltip.tsx": {
+      "path": "src/components/ui/tooltip.tsx",
+      "contentHash": "d49af26c018b1888e8afcbd145403707252d7cbbb8754046b12ea54b0b7cea0a"
+    },
+    "src/components/ui/tour.test.tsx": {
+      "path": "src/components/ui/tour.test.tsx",
+      "contentHash": "7ba683b869b3e4037d9fc9f3c96d3349b1ecd1a2d930ec28d0139a765c2165cc"
+    },
+    "src/components/ui/tour.tsx": {
+      "path": "src/components/ui/tour.tsx",
+      "contentHash": "254ba7f2b227f2370127587a7977508d47fa073b3458ee4d4800339e042479b6"
+    },
+    "src/features/analytics/hooks/useEngagementTracker.ts": {
+      "path": "src/features/analytics/hooks/useEngagementTracker.ts",
+      "contentHash": "8437cd2a2e0b7cd607d737129d41dcf5d94571f2375e369a224899541ef5ce2e"
+    },
+    "src/features/audio/audio-engine.ts": {
+      "path": "src/features/audio/audio-engine.ts",
+      "contentHash": "f479dbf5cf3ea8b4e360525ca29d923217b2cb50cead2bd05d0e9d95a9850aa3"
+    },
+    "src/features/audio/components/AudioVisualizer.tsx": {
+      "path": "src/features/audio/components/AudioVisualizer.tsx",
+      "contentHash": "5c080f185cda5a80a0c49cc8b3ae2903dfb663d5ff3a4cae2d371026ba5ae31d"
+    },
+    "src/features/audio/hooks/useAudioRecording.ts": {
+      "path": "src/features/audio/hooks/useAudioRecording.ts",
+      "contentHash": "60fd8a107e2041ad4d9f434eb1a69f576f224aa860c3b595eb20a1c059f585a8"
+    },
+    "src/features/audio/hooks/useAudioVisualizer.ts": {
+      "path": "src/features/audio/hooks/useAudioVisualizer.ts",
+      "contentHash": "12c8ef85725177216ccb6a2e1f54aeb80248a0789e642fe4a5a0ec43157960ff"
+    },
+    "src/features/audio/hooks/useSpeechToText.ts": {
+      "path": "src/features/audio/hooks/useSpeechToText.ts",
+      "contentHash": "7cd282019c79ce5f44e2757bc9197da713b9b3a0b79eddef4005de02068f68bc"
+    },
+    "src/features/audio/hooks/useTextToSpeech.ts": {
+      "path": "src/features/audio/hooks/useTextToSpeech.ts",
+      "contentHash": "c955cff22ae485292c1092a4b3b05a17a479ca21a9bfd04831d91e64fdcd5056"
+    },
+    "src/features/session/components/CategoryTooltip.tsx": {
+      "path": "src/features/session/components/CategoryTooltip.tsx",
+      "contentHash": "005becade10db782fa5e5e0cd97c12ae301404b439979da59bc2e7923885d64c"
+    },
+    "src/features/session/components/CoachLensDropdown.tsx": {
+      "path": "src/features/session/components/CoachLensDropdown.tsx",
+      "contentHash": "7a88a1e4080d6f3d37214745e855fc47e4d5dbb1ddcba6031275393733dacbf6"
+    },
+    "src/features/session/components/EnteringRoomScreen.tsx": {
+      "path": "src/features/session/components/EnteringRoomScreen.tsx",
+      "contentHash": "6e123fb995b12d49ce157fe7d16aad3664b812d2043bffe25e9def51d16298f5"
+    },
+    "src/features/session/components/ErrorScreen.tsx": {
+      "path": "src/features/session/components/ErrorScreen.tsx",
+      "contentHash": "1e40104d1b5e70f25d04e6e842fd8e6f24de5ab93c6b9eeeac0b4f074f81d980"
+    },
+    "src/features/session/components/FeedbackDrawer.tsx": {
+      "path": "src/features/session/components/FeedbackDrawer.tsx",
+      "contentHash": "00dbe03a4b9fd6fd37408c06e17703e99a212998ba52ab9ec74c01abfcb49b70"
+    },
+    "src/features/session/components/InitialsScreen.test.tsx": {
+      "path": "src/features/session/components/InitialsScreen.test.tsx",
+      "contentHash": "1414529f18730d33121a4f793ab7ea88e07e67173e4cfa6492b3f3fd9b929473"
+    },
+    "src/features/session/components/InitialsScreen.tsx": {
+      "path": "src/features/session/components/InitialsScreen.tsx",
+      "contentHash": "ed5459ab7ae201306c1105cac5b4947f28d259f21d5cbd4a60c918b856d9f0bb"
+    },
+    "src/features/session/components/IntakeScreen.tsx": {
+      "path": "src/features/session/components/IntakeScreen.tsx",
+      "contentHash": "7262aa63f422e1b0e61f10a3a2f28db66fda02346b8067a4001152afa7b6da25"
+    },
+    "src/features/session/components/InterviewSessionScreen.tsx": {
+      "path": "src/features/session/components/InterviewSessionScreen.tsx",
+      "contentHash": "62343dfec421f79325e02d548c31032aea85b69dddb3d046835e2435e05a543b"
+    },
+    "src/features/session/components/LandingScreen.test.tsx": {
+      "path": "src/features/session/components/LandingScreen.test.tsx",
+      "contentHash": "a8a761d39deb8b746d527767a40d134750e11c4f2f468cc4589048983f05c4fe"
+    },
+    "src/features/session/components/LandingScreen.tsx": {
+      "path": "src/features/session/components/LandingScreen.tsx",
+      "contentHash": "e2b91dcfbd59c80a63e6c607e734616c7bb40826df0abe7077e14f6a4bdd0057"
+    },
+    "src/features/session/components/LoadingScreen.tsx": {
+      "path": "src/features/session/components/LoadingScreen.tsx",
+      "contentHash": "939a1ebbc9986742c7c210c7b08728794e2ebfc2686ea3b56eaa7a8c82ec535e"
+    },
+    "src/features/session/components/MultiStepLoader.tsx": {
+      "path": "src/features/session/components/MultiStepLoader.tsx",
+      "contentHash": "5c2c33641bd9b3139ac81826f94dcfceddb6431d225278d96860f307454c2640"
+    },
+    "src/features/session/components/SessionHeader.tsx": {
+      "path": "src/features/session/components/SessionHeader.tsx",
+      "contentHash": "dbdc6487c9384ed3c29f17a465436911f92f27ad7472314a987eecf02a89658c"
+    },
+    "src/features/session/components/SessionOrchestrator.tsx": {
+      "path": "src/features/session/components/SessionOrchestrator.tsx",
+      "contentHash": "909a4cfcb112da6b730fa5b76ecd32ee930911572ef57eaea3063da395ea144a"
+    },
+    "src/features/session/components/SessionSavedScreen.tsx": {
+      "path": "src/features/session/components/SessionSavedScreen.tsx",
+      "contentHash": "185c5957171faf8c6ad8f2674c8f1d2dd7875700af238251cdaf2e36df80665f"
+    },
+    "src/features/session/components/SessionSurvey.tsx": {
+      "path": "src/features/session/components/SessionSurvey.tsx",
+      "contentHash": "d58c1f3abdbbfaa8617fa96a54cab56b3278a6c88fac18832fa5da1e87d19823"
+    },
+    "src/features/session/components/SummaryScreen.tsx": {
+      "path": "src/features/session/components/SummaryScreen.tsx",
+      "contentHash": "0a78fe4fb0d37b6826bdc9a482eba17e9529c6a64f2e749797b39246b434c36a"
+    },
+    "src/features/session/components/SummaryUtilities.ts": {
+      "path": "src/features/session/components/SummaryUtilities.ts",
+      "contentHash": "e2413fedcd365249f903f8ab1917cedbb6568fa8916a7c6289fb8f5f217a51fc"
+    },
+    "src/features/session/components/UnifiedSessionScreen.tsx": {
+      "path": "src/features/session/components/UnifiedSessionScreen.tsx",
+      "contentHash": "76d27755a9005924789ec22b844ef3d6285522a2a2d6733d23b96a59f067226e"
+    },
+    "src/features/session/components/VideoFeed.tsx": {
+      "path": "src/features/session/components/VideoFeed.tsx",
+      "contentHash": "f6ec0825e21a43d28a379248fb3c20bfeff4ca6dbc9b91540536a979c8e24a7e"
+    },
+    "src/features/session/components/index.ts": {
+      "path": "src/features/session/components/index.ts",
+      "contentHash": "eae9f09377ecc81c0ff0c4a2617bb9cac415af51a3578571fc2b718bb6f88f08"
+    },
+    "src/features/session/context/SessionContext.tsx": {
+      "path": "src/features/session/context/SessionContext.tsx",
+      "contentHash": "cd38ebff2074301f885eabadb36b15ce7792a4e919d2e06c96fcd548dba46374"
+    },
+    "src/features/session/hooks/session-mutations/shared.ts": {
+      "path": "src/features/session/hooks/session-mutations/shared.ts",
+      "contentHash": "36cbd8ad974f1454b0b700be96e0a0195df84513cd0ab0e2844682a027b41358"
+    },
+    "src/features/session/hooks/session-mutations/useSessionAnswerMutations.ts": {
+      "path": "src/features/session/hooks/session-mutations/useSessionAnswerMutations.ts",
+      "contentHash": "57c66b0d80a7c52e1f641de28cce38e142b5bd187c47a78ec36a6c383855ab3b"
+    },
+    "src/features/session/hooks/session-mutations/useSessionLifecycleMutations.ts": {
+      "path": "src/features/session/hooks/session-mutations/useSessionLifecycleMutations.ts",
+      "contentHash": "c9ec9eb0c735d4de612b2226234b49f82f8b3b14bf323a139f8e18df243b9dca"
+    },
+    "src/features/session/hooks/session-mutations/useSessionNavigationMutations.ts": {
+      "path": "src/features/session/hooks/session-mutations/useSessionNavigationMutations.ts",
+      "contentHash": "e22fdc3600545e8e345632fe703befcbb5b4c43b31b636a5074f17fd96591421"
+    },
+    "src/features/session/hooks/session-mutations/useSessionTelemetryMutations.ts": {
+      "path": "src/features/session/hooks/session-mutations/useSessionTelemetryMutations.ts",
+      "contentHash": "ca4fefc2c26d1e5291c354c9a051c4eb9f6808c40df2c8169a4615efa1f770a7"
+    },
+    "src/features/session/hooks/useDomainSession.test.tsx": {
+      "path": "src/features/session/hooks/useDomainSession.test.tsx",
+      "contentHash": "7427e8bf6f8ae8c6b66edfdd94a3872c5c97452c6df8dd2ecad340697de1cfa2"
+    },
+    "src/features/session/hooks/useDomainSession.ts": {
+      "path": "src/features/session/hooks/useDomainSession.ts",
+      "contentHash": "f4bd41746474287ec7a1042ff390c31f99b84969181948e5ce58d2a8d59b2b7d"
+    },
+    "src/features/session/hooks/useSessionMutations.ts": {
+      "path": "src/features/session/hooks/useSessionMutations.ts",
+      "contentHash": "73024e598e1da4c63031af5ef6d8df4f85e814ae031ac0cc81734d329f563a5e"
+    },
+    "src/features/session/hooks/useSessionQuery.test.tsx": {
+      "path": "src/features/session/hooks/useSessionQuery.test.tsx",
+      "contentHash": "ffc0bbc62ece1a51f0d5f2577631f0dd10888aec0a2b7d8cc027f7504aab4957"
+    },
+    "src/features/session/hooks/useSessionQuery.ts": {
+      "path": "src/features/session/hooks/useSessionQuery.ts",
+      "contentHash": "524b72d4c052f9e8e1336755c1a7d596f06290788c7aefbef151a1a16bb043d0"
+    },
+    "src/features/session/hooks/useSmartHints.test.tsx": {
+      "path": "src/features/session/hooks/useSmartHints.test.tsx",
+      "contentHash": "c6c52433816a4dc7e4c61d53de88fa26c862191ea743c6776b7be29de03a930e"
+    },
+    "src/features/session/hooks/useSmartHints.ts": {
+      "path": "src/features/session/hooks/useSmartHints.ts",
+      "contentHash": "df1d71dcd25df1e302ac3320806676ab7f0062691b6e686903d56fffcd30f0c2"
+    },
+    "src/features/session/hooks/useStrongResponse.ts": {
+      "path": "src/features/session/hooks/useStrongResponse.ts",
+      "contentHash": "93e876869ec4e25e1a2ba6d183ff156923029f32f868b6fd53fe0f1ccb4767fd"
+    },
+    "src/features/session/hooks/useSummaryPolling.ts": {
+      "path": "src/features/session/hooks/useSummaryPolling.ts",
+      "contentHash": "654a00189ef046cd340f1dbf706d0ed489a54ab8d093cd4039a2d3d10106a433"
+    },
+    "src/features/tours/recruiter-tour-provider.tsx": {
+      "path": "src/features/tours/recruiter-tour-provider.tsx",
+      "contentHash": "b3e7f68b0fa79dfcce8ed123daf40a68f23ceb60ec67f86e37b12ff2700cbcb6"
+    },
+    "src/features/tours/recruiter-tours.tsx": {
+      "path": "src/features/tours/recruiter-tours.tsx",
+      "contentHash": "6a9bcb688a5f4a8973b0c224f2b68fcbbcd2a4d5a1656210efb71bf0d2520078"
+    },
+    "src/index.css": {
+      "path": "src/index.css",
+      "contentHash": "4e70dbb654f6244b6c1beb2dd5f8065abbfb318f9d548e2439a51c2d5f62c396"
+    },
+    "src/lib/ai/prompts.ts": {
+      "path": "src/lib/ai/prompts.ts",
+      "contentHash": "8ac80cf15181065eadd33fcaef997e8d7ee5a0ae67ec00c7d58d7feda6a3b9d9"
+    },
+    "src/lib/api-client.ts": {
+      "path": "src/lib/api-client.ts",
+      "contentHash": "007607db4bf564a8a08837622a3b41d2dc868fd4a54d4d571a0e628fb3839f3f"
+    },
+    "src/lib/auth/rbac.test.ts": {
+      "path": "src/lib/auth/rbac.test.ts",
+      "contentHash": "bb77fd16e816a9cf949a251b6527ee5a4eb32a06e9039753d033bd25e4741d7d"
+    },
+    "src/lib/auth/rbac.ts": {
+      "path": "src/lib/auth/rbac.ts",
+      "contentHash": "150456bcd42d36ff9874ea1a7065348f52ff09c40e25be46cd364c7a92774d30"
+    },
+    "src/lib/auth/user.ts": {
+      "path": "src/lib/auth/user.ts",
+      "contentHash": "d01f6d3e536758779330cd49d01f90a3d03537a4d9749b5c76d62bb8b7cb9d84"
+    },
+    "src/lib/cn.ts": {
+      "path": "src/lib/cn.ts",
+      "contentHash": "baf4730dcce9ea1becc677a43a7fbae1935cbbec60d194f92282ca66d80f95fc"
+    },
+    "src/lib/config/pilot-rollout.ts": {
+      "path": "src/lib/config/pilot-rollout.ts",
+      "contentHash": "265fd84d1570e230fac1d25fe01ee5416840234da9b8276e7b73117f713c1956"
+    },
+    "src/lib/config/public-app-origin.ts": {
+      "path": "src/lib/config/public-app-origin.ts",
+      "contentHash": "7c25dbe25436aac2662ddb0cec72203e72335d65b197419404ab94bf29991a7c"
+    },
+    "src/lib/config/recruiter-defaults.ts": {
+      "path": "src/lib/config/recruiter-defaults.ts",
+      "contentHash": "1b8d612abd5b427394b1307d737b3dfe2afd069615bcdf106e286c122945ef8d"
+    },
+    "src/lib/constants.ts": {
+      "path": "src/lib/constants.ts",
+      "contentHash": "4cd2a6e0f3efe363c03d310816c33db5837f73c280da5ec4467df96f74e5c96a"
+    },
+    "src/lib/domain/idempotency-keys.ts": {
+      "path": "src/lib/domain/idempotency-keys.ts",
+      "contentHash": "e8ad16f4cb1d091ab4600b092c0b686d3e8c9d2e92daff2028a090119daceac7"
+    },
+    "src/lib/domain/invite.ts": {
+      "path": "src/lib/domain/invite.ts",
+      "contentHash": "4473aadff06bb1a448f6ffd3ecf2492960819ae4e41b0443b488dab2150b3716"
+    },
+    "src/lib/domain/repository.ts": {
+      "path": "src/lib/domain/repository.ts",
+      "contentHash": "a5ea5e4d8cb5ffc97daebcf799cecb4afe72e882650016cf077aa702d8f4a0a3"
+    },
+    "src/lib/domain/schemas.ts": {
+      "path": "src/lib/domain/schemas.ts",
+      "contentHash": "9b5a1bc21ebaab669389a0f68fa7e9cb3a6bfbfb4770ef2071afd2a8b91226ec"
+    },
+    "src/lib/domain/session-state-machine.test.ts": {
+      "path": "src/lib/domain/session-state-machine.test.ts",
+      "contentHash": "93a1e84da708251458f64940aa0cb485e5365e0f10065ec9da412c48708ab90b"
+    },
+    "src/lib/domain/session-state-machine.ts": {
+      "path": "src/lib/domain/session-state-machine.ts",
+      "contentHash": "34b49d32d79af78855a1d5457265c06af3c444da27f7bbaa90d74b2bd6360b09"
+    },
+    "src/lib/domain/template.ts": {
+      "path": "src/lib/domain/template.ts",
+      "contentHash": "33783622f752f1c5144a432f3140b2032efd6629cb2d108e59c5204261933a79"
+    },
+    "src/lib/domain/types.ts": {
+      "path": "src/lib/domain/types.ts",
+      "contentHash": "16034ddc0efbea33510f15733aa9af1371842024b15cd1637ebacc5db21cd8cb"
+    },
+    "src/lib/e2e/test-mode.ts": {
+      "path": "src/lib/e2e/test-mode.ts",
+      "contentHash": "b2877c2bf1a40d6988be4f80471856d49bc12d9966c0b4393b0a006231d6cb41"
+    },
+    "src/lib/feature-flags.test.ts": {
+      "path": "src/lib/feature-flags.test.ts",
+      "contentHash": "78d82f852cd39adae010bb0830120208e76efbaab62cf5da13d4af7c41a59f75"
+    },
+    "src/lib/feature-flags.ts": {
+      "path": "src/lib/feature-flags.ts",
+      "contentHash": "d06918339708ab943193f1c6510c1056f6d63cecb63e82fbba8727ef37a44008"
+    },
+    "src/lib/hooks/use-accessible-dialog.ts": {
+      "path": "src/lib/hooks/use-accessible-dialog.ts",
+      "contentHash": "181efcd80476222bbfdbc41de4b96cac955027bfd9c7993a9940957abfeb9a5a"
+    },
+    "src/lib/logger.test.ts": {
+      "path": "src/lib/logger.test.ts",
+      "contentHash": "5d42c41d96048ab728eb9c375e9a0b4f93183e62bac3a96209575d2008591e2b"
+    },
+    "src/lib/logger.ts": {
+      "path": "src/lib/logger.ts",
+      "contentHash": "b5a354d70f0c9467bec1f75d914b2ae81b7ff43ac055ed9ebb7d2a5aff9ba0fb"
+    },
+    "src/lib/recruiter-signature.ts": {
+      "path": "src/lib/recruiter-signature.ts",
+      "contentHash": "a9b268fb07bf268e5229aa502d90d7861fdaf6f2c178fc1d343d8ed2bcf8208b"
+    },
+    "src/lib/server/abuse-protection.ts": {
+      "path": "src/lib/server/abuse-protection.ts",
+      "contentHash": "92a2ce4477c2124689eaef5469e0230949bf69c86c67b7f2cf26c73a9add00b0"
+    },
+    "src/lib/server/ai-quality/ai-generation-export.test.ts": {
+      "path": "src/lib/server/ai-quality/ai-generation-export.test.ts",
+      "contentHash": "3253df69323a9c679b136e7cd9b2cbb946545e96892dcefcfabc7ebe9c52c15c"
+    },
+    "src/lib/server/ai-quality/ai-generation-export.ts": {
+      "path": "src/lib/server/ai-quality/ai-generation-export.ts",
+      "contentHash": "4df3d5d73b083786dfe7021c69fbeae4d61938df7756bce805ea44c2a5f28e43"
+    },
+    "src/lib/server/ai-quality/ai-generation-read-repository.test.ts": {
+      "path": "src/lib/server/ai-quality/ai-generation-read-repository.test.ts",
+      "contentHash": "909b66cef8bfe87c38b9625ae87a3446a20fa0c540e93f7361e86d7b4997905b"
+    },
+    "src/lib/server/ai-quality/ai-generation-read-repository.ts": {
+      "path": "src/lib/server/ai-quality/ai-generation-read-repository.ts",
+      "contentHash": "a07343d82737814f775bd4685fb9a8841a25882350d165a9353123eb3005544e"
+    },
+    "src/lib/server/ai-quality/ai-generation-repository.test.ts": {
+      "path": "src/lib/server/ai-quality/ai-generation-repository.test.ts",
+      "contentHash": "f6efb676c7eb5f90cefec8ac9c75da1acb20642dd6bc9daf432dcc38c878b9ff"
+    },
+    "src/lib/server/ai-quality/ai-generation-repository.ts": {
+      "path": "src/lib/server/ai-quality/ai-generation-repository.ts",
+      "contentHash": "d7c0ebe4018bc80856c9fd685d744d09797f21acd311e6bb6f1dac42be09a2f3"
+    },
+    "src/lib/server/ai-quality/capture-ai-generation.test.ts": {
+      "path": "src/lib/server/ai-quality/capture-ai-generation.test.ts",
+      "contentHash": "b4403c53f13a652cdd2a11cec61dccee128605f839a2260a8f888e210712e2ef"
+    },
+    "src/lib/server/ai-quality/capture-ai-generation.ts": {
+      "path": "src/lib/server/ai-quality/capture-ai-generation.ts",
+      "contentHash": "f8acc196280b6244bbb4154df69c88d568ae9fe42db8172fcbc29d61c6024d6e"
+    },
+    "src/lib/server/ai-quality/context-artifacts.ts": {
+      "path": "src/lib/server/ai-quality/context-artifacts.ts",
+      "contentHash": "678b1e3cd10f6a3b6f4b0fc76bfcd0ef0f29a281ab3015e0652c17bb1da3bfe7"
+    },
+    "src/lib/server/ai-quality/error-serialization.ts": {
+      "path": "src/lib/server/ai-quality/error-serialization.ts",
+      "contentHash": "7fc718aa0699ab3af77dddd673ff9c0c3acf0b22a5b74bb96d2e840e85fd9d59"
+    },
+    "src/lib/server/ai-quality/redaction.test.ts": {
+      "path": "src/lib/server/ai-quality/redaction.test.ts",
+      "contentHash": "fb4e91dd7efef4aa85ed758a85e8cdaa7b6aaf792bd4852f92ba97fd4632e681"
+    },
+    "src/lib/server/ai-quality/redaction.ts": {
+      "path": "src/lib/server/ai-quality/redaction.ts",
+      "contentHash": "6b52a4ed1711acacc9a4946e9608f9e730c49af534989e8e4a168df2eb2f7130"
+    },
+    "src/lib/server/ai-quality/types.ts": {
+      "path": "src/lib/server/ai-quality/types.ts",
+      "contentHash": "dd57b167e442b051bb7fcdce7a0e65619195a27f5e8664a746653e527be51623"
+    },
+    "src/lib/server/alerts.test.ts": {
+      "path": "src/lib/server/alerts.test.ts",
+      "contentHash": "686169a44ee85af7e480e0e748b637a9bc7c4c129d35aea457e581d5b163e956"
+    },
+    "src/lib/server/alerts.ts": {
+      "path": "src/lib/server/alerts.ts",
+      "contentHash": "83e7044ff595844d7f9ef5dec957ea8e680b3c0997546dfc4989753c0bd8571d"
+    },
+    "src/lib/server/api-errors.ts": {
+      "path": "src/lib/server/api-errors.ts",
+      "contentHash": "efb0847683419b497880a699b1119fee87adc2439a68754a5dd6c752888e1810"
+    },
+    "src/lib/server/api-handler-utils.test.ts": {
+      "path": "src/lib/server/api-handler-utils.test.ts",
+      "contentHash": "0cae8038f4bbf17c78515178dd4c5f2120dc8c52e8e42fe1de8dead141d3482c"
+    },
+    "src/lib/server/api-handler-utils.ts": {
+      "path": "src/lib/server/api-handler-utils.ts",
+      "contentHash": "8779066101e25dfebded5f8254abce6a7101a822217d6a5048f940f675e08a27"
+    },
+    "src/lib/server/application/invites/create-invite-batch.test.ts": {
+      "path": "src/lib/server/application/invites/create-invite-batch.test.ts",
+      "contentHash": "08fdd89da7a6874bdc7064f0b452eaf6e4e27c33b2620c058b7fc1a919778faa"
+    },
+    "src/lib/server/application/invites/create-invite-batch.ts": {
+      "path": "src/lib/server/application/invites/create-invite-batch.ts",
+      "contentHash": "a1f213e9f481bbca37b2d7717b46f8b4380e6280831685d8edb35e4f95fd91d6"
+    },
+    "src/lib/server/application/invites/errors.ts": {
+      "path": "src/lib/server/application/invites/errors.ts",
+      "contentHash": "71d73e1881760ecef2c110e8ca5ad459d15d3672801f59f9234bad4341cb7048"
+    },
+    "src/lib/server/application/invites/invite-batch.integration.test.ts": {
+      "path": "src/lib/server/application/invites/invite-batch.integration.test.ts",
+      "contentHash": "bd526a2afa4c04bfaf997968710bc0a7537bf50dd373ceacab5dba883122baba"
+    },
+    "src/lib/server/application/invites/resend-invite-email.test.ts": {
+      "path": "src/lib/server/application/invites/resend-invite-email.test.ts",
+      "contentHash": "070af828348557a46d4c890c81861fd69a9aa54cf3c85c36c1c48a379f058858"
+    },
+    "src/lib/server/application/invites/resend-invite-email.ts": {
+      "path": "src/lib/server/application/invites/resend-invite-email.ts",
+      "contentHash": "c81a790e978da15793166480ae2d9b4b0ce67f0dfbb64ce2b891509264ca9b31"
+    },
+    "src/lib/server/application/invites/retry-invite-batch.test.ts": {
+      "path": "src/lib/server/application/invites/retry-invite-batch.test.ts",
+      "contentHash": "97b6837eec27193d71ebcac89a6b6207467f58606eeef73e6799785ca8dcece2"
+    },
+    "src/lib/server/application/invites/retry-invite-batch.ts": {
+      "path": "src/lib/server/application/invites/retry-invite-batch.ts",
+      "contentHash": "b27ff086598e86717586385eeaecec8246fee193e9f9b7ff4652a13120491207"
+    },
+    "src/lib/server/application/invites/send-invite-email.test.ts": {
+      "path": "src/lib/server/application/invites/send-invite-email.test.ts",
+      "contentHash": "cb249ab39ccca7f423bd4b5950310aee6260a0b7ef0096f058979844a8e09621"
+    },
+    "src/lib/server/application/invites/send-invite-email.ts": {
+      "path": "src/lib/server/application/invites/send-invite-email.ts",
+      "contentHash": "a658bc543c239fe45141df37bfd27e2ea8111a5edc81403a2bf4fc9a68a45c63"
+    },
+    "src/lib/server/application/invites/types.ts": {
+      "path": "src/lib/server/application/invites/types.ts",
+      "contentHash": "2781d64a06a739006526c73f05899f8c9f5fd3b328061f972a28a2fedee84f28"
+    },
+    "src/lib/server/application/session/errors.ts": {
+      "path": "src/lib/server/application/session/errors.ts",
+      "contentHash": "9a9d3b18dcb869551ad7adb9a7f5c781bf9701cb85bfe560adfd17b72e812012"
+    },
+    "src/lib/server/application/session/get-session.test.ts": {
+      "path": "src/lib/server/application/session/get-session.test.ts",
+      "contentHash": "df7bf1dd1eb3efbdf9e8b60a13984afe16b9aae3f2ad73881493525a15ec4c08"
+    },
+    "src/lib/server/application/session/get-session.ts": {
+      "path": "src/lib/server/application/session/get-session.ts",
+      "contentHash": "a70c337cb9793c6c056d08557247eeda1987988fd5dfff4c3ab0d8bb1c818bd5"
+    },
+    "src/lib/server/application/session/session-lifecycle.integration.test.ts": {
+      "path": "src/lib/server/application/session/session-lifecycle.integration.test.ts",
+      "contentHash": "200c20ae0bdbcfc21ca082759b12c1f4948f5b1e9f7b3709a0e3b95398b62f4c"
+    },
+    "src/lib/server/application/session/start-session.test.ts": {
+      "path": "src/lib/server/application/session/start-session.test.ts",
+      "contentHash": "65b3322bf005c8b6b0c08ed81a01c6fb223b8fee2d8091e42e1d577198ff0354"
+    },
+    "src/lib/server/application/session/start-session.ts": {
+      "path": "src/lib/server/application/session/start-session.ts",
+      "contentHash": "1bca792321c3249f322c1f6c2697094adb07dee604dd73c59f6318cdae539c90"
+    },
+    "src/lib/server/application/session/update-session.test.ts": {
+      "path": "src/lib/server/application/session/update-session.test.ts",
+      "contentHash": "2f7b685fbed057966fe4322dd54ba9ca6a50cf63f537d8235ec84647c3cf262d"
+    },
+    "src/lib/server/application/session/update-session.ts": {
+      "path": "src/lib/server/application/session/update-session.ts",
+      "contentHash": "5de129217e9d31ff310dada8bfb543c580f4fe3026e870987ae79f86e2b9f75d"
+    },
+    "src/lib/server/auth/app-auth-config.ts": {
+      "path": "src/lib/server/auth/app-auth-config.ts",
+      "contentHash": "dbc4ed4d4e01c08574bcc592bd88cc1f234cbd8014ccded568568390f458c8f0"
+    },
+    "src/lib/server/auth/app-auth-store.ts": {
+      "path": "src/lib/server/auth/app-auth-store.ts",
+      "contentHash": "9de0d91170c67f18ba91b99a554c65b82aa7962a54124ae392cb8efbb3fa3139"
+    },
+    "src/lib/server/auth/app-auth.test.ts": {
+      "path": "src/lib/server/auth/app-auth.test.ts",
+      "contentHash": "30cee4f21612c2aa8f5806e4954d71857c81cf5b62e86f4c27aee0ad5c375329"
+    },
+    "src/lib/server/auth/app-auth.ts": {
+      "path": "src/lib/server/auth/app-auth.ts",
+      "contentHash": "f07e9cdd335e500f593c309de7d9f5938db8ec64fa09bff8f3e9b9f203f0ea36"
+    },
+    "src/lib/server/auth/app-session-cookie.ts": {
+      "path": "src/lib/server/auth/app-session-cookie.ts",
+      "contentHash": "aa90c271f08b4c784ff386419215635808ade37f7423936be01e32259bf982af"
+    },
+    "src/lib/server/auth/app-session.ts": {
+      "path": "src/lib/server/auth/app-session.ts",
+      "contentHash": "813d624bd168f75654a1937006621e7bf8cc0903fcf193236ac4a4b6158def94"
+    },
+    "src/lib/server/auth/candidate-token.integration.test.ts": {
+      "path": "src/lib/server/auth/candidate-token.integration.test.ts",
+      "contentHash": "12112661aa618c093867eb144016c18bb92f9bf5fce6194a6f850fadcf403c72"
+    },
+    "src/lib/server/auth/candidate-token.test.ts": {
+      "path": "src/lib/server/auth/candidate-token.test.ts",
+      "contentHash": "1df3148eb19e72564f1dc9cba264d73a82b26039202dd2be3b85c8e8e3c9e255"
+    },
+    "src/lib/server/auth/candidate-token.ts": {
+      "path": "src/lib/server/auth/candidate-token.ts",
+      "contentHash": "b247064c104b8901e261947c004c279bff0ef9be45eb01fb581109ce615ff29c"
+    },
+    "src/lib/server/auth/candidate-token/postgres-candidate-token-store.ts": {
+      "path": "src/lib/server/auth/candidate-token/postgres-candidate-token-store.ts",
+      "contentHash": "21182df87c418af2fdb2c0b9f67c16c1b8f1bb2c6829bc5295faa792eedbf14b"
+    },
+    "src/lib/server/auth/current-user.test.ts": {
+      "path": "src/lib/server/auth/current-user.test.ts",
+      "contentHash": "bcb42b0427fce3e5b2dd4f15edcf7dcaba054ed72ef5a7d21e832bbc384cd090"
+    },
+    "src/lib/server/auth/current-user.ts": {
+      "path": "src/lib/server/auth/current-user.ts",
+      "contentHash": "b8f8aad1675590b416c7fed8a9a4bf87b8beb61dd070620b73079bf881996b6a"
+    },
+    "src/lib/server/auth/middleware.test.ts": {
+      "path": "src/lib/server/auth/middleware.test.ts",
+      "contentHash": "a8a6a3dc4e3cc48eb3220e83c70b0caf42ca722a3a8b514f748c5273aa575b08"
+    },
+    "src/lib/server/auth/middleware.ts": {
+      "path": "src/lib/server/auth/middleware.ts",
+      "contentHash": "1b6d88bdd73e88aa612158b8ebd787e38d1111a36ca603cd08117286bcd9474d"
+    },
+    "src/lib/server/auth/password.ts": {
+      "path": "src/lib/server/auth/password.ts",
+      "contentHash": "631eed82b3b79f4c264ee22d675e3d49c193a7d04f800e29ba6ce650fda4cc8d"
+    },
+    "src/lib/server/auth/postgres-app-auth-store.ts": {
+      "path": "src/lib/server/auth/postgres-app-auth-store.ts",
+      "contentHash": "b3bc5c68320a2eb411b9792a7693ffbdec4222b0fda744d0ac5746f98c667aec"
+    },
+    "src/lib/server/auth/recruiter-profile.test.ts": {
+      "path": "src/lib/server/auth/recruiter-profile.test.ts",
+      "contentHash": "26fdaf7f6befa03f922ace1500f4789d8ec2bf2f73fb4559f570eeef3d997d4c"
+    },
+    "src/lib/server/auth/recruiter-profile.ts": {
+      "path": "src/lib/server/auth/recruiter-profile.ts",
+      "contentHash": "9bfbf1e50ff9cc960be03412f2fa3476b228806d521c04f4ddbe95ed6cb606e8"
+    },
+    "src/lib/server/candidate-route-auth.ts": {
+      "path": "src/lib/server/candidate-route-auth.ts",
+      "contentHash": "a5c5ce2b9e86675d33e2c855a1d93ea0dd5f3c0af471c09048542062e1b8fe79"
+    },
+    "src/lib/server/config/server-env.test.ts": {
+      "path": "src/lib/server/config/server-env.test.ts",
+      "contentHash": "78a484f41008ba7d05465b7cf5d60dae5b5de323e76a9d11dbf648f34774ea63"
+    },
+    "src/lib/server/config/server-env.ts": {
+      "path": "src/lib/server/config/server-env.ts",
+      "contentHash": "c97c24b69fa9b760cfe80cc8226db25ff3f50296daad281674b989a76f7718f1"
+    },
+    "src/lib/server/crypto.ts": {
+      "path": "src/lib/server/crypto.ts",
+      "contentHash": "67dfccbabfa5df2d6c73d088d5be04d68863de2ee2565b1c495f0b6c03887ecb"
+    },
+    "src/lib/server/db/health.ts": {
+      "path": "src/lib/server/db/health.ts",
+      "contentHash": "c2d57e11c370b02475002017a83fc9df88fff5b81a16c3db78c737eb7f997d3e"
+    },
+    "src/lib/server/db/postgres-config.test.ts": {
+      "path": "src/lib/server/db/postgres-config.test.ts",
+      "contentHash": "9f08f7852675951648d49b35b86715e93849d72e458d4d6eb96a0a8a9f94ef0f"
+    },
+    "src/lib/server/db/postgres-config.ts": {
+      "path": "src/lib/server/db/postgres-config.ts",
+      "contentHash": "9940904d34532eb139cf0991c05f829b55f5d31fc86429fc5006b5d7ee878e36"
+    },
+    "src/lib/server/db/postgres.ts": {
+      "path": "src/lib/server/db/postgres.ts",
+      "contentHash": "56c2b409816e1d0a3df19049c32faf2726d43b5b938bd50568cf215121f22c2e"
+    },
+    "src/lib/server/emails/CandidateInviteEmail.ts": {
+      "path": "src/lib/server/emails/CandidateInviteEmail.ts",
+      "contentHash": "11135278a8280dcb2e0362bd78df167b382808f3d85d47739f6681325bf9d43b"
+    },
+    "src/lib/server/emails/SessionDebriefEmail.ts": {
+      "path": "src/lib/server/emails/SessionDebriefEmail.ts",
+      "contentHash": "2a8657c95e22915fcfb1178c95be67f3c43e51a87e67c3e50011642be33cfc4c"
+    },
+    "src/lib/server/encryption-config.test.ts": {
+      "path": "src/lib/server/encryption-config.test.ts",
+      "contentHash": "8c7a63578aac12896641c755f48654c9428f127093c091ffc653e8e79e0b0c14"
+    },
+    "src/lib/server/encryption.test.ts": {
+      "path": "src/lib/server/encryption.test.ts",
+      "contentHash": "76ef720237bc421604fab29c61ffd692f7bd9336f10dacc51699ad46e61853ec"
+    },
+    "src/lib/server/encryption.ts": {
+      "path": "src/lib/server/encryption.ts",
+      "contentHash": "e89f3288c4047d52d0316529340c337816c01e9ff0b508ac50acb1f2843d8443"
+    },
+    "src/lib/server/idempotency.integration.test.ts": {
+      "path": "src/lib/server/idempotency.integration.test.ts",
+      "contentHash": "86c1957a728bdf3c4c2c2e59061d5822eb329e08b12812702f94c78529d2e802"
+    },
+    "src/lib/server/idempotency.test.ts": {
+      "path": "src/lib/server/idempotency.test.ts",
+      "contentHash": "e783eff7d8b967d2f02ba04b7d4c1eacc222784eac7655dcf1c6d26d69c4939f"
+    },
+    "src/lib/server/idempotency.ts": {
+      "path": "src/lib/server/idempotency.ts",
+      "contentHash": "a9c91d69b675c2ca2c0043640e404531e12c325670bb32ce4e3febcb727fe514"
+    },
+    "src/lib/server/idempotency/postgres-idempotency-store.ts": {
+      "path": "src/lib/server/idempotency/postgres-idempotency-store.ts",
+      "contentHash": "4ddfdb1e629f0d7012c6cc9929535eb1cbb6e8c07ebd004924706e975db1c21a"
+    },
+    "src/lib/server/ids.ts": {
+      "path": "src/lib/server/ids.ts",
+      "contentHash": "0cd854cff6c632fd0f24c60709e43b3eb9c7bca73d7393f3e53f505d74864f66"
+    },
+    "src/lib/server/infrastructure/feedback-repository.test.ts": {
+      "path": "src/lib/server/infrastructure/feedback-repository.test.ts",
+      "contentHash": "57e764e0c2cb12da2e2f6b5402372e072466f58acc84e50b74fe00f443584716"
+    },
+    "src/lib/server/infrastructure/feedback-repository.ts": {
+      "path": "src/lib/server/infrastructure/feedback-repository.ts",
+      "contentHash": "5ca97f224f6c61dec88a4b5f9c1060204aee5295e908f0c6440f48d4beebf1f9"
+    },
+    "src/lib/server/infrastructure/invite-repository.test.ts": {
+      "path": "src/lib/server/infrastructure/invite-repository.test.ts",
+      "contentHash": "f57e4c8f559f1fe7814793e94ff95d712ce328fca6a12684c39d4b4b3aa1389a"
+    },
+    "src/lib/server/infrastructure/invite-repository.ts": {
+      "path": "src/lib/server/infrastructure/invite-repository.ts",
+      "contentHash": "df695f29bf25c3193cd08c7827d74384eb377404beaddc43376aecd40bec8075"
+    },
+    "src/lib/server/infrastructure/postgres-feedback-repository.integration.test.ts": {
+      "path": "src/lib/server/infrastructure/postgres-feedback-repository.integration.test.ts",
+      "contentHash": "8e03b0ba87de2cedaadff8d291981c768fb8f3cfe7c2867efd0668b616dad83f"
+    },
+    "src/lib/server/infrastructure/postgres-feedback-repository.ts": {
+      "path": "src/lib/server/infrastructure/postgres-feedback-repository.ts",
+      "contentHash": "2f398722f21dc604f608e0eec0c947f071a3cb11a91393bd4769190aa2bed97e"
+    },
+    "src/lib/server/infrastructure/postgres-invite-repository.integration.test.ts": {
+      "path": "src/lib/server/infrastructure/postgres-invite-repository.integration.test.ts",
+      "contentHash": "5602b8950cbbbc6778281c7dbbdec39b486c6f645e6955bd9785e3a61d7572f7"
+    },
+    "src/lib/server/infrastructure/postgres-invite-repository.ts": {
+      "path": "src/lib/server/infrastructure/postgres-invite-repository.ts",
+      "contentHash": "df730a7a54a63c5e667971ecc27da7c285ae6ae8a87d0293c45c457e5e3b88b7"
+    },
+    "src/lib/server/infrastructure/postgres-session-repository.integration.test.ts": {
+      "path": "src/lib/server/infrastructure/postgres-session-repository.integration.test.ts",
+      "contentHash": "0c994d598a401b803d183c8449c971d2ce920b82ed726eb05d21da31e9783131"
+    },
+    "src/lib/server/infrastructure/postgres-session-repository.ts": {
+      "path": "src/lib/server/infrastructure/postgres-session-repository.ts",
+      "contentHash": "e38e7e420194451a6b30a5f1ec730d1b3e38b9fd1a9584f534f688b059071867"
+    },
+    "src/lib/server/infrastructure/postgres-template-repository.integration.test.ts": {
+      "path": "src/lib/server/infrastructure/postgres-template-repository.integration.test.ts",
+      "contentHash": "99859d137ae2b56c17f7dbcf5cddee049367a2912a241ed1e08ec6903f9d127b"
+    },
+    "src/lib/server/infrastructure/postgres-template-repository.ts": {
+      "path": "src/lib/server/infrastructure/postgres-template-repository.ts",
+      "contentHash": "1018d8e0d6a7258757c481e101e459008b74816f884a89e87fd7974ef6162c8f"
+    },
+    "src/lib/server/infrastructure/session-repository.test.ts": {
+      "path": "src/lib/server/infrastructure/session-repository.test.ts",
+      "contentHash": "716577c2158a8357886b86ca4998f096c9bd10dc19527d6636714decf875a997"
+    },
+    "src/lib/server/infrastructure/session-repository.ts": {
+      "path": "src/lib/server/infrastructure/session-repository.ts",
+      "contentHash": "4b25a9be98edee2e0020028d19129720f1e941cd2e50263e8b4c5e226b1fe607"
+    },
+    "src/lib/server/infrastructure/template-repository.test.ts": {
+      "path": "src/lib/server/infrastructure/template-repository.test.ts",
+      "contentHash": "354acb31fab49fc1f91df2817e273e16c4f0be9557822f587baf16d1889ebceb"
+    },
+    "src/lib/server/infrastructure/template-repository.ts": {
+      "path": "src/lib/server/infrastructure/template-repository.ts",
+      "contentHash": "65da5189ce364e46d7798fb2bbdd0a76712572a2550c50fe83271db65457d10f"
+    },
+    "src/lib/server/metrics-pipeline.integration.test.ts": {
+      "path": "src/lib/server/metrics-pipeline.integration.test.ts",
+      "contentHash": "b52c6dfe4e255196849c18d9d739794520fd692959e8a3230fe59f5d34eac08f"
+    },
+    "src/lib/server/metrics.test.ts": {
+      "path": "src/lib/server/metrics.test.ts",
+      "contentHash": "a4677e1ec25b75812eb98d1f28e952fafd6c1f0db668ea76e86ced9aeba82238"
+    },
+    "src/lib/server/metrics.ts": {
+      "path": "src/lib/server/metrics.ts",
+      "contentHash": "58f671c211c0e3c26aeee1e6ad343413ea1521565d47748995c2d53bd75e0cdd"
+    },
+    "src/lib/server/metrics/backend.integration.test.ts": {
+      "path": "src/lib/server/metrics/backend.integration.test.ts",
+      "contentHash": "9fd5041c306a31fa9c0fb1f08ea12f2a2922b957be1e43d53b8c693760f3f5a7"
+    },
+    "src/lib/server/metrics/backend.test.ts": {
+      "path": "src/lib/server/metrics/backend.test.ts",
+      "contentHash": "e1ec42e66c75cc0f0e08f34aecaa3d8b56d2435a7e8d0720438733a7699fc559"
+    },
+    "src/lib/server/metrics/backend.ts": {
+      "path": "src/lib/server/metrics/backend.ts",
+      "contentHash": "18f882dd83edd1aa62e6492918527af024d1ac7ef8ae53e5a831b0bc868927ed"
+    },
+    "src/lib/server/metrics/types.ts": {
+      "path": "src/lib/server/metrics/types.ts",
+      "contentHash": "61ea36cd289c65d19ad1d73c651f5e2e95ef46a52d965891aa2c57b9993bf803"
+    },
+    "src/lib/server/production-contract.integration.test.ts": {
+      "path": "src/lib/server/production-contract.integration.test.ts",
+      "contentHash": "4b32110f9bd79542b87fd8d3c5cda66cb3b88001265db39195b3fc841b606abb"
+    },
+    "src/lib/server/provider-errors.ts": {
+      "path": "src/lib/server/provider-errors.ts",
+      "contentHash": "60829b35d1e69ebebc1e72e7a31df53aa19e6efc54dd4a2f4a5324f96e97b69f"
+    },
+    "src/lib/server/provider-response.ts": {
+      "path": "src/lib/server/provider-response.ts",
+      "contentHash": "545f0832e891d2c1f038b34c35730be7523bc3925e8bfbca8fcb8792c8a7bdf1"
+    },
+    "src/lib/server/rate-limit.integration.test.ts": {
+      "path": "src/lib/server/rate-limit.integration.test.ts",
+      "contentHash": "07468d875245947c419b7d1012e289e8fcb042c4a3425c4fc24a3d7c301a96d1"
+    },
+    "src/lib/server/rate-limit.test.ts": {
+      "path": "src/lib/server/rate-limit.test.ts",
+      "contentHash": "91673d11d246cf72be091157357885484fc073bd60f4fbe2dc919727f6a0d14c"
+    },
+    "src/lib/server/rate-limit.ts": {
+      "path": "src/lib/server/rate-limit.ts",
+      "contentHash": "623d12c8fbe6f8a2c5a91ef5a50d87af2ef654ba3b05112b5894a3265fba120a"
+    },
+    "src/lib/server/rate-limit/backend.ts": {
+      "path": "src/lib/server/rate-limit/backend.ts",
+      "contentHash": "32c5dba687c31a265c6046c1749053ef6ff3f6c2d4796a4ae43403ec7f8de35b"
+    },
+    "src/lib/server/rate-limit/types.ts": {
+      "path": "src/lib/server/rate-limit/types.ts",
+      "contentHash": "bcdabcd79241e9a7dcf316f5f94ce3a852251985f36ff8ac39f6b730dff07113"
+    },
+    "src/lib/server/server-logger.ts": {
+      "path": "src/lib/server/server-logger.ts",
+      "contentHash": "f3dfb1dd4b1f115b366492adea6522c275b78d1358d309f91d704a019f007aa6"
+    },
+    "src/lib/server/services/ai-config.test.ts": {
+      "path": "src/lib/server/services/ai-config.test.ts",
+      "contentHash": "44bda522d7f8d4a724d582d608ab3900a78ef71237eed2dd7ab3a2ef73bd7a8c"
+    },
+    "src/lib/server/services/ai-config.ts": {
+      "path": "src/lib/server/services/ai-config.ts",
+      "contentHash": "21733760402d2daebf8395c0bf0b7b2d600ab7518258acab6be88f64987fead9"
+    },
+    "src/lib/server/services/ai-service.test.ts": {
+      "path": "src/lib/server/services/ai-service.test.ts",
+      "contentHash": "7109411c81fdf51531a48c2602c85969be5bdbbf18054893869db4e76e38fbd2"
+    },
+    "src/lib/server/services/ai-service.ts": {
+      "path": "src/lib/server/services/ai-service.ts",
+      "contentHash": "2fed282f758c72c57b57970f5b68dfea366e2b83a4f4d178ae8cca4d015adb2e"
+    },
+    "src/lib/server/services/email-service-config.test.ts": {
+      "path": "src/lib/server/services/email-service-config.test.ts",
+      "contentHash": "65ddc2ea4a8f65edb915259ec62e1fd15f7588346206acceeaa5623a8f17eaf7"
+    },
+    "src/lib/server/services/email-service.test.ts": {
+      "path": "src/lib/server/services/email-service.test.ts",
+      "contentHash": "a22f0efa97d02277fae592bec4c13cd17bc6429743964c637f89dbfc7890658c"
+    },
+    "src/lib/server/services/email-service.ts": {
+      "path": "src/lib/server/services/email-service.ts",
+      "contentHash": "1fe95aaeaf67e31269a6e30f5432177836923f3884c87964f66fee38871cfb1b"
+    },
+    "src/lib/server/services/provider-response.test.ts": {
+      "path": "src/lib/server/services/provider-response.test.ts",
+      "contentHash": "d9385af963deb1087494c7c018faa5f6f59477ef99cefa3aa7501102879e35e2"
+    },
+    "src/lib/server/services/question-service.ts": {
+      "path": "src/lib/server/services/question-service.ts",
+      "contentHash": "8c0feb91949a959909fd733f8bea437252cdc540b397f52d02f45936f00670ae"
+    },
+    "src/lib/server/services/strong-response-service.test.ts": {
+      "path": "src/lib/server/services/strong-response-service.test.ts",
+      "contentHash": "3f605288740f630a15ab72b3e7351bf7f2b6949fa775a225f8514ab5c71ab851"
+    },
+    "src/lib/server/services/strong-response-service.ts": {
+      "path": "src/lib/server/services/strong-response-service.ts",
+      "contentHash": "d774841551f89cab7c9144737f7a738fdb486650068d00957cb40c83234cd302"
+    },
+    "src/lib/server/services/tips-service.test.ts": {
+      "path": "src/lib/server/services/tips-service.test.ts",
+      "contentHash": "794db94dd521a54e37e8b6ec6378975e3db718998205281d41e63f4b170e3868"
+    },
+    "src/lib/server/services/tips-service.ts": {
+      "path": "src/lib/server/services/tips-service.ts",
+      "contentHash": "e675c2f4d80dcf99eec1bc1c997453a8c9e4bbf510077a87c74156affcebbaff"
+    },
+    "src/lib/server/services/tts-service.ts": {
+      "path": "src/lib/server/services/tts-service.ts",
+      "contentHash": "caf5b4eb4499b715f52ce2079b2a2b94c8360aed751385d1c9337702c61068f0"
+    },
+    "src/lib/server/session/orchestrator.ts": {
+      "path": "src/lib/server/session/orchestrator.ts",
+      "contentHash": "02a4410086abca7675b6301167ebc9bb2c503ad2e6fdb174d4bdb0263a3b2a14"
+    },
+    "src/lib/server/teams-alerts.test.ts": {
+      "path": "src/lib/server/teams-alerts.test.ts",
+      "contentHash": "9b238acb6266c359d6fe71286a3ead34a68e927d6783efccb7155f7ea12a5ede"
+    },
+    "src/lib/server/teams-alerts.ts": {
+      "path": "src/lib/server/teams-alerts.ts",
+      "contentHash": "2db16ef7cc70b8b7c730b37ef7200fb184025f4a1586aba53b46a72e54597dc1"
+    },
+    "src/lib/server/url/get-app-origin.test.ts": {
+      "path": "src/lib/server/url/get-app-origin.test.ts",
+      "contentHash": "338bf65fcba2e2b502db68ab02eab552a1d7f7a2f1034fe0ef4de3b4ddc99e62"
+    },
+    "src/lib/server/url/get-app-origin.ts": {
+      "path": "src/lib/server/url/get-app-origin.ts",
+      "contentHash": "233c95488f7b64d735b09ce00f7e12790f8c68936f9246431126dd82da5ebef1"
+    },
+    "src/lib/services/__tests__/compute-widget-buckets.test.ts": {
+      "path": "src/lib/services/__tests__/compute-widget-buckets.test.ts",
+      "contentHash": "5fcbddb5b92dd31b812499a2cb98c47d6df7636596d8f27d5e86942acdb65347"
+    },
+    "src/lib/services/compute-dashboard-stats.ts": {
+      "path": "src/lib/services/compute-dashboard-stats.ts",
+      "contentHash": "dd12374e5e5d2dab544a5fef7747980e112c6280b207ecc9a8e9ca4f3bf85028"
+    },
+    "src/lib/services/compute-widget-buckets.ts": {
+      "path": "src/lib/services/compute-widget-buckets.ts",
+      "contentHash": "e3b3f9d9158d768b0e5e5c9a26eb1a1f82aaec48d78086c1215a528fbb288df2"
+    },
+    "src/lib/services/dashboard-constitution.ts": {
+      "path": "src/lib/services/dashboard-constitution.ts",
+      "contentHash": "88ab151248ac439c6de1c7b39c716b11be7aa9c71f6fcfe063110d7a1f1964a3"
+    },
+    "src/lib/session-debrief.ts": {
+      "path": "src/lib/session-debrief.ts",
+      "contentHash": "7be1776fed24f76c4709232ad429d1dc858b9ac0c870c80d1e8a25dba0721157"
+    },
+    "src/lib/state/now.types.ts": {
+      "path": "src/lib/state/now.types.ts",
+      "contentHash": "663d1e0259475a08884029cd694a0e5fa00d1780710cd856f32d95af7dc7f34e"
+    },
+    "src/lib/state/selectors.ts": {
+      "path": "src/lib/state/selectors.ts",
+      "contentHash": "3bbb1d69004c02fbcd8fd9532a62f75818afbeabca40c578e514f8d7485e98e1"
+    },
+    "src/lib/utils/format.ts": {
+      "path": "src/lib/utils/format.ts",
+      "contentHash": "c5ee90acd73c5d0648df2730b417c347f11a7a2b1af732e045d6310630e63223"
+    },
+    "src/middleware.ts": {
+      "path": "src/middleware.ts",
+      "contentHash": "4bd309ffc01d59fa8eb27108b8c98050d34c838123e650586dfc89d574ba7ac8"
+    },
+    "src/test/setup.ts": {
+      "path": "src/test/setup.ts",
+      "contentHash": "380ea4fdb738a46711fd17c6fb504ef0fd21bfdcf9af1e646ea777b3b8a6720c"
+    },
+    "src/test/smoke.test.tsx": {
+      "path": "src/test/smoke.test.tsx",
+      "contentHash": "65f732192d4131af9fa5f2af35915ca66fff3771892d6bcaa19e22a57d74a34b"
+    },
+    "supabase/fix_public_read.sql": {
+      "path": "supabase/fix_public_read.sql",
+      "contentHash": "24cca860df656f7a46ee553463d04f47b0f3320130b35450ea0be89081712924"
+    },
+    "supabase/fix_sessions_rls.sql": {
+      "path": "supabase/fix_sessions_rls.sql",
+      "contentHash": "fe491cd1bb6875d58e043f6e925c900470a7a04a0af13050affaac8ef55390c1"
+    },
+    "supabase/migrations/20240208_recruiter_profiles.sql": {
+      "path": "supabase/migrations/20240208_recruiter_profiles.sql",
+      "contentHash": "20dc8f9423303e2750e3b78d61be5d75cdbfa38346a18add142180ac1162e26f"
+    },
+    "supabase/migrations/20240224_create_recruiter_templates.sql": {
+      "path": "supabase/migrations/20240224_create_recruiter_templates.sql",
+      "contentHash": "8fdeabb41cee7aa89f8dfc98cecd1034975df357c893062dc9e212b44509af3f"
+    },
+    "supabase/migrations/20260211_add_question_category.sql": {
+      "path": "supabase/migrations/20260211_add_question_category.sql",
+      "contentHash": "f74fb34741f741ed735999f6039addb7130024ffc40bdc06ea882893a620a5ff"
+    },
+    "supabase/migrations/20260216_add_session_lineage.sql": {
+      "path": "supabase/migrations/20260216_add_session_lineage.sql",
+      "contentHash": "a8060925bb3f70486185b580cc28ee0973fe392f4256f61893b645dc60638867"
+    },
+    "supabase/migrations/20260216_add_session_readiness.sql": {
+      "path": "supabase/migrations/20260216_add_session_readiness.sql",
+      "contentHash": "5bc868f96bbefc66c842b1b1895f97138c6dddb3451e23d8a5179a12fe2f2667"
+    },
+    "supabase/migrations/20260220_add_paused_status.sql": {
+      "path": "supabase/migrations/20260220_add_paused_status.sql",
+      "contentHash": "db2791d8546432cf65d7a032aeee9f1391a1945625ed67691d96f566ee8cb4c7"
+    },
+    "supabase/migrations/20260315_add_invitation_sent_at.sql": {
+      "path": "supabase/migrations/20260315_add_invitation_sent_at.sql",
+      "contentHash": "8d1333afb870d7af4c5b1d5572b47c208e53aaa0e5c1d163ceabbf1c398b4c52"
+    },
+    "supabase/migrations/20260317_add_api_idempotency_keys.sql": {
+      "path": "supabase/migrations/20260317_add_api_idempotency_keys.sql",
+      "contentHash": "fa37c9edbaeeea64227dcf3abba02f109d48fde53c0823ff856b1e1ca8e52f1a"
+    },
+    "supabase/migrations/20260317_add_atomic_engagement_increment.sql": {
+      "path": "supabase/migrations/20260317_add_atomic_engagement_increment.sql",
+      "contentHash": "0332128043ffd16c7df62666ef029c09c127976966f5d59c996f95b9e5a6ec17"
+    },
+    "supabase/migrations/20260325_add_metrics_rollups.sql": {
+      "path": "supabase/migrations/20260325_add_metrics_rollups.sql",
+      "contentHash": "1a4c84db00c1188a8f4618dae3b082cf09310811e5fb57b5bbc616c18aa00530"
+    },
+    "supabase/migrations/20260325_add_rate_limit_buckets.sql": {
+      "path": "supabase/migrations/20260325_add_rate_limit_buckets.sql",
+      "contentHash": "c286d92daf02c522aadc6e2be2034d7f6ee9c770f10ecc0c5e097109e8d76d95"
+    },
+    "supabase/migrations/20260326_add_atomic_invite_batch.sql": {
+      "path": "supabase/migrations/20260326_add_atomic_invite_batch.sql",
+      "contentHash": "7b19bed02cf86ad9bb35f29c6b4185cc8df20e4a38750757455882176b8c24ae"
+    },
+    "supabase/migrations/20260328_add_invite_batch_tracking.sql": {
+      "path": "supabase/migrations/20260328_add_invite_batch_tracking.sql",
+      "contentHash": "412dbd5b29aa772517ae73588614cbefb183ea8e3d4768e750b6de3c27dc4259"
+    },
+    "supabase/migrations/20260429_add_ai_generations.sql": {
+      "path": "supabase/migrations/20260429_add_ai_generations.sql",
+      "contentHash": "3d51a36d5a2172f9c9b39659ab3890c4e222aa2e60d7de4542a21452eb5b1b46"
+    },
+    "supabase/migrations/20260429_harden_ai_generations.sql": {
+      "path": "supabase/migrations/20260429_harden_ai_generations.sql",
+      "contentHash": "b207d5c6990321e791b22e5a718b93ab69259fdee0257165edb14949d8b2ffdf"
+    },
+    "supabase/migrations/20260503_add_ai_generation_summary_rpc.sql": {
+      "path": "supabase/migrations/20260503_add_ai_generation_summary_rpc.sql",
+      "contentHash": "a115241a626bf273c0267be5446a4a17e0f645c045696617587f050e13886f8e"
+    },
+    "supabase/schema.md": {
+      "path": "supabase/schema.md",
+      "contentHash": "6692d8d8bdae57762d79584eb12878e46a71f7d3b1cf9b8adaa67b72e1f679ab"
+    },
+    "supabase/schema.sql": {
+      "path": "supabase/schema.sql",
+      "contentHash": "81b3bea3c515e4d086d6b16d4d5cc9d6e31140a7d51f48ca57a882dc55b98860"
+    },
+    "supabase/updates.sql": {
+      "path": "supabase/updates.sql",
+      "contentHash": "e6a0b2543f9b51704073c3d71da7faa4303cad693367be59f5e01d9c7901d681"
+    },
+    "tailwind.config.ts": {
+      "path": "tailwind.config.ts",
+      "contentHash": "3cff12e7e92c591f0a6824e1d948a6a434e6b786c95f756abdbf104f3d08a428"
+    },
+    "test-results/.last-run.json": {
+      "path": "test-results/.last-run.json",
+      "contentHash": "d73c748bbd999a5ec3437ec97303e04ac1e89ce51cc1c336c1b9f179ffe82420"
+    },
+    "tsconfig.json": {
+      "path": "tsconfig.json",
+      "contentHash": "e87f397a8bde2792342d24c5503f724be3e01423754f03fe25b895d8fec2eaae"
+    },
+    "vitest.config.ts": {
+      "path": "vitest.config.ts",
+      "contentHash": "d67b32ebb6013b7401121904c943cff0531dd3ad4a70a3055fcb6d82b63f6bac"
+    }
+  }
+}

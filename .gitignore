@@ -61,4 +61,9 @@ openspec
 tours.md
 AI-eval/
 
+# Understand-Anything local scratch
+.understand-anything/intermediate/
+.understand-anything/tmp/
+.understand-anything/diff-overlay.json
+
 
