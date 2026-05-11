@@ -8,3 +8,11 @@ export {
     type CandidateWorkspace,
     type ResolveCandidateProfileInput,
 } from "./candidate-profile-repository";
+export {
+    getCandidateAuthMode,
+    getCandidateDataBackend,
+    getCandidateRuntimeConfig,
+    type CandidateAuthMode,
+    type CandidateDataBackend,
+    type CandidateRuntimeConfig,
+} from "./candidate-runtime-config";

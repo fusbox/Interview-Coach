@@ -192,9 +192,9 @@ Ground truth:
 
 | ID | Azure ID | Level | State | Assigned To | Item | Acceptance Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| DATA-F01 | 685 | Feature | New | Fu Chen <fu@rangam.com> | Postgres client and config foundation | Server-only DB client supports `DATABASE_URL` and split `POSTGRES_*` env values |
-| DATA-S01 | 686 | Story | New | Fu Chen <fu@rangam.com> | Port Postgres config/client patterns from migrated recruiter app | Config parsing and query wrapper tests pass |
-| DATA-T01 | 687 | Task | New | Fu Chen <fu@rangam.com> | Add env validation for candidate backend selectors | Invalid production backend values fail clearly |
+| DATA-F01 | 685 | Feature | Active | Fu Chen <fu@rangam.com> | Postgres client and config foundation | Server-only DB client supports `DATABASE_URL` and split `POSTGRES_*` env values |
+| DATA-S01 | 686 | Story | Resolved | Fu Chen <fu@rangam.com> | Port Postgres config/client patterns from migrated recruiter app | Config parsing and query wrapper tests pass |
+| DATA-T01 | 687 | Task | Resolved | Fu Chen <fu@rangam.com> | Add env validation for candidate backend selectors | Invalid production backend values fail clearly |
 | DATA-F02 | 688 | Feature | Active | Fu Chen <fu@rangam.com> | Candidate repository layer | Candidate profiles, drafts, sessions, resumes, and dashboard reads use repository boundaries |
 | DATA-S02 | 689 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate profile repository | Create/read/update behavior is tested |
 | DATA-S03 | 690 | Story | New | Fu Chen <fu@rangam.com> | Add draft/session repository boundaries | Candidate-owned drafts and sessions are persisted through server code |
@@ -400,13 +400,14 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 13 | Resolved | WEB-S05 | 754 | Fu Chen <fu@rangam.com> | Add shared-host route collision tests | Public CTA, login-start, middleware, and route ownership tests pass |
 | 14 | Resolved | DATA-S05 | 693 | Fu Chen <fu@rangam.com> | Add candidate DB migration | Candidate profile/identity migration and smoke validation pass |
 | 15 | Resolved | DATA-S02 | 689 | Fu Chen <fu@rangam.com> | Add candidate profile repository | Provider identity lookup and resolve/create tests pass |
-| 16 | New | DATA-S01 | 686 | Fu Chen <fu@rangam.com> | Add Postgres config/client | Unit tests pass |
-| 17 | New | AUTH-S01 | 676 | Fu Chen <fu@rangam.com> | Add candidate profile/identity migration | Migration applies locally |
-| 18 | New | AUTH-S03 | 680 | Fu Chen <fu@rangam.com> | Add dev auth and mock mode | Protected routes resolve local candidate context |
-| 19 | New | DRFT-S01 | 697 | Fu Chen <fu@rangam.com> | Extract practice setup feature slice | Route delegates to feature |
-| 20 | New | DRFT-S03 | 701 | Fu Chen <fu@rangam.com> | Add server-backed draft lifecycle | Draft repository tests pass |
-| 21 | New | SESS-S02 | 712 | Fu Chen <fu@rangam.com> | Add candidate session creation service | Draft creates owned session |
-| 22 | New | DASH-S01 | 732 | Fu Chen <fu@rangam.com> | Define dashboard query contract | Empty/active/completed/forbidden states are represented |
+| 16 | Resolved | DATA-S01 | 686 | Fu Chen <fu@rangam.com> | Add Postgres config/client | Existing migrated Postgres config/client tests pass |
+| 17 | Resolved | DATA-T01 | 687 | Fu Chen <fu@rangam.com> | Add candidate backend selector validation | Candidate data backend and auth mode guardrail tests pass |
+| 18 | New | AUTH-S01 | 676 | Fu Chen <fu@rangam.com> | Add candidate profile/identity migration | Migration applies locally |
+| 19 | New | AUTH-S03 | 680 | Fu Chen <fu@rangam.com> | Add dev auth and mock mode | Protected routes resolve local candidate context |
+| 20 | New | DRFT-S01 | 697 | Fu Chen <fu@rangam.com> | Extract practice setup feature slice | Route delegates to feature |
+| 21 | New | DRFT-S03 | 701 | Fu Chen <fu@rangam.com> | Add server-backed draft lifecycle | Draft repository tests pass |
+| 22 | New | SESS-S02 | 712 | Fu Chen <fu@rangam.com> | Add candidate session creation service | Draft creates owned session |
+| 23 | New | DASH-S01 | 732 | Fu Chen <fu@rangam.com> | Define dashboard query contract | Empty/active/completed/forbidden states are represented |
 
 ## Open Questions
 

@@ -127,8 +127,16 @@ Current repository boundary:
 
 - [Candidate profile repository](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-profile-repository.ts)
 - [Candidate profile repository tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-profile-repository.test.ts)
+- [Candidate runtime config](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-runtime-config.ts)
+- [Candidate runtime config tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-runtime-config.test.ts)
 
 The first repository resolves or creates candidate profiles from provider identity handoffs and maps provider identities to a `CandidateProfileAccessRecord` for future auth and route-guard code.
+
+Candidate runtime config currently enforces:
+
+- `CANDIDATE_DATA_BACKEND=postgres` only
+- `CANDIDATE_AUTH_MODE=external`, `password`, or `mock`
+- `password` and `mock` auth modes are local/test only and fail closed in production
 
 ## Migration Rule
 
@@ -156,6 +164,13 @@ Supported fallback if useful:
 - `POSTGRES_PASSWORD`
 - `POSTGRES_DB`
 - `POSTGRES_SSL_MODE`
+
+Candidate-specific selectors:
+
+- `CANDIDATE_DATA_BACKEND=postgres`
+- `CANDIDATE_AUTH_MODE=external`
+- `CANDIDATE_AUTH_MODE=password` for local password-backed dev auth
+- `CANDIDATE_AUTH_MODE=mock` for explicit local/test mock candidate mode
 
 Production should use a least-privilege app user, not an admin or generic `postgres` user.
 
