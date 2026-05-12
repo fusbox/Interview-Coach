@@ -137,6 +137,7 @@ Create saved shared queries:
 
 - `Candidate - Active Work`
 - `Candidate - Blocked / Needs Team Answer`
+- `Candidate - Integration Team Questions`
 - `Candidate - Auth Handoff`
 - `Candidate - Shared Host Routing`
 - `Candidate - PR Ready / Review Needed`
@@ -145,6 +146,367 @@ Create saved shared queries:
 - `Candidate - Bugs`
 
 These are more useful than a perfect board hierarchy if the team is still learning the process.
+
+Create these under **Shared Queries / Candidate Integration** so dashboard widgets and teammates can find the same set.
+
+Default columns for every query:
+
+```text
+ID
+Work Item Type
+Title
+State
+Assigned To
+Tags
+Area Path
+Iteration Path
+Changed Date
+```
+
+Default sort:
+
+```text
+State ASC
+Changed Date DESC
+ID ASC
+```
+
+Use the Query Editor UI where possible. The WIQL below is written as a precise reference for the same filters.
+
+### Candidate - Active Work
+
+Purpose: show the work currently moving or needing near-term attention.
+
+Query type: Flat list of work items.
+
+Filter:
+
+```wiql
+SELECT
+    [System.Id],
+    [System.WorkItemType],
+    [System.Title],
+    [System.State],
+    [System.AssignedTo],
+    [System.Tags],
+    [System.AreaPath],
+    [System.IterationPath],
+    [System.ChangedDate]
+FROM WorkItems
+WHERE
+    [System.TeamProject] = @project
+    AND [System.AreaPath] UNDER 'Interview-Coach-Candidate\Candidate'
+    AND [System.State] IN ('Active', 'New')
+    AND [System.WorkItemType] <> 'Task'
+ORDER BY
+    [System.State],
+    [System.ChangedDate] DESC,
+    [System.Id]
+```
+
+Notes:
+
+- Excluding tasks keeps the dashboard widget readable.
+- If a task is the actual visible blocker, tag it `blocked` and it will appear in the blocked query below.
+
+### Candidate - Blocked / Needs Team Answer
+
+Purpose: surface blocked work and external decisions the integration/deployment team needs to answer.
+
+Query type: Flat list of work items.
+
+Filter:
+
+```wiql
+SELECT
+    [System.Id],
+    [System.WorkItemType],
+    [System.Title],
+    [System.State],
+    [System.AssignedTo],
+    [System.Tags],
+    [System.AreaPath],
+    [System.IterationPath],
+    [System.ChangedDate]
+FROM WorkItems
+WHERE
+    [System.TeamProject] = @project
+    AND [System.AreaPath] UNDER 'Interview-Coach-Candidate'
+    AND [System.State] NOT IN ('Closed', 'Removed')
+    AND (
+        [System.Tags] CONTAINS 'blocked'
+        OR [System.Tags] CONTAINS 'integration-team-needed'
+        OR [System.AssignedTo] = 'Himanshu Sagar <himanshusagar@rangam.com>'
+    )
+ORDER BY
+    [System.ChangedDate] DESC,
+    [System.Id]
+```
+
+Notes:
+
+- This query intentionally includes all candidate-project area paths because integration blockers may sit under Candidate, Shared Platform, Integration, or Recruiter.
+- Keep assignment to Himanshu only for items truly owned by the integration/deployment path; otherwise rely on tags.
+
+### Candidate - Integration Team Questions
+
+Purpose: keep unresolved external contracts visible without mixing them into all blocked work.
+
+Query type: Flat list of work items.
+
+Filter:
+
+```wiql
+SELECT
+    [System.Id],
+    [System.WorkItemType],
+    [System.Title],
+    [System.State],
+    [System.AssignedTo],
+    [System.Tags],
+    [System.AreaPath],
+    [System.IterationPath],
+    [System.ChangedDate]
+FROM WorkItems
+WHERE
+    [System.TeamProject] = @project
+    AND [System.AreaPath] UNDER 'Interview-Coach-Candidate'
+    AND [System.State] NOT IN ('Resolved', 'Closed', 'Removed')
+    AND (
+        [System.Tags] CONTAINS 'integration-team-needed'
+        OR [System.Title] CONTAINS 'Confirm'
+        OR [System.Title] CONTAINS 'handoff'
+        OR [System.Title] CONTAINS 'return'
+    )
+ORDER BY
+    [System.ChangedDate] DESC,
+    [System.Id]
+```
+
+Notes:
+
+- Use this for the dashboard's integration-team questions widget.
+- Prefer tagging the item `integration-team-needed`; the title clauses are a fallback for older items.
+
+### Candidate - Auth Handoff
+
+Purpose: focus the SSO, TalentArbor login, local-dev auth, and identity handoff workstream.
+
+Query type: Flat list of work items.
+
+Filter:
+
+```wiql
+SELECT
+    [System.Id],
+    [System.WorkItemType],
+    [System.Title],
+    [System.State],
+    [System.AssignedTo],
+    [System.Tags],
+    [System.AreaPath],
+    [System.IterationPath],
+    [System.ChangedDate]
+FROM WorkItems
+WHERE
+    [System.TeamProject] = @project
+    AND [System.AreaPath] UNDER 'Interview-Coach-Candidate'
+    AND [System.State] NOT IN ('Closed', 'Removed')
+    AND (
+        [System.Tags] CONTAINS 'auth-handoff'
+        OR [System.Title] CONTAINS 'auth'
+        OR [System.Title] CONTAINS 'login'
+        OR [System.Title] CONTAINS 'identity'
+        OR [System.Title] CONTAINS 'SSO'
+    )
+ORDER BY
+    [System.State],
+    [System.ChangedDate] DESC,
+    [System.Id]
+```
+
+### Candidate - Shared Host Routing
+
+Purpose: track the route contract for `interviewcoach.talentarbor.com`, including `/`, `/recruiter`, candidate top-level routes, admin, and QA.
+
+Query type: Flat list of work items.
+
+Filter:
+
+```wiql
+SELECT
+    [System.Id],
+    [System.WorkItemType],
+    [System.Title],
+    [System.State],
+    [System.AssignedTo],
+    [System.Tags],
+    [System.AreaPath],
+    [System.IterationPath],
+    [System.ChangedDate]
+FROM WorkItems
+WHERE
+    [System.TeamProject] = @project
+    AND [System.AreaPath] UNDER 'Interview-Coach-Candidate'
+    AND [System.State] NOT IN ('Closed', 'Removed')
+    AND (
+        [System.Tags] CONTAINS 'shared-host-routing'
+        OR [System.Title] CONTAINS 'shared host'
+        OR [System.Title] CONTAINS 'route'
+        OR [System.Title] CONTAINS '/recruiter'
+    )
+ORDER BY
+    [System.State],
+    [System.ChangedDate] DESC,
+    [System.Id]
+```
+
+### Candidate - PR Ready / Review Needed
+
+Purpose: show work that has implementation evidence and is ready for review, plus documentation/reviewer handoff items.
+
+Query type: Flat list of work items.
+
+Filter:
+
+```wiql
+SELECT
+    [System.Id],
+    [System.WorkItemType],
+    [System.Title],
+    [System.State],
+    [System.AssignedTo],
+    [System.Tags],
+    [System.AreaPath],
+    [System.IterationPath],
+    [System.ChangedDate]
+FROM WorkItems
+WHERE
+    [System.TeamProject] = @project
+    AND [System.AreaPath] UNDER 'Interview-Coach-Candidate'
+    AND [System.State] IN ('Active', 'Resolved')
+    AND (
+        [System.Tags] CONTAINS 'docs-ready'
+        OR [System.Title] CONTAINS 'review'
+        OR [System.Title] CONTAINS 'PR'
+        OR [System.Title] CONTAINS 'policy'
+    )
+ORDER BY
+    [System.State],
+    [System.ChangedDate] DESC,
+    [System.Id]
+```
+
+Notes:
+
+- Use `Resolved` for stories/features that are implemented and waiting for acceptance or PR review.
+- Use `Closed` only after acceptance/review is complete.
+
+### Candidate - Security Privacy Risks
+
+Purpose: keep security, privacy, resume-data, redirect, and ownership-review items visible.
+
+Query type: Flat list of work items.
+
+Filter:
+
+```wiql
+SELECT
+    [System.Id],
+    [System.WorkItemType],
+    [System.Title],
+    [System.State],
+    [System.AssignedTo],
+    [System.Tags],
+    [System.AreaPath],
+    [System.IterationPath],
+    [System.ChangedDate]
+FROM WorkItems
+WHERE
+    [System.TeamProject] = @project
+    AND [System.AreaPath] UNDER 'Interview-Coach-Candidate'
+    AND [System.State] NOT IN ('Closed', 'Removed')
+    AND (
+        [System.Tags] CONTAINS 'security'
+        OR [System.Tags] CONTAINS 'resume-data'
+        OR [System.Title] CONTAINS 'privacy'
+        OR [System.Title] CONTAINS 'security'
+        OR [System.Title] CONTAINS 'redirect'
+        OR [System.Title] CONTAINS 'ownership'
+    )
+ORDER BY
+    [System.State],
+    [System.ChangedDate] DESC,
+    [System.Id]
+```
+
+### Candidate - Docs Needing Review
+
+Purpose: identify docs and handoff items that need reviewer or team validation.
+
+Query type: Flat list of work items.
+
+Filter:
+
+```wiql
+SELECT
+    [System.Id],
+    [System.WorkItemType],
+    [System.Title],
+    [System.State],
+    [System.AssignedTo],
+    [System.Tags],
+    [System.AreaPath],
+    [System.IterationPath],
+    [System.ChangedDate]
+FROM WorkItems
+WHERE
+    [System.TeamProject] = @project
+    AND [System.AreaPath] UNDER 'Interview-Coach-Candidate'
+    AND [System.State] NOT IN ('Closed', 'Removed')
+    AND (
+        [System.Tags] CONTAINS 'docs-ready'
+        OR [System.Title] CONTAINS 'doc'
+        OR [System.Title] CONTAINS 'wiki'
+        OR [System.Title] CONTAINS 'runbook'
+        OR [System.Title] CONTAINS 'checklist'
+    )
+ORDER BY
+    [System.State],
+    [System.ChangedDate] DESC,
+    [System.Id]
+```
+
+### Candidate - Bugs
+
+Purpose: keep defects separate from planned backlog work.
+
+Query type: Flat list of work items.
+
+Filter:
+
+```wiql
+SELECT
+    [System.Id],
+    [System.WorkItemType],
+    [System.Title],
+    [System.State],
+    [System.AssignedTo],
+    [System.Tags],
+    [System.AreaPath],
+    [System.IterationPath],
+    [System.ChangedDate]
+FROM WorkItems
+WHERE
+    [System.TeamProject] = @project
+    AND [System.AreaPath] UNDER 'Interview-Coach-Candidate'
+    AND [System.WorkItemType] = 'Bug'
+    AND [System.State] NOT IN ('Closed', 'Removed')
+ORDER BY
+    [System.State],
+    [System.ChangedDate] DESC,
+    [System.Id]
+```
 
 ## Dashboard Strategy
 
