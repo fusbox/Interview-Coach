@@ -114,8 +114,12 @@ Current implementation boundary:
 
 - [Candidate practice draft repository](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.ts)
 - [Candidate practice draft repository tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.test.ts)
+- [Candidate resume extraction service](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-resume-extraction-service.ts)
+- [Candidate resume extraction service tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-resume-extraction-service.test.ts)
 
 The first upload slice does not extract text yet. It can attach pending upload metadata to an editable candidate-owned draft with `captureMode = "file_upload"`, `processedArtifact = null`, and one `sourceAssets` entry. Storage paths must be private relative paths under `candidate-resume-uploads/`; public URLs, protocol-relative paths, query strings, fragments, backslashes, and parent traversal are rejected before any draft metadata is written.
+
+The first extraction slice is parser-agnostic. A PDF/DOCX parser adapter can provide extracted text to `extractResumeUploadForCandidateDraft`; the service normalizes extracted text, writes it back to the candidate-owned draft, creates a `processedArtifact` with `source = "file_upload"`, and marks the source asset `retention = "original_deleted"`. Parser failures are collapsed to safe reason codes such as `EXTRACTION_FAILED`, `EMPTY_EXTRACTION`, or `UNREADABLE_DOCUMENT`; raw parser messages, file paths, and resume content are not persisted in draft metadata.
 
 ### Photo Capture
 
@@ -142,7 +146,7 @@ Later implementation path:
 - each resume source has metadata sufficient for support and debugging
 - original uploaded files are not required by downstream coach logic
 - candidate ownership is checked before reading any resume asset
-- failed extraction leaves a recoverable draft state
+- failed extraction leaves a recoverable draft state with a safe failure code only
 
 ## Open Questions
 

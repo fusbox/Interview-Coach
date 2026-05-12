@@ -58,16 +58,16 @@ Recommended process:
 
 - Agile is sufficient at this stage.
 - Area Paths:
-  - `Interview Coach\Candidate`
-  - `Interview Coach\Recruiter`
-  - `Interview Coach\Shared Platform`
-  - `Interview Coach\Integration`
+  - `Interview-Coach-Candidate\Candidate`
+  - `Interview-Coach-Candidate\Recruiter`
+  - `Interview-Coach-Candidate\Shared Platform`
+  - `Interview-Coach-Candidate\Integration`
 - Iterations:
-  - `Candidate Discovery`
-  - `Candidate MVP Shell`
-  - `Candidate Auth Handoff`
-  - `Candidate Practice MVP`
-  - `Candidate Dashboard MVP`
+  - `Interview-Coach-Candidate\Candidate Discovery`
+  - `Interview-Coach-Candidate\Candidate MVP Shell`
+  - `Interview-Coach-Candidate\Candidate Auth Handoff`
+  - `Interview-Coach-Candidate\Candidate Practice MVP`
+  - `Interview-Coach-Candidate\Candidate Dashboard MVP`
 
 Use the hierarchy:
 

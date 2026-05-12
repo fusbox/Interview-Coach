@@ -35,8 +35,9 @@ export type ResumeSourceAsset = {
     mimeType: "application/pdf" | "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
     byteSize: number;
     storagePath: string;
-    status: "pending_extraction";
-    retention: "processing_only";
+    status: "pending_extraction" | "extracted" | "extraction_failed";
+    retention: "processing_only" | "original_deleted";
+    failureCode?: string;
 };
 
 export type ProcessedResumeArtifact = {
@@ -94,6 +95,16 @@ export type AttachPendingResumeUploadToCandidatePracticeDraftInput = CandidatePr
     mimeType: ResumeSourceAsset["mimeType"];
     byteSize: number;
     storagePath: string;
+};
+
+export type CompleteResumeUploadExtractionForCandidatePracticeDraftInput = CandidatePracticeDraftLookup & {
+    assetId: string;
+    extractedText: string;
+};
+
+export type MarkResumeUploadExtractionFailedForCandidatePracticeDraftInput = CandidatePracticeDraftLookup & {
+    assetId: string;
+    errorCode: string;
 };
 
 export type AttachGeneratedSessionToCandidatePracticeDraftInput = CandidatePracticeDraftLookup & {
@@ -265,6 +276,120 @@ export async function attachPendingResumeUploadToCandidatePracticeDraft(
             returning ${draftSelect}
         `,
         [practiceDraftId, candidateProfileId, resumeContext],
+    );
+
+    return result.rows[0] ? mapCandidatePracticeDraftRow(result.rows[0]) : null;
+}
+
+export async function completeResumeUploadExtractionForCandidatePracticeDraft(
+    input: CompleteResumeUploadExtractionForCandidatePracticeDraftInput,
+): Promise<CandidatePracticeDraft | null> {
+    const practiceDraftId = normalizeId(input.practiceDraftId, "Practice draft ID");
+    const candidateProfileId = normalizeId(input.candidateProfileId, "Candidate profile ID");
+    const assetId = normalizeId(input.assetId, "Resume asset ID");
+    const extractedText = normalizeRequiredResumeExtractionText(input.extractedText);
+    const processedArtifact: ProcessedResumeArtifact = {
+        text: extractedText,
+        source: "file_upload",
+        originalRetained: false,
+    };
+
+    const result = await queryPostgres<CandidatePracticeDraftRow>(
+        `
+            update public.candidate_practice_drafts
+            set
+                resume_context_json = jsonb_set(
+                    jsonb_set(
+                        jsonb_set(
+                            resume_context_json,
+                            '{extractedText}',
+                            to_jsonb($4::text),
+                            true
+                        ),
+                        '{processedArtifact}',
+                        to_jsonb($5::jsonb),
+                        true
+                    ),
+                    '{sourceAssets}',
+                    (
+                        select coalesce(jsonb_agg(
+                            case
+                                when asset->>'assetId' = $3 then
+                                    asset
+                                    || jsonb_build_object('status', 'extracted', 'retention', 'original_deleted')
+                                    - 'failureCode'
+                                else asset
+                            end
+                            order by ordinality
+                        ), '[]'::jsonb)
+                        from jsonb_array_elements(coalesce(resume_context_json->'sourceAssets', '[]'::jsonb)) with ordinality as source(asset, ordinality)
+                    ),
+                    true
+                ),
+                resume_target_screen = 'practice_setup',
+                last_activity_at = now()
+            where practice_draft_id = $1
+                and candidate_profile_id = $2
+                and status = 'draft'
+                and exists (
+                    select 1
+                    from jsonb_array_elements(coalesce(resume_context_json->'sourceAssets', '[]'::jsonb)) as source(asset)
+                    where asset->>'assetId' = $3
+                )
+            returning ${draftSelect}
+        `,
+        [practiceDraftId, candidateProfileId, assetId, extractedText, processedArtifact],
+    );
+
+    return result.rows[0] ? mapCandidatePracticeDraftRow(result.rows[0]) : null;
+}
+
+export async function markResumeUploadExtractionFailedForCandidatePracticeDraft(
+    input: MarkResumeUploadExtractionFailedForCandidatePracticeDraftInput,
+): Promise<CandidatePracticeDraft | null> {
+    const practiceDraftId = normalizeId(input.practiceDraftId, "Practice draft ID");
+    const candidateProfileId = normalizeId(input.candidateProfileId, "Candidate profile ID");
+    const assetId = normalizeId(input.assetId, "Resume asset ID");
+    const failureCode = normalizeExtractionFailureCode(input.errorCode);
+
+    const result = await queryPostgres<CandidatePracticeDraftRow>(
+        `
+            update public.candidate_practice_drafts
+            set
+                resume_context_json = jsonb_set(
+                    resume_context_json,
+                    '{sourceAssets}',
+                    (
+                        select coalesce(jsonb_agg(
+                            case
+                                when asset->>'assetId' = $3 then
+                                    asset
+                                    || jsonb_build_object(
+                                        'status', 'extraction_failed',
+                                        'retention', 'processing_only',
+                                        'failureCode', $4
+                                    )
+                                else asset
+                            end
+                            order by ordinality
+                        ), '[]'::jsonb)
+                        from jsonb_array_elements(coalesce(resume_context_json->'sourceAssets', '[]'::jsonb)) with ordinality as source(asset, ordinality)
+                    ),
+                    true
+                ),
+                resume_target_screen = 'practice_setup',
+                last_activity_at = now()
+            where practice_draft_id = $1
+                and candidate_profile_id = $2
+                and status = 'draft'
+                and exists (
+                    select 1
+                    from jsonb_array_elements(coalesce(resume_context_json->'sourceAssets', '[]'::jsonb)) as source(asset)
+                    where asset->>'assetId' = $3
+                )
+            returning ${draftSelect}
+        `,
+        [practiceDraftId, candidateProfileId, assetId, failureCode],
     );
 
     return result.rows[0] ? mapCandidatePracticeDraftRow(result.rows[0]) : null;
@@ -442,6 +567,36 @@ function normalizeByteSize(value: number): number {
     return value;
 }
 
+function normalizeRequiredResumeExtractionText(value: string): string {
+    const normalizedText = normalizeResumeText(value);
+    if (!normalizedText) {
+        throw new Error("Extracted resume text is required.");
+    }
+    return normalizedText;
+}
+
+function normalizeExtractionFailureCode(value: string): string {
+    const normalized = value
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+
+    if (normalized.includes("UNREADABLE")) {
+        return "UNREADABLE_DOCUMENT";
+    }
+
+    if (normalized.includes("UNSUPPORTED")) {
+        return "UNSUPPORTED_DOCUMENT";
+    }
+
+    if (normalized.includes("EMPTY")) {
+        return "EMPTY_EXTRACTION";
+    }
+
+    return normalized || "EXTRACTION_FAILED";
+}
+
 function normalizeResumeMimeType(value: string): ResumeSourceAsset["mimeType"] {
     if (
         value !== "application/pdf" &&
@@ -523,7 +678,7 @@ function normalizeSourceAssets(value: unknown): ResumeSourceAsset[] {
         }
 
         try {
-            return [normalizePendingResumeUpload({
+            const normalizedAsset = normalizePendingResumeUpload({
                 candidateProfileId: "normalization-only",
                 practiceDraftId: "normalization-only",
                 assetId: asset.assetId,
@@ -531,11 +686,33 @@ function normalizeSourceAssets(value: unknown): ResumeSourceAsset[] {
                 mimeType: asset.mimeType,
                 byteSize: asset.byteSize,
                 storagePath: asset.storagePath,
-            })];
+            });
+            return [{
+                ...normalizedAsset,
+                status: normalizeSourceAssetStatus(asset.status),
+                retention: normalizeSourceAssetRetention(asset.retention),
+                ...(typeof asset.failureCode === "string" ? { failureCode: normalizeExtractionFailureCode(asset.failureCode) } : {}),
+            }];
         } catch {
             return [];
         }
     });
+}
+
+function normalizeSourceAssetStatus(value: unknown): ResumeSourceAsset["status"] {
+    if (value === "extracted" || value === "extraction_failed") {
+        return value;
+    }
+
+    return "pending_extraction";
+}
+
+function normalizeSourceAssetRetention(value: unknown): ResumeSourceAsset["retention"] {
+    if (value === "original_deleted") {
+        return "original_deleted";
+    }
+
+    return "processing_only";
 }
 
 function normalizeProcessedArtifact(

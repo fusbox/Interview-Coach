@@ -285,6 +285,131 @@ describe("candidate practice draft repository", () => {
         expect(queryPostgresMock).not.toHaveBeenCalled();
     });
 
+    it("completes file upload extraction into normalized processed resume context", async () => {
+        queryPostgresMock.mockResolvedValue({
+            rows: [practiceDraftRow({
+                practice_draft_id: "draft-upload",
+                candidate_profile_id: "profile-upload",
+                target_role: "Data analyst",
+                resume_context_json: {
+                    pastedText: null,
+                    extractedText: "Built weekly forecast dashboards.",
+                    captureMode: "file_upload",
+                    sourceAssets: [{
+                        assetId: "asset-1",
+                        kind: "file",
+                        fileName: "resume.pdf",
+                        mimeType: "application/pdf",
+                        byteSize: 240_000,
+                        storagePath: "candidate-resume-uploads/asset-1/resume.pdf",
+                        status: "extracted",
+                        retention: "original_deleted",
+                    }],
+                    processedArtifact: {
+                        text: "Built weekly forecast dashboards.",
+                        source: "file_upload",
+                        originalRetained: false,
+                    },
+                },
+            })],
+        });
+
+        const { completeResumeUploadExtractionForCandidatePracticeDraft } = await import("./candidate-practice-draft-repository");
+
+        await expect(completeResumeUploadExtractionForCandidatePracticeDraft({
+            candidateProfileId: "profile-upload",
+            practiceDraftId: "draft-upload",
+            assetId: "asset-1",
+            extractedText: " Built\tweekly forecast dashboards. ",
+        })).resolves.toMatchObject({
+            practiceDraftId: "draft-upload",
+            resumeContext: {
+                pastedText: null,
+                extractedText: "Built weekly forecast dashboards.",
+                captureMode: "file_upload",
+                sourceAssets: [{
+                    assetId: "asset-1",
+                    status: "extracted",
+                    retention: "original_deleted",
+                }],
+                processedArtifact: {
+                    text: "Built weekly forecast dashboards.",
+                    source: "file_upload",
+                    originalRetained: false,
+                },
+            },
+        });
+
+        expect(queryPostgresMock).toHaveBeenCalledWith(
+            expect.stringContaining("resume_context_json = jsonb_set"),
+            [
+                "draft-upload",
+                "profile-upload",
+                "asset-1",
+                "Built weekly forecast dashboards.",
+                expect.objectContaining({
+                    text: "Built weekly forecast dashboards.",
+                    source: "file_upload",
+                    originalRetained: false,
+                }),
+            ],
+        );
+        expect(queryPostgresMock.mock.calls[0][0]).toContain("candidate_profile_id = $2");
+        expect(queryPostgresMock.mock.calls[0][0]).toContain("status = 'draft'");
+        expect(queryPostgresMock.mock.calls[0][0]).not.toContain("storage_path");
+    });
+
+    it("marks file upload extraction failures with a safe reason code only", async () => {
+        queryPostgresMock.mockResolvedValue({
+            rows: [practiceDraftRow({
+                practice_draft_id: "draft-upload",
+                candidate_profile_id: "profile-upload",
+                resume_context_json: {
+                    pastedText: null,
+                    extractedText: "",
+                    captureMode: "file_upload",
+                    sourceAssets: [{
+                        assetId: "asset-1",
+                        kind: "file",
+                        fileName: "resume.pdf",
+                        mimeType: "application/pdf",
+                        byteSize: 240_000,
+                        storagePath: "candidate-resume-uploads/asset-1/resume.pdf",
+                        status: "extraction_failed",
+                        retention: "processing_only",
+                        failureCode: "UNREADABLE_DOCUMENT",
+                    }],
+                    processedArtifact: null,
+                },
+            })],
+        });
+
+        const { markResumeUploadExtractionFailedForCandidatePracticeDraft } = await import("./candidate-practice-draft-repository");
+
+        await expect(markResumeUploadExtractionFailedForCandidatePracticeDraft({
+            candidateProfileId: "profile-upload",
+            practiceDraftId: "draft-upload",
+            assetId: "asset-1",
+            errorCode: " unreadable document: C:\\Users\\fusbo\\resume.pdf contains raw text ",
+        })).resolves.toMatchObject({
+            resumeContext: {
+                sourceAssets: [{
+                    assetId: "asset-1",
+                    status: "extraction_failed",
+                    retention: "processing_only",
+                    failureCode: "UNREADABLE_DOCUMENT",
+                }],
+                processedArtifact: null,
+            },
+        });
+
+        expect(queryPostgresMock).toHaveBeenCalledWith(
+            expect.stringContaining("failureCode"),
+            ["draft-upload", "profile-upload", "asset-1", "UNREADABLE_DOCUMENT"],
+        );
+        expect(queryPostgresMock.mock.calls[0][1]).not.toContain("C:\\Users\\fusbo\\resume.pdf");
+    });
+
     it("normalizes legacy resume context into a processed artifact without raw-file retention", async () => {
         queryPostgresMock.mockResolvedValue({
             rows: [practiceDraftRow({

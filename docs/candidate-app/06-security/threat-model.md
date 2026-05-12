@@ -101,6 +101,7 @@ Mitigations:
 - enforce file type and size limits
 - scan or validate files before extraction if platform tooling supports it
 - process uploads server-side
+- collapse parser errors to safe reason codes; never persist raw parser messages, local file paths, storage URLs, or resume content as failure details
 - store originals privately
 - fail safely with recoverable draft state
 
@@ -136,6 +137,7 @@ Mitigations:
 - no Supabase runtime secrets or clients
 - no public blob access for candidate files
 - no public upload URLs or unsafe storage paths persisted in candidate draft metadata
+- no raw parser errors persisted in candidate draft metadata
 - no raw session token storage
 - no cross-candidate data access
 - no production mock auth

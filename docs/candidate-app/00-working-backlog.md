@@ -285,8 +285,8 @@ Ground truth:
 | RES-S02 | 721 | Story | Resolved | Fu Chen <fu@rangam.com> | Store processed resume artifact only | Processed text/metadata persists without raw file retention by default |
 | RES-F02 | 722 | Feature | Active | Fu Chen <fu@rangam.com> | Resume upload extraction boundary | Uploaded PDF/DOCX files produce extracted text or recoverable errors |
 | RES-S03 | 723 | Story | Resolved | Fu Chen <fu@rangam.com> | Add private file upload boundary | Pending upload metadata stores only private relative storage paths and processing-only retention |
-| RES-S04 | 724 | Story | New | Fu Chen <fu@rangam.com> | Add PDF/DOCX extraction path | Extracted text flows into normalized context |
-| RES-T01 | 725 | Task | New | Fu Chen <fu@rangam.com> | Delete original file after successful extraction by default | Retention policy is enforced and tested |
+| RES-S04 | 724 | Story | Resolved | Fu Chen <fu@rangam.com> | Add PDF/DOCX extraction path | Extracted text flows into normalized context through a parser-agnostic service boundary |
+| RES-T01 | 725 | Task | Closed | Fu Chen <fu@rangam.com> | Delete original file after successful extraction by default | Successful extraction marks source asset retention as `original_deleted` |
 | RES-F03 | 726 | Feature | New | Fu Chen <fu@rangam.com> | Resume photo/OCR capture | Multi-page image capture produces ordered extracted text |
 | RES-S05 | 727 | Story | New | Fu Chen <fu@rangam.com> | Add photo/OCR capture path | Page order is preserved and merged text is normalized |
 | RES-F04 | 728 | Feature | New | Fu Chen <fu@rangam.com> | Candidate intake profile | Candidate personalization data can tune practice and coaching |
@@ -344,7 +344,7 @@ Ground truth:
 | QSO-S05 | 745 | Story | New | Fu Chen <fu@rangam.com> | Add incident runbook | Runbook covers auth, DB, AI provider, resume extraction, and deployment incidents |
 | QSO-F03 | 746 | Feature | Active | Fu Chen <fu@rangam.com> | Security and privacy review | Candidate data, redirects, resume ingestion, and ownership checks are reviewed |
 | QSO-S06 | 747 | Story | Resolved | Fu Chen <fu@rangam.com> | Review login redirect security | Open redirects, state tampering, and unsafe return targets are mitigated |
-| QSO-S07 | 748 | Story | New | Fu Chen <fu@rangam.com> | Review resume data privacy | Retention, logging, and extraction failure paths avoid sensitive-data leaks |
+| QSO-S07 | 748 | Story | Resolved | Fu Chen <fu@rangam.com> | Review resume data privacy | Retention, logging, and extraction failure paths avoid sensitive-data leaks |
 
 ### EPIC-10 Azure DevOps Collaboration And Delivery
 
@@ -430,8 +430,10 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 42 | Resolved | AUTH-S05 | 682 | Fu Chen <fu@rangam.com> | Add negative ownership behavior | Candidate draft/session/summary/dashboard misses return not-found style behavior without data leak |
 | 43 | Resolved | RES-S03 | 723 | Fu Chen <fu@rangam.com> | Add private file upload boundary | Pending upload metadata stores only private relative storage paths and processing-only retention |
 | 44 | Resolved | QSO-S06 | 747 | Fu Chen <fu@rangam.com> | Review login redirect security | Login-start and callback paths use allowlisted candidate return targets |
-| 45 | New | RES-S04 | 724 | Fu Chen <fu@rangam.com> | Add PDF/DOCX extraction path | Extracted text flows into normalized resume context |
-| 46 | New | QSO-S07 | 748 | Fu Chen <fu@rangam.com> | Review resume data privacy | Retention, logging, and extraction failure paths avoid sensitive-data leaks |
+| 45 | Resolved | RES-S04 | 724 | Fu Chen <fu@rangam.com> | Add PDF/DOCX extraction path | Extracted text flows into normalized processed resume context through a parser-agnostic service |
+| 46 | Resolved | QSO-S07 | 748 | Fu Chen <fu@rangam.com> | Review resume data privacy | Extraction errors store safe reason codes only and successful extraction marks original retention deleted |
+| 47 | New | RES-S06 | 729 | Fu Chen <fu@rangam.com> | Add structured intake fields | Confidence, interview type, timeline, concerns, and practice focus persist |
+| 48 | New | DRFT-S07 | 706 | Fu Chen <fu@rangam.com> | Model draft naming and selection | Candidate can choose drafts by role/title/date |
 
 ## Open Questions
 

@@ -53,6 +53,13 @@ Current pasted-text implementation:
 - `processedArtifact.originalRetained` is false for the current pasted-text path
 - no original file is created or retained for the pasted-text path
 
+Current upload/extraction implementation:
+
+- pending upload metadata stores only a private relative storage path and file metadata needed for processing
+- successful extraction stores normalized extracted text as the processed resume artifact
+- successful extraction marks the source asset retention as `original_deleted`
+- failed extraction stores a safe failure code only, not raw parser messages, local paths, storage URLs, or resume content
+
 ### Practice Drafts
 
 Examples:
@@ -105,6 +112,7 @@ Initial retention:
 - raw resume files are private and short-lived by default
 - processed resume text is candidate-owned
 - logs must not include raw resume text by default
+- extraction failures must use safe reason codes instead of raw parser output
 - deletion behavior must be server-side and auditable
 - future retention changes require a decision record or policy update
 

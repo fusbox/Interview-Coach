@@ -21,22 +21,33 @@ export {
 export {
     createCandidatePracticeDraft,
     attachPendingResumeUploadToCandidatePracticeDraft,
+    completeResumeUploadExtractionForCandidatePracticeDraft,
     findCandidatePracticeDraftById,
     findCandidatePracticeDraftBySessionId,
     findLatestEditableCandidatePracticeDraft,
+    markResumeUploadExtractionFailedForCandidatePracticeDraft,
     transitionCandidatePracticeDraftToGenerating,
     updateCandidatePracticeDraftProgressBySessionId,
     updateCandidatePracticeDraftSetup,
+    type AttachPendingResumeUploadToCandidatePracticeDraftInput,
+    type CompleteResumeUploadExtractionForCandidatePracticeDraftInput,
     type CandidatePracticeDraft,
     type CandidatePracticeDraftLookup,
     type CandidatePracticeDraftSessionLookup,
     type CreateCandidatePracticeDraftInput,
+    type MarkResumeUploadExtractionFailedForCandidatePracticeDraftInput,
     type PracticeResumeTarget,
     type PracticeSessionDraftStatus,
     type ResumeContextSnapshot,
     type ResumeSourceAsset,
     type UpdateCandidatePracticeDraftSetupInput,
 } from "./candidate-practice-draft-repository";
+export {
+    extractResumeUploadForCandidateDraft,
+    type CandidateResumeExtractionInput,
+    type CandidateResumeExtractionResult,
+    type CandidateResumeExtractor,
+} from "./candidate-resume-extraction-service";
 export {
     loadPracticeSetupDraftForCurrentCandidate,
     type RestoredPracticeSetupDraft,
