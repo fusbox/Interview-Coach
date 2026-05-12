@@ -13,6 +13,7 @@ function appFile(relativePath: string) {
 describe("shared host route ownership", () => {
     it.each([
         ["/", "page.tsx"],
+        ["/dashboard", "dashboard/page.tsx"],
         ["/recruiter", "(recruiter)/recruiter/page.tsx"],
         ["/recruiter/create", "(recruiter)/recruiter/create/page.tsx"],
         ["/recruiter/templates", "(recruiter)/recruiter/templates/page.tsx"],
