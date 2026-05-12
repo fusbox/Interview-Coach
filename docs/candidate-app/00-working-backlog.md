@@ -225,8 +225,8 @@ Ground truth:
 | DRFT-S01 | 697 | Story | Resolved | Fu Chen <fu@rangam.com> | Move practice form into `src/features/practice-setup` | Route delegates to feature module |
 | DRFT-S02 | 698 | Story | Resolved | Fu Chen <fu@rangam.com> | Add setup validation schema | Target role required; JD and resume optional; invalid payloads rejected |
 | DRFT-T01 | 699 | Task | Closed | Fu Chen <fu@rangam.com> | Add accessible validation messaging | Required-field and server errors are announced/readable |
-| DRFT-F02 | 700 | Feature | New | Fu Chen <fu@rangam.com> | Server-backed draft lifecycle | Draft state is persisted and restorable across refresh/device |
-| DRFT-S03 | 701 | Story | New | Fu Chen <fu@rangam.com> | Add draft service/repository | Draft create/read/update paths are tested |
+| DRFT-F02 | 700 | Feature | Active | Fu Chen <fu@rangam.com> | Server-backed draft lifecycle | Draft state is persisted and restorable across refresh/device |
+| DRFT-S03 | 701 | Story | Resolved | Fu Chen <fu@rangam.com> | Add draft service/repository | Draft create/read/update paths are tested |
 | DRFT-S04 | 702 | Story | New | Fu Chen <fu@rangam.com> | Persist pasted resume text as normalized context | Draft stores normalized resume context |
 | DRFT-S05 | 703 | Story | New | Fu Chen <fu@rangam.com> | Restore draft after refresh | Browser or route test proves server state restores form |
 | DRFT-S06 | 704 | Story | New | Fu Chen <fu@rangam.com> | Submit draft into generation state | Draft status and resume target persist |
@@ -410,7 +410,7 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 23 | Resolved | DRFT-S01 | 697 | Fu Chen <fu@rangam.com> | Extract practice setup feature slice | `/practice` delegates to `src/features/practice-setup` and renders first setup form |
 | 24 | Resolved | DRFT-S02 | 698 | Fu Chen <fu@rangam.com> | Add setup validation schema | Shared parser trims setup inputs, requires target role, normalizes blank optional text to null, and rejects invalid payloads |
 | 25 | Closed | DRFT-T01 | 699 | Fu Chen <fu@rangam.com> | Add accessible validation messaging | Required-field and future server submission errors are announced/readable |
-| 26 | New | DRFT-S03 | 701 | Fu Chen <fu@rangam.com> | Add server-backed draft lifecycle | Draft repository tests pass |
+| 26 | Resolved | DRFT-S03 | 701 | Fu Chen <fu@rangam.com> | Add server-backed draft lifecycle | Draft repository tests pass |
 | 27 | New | SESS-S02 | 712 | Fu Chen <fu@rangam.com> | Add candidate session creation service | Draft creates owned session |
 | 28 | New | DASH-S01 | 732 | Fu Chen <fu@rangam.com> | Define dashboard query contract | Empty/active/completed/forbidden states are represented |
 

@@ -19,6 +19,18 @@ export {
     type ResolveCandidateProfileInput,
 } from "./candidate-profile-repository";
 export {
+    createCandidatePracticeDraft,
+    findCandidatePracticeDraftById,
+    updateCandidatePracticeDraftSetup,
+    type CandidatePracticeDraft,
+    type CandidatePracticeDraftLookup,
+    type CreateCandidatePracticeDraftInput,
+    type PracticeResumeTarget,
+    type PracticeSessionDraftStatus,
+    type ResumeContextSnapshot,
+    type UpdateCandidatePracticeDraftSetupInput,
+} from "./candidate-practice-draft-repository";
+export {
     getCandidateAuthMode,
     getCandidateDataBackend,
     getCandidateRuntimeConfig,

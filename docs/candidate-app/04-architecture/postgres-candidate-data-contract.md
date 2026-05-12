@@ -58,8 +58,12 @@ Current migration:
 
 - [Candidate identity schema migration](/c:/tmp/Interview-Coach-Recruiter-postgres/db/migrations/002_candidate_identity_schema.sql)
 - [Candidate identity rollback smoke](/c:/tmp/Interview-Coach-Recruiter-postgres/db/validation/002_candidate_identity_schema_smoke.sql)
+- [Candidate practice drafts schema migration](/c:/tmp/Interview-Coach-Recruiter-postgres/db/migrations/003_candidate_practice_drafts_schema.sql)
+- [Candidate practice drafts rollback smoke](/c:/tmp/Interview-Coach-Recruiter-postgres/db/validation/003_candidate_practice_drafts_schema_smoke.sql)
 
 The initial migration creates `candidate_profiles` and `candidate_identities`, enforces provider/issuer/subject uniqueness, and keeps ownership anchored on `candidate_profile_id`.
+
+The draft migration creates `candidate_practice_drafts`, anchors every draft to `candidate_profile_id`, stores setup fields and normalized resume context, and adds ownership/status indexes for candidate-scoped draft reads.
 
 ### Practice Draft
 
@@ -133,8 +137,12 @@ Current repository boundary:
 - [Candidate dev auth resolver tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-dev-auth-resolver.test.ts)
 - [Candidate runtime config](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-runtime-config.ts)
 - [Candidate runtime config tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-runtime-config.test.ts)
+- [Candidate practice draft repository](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.ts)
+- [Candidate practice draft repository tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.test.ts)
 
 The first repository resolves or creates candidate profiles from provider identity handoffs and maps provider identities to a `CandidateProfileAccessRecord` for future auth and route-guard code.
+
+The practice draft repository creates, reads, and updates candidate-owned setup drafts through `candidate_profile_id` ownership filters. It uses the shared practice setup schema for target role, job description, and pasted resume text normalization before persistence.
 
 The auth adapter contract normalizes trusted identity handoffs from TalentArbor, RangamWorks, local password auth, or mock auth before repository resolution.
 

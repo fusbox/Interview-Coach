@@ -1,0 +1,148 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const {
+    queryPostgresMock,
+} = vi.hoisted(() => ({
+    queryPostgresMock: vi.fn(),
+}));
+
+vi.mock("@/lib/server/db/postgres", () => ({
+    queryPostgres: queryPostgresMock,
+}));
+
+describe("candidate practice draft repository", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it("creates a candidate-owned draft from validated setup input", async () => {
+        queryPostgresMock.mockResolvedValue({
+            rows: [practiceDraftRow({
+                practice_draft_id: "draft-1",
+                candidate_profile_id: "profile-1",
+                target_role: "QA analyst",
+                job_description: "Test regulated workflows.",
+                resume_context_json: { pastedText: "Validated releases.", extractedText: "Validated releases.", captureMode: "pasted_text" },
+            })],
+        });
+
+        const { createCandidatePracticeDraft } = await import("./candidate-practice-draft-repository");
+
+        await expect(createCandidatePracticeDraft({
+            candidateProfileId: "profile-1",
+            targetRole: " QA analyst ",
+            jobDescription: " Test regulated workflows. ",
+            resumeText: " Validated releases. ",
+        })).resolves.toMatchObject({
+            practiceDraftId: "draft-1",
+            candidateProfileId: "profile-1",
+            status: "draft",
+            targetRole: "QA analyst",
+            jobDescription: "Test regulated workflows.",
+            resumeContext: {
+                pastedText: "Validated releases.",
+                extractedText: "Validated releases.",
+                captureMode: "pasted_text",
+            },
+            resumeTargetScreen: "practice_setup",
+        });
+
+        expect(queryPostgresMock).toHaveBeenCalledWith(
+            expect.stringContaining("insert into public.candidate_practice_drafts"),
+            expect.arrayContaining([
+                "profile-1",
+                "QA analyst",
+                "Test regulated workflows.",
+                expect.objectContaining({
+                    pastedText: "Validated releases.",
+                    extractedText: "Validated releases.",
+                    captureMode: "pasted_text",
+                }),
+            ]),
+        );
+    });
+
+    it("finds a draft only through candidate ownership", async () => {
+        queryPostgresMock.mockResolvedValue({
+            rows: [practiceDraftRow({
+                practice_draft_id: "draft-2",
+                candidate_profile_id: "profile-2",
+                target_role: "Operations lead",
+            })],
+        });
+
+        const { findCandidatePracticeDraftById } = await import("./candidate-practice-draft-repository");
+
+        await expect(findCandidatePracticeDraftById({
+            candidateProfileId: "profile-2",
+            practiceDraftId: "draft-2",
+        })).resolves.toMatchObject({
+            practiceDraftId: "draft-2",
+            candidateProfileId: "profile-2",
+            targetRole: "Operations lead",
+        });
+
+        expect(queryPostgresMock).toHaveBeenCalledWith(
+            expect.stringContaining("where practice_draft_id = $1 and candidate_profile_id = $2"),
+            ["draft-2", "profile-2"],
+        );
+    });
+
+    it("updates draft setup fields while preserving candidate ownership", async () => {
+        queryPostgresMock.mockResolvedValue({
+            rows: [practiceDraftRow({
+                practice_draft_id: "draft-3",
+                candidate_profile_id: "profile-3",
+                target_role: "Warehouse supervisor",
+                job_description: null,
+                resume_context_json: { pastedText: null, extractedText: "", captureMode: "none" },
+            })],
+        });
+
+        const { updateCandidatePracticeDraftSetup } = await import("./candidate-practice-draft-repository");
+
+        await expect(updateCandidatePracticeDraftSetup({
+            candidateProfileId: "profile-3",
+            practiceDraftId: "draft-3",
+            targetRole: "Warehouse supervisor",
+            jobDescription: "",
+            resumeText: "",
+        })).resolves.toMatchObject({
+            practiceDraftId: "draft-3",
+            jobDescription: null,
+            resumeContext: {
+                pastedText: null,
+                extractedText: "",
+                captureMode: "none",
+            },
+        });
+
+        expect(queryPostgresMock).toHaveBeenCalledWith(
+            expect.stringContaining("where practice_draft_id = $1 and candidate_profile_id = $2"),
+            expect.arrayContaining(["draft-3", "profile-3", "Warehouse supervisor", null]),
+        );
+    });
+});
+
+function practiceDraftRow(overrides: Record<string, unknown>) {
+    return {
+        practice_draft_id: "draft-id",
+        candidate_profile_id: "profile-id",
+        status: "draft",
+        target_role: "Target role",
+        job_description: null,
+        resume_context_json: { pastedText: null, extractedText: "", captureMode: "none" },
+        custom_questions_json: [],
+        intake_responses_json: [],
+        question_set_snapshot_id: null,
+        session_id: null,
+        resume_target_screen: "practice_setup",
+        generation_started_at: null,
+        generation_finished_at: null,
+        generation_error: null,
+        last_activity_at: "2026-05-12T10:00:00.000Z",
+        created_at: "2026-05-12T10:00:00.000Z",
+        updated_at: "2026-05-12T10:00:00.000Z",
+        ...overrides,
+    };
+}
