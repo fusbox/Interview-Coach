@@ -45,6 +45,12 @@ The candidate app should be usable by keyboard, screen reader, and assistive tec
 
 ## Test Expectations
 
+Current automated baseline:
+
+- `src/test/accessibility.ts` checks one main landmark, one page h1, image alt attributes, and accessible names for links, buttons, and form controls
+- landing route smoke applies the baseline to `/`
+- component tests apply the baseline to practice setup, candidate session, dashboard, and summary surfaces
+
 Before production pilot:
 
 - browser smoke tests cover keyboard navigation for primary flows
@@ -56,4 +62,3 @@ Before production pilot:
 - Which accessibility standard level is required by company policy?
 - Should the app target WCAG 2.2 AA explicitly?
 - Will candidate-facing flows require additional accommodations from RangamWorks accessibility standards?
-

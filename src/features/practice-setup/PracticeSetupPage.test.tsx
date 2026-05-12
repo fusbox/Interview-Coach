@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { getBasicAccessibilityViolations } from "@/test/accessibility";
+
 import { PracticeSetupPage } from "./PracticeSetupPage";
 
 vi.mock("next/navigation", () => ({
@@ -50,5 +52,11 @@ describe("PracticeSetupPage", () => {
 
         expect(screen.getByRole("link", { name: /warehouse lead/i })).toHaveAttribute("href", "/practice?draftId=draft-2");
         expect(screen.getByText(/may 12, 2026/i)).toBeInTheDocument();
+    });
+
+    it("meets the candidate primary-page accessibility baseline", () => {
+        const { container } = render(<PracticeSetupPage />);
+
+        expect(getBasicAccessibilityViolations(container)).toEqual([]);
     });
 });

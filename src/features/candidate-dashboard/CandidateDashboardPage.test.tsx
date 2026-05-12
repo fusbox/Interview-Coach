@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { getBasicAccessibilityViolations } from "@/test/accessibility";
 import { CandidateDashboardPage } from "./CandidateDashboardPage";
 import type { CandidateDashboardModel } from "@/lib/server/candidate";
 
@@ -65,5 +66,11 @@ describe("CandidateDashboardPage", () => {
 
         expect(screen.getByText(/no practice yet/i)).toBeInTheDocument();
         expect(screen.getByRole("link", { name: /start a practice session/i })).toHaveAttribute("href", "/practice");
+    });
+
+    it("meets the candidate primary-page accessibility baseline", () => {
+        const { container } = render(<CandidateDashboardPage dashboard={baseModel} />);
+
+        expect(getBasicAccessibilityViolations(container)).toEqual([]);
     });
 });

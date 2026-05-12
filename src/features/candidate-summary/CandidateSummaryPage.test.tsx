@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { getBasicAccessibilityViolations } from "@/test/accessibility";
 import type { CandidateSummaryModel } from "@/lib/server/candidate";
 import { CandidateSummaryPage } from "./CandidateSummaryPage";
 
@@ -35,5 +36,11 @@ describe("CandidateSummaryPage", () => {
         expect(screen.getByText("Add a clearer metric.")).toBeInTheDocument();
         expect(screen.getByRole("link", { name: /back to dashboard/i })).toHaveAttribute("href", "/dashboard");
         expect(screen.getByRole("link", { name: /practice again/i })).toHaveAttribute("href", "/practice");
+    });
+
+    it("meets the candidate primary-page accessibility baseline", () => {
+        const { container } = render(<CandidateSummaryPage summary={summary} />);
+
+        expect(getBasicAccessibilityViolations(container)).toEqual([]);
     });
 });

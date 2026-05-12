@@ -22,7 +22,11 @@ Current CI scripts validate:
 - coverage command
 - production build
 
-`test:coverage` currently passes with no tests because the repo is still a scaffold. That should change as soon as backend or stateful feature logic is introduced.
+Candidate integration now has Vitest coverage for candidate route, auth, persistence, dashboard, summary, resume, and quality helper behavior.
+
+`e2e/candidate/primary-routes.spec.ts` covers the shared-host route contract for `/`, `/recruiter`, candidate protected routes, and admin/QA protection.
+
+Full DB-backed browser smoke for candidate setup-to-summary still requires a seeded candidate profile/session environment.
 
 ## Test Layers
 
@@ -137,4 +141,3 @@ Tests should link back to Azure Boards work items where practical.
 Azure Pipelines supports requirements traceability by associating requirements with tests, bugs, and code changes. This app should use that once the Azure project is staged.
 
 Reference: https://learn.microsoft.com/en-us/azure/devops/pipelines/test/requirements-traceability
-

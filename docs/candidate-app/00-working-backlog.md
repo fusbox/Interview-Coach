@@ -335,9 +335,9 @@ Ground truth:
 
 | ID | Azure ID | Level | State | Assigned To | Item | Acceptance Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| QSO-F01 | 739 | Feature | New | Fu Chen <fu@rangam.com> | Smoke and regression testing | Browser smoke covers public, candidate, recruiter, admin, QA, and invite-token routes |
-| QSO-S01 | 740 | Story | New | Fu Chen <fu@rangam.com> | Add primary route smoke tests | `/`, `/recruiter`, `/practice`, `/dashboard`, `/admin/feedback`, and `/qa/ai-quality` are covered |
-| QSO-S02 | 741 | Story | New | Fu Chen <fu@rangam.com> | Add accessibility checks for primary pages | Automated and manual checks cover landing/practice/session/dashboard/summary |
+| QSO-F01 | 739 | Feature | Active | Fu Chen <fu@rangam.com> | Smoke and regression testing | Browser smoke covers public, candidate, recruiter, admin, QA, and invite-token routes |
+| QSO-S01 | 740 | Story | Resolved | Fu Chen <fu@rangam.com> | Add primary route smoke tests | `/`, `/recruiter`, `/practice`, `/dashboard`, `/admin/feedback`, and `/qa/ai-quality` are covered |
+| QSO-S02 | 741 | Story | Resolved | Fu Chen <fu@rangam.com> | Add accessibility checks for primary pages | Automated baseline covers landing/practice/session/dashboard/summary; manual checks remain in the accessibility baseline |
 | QSO-S03 | 742 | Story | New | Fu Chen <fu@rangam.com> | Add recruiter regression checklist for candidate PRs | Candidate PRs identify recruiter route risk and verification |
 | QSO-F02 | 743 | Feature | New | Fu Chen <fu@rangam.com> | Observability and incident readiness | App emits useful telemetry without leaking sensitive data |
 | QSO-S04 | 744 | Story | New | Fu Chen <fu@rangam.com> | Add observability plan to deployment | Auth denial, draft, generation, extraction, and API errors are observable |
@@ -434,8 +434,10 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 46 | Resolved | QSO-S07 | 748 | Fu Chen <fu@rangam.com> | Review resume data privacy | Extraction errors store safe reason codes only and successful extraction marks original retention deleted |
 | 47 | Resolved | RES-S06 | 729 | Fu Chen <fu@rangam.com> | Add structured intake fields | Structured confidence, interview type, timeline, concerns, and focus values persist on candidate-owned drafts |
 | 48 | Resolved | DRFT-S07 | 706 | Fu Chen <fu@rangam.com> | Model draft naming and selection | `/practice?draftId=...` restores a selected owned draft and shows editable draft choices by role/date |
-| 49 | New | QSO-S01 | 740 | Fu Chen <fu@rangam.com> | Add primary route smoke tests | `/`, `/recruiter`, `/practice`, `/dashboard`, `/admin/feedback`, and `/qa/ai-quality` are covered |
-| 50 | New | QSO-S02 | 741 | Fu Chen <fu@rangam.com> | Add accessibility checks for primary pages | Automated and manual checks cover landing/practice/session/dashboard/summary |
+| 49 | Resolved | QSO-S01 | 740 | Fu Chen <fu@rangam.com> | Add primary route smoke tests | `/`, `/recruiter`, `/practice`, `/dashboard`, `/admin/feedback`, and `/qa/ai-quality` are covered |
+| 50 | Resolved | QSO-S02 | 741 | Fu Chen <fu@rangam.com> | Add accessibility checks for primary pages | Automated baseline covers landing/practice/session/dashboard/summary; manual checks remain in the accessibility baseline |
+| 51 | New | QSO-S03 | 742 | Fu Chen <fu@rangam.com> | Add recruiter regression checklist for candidate PRs | Candidate PRs identify recruiter route risk and verification |
+| 52 | New | QSO-S04 | 744 | Fu Chen <fu@rangam.com> | Add observability plan to deployment | Auth denial, draft, generation, extraction, and API errors are observable |
 
 ## Open Questions
 
