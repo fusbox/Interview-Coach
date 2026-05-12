@@ -66,6 +66,7 @@ The standalone candidate repo can still be useful as an incubation workspace, bu
 - CTA login redirects must preserve only allowlisted internal targets such as `/practice` and `/dashboard`.
 - Route tests should include unauthenticated, candidate-authenticated, recruiter-authenticated, admin, QA, and invite-token contexts.
 - Analytics and observability should label actor mode so candidate funnel events do not mix with recruiter workflow metrics.
+- Candidate PRs that touch shared host behavior should use the [Recruiter Regression Checklist For Candidate PRs](../05-quality/recruiter-regression-checklist.md).
 
 ## Acceptance Criteria
 

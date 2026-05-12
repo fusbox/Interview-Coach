@@ -40,14 +40,16 @@ This folder is organized to keep product requirements, UX/design rules, and arch
 
 12. [Test Strategy](05-quality/test-strategy.md)
 13. [Accessibility Baseline](05-quality/accessibility-baseline.md)
-14. [Candidate App Threat Model](06-security/threat-model.md)
-15. [Data Retention Policy](06-security/data-retention-policy.md)
-16. [Azure DevOps Operating Model](07-ops/azure-devops-operating-model.md)
+14. [Recruiter Regression Checklist For Candidate PRs](05-quality/recruiter-regression-checklist.md)
+15. [Candidate App Threat Model](06-security/threat-model.md)
+16. [Data Retention Policy](06-security/data-retention-policy.md)
+17. [Azure DevOps Operating Model](07-ops/azure-devops-operating-model.md)
+18. [Candidate Observability Plan](07-ops/candidate-observability-plan.md)
 
 ### Decisions and developer setup
 
-17. [Decision Records](08-decisions/README.md)
-18. [Local Dev Bootstrap](09-dev/local-dev-bootstrap.md)
+19. [Decision Records](08-decisions/README.md)
+20. [Local Dev Bootstrap](09-dev/local-dev-bootstrap.md)
 
 ## Document Rules
 

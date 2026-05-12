@@ -120,6 +120,7 @@ Before production pilot:
 - negative permission tests
 - accessibility checks for primary flows
 - dependency audit reviewed
+- candidate PRs reviewed against [Recruiter Regression Checklist For Candidate PRs](recruiter-regression-checklist.md)
 
 ## CI Gate Direction
 
@@ -133,6 +134,7 @@ PR gate should eventually run:
 - browser smoke tests
 - dependency audit or security scan
 - migration validation once database migrations exist
+- recruiter regression smoke when candidate work touches shared routes, middleware, global CSS, public assets, or session/invite APIs
 
 ## Azure Traceability
 
