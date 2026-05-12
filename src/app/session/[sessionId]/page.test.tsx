@@ -16,6 +16,11 @@ vi.mock("@/lib/server/candidate", () => ({
     loadCandidateSessionForCurrentCandidate: loadCandidateSessionForCurrentCandidateMock,
 }));
 
+vi.mock("@/features/candidate-session/actions", () => ({
+    startCandidateSessionAction: vi.fn(),
+    advanceCandidateSessionAction: vi.fn(),
+}));
+
 describe("/session/[sessionId] page", () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -50,6 +55,30 @@ describe("/session/[sessionId] page", () => {
         expect(screen.getByRole("heading", { name: /qa analyst/i })).toBeInTheDocument();
         expect(screen.getByText("Tell me about a release you improved.")).toBeInTheDocument();
         expect(screen.getByText(/Question 1 of 1/)).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /start practice/i })).toBeInTheDocument();
+    });
+
+    it("renders a next-question action for an in-progress session", async () => {
+        loadCandidateSessionForCurrentCandidateMock.mockResolvedValue({
+            practiceDraftId: "draft-1",
+            session: {
+                id: "session-1",
+                status: "IN_SESSION",
+                role: "QA analyst",
+                currentQuestionIndex: 0,
+                questions: [
+                    { id: "question-1", text: "Question one?", category: "Behavioral", index: 0 },
+                    { id: "question-2", text: "Question two?", category: "Technical", index: 1 },
+                ],
+                answers: {},
+                initialsRequired: false,
+            },
+        });
+        const { default: CandidateSessionRoute } = await import("./page");
+
+        render(await CandidateSessionRoute({ params: Promise.resolve({ sessionId: "session-1" }) }));
+
+        expect(screen.getByRole("button", { name: /next question/i })).toBeInTheDocument();
     });
 
     it("returns not found when the session is not owned by the current candidate", async () => {

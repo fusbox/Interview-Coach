@@ -74,6 +74,11 @@ export type AttachGeneratedSessionToCandidatePracticeDraftInput = CandidatePract
     questionSetSnapshotId: string;
 };
 
+export type UpdateCandidatePracticeDraftProgressBySessionIdInput = CandidatePracticeDraftSessionLookup & {
+    status: Extract<PracticeSessionDraftStatus, "in_session" | "completed">;
+    resumeTargetScreen: Extract<PracticeResumeTarget, "session_in_progress" | "session_summary">;
+};
+
 type CandidatePracticeDraftRow = QueryResultRow & {
     practice_draft_id: string;
     candidate_profile_id: string;
@@ -261,6 +266,28 @@ export async function attachGeneratedSessionToCandidatePracticeDraft(
             returning ${draftSelect}
         `,
         [practiceDraftId, candidateProfileId, sessionId, questionSetSnapshotId],
+    );
+
+    return result.rows[0] ? mapCandidatePracticeDraftRow(result.rows[0]) : null;
+}
+
+export async function updateCandidatePracticeDraftProgressBySessionId(
+    input: UpdateCandidatePracticeDraftProgressBySessionIdInput,
+): Promise<CandidatePracticeDraft | null> {
+    const sessionId = normalizeId(input.sessionId, "Session ID");
+    const candidateProfileId = normalizeId(input.candidateProfileId, "Candidate profile ID");
+
+    const result = await queryPostgres<CandidatePracticeDraftRow>(
+        `
+            update public.candidate_practice_drafts
+            set
+                status = $3,
+                resume_target_screen = $4,
+                last_activity_at = now()
+            where session_id = $1 and candidate_profile_id = $2
+            returning ${draftSelect}
+        `,
+        [sessionId, candidateProfileId, input.status, input.resumeTargetScreen],
     );
 
     return result.rows[0] ? mapCandidatePracticeDraftRow(result.rows[0]) : null;

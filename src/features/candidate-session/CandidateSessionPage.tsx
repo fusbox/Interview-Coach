@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import type { LoadedCandidateSession } from "@/lib/server/candidate";
+import { advanceCandidateSessionAction, startCandidateSessionAction } from "./actions";
 
 type CandidateSessionPageProps = {
     loadedSession: LoadedCandidateSession;
@@ -11,6 +12,19 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
     const currentQuestion = session.questions[session.currentQuestionIndex] ?? session.questions[0] ?? null;
     const totalQuestions = session.questions.length;
     const questionPosition = currentQuestion ? session.questions.findIndex((question) => question.id === currentQuestion.id) + 1 : 0;
+    const nextQuestionIndex = session.currentQuestionIndex + 1;
+    const isLastQuestion = nextQuestionIndex >= totalQuestions;
+    const nextStatus = isLastQuestion ? "COMPLETED" : "IN_SESSION";
+
+    async function startAction() {
+        "use server";
+        await startCandidateSessionAction(session.id);
+    }
+
+    async function advanceAction() {
+        "use server";
+        await advanceCandidateSessionAction(session.id, nextQuestionIndex, nextStatus);
+    }
 
     return (
         <main className="candidate-design-system min-h-screen bg-surface-base text-text-primary">
@@ -48,6 +62,26 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
                             <p className="text-sm font-semibold text-text-secondary">
                                 {currentQuestion.category}
                             </p>
+                            {session.status === "NOT_STARTED" ? (
+                                <form action={startAction}>
+                                    <button
+                                        type="submit"
+                                        className="rounded-full bg-primary px-5 py-3 text-sm font-bold text-white shadow-flat transition hover:bg-primary-hover"
+                                    >
+                                        Start practice
+                                    </button>
+                                </form>
+                            ) : null}
+                            {session.status === "IN_SESSION" ? (
+                                <form action={advanceAction}>
+                                    <button
+                                        type="submit"
+                                        className="rounded-full bg-primary px-5 py-3 text-sm font-bold text-white shadow-flat transition hover:bg-primary-hover"
+                                    >
+                                        {isLastQuestion ? "Finish session" : "Next question"}
+                                    </button>
+                                </form>
+                            ) : null}
                         </div>
                     ) : (
                         <div className="space-y-3">

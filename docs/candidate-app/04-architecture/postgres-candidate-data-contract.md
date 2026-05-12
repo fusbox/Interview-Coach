@@ -145,6 +145,8 @@ Current repository boundary:
 - [Candidate session creation service tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-creation-service.test.ts)
 - [Candidate session loader](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-loader.ts)
 - [Candidate session loader tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-loader.test.ts)
+- [Candidate session progress service](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-progress-service.ts)
+- [Candidate session progress service tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-progress-service.test.ts)
 
 The first repository resolves or creates candidate profiles from provider identity handoffs and maps provider identities to a `CandidateProfileAccessRecord` for future auth and route-guard code.
 
@@ -155,6 +157,8 @@ The repository also exposes a latest-editable-draft read ordered by `last_activi
 The session creation service reads a candidate-owned draft in `generating`, creates a shared `sessions` record with generated questions and candidate-only intake context, then writes `session_id`, `question_set_snapshot_id`, `status = 'ready'`, and `resume_target_screen = 'session_entry'` back to the same candidate-owned draft. If the draft attach step fails after session creation, the service deletes the generated session before returning an error.
 
 The session loader uses `candidate_practice_drafts.session_id` plus `candidate_profile_id` as the candidate ownership boundary before reading the shared `sessions` record for `/session/[sessionId]`.
+
+Session progress mutations reuse the shared session update command for persisted `sessions` state, then update `candidate_practice_drafts.status` and `resume_target_screen` through the same candidate/session ownership boundary. `IN_SESSION` maps to draft `in_session` and `session_in_progress`; `COMPLETED` maps to draft `completed` and `session_summary`.
 
 The auth adapter contract normalizes trusted identity handoffs from TalentArbor, RangamWorks, local password auth, or mock auth before repository resolution.
 

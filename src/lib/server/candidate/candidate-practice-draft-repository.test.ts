@@ -257,6 +257,43 @@ describe("candidate practice draft repository", () => {
         expect(queryPostgresMock.mock.calls[0][0]).toContain("resume_target_screen = 'session_entry'");
         expect(queryPostgresMock.mock.calls[0][0]).toContain("where practice_draft_id = $1 and candidate_profile_id = $2 and status = 'generating'");
     });
+
+    it("updates draft progress target by session through candidate ownership", async () => {
+        queryPostgresMock.mockResolvedValue({
+            rows: [practiceDraftRow({
+                practice_draft_id: "draft-6",
+                candidate_profile_id: "profile-6",
+                status: "in_session",
+                session_id: "11111111-1111-4111-8111-111111111111",
+                resume_target_screen: "session_in_progress",
+            })],
+        });
+
+        const { updateCandidatePracticeDraftProgressBySessionId } = await import("./candidate-practice-draft-repository");
+
+        await expect(updateCandidatePracticeDraftProgressBySessionId({
+            candidateProfileId: "profile-6",
+            sessionId: "11111111-1111-4111-8111-111111111111",
+            status: "in_session",
+            resumeTargetScreen: "session_in_progress",
+        })).resolves.toMatchObject({
+            practiceDraftId: "draft-6",
+            status: "in_session",
+            resumeTargetScreen: "session_in_progress",
+        });
+
+        expect(queryPostgresMock).toHaveBeenCalledWith(
+            expect.stringContaining("where session_id = $1 and candidate_profile_id = $2"),
+            [
+                "11111111-1111-4111-8111-111111111111",
+                "profile-6",
+                "in_session",
+                "session_in_progress",
+            ],
+        );
+        expect(queryPostgresMock.mock.calls[0][0]).toContain("status = $3");
+        expect(queryPostgresMock.mock.calls[0][0]).toContain("resume_target_screen = $4");
+    });
 });
 
 function practiceDraftRow(overrides: Record<string, unknown>) {

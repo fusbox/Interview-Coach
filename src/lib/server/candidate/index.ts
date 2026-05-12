@@ -24,6 +24,7 @@ export {
     findCandidatePracticeDraftBySessionId,
     findLatestEditableCandidatePracticeDraft,
     transitionCandidatePracticeDraftToGenerating,
+    updateCandidatePracticeDraftProgressBySessionId,
     updateCandidatePracticeDraftSetup,
     type CandidatePracticeDraft,
     type CandidatePracticeDraftLookup,
@@ -42,6 +43,10 @@ export {
     loadCandidateSessionForCurrentCandidate,
     type LoadedCandidateSession,
 } from "./candidate-session-loader";
+export {
+    advanceCandidateOwnedSession,
+    startCandidateOwnedSession,
+} from "./candidate-session-progress-service";
 export {
     getCandidateAuthMode,
     getCandidateDataBackend,

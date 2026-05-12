@@ -231,8 +231,10 @@ Current session entry boundary:
 - [Candidate session route](/c:/tmp/Interview-Coach-Recruiter-postgres/src/app/session/[sessionId]/page.tsx) renders only candidate-owned sessions and returns not found for missing or unowned sessions.
 - [Candidate session page](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-session/CandidateSessionPage.tsx) renders persisted role, job description, session status, draft ID, and current question state.
 - [Practice setup form](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/PracticeSetupForm.tsx) routes successful generation into `/session/[sessionId]`.
+- [Candidate session progress service](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-progress-service.ts) starts and advances candidate-owned sessions through the shared session update command, then mirrors draft `status` and `resumeTargetScreen`.
+- [Candidate session actions](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-session/actions.ts) resolve the current candidate profile before invoking session progress mutations from the page.
 
-Answer submission, retry, next-question, pause/resume mutations, and resume target updates remain follow-up slices.
+Answer submission, retry, pause/resume controls, and fuller mutation coverage remain follow-up slices.
 
 ## Protected-Route Boundary
 
