@@ -223,7 +223,7 @@ Ground truth:
 | --- | --- | --- | --- | --- | --- | --- |
 | DRFT-F01 | 696 | Feature | Active | Fu Chen <fu@rangam.com> | Practice setup feature slice | Route page delegates UI and behavior to feature code |
 | DRFT-S01 | 697 | Story | Resolved | Fu Chen <fu@rangam.com> | Move practice form into `src/features/practice-setup` | Route delegates to feature module |
-| DRFT-S02 | 698 | Story | New | Fu Chen <fu@rangam.com> | Add setup validation schema | Target role required; JD and resume optional; invalid payloads rejected |
+| DRFT-S02 | 698 | Story | Resolved | Fu Chen <fu@rangam.com> | Add setup validation schema | Target role required; JD and resume optional; invalid payloads rejected |
 | DRFT-T01 | 699 | Task | New | Fu Chen <fu@rangam.com> | Add accessible validation messaging | Required-field and server errors are announced/readable |
 | DRFT-F02 | 700 | Feature | New | Fu Chen <fu@rangam.com> | Server-backed draft lifecycle | Draft state is persisted and restorable across refresh/device |
 | DRFT-S03 | 701 | Story | New | Fu Chen <fu@rangam.com> | Add draft service/repository | Draft create/read/update paths are tested |
@@ -408,9 +408,10 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 21 | Resolved | AUTH-S03 | 680 | Fu Chen <fu@rangam.com> | Add dev auth and mock mode | Local candidate auth handoff resolver tests pass |
 | 22 | Resolved | AUTH-S04 | 681 | Fu Chen <fu@rangam.com> | Protect candidate route group | Middleware redirects external-mode candidate protected routes and allows explicit local modes |
 | 23 | Resolved | DRFT-S01 | 697 | Fu Chen <fu@rangam.com> | Extract practice setup feature slice | `/practice` delegates to `src/features/practice-setup` and renders first setup form |
-| 24 | New | DRFT-S03 | 701 | Fu Chen <fu@rangam.com> | Add server-backed draft lifecycle | Draft repository tests pass |
-| 25 | New | SESS-S02 | 712 | Fu Chen <fu@rangam.com> | Add candidate session creation service | Draft creates owned session |
-| 26 | New | DASH-S01 | 732 | Fu Chen <fu@rangam.com> | Define dashboard query contract | Empty/active/completed/forbidden states are represented |
+| 24 | Resolved | DRFT-S02 | 698 | Fu Chen <fu@rangam.com> | Add setup validation schema | Shared parser trims setup inputs, requires target role, normalizes blank optional text to null, and rejects invalid payloads |
+| 25 | New | DRFT-S03 | 701 | Fu Chen <fu@rangam.com> | Add server-backed draft lifecycle | Draft repository tests pass |
+| 26 | New | SESS-S02 | 712 | Fu Chen <fu@rangam.com> | Add candidate session creation service | Draft creates owned session |
+| 27 | New | DASH-S01 | 732 | Fu Chen <fu@rangam.com> | Define dashboard query contract | Empty/active/completed/forbidden states are represented |
 
 ## Open Questions
 

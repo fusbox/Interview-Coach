@@ -167,6 +167,15 @@ Rules:
 
 ## Autosave and Mutation Rules
 
+### Setup validation
+
+The first shared validation boundary is implemented in [practice-setup-schema.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/practice-setup-schema.ts) and covered by [practice-setup-schema.test.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/practice-setup-schema.test.ts).
+
+- `targetRole` is required, trimmed, and length-limited.
+- `jobDescription` is optional, trimmed, length-limited, and normalized to `null` when blank or omitted.
+- `resumeText` is optional, trimmed, length-limited, and normalized to `null` when blank or omitted.
+- Non-string setup payloads are rejected before they reach the future draft repository/service boundary.
+
 ### `/practice` draft editing
 
 - Create or resume one active draft for the authenticated candidate.
