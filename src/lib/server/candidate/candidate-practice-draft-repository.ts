@@ -1,6 +1,7 @@
 import type { QueryResultRow } from "pg";
 
 import { safeParsePracticeSetupInput } from "@/features/practice-setup/practice-setup-schema";
+import { normalizeResumeText } from "@/lib/candidate/resume-normalization";
 import { queryPostgres } from "@/lib/server/db/postgres";
 
 export type PracticeSessionDraftStatus =
@@ -185,7 +186,9 @@ function normalizeSetupInput(input: CreateCandidatePracticeDraftInput) {
 }
 
 function buildResumeContext(resumeText: string | null): ResumeContextSnapshot {
-    if (!resumeText) {
+    const normalizedResumeText = normalizeResumeText(resumeText);
+
+    if (!normalizedResumeText) {
         return {
             pastedText: null,
             extractedText: "",
@@ -194,8 +197,8 @@ function buildResumeContext(resumeText: string | null): ResumeContextSnapshot {
     }
 
     return {
-        pastedText: resumeText,
-        extractedText: resumeText,
+        pastedText: normalizedResumeText,
+        extractedText: normalizedResumeText,
         captureMode: "pasted_text",
     };
 }

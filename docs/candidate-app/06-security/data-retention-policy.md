@@ -46,6 +46,12 @@ Initial retention:
 - delete original uploaded files after successful extraction by default
 - retain original files only if an explicit future policy permits it
 
+Current pasted-text implementation:
+
+- pasted resume text is normalized before draft persistence
+- normalized pasted text is stored as draft resume context for the candidate-owned practice draft
+- no original file is created or retained for the pasted-text path
+
 ### Practice Drafts
 
 Examples:
@@ -107,4 +113,3 @@ Initial retention:
 - Will candidates be able to export all practice data?
 - Will candidates be able to delete individual sessions?
 - Are there jurisdiction-specific rules for job-seeker data that apply to this app?
-

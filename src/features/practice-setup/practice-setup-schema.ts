@@ -1,9 +1,11 @@
 import { z } from "zod";
 
+import { MAX_NORMALIZED_RESUME_TEXT_LENGTH } from "@/lib/candidate/resume-normalization";
+
 export const PRACTICE_SETUP_LIMITS = {
     targetRole: 120,
     jobDescription: 12_000,
-    resumeText: 20_000,
+    resumeText: MAX_NORMALIZED_RESUME_TEXT_LENGTH,
 } as const;
 
 const optionalSetupText = (fieldName: string, maxLength: number) =>

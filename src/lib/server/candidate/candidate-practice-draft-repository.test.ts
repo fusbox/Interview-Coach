@@ -22,7 +22,11 @@ describe("candidate practice draft repository", () => {
                 candidate_profile_id: "profile-1",
                 target_role: "QA analyst",
                 job_description: "Test regulated workflows.",
-                resume_context_json: { pastedText: "Validated releases.", extractedText: "Validated releases.", captureMode: "pasted_text" },
+                resume_context_json: {
+                    pastedText: "Validated releases\n\nReduced defects by 30%",
+                    extractedText: "Validated releases\n\nReduced defects by 30%",
+                    captureMode: "pasted_text",
+                },
             })],
         });
 
@@ -32,7 +36,7 @@ describe("candidate practice draft repository", () => {
             candidateProfileId: "profile-1",
             targetRole: " QA analyst ",
             jobDescription: " Test regulated workflows. ",
-            resumeText: " Validated releases. ",
+            resumeText: " Validated\t\treleases\r\n\r\n\r\nReduced\u00a0defects by 30% ",
         })).resolves.toMatchObject({
             practiceDraftId: "draft-1",
             candidateProfileId: "profile-1",
@@ -40,8 +44,8 @@ describe("candidate practice draft repository", () => {
             targetRole: "QA analyst",
             jobDescription: "Test regulated workflows.",
             resumeContext: {
-                pastedText: "Validated releases.",
-                extractedText: "Validated releases.",
+                pastedText: "Validated releases\n\nReduced defects by 30%",
+                extractedText: "Validated releases\n\nReduced defects by 30%",
                 captureMode: "pasted_text",
             },
             resumeTargetScreen: "practice_setup",
@@ -54,8 +58,8 @@ describe("candidate practice draft repository", () => {
                 "QA analyst",
                 "Test regulated workflows.",
                 expect.objectContaining({
-                    pastedText: "Validated releases.",
-                    extractedText: "Validated releases.",
+                    pastedText: "Validated releases\n\nReduced defects by 30%",
+                    extractedText: "Validated releases\n\nReduced defects by 30%",
                     captureMode: "pasted_text",
                 }),
             ]),

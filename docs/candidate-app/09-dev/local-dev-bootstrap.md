@@ -22,11 +22,13 @@ Current commands:
 - `npm run postgres:smoke:start`
 - `npm run db:apply-schema`
 - `npm run db:apply-candidate-schema`
+- `npm run db:apply-candidate-drafts-schema`
 - `npm run db:smoke-candidate-schema`
+- `npm run db:smoke-candidate-drafts-schema`
 
 Current development server:
 
-- `http://localhost:3001`
+- `http://localhost:3000`
 
 ## Target Bootstrap Flow
 
@@ -48,10 +50,12 @@ Current candidate schema smoke flow:
 npm run postgres:smoke:start
 npm run db:apply-schema
 npm run db:apply-candidate-schema
+npm run db:apply-candidate-drafts-schema
 npm run db:smoke-candidate-schema
+npm run db:smoke-candidate-drafts-schema
 ```
 
-This applies the recruiter Postgres baseline, applies the candidate identity/profile migration, and validates candidate profile plus provider identity constraints inside a rollback-only smoke script.
+This applies the recruiter Postgres baseline, applies the candidate identity/profile and practice draft migrations, and validates candidate profile, provider identity, and draft constraints inside rollback-only smoke scripts.
 
 ## Environment Setup
 

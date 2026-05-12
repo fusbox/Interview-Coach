@@ -65,6 +65,8 @@ The initial migration creates `candidate_profiles` and `candidate_identities`, e
 
 The draft migration creates `candidate_practice_drafts`, anchors every draft to `candidate_profile_id`, stores setup fields and normalized resume context, and adds ownership/status indexes for candidate-scoped draft reads.
 
+Pasted resume text is normalized through [resume-normalization.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/candidate/resume-normalization.ts) before draft persistence. The normalized text is stored inside `resume_context_json` as both `pastedText` and `extractedText` for the first text-only path.
+
 ### Practice Draft
 
 Server-backed setup state for `/practice`.

@@ -227,7 +227,7 @@ Ground truth:
 | DRFT-T01 | 699 | Task | Closed | Fu Chen <fu@rangam.com> | Add accessible validation messaging | Required-field and server errors are announced/readable |
 | DRFT-F02 | 700 | Feature | Active | Fu Chen <fu@rangam.com> | Server-backed draft lifecycle | Draft state is persisted and restorable across refresh/device |
 | DRFT-S03 | 701 | Story | Resolved | Fu Chen <fu@rangam.com> | Add draft service/repository | Draft create/read/update paths are tested |
-| DRFT-S04 | 702 | Story | New | Fu Chen <fu@rangam.com> | Persist pasted resume text as normalized context | Draft stores normalized resume context |
+| DRFT-S04 | 702 | Story | Resolved | Fu Chen <fu@rangam.com> | Persist pasted resume text as normalized context | Draft stores normalized resume context |
 | DRFT-S05 | 703 | Story | New | Fu Chen <fu@rangam.com> | Restore draft after refresh | Browser or route test proves server state restores form |
 | DRFT-S06 | 704 | Story | New | Fu Chen <fu@rangam.com> | Submit draft into generation state | Draft status and resume target persist |
 | DRFT-F03 | 705 | Feature | New | Fu Chen <fu@rangam.com> | Multiple draft management | Candidate can distinguish and resume more than one active/named draft |
@@ -279,8 +279,8 @@ Ground truth:
 
 | ID | Azure ID | Level | State | Assigned To | Item | Acceptance Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| RES-F01 | 719 | Feature | New | Fu Chen <fu@rangam.com> | Resume text normalization | Pasted text becomes normalized `resumeText` and draft context |
-| RES-S01 | 720 | Story | New | Fu Chen <fu@rangam.com> | Add resume normalization helper | Unit tests cover whitespace, empty, long, and unusual text cases |
+| RES-F01 | 719 | Feature | Active | Fu Chen <fu@rangam.com> | Resume text normalization | Pasted text becomes normalized `resumeText` and draft context |
+| RES-S01 | 720 | Story | Resolved | Fu Chen <fu@rangam.com> | Add resume normalization helper | Unit tests cover whitespace, empty, long, and unusual text cases |
 | RES-S02 | 721 | Story | New | Fu Chen <fu@rangam.com> | Store processed resume artifact only | Processed text/metadata persists without raw file retention by default |
 | RES-F02 | 722 | Feature | New | Fu Chen <fu@rangam.com> | Resume upload extraction boundary | Uploaded PDF/DOCX files produce extracted text or recoverable errors |
 | RES-S03 | 723 | Story | New | Fu Chen <fu@rangam.com> | Add private file upload boundary | App stores metadata and private storage path only during processing |
@@ -411,8 +411,12 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 24 | Resolved | DRFT-S02 | 698 | Fu Chen <fu@rangam.com> | Add setup validation schema | Shared parser trims setup inputs, requires target role, normalizes blank optional text to null, and rejects invalid payloads |
 | 25 | Closed | DRFT-T01 | 699 | Fu Chen <fu@rangam.com> | Add accessible validation messaging | Required-field and future server submission errors are announced/readable |
 | 26 | Resolved | DRFT-S03 | 701 | Fu Chen <fu@rangam.com> | Add server-backed draft lifecycle | Draft repository tests pass |
-| 27 | New | SESS-S02 | 712 | Fu Chen <fu@rangam.com> | Add candidate session creation service | Draft creates owned session |
-| 28 | New | DASH-S01 | 732 | Fu Chen <fu@rangam.com> | Define dashboard query contract | Empty/active/completed/forbidden states are represented |
+| 27 | Resolved | RES-S01 | 720 | Fu Chen <fu@rangam.com> | Add resume normalization helper | Unit tests cover whitespace, empty, long, and unusual text cases |
+| 28 | Resolved | DRFT-S04 | 702 | Fu Chen <fu@rangam.com> | Persist pasted resume text as normalized context | Draft stores normalized resume context |
+| 29 | New | DRFT-S05 | 703 | Fu Chen <fu@rangam.com> | Restore draft after refresh | Browser or route test proves server state restores form |
+| 30 | New | DRFT-S06 | 704 | Fu Chen <fu@rangam.com> | Submit draft into generation state | Draft status and resume target persist |
+| 31 | New | SESS-S02 | 712 | Fu Chen <fu@rangam.com> | Add candidate session creation service | Draft creates owned session |
+| 32 | New | DASH-S01 | 732 | Fu Chen <fu@rangam.com> | Define dashboard query contract | Empty/active/completed/forbidden states are represented |
 
 ## Open Questions
 

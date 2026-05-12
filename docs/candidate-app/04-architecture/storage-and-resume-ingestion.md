@@ -74,6 +74,14 @@ Initial implementation path:
 - store as extracted text
 - create a resume context snapshot for the draft
 
+Current implementation boundary:
+
+- [Resume normalization helper](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/candidate/resume-normalization.ts)
+- [Resume normalization tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/candidate/resume-normalization.test.ts)
+- [Candidate practice draft repository](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.ts)
+
+Pasted resume text is normalized before it is written to `resume_context_json`. Empty or whitespace-only paste input becomes no resume context; meaningful pasted text becomes both `pastedText` and `extractedText` with `captureMode = "pasted_text"`.
+
 ### File Upload
 
 Later implementation path:
@@ -119,4 +127,3 @@ Later implementation path:
 - Should original resume files be retained, deleted after extraction, or retained only with candidate consent?
 - What retention period applies to extracted resume text?
 - Should candidates be able to maintain a reusable resume library across apps?
-
