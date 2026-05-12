@@ -283,8 +283,8 @@ Ground truth:
 | RES-F01 | 719 | Feature | Active | Fu Chen <fu@rangam.com> | Resume text normalization | Pasted text becomes normalized `resumeText` and draft context |
 | RES-S01 | 720 | Story | Resolved | Fu Chen <fu@rangam.com> | Add resume normalization helper | Unit tests cover whitespace, empty, long, and unusual text cases |
 | RES-S02 | 721 | Story | Resolved | Fu Chen <fu@rangam.com> | Store processed resume artifact only | Processed text/metadata persists without raw file retention by default |
-| RES-F02 | 722 | Feature | New | Fu Chen <fu@rangam.com> | Resume upload extraction boundary | Uploaded PDF/DOCX files produce extracted text or recoverable errors |
-| RES-S03 | 723 | Story | New | Fu Chen <fu@rangam.com> | Add private file upload boundary | App stores metadata and private storage path only during processing |
+| RES-F02 | 722 | Feature | Active | Fu Chen <fu@rangam.com> | Resume upload extraction boundary | Uploaded PDF/DOCX files produce extracted text or recoverable errors |
+| RES-S03 | 723 | Story | Resolved | Fu Chen <fu@rangam.com> | Add private file upload boundary | Pending upload metadata stores only private relative storage paths and processing-only retention |
 | RES-S04 | 724 | Story | New | Fu Chen <fu@rangam.com> | Add PDF/DOCX extraction path | Extracted text flows into normalized context |
 | RES-T01 | 725 | Task | New | Fu Chen <fu@rangam.com> | Delete original file after successful extraction by default | Retention policy is enforced and tested |
 | RES-F03 | 726 | Feature | New | Fu Chen <fu@rangam.com> | Resume photo/OCR capture | Multi-page image capture produces ordered extracted text |
@@ -342,8 +342,8 @@ Ground truth:
 | QSO-F02 | 743 | Feature | New | Fu Chen <fu@rangam.com> | Observability and incident readiness | App emits useful telemetry without leaking sensitive data |
 | QSO-S04 | 744 | Story | New | Fu Chen <fu@rangam.com> | Add observability plan to deployment | Auth denial, draft, generation, extraction, and API errors are observable |
 | QSO-S05 | 745 | Story | New | Fu Chen <fu@rangam.com> | Add incident runbook | Runbook covers auth, DB, AI provider, resume extraction, and deployment incidents |
-| QSO-F03 | 746 | Feature | New | Fu Chen <fu@rangam.com> | Security and privacy review | Candidate data, redirects, resume ingestion, and ownership checks are reviewed |
-| QSO-S06 | 747 | Story | New | Fu Chen <fu@rangam.com> | Review login redirect security | Open redirects, state tampering, and unsafe return targets are mitigated |
+| QSO-F03 | 746 | Feature | Active | Fu Chen <fu@rangam.com> | Security and privacy review | Candidate data, redirects, resume ingestion, and ownership checks are reviewed |
+| QSO-S06 | 747 | Story | Resolved | Fu Chen <fu@rangam.com> | Review login redirect security | Open redirects, state tampering, and unsafe return targets are mitigated |
 | QSO-S07 | 748 | Story | New | Fu Chen <fu@rangam.com> | Review resume data privacy | Retention, logging, and extraction failure paths avoid sensitive-data leaks |
 
 ### EPIC-10 Azure DevOps Collaboration And Delivery
@@ -428,8 +428,10 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 40 | Resolved | SESS-S06 | 717 | Fu Chen <fu@rangam.com> | Implement candidate summary route | Completed dashboard items open a candidate-owned summary route |
 | 41 | Resolved | RES-S02 | 721 | Fu Chen <fu@rangam.com> | Store processed resume artifact only | Processed resume artifact persists in draft context with raw-file retention set false |
 | 42 | Resolved | AUTH-S05 | 682 | Fu Chen <fu@rangam.com> | Add negative ownership behavior | Candidate draft/session/summary/dashboard misses return not-found style behavior without data leak |
-| 43 | New | RES-S03 | 723 | Fu Chen <fu@rangam.com> | Add private file upload boundary | App stores metadata and private storage path only during processing |
-| 44 | New | QSO-S06 | 747 | Fu Chen <fu@rangam.com> | Review login redirect security | Open redirects, state tampering, and unsafe return targets are mitigated |
+| 43 | Resolved | RES-S03 | 723 | Fu Chen <fu@rangam.com> | Add private file upload boundary | Pending upload metadata stores only private relative storage paths and processing-only retention |
+| 44 | Resolved | QSO-S06 | 747 | Fu Chen <fu@rangam.com> | Review login redirect security | Login-start and callback paths use allowlisted candidate return targets |
+| 45 | New | RES-S04 | 724 | Fu Chen <fu@rangam.com> | Add PDF/DOCX extraction path | Extracted text flows into normalized resume context |
+| 46 | New | QSO-S07 | 748 | Fu Chen <fu@rangam.com> | Review resume data privacy | Retention, logging, and extraction failure paths avoid sensitive-data leaks |
 
 ## Open Questions
 

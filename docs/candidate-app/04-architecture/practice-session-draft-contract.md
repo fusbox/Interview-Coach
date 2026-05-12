@@ -113,12 +113,15 @@ Session-draft-level frozen resume context used for one question-generation reque
 
 ```ts
 type ResumeContextSnapshot = {
-  sourceAssetIds: string[];
+  sourceAssets: ResumeSourceAsset[];
   pastedText: string | null;
   extractedText: string;
   captureMode: "none" | "pasted_text" | "file_upload" | "image_capture" | "mixed";
+  processedArtifact: ProcessedResumeArtifact | null;
 };
 ```
+
+The first file-upload boundary stores pending private upload metadata only. It does not expose public storage URLs, and downstream generation continues to require extracted/processed text before using resume content.
 
 ### `CandidateCustomQuestion`
 

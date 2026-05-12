@@ -20,6 +20,7 @@ export {
 } from "./candidate-profile-repository";
 export {
     createCandidatePracticeDraft,
+    attachPendingResumeUploadToCandidatePracticeDraft,
     findCandidatePracticeDraftById,
     findCandidatePracticeDraftBySessionId,
     findLatestEditableCandidatePracticeDraft,
@@ -33,6 +34,7 @@ export {
     type PracticeResumeTarget,
     type PracticeSessionDraftStatus,
     type ResumeContextSnapshot,
+    type ResumeSourceAsset,
     type UpdateCandidatePracticeDraftSetupInput,
 } from "./candidate-practice-draft-repository";
 export {

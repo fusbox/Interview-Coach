@@ -72,6 +72,7 @@ Mitigations:
 
 - redact logs by default
 - store raw files behind private blob paths
+- accept only private relative upload storage paths in app metadata; reject public URLs, protocol-relative paths, query strings, fragments, backslashes, and parent traversal
 - avoid raw resume text in client telemetry
 - document AI artifact capture rules
 - define retention periods
@@ -134,6 +135,7 @@ Mitigations:
 
 - no Supabase runtime secrets or clients
 - no public blob access for candidate files
+- no public upload URLs or unsafe storage paths persisted in candidate draft metadata
 - no raw session token storage
 - no cross-candidate data access
 - no production mock auth
@@ -151,4 +153,3 @@ Mitigations:
 
 - NIST SSDF: https://csrc.nist.gov/pubs/sp/800/218/final
 - OWASP ASVS: https://owasp.org/www-project-application-security-verification-standard/
-

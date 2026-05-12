@@ -196,6 +196,95 @@ describe("candidate practice draft repository", () => {
         );
     });
 
+    it("attaches pending private resume upload metadata to an editable candidate draft", async () => {
+        queryPostgresMock.mockResolvedValue({
+            rows: [practiceDraftRow({
+                practice_draft_id: "draft-upload",
+                candidate_profile_id: "profile-upload",
+                target_role: "Data analyst",
+                resume_context_json: {
+                    pastedText: null,
+                    extractedText: "",
+                    captureMode: "file_upload",
+                    sourceAssets: [{
+                        assetId: "asset-1",
+                        kind: "file",
+                        fileName: "resume.pdf",
+                        mimeType: "application/pdf",
+                        byteSize: 240_000,
+                        storagePath: "candidate-resume-uploads/asset-1/resume.pdf",
+                        status: "pending_extraction",
+                        retention: "processing_only",
+                    }],
+                    processedArtifact: null,
+                },
+            })],
+        });
+
+        const { attachPendingResumeUploadToCandidatePracticeDraft } = await import("./candidate-practice-draft-repository");
+
+        await expect(attachPendingResumeUploadToCandidatePracticeDraft({
+            candidateProfileId: "profile-upload",
+            practiceDraftId: "draft-upload",
+            assetId: "asset-1",
+            fileName: " resume.pdf ",
+            mimeType: "application/pdf",
+            byteSize: 240_000,
+            storagePath: "candidate-resume-uploads/asset-1/resume.pdf",
+        })).resolves.toMatchObject({
+            practiceDraftId: "draft-upload",
+            resumeContext: {
+                pastedText: null,
+                extractedText: "",
+                captureMode: "file_upload",
+                sourceAssets: [{
+                    assetId: "asset-1",
+                    kind: "file",
+                    fileName: "resume.pdf",
+                    mimeType: "application/pdf",
+                    byteSize: 240_000,
+                    storagePath: "candidate-resume-uploads/asset-1/resume.pdf",
+                    status: "pending_extraction",
+                    retention: "processing_only",
+                }],
+                processedArtifact: null,
+            },
+        });
+
+        expect(queryPostgresMock).toHaveBeenCalledWith(
+            expect.stringContaining("resume_context_json = $3"),
+            [
+                "draft-upload",
+                "profile-upload",
+                expect.objectContaining({
+                    captureMode: "file_upload",
+                    sourceAssets: [expect.objectContaining({
+                        storagePath: "candidate-resume-uploads/asset-1/resume.pdf",
+                        status: "pending_extraction",
+                    })],
+                    processedArtifact: null,
+                }),
+            ],
+        );
+        expect(queryPostgresMock.mock.calls[0][0]).toContain("where practice_draft_id = $1 and candidate_profile_id = $2 and status = 'draft'");
+    });
+
+    it("rejects unsafe pending resume upload storage paths before writing metadata", async () => {
+        const { attachPendingResumeUploadToCandidatePracticeDraft } = await import("./candidate-practice-draft-repository");
+
+        await expect(attachPendingResumeUploadToCandidatePracticeDraft({
+            candidateProfileId: "profile-upload",
+            practiceDraftId: "draft-upload",
+            assetId: "asset-1",
+            fileName: "resume.pdf",
+            mimeType: "application/pdf",
+            byteSize: 240_000,
+            storagePath: "https://storage.example/resume.pdf",
+        })).rejects.toThrow("Resume upload storage path must be a private candidate resume upload path.");
+
+        expect(queryPostgresMock).not.toHaveBeenCalled();
+    });
+
     it("normalizes legacy resume context into a processed artifact without raw-file retention", async () => {
         queryPostgresMock.mockResolvedValue({
             rows: [practiceDraftRow({

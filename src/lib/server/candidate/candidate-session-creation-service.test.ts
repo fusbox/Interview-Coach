@@ -33,6 +33,7 @@ describe("candidate session creation service", () => {
                     targetRole: "Reliability engineer",
                     jobDescription: "Own deployment quality.",
                     resumeContext: {
+                        sourceAssets: [],
                         pastedText: "Reduced change failure rate by 25%.",
                         extractedText: "Reduced change failure rate by 25%.",
                         captureMode: "pasted_text",
@@ -157,6 +158,7 @@ function practiceDraft(overrides: Partial<CandidatePracticeDraft> = {}): Candida
         targetRole: "Target role",
         jobDescription: null,
         resumeContext: {
+            sourceAssets: [],
             pastedText: null,
             extractedText: "",
             captureMode: "none",

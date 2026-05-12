@@ -21,10 +21,22 @@ export type PracticeResumeTarget =
     | "dashboard";
 
 export type ResumeContextSnapshot = {
+    sourceAssets: ResumeSourceAsset[];
     pastedText: string | null;
     extractedText: string;
     captureMode: "none" | "pasted_text" | "file_upload" | "image_capture" | "mixed";
     processedArtifact: ProcessedResumeArtifact | null;
+};
+
+export type ResumeSourceAsset = {
+    assetId: string;
+    kind: "file";
+    fileName: string;
+    mimeType: "application/pdf" | "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    byteSize: number;
+    storagePath: string;
+    status: "pending_extraction";
+    retention: "processing_only";
 };
 
 export type ProcessedResumeArtifact = {
@@ -74,6 +86,14 @@ export type UpdateCandidatePracticeDraftSetupInput = CandidatePracticeDraftLooku
     targetRole: string;
     jobDescription?: string | null;
     resumeText?: string | null;
+};
+
+export type AttachPendingResumeUploadToCandidatePracticeDraftInput = CandidatePracticeDraftLookup & {
+    assetId: string;
+    fileName: string;
+    mimeType: ResumeSourceAsset["mimeType"];
+    byteSize: number;
+    storagePath: string;
 };
 
 export type AttachGeneratedSessionToCandidatePracticeDraftInput = CandidatePracticeDraftLookup & {
@@ -227,6 +247,29 @@ export async function updateCandidatePracticeDraftSetup(input: UpdateCandidatePr
     return result.rows[0] ? mapCandidatePracticeDraftRow(result.rows[0]) : null;
 }
 
+export async function attachPendingResumeUploadToCandidatePracticeDraft(
+    input: AttachPendingResumeUploadToCandidatePracticeDraftInput,
+): Promise<CandidatePracticeDraft | null> {
+    const practiceDraftId = normalizeId(input.practiceDraftId, "Practice draft ID");
+    const candidateProfileId = normalizeId(input.candidateProfileId, "Candidate profile ID");
+    const resumeContext = buildPendingResumeUploadContext(input);
+
+    const result = await queryPostgres<CandidatePracticeDraftRow>(
+        `
+            update public.candidate_practice_drafts
+            set
+                resume_context_json = $3,
+                resume_target_screen = 'practice_setup',
+                last_activity_at = now()
+            where practice_draft_id = $1 and candidate_profile_id = $2 and status = 'draft'
+            returning ${draftSelect}
+        `,
+        [practiceDraftId, candidateProfileId, resumeContext],
+    );
+
+    return result.rows[0] ? mapCandidatePracticeDraftRow(result.rows[0]) : null;
+}
+
 export async function transitionCandidatePracticeDraftToGenerating(input: CandidatePracticeDraftLookup): Promise<CandidatePracticeDraft | null> {
     const practiceDraftId = normalizeId(input.practiceDraftId, "Practice draft ID");
     const candidateProfileId = normalizeId(input.candidateProfileId, "Candidate profile ID");
@@ -319,6 +362,7 @@ function buildResumeContext(resumeText: string | null): ResumeContextSnapshot {
 
     if (!normalizedResumeText) {
         return {
+            sourceAssets: [],
             pastedText: null,
             extractedText: "",
             captureMode: "none",
@@ -327,6 +371,7 @@ function buildResumeContext(resumeText: string | null): ResumeContextSnapshot {
     }
 
     return {
+        sourceAssets: [],
         pastedText: normalizedResumeText,
         extractedText: normalizedResumeText,
         captureMode: "pasted_text",
@@ -336,6 +381,75 @@ function buildResumeContext(resumeText: string | null): ResumeContextSnapshot {
             originalRetained: false,
         },
     };
+}
+
+function buildPendingResumeUploadContext(input: AttachPendingResumeUploadToCandidatePracticeDraftInput): ResumeContextSnapshot {
+    return {
+        sourceAssets: [normalizePendingResumeUpload(input)],
+        pastedText: null,
+        extractedText: "",
+        captureMode: "file_upload",
+        processedArtifact: null,
+    };
+}
+
+function normalizePendingResumeUpload(input: AttachPendingResumeUploadToCandidatePracticeDraftInput): ResumeSourceAsset {
+    const assetId = normalizeId(input.assetId, "Resume asset ID");
+    const fileName = normalizeFileName(input.fileName);
+    const storagePath = normalizePrivateUploadStoragePath(input.storagePath);
+    const byteSize = normalizeByteSize(input.byteSize);
+
+    return {
+        assetId,
+        kind: "file",
+        fileName,
+        mimeType: normalizeResumeMimeType(input.mimeType),
+        byteSize,
+        storagePath,
+        status: "pending_extraction",
+        retention: "processing_only",
+    };
+}
+
+function normalizeFileName(value: string): string {
+    const fileName = normalizeId(value, "Resume file name");
+    if (fileName.includes("/") || fileName.includes("\\") || fileName.includes("..")) {
+        throw new Error("Resume file name must not include path segments.");
+    }
+    return fileName;
+}
+
+function normalizePrivateUploadStoragePath(value: string): string {
+    const storagePath = normalizeId(value, "Resume upload storage path");
+    if (
+        !storagePath.startsWith("candidate-resume-uploads/") ||
+        storagePath.startsWith("/") ||
+        storagePath.includes("://") ||
+        storagePath.includes("\\") ||
+        storagePath.includes("..") ||
+        storagePath.includes("?") ||
+        storagePath.includes("#")
+    ) {
+        throw new Error("Resume upload storage path must be a private candidate resume upload path.");
+    }
+    return storagePath;
+}
+
+function normalizeByteSize(value: number): number {
+    if (!Number.isInteger(value) || value <= 0) {
+        throw new Error("Resume upload byte size must be a positive integer.");
+    }
+    return value;
+}
+
+function normalizeResumeMimeType(value: string): ResumeSourceAsset["mimeType"] {
+    if (
+        value !== "application/pdf" &&
+        value !== "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ) {
+        throw new Error("Resume upload MIME type is not supported.");
+    }
+    return value;
 }
 
 function normalizeId(value: string, label: string): string {
@@ -379,11 +493,49 @@ function normalizeResumeContext(value: unknown): ResumeContextSnapshot {
         : "none";
 
     return {
+        sourceAssets: normalizeSourceAssets(record.sourceAssets),
         pastedText: typeof record.pastedText === "string" ? record.pastedText : null,
         extractedText: typeof record.extractedText === "string" ? record.extractedText : "",
         captureMode,
         processedArtifact: normalizeProcessedArtifact(record, captureMode),
     };
+}
+
+function normalizeSourceAssets(value: unknown): ResumeSourceAsset[] {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value.flatMap((item) => {
+        if (!item || typeof item !== "object" || Array.isArray(item)) {
+            return [];
+        }
+
+        const asset = item as Partial<ResumeSourceAsset>;
+        if (
+            typeof asset.assetId !== "string" ||
+            typeof asset.fileName !== "string" ||
+            typeof asset.mimeType !== "string" ||
+            typeof asset.byteSize !== "number" ||
+            typeof asset.storagePath !== "string"
+        ) {
+            return [];
+        }
+
+        try {
+            return [normalizePendingResumeUpload({
+                candidateProfileId: "normalization-only",
+                practiceDraftId: "normalization-only",
+                assetId: asset.assetId,
+                fileName: asset.fileName,
+                mimeType: asset.mimeType,
+                byteSize: asset.byteSize,
+                storagePath: asset.storagePath,
+            })];
+        } catch {
+            return [];
+        }
+    });
 }
 
 function normalizeProcessedArtifact(

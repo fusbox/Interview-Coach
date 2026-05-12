@@ -15,7 +15,7 @@ Downstream logic should consume:
 
 ```ts
 type ResumeContextSnapshot = {
-  sourceAssetIds: string[];
+  sourceAssets: ResumeSourceAsset[];
   pastedText: string | null;
   extractedText: string;
   captureMode: "none" | "pasted_text" | "file_upload" | "image_capture" | "mixed";
@@ -24,6 +24,17 @@ type ResumeContextSnapshot = {
     source: "pasted_text" | "file_upload" | "image_capture" | "mixed";
     originalRetained: false;
   } | null;
+};
+
+type ResumeSourceAsset = {
+  assetId: string;
+  kind: "file";
+  fileName: string;
+  mimeType: "application/pdf" | "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  byteSize: number;
+  storagePath: string;
+  status: "pending_extraction";
+  retention: "processing_only";
 };
 ```
 
@@ -98,6 +109,13 @@ Later implementation path:
 - attach asset to draft
 
 Supported formats should begin with PDF and DOCX.
+
+Current implementation boundary:
+
+- [Candidate practice draft repository](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.ts)
+- [Candidate practice draft repository tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.test.ts)
+
+The first upload slice does not extract text yet. It can attach pending upload metadata to an editable candidate-owned draft with `captureMode = "file_upload"`, `processedArtifact = null`, and one `sourceAssets` entry. Storage paths must be private relative paths under `candidate-resume-uploads/`; public URLs, protocol-relative paths, query strings, fragments, backslashes, and parent traversal are rejected before any draft metadata is written.
 
 ### Photo Capture
 

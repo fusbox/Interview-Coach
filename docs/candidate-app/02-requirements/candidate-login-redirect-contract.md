@@ -85,6 +85,12 @@ Local dev auth should simulate the same contract:
 
 The same allowlist and redirect behavior should apply in local mode so route protection and return-after-login are testable before external SSO is available.
 
+## Current Implementation Notes
+
+- `/auth/talentarbor/start` stores only allowlisted candidate paths in the short-lived `ic_candidate_login_next` cookie before redirecting to `LoginWithType/2`.
+- `/auth/callback` normalizes the `next` value through the same candidate allowlist before redirecting. Unsafe absolute, protocol-relative, query-bearing, fragment-bearing, API, recruiter, admin, or QA paths fall back to `/dashboard`.
+- The actual external identity handoff remains open until the TalentArbor/RangamWorks team confirms the supported return/state/callback contract.
+
 ## Acceptance Criteria
 
 - Public `Start practicing` initiates candidate login and returns an authenticated candidate to `/practice`.
