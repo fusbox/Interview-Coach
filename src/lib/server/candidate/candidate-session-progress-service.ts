@@ -70,6 +70,42 @@ export async function advanceCandidateOwnedSession(input: CandidateSessionAdvanc
     };
 }
 
+export async function pauseCandidateOwnedSession(input: CandidateSessionProgressInput): Promise<CandidateSessionProgressResult> {
+    const ownership = await findCandidatePracticeDraftBySessionId(input);
+    if (!ownership) {
+        return { ok: false, error: "Candidate session was not found." };
+    }
+
+    const session = await updateSessionCommand(input.sessionId, { status: "PAUSED" });
+    const draftProgress = await persistDraftProgressTarget(input, session.status);
+
+    return {
+        ok: true,
+        sessionId: session.id,
+        status: session.status,
+        currentQuestionIndex: session.currentQuestionIndex,
+        resumeTargetScreen: draftProgress,
+    };
+}
+
+export async function resumeCandidateOwnedSession(input: CandidateSessionProgressInput): Promise<CandidateSessionProgressResult> {
+    const ownership = await findCandidatePracticeDraftBySessionId(input);
+    if (!ownership) {
+        return { ok: false, error: "Candidate session was not found." };
+    }
+
+    const session = await updateSessionCommand(input.sessionId, { status: "IN_SESSION" });
+    const draftProgress = await persistDraftProgressTarget(input, session.status);
+
+    return {
+        ok: true,
+        sessionId: session.id,
+        status: session.status,
+        currentQuestionIndex: session.currentQuestionIndex,
+        resumeTargetScreen: draftProgress,
+    };
+}
+
 async function persistDraftProgressTarget(input: CandidateSessionProgressInput, sessionStatus: SessionStatus) {
     const progress = mapSessionStatusToDraftProgress(sessionStatus);
     const draft = await updateCandidatePracticeDraftProgressBySessionId({

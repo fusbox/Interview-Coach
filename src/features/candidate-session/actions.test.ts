@@ -2,17 +2,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
     advanceCandidateOwnedSessionMock,
+    pauseCandidateOwnedSessionMock,
     redirectMock,
     resolveCandidateProfileFromIdentityMock,
     resolveLocalCandidateAuthHandoffMock,
+    resumeCandidateOwnedSessionMock,
     startCandidateOwnedSessionMock,
 } = vi.hoisted(() => ({
     advanceCandidateOwnedSessionMock: vi.fn(),
+    pauseCandidateOwnedSessionMock: vi.fn(),
     redirectMock: vi.fn((path: string) => {
         throw new Error(`NEXT_REDIRECT:${path}`);
     }),
     resolveCandidateProfileFromIdentityMock: vi.fn(),
     resolveLocalCandidateAuthHandoffMock: vi.fn(),
+    resumeCandidateOwnedSessionMock: vi.fn(),
     startCandidateOwnedSessionMock: vi.fn(),
 }));
 
@@ -25,6 +29,8 @@ vi.mock("@/lib/server/candidate", () => ({
     resolveCandidateProfileFromIdentity: resolveCandidateProfileFromIdentityMock,
     startCandidateOwnedSession: startCandidateOwnedSessionMock,
     advanceCandidateOwnedSession: advanceCandidateOwnedSessionMock,
+    pauseCandidateOwnedSession: pauseCandidateOwnedSessionMock,
+    resumeCandidateOwnedSession: resumeCandidateOwnedSessionMock,
 }));
 
 describe("candidate session actions", () => {
@@ -78,6 +84,56 @@ describe("candidate session actions", () => {
             currentQuestionIndex: 1,
             status: "IN_SESSION",
         });
+    });
+
+    it("pauses the current candidate-owned session and redirects back to the route", async () => {
+        pauseCandidateOwnedSessionMock.mockResolvedValue({
+            ok: true,
+            sessionId: "session-1",
+            status: "PAUSED",
+            currentQuestionIndex: 1,
+            resumeTargetScreen: "session_in_progress",
+        });
+        const { pauseCandidateSessionAction } = await import("./actions");
+
+        await expect(pauseCandidateSessionAction("session-1")).rejects.toThrow("NEXT_REDIRECT:/session/session-1");
+
+        expect(pauseCandidateOwnedSessionMock).toHaveBeenCalledWith({
+            candidateProfileId: "profile-1",
+            sessionId: "session-1",
+        });
+    });
+
+    it("resumes the current candidate-owned session and redirects back to the route", async () => {
+        resumeCandidateOwnedSessionMock.mockResolvedValue({
+            ok: true,
+            sessionId: "session-1",
+            status: "IN_SESSION",
+            currentQuestionIndex: 1,
+            resumeTargetScreen: "session_in_progress",
+        });
+        const { resumeCandidateSessionAction } = await import("./actions");
+
+        await expect(resumeCandidateSessionAction("session-1")).rejects.toThrow("NEXT_REDIRECT:/session/session-1");
+
+        expect(resumeCandidateOwnedSessionMock).toHaveBeenCalledWith({
+            candidateProfileId: "profile-1",
+            sessionId: "session-1",
+        });
+    });
+
+    it("returns ownership errors from progress mutations without redirecting", async () => {
+        pauseCandidateOwnedSessionMock.mockResolvedValue({
+            ok: false,
+            error: "Candidate session was not found.",
+        });
+        const { pauseCandidateSessionAction } = await import("./actions");
+
+        await expect(pauseCandidateSessionAction("session-other")).resolves.toEqual({
+            ok: false,
+            error: "Candidate session was not found.",
+        });
+        expect(redirectMock).not.toHaveBeenCalled();
     });
 
     it("returns an error when no candidate auth handoff exists", async () => {

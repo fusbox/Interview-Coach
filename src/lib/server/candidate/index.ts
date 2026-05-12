@@ -45,6 +45,8 @@ export {
 } from "./candidate-session-loader";
 export {
     advanceCandidateOwnedSession,
+    pauseCandidateOwnedSession,
+    resumeCandidateOwnedSession,
     startCandidateOwnedSession,
 } from "./candidate-session-progress-service";
 export {

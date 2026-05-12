@@ -117,6 +117,54 @@ describe("candidate session progress service", () => {
         });
     });
 
+    it("pauses a candidate-owned session without losing the in-progress resume target", async () => {
+        updateSessionCommandMock.mockResolvedValue({
+            id: "session-1",
+            status: "PAUSED",
+            currentQuestionIndex: 1,
+        });
+
+        const { pauseCandidateOwnedSession } = await import("./candidate-session-progress-service");
+
+        await expect(pauseCandidateOwnedSession({
+            candidateProfileId: "profile-1",
+            sessionId: "session-1",
+        })).resolves.toMatchObject({
+            ok: true,
+            status: "PAUSED",
+            resumeTargetScreen: "session_in_progress",
+        });
+
+        expect(updateSessionCommandMock).toHaveBeenCalledWith("session-1", { status: "PAUSED" });
+        expect(updateCandidatePracticeDraftProgressBySessionIdMock).toHaveBeenCalledWith({
+            candidateProfileId: "profile-1",
+            sessionId: "session-1",
+            status: "in_session",
+            resumeTargetScreen: "session_in_progress",
+        });
+    });
+
+    it("resumes a paused candidate-owned session and keeps the draft in progress", async () => {
+        updateSessionCommandMock.mockResolvedValue({
+            id: "session-1",
+            status: "IN_SESSION",
+            currentQuestionIndex: 1,
+        });
+
+        const { resumeCandidateOwnedSession } = await import("./candidate-session-progress-service");
+
+        await expect(resumeCandidateOwnedSession({
+            candidateProfileId: "profile-1",
+            sessionId: "session-1",
+        })).resolves.toMatchObject({
+            ok: true,
+            status: "IN_SESSION",
+            resumeTargetScreen: "session_in_progress",
+        });
+
+        expect(updateSessionCommandMock).toHaveBeenCalledWith("session-1", { status: "IN_SESSION" });
+    });
+
     it("does not update the session when the draft is not owned by the current candidate", async () => {
         findCandidatePracticeDraftBySessionIdMock.mockResolvedValue(null);
 

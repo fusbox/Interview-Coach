@@ -19,6 +19,8 @@ vi.mock("@/lib/server/candidate", () => ({
 vi.mock("@/features/candidate-session/actions", () => ({
     startCandidateSessionAction: vi.fn(),
     advanceCandidateSessionAction: vi.fn(),
+    pauseCandidateSessionAction: vi.fn(),
+    resumeCandidateSessionAction: vi.fn(),
 }));
 
 describe("/session/[sessionId] page", () => {
@@ -79,6 +81,29 @@ describe("/session/[sessionId] page", () => {
         render(await CandidateSessionRoute({ params: Promise.resolve({ sessionId: "session-1" }) }));
 
         expect(screen.getByRole("button", { name: /next question/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /pause/i })).toBeInTheDocument();
+    });
+
+    it("renders a resume action for a paused session", async () => {
+        loadCandidateSessionForCurrentCandidateMock.mockResolvedValue({
+            practiceDraftId: "draft-1",
+            session: {
+                id: "session-1",
+                status: "PAUSED",
+                role: "QA analyst",
+                currentQuestionIndex: 0,
+                questions: [
+                    { id: "question-1", text: "Question one?", category: "Behavioral", index: 0 },
+                ],
+                answers: {},
+                initialsRequired: false,
+            },
+        });
+        const { default: CandidateSessionRoute } = await import("./page");
+
+        render(await CandidateSessionRoute({ params: Promise.resolve({ sessionId: "session-1" }) }));
+
+        expect(screen.getByRole("button", { name: /resume/i })).toBeInTheDocument();
     });
 
     it("returns not found when the session is not owned by the current candidate", async () => {

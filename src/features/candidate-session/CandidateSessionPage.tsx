@@ -1,7 +1,12 @@
 import Link from "next/link";
 
 import type { LoadedCandidateSession } from "@/lib/server/candidate";
-import { advanceCandidateSessionAction, startCandidateSessionAction } from "./actions";
+import {
+    advanceCandidateSessionAction,
+    pauseCandidateSessionAction,
+    resumeCandidateSessionAction,
+    startCandidateSessionAction,
+} from "./actions";
 
 type CandidateSessionPageProps = {
     loadedSession: LoadedCandidateSession;
@@ -24,6 +29,16 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
     async function advanceAction() {
         "use server";
         await advanceCandidateSessionAction(session.id, nextQuestionIndex, nextStatus);
+    }
+
+    async function pauseAction() {
+        "use server";
+        await pauseCandidateSessionAction(session.id);
+    }
+
+    async function resumeAction() {
+        "use server";
+        await resumeCandidateSessionAction(session.id);
     }
 
     return (
@@ -73,12 +88,32 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
                                 </form>
                             ) : null}
                             {session.status === "IN_SESSION" ? (
-                                <form action={advanceAction}>
+                                <div className="flex flex-wrap gap-3">
+                                    <form action={advanceAction}>
+                                        <button
+                                            type="submit"
+                                            className="rounded-full bg-primary px-5 py-3 text-sm font-bold text-white shadow-flat transition hover:bg-primary-hover"
+                                        >
+                                            {isLastQuestion ? "Finish session" : "Next question"}
+                                        </button>
+                                    </form>
+                                    <form action={pauseAction}>
+                                        <button
+                                            type="submit"
+                                            className="rounded-full border border-border bg-white px-5 py-3 text-sm font-bold text-text-primary shadow-flat transition hover:border-primary"
+                                        >
+                                            Pause
+                                        </button>
+                                    </form>
+                                </div>
+                            ) : null}
+                            {session.status === "PAUSED" ? (
+                                <form action={resumeAction}>
                                     <button
                                         type="submit"
                                         className="rounded-full bg-primary px-5 py-3 text-sm font-bold text-white shadow-flat transition hover:bg-primary-hover"
                                     >
-                                        {isLastQuestion ? "Finish session" : "Next question"}
+                                        Resume
                                     </button>
                                 </form>
                             ) : null}

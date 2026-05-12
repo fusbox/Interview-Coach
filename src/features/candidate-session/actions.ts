@@ -4,8 +4,10 @@ import { redirect } from "next/navigation";
 
 import {
     advanceCandidateOwnedSession,
+    pauseCandidateOwnedSession,
     resolveCandidateProfileFromIdentity,
     resolveLocalCandidateAuthHandoff,
+    resumeCandidateOwnedSession,
     startCandidateOwnedSession,
 } from "@/lib/server/candidate";
 import type { SessionStatus } from "@/lib/domain/types";
@@ -48,6 +50,42 @@ export async function advanceCandidateSessionAction(
         sessionId,
         currentQuestionIndex,
         status,
+    });
+
+    if (!result.ok) {
+        return result;
+    }
+
+    redirect(`/session/${result.sessionId}`);
+}
+
+export async function pauseCandidateSessionAction(sessionId: string): Promise<CandidateSessionActionResult> {
+    const profile = await resolveCurrentCandidateProfile();
+    if (!profile.ok) {
+        return profile;
+    }
+
+    const result = await pauseCandidateOwnedSession({
+        candidateProfileId: profile.candidateProfileId,
+        sessionId,
+    });
+
+    if (!result.ok) {
+        return result;
+    }
+
+    redirect(`/session/${result.sessionId}`);
+}
+
+export async function resumeCandidateSessionAction(sessionId: string): Promise<CandidateSessionActionResult> {
+    const profile = await resolveCurrentCandidateProfile();
+    if (!profile.ok) {
+        return profile;
+    }
+
+    const result = await resumeCandidateOwnedSession({
+        candidateProfileId: profile.candidateProfileId,
+        sessionId,
     });
 
     if (!result.ok) {
