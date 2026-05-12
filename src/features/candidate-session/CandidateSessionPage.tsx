@@ -5,7 +5,9 @@ import {
     advanceCandidateSessionAction,
     pauseCandidateSessionAction,
     resumeCandidateSessionAction,
+    retryCandidateQuestionAction,
     startCandidateSessionAction,
+    submitCandidateAnswerAction,
 } from "./actions";
 
 type CandidateSessionPageProps = {
@@ -20,6 +22,9 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
     const nextQuestionIndex = session.currentQuestionIndex + 1;
     const isLastQuestion = nextQuestionIndex >= totalQuestions;
     const nextStatus = isLastQuestion ? "COMPLETED" : "IN_SESSION";
+    const currentAnswer = currentQuestion ? session.answers[currentQuestion.id] : undefined;
+    const hasSubmittedCurrentAnswer = Boolean(currentAnswer?.submittedAt);
+    const canAdvance = ["IN_SESSION", "AWAITING_EVALUATION", "REVIEWING"].includes(session.status);
 
     async function startAction() {
         "use server";
@@ -39,6 +44,22 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
     async function resumeAction() {
         "use server";
         await resumeCandidateSessionAction(session.id);
+    }
+
+    async function submitAnswerAction(formData: FormData) {
+        "use server";
+        if (!currentQuestion) {
+            return;
+        }
+        await submitCandidateAnswerAction(session.id, currentQuestion.id, formData);
+    }
+
+    async function retryQuestionAction() {
+        "use server";
+        if (!currentQuestion) {
+            return;
+        }
+        await retryCandidateQuestionAction(session.id, currentQuestion.id);
     }
 
     return (
@@ -77,6 +98,43 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
                             <p className="text-sm font-semibold text-text-secondary">
                                 {currentQuestion.category}
                             </p>
+                            {session.status === "IN_SESSION" && !hasSubmittedCurrentAnswer ? (
+                                <form action={submitAnswerAction} className="space-y-3">
+                                    <label htmlFor="answerText" className="block text-sm font-bold text-text-primary">
+                                        Your answer
+                                    </label>
+                                    <textarea
+                                        id="answerText"
+                                        name="answerText"
+                                        rows={8}
+                                        defaultValue={currentAnswer?.draft || currentAnswer?.transcript || ""}
+                                        className="w-full rounded-2xl border border-border bg-white px-4 py-3 text-base leading-7 text-text-primary shadow-inner outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        placeholder="Write the answer you would give in the interview."
+                                    />
+                                    <button
+                                        type="submit"
+                                        className="rounded-full bg-primary px-5 py-3 text-sm font-bold text-white shadow-flat transition hover:bg-primary-hover"
+                                    >
+                                        Save answer
+                                    </button>
+                                </form>
+                            ) : null}
+                            {hasSubmittedCurrentAnswer ? (
+                                <div className="space-y-3 rounded-2xl border border-border bg-surface-sky p-5">
+                                    <p className="text-sm font-bold text-text-primary">Saved answer</p>
+                                    <p className="whitespace-pre-wrap text-sm leading-7 text-text-secondary">
+                                        {currentAnswer?.transcript}
+                                    </p>
+                                    <form action={retryQuestionAction}>
+                                        <button
+                                            type="submit"
+                                            className="rounded-full border border-border bg-white px-5 py-3 text-sm font-bold text-text-primary shadow-flat transition hover:border-primary"
+                                        >
+                                            Retry question
+                                        </button>
+                                    </form>
+                                </div>
+                            ) : null}
                             {session.status === "NOT_STARTED" ? (
                                 <form action={startAction}>
                                     <button
@@ -87,7 +145,7 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
                                     </button>
                                 </form>
                             ) : null}
-                            {session.status === "IN_SESSION" ? (
+                            {canAdvance ? (
                                 <div className="flex flex-wrap gap-3">
                                     <form action={advanceAction}>
                                         <button

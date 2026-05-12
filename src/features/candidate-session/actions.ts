@@ -8,7 +8,9 @@ import {
     resolveCandidateProfileFromIdentity,
     resolveLocalCandidateAuthHandoff,
     resumeCandidateOwnedSession,
+    retryCandidateOwnedQuestion,
     startCandidateOwnedSession,
+    submitCandidateOwnedAnswer,
 } from "@/lib/server/candidate";
 import type { SessionStatus } from "@/lib/domain/types";
 
@@ -86,6 +88,53 @@ export async function resumeCandidateSessionAction(sessionId: string): Promise<C
     const result = await resumeCandidateOwnedSession({
         candidateProfileId: profile.candidateProfileId,
         sessionId,
+    });
+
+    if (!result.ok) {
+        return result;
+    }
+
+    redirect(`/session/${result.sessionId}`);
+}
+
+export async function submitCandidateAnswerAction(
+    sessionId: string,
+    questionId: string,
+    formData: FormData,
+): Promise<CandidateSessionActionResult> {
+    const profile = await resolveCurrentCandidateProfile();
+    if (!profile.ok) {
+        return profile;
+    }
+
+    const result = await submitCandidateOwnedAnswer({
+        candidateProfileId: profile.candidateProfileId,
+        sessionId,
+        questionId,
+        answerText: String(formData.get("answerText") ?? ""),
+    });
+
+    if (!result.ok) {
+        return result;
+    }
+
+    redirect(`/session/${result.sessionId}`);
+}
+
+export async function retryCandidateQuestionAction(
+    sessionId: string,
+    questionId: string,
+): Promise<CandidateSessionActionResult> {
+    const profile = await resolveCurrentCandidateProfile();
+    if (!profile.ok) {
+        return profile;
+    }
+
+    const result = await retryCandidateOwnedQuestion({
+        candidateProfileId: profile.candidateProfileId,
+        sessionId,
+        questionId,
+        retryContext: { trigger: "user" },
     });
 
     if (!result.ok) {

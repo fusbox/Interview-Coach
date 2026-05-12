@@ -21,6 +21,8 @@ vi.mock("@/features/candidate-session/actions", () => ({
     advanceCandidateSessionAction: vi.fn(),
     pauseCandidateSessionAction: vi.fn(),
     resumeCandidateSessionAction: vi.fn(),
+    retryCandidateQuestionAction: vi.fn(),
+    submitCandidateAnswerAction: vi.fn(),
 }));
 
 describe("/session/[sessionId] page", () => {
@@ -82,6 +84,39 @@ describe("/session/[sessionId] page", () => {
 
         expect(screen.getByRole("button", { name: /next question/i })).toBeInTheDocument();
         expect(screen.getByRole("button", { name: /pause/i })).toBeInTheDocument();
+        expect(screen.getByLabelText(/your answer/i)).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /save answer/i })).toBeInTheDocument();
+    });
+
+    it("renders saved answer state and retry action for a submitted answer", async () => {
+        loadCandidateSessionForCurrentCandidateMock.mockResolvedValue({
+            practiceDraftId: "draft-1",
+            session: {
+                id: "session-1",
+                status: "AWAITING_EVALUATION",
+                role: "QA analyst",
+                currentQuestionIndex: 0,
+                questions: [
+                    { id: "question-1", text: "Question one?", category: "Behavioral", index: 0 },
+                    { id: "question-2", text: "Question two?", category: "Technical", index: 1 },
+                ],
+                answers: {
+                    "question-1": {
+                        questionId: "question-1",
+                        transcript: "I improved release quality with a checklist.",
+                        submittedAt: 1770000000000,
+                    },
+                },
+                initialsRequired: false,
+            },
+        });
+        const { default: CandidateSessionRoute } = await import("./page");
+
+        render(await CandidateSessionRoute({ params: Promise.resolve({ sessionId: "session-1" }) }));
+
+        expect(screen.getByText("I improved release quality with a checklist.")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /retry question/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /next question/i })).toBeInTheDocument();
     });
 
     it("renders a resume action for a paused session", async () => {

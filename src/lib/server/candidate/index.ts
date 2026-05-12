@@ -50,6 +50,10 @@ export {
     startCandidateOwnedSession,
 } from "./candidate-session-progress-service";
 export {
+    retryCandidateOwnedQuestion,
+    submitCandidateOwnedAnswer,
+} from "./candidate-session-answer-service";
+export {
     getCandidateAuthMode,
     getCandidateDataBackend,
     getCandidateRuntimeConfig,

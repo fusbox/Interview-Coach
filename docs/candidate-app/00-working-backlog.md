@@ -260,7 +260,7 @@ Ground truth:
 | SESS-S05 | 715 | Story | Resolved | Fu Chen <fu@rangam.com> | Add session mutation tests | Start, next, pause, resume, complete, and ownership paths are covered |
 | SESS-F03 | 716 | Feature | New | Fu Chen <fu@rangam.com> | Candidate feedback and summary | Candidate sees useful coaching without recruiter-facing readiness semantics |
 | SESS-S06 | 717 | Story | New | Fu Chen <fu@rangam.com> | Implement candidate summary route | Completed session opens candidate-owned summary/history surface |
-| SESS-S07 | TBD | Story | New | Fu Chen <fu@rangam.com> | Add candidate answer and retry mutation surface | Answer submit and retry persist through candidate-owned session actions without invite-token dependency |
+| SESS-S07 | TBD | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate answer and retry mutation surface | Candidate-owned answer submit and retry persist through server actions and Postgres session storage without invite-token dependency |
 
 ### EPIC-07 Resume Ingestion And Candidate Context
 
@@ -420,7 +420,7 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 32 | Resolved | SESS-S03 | 713 | Fu Chen <fu@rangam.com> | Render real session state in `/session/[sessionId]` | Candidate-owned session route renders persisted role, status, and current question |
 | 33 | Resolved | SESS-S04 | 714 | Fu Chen <fu@rangam.com> | Persist session progress and resume target | Start/next actions persist shared session state and draft resume target |
 | 34 | Resolved | SESS-S05 | 715 | Fu Chen <fu@rangam.com> | Add session mutation tests | Start, next, pause, resume, complete, and ownership paths are covered |
-| 35 | New | SESS-S07 | TBD | Fu Chen <fu@rangam.com> | Add candidate answer and retry mutation surface | Candidate-owned answer/retry does not depend on invite token |
+| 35 | Resolved | SESS-S07 | TBD | Fu Chen <fu@rangam.com> | Add candidate answer and retry mutation surface | Candidate-owned answer/retry persists through server actions without invite token dependency |
 | 36 | New | DASH-S01 | 732 | Fu Chen <fu@rangam.com> | Define dashboard query contract | Empty/active/completed/forbidden states are represented |
 
 ## Open Questions

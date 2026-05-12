@@ -8,6 +8,8 @@ const {
     resolveLocalCandidateAuthHandoffMock,
     resumeCandidateOwnedSessionMock,
     startCandidateOwnedSessionMock,
+    retryCandidateOwnedQuestionMock,
+    submitCandidateOwnedAnswerMock,
 } = vi.hoisted(() => ({
     advanceCandidateOwnedSessionMock: vi.fn(),
     pauseCandidateOwnedSessionMock: vi.fn(),
@@ -18,6 +20,8 @@ const {
     resolveLocalCandidateAuthHandoffMock: vi.fn(),
     resumeCandidateOwnedSessionMock: vi.fn(),
     startCandidateOwnedSessionMock: vi.fn(),
+    retryCandidateOwnedQuestionMock: vi.fn(),
+    submitCandidateOwnedAnswerMock: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -31,6 +35,8 @@ vi.mock("@/lib/server/candidate", () => ({
     advanceCandidateOwnedSession: advanceCandidateOwnedSessionMock,
     pauseCandidateOwnedSession: pauseCandidateOwnedSessionMock,
     resumeCandidateOwnedSession: resumeCandidateOwnedSessionMock,
+    retryCandidateOwnedQuestion: retryCandidateOwnedQuestionMock,
+    submitCandidateOwnedAnswer: submitCandidateOwnedAnswerMock,
 }));
 
 describe("candidate session actions", () => {
@@ -119,6 +125,50 @@ describe("candidate session actions", () => {
         expect(resumeCandidateOwnedSessionMock).toHaveBeenCalledWith({
             candidateProfileId: "profile-1",
             sessionId: "session-1",
+        });
+    });
+
+    it("submits a candidate answer from form data and redirects back to the route", async () => {
+        submitCandidateOwnedAnswerMock.mockResolvedValue({
+            ok: true,
+            sessionId: "session-1",
+            status: "AWAITING_EVALUATION",
+            questionId: "question-1",
+        });
+        const formData = new FormData();
+        formData.set("answerText", "I improved release quality with a clearer checklist.");
+        const { submitCandidateAnswerAction } = await import("./actions");
+
+        await expect(submitCandidateAnswerAction("session-1", "question-1", formData))
+            .rejects
+            .toThrow("NEXT_REDIRECT:/session/session-1");
+
+        expect(submitCandidateOwnedAnswerMock).toHaveBeenCalledWith({
+            candidateProfileId: "profile-1",
+            sessionId: "session-1",
+            questionId: "question-1",
+            answerText: "I improved release quality with a clearer checklist.",
+        });
+    });
+
+    it("retries a candidate-owned question and redirects back to the route", async () => {
+        retryCandidateOwnedQuestionMock.mockResolvedValue({
+            ok: true,
+            sessionId: "session-1",
+            status: "IN_SESSION",
+            questionId: "question-1",
+        });
+        const { retryCandidateQuestionAction } = await import("./actions");
+
+        await expect(retryCandidateQuestionAction("session-1", "question-1"))
+            .rejects
+            .toThrow("NEXT_REDIRECT:/session/session-1");
+
+        expect(retryCandidateOwnedQuestionMock).toHaveBeenCalledWith({
+            candidateProfileId: "profile-1",
+            sessionId: "session-1",
+            questionId: "question-1",
+            retryContext: { trigger: "user" },
         });
     });
 
