@@ -8,8 +8,18 @@ const { startPracticeGenerationActionMock } = vi.hoisted(() => ({
     startPracticeGenerationActionMock: vi.fn(),
 }));
 
+const { routerPushMock } = vi.hoisted(() => ({
+    routerPushMock: vi.fn(),
+}));
+
 vi.mock("./actions", () => ({
     startPracticeGenerationAction: startPracticeGenerationActionMock,
+}));
+
+vi.mock("next/navigation", () => ({
+    useRouter: () => ({
+        push: routerPushMock,
+    }),
 }));
 
 describe("PracticeSetupForm", () => {
@@ -58,7 +68,8 @@ describe("PracticeSetupForm", () => {
         startPracticeGenerationActionMock.mockResolvedValue({
             ok: true,
             practiceDraftId: "draft-1",
-            resumeTargetScreen: "practice_generating",
+            sessionId: "session-1",
+            resumeTargetScreen: "session_entry",
         });
         render(
             <PracticeSetupForm
@@ -74,5 +85,6 @@ describe("PracticeSetupForm", () => {
         await user.click(screen.getByRole("button", { name: /start generating questions/i }));
 
         expect(startPracticeGenerationActionMock).toHaveBeenCalledWith("draft-1");
+        expect(routerPushMock).toHaveBeenCalledWith("/session/session-1");
     });
 });

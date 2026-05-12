@@ -21,11 +21,13 @@ export {
 export {
     createCandidatePracticeDraft,
     findCandidatePracticeDraftById,
+    findCandidatePracticeDraftBySessionId,
     findLatestEditableCandidatePracticeDraft,
     transitionCandidatePracticeDraftToGenerating,
     updateCandidatePracticeDraftSetup,
     type CandidatePracticeDraft,
     type CandidatePracticeDraftLookup,
+    type CandidatePracticeDraftSessionLookup,
     type CreateCandidatePracticeDraftInput,
     type PracticeResumeTarget,
     type PracticeSessionDraftStatus,
@@ -36,6 +38,10 @@ export {
     loadPracticeSetupDraftForCurrentCandidate,
     type RestoredPracticeSetupDraft,
 } from "./candidate-practice-setup-loader";
+export {
+    loadCandidateSessionForCurrentCandidate,
+    type LoadedCandidateSession,
+} from "./candidate-session-loader";
 export {
     getCandidateAuthMode,
     getCandidateDataBackend,

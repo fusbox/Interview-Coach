@@ -92,6 +92,34 @@ describe("candidate practice draft repository", () => {
         );
     });
 
+    it("finds a draft by session only through candidate ownership", async () => {
+        queryPostgresMock.mockResolvedValue({
+            rows: [practiceDraftRow({
+                practice_draft_id: "draft-session",
+                candidate_profile_id: "profile-session",
+                target_role: "Operations analyst",
+                session_id: "11111111-1111-4111-8111-111111111111",
+            })],
+        });
+
+        const { findCandidatePracticeDraftBySessionId } = await import("./candidate-practice-draft-repository");
+
+        await expect(findCandidatePracticeDraftBySessionId({
+            candidateProfileId: "profile-session",
+            sessionId: "11111111-1111-4111-8111-111111111111",
+        })).resolves.toMatchObject({
+            practiceDraftId: "draft-session",
+            candidateProfileId: "profile-session",
+            sessionId: "11111111-1111-4111-8111-111111111111",
+            targetRole: "Operations analyst",
+        });
+
+        expect(queryPostgresMock).toHaveBeenCalledWith(
+            expect.stringContaining("where session_id = $1 and candidate_profile_id = $2"),
+            ["11111111-1111-4111-8111-111111111111", "profile-session"],
+        );
+    });
+
     it("finds the latest editable draft for a candidate", async () => {
         queryPostgresMock.mockResolvedValue({
             rows: [practiceDraftRow({

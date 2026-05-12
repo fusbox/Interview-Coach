@@ -58,6 +58,11 @@ export type CandidatePracticeDraftLookup = {
     practiceDraftId: string;
 };
 
+export type CandidatePracticeDraftSessionLookup = {
+    candidateProfileId: string;
+    sessionId: string;
+};
+
 export type UpdateCandidatePracticeDraftSetupInput = CandidatePracticeDraftLookup & {
     targetRole: string;
     jobDescription?: string | null;
@@ -147,6 +152,23 @@ export async function findCandidatePracticeDraftById(input: CandidatePracticeDra
             limit 1
         `,
         [practiceDraftId, candidateProfileId],
+    );
+
+    return result.rows[0] ? mapCandidatePracticeDraftRow(result.rows[0]) : null;
+}
+
+export async function findCandidatePracticeDraftBySessionId(input: CandidatePracticeDraftSessionLookup): Promise<CandidatePracticeDraft | null> {
+    const sessionId = normalizeId(input.sessionId, "Session ID");
+    const candidateProfileId = normalizeId(input.candidateProfileId, "Candidate profile ID");
+
+    const result = await queryPostgres<CandidatePracticeDraftRow>(
+        `
+            select ${draftSelect}
+            from public.candidate_practice_drafts
+            where session_id = $1 and candidate_profile_id = $2
+            limit 1
+        `,
+        [sessionId, candidateProfileId],
     );
 
     return result.rows[0] ? mapCandidatePracticeDraftRow(result.rows[0]) : null;

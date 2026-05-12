@@ -54,6 +54,8 @@ Current implementation boundary:
 - [Candidate practice draft repository tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.test.ts)
 - [Candidate session creation service](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-creation-service.ts)
 - [Candidate session creation service tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-creation-service.test.ts)
+- [Candidate session loader](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-loader.ts)
+- [Candidate session route](/c:/tmp/Interview-Coach-Recruiter-postgres/src/app/session/[sessionId]/page.tsx)
 
 Recommended fields:
 
@@ -222,6 +224,15 @@ The generation/loading screen and real `/session/[sessionId]` rendering remain s
 - Reuse the recruiter app's session-state-machine pattern below the app shell.
 - Session UI should render from persisted session state and route params, not from one-off in-memory wizard state.
 - Post-session summary should stay linked to the user-owned session and remain available from dashboard/history.
+
+Current session entry boundary:
+
+- [Candidate session loader](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-loader.ts) resolves the current local candidate profile, verifies the requested `sessionId` is linked through a candidate-owned practice draft, and loads the shared session record.
+- [Candidate session route](/c:/tmp/Interview-Coach-Recruiter-postgres/src/app/session/[sessionId]/page.tsx) renders only candidate-owned sessions and returns not found for missing or unowned sessions.
+- [Candidate session page](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-session/CandidateSessionPage.tsx) renders persisted role, job description, session status, draft ID, and current question state.
+- [Practice setup form](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/PracticeSetupForm.tsx) routes successful generation into `/session/[sessionId]`.
+
+Answer submission, retry, next-question, pause/resume mutations, and resume target updates remain follow-up slices.
 
 ## Protected-Route Boundary
 

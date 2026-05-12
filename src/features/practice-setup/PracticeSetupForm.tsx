@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowRight, Briefcase, FileText, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ const fieldErrorIds: Record<PracticeSetupField, string> = {
 };
 
 export function PracticeSetupForm({ initialValues = null, practiceDraftId = null, submissionError = null }: PracticeSetupFormProps) {
+    const router = useRouter();
     const [fieldErrors, setFieldErrors] = useState<PracticeSetupErrors>({});
     const [actionError, setActionError] = useState<string | null>(null);
 
@@ -78,7 +80,10 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
             const generationResult = await startPracticeGenerationAction(practiceDraftId);
             if (!generationResult.ok) {
                 setActionError(generationResult.error);
+                return;
             }
+
+            router.push(`/session/${generationResult.sessionId}`);
         }
     }
 

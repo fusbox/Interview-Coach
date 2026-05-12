@@ -255,7 +255,7 @@ Ground truth:
 | SESS-T01 | 710 | Task | New | Fu Chen <fu@rangam.com> | Mark recruiter-only session assumptions | Invite-token-only and recruiter-review assumptions are listed |
 | SESS-F02 | 711 | Feature | Active | Fu Chen <fu@rangam.com> | Candidate session lifecycle | Draft creates session and session resumes from persisted state |
 | SESS-S02 | 712 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate session creation service | Draft produces session ID and immutable question snapshot |
-| SESS-S03 | 713 | Story | New | Fu Chen <fu@rangam.com> | Render real session state in `/session/[sessionId]` | Page no longer uses static placeholder content |
+| SESS-S03 | 713 | Story | Resolved | Fu Chen <fu@rangam.com> | Render real session state in `/session/[sessionId]` | Page no longer uses static placeholder content |
 | SESS-S04 | 714 | Story | New | Fu Chen <fu@rangam.com> | Persist session progress and resume target | Refresh returns to the correct in-session state |
 | SESS-S05 | 715 | Story | New | Fu Chen <fu@rangam.com> | Add session mutation tests | Answer submit, retry, next question, pause, and ownership paths are covered |
 | SESS-F03 | 716 | Feature | New | Fu Chen <fu@rangam.com> | Candidate feedback and summary | Candidate sees useful coaching without recruiter-facing readiness semantics |
@@ -416,8 +416,10 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 29 | Resolved | DRFT-S05 | 703 | Fu Chen <fu@rangam.com> | Restore draft after refresh | Route and form tests prove latest editable draft pre-fills setup form |
 | 30 | Resolved | DRFT-S06 | 704 | Fu Chen <fu@rangam.com> | Submit draft into generation state | Draft transition sets `status = generating` and `resumeTargetScreen = practice_generating` |
 | 31 | Resolved | SESS-S02 | 712 | Fu Chen <fu@rangam.com> | Add candidate session creation service | Draft creates owned session |
-| 32 | New | SESS-S03 | 713 | Fu Chen <fu@rangam.com> | Render real session state in `/session/[sessionId]` | Page no longer uses static placeholder content |
-| 33 | New | DASH-S01 | 732 | Fu Chen <fu@rangam.com> | Define dashboard query contract | Empty/active/completed/forbidden states are represented |
+| 32 | Resolved | SESS-S03 | 713 | Fu Chen <fu@rangam.com> | Render real session state in `/session/[sessionId]` | Candidate-owned session route renders persisted role, status, and current question |
+| 33 | New | SESS-S04 | 714 | Fu Chen <fu@rangam.com> | Persist session progress and resume target | Refresh returns to the correct in-session state |
+| 34 | New | SESS-S05 | 715 | Fu Chen <fu@rangam.com> | Add session mutation tests | Answer submit, retry, next question, pause, and ownership paths are covered |
+| 35 | New | DASH-S01 | 732 | Fu Chen <fu@rangam.com> | Define dashboard query contract | Empty/active/completed/forbidden states are represented |
 
 ## Open Questions
 
