@@ -1,3 +1,4 @@
+export { PracticeSetupForm } from "./PracticeSetupForm";
 export { PracticeSetupPage } from "./PracticeSetupPage";
 export {
     PRACTICE_SETUP_LIMITS,

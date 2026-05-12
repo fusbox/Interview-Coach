@@ -176,6 +176,8 @@ The first shared validation boundary is implemented in [practice-setup-schema.ts
 - `resumeText` is optional, trimmed, length-limited, and normalized to `null` when blank or omitted.
 - Non-string setup payloads are rejected before they reach the future draft repository/service boundary.
 
+The first accessible form boundary is implemented in [PracticeSetupForm.tsx](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/PracticeSetupForm.tsx) and covered by [PracticeSetupForm.test.tsx](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/PracticeSetupForm.test.tsx). Validation summaries and future server submission errors must render through an announced alert region, and field errors must remain associated with their inputs.
+
 ### `/practice` draft editing
 
 - Create or resume one active draft for the authenticated candidate.
