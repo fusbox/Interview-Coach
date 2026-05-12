@@ -188,6 +188,29 @@ export async function updateCandidatePracticeDraftSetup(input: UpdateCandidatePr
     return result.rows[0] ? mapCandidatePracticeDraftRow(result.rows[0]) : null;
 }
 
+export async function transitionCandidatePracticeDraftToGenerating(input: CandidatePracticeDraftLookup): Promise<CandidatePracticeDraft | null> {
+    const practiceDraftId = normalizeId(input.practiceDraftId, "Practice draft ID");
+    const candidateProfileId = normalizeId(input.candidateProfileId, "Candidate profile ID");
+
+    const result = await queryPostgres<CandidatePracticeDraftRow>(
+        `
+            update public.candidate_practice_drafts
+            set
+                status = 'generating',
+                resume_target_screen = 'practice_generating',
+                generation_started_at = now(),
+                generation_finished_at = null,
+                generation_error = null,
+                last_activity_at = now()
+            where practice_draft_id = $1 and candidate_profile_id = $2 and status = 'draft'
+            returning ${draftSelect}
+        `,
+        [practiceDraftId, candidateProfileId],
+    );
+
+    return result.rows[0] ? mapCandidatePracticeDraftRow(result.rows[0]) : null;
+}
+
 function normalizeSetupInput(input: CreateCandidatePracticeDraftInput) {
     const result = safeParsePracticeSetupInput({
         targetRole: input.targetRole,

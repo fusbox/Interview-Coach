@@ -22,6 +22,7 @@ export {
     createCandidatePracticeDraft,
     findCandidatePracticeDraftById,
     findLatestEditableCandidatePracticeDraft,
+    transitionCandidatePracticeDraftToGenerating,
     updateCandidatePracticeDraftSetup,
     type CandidatePracticeDraft,
     type CandidatePracticeDraftLookup,

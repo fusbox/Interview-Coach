@@ -32,6 +32,8 @@ The setup form renders validation and future server submission errors through an
 
 When a candidate has an editable server-backed draft, `/practice` restores the latest draft and pre-fills the target role, job description, and resume text fields. The current implementation supports local candidate auth modes; external SSO restore uses the same draft read path once the callback/session boundary is finalized.
 
+Submitting a restored editable draft now performs the first durable generation transition: the draft moves to `generating` and its resume target moves to `practice_generating`. Actual AI question generation and session creation are intentionally deferred to the session lifecycle slices.
+
 ### Required input
 
 - Target role

@@ -48,7 +48,10 @@ export function PracticeSetupPage({ restoredDraft = null }: PracticeSetupPagePro
             </section>
 
             <section className="mx-auto grid w-full max-w-7xl gap-6 px-6 py-10 md:px-10 md:py-12 lg:grid-cols-[minmax(0,1fr)_20rem]">
-                <PracticeSetupForm initialValues={restoredDraft?.initialValues ?? null} />
+                <PracticeSetupForm
+                    initialValues={restoredDraft?.initialValues ?? null}
+                    practiceDraftId={restoredDraft?.practiceDraftId ?? null}
+                />
 
                 <aside className="space-y-4">
                     <div className="rounded-2xl border border-border bg-white p-5 shadow-flat">

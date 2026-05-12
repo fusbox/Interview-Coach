@@ -5,12 +5,14 @@ import { ArrowRight, Briefcase, FileText, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
+import { startPracticeGenerationAction } from "./actions";
 import { safeParsePracticeSetupInput } from "./practice-setup-schema";
 
 type PracticeSetupField = "targetRole" | "jobDescription" | "resumeText";
 
 type PracticeSetupFormProps = {
     initialValues?: PracticeSetupFormInitialValues | null;
+    practiceDraftId?: string | null;
     submissionError?: string | null;
 };
 
@@ -28,8 +30,9 @@ const fieldErrorIds: Record<PracticeSetupField, string> = {
     resumeText: "resume-text-error",
 };
 
-export function PracticeSetupForm({ initialValues = null, submissionError = null }: PracticeSetupFormProps) {
+export function PracticeSetupForm({ initialValues = null, practiceDraftId = null, submissionError = null }: PracticeSetupFormProps) {
     const [fieldErrors, setFieldErrors] = useState<PracticeSetupErrors>({});
+    const [actionError, setActionError] = useState<string | null>(null);
 
     const hasFieldErrors = Object.keys(fieldErrors).length > 0;
     const alertMessage = useMemo(() => {
@@ -37,15 +40,20 @@ export function PracticeSetupForm({ initialValues = null, submissionError = null
             return submissionError;
         }
 
+        if (actionError) {
+            return actionError;
+        }
+
         if (hasFieldErrors) {
             return "Review the highlighted fields before starting practice.";
         }
 
         return null;
-    }, [hasFieldErrors, submissionError]);
+    }, [actionError, hasFieldErrors, submissionError]);
 
-    function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        setActionError(null);
 
         const formData = new FormData(event.currentTarget);
         const result = safeParsePracticeSetupInput({
@@ -65,6 +73,13 @@ export function PracticeSetupForm({ initialValues = null, submissionError = null
         }
 
         setFieldErrors({});
+
+        if (practiceDraftId) {
+            const generationResult = await startPracticeGenerationAction(practiceDraftId);
+            if (!generationResult.ok) {
+                setActionError(generationResult.error);
+            }
+        }
     }
 
     return (

@@ -206,6 +206,14 @@ Current restore boundary:
 - On success, attach `questionSetSnapshotId` and `sessionId`, then transition to `ready` or `in_session`.
 - On failure, transition to `generation_failed`, preserve the last editable draft inputs, and return the candidate to a recoverable setup/error state.
 
+Current submit boundary:
+
+- [Candidate practice draft repository](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.ts) transitions only candidate-owned editable drafts from `draft` to `generating`.
+- [Practice setup action](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/actions.ts) resolves the current local candidate profile and calls the transition.
+- [Practice setup form](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/PracticeSetupForm.tsx) calls the action for restored drafts after client-side setup validation passes.
+
+Question generation, immutable question snapshots, session creation, and the generation/loading screen remain separate follow-up slices.
+
 ### Enter and resume session
 
 - Reuse the recruiter app's session-state-machine pattern below the app shell.

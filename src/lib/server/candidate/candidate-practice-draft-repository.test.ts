@@ -151,6 +151,40 @@ describe("candidate practice draft repository", () => {
             expect.arrayContaining(["draft-3", "profile-3", "Warehouse supervisor", null]),
         );
     });
+
+    it("transitions an editable draft into generation state through candidate ownership", async () => {
+        queryPostgresMock.mockResolvedValue({
+            rows: [practiceDraftRow({
+                practice_draft_id: "draft-4",
+                candidate_profile_id: "profile-4",
+                status: "generating",
+                resume_target_screen: "practice_generating",
+                generation_started_at: "2026-05-12T11:00:00.000Z",
+                generation_error: null,
+            })],
+        });
+
+        const { transitionCandidatePracticeDraftToGenerating } = await import("./candidate-practice-draft-repository");
+
+        await expect(transitionCandidatePracticeDraftToGenerating({
+            candidateProfileId: "profile-4",
+            practiceDraftId: "draft-4",
+        })).resolves.toMatchObject({
+            practiceDraftId: "draft-4",
+            candidateProfileId: "profile-4",
+            status: "generating",
+            resumeTargetScreen: "practice_generating",
+            generationStartedAt: "2026-05-12T11:00:00.000Z",
+            generationError: null,
+        });
+
+        expect(queryPostgresMock).toHaveBeenCalledWith(
+            expect.stringContaining("status = 'generating'"),
+            ["draft-4", "profile-4"],
+        );
+        expect(queryPostgresMock.mock.calls[0][0]).toContain("resume_target_screen = 'practice_generating'");
+        expect(queryPostgresMock.mock.calls[0][0]).toContain("where practice_draft_id = $1 and candidate_profile_id = $2 and status = 'draft'");
+    });
 });
 
 function practiceDraftRow(overrides: Record<string, unknown>) {

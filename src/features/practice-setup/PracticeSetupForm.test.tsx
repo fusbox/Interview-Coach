@@ -1,10 +1,22 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PracticeSetupForm } from "./PracticeSetupForm";
 
+const { startPracticeGenerationActionMock } = vi.hoisted(() => ({
+    startPracticeGenerationActionMock: vi.fn(),
+}));
+
+vi.mock("./actions", () => ({
+    startPracticeGenerationAction: startPracticeGenerationActionMock,
+}));
+
 describe("PracticeSetupForm", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
     it("prefills values from a restored draft", () => {
         render(
             <PracticeSetupForm
@@ -39,5 +51,28 @@ describe("PracticeSetupForm", () => {
         render(<PracticeSetupForm submissionError="We could not save your draft. Please try again." />);
 
         expect(screen.getByRole("alert")).toHaveTextContent("We could not save your draft. Please try again.");
+    });
+
+    it("submits a restored draft into generation after client validation passes", async () => {
+        const user = userEvent.setup();
+        startPracticeGenerationActionMock.mockResolvedValue({
+            ok: true,
+            practiceDraftId: "draft-1",
+            resumeTargetScreen: "practice_generating",
+        });
+        render(
+            <PracticeSetupForm
+                practiceDraftId="draft-1"
+                initialValues={{
+                    targetRole: "QA analyst",
+                    jobDescription: "Test regulated workflows.",
+                    resumeText: "Validated releases.",
+                }}
+            />,
+        );
+
+        await user.click(screen.getByRole("button", { name: /start generating questions/i }));
+
+        expect(startPracticeGenerationActionMock).toHaveBeenCalledWith("draft-1");
     });
 });
