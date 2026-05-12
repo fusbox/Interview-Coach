@@ -64,6 +64,11 @@ export type UpdateCandidatePracticeDraftSetupInput = CandidatePracticeDraftLooku
     resumeText?: string | null;
 };
 
+export type AttachGeneratedSessionToCandidatePracticeDraftInput = CandidatePracticeDraftLookup & {
+    sessionId: string;
+    questionSetSnapshotId: string;
+};
+
 type CandidatePracticeDraftRow = QueryResultRow & {
     practice_draft_id: string;
     candidate_profile_id: string;
@@ -206,6 +211,34 @@ export async function transitionCandidatePracticeDraftToGenerating(input: Candid
             returning ${draftSelect}
         `,
         [practiceDraftId, candidateProfileId],
+    );
+
+    return result.rows[0] ? mapCandidatePracticeDraftRow(result.rows[0]) : null;
+}
+
+export async function attachGeneratedSessionToCandidatePracticeDraft(
+    input: AttachGeneratedSessionToCandidatePracticeDraftInput,
+): Promise<CandidatePracticeDraft | null> {
+    const practiceDraftId = normalizeId(input.practiceDraftId, "Practice draft ID");
+    const candidateProfileId = normalizeId(input.candidateProfileId, "Candidate profile ID");
+    const sessionId = normalizeId(input.sessionId, "Session ID");
+    const questionSetSnapshotId = normalizeId(input.questionSetSnapshotId, "Question set snapshot ID");
+
+    const result = await queryPostgres<CandidatePracticeDraftRow>(
+        `
+            update public.candidate_practice_drafts
+            set
+                status = 'ready',
+                session_id = $3,
+                question_set_snapshot_id = $4,
+                resume_target_screen = 'session_entry',
+                generation_finished_at = now(),
+                generation_error = null,
+                last_activity_at = now()
+            where practice_draft_id = $1 and candidate_profile_id = $2 and status = 'generating'
+            returning ${draftSelect}
+        `,
+        [practiceDraftId, candidateProfileId, sessionId, questionSetSnapshotId],
     );
 
     return result.rows[0] ? mapCandidatePracticeDraftRow(result.rows[0]) : null;

@@ -52,6 +52,8 @@ Current implementation boundary:
 - [Candidate practice drafts rollback smoke](/c:/tmp/Interview-Coach-Recruiter-postgres/db/validation/003_candidate_practice_drafts_schema_smoke.sql)
 - [Candidate practice draft repository](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.ts)
 - [Candidate practice draft repository tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.test.ts)
+- [Candidate session creation service](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-creation-service.ts)
+- [Candidate session creation service tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-creation-service.test.ts)
 
 Recommended fields:
 
@@ -208,11 +210,12 @@ Current restore boundary:
 
 Current submit boundary:
 
-- [Candidate practice draft repository](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.ts) transitions only candidate-owned editable drafts from `draft` to `generating`.
-- [Practice setup action](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/actions.ts) resolves the current local candidate profile and calls the transition.
+- [Candidate practice draft repository](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.ts) transitions only candidate-owned editable drafts from `draft` to `generating`, then attaches the generated session and question snapshot IDs only while the draft is still in `generating`.
+- [Candidate session creation service](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-creation-service.ts) creates a candidate-owned shared session from the generating draft, persists generated questions as the immutable session question snapshot, and marks the draft `ready` with `resumeTargetScreen = "session_entry"`.
+- [Practice setup action](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/actions.ts) resolves the current local candidate profile, moves the draft into generation, and calls the session creation service.
 - [Practice setup form](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/PracticeSetupForm.tsx) calls the action for restored drafts after client-side setup validation passes.
 
-Question generation, immutable question snapshots, session creation, and the generation/loading screen remain separate follow-up slices.
+The generation/loading screen and real `/session/[sessionId]` rendering remain separate follow-up slices.
 
 ### Enter and resume session
 

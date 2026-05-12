@@ -141,12 +141,16 @@ Current repository boundary:
 - [Candidate runtime config tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-runtime-config.test.ts)
 - [Candidate practice draft repository](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.ts)
 - [Candidate practice draft repository tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.test.ts)
+- [Candidate session creation service](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-creation-service.ts)
+- [Candidate session creation service tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-creation-service.test.ts)
 
 The first repository resolves or creates candidate profiles from provider identity handoffs and maps provider identities to a `CandidateProfileAccessRecord` for future auth and route-guard code.
 
 The practice draft repository creates, reads, and updates candidate-owned setup drafts through `candidate_profile_id` ownership filters. It uses the shared practice setup schema for target role, job description, and pasted resume text normalization before persistence.
 
 The repository also exposes a latest-editable-draft read ordered by `last_activity_at desc`, scoped to one `candidate_profile_id` and `status = 'draft'`, so `/practice` can restore setup state after refresh or return.
+
+The session creation service reads a candidate-owned draft in `generating`, creates a shared `sessions` record with generated questions and candidate-only intake context, then writes `session_id`, `question_set_snapshot_id`, `status = 'ready'`, and `resume_target_screen = 'session_entry'` back to the same candidate-owned draft. If the draft attach step fails after session creation, the service deletes the generated session before returning an error.
 
 The auth adapter contract normalizes trusted identity handoffs from TalentArbor, RangamWorks, local password auth, or mock auth before repository resolution.
 

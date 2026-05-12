@@ -3,12 +3,14 @@
 import { resolveLocalCandidateAuthHandoff } from "@/lib/server/candidate/candidate-dev-auth-resolver";
 import { resolveCandidateProfileFromIdentity } from "@/lib/server/candidate/candidate-profile-repository";
 import { transitionCandidatePracticeDraftToGenerating } from "@/lib/server/candidate/candidate-practice-draft-repository";
+import { createCandidateSessionFromDraft } from "@/lib/server/candidate/candidate-session-creation-service";
 
 export type StartPracticeGenerationActionResult =
     | {
         ok: true;
         practiceDraftId: string;
-        resumeTargetScreen: "practice_generating";
+        sessionId: string;
+        resumeTargetScreen: "session_entry";
     }
     | {
         ok: false;
@@ -36,9 +38,19 @@ export async function startPracticeGenerationAction(practiceDraftId: string): Pr
         return { ok: false, error: "Practice draft is no longer editable." };
     }
 
+    const sessionResult = await createCandidateSessionFromDraft({
+        candidateProfileId: profile.candidateProfileId,
+        practiceDraftId: draft.practiceDraftId,
+    });
+
+    if (!sessionResult.ok) {
+        return sessionResult;
+    }
+
     return {
         ok: true,
-        practiceDraftId: draft.practiceDraftId,
-        resumeTargetScreen: "practice_generating",
+        practiceDraftId: sessionResult.practiceDraftId,
+        sessionId: sessionResult.sessionId,
+        resumeTargetScreen: sessionResult.resumeTargetScreen,
     };
 }

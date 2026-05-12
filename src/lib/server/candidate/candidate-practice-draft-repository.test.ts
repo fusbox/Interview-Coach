@@ -185,6 +185,50 @@ describe("candidate practice draft repository", () => {
         expect(queryPostgresMock.mock.calls[0][0]).toContain("resume_target_screen = 'practice_generating'");
         expect(queryPostgresMock.mock.calls[0][0]).toContain("where practice_draft_id = $1 and candidate_profile_id = $2 and status = 'draft'");
     });
+
+    it("attaches a generated session to a generating draft through candidate ownership", async () => {
+        queryPostgresMock.mockResolvedValue({
+            rows: [practiceDraftRow({
+                practice_draft_id: "draft-5",
+                candidate_profile_id: "profile-5",
+                status: "ready",
+                session_id: "11111111-1111-4111-8111-111111111111",
+                question_set_snapshot_id: "22222222-2222-4222-8222-222222222222",
+                resume_target_screen: "session_entry",
+                generation_finished_at: "2026-05-12T11:30:00.000Z",
+            })],
+        });
+
+        const { attachGeneratedSessionToCandidatePracticeDraft } = await import("./candidate-practice-draft-repository");
+
+        await expect(attachGeneratedSessionToCandidatePracticeDraft({
+            candidateProfileId: "profile-5",
+            practiceDraftId: "draft-5",
+            sessionId: "11111111-1111-4111-8111-111111111111",
+            questionSetSnapshotId: "22222222-2222-4222-8222-222222222222",
+        })).resolves.toMatchObject({
+            practiceDraftId: "draft-5",
+            candidateProfileId: "profile-5",
+            status: "ready",
+            sessionId: "11111111-1111-4111-8111-111111111111",
+            questionSetSnapshotId: "22222222-2222-4222-8222-222222222222",
+            resumeTargetScreen: "session_entry",
+            generationFinishedAt: "2026-05-12T11:30:00.000Z",
+        });
+
+        expect(queryPostgresMock).toHaveBeenCalledWith(
+            expect.stringContaining("session_id = $3"),
+            [
+                "draft-5",
+                "profile-5",
+                "11111111-1111-4111-8111-111111111111",
+                "22222222-2222-4222-8222-222222222222",
+            ],
+        );
+        expect(queryPostgresMock.mock.calls[0][0]).toContain("status = 'ready'");
+        expect(queryPostgresMock.mock.calls[0][0]).toContain("resume_target_screen = 'session_entry'");
+        expect(queryPostgresMock.mock.calls[0][0]).toContain("where practice_draft_id = $1 and candidate_profile_id = $2 and status = 'generating'");
+    });
 });
 
 function practiceDraftRow(overrides: Record<string, unknown>) {

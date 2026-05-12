@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
+    createCandidateSessionFromDraftMock,
     resolveCandidateProfileFromIdentityMock,
     resolveLocalCandidateAuthHandoffMock,
     transitionCandidatePracticeDraftToGeneratingMock,
 } = vi.hoisted(() => ({
+    createCandidateSessionFromDraftMock: vi.fn(),
     resolveCandidateProfileFromIdentityMock: vi.fn(),
     resolveLocalCandidateAuthHandoffMock: vi.fn(),
     transitionCandidatePracticeDraftToGeneratingMock: vi.fn(),
@@ -20,6 +22,10 @@ vi.mock("@/lib/server/candidate/candidate-profile-repository", () => ({
 
 vi.mock("@/lib/server/candidate/candidate-practice-draft-repository", () => ({
     transitionCandidatePracticeDraftToGenerating: transitionCandidatePracticeDraftToGeneratingMock,
+}));
+
+vi.mock("@/lib/server/candidate/candidate-session-creation-service", () => ({
+    createCandidateSessionFromDraft: createCandidateSessionFromDraftMock,
 }));
 
 describe("practice setup actions", () => {
@@ -43,15 +49,27 @@ describe("practice setup actions", () => {
             status: "generating",
             resumeTargetScreen: "practice_generating",
         });
+        createCandidateSessionFromDraftMock.mockResolvedValue({
+            ok: true,
+            practiceDraftId: "draft-1",
+            sessionId: "session-1",
+            questionSetSnapshotId: "snapshot-1",
+            resumeTargetScreen: "session_entry",
+        });
 
         const { startPracticeGenerationAction } = await import("./actions");
 
         await expect(startPracticeGenerationAction("draft-1")).resolves.toEqual({
             ok: true,
             practiceDraftId: "draft-1",
-            resumeTargetScreen: "practice_generating",
+            sessionId: "session-1",
+            resumeTargetScreen: "session_entry",
         });
         expect(transitionCandidatePracticeDraftToGeneratingMock).toHaveBeenCalledWith({
+            candidateProfileId: "profile-1",
+            practiceDraftId: "draft-1",
+        });
+        expect(createCandidateSessionFromDraftMock).toHaveBeenCalledWith({
             candidateProfileId: "profile-1",
             practiceDraftId: "draft-1",
         });
