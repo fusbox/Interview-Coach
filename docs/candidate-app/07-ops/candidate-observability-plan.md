@@ -23,6 +23,13 @@ The migrated recruiter app already includes:
 
 Candidate work should extend those patterns instead of creating a separate observability stack.
 
+Current candidate helper:
+
+- `src/lib/server/candidate/candidate-observability.ts` records candidate route counters as `candidate_route_total`
+- route timings are recorded as `candidate_route_duration_ms`
+- both helpers add `actorType=candidate` and `appName=candidate_app`
+- helper tests live in `src/lib/server/candidate/candidate-observability.test.ts`
+
 ## Event Taxonomy
 
 Use `actorType: candidate` on candidate logs and include an `appName` or tag value of `candidate_app` where existing APIs support it.
@@ -103,5 +110,6 @@ Local development can keep memory metrics and mock/password candidate auth modes
 
 - Consider a neutral `/api/ops/metrics` route once candidate/recruiter metrics are both first-class.
 - Add candidate-specific counters around draft/session/dashboard loaders as implementation stabilizes.
+- Wire `recordCandidateRouteMetric` and `recordCandidateRouteTiming` into route loaders/actions where the final route error and success boundaries settle.
 - Add post-deploy smoke that hits public `/`, recruiter `/recruiter`, and candidate auth-guarded redirects.
 - Confirm the final TalentArbor identity handoff fields before logging any provider-specific metadata.

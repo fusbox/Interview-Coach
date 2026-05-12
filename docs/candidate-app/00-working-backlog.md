@@ -198,7 +198,7 @@ Ground truth:
 | DATA-F02 | 688 | Feature | Active | Fu Chen <fu@rangam.com> | Candidate repository layer | Candidate profiles, drafts, sessions, resumes, and dashboard reads use repository boundaries |
 | DATA-S02 | 689 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate profile repository | Create/read/update behavior is tested |
 | DATA-S03 | 690 | Story | New | Fu Chen <fu@rangam.com> | Add draft/session repository boundaries | Candidate-owned drafts and sessions are persisted through server code |
-| DATA-S04 | 691 | Story | New | Fu Chen <fu@rangam.com> | Add metrics/rate-limit/idempotency boundaries | Durable runtime stores are available where needed |
+| DATA-S04 | 691 | Story | Active | Fu Chen <fu@rangam.com> | Add metrics/rate-limit/idempotency boundaries | Durable runtime stores are available where needed |
 | DATA-F03 | 692 | Feature | Active | Fu Chen <fu@rangam.com> | Migration and seed path | Local and integration environments can apply schema and seed dev candidates |
 | DATA-S05 | 693 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate DB migration | Migration applies cleanly on local Postgres |
 | DATA-S06 | 694 | Story | New | Fu Chen <fu@rangam.com> | Add dev seed candidates | Seed data supports happy path and ownership tests |
@@ -341,7 +341,7 @@ Ground truth:
 | QSO-S03 | 742 | Story | Resolved | Fu Chen <fu@rangam.com> | Add recruiter regression checklist for candidate PRs | Candidate PRs identify recruiter route risk and verification |
 | QSO-F02 | 743 | Feature | Active | Fu Chen <fu@rangam.com> | Observability and incident readiness | App emits useful telemetry without leaking sensitive data |
 | QSO-S04 | 744 | Story | Resolved | Fu Chen <fu@rangam.com> | Add observability plan to deployment | Auth denial, draft, generation, extraction, and API errors are observable |
-| QSO-S05 | 745 | Story | New | Fu Chen <fu@rangam.com> | Add incident runbook | Runbook covers auth, DB, AI provider, resume extraction, and deployment incidents |
+| QSO-S05 | 745 | Story | Resolved | Fu Chen <fu@rangam.com> | Add incident runbook | Runbook covers auth, DB, AI provider, resume extraction, and deployment incidents |
 | QSO-F03 | 746 | Feature | Active | Fu Chen <fu@rangam.com> | Security and privacy review | Candidate data, redirects, resume ingestion, and ownership checks are reviewed |
 | QSO-S06 | 747 | Story | Resolved | Fu Chen <fu@rangam.com> | Review login redirect security | Open redirects, state tampering, and unsafe return targets are mitigated |
 | QSO-S07 | 748 | Story | Resolved | Fu Chen <fu@rangam.com> | Review resume data privacy | Retention, logging, and extraction failure paths avoid sensitive-data leaks |
@@ -438,8 +438,10 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 50 | Resolved | QSO-S02 | 741 | Fu Chen <fu@rangam.com> | Add accessibility checks for primary pages | Automated baseline covers landing/practice/session/dashboard/summary; manual checks remain in the accessibility baseline |
 | 51 | Resolved | QSO-S03 | 742 | Fu Chen <fu@rangam.com> | Add recruiter regression checklist for candidate PRs | Candidate PRs identify recruiter route risk and verification |
 | 52 | Resolved | QSO-S04 | 744 | Fu Chen <fu@rangam.com> | Add observability plan to deployment | Auth denial, draft, generation, extraction, and API errors are observable |
-| 53 | New | QSO-S05 | 745 | Fu Chen <fu@rangam.com> | Add incident runbook | Runbook covers auth, DB, AI provider, resume extraction, and deployment incidents |
-| 54 | New | DATA-S04 | 691 | Fu Chen <fu@rangam.com> | Add metrics/rate-limit/idempotency boundaries | Durable runtime stores are available where needed |
+| 53 | Resolved | QSO-S05 | 745 | Fu Chen <fu@rangam.com> | Add incident runbook | Runbook covers auth, DB, AI provider, resume extraction, and deployment incidents |
+| 54 | Active | DATA-S04 | 691 | Fu Chen <fu@rangam.com> | Add metrics/rate-limit/idempotency boundaries | Durable runtime stores are available where needed |
+| 55 | New | DATA-S06 | 694 | Fu Chen <fu@rangam.com> | Add dev seed candidates | Seed data supports happy path and ownership tests |
+| 56 | New | AUTH-S08 | 756 | Fu Chen <fu@rangam.com> | Implement login-start route after contract is known | `/auth/talentarbor/start?next=/practice` and `/dashboard` validate and preserve safe targets |
 
 ## Open Questions
 

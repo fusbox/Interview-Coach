@@ -41,6 +41,7 @@ The project should use these living documents:
 - [Data Retention Policy](../06-security/data-retention-policy.md)
 - [Azure DevOps Operating Model](../07-ops/azure-devops-operating-model.md)
 - [Candidate Observability Plan](../07-ops/candidate-observability-plan.md)
+- [Candidate Incident Runbook](../07-ops/candidate-incident-runbook.md)
 - [Decision Records](../08-decisions/README.md)
 - [Local Dev Bootstrap](../09-dev/local-dev-bootstrap.md)
 
