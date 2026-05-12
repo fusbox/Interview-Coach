@@ -19,3 +19,8 @@ The first implementation can start with a simple active-draft UX, but the data m
 - Dashboard and practice setup should eventually expose active draft selection.
 - Resume context snapshots should remain draft-specific.
 
+Current implementation:
+
+- `/practice` restores the latest editable draft by default.
+- `/practice?draftId=...` restores a selected owned draft.
+- The practice setup page lists editable drafts by role label and last activity date.

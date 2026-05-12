@@ -1,7 +1,13 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { PracticeSetupPage } from "./PracticeSetupPage";
+
+vi.mock("next/navigation", () => ({
+    useRouter: () => ({
+        push: vi.fn(),
+    }),
+}));
 
 describe("PracticeSetupPage", () => {
     it("renders the first candidate-owned setup form fields", () => {
@@ -19,5 +25,30 @@ describe("PracticeSetupPage", () => {
 
         expect(screen.getByText(/resume file upload is coming next/i)).toBeInTheDocument();
         expect(screen.getByText(/personalization intake will plug into this setup later/i)).toBeInTheDocument();
+    });
+
+    it("renders available draft choices with stable draft links", () => {
+        render(<PracticeSetupPage restoredDraft={{
+            practiceDraftId: "draft-2",
+            availableDrafts: [
+                {
+                    practiceDraftId: "draft-2",
+                    draftLabel: "Warehouse lead",
+                    targetRole: "Warehouse lead",
+                    status: "draft",
+                    resumeTargetScreen: "practice_setup",
+                    lastActivityAt: "2026-05-12T12:00:00.000Z",
+                    createdAt: "2026-05-11T12:00:00.000Z",
+                },
+            ],
+            initialValues: {
+                targetRole: "Warehouse lead",
+                jobDescription: null,
+                resumeText: null,
+            },
+        }} />);
+
+        expect(screen.getByRole("link", { name: /warehouse lead/i })).toHaveAttribute("href", "/practice?draftId=draft-2");
+        expect(screen.getByText(/may 12, 2026/i)).toBeInTheDocument();
     });
 });

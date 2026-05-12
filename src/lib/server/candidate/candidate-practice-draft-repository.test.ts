@@ -160,6 +160,56 @@ describe("candidate practice draft repository", () => {
         expect(queryPostgresMock.mock.calls[0][0]).toContain("limit 1");
     });
 
+    it("lists editable draft summaries for candidate-owned draft selection", async () => {
+        queryPostgresMock.mockResolvedValue({
+            rows: [
+                practiceDraftRow({
+                    practice_draft_id: "draft-new",
+                    candidate_profile_id: "profile-2",
+                    target_role: "Operations analyst",
+                    last_activity_at: "2026-05-12T12:00:00.000Z",
+                    created_at: "2026-05-12T09:00:00.000Z",
+                }),
+                practiceDraftRow({
+                    practice_draft_id: "draft-old",
+                    candidate_profile_id: "profile-2",
+                    target_role: "Warehouse lead",
+                    last_activity_at: "2026-05-11T12:00:00.000Z",
+                    created_at: "2026-05-10T09:00:00.000Z",
+                }),
+            ],
+        });
+
+        const { listEditableCandidatePracticeDraftSummaries } = await import("./candidate-practice-draft-repository");
+
+        await expect(listEditableCandidatePracticeDraftSummaries("profile-2")).resolves.toEqual([
+            {
+                practiceDraftId: "draft-new",
+                draftLabel: "Operations analyst",
+                targetRole: "Operations analyst",
+                status: "draft",
+                resumeTargetScreen: "practice_setup",
+                lastActivityAt: "2026-05-12T12:00:00.000Z",
+                createdAt: "2026-05-12T09:00:00.000Z",
+            },
+            {
+                practiceDraftId: "draft-old",
+                draftLabel: "Warehouse lead",
+                targetRole: "Warehouse lead",
+                status: "draft",
+                resumeTargetScreen: "practice_setup",
+                lastActivityAt: "2026-05-11T12:00:00.000Z",
+                createdAt: "2026-05-10T09:00:00.000Z",
+            },
+        ]);
+
+        expect(queryPostgresMock).toHaveBeenCalledWith(
+            expect.stringContaining("where candidate_profile_id = $1 and status = 'draft'"),
+            ["profile-2"],
+        );
+        expect(queryPostgresMock.mock.calls[0][0]).toContain("order by last_activity_at desc");
+    });
+
     it("updates draft setup fields while preserving candidate ownership", async () => {
         queryPostgresMock.mockResolvedValue({
             rows: [practiceDraftRow({
@@ -194,6 +244,62 @@ describe("candidate practice draft repository", () => {
             expect.stringContaining("where practice_draft_id = $1 and candidate_profile_id = $2"),
             expect.arrayContaining(["draft-3", "profile-3", "Warehouse supervisor", null]),
         );
+    });
+
+    it("updates structured intake responses while preserving candidate ownership", async () => {
+        queryPostgresMock.mockResolvedValue({
+            rows: [practiceDraftRow({
+                practice_draft_id: "draft-intake",
+                candidate_profile_id: "profile-intake",
+                target_role: "Program coordinator",
+                intake_responses_json: {
+                    confidenceLevel: "medium",
+                    interviewType: "behavioral",
+                    timeline: "Interview next week",
+                    concerns: "Staying concise",
+                    practiceFocus: ["structure", "specific examples"],
+                },
+            })],
+        });
+
+        const { updateCandidatePracticeDraftIntake } = await import("./candidate-practice-draft-repository");
+
+        await expect(updateCandidatePracticeDraftIntake({
+            candidateProfileId: "profile-intake",
+            practiceDraftId: "draft-intake",
+            intakeResponses: {
+                confidenceLevel: "medium",
+                interviewType: "behavioral",
+                timeline: " Interview next week ",
+                concerns: " Staying concise ",
+                practiceFocus: [" structure ", "", "specific examples", "structure"],
+            },
+        })).resolves.toMatchObject({
+            practiceDraftId: "draft-intake",
+            intakeResponses: {
+                confidenceLevel: "medium",
+                interviewType: "behavioral",
+                timeline: "Interview next week",
+                concerns: "Staying concise",
+                practiceFocus: ["structure", "specific examples"],
+            },
+        });
+
+        expect(queryPostgresMock).toHaveBeenCalledWith(
+            expect.stringContaining("intake_responses_json = $3"),
+            [
+                "draft-intake",
+                "profile-intake",
+                {
+                    confidenceLevel: "medium",
+                    interviewType: "behavioral",
+                    timeline: "Interview next week",
+                    concerns: "Staying concise",
+                    practiceFocus: ["structure", "specific examples"],
+                },
+            ],
+        );
+        expect(queryPostgresMock.mock.calls[0][0]).toContain("where practice_draft_id = $1 and candidate_profile_id = $2 and status = 'draft'");
     });
 
     it("attaches pending private resume upload metadata to an editable candidate draft", async () => {

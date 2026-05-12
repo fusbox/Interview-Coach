@@ -54,7 +54,7 @@ export type CandidatePracticeDraft = {
     jobDescription: string | null;
     resumeContext: ResumeContextSnapshot;
     customQuestions: unknown[];
-    intakeResponses: unknown[];
+    intakeResponses: CandidatePracticeIntakeResponses;
     questionSetSnapshotId: string | null;
     sessionId: string | null;
     resumeTargetScreen: PracticeResumeTarget;
@@ -64,6 +64,24 @@ export type CandidatePracticeDraft = {
     lastActivityAt: string;
     createdAt: string;
     updatedAt: string;
+};
+
+export type CandidatePracticeDraftSummary = {
+    practiceDraftId: string;
+    draftLabel: string;
+    targetRole: string;
+    status: PracticeSessionDraftStatus;
+    resumeTargetScreen: PracticeResumeTarget;
+    lastActivityAt: string;
+    createdAt: string;
+};
+
+export type CandidatePracticeIntakeResponses = {
+    confidenceLevel: "low" | "medium" | "high" | null;
+    interviewType: "behavioral" | "technical" | "case" | "screening" | "general" | null;
+    timeline: string | null;
+    concerns: string | null;
+    practiceFocus: string[];
 };
 
 export type CreateCandidatePracticeDraftInput = {
@@ -76,6 +94,10 @@ export type CreateCandidatePracticeDraftInput = {
 export type CandidatePracticeDraftLookup = {
     candidateProfileId: string;
     practiceDraftId: string;
+};
+
+export type UpdateCandidatePracticeDraftIntakeInput = CandidatePracticeDraftLookup & {
+    intakeResponses: CandidatePracticeIntakeResponses;
 };
 
 export type CandidatePracticeDraftSessionLookup = {
@@ -234,6 +256,24 @@ export async function findLatestEditableCandidatePracticeDraft(candidateProfileI
     return result.rows[0] ? mapCandidatePracticeDraftRow(result.rows[0]) : null;
 }
 
+export async function listEditableCandidatePracticeDraftSummaries(
+    candidateProfileId: string,
+): Promise<CandidatePracticeDraftSummary[]> {
+    const normalizedCandidateProfileId = normalizeId(candidateProfileId, "Candidate profile ID");
+
+    const result = await queryPostgres<CandidatePracticeDraftRow>(
+        `
+            select ${draftSelect}
+            from public.candidate_practice_drafts
+            where candidate_profile_id = $1 and status = 'draft'
+            order by last_activity_at desc
+        `,
+        [normalizedCandidateProfileId],
+    );
+
+    return result.rows.map(mapCandidatePracticeDraftSummaryRow);
+}
+
 export async function updateCandidatePracticeDraftSetup(input: UpdateCandidatePracticeDraftSetupInput): Promise<CandidatePracticeDraft | null> {
     const practiceDraftId = normalizeId(input.practiceDraftId, "Practice draft ID");
     const candidateProfileId = normalizeId(input.candidateProfileId, "Candidate profile ID");
@@ -253,6 +293,28 @@ export async function updateCandidatePracticeDraftSetup(input: UpdateCandidatePr
             returning ${draftSelect}
         `,
         [practiceDraftId, candidateProfileId, setup.targetRole, setup.jobDescription, resumeContext],
+    );
+
+    return result.rows[0] ? mapCandidatePracticeDraftRow(result.rows[0]) : null;
+}
+
+export async function updateCandidatePracticeDraftIntake(
+    input: UpdateCandidatePracticeDraftIntakeInput,
+): Promise<CandidatePracticeDraft | null> {
+    const practiceDraftId = normalizeId(input.practiceDraftId, "Practice draft ID");
+    const candidateProfileId = normalizeId(input.candidateProfileId, "Candidate profile ID");
+    const intakeResponses = normalizeCandidatePracticeIntakeResponses(input.intakeResponses);
+
+    const result = await queryPostgres<CandidatePracticeDraftRow>(
+        `
+            update public.candidate_practice_drafts
+            set
+                intake_responses_json = $3,
+                last_activity_at = now()
+            where practice_draft_id = $1 and candidate_profile_id = $2 and status = 'draft'
+            returning ${draftSelect}
+        `,
+        [practiceDraftId, candidateProfileId, intakeResponses],
     );
 
     return result.rows[0] ? mapCandidatePracticeDraftRow(result.rows[0]) : null;
@@ -615,6 +677,72 @@ function normalizeId(value: string, label: string): string {
     return normalized;
 }
 
+function normalizeCandidatePracticeIntakeResponses(value: CandidatePracticeIntakeResponses | unknown): CandidatePracticeIntakeResponses {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return emptyCandidatePracticeIntakeResponses();
+    }
+
+    const record = value as Partial<CandidatePracticeIntakeResponses>;
+
+    return {
+        confidenceLevel: normalizeConfidenceLevel(record.confidenceLevel),
+        interviewType: normalizeInterviewType(record.interviewType),
+        timeline: normalizeOptionalIntakeText(record.timeline, 240),
+        concerns: normalizeOptionalIntakeText(record.concerns, 1_000),
+        practiceFocus: normalizePracticeFocus(record.practiceFocus),
+    };
+}
+
+function emptyCandidatePracticeIntakeResponses(): CandidatePracticeIntakeResponses {
+    return {
+        confidenceLevel: null,
+        interviewType: null,
+        timeline: null,
+        concerns: null,
+        practiceFocus: [],
+    };
+}
+
+function normalizeConfidenceLevel(value: unknown): CandidatePracticeIntakeResponses["confidenceLevel"] {
+    return value === "low" || value === "medium" || value === "high" ? value : null;
+}
+
+function normalizeInterviewType(value: unknown): CandidatePracticeIntakeResponses["interviewType"] {
+    return value === "behavioral" ||
+        value === "technical" ||
+        value === "case" ||
+        value === "screening" ||
+        value === "general"
+        ? value
+        : null;
+}
+
+function normalizeOptionalIntakeText(value: unknown, maxLength: number): string | null {
+    if (typeof value !== "string") {
+        return null;
+    }
+
+    const normalized = value.trim().replace(/\s+/g, " ");
+    if (!normalized) {
+        return null;
+    }
+
+    return normalized.slice(0, maxLength);
+}
+
+function normalizePracticeFocus(value: unknown): string[] {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return Array.from(new Set(
+        value
+            .filter((item): item is string => typeof item === "string")
+            .map((item) => item.trim().replace(/\s+/g, " "))
+            .filter(Boolean),
+    )).slice(0, 6);
+}
+
 function mapCandidatePracticeDraftRow(row: CandidatePracticeDraftRow): CandidatePracticeDraft {
     return {
         practiceDraftId: row.practice_draft_id,
@@ -624,7 +752,7 @@ function mapCandidatePracticeDraftRow(row: CandidatePracticeDraftRow): Candidate
         jobDescription: row.job_description,
         resumeContext: normalizeResumeContext(row.resume_context_json),
         customQuestions: Array.isArray(row.custom_questions_json) ? row.custom_questions_json : [],
-        intakeResponses: Array.isArray(row.intake_responses_json) ? row.intake_responses_json : [],
+        intakeResponses: normalizeCandidatePracticeIntakeResponses(row.intake_responses_json),
         questionSetSnapshotId: row.question_set_snapshot_id,
         sessionId: row.session_id,
         resumeTargetScreen: row.resume_target_screen,
@@ -635,6 +763,22 @@ function mapCandidatePracticeDraftRow(row: CandidatePracticeDraftRow): Candidate
         createdAt: formatTimestamp(row.created_at) ?? "",
         updatedAt: formatTimestamp(row.updated_at) ?? "",
     };
+}
+
+function mapCandidatePracticeDraftSummaryRow(row: CandidatePracticeDraftRow): CandidatePracticeDraftSummary {
+    return {
+        practiceDraftId: row.practice_draft_id,
+        draftLabel: buildDraftLabel(row.target_role),
+        targetRole: row.target_role,
+        status: row.status,
+        resumeTargetScreen: row.resume_target_screen,
+        lastActivityAt: formatTimestamp(row.last_activity_at) ?? "",
+        createdAt: formatTimestamp(row.created_at) ?? "",
+    };
+}
+
+function buildDraftLabel(targetRole: string): string {
+    return targetRole.trim() || "Untitled practice draft";
 }
 
 function normalizeResumeContext(value: unknown): ResumeContextSnapshot {

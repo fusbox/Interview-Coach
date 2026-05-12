@@ -154,6 +154,10 @@ The practice draft repository creates, reads, and updates candidate-owned setup 
 
 The repository also exposes a latest-editable-draft read ordered by `last_activity_at desc`, scoped to one `candidate_profile_id` and `status = 'draft'`, so `/practice` can restore setup state after refresh or return.
 
+Editable draft summary reads list candidate-owned `draft` rows by role label and last activity date. `/practice?draftId=...` can restore a selected owned draft without exposing another candidate's setup.
+
+Structured intake persists inside `intake_responses_json` with confidence level, interview type, timeline, concerns, and practice focus values. Session creation forwards the normalized intake object into shared session intake data.
+
 The session creation service reads a candidate-owned draft in `generating`, creates a shared `sessions` record with generated questions and candidate-only intake context, then writes `session_id`, `question_set_snapshot_id`, `status = 'ready'`, and `resume_target_screen = 'session_entry'` back to the same candidate-owned draft. If the draft attach step fails after session creation, the service deletes the generated session before returning an error.
 
 The session loader uses `candidate_practice_drafts.session_id` plus `candidate_profile_id` as the candidate ownership boundary before reading the shared `sessions` record for `/session/[sessionId]`.

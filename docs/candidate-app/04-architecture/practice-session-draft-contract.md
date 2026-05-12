@@ -148,10 +148,12 @@ type CandidateIntakeProfile = {
   extraContext?: string | null;
 };
 
-type PracticeIntakeResponse = {
-  id: string;
-  questionKey: string;
-  answerText: string;
+type CandidatePracticeIntakeResponses = {
+  confidenceLevel: "low" | "medium" | "high" | null;
+  interviewType: "behavioral" | "technical" | "case" | "screening" | "general" | null;
+  timeline: string | null;
+  concerns: string | null;
+  practiceFocus: string[];
 };
 ```
 
@@ -201,8 +203,10 @@ The first accessible form boundary is implemented in [PracticeSetupForm.tsx](/c:
 Current restore boundary:
 
 - [Practice route](/c:/tmp/Interview-Coach-Recruiter-postgres/src/app/practice/page.tsx) loads the current candidate's latest editable draft before rendering.
-- [Candidate practice setup loader](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-setup-loader.ts) resolves local candidate auth, resolves the candidate profile, and reads the latest editable draft.
+- [Candidate practice setup loader](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-setup-loader.ts) resolves local candidate auth, resolves the candidate profile, and reads the latest editable draft or a selected owned draft from `/practice?draftId=...`.
 - [Practice setup form](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/PracticeSetupForm.tsx) accepts restored initial values and pre-fills target role, job description, and resume text.
+- [Practice setup page](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/PracticeSetupPage.tsx) displays available editable draft choices by role label and last activity date.
+- [Candidate practice draft repository](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.ts) persists structured draft-level intake responses in `intake_responses_json`.
 
 ### Submit for generation
 

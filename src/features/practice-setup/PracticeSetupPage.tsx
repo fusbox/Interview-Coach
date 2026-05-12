@@ -15,6 +15,8 @@ type PracticeSetupPageProps = {
 };
 
 export function PracticeSetupPage({ restoredDraft = null }: PracticeSetupPageProps) {
+    const availableDrafts = restoredDraft?.availableDrafts ?? [];
+
     return (
         <main className="candidate-design-system min-h-screen bg-surface-base text-text-primary">
             <section className="border-b border-border bg-gradient-to-br from-brand-glass-start via-surface-base to-white">
@@ -62,12 +64,44 @@ export function PracticeSetupPage({ restoredDraft = null }: PracticeSetupPagePro
                     </div>
                     <div className="rounded-2xl border border-border bg-white p-5 shadow-flat">
                         <h2 className="text-sm font-bold text-text-primary">Draft state</h2>
-                        <p className="mt-2 text-sm leading-6 text-text-secondary">
-                            The next backend slice will persist setup data so refreshes and returns can resume from server state.
-                        </p>
+                        {availableDrafts.length > 0 ? (
+                            <ul className="mt-3 space-y-3">
+                                {availableDrafts.map((draft) => (
+                                    <li key={draft.practiceDraftId}>
+                                        <Link
+                                            href={`/practice?draftId=${encodeURIComponent(draft.practiceDraftId)}`}
+                                            className="block rounded-xl border border-border bg-surface-subtle px-3 py-3 text-sm transition hover:border-primary/40 hover:bg-white"
+                                        >
+                                            <span className="block font-bold text-text-primary">{draft.draftLabel}</span>
+                                            <span className="mt-1 block text-xs font-semibold uppercase tracking-normal text-text-muted">
+                                                {formatDraftDate(draft.lastActivityAt)}
+                                            </span>
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="mt-2 text-sm leading-6 text-text-secondary">
+                                Your latest editable setup will appear here when a draft is available.
+                            </p>
+                        )}
                     </div>
                 </aside>
             </section>
         </main>
     );
+}
+
+function formatDraftDate(value: string) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return "Recently updated";
+    }
+
+    return new Intl.DateTimeFormat("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+        timeZone: "UTC",
+    }).format(date);
 }

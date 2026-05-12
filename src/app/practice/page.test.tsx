@@ -24,12 +24,12 @@ describe("/practice page", () => {
         loadPracticeSetupDraftForCurrentCandidateMock.mockResolvedValue(null);
         const { default: PracticePage } = await import("./page");
 
-        render(await PracticePage());
+        render(await PracticePage({}));
 
         expect(screen.getByText(/Practice setup feature boundary empty/)).toBeInTheDocument();
     });
 
-    it("passes a restored draft into the practice setup feature", async () => {
+    it("passes a selected draft id into the practice setup loader", async () => {
         loadPracticeSetupDraftForCurrentCandidateMock.mockResolvedValue({
             practiceDraftId: "draft-1",
             initialValues: {
@@ -40,8 +40,11 @@ describe("/practice page", () => {
         });
         const { default: PracticePage } = await import("./page");
 
-        render(await PracticePage());
+        render(await PracticePage({
+            searchParams: Promise.resolve({ draftId: "draft-1" }),
+        }));
 
         expect(screen.getByText(/Practice setup feature boundary draft-1/)).toBeInTheDocument();
+        expect(loadPracticeSetupDraftForCurrentCandidateMock).toHaveBeenCalledWith("draft-1");
     });
 });

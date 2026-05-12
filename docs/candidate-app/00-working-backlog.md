@@ -230,8 +230,8 @@ Ground truth:
 | DRFT-S04 | 702 | Story | Resolved | Fu Chen <fu@rangam.com> | Persist pasted resume text as normalized context | Draft stores normalized resume context |
 | DRFT-S05 | 703 | Story | Resolved | Fu Chen <fu@rangam.com> | Restore draft after refresh | Browser or route test proves server state restores form |
 | DRFT-S06 | 704 | Story | Resolved | Fu Chen <fu@rangam.com> | Submit draft into generation state | Draft status and resume target persist |
-| DRFT-F03 | 705 | Feature | New | Fu Chen <fu@rangam.com> | Multiple draft management | Candidate can distinguish and resume more than one active/named draft |
-| DRFT-S07 | 706 | Story | New | Fu Chen <fu@rangam.com> | Model draft naming and selection | Candidate can choose drafts by role/title/date |
+| DRFT-F03 | 705 | Feature | Active | Fu Chen <fu@rangam.com> | Multiple draft management | Candidate can distinguish and resume more than one active/named draft |
+| DRFT-S07 | 706 | Story | Resolved | Fu Chen <fu@rangam.com> | Model draft naming and selection | Candidate can choose editable drafts by role label and last activity date |
 
 ### EPIC-06 Candidate Session Engine Integration
 
@@ -289,8 +289,8 @@ Ground truth:
 | RES-T01 | 725 | Task | Closed | Fu Chen <fu@rangam.com> | Delete original file after successful extraction by default | Successful extraction marks source asset retention as `original_deleted` |
 | RES-F03 | 726 | Feature | New | Fu Chen <fu@rangam.com> | Resume photo/OCR capture | Multi-page image capture produces ordered extracted text |
 | RES-S05 | 727 | Story | New | Fu Chen <fu@rangam.com> | Add photo/OCR capture path | Page order is preserved and merged text is normalized |
-| RES-F04 | 728 | Feature | New | Fu Chen <fu@rangam.com> | Candidate intake profile | Candidate personalization data can tune practice and coaching |
-| RES-S06 | 729 | Story | New | Fu Chen <fu@rangam.com> | Add structured intake fields | Confidence, interview type, timeline, concerns, and practice focus persist |
+| RES-F04 | 728 | Feature | Active | Fu Chen <fu@rangam.com> | Candidate intake profile | Candidate personalization data can tune practice and coaching |
+| RES-S06 | 729 | Story | Resolved | Fu Chen <fu@rangam.com> | Add structured intake fields | Confidence, interview type, timeline, concerns, and practice focus persist |
 
 ### EPIC-08 Candidate Dashboard And History
 
@@ -432,8 +432,10 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 44 | Resolved | QSO-S06 | 747 | Fu Chen <fu@rangam.com> | Review login redirect security | Login-start and callback paths use allowlisted candidate return targets |
 | 45 | Resolved | RES-S04 | 724 | Fu Chen <fu@rangam.com> | Add PDF/DOCX extraction path | Extracted text flows into normalized processed resume context through a parser-agnostic service |
 | 46 | Resolved | QSO-S07 | 748 | Fu Chen <fu@rangam.com> | Review resume data privacy | Extraction errors store safe reason codes only and successful extraction marks original retention deleted |
-| 47 | New | RES-S06 | 729 | Fu Chen <fu@rangam.com> | Add structured intake fields | Confidence, interview type, timeline, concerns, and practice focus persist |
-| 48 | New | DRFT-S07 | 706 | Fu Chen <fu@rangam.com> | Model draft naming and selection | Candidate can choose drafts by role/title/date |
+| 47 | Resolved | RES-S06 | 729 | Fu Chen <fu@rangam.com> | Add structured intake fields | Structured confidence, interview type, timeline, concerns, and focus values persist on candidate-owned drafts |
+| 48 | Resolved | DRFT-S07 | 706 | Fu Chen <fu@rangam.com> | Model draft naming and selection | `/practice?draftId=...` restores a selected owned draft and shows editable draft choices by role/date |
+| 49 | New | QSO-S01 | 740 | Fu Chen <fu@rangam.com> | Add primary route smoke tests | `/`, `/recruiter`, `/practice`, `/dashboard`, `/admin/feedback`, and `/qa/ai-quality` are covered |
+| 50 | New | QSO-S02 | 741 | Fu Chen <fu@rangam.com> | Add accessibility checks for primary pages | Automated and manual checks cover landing/practice/session/dashboard/summary |
 
 ## Open Questions
 

@@ -52,16 +52,24 @@ Submitting a restored editable draft now performs the first durable generation t
 - After setup submission, the app should show a generating/loading state and then route the candidate into the session experience.
 - If the candidate leaves during setup, generation, session, or summary, returning later should restore the correct screen/state from persisted server data.
 
-## Future Extension: Candidate Intake
+## Candidate Intake
 
-The original PoC included a candidate intake flow for additional personalization. That capability is expected to return in this app, but it is not yet scoped tightly enough to build.
+The original PoC included a candidate intake flow for additional personalization. The first durable boundary now exists in the candidate-owned practice draft model; final UI sequencing can still evolve.
 
-For now, `/practice` should reserve a clean extension point for intake responses without forcing the first implementation to finalize:
+Current implementation boundary:
 
-- which questions are asked
-- whether intake is required or optional
-- whether intake is reusable profile data or session-specific context
-- how much of the intake should influence question generation versus coaching tone
+- [Candidate practice draft repository](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.ts)
+- [Candidate practice draft repository tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.test.ts)
+
+Structured draft-level intake persists:
+
+- confidence level
+- interview type
+- timeline
+- concerns
+- practice focus values
+
+The first implementation keeps intake draft-specific. Future work can decide whether some answers should be promoted into reusable candidate profile preferences.
 
 ## Future Extension: Candidate-Authored Questions
 
@@ -90,6 +98,6 @@ The candidate app should preserve the recruiter app's strongest stateful-session
 
 - Guest trial flow
 - Full candidate dashboard implementation
-- Finalized intake questionnaire UX
+- Finalized intake questionnaire UX beyond the first structured persistence contract
 - Candidate-authored question UX, unless we decide to bring that forward early
 - Any recruiter-facing invite or review workflow
