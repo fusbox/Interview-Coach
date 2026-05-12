@@ -205,7 +205,7 @@ Ground truth:
 
 ### EPIC-05 Candidate Practice Setup And Drafts
 
-Azure Boards: #695 | State: New | Assigned To: Fu Chen <fu@rangam.com>
+Azure Boards: #695 | State: Active | Assigned To: Fu Chen <fu@rangam.com>
 
 Outcome: Candidates can create, autosave, restore, and submit multiple candidate-owned practice drafts.
 
@@ -228,7 +228,7 @@ Ground truth:
 | DRFT-F02 | 700 | Feature | Active | Fu Chen <fu@rangam.com> | Server-backed draft lifecycle | Draft state is persisted and restorable across refresh/device |
 | DRFT-S03 | 701 | Story | Resolved | Fu Chen <fu@rangam.com> | Add draft service/repository | Draft create/read/update paths are tested |
 | DRFT-S04 | 702 | Story | Resolved | Fu Chen <fu@rangam.com> | Persist pasted resume text as normalized context | Draft stores normalized resume context |
-| DRFT-S05 | 703 | Story | New | Fu Chen <fu@rangam.com> | Restore draft after refresh | Browser or route test proves server state restores form |
+| DRFT-S05 | 703 | Story | Resolved | Fu Chen <fu@rangam.com> | Restore draft after refresh | Browser or route test proves server state restores form |
 | DRFT-S06 | 704 | Story | New | Fu Chen <fu@rangam.com> | Submit draft into generation state | Draft status and resume target persist |
 | DRFT-F03 | 705 | Feature | New | Fu Chen <fu@rangam.com> | Multiple draft management | Candidate can distinguish and resume more than one active/named draft |
 | DRFT-S07 | 706 | Story | New | Fu Chen <fu@rangam.com> | Model draft naming and selection | Candidate can choose drafts by role/title/date |
@@ -263,7 +263,7 @@ Ground truth:
 
 ### EPIC-07 Resume Ingestion And Candidate Context
 
-Azure Boards: #718 | State: New | Assigned To: Fu Chen <fu@rangam.com>
+Azure Boards: #718 | State: Active | Assigned To: Fu Chen <fu@rangam.com>
 
 Outcome: Candidate resume inputs and intake data become safe, normalized practice context without retaining raw files by default.
 
@@ -413,7 +413,7 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 26 | Resolved | DRFT-S03 | 701 | Fu Chen <fu@rangam.com> | Add server-backed draft lifecycle | Draft repository tests pass |
 | 27 | Resolved | RES-S01 | 720 | Fu Chen <fu@rangam.com> | Add resume normalization helper | Unit tests cover whitespace, empty, long, and unusual text cases |
 | 28 | Resolved | DRFT-S04 | 702 | Fu Chen <fu@rangam.com> | Persist pasted resume text as normalized context | Draft stores normalized resume context |
-| 29 | New | DRFT-S05 | 703 | Fu Chen <fu@rangam.com> | Restore draft after refresh | Browser or route test proves server state restores form |
+| 29 | Resolved | DRFT-S05 | 703 | Fu Chen <fu@rangam.com> | Restore draft after refresh | Route and form tests prove latest editable draft pre-fills setup form |
 | 30 | New | DRFT-S06 | 704 | Fu Chen <fu@rangam.com> | Submit draft into generation state | Draft status and resume target persist |
 | 31 | New | SESS-S02 | 712 | Fu Chen <fu@rangam.com> | Add candidate session creation service | Draft creates owned session |
 | 32 | New | DASH-S01 | 732 | Fu Chen <fu@rangam.com> | Define dashboard query contract | Empty/active/completed/forbidden states are represented |

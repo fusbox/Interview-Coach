@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import type { RestoredPracticeSetupDraft } from "@/lib/server/candidate";
+
 import { PracticeSetupForm } from "./PracticeSetupForm";
 
 const setupNotes = [
@@ -8,7 +10,11 @@ const setupNotes = [
     "Your setup will move to server-backed drafts in the next persistence slice.",
 ];
 
-export function PracticeSetupPage() {
+type PracticeSetupPageProps = {
+    restoredDraft?: RestoredPracticeSetupDraft | null;
+};
+
+export function PracticeSetupPage({ restoredDraft = null }: PracticeSetupPageProps) {
     return (
         <main className="candidate-design-system min-h-screen bg-surface-base text-text-primary">
             <section className="border-b border-border bg-gradient-to-br from-brand-glass-start via-surface-base to-white">
@@ -42,7 +48,7 @@ export function PracticeSetupPage() {
             </section>
 
             <section className="mx-auto grid w-full max-w-7xl gap-6 px-6 py-10 md:px-10 md:py-12 lg:grid-cols-[minmax(0,1fr)_20rem]">
-                <PracticeSetupForm />
+                <PracticeSetupForm initialValues={restoredDraft?.initialValues ?? null} />
 
                 <aside className="space-y-4">
                     <div className="rounded-2xl border border-border bg-white p-5 shadow-flat">

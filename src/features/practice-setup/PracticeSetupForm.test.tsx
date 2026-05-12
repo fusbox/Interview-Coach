@@ -5,6 +5,22 @@ import { describe, expect, it } from "vitest";
 import { PracticeSetupForm } from "./PracticeSetupForm";
 
 describe("PracticeSetupForm", () => {
+    it("prefills values from a restored draft", () => {
+        render(
+            <PracticeSetupForm
+                initialValues={{
+                    targetRole: "QA analyst",
+                    jobDescription: "Test regulated workflows.",
+                    resumeText: "Validated releases.",
+                }}
+            />,
+        );
+
+        expect(screen.getByLabelText(/target role/i)).toHaveValue("QA analyst");
+        expect(screen.getByLabelText(/job description/i)).toHaveValue("Test regulated workflows.");
+        expect(screen.getByLabelText(/resume text/i)).toHaveValue("Validated releases.");
+    });
+
     it("announces target role validation errors and associates the message to the field", async () => {
         const user = userEvent.setup();
         render(<PracticeSetupForm />);

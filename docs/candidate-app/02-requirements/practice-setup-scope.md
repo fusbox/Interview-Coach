@@ -30,6 +30,8 @@ The setup schema is the current shared contract for form/server boundary validat
 
 The setup form renders validation and future server submission errors through an announced alert region. Field-level errors set `aria-invalid` and are connected to the relevant input with `aria-describedby`.
 
+When a candidate has an editable server-backed draft, `/practice` restores the latest draft and pre-fills the target role, job description, and resume text fields. The current implementation supports local candidate auth modes; external SSO restore uses the same draft read path once the callback/session boundary is finalized.
+
 ### Required input
 
 - Target role

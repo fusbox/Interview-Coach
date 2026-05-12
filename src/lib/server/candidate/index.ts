@@ -21,6 +21,7 @@ export {
 export {
     createCandidatePracticeDraft,
     findCandidatePracticeDraftById,
+    findLatestEditableCandidatePracticeDraft,
     updateCandidatePracticeDraftSetup,
     type CandidatePracticeDraft,
     type CandidatePracticeDraftLookup,
@@ -30,6 +31,10 @@ export {
     type ResumeContextSnapshot,
     type UpdateCandidatePracticeDraftSetupInput,
 } from "./candidate-practice-draft-repository";
+export {
+    loadPracticeSetupDraftForCurrentCandidate,
+    type RestoredPracticeSetupDraft,
+} from "./candidate-practice-setup-loader";
 export {
     getCandidateAuthMode,
     getCandidateDataBackend,

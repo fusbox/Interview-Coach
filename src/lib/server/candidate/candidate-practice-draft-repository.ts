@@ -147,6 +147,23 @@ export async function findCandidatePracticeDraftById(input: CandidatePracticeDra
     return result.rows[0] ? mapCandidatePracticeDraftRow(result.rows[0]) : null;
 }
 
+export async function findLatestEditableCandidatePracticeDraft(candidateProfileId: string): Promise<CandidatePracticeDraft | null> {
+    const normalizedCandidateProfileId = normalizeId(candidateProfileId, "Candidate profile ID");
+
+    const result = await queryPostgres<CandidatePracticeDraftRow>(
+        `
+            select ${draftSelect}
+            from public.candidate_practice_drafts
+            where candidate_profile_id = $1 and status = 'draft'
+            order by last_activity_at desc
+            limit 1
+        `,
+        [normalizedCandidateProfileId],
+    );
+
+    return result.rows[0] ? mapCandidatePracticeDraftRow(result.rows[0]) : null;
+}
+
 export async function updateCandidatePracticeDraftSetup(input: UpdateCandidatePracticeDraftSetupInput): Promise<CandidatePracticeDraft | null> {
     const practiceDraftId = normalizeId(input.practiceDraftId, "Practice draft ID");
     const candidateProfileId = normalizeId(input.candidateProfileId, "Candidate profile ID");

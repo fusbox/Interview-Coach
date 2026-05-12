@@ -92,6 +92,31 @@ describe("candidate practice draft repository", () => {
         );
     });
 
+    it("finds the latest editable draft for a candidate", async () => {
+        queryPostgresMock.mockResolvedValue({
+            rows: [practiceDraftRow({
+                practice_draft_id: "draft-latest",
+                candidate_profile_id: "profile-2",
+                target_role: "Quality manager",
+            })],
+        });
+
+        const { findLatestEditableCandidatePracticeDraft } = await import("./candidate-practice-draft-repository");
+
+        await expect(findLatestEditableCandidatePracticeDraft("profile-2")).resolves.toMatchObject({
+            practiceDraftId: "draft-latest",
+            candidateProfileId: "profile-2",
+            targetRole: "Quality manager",
+        });
+
+        expect(queryPostgresMock).toHaveBeenCalledWith(
+            expect.stringContaining("where candidate_profile_id = $1 and status = 'draft'"),
+            ["profile-2"],
+        );
+        expect(queryPostgresMock.mock.calls[0][0]).toContain("order by last_activity_at desc");
+        expect(queryPostgresMock.mock.calls[0][0]).toContain("limit 1");
+    });
+
     it("updates draft setup fields while preserving candidate ownership", async () => {
         queryPostgresMock.mockResolvedValue({
             rows: [practiceDraftRow({

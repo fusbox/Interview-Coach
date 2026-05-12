@@ -191,6 +191,12 @@ The first accessible form boundary is implemented in [PracticeSetupForm.tsx](/c:
 - Autosave role, job description, resume text references, and future intake/custom-question fields to the server.
 - Local form state can be optimistic, but server state remains the source of truth for resume/restore behavior.
 
+Current restore boundary:
+
+- [Practice route](/c:/tmp/Interview-Coach-Recruiter-postgres/src/app/practice/page.tsx) loads the current candidate's latest editable draft before rendering.
+- [Candidate practice setup loader](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-setup-loader.ts) resolves local candidate auth, resolves the candidate profile, and reads the latest editable draft.
+- [Practice setup form](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/PracticeSetupForm.tsx) accepts restored initial values and pre-fills target role, job description, and resume text.
+
 ### Submit for generation
 
 - Freeze the draft inputs used for question generation.

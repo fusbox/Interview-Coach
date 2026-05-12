@@ -146,6 +146,8 @@ The first repository resolves or creates candidate profiles from provider identi
 
 The practice draft repository creates, reads, and updates candidate-owned setup drafts through `candidate_profile_id` ownership filters. It uses the shared practice setup schema for target role, job description, and pasted resume text normalization before persistence.
 
+The repository also exposes a latest-editable-draft read ordered by `last_activity_at desc`, scoped to one `candidate_profile_id` and `status = 'draft'`, so `/practice` can restore setup state after refresh or return.
+
 The auth adapter contract normalizes trusted identity handoffs from TalentArbor, RangamWorks, local password auth, or mock auth before repository resolution.
 
 The dev auth resolver produces local `password` or `dev_mock` handoffs for candidate route work before the external identity handoff is finalized.

@@ -10,7 +10,14 @@ import { safeParsePracticeSetupInput } from "./practice-setup-schema";
 type PracticeSetupField = "targetRole" | "jobDescription" | "resumeText";
 
 type PracticeSetupFormProps = {
+    initialValues?: PracticeSetupFormInitialValues | null;
     submissionError?: string | null;
+};
+
+export type PracticeSetupFormInitialValues = {
+    targetRole?: string | null;
+    jobDescription?: string | null;
+    resumeText?: string | null;
 };
 
 type PracticeSetupErrors = Partial<Record<PracticeSetupField, string>>;
@@ -21,7 +28,7 @@ const fieldErrorIds: Record<PracticeSetupField, string> = {
     resumeText: "resume-text-error",
 };
 
-export function PracticeSetupForm({ submissionError = null }: PracticeSetupFormProps) {
+export function PracticeSetupForm({ initialValues = null, submissionError = null }: PracticeSetupFormProps) {
     const [fieldErrors, setFieldErrors] = useState<PracticeSetupErrors>({});
 
     const hasFieldErrors = Object.keys(fieldErrors).length > 0;
@@ -82,6 +89,7 @@ export function PracticeSetupForm({ submissionError = null }: PracticeSetupFormP
                     id="target-role"
                     name="targetRole"
                     required
+                    defaultValue={initialValues?.targetRole ?? ""}
                     aria-invalid={fieldErrors.targetRole ? "true" : "false"}
                     aria-describedby={fieldErrors.targetRole ? fieldErrorIds.targetRole : undefined}
                     placeholder="Warehouse lead, QA analyst, customer success manager..."
@@ -103,6 +111,7 @@ export function PracticeSetupForm({ submissionError = null }: PracticeSetupFormP
                     id="job-description"
                     name="jobDescription"
                     rows={7}
+                    defaultValue={initialValues?.jobDescription ?? ""}
                     aria-invalid={fieldErrors.jobDescription ? "true" : "false"}
                     aria-describedby={fieldErrors.jobDescription ? fieldErrorIds.jobDescription : undefined}
                     placeholder="Paste the role description if it will make practice more relevant."
@@ -124,6 +133,7 @@ export function PracticeSetupForm({ submissionError = null }: PracticeSetupFormP
                     id="resume-text"
                     name="resumeText"
                     rows={7}
+                    defaultValue={initialValues?.resumeText ?? ""}
                     aria-invalid={fieldErrors.resumeText ? "true" : "false"}
                     aria-describedby={fieldErrors.resumeText ? fieldErrorIds.resumeText : undefined}
                     placeholder="Paste resume text when you want questions to reflect your background."
