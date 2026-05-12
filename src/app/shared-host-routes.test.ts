@@ -14,6 +14,7 @@ describe("shared host route ownership", () => {
     it.each([
         ["/", "page.tsx"],
         ["/dashboard", "dashboard/page.tsx"],
+        ["/summary/session_123", "summary/[sessionId]/page.tsx"],
         ["/recruiter", "(recruiter)/recruiter/page.tsx"],
         ["/recruiter/create", "(recruiter)/recruiter/create/page.tsx"],
         ["/recruiter/templates", "(recruiter)/recruiter/templates/page.tsx"],

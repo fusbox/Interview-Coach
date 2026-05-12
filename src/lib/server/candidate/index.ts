@@ -49,6 +49,11 @@ export {
     type CandidateDashboardModel,
 } from "./candidate-dashboard-loader";
 export {
+    loadCandidateSummaryForCurrentCandidate,
+    type CandidateSummaryAnswer,
+    type CandidateSummaryModel,
+} from "./candidate-summary-loader";
+export {
     advanceCandidateOwnedSession,
     pauseCandidateOwnedSession,
     resumeCandidateOwnedSession,

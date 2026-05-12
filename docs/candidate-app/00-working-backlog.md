@@ -258,8 +258,8 @@ Ground truth:
 | SESS-S03 | 713 | Story | Resolved | Fu Chen <fu@rangam.com> | Render real session state in `/session/[sessionId]` | Page no longer uses static placeholder content |
 | SESS-S04 | 714 | Story | Resolved | Fu Chen <fu@rangam.com> | Persist session progress and resume target | Refresh returns to the correct in-session state |
 | SESS-S05 | 715 | Story | Resolved | Fu Chen <fu@rangam.com> | Add session mutation tests | Start, next, pause, resume, complete, and ownership paths are covered |
-| SESS-F03 | 716 | Feature | New | Fu Chen <fu@rangam.com> | Candidate feedback and summary | Candidate sees useful coaching without recruiter-facing readiness semantics |
-| SESS-S06 | 717 | Story | New | Fu Chen <fu@rangam.com> | Implement candidate summary route | Completed session opens candidate-owned summary/history surface |
+| SESS-F03 | 716 | Feature | Active | Fu Chen <fu@rangam.com> | Candidate feedback and summary | Candidate sees useful coaching without recruiter-facing readiness semantics |
+| SESS-S06 | 717 | Story | Resolved | Fu Chen <fu@rangam.com> | Implement candidate summary route | Completed session opens candidate-owned summary/history surface |
 | SESS-S07 | 764 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate answer and retry mutation surface | Candidate-owned answer submit and retry persist through server actions and Postgres session storage without invite-token dependency |
 
 ### EPIC-07 Resume Ingestion And Candidate Context
@@ -312,7 +312,7 @@ Ground truth:
 | DASH-F01 | 731 | Feature | Active | Fu Chen <fu@rangam.com> | Dashboard MVP read model | Contract includes active drafts, recent sessions, last activity, and summaries |
 | DASH-S01 | 732 | Story | Resolved | Fu Chen <fu@rangam.com> | Define dashboard query contract | Empty, active, completed, and missing-auth states are represented |
 | DASH-S02 | 733 | Story | Resolved | Fu Chen <fu@rangam.com> | Replace mock dashboard data | Dashboard reads candidate-owned server data |
-| DASH-S03 | 734 | Story | New | Fu Chen <fu@rangam.com> | Add resume/review/repeat actions | Actions route to owned session or setup flow |
+| DASH-S03 | 734 | Story | Resolved | Fu Chen <fu@rangam.com> | Add resume/review/repeat actions | Actions route to owned session, summary, or setup flow |
 | DASH-S04 | 735 | Story | Resolved | Fu Chen <fu@rangam.com> | Add dashboard tests | Query and route tests cover empty, active, completed, and missing-auth states |
 | DASH-F02 | 736 | Feature | New | Fu Chen <fu@rangam.com> | Progress and coaching themes | Candidate sees useful patterns without noisy analytics |
 | DASH-S05 | 737 | Story | New | Fu Chen <fu@rangam.com> | Surface next best practice recommendation | Recommendation is grounded in candidate-owned history |
@@ -424,8 +424,10 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 36 | Resolved | DASH-S01 | 732 | Fu Chen <fu@rangam.com> | Define dashboard query contract | Empty, active, completed, and missing-auth states are represented |
 | 37 | Resolved | DASH-S02 | 733 | Fu Chen <fu@rangam.com> | Replace mock dashboard data | `/dashboard` reads candidate-owned server data instead of local mock data |
 | 38 | Resolved | DASH-S04 | 735 | Fu Chen <fu@rangam.com> | Add dashboard tests | Loader, feature page, and route tests cover the dashboard MVP |
-| 39 | New | DASH-S03 | 734 | Fu Chen <fu@rangam.com> | Add resume/review/repeat actions | Actions route to owned session, summary, or setup flow |
-| 40 | New | SESS-S06 | 717 | Fu Chen <fu@rangam.com> | Implement candidate summary route | Completed dashboard items open a candidate-owned summary route |
+| 39 | Resolved | DASH-S03 | 734 | Fu Chen <fu@rangam.com> | Add resume/review/repeat actions | Dashboard cards route to owned session, summary, or setup flow |
+| 40 | Resolved | SESS-S06 | 717 | Fu Chen <fu@rangam.com> | Implement candidate summary route | Completed dashboard items open a candidate-owned summary route |
+| 41 | New | RES-S02 | 721 | Fu Chen <fu@rangam.com> | Store processed resume artifact only | Processed text/metadata persists without raw file retention by default |
+| 42 | New | AUTH-S05 | 682 | Fu Chen <fu@rangam.com> | Add negative ownership behavior | Cross-candidate access returns forbidden or not found without leaking data |
 
 ## Open Questions
 

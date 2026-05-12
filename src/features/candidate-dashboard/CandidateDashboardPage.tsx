@@ -124,12 +124,22 @@ function DashboardSection({
                                         <p className="max-w-3xl text-sm leading-6 text-text-secondary">{item.summarySnippet}</p>
                                     ) : null}
                                 </div>
-                                <Link
-                                    href={item.href}
-                                    className="inline-flex shrink-0 justify-center rounded-full border border-border bg-white px-5 py-3 text-sm font-bold text-text-primary shadow-flat transition hover:border-primary"
-                                >
-                                    {actionLabel}
-                                </Link>
+                                <div className="flex shrink-0 flex-wrap gap-3">
+                                    <Link
+                                        href={item.href}
+                                        className="inline-flex justify-center rounded-full border border-border bg-white px-5 py-3 text-sm font-bold text-text-primary shadow-flat transition hover:border-primary"
+                                    >
+                                        {actionLabel}
+                                    </Link>
+                                    {item.repeatHref ? (
+                                        <Link
+                                            href={item.repeatHref}
+                                            className="inline-flex justify-center rounded-full bg-primary px-5 py-3 text-sm font-bold text-white shadow-flat transition hover:bg-primary-hover"
+                                        >
+                                            Practice again
+                                        </Link>
+                                    ) : null}
+                                </div>
                             </div>
                         </article>
                     ))}

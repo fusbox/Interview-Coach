@@ -11,6 +11,7 @@ export type CandidateDashboardItem = {
     statusLabel: string;
     progressLabel: string;
     href: string;
+    repeatHref?: string;
     lastActivityLabel: string;
     summarySnippet?: string;
 };
@@ -122,6 +123,7 @@ function mapDashboardItem(row: DashboardDraftRow): CandidateDashboardItem & { ki
         statusLabel: isCompleted ? "Completed" : formatStatus(row.status, row.session_status),
         progressLabel: `${submittedCount} of ${questionCount} answered`,
         href: isCompleted ? summaryHref : sessionHref,
+        repeatHref: isCompleted ? "/practice" : undefined,
         lastActivityLabel: formatDate(row.last_activity_at),
         summarySnippet: row.summary_narrative || undefined,
     };
@@ -134,6 +136,7 @@ function toDashboardItem(item: CandidateDashboardItem & { kind: "active" | "comp
         statusLabel: item.statusLabel,
         progressLabel: item.progressLabel,
         href: item.href,
+        repeatHref: item.repeatHref,
         lastActivityLabel: item.lastActivityLabel,
         summarySnippet: item.summarySnippet,
     };

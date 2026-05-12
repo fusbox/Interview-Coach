@@ -32,6 +32,7 @@ const baseModel: CandidateDashboardModel = {
             statusLabel: "Completed",
             progressLabel: "2 of 2 answered",
             href: "/summary/session-2",
+            repeatHref: "/practice",
             lastActivityLabel: "May 11, 2026",
             summarySnippet: "Clearer answers and stronger examples.",
         },
@@ -47,6 +48,7 @@ describe("CandidateDashboardPage", () => {
         expect(screen.getByRole("link", { name: /resume practice/i })).toHaveAttribute("href", "/session/session-1");
         expect(screen.getByText("Support Lead")).toBeInTheDocument();
         expect(screen.getByRole("link", { name: /review summary/i })).toHaveAttribute("href", "/summary/session-2");
+        expect(screen.getByRole("link", { name: /practice again/i })).toHaveAttribute("href", "/practice");
     });
 
     it("renders an empty state with a start-practice action", () => {
