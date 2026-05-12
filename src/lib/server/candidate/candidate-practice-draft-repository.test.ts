@@ -26,6 +26,11 @@ describe("candidate practice draft repository", () => {
                     pastedText: "Validated releases\n\nReduced defects by 30%",
                     extractedText: "Validated releases\n\nReduced defects by 30%",
                     captureMode: "pasted_text",
+                    processedArtifact: {
+                        text: "Validated releases\n\nReduced defects by 30%",
+                        source: "pasted_text",
+                        originalRetained: false,
+                    },
                 },
             })],
         });
@@ -47,6 +52,11 @@ describe("candidate practice draft repository", () => {
                 pastedText: "Validated releases\n\nReduced defects by 30%",
                 extractedText: "Validated releases\n\nReduced defects by 30%",
                 captureMode: "pasted_text",
+                processedArtifact: {
+                    text: "Validated releases\n\nReduced defects by 30%",
+                    source: "pasted_text",
+                    originalRetained: false,
+                },
             },
             resumeTargetScreen: "practice_setup",
         });
@@ -61,6 +71,11 @@ describe("candidate practice draft repository", () => {
                     pastedText: "Validated releases\n\nReduced defects by 30%",
                     extractedText: "Validated releases\n\nReduced defects by 30%",
                     captureMode: "pasted_text",
+                    processedArtifact: {
+                        text: "Validated releases\n\nReduced defects by 30%",
+                        source: "pasted_text",
+                        originalRetained: false,
+                    },
                 }),
             ]),
         );
@@ -171,6 +186,7 @@ describe("candidate practice draft repository", () => {
                 pastedText: null,
                 extractedText: "",
                 captureMode: "none",
+                processedArtifact: null,
             },
         });
 
@@ -178,6 +194,39 @@ describe("candidate practice draft repository", () => {
             expect.stringContaining("where practice_draft_id = $1 and candidate_profile_id = $2"),
             expect.arrayContaining(["draft-3", "profile-3", "Warehouse supervisor", null]),
         );
+    });
+
+    it("normalizes legacy resume context into a processed artifact without raw-file retention", async () => {
+        queryPostgresMock.mockResolvedValue({
+            rows: [practiceDraftRow({
+                practice_draft_id: "draft-legacy",
+                candidate_profile_id: "profile-legacy",
+                target_role: "Program coordinator",
+                resume_context_json: {
+                    pastedText: "Legacy normalized text",
+                    extractedText: "Legacy normalized text",
+                    captureMode: "pasted_text",
+                },
+            })],
+        });
+
+        const { findCandidatePracticeDraftById } = await import("./candidate-practice-draft-repository");
+
+        await expect(findCandidatePracticeDraftById({
+            candidateProfileId: "profile-legacy",
+            practiceDraftId: "draft-legacy",
+        })).resolves.toMatchObject({
+            resumeContext: {
+                pastedText: "Legacy normalized text",
+                extractedText: "Legacy normalized text",
+                captureMode: "pasted_text",
+                processedArtifact: {
+                    text: "Legacy normalized text",
+                    source: "pasted_text",
+                    originalRetained: false,
+                },
+            },
+        });
     });
 
     it("transitions an editable draft into generation state through candidate ownership", async () => {

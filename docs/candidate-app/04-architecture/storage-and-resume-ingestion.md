@@ -19,6 +19,11 @@ type ResumeContextSnapshot = {
   pastedText: string | null;
   extractedText: string;
   captureMode: "none" | "pasted_text" | "file_upload" | "image_capture" | "mixed";
+  processedArtifact: {
+    text: string;
+    source: "pasted_text" | "file_upload" | "image_capture" | "mixed";
+    originalRetained: false;
+  } | null;
 };
 ```
 
@@ -80,7 +85,7 @@ Current implementation boundary:
 - [Resume normalization tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/candidate/resume-normalization.test.ts)
 - [Candidate practice draft repository](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.ts)
 
-Pasted resume text is normalized before it is written to `resume_context_json`. Empty or whitespace-only paste input becomes no resume context; meaningful pasted text becomes both `pastedText` and `extractedText` with `captureMode = "pasted_text"`.
+Pasted resume text is normalized before it is written to `resume_context_json`. Empty or whitespace-only paste input becomes no resume context; meaningful pasted text becomes `pastedText`, `extractedText`, and `processedArtifact.text` with `captureMode = "pasted_text"` and `processedArtifact.originalRetained = false`.
 
 ### File Upload
 

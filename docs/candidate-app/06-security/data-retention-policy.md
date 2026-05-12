@@ -49,7 +49,8 @@ Initial retention:
 Current pasted-text implementation:
 
 - pasted resume text is normalized before draft persistence
-- normalized pasted text is stored as draft resume context for the candidate-owned practice draft
+- normalized pasted text is stored as a processed resume artifact inside draft resume context for the candidate-owned practice draft
+- `processedArtifact.originalRetained` is false for the current pasted-text path
 - no original file is created or retained for the pasted-text path
 
 ### Practice Drafts

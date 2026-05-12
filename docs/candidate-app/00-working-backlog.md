@@ -166,7 +166,7 @@ Ground truth:
 | AUTH-S02 | 679 | Story | Resolved | Fu Chen <fu@rangam.com> | Define SSO/auth adapter interface | Interface captures issuer, subject, email, workspace, provider, and display name |
 | AUTH-S03 | 680 | Story | Resolved | Fu Chen <fu@rangam.com> | Add password-backed dev auth and explicit mock mode | Local protected routes resolve a stable candidate context |
 | AUTH-S04 | 681 | Story | Resolved | Fu Chen <fu@rangam.com> | Protect candidate route group | `/practice`, `/dashboard`, `/session/[sessionId]`, and summary/history routes reject missing auth |
-| AUTH-S05 | 682 | Story | New | Fu Chen <fu@rangam.com> | Add negative ownership behavior | Cross-candidate access returns forbidden or not found without leaking data |
+| AUTH-S05 | 682 | Story | Resolved | Fu Chen <fu@rangam.com> | Add negative ownership behavior | Cross-candidate access returns forbidden or not found without leaking data |
 | AUTH-T02 | 683 | Task | New | Fu Chen <fu@rangam.com> | Add auth-denial logging without secrets | Denials include route, reason, and actor mode only |
 | AUTH-F03 | 755 | Feature | Active | Himanshu Sagar <himanshusagar@rangam.com> | TalentArbor login return and identity handoff | Public CTAs can preserve candidate intent through login when integration supports it |
 | AUTH-S06 | 648 | Story | Active | Himanshu Sagar <himanshusagar@rangam.com> | Track TalentArbor login return contract | Return-target, identity handoff, and fallback questions are tracked until confirmed |
@@ -282,7 +282,7 @@ Ground truth:
 | --- | --- | --- | --- | --- | --- | --- |
 | RES-F01 | 719 | Feature | Active | Fu Chen <fu@rangam.com> | Resume text normalization | Pasted text becomes normalized `resumeText` and draft context |
 | RES-S01 | 720 | Story | Resolved | Fu Chen <fu@rangam.com> | Add resume normalization helper | Unit tests cover whitespace, empty, long, and unusual text cases |
-| RES-S02 | 721 | Story | New | Fu Chen <fu@rangam.com> | Store processed resume artifact only | Processed text/metadata persists without raw file retention by default |
+| RES-S02 | 721 | Story | Resolved | Fu Chen <fu@rangam.com> | Store processed resume artifact only | Processed text/metadata persists without raw file retention by default |
 | RES-F02 | 722 | Feature | New | Fu Chen <fu@rangam.com> | Resume upload extraction boundary | Uploaded PDF/DOCX files produce extracted text or recoverable errors |
 | RES-S03 | 723 | Story | New | Fu Chen <fu@rangam.com> | Add private file upload boundary | App stores metadata and private storage path only during processing |
 | RES-S04 | 724 | Story | New | Fu Chen <fu@rangam.com> | Add PDF/DOCX extraction path | Extracted text flows into normalized context |
@@ -426,8 +426,10 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 38 | Resolved | DASH-S04 | 735 | Fu Chen <fu@rangam.com> | Add dashboard tests | Loader, feature page, and route tests cover the dashboard MVP |
 | 39 | Resolved | DASH-S03 | 734 | Fu Chen <fu@rangam.com> | Add resume/review/repeat actions | Dashboard cards route to owned session, summary, or setup flow |
 | 40 | Resolved | SESS-S06 | 717 | Fu Chen <fu@rangam.com> | Implement candidate summary route | Completed dashboard items open a candidate-owned summary route |
-| 41 | New | RES-S02 | 721 | Fu Chen <fu@rangam.com> | Store processed resume artifact only | Processed text/metadata persists without raw file retention by default |
-| 42 | New | AUTH-S05 | 682 | Fu Chen <fu@rangam.com> | Add negative ownership behavior | Cross-candidate access returns forbidden or not found without leaking data |
+| 41 | Resolved | RES-S02 | 721 | Fu Chen <fu@rangam.com> | Store processed resume artifact only | Processed resume artifact persists in draft context with raw-file retention set false |
+| 42 | Resolved | AUTH-S05 | 682 | Fu Chen <fu@rangam.com> | Add negative ownership behavior | Candidate draft/session/summary/dashboard misses return not-found style behavior without data leak |
+| 43 | New | RES-S03 | 723 | Fu Chen <fu@rangam.com> | Add private file upload boundary | App stores metadata and private storage path only during processing |
+| 44 | New | QSO-S06 | 747 | Fu Chen <fu@rangam.com> | Review login redirect security | Open redirects, state tampering, and unsafe return targets are mitigated |
 
 ## Open Questions
 

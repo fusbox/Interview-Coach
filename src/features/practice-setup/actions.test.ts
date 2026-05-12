@@ -75,7 +75,7 @@ describe("practice setup actions", () => {
         });
     });
 
-    it("returns an editable-state error when the draft cannot transition", async () => {
+    it("returns a not-found style error when the draft is missing or not owned", async () => {
         resolveLocalCandidateAuthHandoffMock.mockResolvedValue({
             provider: "dev_mock",
             issuer: "interview-coach-local",
@@ -92,7 +92,7 @@ describe("practice setup actions", () => {
 
         await expect(startPracticeGenerationAction("draft-other")).resolves.toEqual({
             ok: false,
-            error: "Practice draft is no longer editable.",
+            error: "Practice draft was not found.",
         });
     });
 });

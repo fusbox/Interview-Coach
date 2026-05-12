@@ -35,7 +35,7 @@ export async function startPracticeGenerationAction(practiceDraftId: string): Pr
     });
 
     if (!draft) {
-        return { ok: false, error: "Practice draft is no longer editable." };
+        return { ok: false, error: "Practice draft was not found." };
     }
 
     const sessionResult = await createCandidateSessionFromDraft({

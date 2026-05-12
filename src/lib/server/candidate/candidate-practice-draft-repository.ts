@@ -24,6 +24,13 @@ export type ResumeContextSnapshot = {
     pastedText: string | null;
     extractedText: string;
     captureMode: "none" | "pasted_text" | "file_upload" | "image_capture" | "mixed";
+    processedArtifact: ProcessedResumeArtifact | null;
+};
+
+export type ProcessedResumeArtifact = {
+    text: string;
+    source: ResumeContextSnapshot["captureMode"];
+    originalRetained: false;
 };
 
 export type CandidatePracticeDraft = {
@@ -315,6 +322,7 @@ function buildResumeContext(resumeText: string | null): ResumeContextSnapshot {
             pastedText: null,
             extractedText: "",
             captureMode: "none",
+            processedArtifact: null,
         };
     }
 
@@ -322,6 +330,11 @@ function buildResumeContext(resumeText: string | null): ResumeContextSnapshot {
         pastedText: normalizedResumeText,
         extractedText: normalizedResumeText,
         captureMode: "pasted_text",
+        processedArtifact: {
+            text: normalizedResumeText,
+            source: "pasted_text",
+            originalRetained: false,
+        },
     };
 }
 
@@ -369,6 +382,38 @@ function normalizeResumeContext(value: unknown): ResumeContextSnapshot {
         pastedText: typeof record.pastedText === "string" ? record.pastedText : null,
         extractedText: typeof record.extractedText === "string" ? record.extractedText : "",
         captureMode,
+        processedArtifact: normalizeProcessedArtifact(record, captureMode),
+    };
+}
+
+function normalizeProcessedArtifact(
+    record: Partial<ResumeContextSnapshot>,
+    captureMode: ResumeContextSnapshot["captureMode"],
+): ProcessedResumeArtifact | null {
+    const candidateArtifact = record.processedArtifact;
+    if (candidateArtifact && typeof candidateArtifact === "object") {
+        const artifact = candidateArtifact as Partial<ProcessedResumeArtifact>;
+        if (typeof artifact.text === "string" && artifact.text.trim()) {
+            return {
+                text: artifact.text,
+                source: captureMode,
+                originalRetained: false,
+            };
+        }
+    }
+
+    const fallbackText = typeof record.extractedText === "string" && record.extractedText.trim()
+        ? record.extractedText
+        : null;
+
+    if (!fallbackText || captureMode === "none") {
+        return null;
+    }
+
+    return {
+        text: fallbackText,
+        source: captureMode,
+        originalRetained: false,
     };
 }
 
