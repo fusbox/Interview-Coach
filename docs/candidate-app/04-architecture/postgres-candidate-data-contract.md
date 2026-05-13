@@ -147,6 +147,12 @@ Current repository boundary:
 - [Candidate session loader tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-loader.test.ts)
 - [Candidate session progress service](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-progress-service.ts)
 - [Candidate session progress service tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-progress-service.test.ts)
+- [Candidate session answer service](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-answer-service.ts)
+- [Candidate session answer service tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-answer-service.test.ts)
+- [Candidate summary loader](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-summary-loader.ts)
+- [Candidate summary loader tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-summary-loader.test.ts)
+- [Candidate dashboard loader](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-dashboard-loader.ts)
+- [Candidate dashboard loader tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-dashboard-loader.test.ts)
 
 The first repository resolves or creates candidate profiles from provider identity handoffs and maps provider identities to a `CandidateProfileAccessRecord` for future auth and route-guard code.
 
@@ -163,6 +169,8 @@ The session creation service reads a candidate-owned draft in `generating`, crea
 The session loader uses `candidate_practice_drafts.session_id` plus `candidate_profile_id` as the candidate ownership boundary before reading the shared `sessions` record for `/session/[sessionId]`.
 
 Session progress mutations reuse the shared session update command for persisted `sessions` state, then update `candidate_practice_drafts.status` and `resume_target_screen` through the same candidate/session ownership boundary. `IN_SESSION` maps to draft `in_session` and `session_in_progress`; `COMPLETED` maps to draft `completed` and `session_summary`.
+
+Answer submit, answer coaching, and question retry mutations verify `candidate_practice_drafts.session_id` plus `candidate_profile_id` before reading or updating the shared session repository. Candidate summary and dashboard loaders use the same ownership link before exposing completed-session or next-practice data.
 
 Candidate mutation boundaries live in [Candidate mutation boundary](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-mutation-boundary.ts). They reuse the shared `RATE_LIMIT_BACKEND` through operation-specific candidate buckets for practice generation, session progress, answer submit, and question retry. These server-action mutations do not use durable request replay yet; their current idempotency boundary is state-based:
 
