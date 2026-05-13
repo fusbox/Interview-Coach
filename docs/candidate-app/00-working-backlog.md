@@ -97,14 +97,14 @@ Ground truth:
 | --- | --- | --- | --- | --- | --- | --- |
 | FND-F01 | 640 | Feature | Resolved | Fu Chen <fu@rangam.com> | Repo and docs baseline | Candidate docs, ADRs, package identity, CI scripts, and source assets exist |
 | FND-S01 | 656 | Story | Active | Fu Chen <fu@rangam.com> | Align package name and quality scripts | `lint`, `typecheck`, coverage, stability, and build scripts are available |
-| FND-T01 | 657 | Task | New | Fu Chen <fu@rangam.com> | Verify local quality command names | Scripts are listed in package docs or local bootstrap |
+| FND-T01 | 657 | Task | Closed | Fu Chen <fu@rangam.com> | Verify local quality command names | Scripts are listed in package docs or local bootstrap |
 | FND-S02 | 658 | Story | Active | Fu Chen <fu@rangam.com> | Align public assets with migrated recruiter app | Candidate public assets match the migrated recruiter baseline where intentionally shared |
 | FND-S03 | 641 | Story | Resolved | Fu Chen <fu@rangam.com> | Establish ground-truth docs and single working backlog | [README.md](README.md) links current docs and this backlog |
 | FND-T04 | 642 | Task | Closed | Fu Chen <fu@rangam.com> | Establish working docs and ground-truth docs | Foundational docs exist and are hyperlinked |
 | FND-S04 | 659 | Story | Active | Fu Chen <fu@rangam.com> | Add ADRs and environment contract | [Decision Records](08-decisions/README.md) and `.env.example` exist |
 | FND-F02 | 660 | Feature | Active | Fu Chen <fu@rangam.com> | Local developer bootstrap | A developer can run the app, DB setup, seed data, and quality checks locally |
 | FND-S05 | 661 | Story | Active | Fu Chen <fu@rangam.com> | Document local bootstrap contract | [Local Dev Bootstrap](09-dev/local-dev-bootstrap.md) defines current and target commands |
-| FND-T02 | 662 | Task | New | Fu Chen <fu@rangam.com> | Implement DB setup/migrate/seed commands after DB layer lands | Commands run locally and are documented |
+| FND-T02 | 662 | Task | Closed | Fu Chen <fu@rangam.com> | Implement DB setup/migrate/seed commands after DB layer lands | `db:setup`, `db:migrate`, `db:seed`, and candidate readiness commands are available and documented |
 | FND-F03 | 663 | Feature | Active | Fu Chen <fu@rangam.com> | Policy baselines | Retention, accessibility, and threat-model expectations are usable during implementation |
 | FND-S06 | 664 | Story | Active | Fu Chen <fu@rangam.com> | Add data retention policy | [Data Retention Policy](06-security/data-retention-policy.md) states processed-resume retention default |
 | FND-S07 | 665 | Story | Active | Fu Chen <fu@rangam.com> | Add accessibility baseline | [Accessibility Baseline](05-quality/accessibility-baseline.md) defines primary UI expectations |
@@ -460,9 +460,9 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 66 | New | OPS-S13 | 767 | Fu Chen <fu@rangam.com> | Wire candidate pipeline in Azure project | Queue after import: create the Azure pipeline from `azure-pipelines.candidate.yml` and link it to branch policy when ready |
 | 67 | Resolved | QSO-S09 | 768 | Fu Chen <fu@rangam.com> | Add seeded browser smoke for candidate setup to summary | `test:e2e:candidate-seeded` validates seeded mock candidate navigation from practice setup through generated session completion and summary |
 | 68 | New | AUTH-S08 | 756 | Fu Chen <fu@rangam.com> | Implement login-start route after contract is known | Blocked until Q-05/Q-06 identity handoff answers are known |
-| 69 | New | FND-T01 | 657 | Fu Chen <fu@rangam.com> | Verify local quality command names | Next foundation cleanup bundle: confirm local bootstrap names match `package.json` and current CI scripts |
-| 70 | New | FND-T02 | 662 | Fu Chen <fu@rangam.com> | Implement DB setup/migrate/seed commands after DB layer lands | Bundle with FND-T01: verify current DB setup, schema, seed, and smoke commands are complete and documented |
-| 71 | New | DATA-S03 | 690 | Fu Chen <fu@rangam.com> | Add draft/session repository boundaries | Audit current draft/session persistence boundaries, resolve if covered, or fill remaining repository gaps with tests |
+| 69 | Closed | FND-T01 | 657 | Fu Chen <fu@rangam.com> | Verify local quality command names | Local bootstrap now lists current quality, DB, and seeded browser smoke commands from `package.json` |
+| 70 | Closed | FND-T02 | 662 | Fu Chen <fu@rangam.com> | Implement DB setup/migrate/seed commands after DB layer lands | `db:setup` and `db:migrate` now wrap the current smoke Postgres migration/seed path |
+| 71 | Active | DATA-S03 | 690 | Fu Chen <fu@rangam.com> | Add draft/session repository boundaries | Next pass: audit current draft/session persistence boundaries, resolve if covered, or fill remaining repository gaps with tests |
 | 72 | New | AUTH-T02 | 683 | Fu Chen <fu@rangam.com> | Add auth-denial logging without secrets | Add route/auth denial observability after local command cleanup |
 
 ## Open Questions
