@@ -29,6 +29,8 @@ Current candidate helper:
 - route timings are recorded as `candidate_route_duration_ms`
 - both helpers add `actorType=candidate` and `appName=candidate_app`
 - `withCandidateRouteMetrics` wraps candidate route loaders for `/dashboard`, `/practice`, `/session/[sessionId]`, and `/summary/[sessionId]`
+- `withCandidateMutationBoundary` applies shared rate-limit backend checks to candidate generation, session progress, answer submit, and retry mutations
+- current candidate server-action mutations are state-idempotent: repeat calls either set the same target state, return the already-submitted answer, or no-op when retry state is already clear
 - helper tests live in `src/lib/server/candidate/candidate-observability.test.ts`
 
 ## Event Taxonomy
@@ -111,6 +113,5 @@ Local development can keep memory metrics and mock/password candidate auth modes
 
 - Consider a neutral `/api/ops/metrics` route once candidate/recruiter metrics are both first-class.
 - Add candidate-specific counters around draft mutation, session generation, and resume extraction actions as implementation stabilizes.
-- Confirm where rate-limit and idempotency boundaries are required for candidate mutations before production pilot.
 - Add post-deploy smoke that hits public `/`, recruiter `/recruiter`, and candidate auth-guarded redirects.
 - Confirm the final TalentArbor identity handoff fields before logging any provider-specific metadata.

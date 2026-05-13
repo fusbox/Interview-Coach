@@ -6,6 +6,12 @@ export {
     type CandidateAuthHandoff,
 } from "./candidate-auth-adapter";
 export {
+    getCandidateMutationPolicy,
+    withCandidateMutationBoundary,
+    type CandidateMutationOperation,
+    type CandidateMutationPolicy,
+} from "./candidate-mutation-boundary";
+export {
     resolveLocalCandidateAuthHandoff,
 } from "./candidate-dev-auth-resolver";
 export {

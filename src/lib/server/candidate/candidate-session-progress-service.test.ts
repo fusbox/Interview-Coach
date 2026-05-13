@@ -2,10 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
     findCandidatePracticeDraftBySessionIdMock,
+    withCandidateMutationBoundaryMock,
     updateCandidatePracticeDraftProgressBySessionIdMock,
     updateSessionCommandMock,
 } = vi.hoisted(() => ({
     findCandidatePracticeDraftBySessionIdMock: vi.fn(),
+    withCandidateMutationBoundaryMock: vi.fn(async ({ mutate }) => mutate()),
     updateCandidatePracticeDraftProgressBySessionIdMock: vi.fn(),
     updateSessionCommandMock: vi.fn(),
 }));
@@ -17,6 +19,10 @@ vi.mock("./candidate-practice-draft-repository", () => ({
 
 vi.mock("@/lib/server/application/session/update-session", () => ({
     updateSessionCommand: updateSessionCommandMock,
+}));
+
+vi.mock("./candidate-mutation-boundary", () => ({
+    withCandidateMutationBoundary: withCandidateMutationBoundaryMock,
 }));
 
 describe("candidate session progress service", () => {
@@ -55,6 +61,11 @@ describe("candidate session progress service", () => {
         });
 
         expect(updateSessionCommandMock).toHaveBeenCalledWith("session-1", { status: "IN_SESSION" });
+        expect(withCandidateMutationBoundaryMock).toHaveBeenCalledWith(expect.objectContaining({
+            candidateProfileId: "profile-1",
+            operation: "session_progress",
+            subjectId: "session-1",
+        }));
         expect(updateCandidatePracticeDraftProgressBySessionIdMock).toHaveBeenCalledWith({
             candidateProfileId: "profile-1",
             sessionId: "session-1",
@@ -180,5 +191,25 @@ describe("candidate session progress service", () => {
 
         expect(updateSessionCommandMock).not.toHaveBeenCalled();
         expect(updateCandidatePracticeDraftProgressBySessionIdMock).not.toHaveBeenCalled();
+    });
+
+    it("returns rate-limit feedback without checking ownership when the boundary blocks the mutation", async () => {
+        withCandidateMutationBoundaryMock.mockResolvedValue({
+            ok: false,
+            error: "Too many candidate updates. Please wait and try again.",
+        });
+
+        const { startCandidateOwnedSession } = await import("./candidate-session-progress-service");
+
+        await expect(startCandidateOwnedSession({
+            candidateProfileId: "profile-1",
+            sessionId: "session-1",
+        })).resolves.toEqual({
+            ok: false,
+            error: "Too many candidate updates. Please wait and try again.",
+        });
+
+        expect(findCandidatePracticeDraftBySessionIdMock).not.toHaveBeenCalled();
+        expect(updateSessionCommandMock).not.toHaveBeenCalled();
     });
 });

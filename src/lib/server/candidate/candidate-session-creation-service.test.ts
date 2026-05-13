@@ -1,9 +1,22 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CandidatePracticeDraft } from "./candidate-practice-draft-repository";
 import { createCandidateSessionFromDraft } from "./candidate-session-creation-service";
 
+const { withCandidateMutationBoundaryMock } = vi.hoisted(() => ({
+    withCandidateMutationBoundaryMock: vi.fn(async ({ mutate }) => mutate()),
+}));
+
+vi.mock("./candidate-mutation-boundary", () => ({
+    withCandidateMutationBoundary: withCandidateMutationBoundaryMock,
+}));
+
 describe("candidate session creation service", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        withCandidateMutationBoundaryMock.mockImplementation(async ({ mutate }) => mutate());
+    });
+
     it("creates an owned practice session from a generating draft and attaches it back to the draft", async () => {
         const generatedQuestions = [
             {
@@ -87,6 +100,11 @@ describe("candidate session creation service", () => {
             sessionId: "session-1",
             questionSetSnapshotId: "snapshot-1",
         });
+        expect(withCandidateMutationBoundaryMock).toHaveBeenCalledWith(expect.objectContaining({
+            candidateProfileId: "profile-1",
+            operation: "practice_generation",
+            subjectId: "draft-1",
+        }));
         expect(deleteSession).not.toHaveBeenCalled();
     });
 
@@ -147,6 +165,35 @@ describe("candidate session creation service", () => {
         });
 
         expect(deleteSession).toHaveBeenCalledWith("session-cleanup");
+    });
+
+    it("returns rate-limit feedback after confirming the draft is owned and generating", async () => {
+        const createSession = vi.fn();
+        withCandidateMutationBoundaryMock.mockResolvedValue({
+            ok: false,
+            error: "Too many candidate updates. Please wait and try again.",
+        });
+
+        await expect(createCandidateSessionFromDraft(
+            {
+                candidateProfileId: "profile-1",
+                practiceDraftId: "draft-1",
+            },
+            {
+                findDraftById: vi.fn().mockResolvedValue(practiceDraft({ status: "generating" })),
+                attachGeneratedSession: vi.fn(),
+                sessionRepository: {
+                    create: createSession,
+                    delete: vi.fn(),
+                },
+                generateQuestions: vi.fn(),
+            },
+        )).resolves.toEqual({
+            ok: false,
+            error: "Too many candidate updates. Please wait and try again.",
+        });
+
+        expect(createSession).not.toHaveBeenCalled();
     });
 });
 

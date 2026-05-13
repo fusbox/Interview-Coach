@@ -60,7 +60,7 @@ Use for:
 - auth denial behavior
 - error responses
 - mutation success paths
-- idempotency and retry behavior
+- rate-limit boundaries, state-idempotency, and retry behavior
 
 ### Browser Tests
 

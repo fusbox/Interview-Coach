@@ -10,6 +10,7 @@ import {
     type CandidatePracticeDraft,
     type CandidatePracticeDraftLookup,
 } from "./candidate-practice-draft-repository";
+import { withCandidateMutationBoundary } from "./candidate-mutation-boundary";
 
 type CandidateSessionCreationDependencies = {
     findDraftById?: (input: CandidatePracticeDraftLookup) => Promise<CandidatePracticeDraft | null>;
@@ -58,53 +59,60 @@ export async function createCandidateSessionFromDraft(
         return { ok: false, error: "Practice draft is not ready for session creation." };
     }
 
-    const questionSetSnapshotId = createQuestionSetSnapshotId();
-    const questions = await generateQuestions(draft.targetRole);
-    if (questions.length === 0) {
-        return { ok: false, error: "Question generation returned no questions." };
-    }
+    return withCandidateMutationBoundary({
+        candidateProfileId: input.candidateProfileId,
+        operation: "practice_generation",
+        subjectId: input.practiceDraftId,
+        mutate: async () => {
+            const questionSetSnapshotId = createQuestionSetSnapshotId();
+            const questions = await generateQuestions(draft.targetRole);
+            if (questions.length === 0) {
+                return { ok: false, error: "Question generation returned no questions." };
+            }
 
-    const session: InterviewSession = {
-        id: createSessionId(),
-        status: "NOT_STARTED",
-        role: draft.targetRole,
-        jobDescription: draft.jobDescription ?? undefined,
-        questions,
-        currentQuestionIndex: 0,
-        answers: {},
-        initialsRequired: false,
-        intakeData: {
-            candidateProfileId: draft.candidateProfileId,
-            practiceDraftId: draft.practiceDraftId,
-            questionSetSnapshotId,
-            resumeContext: {
-                captureMode: draft.resumeContext.captureMode,
-                extractedText: draft.resumeContext.extractedText,
-            },
-            intakeResponses: draft.intakeResponses,
-            customQuestions: draft.customQuestions,
+            const session: InterviewSession = {
+                id: createSessionId(),
+                status: "NOT_STARTED",
+                role: draft.targetRole,
+                jobDescription: draft.jobDescription ?? undefined,
+                questions,
+                currentQuestionIndex: 0,
+                answers: {},
+                initialsRequired: false,
+                intakeData: {
+                    candidateProfileId: draft.candidateProfileId,
+                    practiceDraftId: draft.practiceDraftId,
+                    questionSetSnapshotId,
+                    resumeContext: {
+                        captureMode: draft.resumeContext.captureMode,
+                        extractedText: draft.resumeContext.extractedText,
+                    },
+                    intakeResponses: draft.intakeResponses,
+                    customQuestions: draft.customQuestions,
+                },
+            };
+
+            await sessionRepository.create(session);
+
+            const attachedDraft = await attachGeneratedSession({
+                candidateProfileId: draft.candidateProfileId,
+                practiceDraftId: draft.practiceDraftId,
+                sessionId: session.id,
+                questionSetSnapshotId,
+            });
+
+            if (!attachedDraft) {
+                await sessionRepository.delete(session.id);
+                return { ok: false, error: "Practice draft could not be attached to the generated session." };
+            }
+
+            return {
+                ok: true,
+                practiceDraftId: attachedDraft.practiceDraftId,
+                sessionId: session.id,
+                questionSetSnapshotId,
+                resumeTargetScreen: "session_entry",
+            };
         },
-    };
-
-    await sessionRepository.create(session);
-
-    const attachedDraft = await attachGeneratedSession({
-        candidateProfileId: draft.candidateProfileId,
-        practiceDraftId: draft.practiceDraftId,
-        sessionId: session.id,
-        questionSetSnapshotId,
     });
-
-    if (!attachedDraft) {
-        await sessionRepository.delete(session.id);
-        return { ok: false, error: "Practice draft could not be attached to the generated session." };
-    }
-
-    return {
-        ok: true,
-        practiceDraftId: attachedDraft.practiceDraftId,
-        sessionId: session.id,
-        questionSetSnapshotId,
-        resumeTargetScreen: "session_entry",
-    };
 }

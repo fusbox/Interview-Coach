@@ -198,7 +198,7 @@ Ground truth:
 | DATA-F02 | 688 | Feature | Active | Fu Chen <fu@rangam.com> | Candidate repository layer | Candidate profiles, drafts, sessions, resumes, and dashboard reads use repository boundaries |
 | DATA-S02 | 689 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate profile repository | Create/read/update behavior is tested |
 | DATA-S03 | 690 | Story | New | Fu Chen <fu@rangam.com> | Add draft/session repository boundaries | Candidate-owned drafts and sessions are persisted through server code |
-| DATA-S04 | 691 | Story | Active | Fu Chen <fu@rangam.com> | Add metrics/rate-limit/idempotency boundaries | Route loader metrics are wired; mutation rate-limit/idempotency decisions remain open |
+| DATA-S04 | 691 | Story | Resolved | Fu Chen <fu@rangam.com> | Add metrics/rate-limit/idempotency boundaries | Route metrics and candidate mutation rate-limit/state-idempotency boundaries are tested |
 | DATA-F03 | 692 | Feature | Active | Fu Chen <fu@rangam.com> | Migration and seed path | Local and integration environments can apply schema and seed dev candidates |
 | DATA-S05 | 693 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate DB migration | Migration applies cleanly on local Postgres |
 | DATA-S06 | 694 | Story | Resolved | Fu Chen <fu@rangam.com> | Add dev seed candidates | Seed SQL and smoke validation support happy path and ownership tests |
@@ -439,9 +439,12 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 51 | Resolved | QSO-S03 | 742 | Fu Chen <fu@rangam.com> | Add recruiter regression checklist for candidate PRs | Candidate PRs identify recruiter route risk and verification |
 | 52 | Resolved | QSO-S04 | 744 | Fu Chen <fu@rangam.com> | Add observability plan to deployment | Auth denial, draft, generation, extraction, and API errors are observable |
 | 53 | Resolved | QSO-S05 | 745 | Fu Chen <fu@rangam.com> | Add incident runbook | Runbook covers auth, DB, AI provider, resume extraction, and deployment incidents |
-| 54 | Active | DATA-S04 | 691 | Fu Chen <fu@rangam.com> | Add metrics/rate-limit/idempotency boundaries | Next queued pass: audit candidate mutations and settle rate-limit/idempotency boundaries after route metrics wiring |
+| 54 | Resolved | DATA-S04 | 691 | Fu Chen <fu@rangam.com> | Add metrics/rate-limit/idempotency boundaries | `withCandidateMutationBoundary` rate-limits generation/progress/answer/retry mutations and documents state-idempotent replay behavior |
 | 55 | Resolved | DATA-S06 | 694 | Fu Chen <fu@rangam.com> | Add dev seed candidates | `db:seed-candidate-dev` and `db:smoke-candidate-dev-seed` create and validate primary/alternate candidates |
-| 56 | New | AUTH-S08 | 756 | Fu Chen <fu@rangam.com> | Implement login-start route after contract is known | `/auth/talentarbor/start?next=/practice` and `/dashboard` validate and preserve safe targets |
+| 56 | New | SESS-S01 | 709 | Fu Chen <fu@rangam.com> | Identify candidate-safe session engine files | Next queued pass: reconcile the already-ported session surfaces into a concrete port/exclusion map |
+| 57 | New | SESS-T01 | 710 | Fu Chen <fu@rangam.com> | Mark recruiter-only session assumptions | Pair with SESS-S01 so candidate/recruiter session boundaries are explicit before deeper session work |
+| 58 | New | SESS-F01 | 708 | Fu Chen <fu@rangam.com> | Session engine port plan | Resolve after SESS-S01 and SESS-T01 document the concrete file map and exclusions |
+| 59 | New | AUTH-S08 | 756 | Fu Chen <fu@rangam.com> | Implement login-start route after contract is known | Blocked until Q-05/Q-06 identity handoff answers are known |
 
 ## Open Questions
 

@@ -6,12 +6,14 @@ const {
     findCandidatePracticeDraftBySessionIdMock,
     getSessionMock,
     updateMock,
+    withCandidateMutationBoundaryMock,
 } = vi.hoisted(() => ({
     createSessionRepositoryMock: vi.fn(),
     deleteAnalysisMock: vi.fn(),
     findCandidatePracticeDraftBySessionIdMock: vi.fn(),
     getSessionMock: vi.fn(),
     updateMock: vi.fn(),
+    withCandidateMutationBoundaryMock: vi.fn(async ({ mutate }) => mutate()),
 }));
 
 vi.mock("./candidate-practice-draft-repository", () => ({
@@ -20,6 +22,10 @@ vi.mock("./candidate-practice-draft-repository", () => ({
 
 vi.mock("@/lib/server/infrastructure/session-repository", () => ({
     createSessionRepository: createSessionRepositoryMock,
+}));
+
+vi.mock("./candidate-mutation-boundary", () => ({
+    withCandidateMutationBoundary: withCandidateMutationBoundaryMock,
 }));
 
 const baseSession = {
@@ -69,6 +75,11 @@ describe("candidate session answer service", () => {
         });
 
         expect(deleteAnalysisMock).toHaveBeenCalledWith("session-1", "question-1");
+        expect(withCandidateMutationBoundaryMock).toHaveBeenCalledWith(expect.objectContaining({
+            candidateProfileId: "profile-1",
+            operation: "session_answer_submit",
+            subjectId: "session-1:question-1",
+        }));
         expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({
             id: "session-1",
             status: "AWAITING_EVALUATION",
@@ -96,6 +107,7 @@ describe("candidate session answer service", () => {
         });
 
         expect(createSessionRepositoryMock).not.toHaveBeenCalled();
+        expect(withCandidateMutationBoundaryMock).not.toHaveBeenCalled();
     });
 
     it("does not submit when the session is not owned by the current candidate", async () => {
@@ -155,5 +167,31 @@ describe("candidate session answer service", () => {
                 },
             },
         }));
+        expect(withCandidateMutationBoundaryMock).toHaveBeenCalledWith(expect.objectContaining({
+            candidateProfileId: "profile-1",
+            operation: "session_question_retry",
+            subjectId: "session-1:question-1",
+        }));
+    });
+
+    it("returns rate-limit feedback before loading the owned session", async () => {
+        withCandidateMutationBoundaryMock.mockResolvedValue({
+            ok: false,
+            error: "Too many candidate updates. Please wait and try again.",
+        });
+        const { submitCandidateOwnedAnswer } = await import("./candidate-session-answer-service");
+
+        await expect(submitCandidateOwnedAnswer({
+            candidateProfileId: "profile-1",
+            sessionId: "session-1",
+            questionId: "question-1",
+            answerText: "My answer",
+        })).resolves.toEqual({
+            ok: false,
+            error: "Too many candidate updates. Please wait and try again.",
+        });
+
+        expect(findCandidatePracticeDraftBySessionIdMock).not.toHaveBeenCalled();
+        expect(createSessionRepositoryMock).not.toHaveBeenCalled();
     });
 });

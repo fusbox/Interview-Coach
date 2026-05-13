@@ -164,6 +164,13 @@ The session loader uses `candidate_practice_drafts.session_id` plus `candidate_p
 
 Session progress mutations reuse the shared session update command for persisted `sessions` state, then update `candidate_practice_drafts.status` and `resume_target_screen` through the same candidate/session ownership boundary. `IN_SESSION` maps to draft `in_session` and `session_in_progress`; `COMPLETED` maps to draft `completed` and `session_summary`.
 
+Candidate mutation boundaries live in [Candidate mutation boundary](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-mutation-boundary.ts). They reuse the shared `RATE_LIMIT_BACKEND` through operation-specific candidate buckets for practice generation, session progress, answer submit, and question retry. These server-action mutations do not use durable request replay yet; their current idempotency boundary is state-based:
+
+- practice generation only proceeds from a candidate-owned `generating` draft
+- progress mutations set the requested shared session state and corresponding draft target
+- answer submit returns success when the question already has a submitted answer
+- question retry clears answer analysis state and no-ops when no answer exists
+
 The auth adapter contract normalizes trusted identity handoffs from TalentArbor, RangamWorks, local password auth, or mock auth before repository resolution.
 
 The dev auth resolver produces local `password` or `dev_mock` handoffs for candidate route work before the external identity handoff is finalized.

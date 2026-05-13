@@ -1,6 +1,7 @@
 import type { SessionStatus } from "@/lib/domain/types";
 import { updateSessionCommand } from "@/lib/server/application/session/update-session";
 
+import { withCandidateMutationBoundary } from "./candidate-mutation-boundary";
 import {
     findCandidatePracticeDraftBySessionId,
     updateCandidatePracticeDraftProgressBySessionId,
@@ -32,78 +33,106 @@ type CandidateSessionProgressResult =
     };
 
 export async function startCandidateOwnedSession(input: CandidateSessionProgressInput): Promise<CandidateSessionProgressResult> {
-    const ownership = await findCandidatePracticeDraftBySessionId(input);
-    if (!ownership) {
-        return { ok: false, error: "Candidate session was not found." };
-    }
+    return withCandidateMutationBoundary({
+        candidateProfileId: input.candidateProfileId,
+        operation: "session_progress",
+        subjectId: input.sessionId,
+        mutate: async () => {
+            const ownership = await findCandidatePracticeDraftBySessionId(input);
+            if (!ownership) {
+                return { ok: false, error: "Candidate session was not found." };
+            }
 
-    const session = await updateSessionCommand(input.sessionId, { status: "IN_SESSION" });
-    const draftProgress = await persistDraftProgressTarget(input, session.status);
+            const session = await updateSessionCommand(input.sessionId, { status: "IN_SESSION" });
+            const draftProgress = await persistDraftProgressTarget(input, session.status);
 
-    return {
-        ok: true,
-        sessionId: session.id,
-        status: session.status,
-        currentQuestionIndex: session.currentQuestionIndex,
-        resumeTargetScreen: draftProgress,
-    };
+            return {
+                ok: true,
+                sessionId: session.id,
+                status: session.status,
+                currentQuestionIndex: session.currentQuestionIndex,
+                resumeTargetScreen: draftProgress,
+            };
+        },
+    });
 }
 
 export async function advanceCandidateOwnedSession(input: CandidateSessionAdvanceInput): Promise<CandidateSessionProgressResult> {
-    const ownership = await findCandidatePracticeDraftBySessionId(input);
-    if (!ownership) {
-        return { ok: false, error: "Candidate session was not found." };
-    }
+    return withCandidateMutationBoundary({
+        candidateProfileId: input.candidateProfileId,
+        operation: "session_progress",
+        subjectId: input.sessionId,
+        mutate: async () => {
+            const ownership = await findCandidatePracticeDraftBySessionId(input);
+            if (!ownership) {
+                return { ok: false, error: "Candidate session was not found." };
+            }
 
-    const session = await updateSessionCommand(input.sessionId, {
-        currentQuestionIndex: input.currentQuestionIndex,
-        status: input.status,
+            const session = await updateSessionCommand(input.sessionId, {
+                currentQuestionIndex: input.currentQuestionIndex,
+                status: input.status,
+            });
+            const draftProgress = await persistDraftProgressTarget(input, session.status);
+
+            return {
+                ok: true,
+                sessionId: session.id,
+                status: session.status,
+                currentQuestionIndex: session.currentQuestionIndex,
+                resumeTargetScreen: draftProgress,
+            };
+        },
     });
-    const draftProgress = await persistDraftProgressTarget(input, session.status);
-
-    return {
-        ok: true,
-        sessionId: session.id,
-        status: session.status,
-        currentQuestionIndex: session.currentQuestionIndex,
-        resumeTargetScreen: draftProgress,
-    };
 }
 
 export async function pauseCandidateOwnedSession(input: CandidateSessionProgressInput): Promise<CandidateSessionProgressResult> {
-    const ownership = await findCandidatePracticeDraftBySessionId(input);
-    if (!ownership) {
-        return { ok: false, error: "Candidate session was not found." };
-    }
+    return withCandidateMutationBoundary({
+        candidateProfileId: input.candidateProfileId,
+        operation: "session_progress",
+        subjectId: input.sessionId,
+        mutate: async () => {
+            const ownership = await findCandidatePracticeDraftBySessionId(input);
+            if (!ownership) {
+                return { ok: false, error: "Candidate session was not found." };
+            }
 
-    const session = await updateSessionCommand(input.sessionId, { status: "PAUSED" });
-    const draftProgress = await persistDraftProgressTarget(input, session.status);
+            const session = await updateSessionCommand(input.sessionId, { status: "PAUSED" });
+            const draftProgress = await persistDraftProgressTarget(input, session.status);
 
-    return {
-        ok: true,
-        sessionId: session.id,
-        status: session.status,
-        currentQuestionIndex: session.currentQuestionIndex,
-        resumeTargetScreen: draftProgress,
-    };
+            return {
+                ok: true,
+                sessionId: session.id,
+                status: session.status,
+                currentQuestionIndex: session.currentQuestionIndex,
+                resumeTargetScreen: draftProgress,
+            };
+        },
+    });
 }
 
 export async function resumeCandidateOwnedSession(input: CandidateSessionProgressInput): Promise<CandidateSessionProgressResult> {
-    const ownership = await findCandidatePracticeDraftBySessionId(input);
-    if (!ownership) {
-        return { ok: false, error: "Candidate session was not found." };
-    }
+    return withCandidateMutationBoundary({
+        candidateProfileId: input.candidateProfileId,
+        operation: "session_progress",
+        subjectId: input.sessionId,
+        mutate: async () => {
+            const ownership = await findCandidatePracticeDraftBySessionId(input);
+            if (!ownership) {
+                return { ok: false, error: "Candidate session was not found." };
+            }
 
-    const session = await updateSessionCommand(input.sessionId, { status: "IN_SESSION" });
-    const draftProgress = await persistDraftProgressTarget(input, session.status);
+            const session = await updateSessionCommand(input.sessionId, { status: "IN_SESSION" });
+            const draftProgress = await persistDraftProgressTarget(input, session.status);
 
-    return {
-        ok: true,
-        sessionId: session.id,
-        status: session.status,
-        currentQuestionIndex: session.currentQuestionIndex,
-        resumeTargetScreen: draftProgress,
-    };
+            return {
+                ok: true,
+                sessionId: session.id,
+                status: session.status,
+                currentQuestionIndex: session.currentQuestionIndex,
+                resumeTargetScreen: draftProgress,
+            };
+        },
+    });
 }
 
 async function persistDraftProgressTarget(input: CandidateSessionProgressInput, sessionStatus: SessionStatus) {
