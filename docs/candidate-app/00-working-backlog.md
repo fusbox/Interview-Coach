@@ -235,7 +235,7 @@ Ground truth:
 
 ### EPIC-06 Candidate Session Engine Integration
 
-Azure Boards: #707 | State: New | Assigned To: Fu Chen <fu@rangam.com>
+Azure Boards: #707 | State: Active | Assigned To: Fu Chen <fu@rangam.com>
 
 Outcome: Candidate-owned drafts create and resume candidate-owned interview sessions using reusable session engine patterns.
 
@@ -247,12 +247,13 @@ Ground truth:
 
 - [Candidate-Driven Implementation Plan](04-architecture/candidate-driven-implementation-plan.md)
 - [Practice Session Draft Contract](04-architecture/practice-session-draft-contract.md)
+- [Candidate Session Engine Port Plan](04-architecture/session-engine-port-plan.md)
 
 | ID | Azure ID | Level | State | Assigned To | Item | Acceptance Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| SESS-F01 | 708 | Feature | New | Fu Chen <fu@rangam.com> | Session engine port plan | Candidate-safe session files and exclusions are documented |
-| SESS-S01 | 709 | Story | New | Fu Chen <fu@rangam.com> | Identify candidate-safe session engine files | Port list references concrete source files from migrated recruiter app |
-| SESS-T01 | 710 | Task | New | Fu Chen <fu@rangam.com> | Mark recruiter-only session assumptions | Invite-token-only and recruiter-review assumptions are listed |
+| SESS-F01 | 708 | Feature | Resolved | Fu Chen <fu@rangam.com> | Session engine port plan | Candidate-safe session files and exclusions are documented |
+| SESS-S01 | 709 | Story | Resolved | Fu Chen <fu@rangam.com> | Identify candidate-safe session engine files | Port list references concrete source files from migrated recruiter app |
+| SESS-T01 | 710 | Task | Closed | Fu Chen <fu@rangam.com> | Mark recruiter-only session assumptions | Invite-token-only and recruiter-review assumptions are listed |
 | SESS-F02 | 711 | Feature | Active | Fu Chen <fu@rangam.com> | Candidate session lifecycle | Draft creates session and session resumes from persisted state |
 | SESS-S02 | 712 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate session creation service | Draft produces session ID and immutable question snapshot |
 | SESS-S03 | 713 | Story | Resolved | Fu Chen <fu@rangam.com> | Render real session state in `/session/[sessionId]` | Page no longer uses static placeholder content |
@@ -441,10 +442,11 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 53 | Resolved | QSO-S05 | 745 | Fu Chen <fu@rangam.com> | Add incident runbook | Runbook covers auth, DB, AI provider, resume extraction, and deployment incidents |
 | 54 | Resolved | DATA-S04 | 691 | Fu Chen <fu@rangam.com> | Add metrics/rate-limit/idempotency boundaries | `withCandidateMutationBoundary` rate-limits generation/progress/answer/retry mutations and documents state-idempotent replay behavior |
 | 55 | Resolved | DATA-S06 | 694 | Fu Chen <fu@rangam.com> | Add dev seed candidates | `db:seed-candidate-dev` and `db:smoke-candidate-dev-seed` create and validate primary/alternate candidates |
-| 56 | New | SESS-S01 | 709 | Fu Chen <fu@rangam.com> | Identify candidate-safe session engine files | Next queued pass: reconcile the already-ported session surfaces into a concrete port/exclusion map |
-| 57 | New | SESS-T01 | 710 | Fu Chen <fu@rangam.com> | Mark recruiter-only session assumptions | Pair with SESS-S01 so candidate/recruiter session boundaries are explicit before deeper session work |
-| 58 | New | SESS-F01 | 708 | Fu Chen <fu@rangam.com> | Session engine port plan | Resolve after SESS-S01 and SESS-T01 document the concrete file map and exclusions |
-| 59 | New | AUTH-S08 | 756 | Fu Chen <fu@rangam.com> | Implement login-start route after contract is known | Blocked until Q-05/Q-06 identity handoff answers are known |
+| 56 | Resolved | SESS-S01 | 709 | Fu Chen <fu@rangam.com> | Identify candidate-safe session engine files | Session engine port plan lists shared domain/repository/service files and candidate adapters |
+| 57 | Closed | SESS-T01 | 710 | Fu Chen <fu@rangam.com> | Mark recruiter-only session assumptions | Session engine port plan lists invite-token, recruiter ownership, initials-gate, and recruiter-review exclusions |
+| 58 | Resolved | SESS-F01 | 708 | Fu Chen <fu@rangam.com> | Session engine port plan | Candidate-safe file inventory and exclusion map are documented |
+| 59 | Active | SESS-F03 | 716 | Fu Chen <fu@rangam.com> | Candidate feedback and summary | Next queued bundle: scope candidate-owned answer analysis/feedback against the port plan before adding new child story work |
+| 60 | New | AUTH-S08 | 756 | Fu Chen <fu@rangam.com> | Implement login-start route after contract is known | Blocked until Q-05/Q-06 identity handoff answers are known |
 
 ## Open Questions
 

@@ -33,24 +33,25 @@ This folder is organized to keep product requirements, UX/design rules, and arch
 7. [Shared Host Routing Contract](04-architecture/shared-host-routing-contract.md)
 8. [Candidate-Driven Implementation Plan](04-architecture/candidate-driven-implementation-plan.md)
 9. [Practice Session Draft Contract](04-architecture/practice-session-draft-contract.md)
-10. [Postgres Candidate Data Contract](04-architecture/postgres-candidate-data-contract.md)
-11. [Storage And Resume Ingestion](04-architecture/storage-and-resume-ingestion.md)
+10. [Candidate Session Engine Port Plan](04-architecture/session-engine-port-plan.md)
+11. [Postgres Candidate Data Contract](04-architecture/postgres-candidate-data-contract.md)
+12. [Storage And Resume Ingestion](04-architecture/storage-and-resume-ingestion.md)
 
 ### Quality, security, and operations
 
-12. [Test Strategy](05-quality/test-strategy.md)
-13. [Accessibility Baseline](05-quality/accessibility-baseline.md)
-14. [Recruiter Regression Checklist For Candidate PRs](05-quality/recruiter-regression-checklist.md)
-15. [Candidate App Threat Model](06-security/threat-model.md)
-16. [Data Retention Policy](06-security/data-retention-policy.md)
-17. [Azure DevOps Operating Model](07-ops/azure-devops-operating-model.md)
-18. [Candidate Observability Plan](07-ops/candidate-observability-plan.md)
-19. [Candidate Incident Runbook](07-ops/candidate-incident-runbook.md)
+13. [Test Strategy](05-quality/test-strategy.md)
+14. [Accessibility Baseline](05-quality/accessibility-baseline.md)
+15. [Recruiter Regression Checklist For Candidate PRs](05-quality/recruiter-regression-checklist.md)
+16. [Candidate App Threat Model](06-security/threat-model.md)
+17. [Data Retention Policy](06-security/data-retention-policy.md)
+18. [Azure DevOps Operating Model](07-ops/azure-devops-operating-model.md)
+19. [Candidate Observability Plan](07-ops/candidate-observability-plan.md)
+20. [Candidate Incident Runbook](07-ops/candidate-incident-runbook.md)
 
 ### Decisions and developer setup
 
-20. [Decision Records](08-decisions/README.md)
-21. [Local Dev Bootstrap](09-dev/local-dev-bootstrap.md)
+21. [Decision Records](08-decisions/README.md)
+22. [Local Dev Bootstrap](09-dev/local-dev-bootstrap.md)
 
 ## Document Rules
 
