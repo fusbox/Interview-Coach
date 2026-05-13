@@ -233,7 +233,7 @@ Ground truth:
 | DRFT-S06 | 704 | Story | Resolved | Fu Chen <fu@rangam.com> | Submit draft into generation state | Draft status and resume target persist |
 | DRFT-F03 | 705 | Feature | Active | Fu Chen <fu@rangam.com> | Multiple draft management | Candidate can distinguish and resume more than one active/named draft |
 | DRFT-S07 | 706 | Story | Resolved | Fu Chen <fu@rangam.com> | Model draft naming and selection | Candidate can choose editable drafts by role label and last activity date |
-| DRFT-S08 |  | Story | New | Fu Chen <fu@rangam.com> | Build practice setup UI MVP | Candidate can complete setup, resume context, structured intake, and draft selection in an accessible polished flow |
+| DRFT-S08 | 769 | Story | New | Fu Chen <fu@rangam.com> | Build practice setup UI MVP | Candidate can complete setup, resume context, structured intake, and draft selection in an accessible polished flow |
 
 ### EPIC-06 Candidate Session Engine Integration
 
@@ -265,7 +265,7 @@ Ground truth:
 | SESS-S06 | 717 | Story | Resolved | Fu Chen <fu@rangam.com> | Implement candidate summary route | Completed session opens candidate-owned summary/history surface |
 | SESS-S07 | 764 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate answer and retry mutation surface | Candidate-owned answer submit and retry persist through server actions and Postgres session storage without invite-token dependency |
 | SESS-S08 | 765 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate answer coaching action | Candidate-owned submitted answers can generate and display coaching through a candidate ownership boundary |
-| SESS-S09 |  | Story | New | Fu Chen <fu@rangam.com> | Build live practice session UI MVP | Candidate can answer, request coaching, retry, pause, resume, and complete a session through an accessible polished flow |
+| SESS-S09 | 770 | Story | New | Fu Chen <fu@rangam.com> | Build live practice session UI MVP | Candidate can answer, request coaching, retry, pause, resume, and complete a session through an accessible polished flow |
 
 ### EPIC-07 Resume Ingestion And Candidate Context
 
@@ -321,7 +321,7 @@ Ground truth:
 | DASH-S04 | 735 | Story | Resolved | Fu Chen <fu@rangam.com> | Add dashboard tests | Query and route tests cover empty, active, completed, and missing-auth states |
 | DASH-F02 | 736 | Feature | Resolved | Fu Chen <fu@rangam.com> | Progress and coaching themes | Candidate sees useful patterns without noisy analytics |
 | DASH-S05 | 737 | Story | Resolved | Fu Chen <fu@rangam.com> | Surface next best practice recommendation | Recommendation is grounded in candidate-owned history |
-| DASH-S06 |  | Story | New | Fu Chen <fu@rangam.com> | Build dashboard UI MVP | Candidate can scan active drafts, completed summaries, next actions, and resume/review/repeat affordances in a polished dashboard |
+| DASH-S06 | 771 | Story | New | Fu Chen <fu@rangam.com> | Build dashboard UI MVP | Candidate can scan active drafts, completed summaries, next actions, and resume/review/repeat affordances in a polished dashboard |
 
 ### EPIC-09 Quality, Security, Observability, And Release Readiness
 
@@ -469,9 +469,9 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 72 | Closed | AUTH-T02 | 683 | Fu Chen <fu@rangam.com> | Add auth-denial logging without secrets | Candidate external-mode auth redirects log safe route, reason, actor type, and actor mode fields without logging secrets or query payloads |
 | 73 | Closed | FND-T03 | 666 | Fu Chen <fu@rangam.com> | Revisit threat model after auth and resume ingestion are implemented | Threat model now reflects shared host, auth modes, route boundaries, candidate ownership, resume ingestion, storage assumptions, AI risks, logging, CI, and the fact that candidate UI polish is still ahead |
 | 74 | New | OPS-S13 | 767 | Fu Chen <fu@rangam.com> | Wire candidate pipeline in Azure project | Queue for user-guided Azure setup: create pipeline from `azure-pipelines.candidate.yml`, confirm branch trigger/build validation options, and capture evidence |
-| 75 | New | DRFT-S08 |  | Fu Chen <fu@rangam.com> | Build practice setup UI MVP | Future UI pass: turn the backend-backed setup/draft/intake capabilities into a polished candidate-facing practice setup flow |
-| 76 | New | SESS-S09 |  | Fu Chen <fu@rangam.com> | Build live practice session UI MVP | Future UI pass: turn candidate session actions and coaching services into a polished interview practice experience |
-| 77 | New | DASH-S06 |  | Fu Chen <fu@rangam.com> | Build dashboard UI MVP | Future UI pass: turn dashboard read models and next-action logic into a polished candidate dashboard |
+| 75 | New | DRFT-S08 | 769 | Fu Chen <fu@rangam.com> | Build practice setup UI MVP | Future UI pass: turn the backend-backed setup/draft/intake capabilities into a polished candidate-facing practice setup flow |
+| 76 | New | SESS-S09 | 770 | Fu Chen <fu@rangam.com> | Build live practice session UI MVP | Future UI pass: turn candidate session actions and coaching services into a polished interview practice experience |
+| 77 | New | DASH-S06 | 771 | Fu Chen <fu@rangam.com> | Build dashboard UI MVP | Future UI pass: turn dashboard read models and next-action logic into a polished candidate dashboard |
 
 ## Open Questions
 
