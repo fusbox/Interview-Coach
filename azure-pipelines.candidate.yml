@@ -91,3 +91,6 @@ jobs:
 
       - script: npm run db:smoke-candidate-readiness
         displayName: Candidate Postgres smoke readiness
+
+      - script: npm run test:e2e:candidate-seeded
+        displayName: Candidate seeded browser smoke

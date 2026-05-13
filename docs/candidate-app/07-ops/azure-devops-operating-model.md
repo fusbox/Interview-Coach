@@ -614,6 +614,7 @@ Minimum useful pipeline:
 4. Unit/component tests
 5. Build
 6. Candidate Postgres smoke readiness
+7. Seeded candidate browser smoke for setup/session/summary
 
 Later pipeline:
 

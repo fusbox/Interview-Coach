@@ -342,8 +342,8 @@ Ground truth:
 | QSO-S01 | 740 | Story | Resolved | Fu Chen <fu@rangam.com> | Add primary route smoke tests | `/`, `/recruiter`, `/practice`, `/dashboard`, `/admin/feedback`, and `/qa/ai-quality` are covered |
 | QSO-S02 | 741 | Story | Resolved | Fu Chen <fu@rangam.com> | Add accessibility checks for primary pages | Automated baseline covers landing/practice/session/dashboard/summary; manual checks remain in the accessibility baseline |
 | QSO-S03 | 742 | Story | Resolved | Fu Chen <fu@rangam.com> | Add recruiter regression checklist for candidate PRs | Candidate PRs identify recruiter route risk and verification |
-| QSO-S08 | TBD | Story | Active | Fu Chen <fu@rangam.com> | Add seeded setup-to-summary smoke readiness | DB smoke validates deterministic setup, in-session, summary, and saved-feedback fixtures |
-| QSO-S09 | TBD | Story | New | Fu Chen <fu@rangam.com> | Add seeded browser smoke for candidate setup to summary | Browser smoke uses deterministic seeded candidate fixtures to validate setup, session, and summary navigation |
+| QSO-S08 | 766 | Story | Resolved | Fu Chen <fu@rangam.com> | Add seeded setup-to-summary smoke readiness | DB smoke validates deterministic setup, in-session, summary, and saved-feedback fixtures |
+| QSO-S09 | 768 | Story | Resolved | Fu Chen <fu@rangam.com> | Add seeded browser smoke for candidate setup to summary | Browser smoke uses deterministic seeded candidate fixtures to validate setup, session, and summary navigation |
 | QSO-F02 | 743 | Feature | Active | Fu Chen <fu@rangam.com> | Observability and incident readiness | App emits useful telemetry without leaking sensitive data |
 | QSO-S04 | 744 | Story | Resolved | Fu Chen <fu@rangam.com> | Add observability plan to deployment | Auth denial, draft, generation, extraction, and API errors are observable |
 | QSO-S05 | 745 | Story | Resolved | Fu Chen <fu@rangam.com> | Add incident runbook | Runbook covers auth, DB, AI provider, resume extraction, and deployment incidents |
@@ -384,7 +384,7 @@ Ground truth:
 | OPS-S10 | 646 | Story | Active | Himanshu Sagar <himanshusagar@rangam.com> | Publish company code wiki when access allows | `/docs/candidate-app` is published from company Azure project as code wiki |
 | OPS-S11 | 761 | Story | New | Himanshu Sagar <himanshusagar@rangam.com> | Add branch policy after reviewers are available | Candidate branch has agreed PR/build requirements |
 | OPS-S12 | 762 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate integration pipeline | Pipeline definition runs lint, typecheck, candidate tests, build, and candidate DB smoke readiness |
-| OPS-S13 | TBD | Story | New | Fu Chen <fu@rangam.com> | Wire candidate pipeline in Azure project | Azure pipeline is created from `azure-pipelines.candidate.yml` and build validation policy can reference it |
+| OPS-S13 | 767 | Story | New | Fu Chen <fu@rangam.com> | Wire candidate pipeline in Azure project | Azure pipeline is created from `azure-pipelines.candidate.yml` and build validation policy can reference it |
 
 ## Execution Sequence
 
@@ -454,12 +454,16 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 60 | Resolved | SESS-F03 | 716 | Fu Chen <fu@rangam.com> | Candidate feedback and summary | Candidate answer coaching and summary surfaces are implemented with candidate ownership checks and without recruiter-facing readiness semantics |
 | 61 | Resolved | DASH-S05 | 737 | Fu Chen <fu@rangam.com> | Surface next best practice recommendation | Dashboard next best action is grounded in active session progress or latest completed-session coaching |
 | 62 | Resolved | DASH-F02 | 736 | Fu Chen <fu@rangam.com> | Progress and coaching themes | Candidate dashboard shows useful next-practice guidance without noisy analytics |
-| 63 | Active | QSO-S08 | TBD | Fu Chen <fu@rangam.com> | Add seeded setup-to-summary smoke readiness | `db:smoke-candidate-setup-summary` validates deterministic setup, in-session, completed-summary, and saved-feedback fixtures |
+| 63 | Resolved | QSO-S08 | 766 | Fu Chen <fu@rangam.com> | Add seeded setup-to-summary smoke readiness | `db:smoke-candidate-setup-summary` validates deterministic setup, in-session, completed-summary, and saved-feedback fixtures |
 | 64 | Active | QSO-F01 | 739 | Fu Chen <fu@rangam.com> | Smoke and regression testing | Seed-backed DB smoke path exists; next browser smoke can build on the deterministic candidate fixtures |
 | 65 | Resolved | OPS-S12 | 762 | Fu Chen <fu@rangam.com> | Add candidate integration pipeline | `azure-pipelines.candidate.yml` and `ci:candidate` scripts define lint, typecheck, candidate tests, build, and DB smoke readiness |
-| 66 | New | OPS-S13 | TBD | Fu Chen <fu@rangam.com> | Wire candidate pipeline in Azure project | Queue after import: create the Azure pipeline from `azure-pipelines.candidate.yml` and link it to branch policy when ready |
-| 67 | New | QSO-S09 | TBD | Fu Chen <fu@rangam.com> | Add seeded browser smoke for candidate setup to summary | Next implementation target: use seeded fixtures to validate browser navigation from setup/session to summary |
+| 66 | New | OPS-S13 | 767 | Fu Chen <fu@rangam.com> | Wire candidate pipeline in Azure project | Queue after import: create the Azure pipeline from `azure-pipelines.candidate.yml` and link it to branch policy when ready |
+| 67 | Resolved | QSO-S09 | 768 | Fu Chen <fu@rangam.com> | Add seeded browser smoke for candidate setup to summary | `test:e2e:candidate-seeded` validates seeded mock candidate navigation from practice setup through generated session completion and summary |
 | 68 | New | AUTH-S08 | 756 | Fu Chen <fu@rangam.com> | Implement login-start route after contract is known | Blocked until Q-05/Q-06 identity handoff answers are known |
+| 69 | New | FND-T01 | 657 | Fu Chen <fu@rangam.com> | Verify local quality command names | Next foundation cleanup bundle: confirm local bootstrap names match `package.json` and current CI scripts |
+| 70 | New | FND-T02 | 662 | Fu Chen <fu@rangam.com> | Implement DB setup/migrate/seed commands after DB layer lands | Bundle with FND-T01: verify current DB setup, schema, seed, and smoke commands are complete and documented |
+| 71 | New | DATA-S03 | 690 | Fu Chen <fu@rangam.com> | Add draft/session repository boundaries | Audit current draft/session persistence boundaries, resolve if covered, or fill remaining repository gaps with tests |
+| 72 | New | AUTH-T02 | 683 | Fu Chen <fu@rangam.com> | Add auth-denial logging without secrets | Add route/auth denial observability after local command cleanup |
 
 ## Open Questions
 

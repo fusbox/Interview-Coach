@@ -16,6 +16,20 @@
 
 begin;
 
+-- Clean up local-only mock profiles that may have been created by older smoke
+-- runs before the dev_mock identity was tied back to the primary seeded profile.
+delete from public.candidate_identities
+where candidate_profile_id in (
+  select candidate_profile_id
+  from public.candidate_profiles
+  where auth_subject = 'dev_mock:interview-coach-local:candidate-dev-primary@talentarbor.local'
+    and workspace = 'local_dev'
+);
+
+delete from public.candidate_profiles
+where auth_subject = 'dev_mock:interview-coach-local:candidate-dev-primary@talentarbor.local'
+  and workspace = 'local_dev';
+
 insert into public.candidate_profiles (
   candidate_profile_id,
   auth_subject,
