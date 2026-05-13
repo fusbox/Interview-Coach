@@ -241,7 +241,7 @@ Current session entry boundary:
 - [Candidate session progress service](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-progress-service.ts) starts and advances candidate-owned sessions through the shared session update command, then mirrors draft `status` and `resumeTargetScreen`.
 - [Candidate session actions](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-session/actions.ts) resolve the current candidate profile before invoking session progress mutations from the page.
 
-Current mutation coverage includes start, next question, finish session, pause, resume, completion resume-target updates, answer submit, question retry, mutation rate limiting, state-idempotency, and ownership denial paths.
+Current mutation coverage includes start, next question, finish session, pause, resume, completion resume-target updates, answer submit, answer coaching generation, question retry, mutation rate limiting, state-idempotency, and ownership denial paths.
 
 ## Protected-Route Boundary
 

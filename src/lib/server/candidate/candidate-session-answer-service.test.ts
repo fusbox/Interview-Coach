@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
+    analyzeAnswerMock,
     createSessionRepositoryMock,
     deleteAnalysisMock,
     findCandidatePracticeDraftBySessionIdMock,
@@ -8,6 +9,7 @@ const {
     updateMock,
     withCandidateMutationBoundaryMock,
 } = vi.hoisted(() => ({
+    analyzeAnswerMock: vi.fn(),
     createSessionRepositoryMock: vi.fn(),
     deleteAnalysisMock: vi.fn(),
     findCandidatePracticeDraftBySessionIdMock: vi.fn(),
@@ -26,6 +28,12 @@ vi.mock("@/lib/server/infrastructure/session-repository", () => ({
 
 vi.mock("./candidate-mutation-boundary", () => ({
     withCandidateMutationBoundary: withCandidateMutationBoundaryMock,
+}));
+
+vi.mock("@/lib/server/services/ai-service", () => ({
+    AIService: {
+        analyzeAnswer: analyzeAnswerMock,
+    },
 }));
 
 const baseSession = {
@@ -52,6 +60,18 @@ describe("candidate session answer service", () => {
         getSessionMock.mockResolvedValue({ ...baseSession, answers: {} });
         updateMock.mockResolvedValue(undefined);
         deleteAnalysisMock.mockResolvedValue(undefined);
+        analyzeAnswerMock.mockResolvedValue({
+            ack: "You gave a useful starting point.",
+            transcript: "I tightened the release checklist.",
+            recommendation: "Add a clearer metric.",
+            contentPulse: {
+                dimension: "outcome_explicitness",
+                headline: "Add the measurable result",
+                body: "Tie the checklist to a release outcome.",
+                quote: "release checklist",
+            },
+            meta: { tier: 1, modality: "text" },
+        });
         createSessionRepositoryMock.mockResolvedValue({
             get: getSessionMock,
             update: updateMock,
@@ -125,6 +145,99 @@ describe("candidate session answer service", () => {
         });
 
         expect(createSessionRepositoryMock).not.toHaveBeenCalled();
+    });
+
+    it("generates candidate-owned answer coaching after a submitted answer", async () => {
+        getSessionMock.mockResolvedValue({
+            ...baseSession,
+            status: "AWAITING_EVALUATION",
+            answers: {
+                "question-1": {
+                    questionId: "question-1",
+                    transcript: "I tightened the release checklist.",
+                    submittedAt: 1770000000000,
+                },
+            },
+        });
+        const { analyzeCandidateOwnedAnswer } = await import("./candidate-session-answer-service");
+
+        await expect(analyzeCandidateOwnedAnswer({
+            candidateProfileId: "profile-1",
+            sessionId: "session-1",
+            questionId: "question-1",
+        })).resolves.toMatchObject({
+            ok: true,
+            sessionId: "session-1",
+            status: "REVIEWING",
+            questionId: "question-1",
+            analysis: {
+                recommendation: "Add a clearer metric.",
+            },
+        });
+
+        expect(withCandidateMutationBoundaryMock).toHaveBeenCalledWith(expect.objectContaining({
+            candidateProfileId: "profile-1",
+            operation: "session_answer_analyze",
+            subjectId: "session-1:question-1",
+        }));
+        expect(analyzeAnswerMock).toHaveBeenCalledWith(
+            baseSession.questions[0],
+            "I tightened the release checklist.",
+            null,
+            { title: "QA analyst", competencies: [] },
+            undefined,
+            undefined,
+            { current: 1, total: 1 },
+            expect.objectContaining({
+                appName: "candidate_app",
+                candidateId: "profile-1",
+                sessionId: "session-1",
+            }),
+        );
+        expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({
+            status: "REVIEWING",
+            answers: {
+                "question-1": expect.objectContaining({
+                    transcript: "I tightened the release checklist.",
+                    analysis: expect.objectContaining({
+                        recommendation: "Add a clearer metric.",
+                    }),
+                }),
+            },
+        }));
+    });
+
+    it("replays existing candidate answer coaching without calling the model again", async () => {
+        getSessionMock.mockResolvedValue({
+            ...baseSession,
+            status: "REVIEWING",
+            answers: {
+                "question-1": {
+                    questionId: "question-1",
+                    transcript: "Old answer",
+                    submittedAt: 1770000000000,
+                    analysis: { recommendation: "Already analyzed." },
+                },
+            },
+        });
+        const { analyzeCandidateOwnedAnswer } = await import("./candidate-session-answer-service");
+
+        await expect(analyzeCandidateOwnedAnswer({
+            candidateProfileId: "profile-1",
+            sessionId: "session-1",
+            questionId: "question-1",
+        })).resolves.toMatchObject({
+            ok: true,
+            sessionId: "session-1",
+            status: "REVIEWING",
+            questionId: "question-1",
+            analysis: {
+                recommendation: "Already analyzed.",
+            },
+        });
+
+        expect(analyzeAnswerMock).not.toHaveBeenCalled();
+        expect(updateMock).not.toHaveBeenCalled();
     });
 
     it("retries a submitted question by clearing submission and analysis state", async () => {

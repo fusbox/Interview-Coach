@@ -4,6 +4,7 @@ export type CandidateMutationOperation =
     | "practice_generation"
     | "session_progress"
     | "session_answer_submit"
+    | "session_answer_analyze"
     | "session_question_retry";
 
 export type CandidateMutationFailure = {
@@ -42,6 +43,13 @@ const CANDIDATE_MUTATION_POLICIES: Record<CandidateMutationOperation, CandidateM
         windowMs: 60_000,
         idempotencyStrategy: "state",
         idempotencyNote: "A submitted answer is treated as already complete on replay.",
+    },
+    session_answer_analyze: {
+        operation: "session_answer_analyze",
+        maxRequests: 20,
+        windowMs: 60_000,
+        idempotencyStrategy: "state",
+        idempotencyNote: "An answer with persisted analysis is treated as already complete on replay.",
     },
     session_question_retry: {
         operation: "session_question_retry",

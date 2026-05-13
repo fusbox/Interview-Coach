@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import {
+    analyzeCandidateOwnedAnswer,
     advanceCandidateOwnedSession,
     pauseCandidateOwnedSession,
     resolveCandidateProfileFromIdentity,
@@ -112,6 +113,28 @@ export async function submitCandidateAnswerAction(
         sessionId,
         questionId,
         answerText: String(formData.get("answerText") ?? ""),
+    });
+
+    if (!result.ok) {
+        return result;
+    }
+
+    redirect(`/session/${result.sessionId}`);
+}
+
+export async function analyzeCandidateAnswerAction(
+    sessionId: string,
+    questionId: string,
+): Promise<CandidateSessionActionResult> {
+    const profile = await resolveCurrentCandidateProfile();
+    if (!profile.ok) {
+        return profile;
+    }
+
+    const result = await analyzeCandidateOwnedAnswer({
+        candidateProfileId: profile.candidateProfileId,
+        sessionId,
+        questionId,
     });
 
     if (!result.ok) {

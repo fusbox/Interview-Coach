@@ -83,6 +83,7 @@ export {
     startCandidateOwnedSession,
 } from "./candidate-session-progress-service";
 export {
+    analyzeCandidateOwnedAnswer,
     retryCandidateOwnedQuestion,
     submitCandidateOwnedAnswer,
 } from "./candidate-session-answer-service";

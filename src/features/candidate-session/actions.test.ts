@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
+    analyzeCandidateOwnedAnswerMock,
     advanceCandidateOwnedSessionMock,
     pauseCandidateOwnedSessionMock,
     redirectMock,
@@ -11,6 +12,7 @@ const {
     retryCandidateOwnedQuestionMock,
     submitCandidateOwnedAnswerMock,
 } = vi.hoisted(() => ({
+    analyzeCandidateOwnedAnswerMock: vi.fn(),
     advanceCandidateOwnedSessionMock: vi.fn(),
     pauseCandidateOwnedSessionMock: vi.fn(),
     redirectMock: vi.fn((path: string) => {
@@ -31,6 +33,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/server/candidate", () => ({
     resolveLocalCandidateAuthHandoff: resolveLocalCandidateAuthHandoffMock,
     resolveCandidateProfileFromIdentity: resolveCandidateProfileFromIdentityMock,
+    analyzeCandidateOwnedAnswer: analyzeCandidateOwnedAnswerMock,
     startCandidateOwnedSession: startCandidateOwnedSessionMock,
     advanceCandidateOwnedSession: advanceCandidateOwnedSessionMock,
     pauseCandidateOwnedSession: pauseCandidateOwnedSessionMock,
@@ -148,6 +151,27 @@ describe("candidate session actions", () => {
             sessionId: "session-1",
             questionId: "question-1",
             answerText: "I improved release quality with a clearer checklist.",
+        });
+    });
+
+    it("generates coaching for a candidate-owned answer and redirects back to the route", async () => {
+        analyzeCandidateOwnedAnswerMock.mockResolvedValue({
+            ok: true,
+            sessionId: "session-1",
+            status: "REVIEWING",
+            questionId: "question-1",
+            analysis: { recommendation: "Add a clearer metric." },
+        });
+        const { analyzeCandidateAnswerAction } = await import("./actions");
+
+        await expect(analyzeCandidateAnswerAction("session-1", "question-1"))
+            .rejects
+            .toThrow("NEXT_REDIRECT:/session/session-1");
+
+        expect(analyzeCandidateOwnedAnswerMock).toHaveBeenCalledWith({
+            candidateProfileId: "profile-1",
+            sessionId: "session-1",
+            questionId: "question-1",
         });
     });
 

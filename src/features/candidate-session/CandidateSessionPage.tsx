@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { LoadedCandidateSession } from "@/lib/server/candidate";
 import {
     advanceCandidateSessionAction,
+    analyzeCandidateAnswerAction,
     pauseCandidateSessionAction,
     resumeCandidateSessionAction,
     retryCandidateQuestionAction,
@@ -24,6 +25,7 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
     const nextStatus = isLastQuestion ? "COMPLETED" : "IN_SESSION";
     const currentAnswer = currentQuestion ? session.answers[currentQuestion.id] : undefined;
     const hasSubmittedCurrentAnswer = Boolean(currentAnswer?.submittedAt);
+    const currentAnalysis = currentAnswer?.analysis;
     const canAdvance = ["IN_SESSION", "AWAITING_EVALUATION", "REVIEWING"].includes(session.status);
 
     async function startAction() {
@@ -60,6 +62,14 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
             return;
         }
         await retryCandidateQuestionAction(session.id, currentQuestion.id);
+    }
+
+    async function analyzeAnswerAction() {
+        "use server";
+        if (!currentQuestion) {
+            return;
+        }
+        await analyzeCandidateAnswerAction(session.id, currentQuestion.id);
     }
 
     return (
@@ -120,11 +130,43 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
                                 </form>
                             ) : null}
                             {hasSubmittedCurrentAnswer ? (
-                                <div className="space-y-3 rounded-2xl border border-border bg-surface-sky p-5">
+                                <div className="space-y-4 rounded-2xl border border-border bg-surface-sky p-5">
                                     <p className="text-sm font-bold text-text-primary">Saved answer</p>
                                     <p className="whitespace-pre-wrap text-sm leading-7 text-text-secondary">
                                         {currentAnswer?.transcript}
                                     </p>
+                                    {currentAnalysis ? (
+                                        <section className="space-y-3 rounded-xl border border-primary/15 bg-white p-4">
+                                            <p className="text-sm font-bold text-text-primary">Coach feedback</p>
+                                            {currentAnalysis.ack ? (
+                                                <p className="text-sm leading-6 text-text-secondary">{currentAnalysis.ack}</p>
+                                            ) : null}
+                                            {currentAnalysis.contentPulse ? (
+                                                <div className="space-y-2">
+                                                    <h3 className="text-base font-bold text-text-primary">
+                                                        {currentAnalysis.contentPulse.headline}
+                                                    </h3>
+                                                    <p className="text-sm leading-6 text-text-secondary">
+                                                        {currentAnalysis.contentPulse.body}
+                                                    </p>
+                                                </div>
+                                            ) : null}
+                                            {currentAnalysis.recommendation ? (
+                                                <p className="text-sm font-semibold leading-6 text-text-primary">
+                                                    {currentAnalysis.recommendation}
+                                                </p>
+                                            ) : null}
+                                        </section>
+                                    ) : (
+                                        <form action={analyzeAnswerAction}>
+                                            <button
+                                                type="submit"
+                                                className="rounded-full bg-primary px-5 py-3 text-sm font-bold text-white shadow-flat transition hover:bg-primary-hover"
+                                            >
+                                                Get coaching
+                                            </button>
+                                        </form>
+                                    )}
                                     <form action={retryQuestionAction}>
                                         <button
                                             type="submit"
@@ -201,9 +243,11 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
                         </dl>
                     </div>
                     <div className="rounded-2xl border border-border bg-white p-5 shadow-flat">
-                        <h2 className="text-sm font-bold text-text-primary">Next implementation pass</h2>
+                        <h2 className="text-sm font-bold text-text-primary">Coaching state</h2>
                         <p className="mt-2 text-sm leading-6 text-text-secondary">
-                            Answering, retries, and progress mutations will wire into this persisted session surface next.
+                            {currentAnalysis
+                                ? "This answer has candidate-facing coaching saved to the session."
+                                : "Save an answer, then get coaching before moving forward."}
                         </p>
                     </div>
                 </aside>

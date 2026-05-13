@@ -71,14 +71,13 @@ Already implemented:
 - immutable question snapshot ID on the draft
 - candidate-owned session route loading
 - start, pause, resume, next question, and completion mutations
-- answer submit and retry server actions
+- answer submit, candidate-owned answer coaching, and retry server actions
 - completed session summary route
 - route metrics and mutation rate-limit/state-idempotency boundaries
 
 Still future or intentionally deferred:
 
 - richer session UI using the mature invite-session component stack
-- candidate-specific answer analysis generation route or server action
 - durable request-replay idempotency for candidate API routes if candidate mutations move from server actions to HTTP APIs
 - candidate repeat-practice flow from completed sessions
 - browser smoke for seeded setup-to-summary happy path

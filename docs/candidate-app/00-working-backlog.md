@@ -20,6 +20,7 @@ It is the repo-local source of truth for what needs to be built, why it matters,
 - [Shared Host Routing Contract](04-architecture/shared-host-routing-contract.md)
 - [Candidate-Driven Implementation Plan](04-architecture/candidate-driven-implementation-plan.md)
 - [Practice Session Draft Contract](04-architecture/practice-session-draft-contract.md)
+- [Candidate Session Engine Port Plan](04-architecture/session-engine-port-plan.md)
 - [Postgres Candidate Data Contract](04-architecture/postgres-candidate-data-contract.md)
 - [Storage And Resume Ingestion](04-architecture/storage-and-resume-ingestion.md)
 - [Test Strategy](05-quality/test-strategy.md)
@@ -259,9 +260,10 @@ Ground truth:
 | SESS-S03 | 713 | Story | Resolved | Fu Chen <fu@rangam.com> | Render real session state in `/session/[sessionId]` | Page no longer uses static placeholder content |
 | SESS-S04 | 714 | Story | Resolved | Fu Chen <fu@rangam.com> | Persist session progress and resume target | Refresh returns to the correct in-session state |
 | SESS-S05 | 715 | Story | Resolved | Fu Chen <fu@rangam.com> | Add session mutation tests | Start, next, pause, resume, complete, and ownership paths are covered |
-| SESS-F03 | 716 | Feature | Active | Fu Chen <fu@rangam.com> | Candidate feedback and summary | Candidate sees useful coaching without recruiter-facing readiness semantics |
+| SESS-F03 | 716 | Feature | Resolved | Fu Chen <fu@rangam.com> | Candidate feedback and summary | Candidate sees useful coaching without recruiter-facing readiness semantics |
 | SESS-S06 | 717 | Story | Resolved | Fu Chen <fu@rangam.com> | Implement candidate summary route | Completed session opens candidate-owned summary/history surface |
 | SESS-S07 | 764 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate answer and retry mutation surface | Candidate-owned answer submit and retry persist through server actions and Postgres session storage without invite-token dependency |
+| SESS-S08 | TBD | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate answer coaching action | Candidate-owned submitted answers can generate and display coaching through a candidate ownership boundary |
 
 ### EPIC-07 Resume Ingestion And Candidate Context
 
@@ -445,8 +447,10 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 56 | Resolved | SESS-S01 | 709 | Fu Chen <fu@rangam.com> | Identify candidate-safe session engine files | Session engine port plan lists shared domain/repository/service files and candidate adapters |
 | 57 | Closed | SESS-T01 | 710 | Fu Chen <fu@rangam.com> | Mark recruiter-only session assumptions | Session engine port plan lists invite-token, recruiter ownership, initials-gate, and recruiter-review exclusions |
 | 58 | Resolved | SESS-F01 | 708 | Fu Chen <fu@rangam.com> | Session engine port plan | Candidate-safe file inventory and exclusion map are documented |
-| 59 | Active | SESS-F03 | 716 | Fu Chen <fu@rangam.com> | Candidate feedback and summary | Next queued bundle: scope candidate-owned answer analysis/feedback against the port plan before adding new child story work |
-| 60 | New | AUTH-S08 | 756 | Fu Chen <fu@rangam.com> | Implement login-start route after contract is known | Blocked until Q-05/Q-06 identity handoff answers are known |
+| 59 | Resolved | SESS-S08 | TBD | Fu Chen <fu@rangam.com> | Add candidate answer coaching action | Candidate-owned submitted answers generate and display coaching through `AIService.analyzeAnswer` without invite-token dependency |
+| 60 | Resolved | SESS-F03 | 716 | Fu Chen <fu@rangam.com> | Candidate feedback and summary | Candidate answer coaching and summary surfaces are implemented with candidate ownership checks and without recruiter-facing readiness semantics |
+| 61 | New | DASH-F02 | 736 | Fu Chen <fu@rangam.com> | Progress and coaching themes | Next queued bundle: use saved feedback and summary signals to shape candidate-facing next practice guidance without noisy analytics |
+| 62 | New | AUTH-S08 | 756 | Fu Chen <fu@rangam.com> | Implement login-start route after contract is known | Blocked until Q-05/Q-06 identity handoff answers are known |
 
 ## Open Questions
 

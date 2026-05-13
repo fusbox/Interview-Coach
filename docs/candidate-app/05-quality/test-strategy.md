@@ -22,7 +22,7 @@ Current CI scripts validate:
 - coverage command
 - production build
 
-Candidate integration now has Vitest coverage for candidate route, auth, persistence, dashboard, summary, resume, and quality helper behavior.
+Candidate integration now has Vitest coverage for candidate route, auth, persistence, dashboard, session answer coaching, summary, resume, and quality helper behavior.
 
 `e2e/candidate/primary-routes.spec.ts` covers the shared-host route contract for `/`, `/recruiter`, candidate protected routes, and admin/QA protection.
 
