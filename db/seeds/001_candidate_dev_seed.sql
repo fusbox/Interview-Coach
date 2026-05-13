@@ -241,6 +241,40 @@ do update set
   final_text = excluded.final_text,
   submitted_at = excluded.submitted_at;
 
+insert into public.eval_results (
+  eval_id,
+  session_id,
+  question_id,
+  attempt_number,
+  status,
+  feedback_json,
+  model_metadata
+)
+values
+  (
+    '23000000-0000-4000-8000-000000000001',
+    '20000000-0000-4000-8000-000000000002',
+    '21000000-0000-4000-8000-000000000003',
+    1,
+    'COMPLETE',
+    '{"recommendation":"Add a measurable outcome to your next answer.","contentPulse":{"headline":"Make the result visible","body":"You described the action clearly; now connect it to an operating result."}}'::jsonb,
+    '{"provider":"seed","surface":"candidate_setup_to_summary"}'::jsonb
+  ),
+  (
+    '23000000-0000-4000-8000-000000000002',
+    '20000000-0000-4000-8000-000000000002',
+    '21000000-0000-4000-8000-000000000004',
+    1,
+    'COMPLETE',
+    '{"recommendation":"Name the tradeoff and the decision rule you used.","contentPulse":{"headline":"Show your prioritization logic","body":"Your answer has a useful framework; make the choice criteria explicit."}}'::jsonb,
+    '{"provider":"seed","surface":"candidate_setup_to_summary"}'::jsonb
+  )
+on conflict (question_id, attempt_number)
+do update set
+  status = excluded.status,
+  feedback_json = excluded.feedback_json,
+  model_metadata = excluded.model_metadata;
+
 insert into public.candidate_practice_drafts (
   practice_draft_id,
   candidate_profile_id,

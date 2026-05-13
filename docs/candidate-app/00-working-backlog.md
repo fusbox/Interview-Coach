@@ -263,7 +263,7 @@ Ground truth:
 | SESS-F03 | 716 | Feature | Resolved | Fu Chen <fu@rangam.com> | Candidate feedback and summary | Candidate sees useful coaching without recruiter-facing readiness semantics |
 | SESS-S06 | 717 | Story | Resolved | Fu Chen <fu@rangam.com> | Implement candidate summary route | Completed session opens candidate-owned summary/history surface |
 | SESS-S07 | 764 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate answer and retry mutation surface | Candidate-owned answer submit and retry persist through server actions and Postgres session storage without invite-token dependency |
-| SESS-S08 | 764 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate answer coaching action | Candidate-owned submitted answers can generate and display coaching through a candidate ownership boundary |
+| SESS-S08 | 765 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate answer coaching action | Candidate-owned submitted answers can generate and display coaching through a candidate ownership boundary |
 
 ### EPIC-07 Resume Ingestion And Candidate Context
 
@@ -322,7 +322,7 @@ Ground truth:
 
 ### EPIC-09 Quality, Security, Observability, And Release Readiness
 
-Azure Boards: #738 | State: New | Assigned To: Fu Chen <fu@rangam.com>
+Azure Boards: #738 | State: Active | Assigned To: Fu Chen <fu@rangam.com>
 
 Outcome: Candidate integration has meaningful quality gates, security controls, smoke tests, observability, and release readiness before production exposure.
 
@@ -342,6 +342,7 @@ Ground truth:
 | QSO-S01 | 740 | Story | Resolved | Fu Chen <fu@rangam.com> | Add primary route smoke tests | `/`, `/recruiter`, `/practice`, `/dashboard`, `/admin/feedback`, and `/qa/ai-quality` are covered |
 | QSO-S02 | 741 | Story | Resolved | Fu Chen <fu@rangam.com> | Add accessibility checks for primary pages | Automated baseline covers landing/practice/session/dashboard/summary; manual checks remain in the accessibility baseline |
 | QSO-S03 | 742 | Story | Resolved | Fu Chen <fu@rangam.com> | Add recruiter regression checklist for candidate PRs | Candidate PRs identify recruiter route risk and verification |
+| QSO-S08 | TBD | Story | Active | Fu Chen <fu@rangam.com> | Add seeded setup-to-summary smoke readiness | DB smoke validates deterministic setup, in-session, summary, and saved-feedback fixtures |
 | QSO-F02 | 743 | Feature | Active | Fu Chen <fu@rangam.com> | Observability and incident readiness | App emits useful telemetry without leaking sensitive data |
 | QSO-S04 | 744 | Story | Resolved | Fu Chen <fu@rangam.com> | Add observability plan to deployment | Auth denial, draft, generation, extraction, and API errors are observable |
 | QSO-S05 | 745 | Story | Resolved | Fu Chen <fu@rangam.com> | Add incident runbook | Runbook covers auth, DB, AI provider, resume extraction, and deployment incidents |
@@ -381,7 +382,7 @@ Ground truth:
 | OPS-S09 | 760 | Story | Active | Fu Chen <fu@rangam.com> | Import canonical backlog hierarchy into Fu-Lab Boards | Import file reflects this working backlog and imports cleanly |
 | OPS-S10 | 646 | Story | Active | Himanshu Sagar <himanshusagar@rangam.com> | Publish company code wiki when access allows | `/docs/candidate-app` is published from company Azure project as code wiki |
 | OPS-S11 | 761 | Story | New | Himanshu Sagar <himanshusagar@rangam.com> | Add branch policy after reviewers are available | Candidate branch has agreed PR/build requirements |
-| OPS-S12 | 762 | Story | New | Fu Chen <fu@rangam.com> | Add candidate integration pipeline | Pipeline runs lint, typecheck, tests, and build |
+| OPS-S12 | 762 | Story | Active | Fu Chen <fu@rangam.com> | Add candidate integration pipeline | Pipeline runs lint, typecheck, tests, and build |
 
 ## Execution Sequence
 
@@ -447,12 +448,14 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 56 | Resolved | SESS-S01 | 709 | Fu Chen <fu@rangam.com> | Identify candidate-safe session engine files | Session engine port plan lists shared domain/repository/service files and candidate adapters |
 | 57 | Closed | SESS-T01 | 710 | Fu Chen <fu@rangam.com> | Mark recruiter-only session assumptions | Session engine port plan lists invite-token, recruiter ownership, initials-gate, and recruiter-review exclusions |
 | 58 | Resolved | SESS-F01 | 708 | Fu Chen <fu@rangam.com> | Session engine port plan | Candidate-safe file inventory and exclusion map are documented |
-| 59 | Resolved | SESS-S08 | 764 | Fu Chen <fu@rangam.com> | Add candidate answer coaching action | Candidate-owned submitted answers generate and display coaching through `AIService.analyzeAnswer` without invite-token dependency |
+| 59 | Resolved | SESS-S08 | 765 | Fu Chen <fu@rangam.com> | Add candidate answer coaching action | Candidate-owned submitted answers generate and display coaching through `AIService.analyzeAnswer` without invite-token dependency |
 | 60 | Resolved | SESS-F03 | 716 | Fu Chen <fu@rangam.com> | Candidate feedback and summary | Candidate answer coaching and summary surfaces are implemented with candidate ownership checks and without recruiter-facing readiness semantics |
 | 61 | Resolved | DASH-S05 | 737 | Fu Chen <fu@rangam.com> | Surface next best practice recommendation | Dashboard next best action is grounded in active session progress or latest completed-session coaching |
 | 62 | Resolved | DASH-F02 | 736 | Fu Chen <fu@rangam.com> | Progress and coaching themes | Candidate dashboard shows useful next-practice guidance without noisy analytics |
-| 63 | Active | QSO-F01 | 739 | Fu Chen <fu@rangam.com> | Smoke and regression testing | Next queued bundle: identify the smallest seeded candidate setup-to-summary smoke path and preserve recruiter route coverage |
-| 64 | New | AUTH-S08 | 756 | Fu Chen <fu@rangam.com> | Implement login-start route after contract is known | Blocked until Q-05/Q-06 identity handoff answers are known |
+| 63 | Active | QSO-S08 | TBD | Fu Chen <fu@rangam.com> | Add seeded setup-to-summary smoke readiness | `db:smoke-candidate-setup-summary` validates deterministic setup, in-session, completed-summary, and saved-feedback fixtures |
+| 64 | Active | QSO-F01 | 739 | Fu Chen <fu@rangam.com> | Smoke and regression testing | Seed-backed DB smoke path exists; next browser smoke can build on the deterministic candidate fixtures |
+| 65 | Active | OPS-S12 | 762 | Fu Chen <fu@rangam.com> | Add candidate integration pipeline | Next queued bundle: define lightweight pipeline command set for lint, typecheck, focused tests, build, and DB smoke readiness |
+| 66 | New | AUTH-S08 | 756 | Fu Chen <fu@rangam.com> | Implement login-start route after contract is known | Blocked until Q-05/Q-06 identity handoff answers are known |
 
 ## Open Questions
 

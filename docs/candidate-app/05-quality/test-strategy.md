@@ -26,7 +26,7 @@ Candidate integration now has Vitest coverage for candidate route, auth, persist
 
 `e2e/candidate/primary-routes.spec.ts` covers the shared-host route contract for `/`, `/recruiter`, candidate protected routes, and admin/QA protection.
 
-Full DB-backed browser smoke for candidate setup-to-summary still requires a seeded candidate profile/session environment.
+`npm run db:smoke-candidate-setup-summary` validates deterministic seeded candidate setup, in-session, completed-summary, and saved-feedback fixtures. Full DB-backed browser smoke should build on that seed path once the browser auth/session bootstrap is stable.
 
 ## Test Layers
 
@@ -132,6 +132,7 @@ PR gate should eventually run:
 - `npm run test:coverage`
 - `npm run build`
 - browser smoke tests
+- `npm run db:smoke-candidate-setup-summary`
 - dependency audit or security scan
 - migration validation once database migrations exist
 - recruiter regression smoke when candidate work touches shared routes, middleware, global CSS, public assets, or session/invite APIs

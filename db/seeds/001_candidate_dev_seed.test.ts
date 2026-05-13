@@ -13,6 +13,8 @@ describe("candidate dev seed", () => {
         expect(packageJson.scripts["db:seed-candidate-dev"]).toContain("db/seeds/001_candidate_dev_seed.sql");
         expect(packageJson.scripts["db:seed-candidate-dev"]).toContain("--smoke-defaults");
         expect(packageJson.scripts["db:smoke-candidate-dev-seed"]).toContain("db/validation/004_candidate_dev_seed_smoke.sql");
+        expect(packageJson.scripts["db:smoke-candidate-setup-summary"]).toContain("db/validation/005_candidate_setup_to_summary_smoke.sql");
+        expect(packageJson.scripts["db:smoke-candidate-setup-summary"]).toContain("--smoke-defaults");
         expect(packageJson.scripts["db:seed"]).toBe("npm run db:seed-candidate-dev");
     });
 
@@ -33,6 +35,8 @@ describe("candidate dev seed", () => {
         expect(sql).toContain("public.sessions");
         expect(sql).toContain("public.questions");
         expect(sql).toContain("public.answers");
+        expect(sql).toContain("public.eval_results");
+        expect(sql).toContain("Add a measurable outcome to your next answer.");
     });
 
     it("defines a rollback-only smoke validation for seeded ownership data", async () => {
@@ -45,6 +49,19 @@ describe("candidate dev seed", () => {
         expect(sql).toContain("candidate-dev-alt@talentarbor.local");
         expect(sql).toContain("expected primary candidate dev drafts");
         expect(sql).toContain("expected alternate candidate ownership fixture");
+        expect(sql).toContain("rollback");
+    });
+
+    it("defines a rollback-only smoke validation for the seeded setup-to-summary path", async () => {
+        const sql = await readFile(
+            path.join(process.cwd(), "db", "validation", "005_candidate_setup_to_summary_smoke.sql"),
+            "utf8"
+        );
+
+        expect(sql).toContain("expected setup draft fixture");
+        expect(sql).toContain("expected in-session fixture");
+        expect(sql).toContain("expected completed summary fixture");
+        expect(sql).toContain("expected completed answer feedback fixture");
         expect(sql).toContain("rollback");
     });
 });

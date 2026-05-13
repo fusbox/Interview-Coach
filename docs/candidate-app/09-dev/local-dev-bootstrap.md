@@ -58,9 +58,10 @@ npm run db:seed
 npm run db:smoke-candidate-schema
 npm run db:smoke-candidate-drafts-schema
 npm run db:smoke-candidate-dev-seed
+npm run db:smoke-candidate-setup-summary
 ```
 
-This applies the recruiter Postgres baseline, applies the candidate identity/profile and practice draft migrations, seeds deterministic primary and alternate dev candidates, and validates candidate profile, provider identity, draft, session, and ownership fixtures inside rollback-only smoke scripts.
+This applies the recruiter Postgres baseline, applies the candidate identity/profile and practice draft migrations, seeds deterministic primary and alternate dev candidates, and validates candidate profile, provider identity, draft, session, setup-to-summary, saved-feedback, and ownership fixtures inside rollback-only smoke scripts.
 
 Seeded candidate identities:
 

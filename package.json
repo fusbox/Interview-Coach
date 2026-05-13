@@ -25,6 +25,7 @@
     "db:smoke-schema": "node scripts/run-postgres-sql.mjs --file db/validation/001_initial_schema_smoke.sql --smoke-defaults",
     "db:smoke-candidate-schema": "node scripts/run-postgres-sql.mjs --file db/validation/002_candidate_identity_schema_smoke.sql --smoke-defaults",
     "db:smoke-candidate-drafts-schema": "node scripts/run-postgres-sql.mjs --file db/validation/003_candidate_practice_drafts_schema_smoke.sql --smoke-defaults",
+    "db:smoke-candidate-setup-summary": "node scripts/run-postgres-sql.mjs --file db/validation/005_candidate_setup_to_summary_smoke.sql --smoke-defaults",
     "postgres:smoke:product": "node scripts/smoke-postgres-product-flow.mjs --smoke-defaults",
     "postgres:smoke:ai": "node scripts/smoke-postgres-ai-surfaces.mjs --smoke-defaults",
     "postgres:smoke:email": "node scripts/smoke-postgres-email-flow.mjs --smoke-defaults",
