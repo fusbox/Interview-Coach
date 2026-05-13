@@ -4,10 +4,12 @@ const {
     queryPostgresMock,
     resolveCandidateProfileFromIdentityMock,
     resolveLocalCandidateAuthHandoffMock,
+    withCandidateRouteMetricsMock,
 } = vi.hoisted(() => ({
     queryPostgresMock: vi.fn(),
     resolveCandidateProfileFromIdentityMock: vi.fn(),
     resolveLocalCandidateAuthHandoffMock: vi.fn(),
+    withCandidateRouteMetricsMock: vi.fn(async ({ load }) => load()),
 }));
 
 vi.mock("@/lib/server/db/postgres", () => ({
@@ -20,6 +22,10 @@ vi.mock("./candidate-dev-auth-resolver", () => ({
 
 vi.mock("./candidate-profile-repository", () => ({
     resolveCandidateProfileFromIdentity: resolveCandidateProfileFromIdentityMock,
+}));
+
+vi.mock("./candidate-observability", () => ({
+    withCandidateRouteMetrics: withCandidateRouteMetricsMock,
 }));
 
 describe("candidate dashboard loader", () => {
@@ -45,6 +51,10 @@ describe("candidate dashboard loader", () => {
         const { loadCandidateDashboardForCurrentCandidate } = await import("./candidate-dashboard-loader");
 
         await expect(loadCandidateDashboardForCurrentCandidate()).resolves.toBeNull();
+        expect(withCandidateRouteMetricsMock).toHaveBeenCalledWith(expect.objectContaining({
+            route: "/dashboard",
+            operation: "load_dashboard",
+        }));
         expect(queryPostgresMock).not.toHaveBeenCalled();
     });
 
@@ -110,5 +120,9 @@ describe("candidate dashboard loader", () => {
         });
 
         expect(queryPostgresMock).toHaveBeenCalledWith(expect.stringContaining("where d.candidate_profile_id = $1"), ["profile-1"]);
+        expect(withCandidateRouteMetricsMock).toHaveBeenCalledWith(expect.objectContaining({
+            route: "/dashboard",
+            operation: "load_dashboard",
+        }));
     });
 });

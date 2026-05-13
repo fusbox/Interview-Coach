@@ -198,7 +198,7 @@ Ground truth:
 | DATA-F02 | 688 | Feature | Active | Fu Chen <fu@rangam.com> | Candidate repository layer | Candidate profiles, drafts, sessions, resumes, and dashboard reads use repository boundaries |
 | DATA-S02 | 689 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate profile repository | Create/read/update behavior is tested |
 | DATA-S03 | 690 | Story | New | Fu Chen <fu@rangam.com> | Add draft/session repository boundaries | Candidate-owned drafts and sessions are persisted through server code |
-| DATA-S04 | 691 | Story | Active | Fu Chen <fu@rangam.com> | Add metrics/rate-limit/idempotency boundaries | Durable runtime stores are available where needed |
+| DATA-S04 | 691 | Story | Active | Fu Chen <fu@rangam.com> | Add metrics/rate-limit/idempotency boundaries | Route loader metrics are wired; mutation rate-limit/idempotency decisions remain open |
 | DATA-F03 | 692 | Feature | Active | Fu Chen <fu@rangam.com> | Migration and seed path | Local and integration environments can apply schema and seed dev candidates |
 | DATA-S05 | 693 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate DB migration | Migration applies cleanly on local Postgres |
 | DATA-S06 | 694 | Story | New | Fu Chen <fu@rangam.com> | Add dev seed candidates | Seed data supports happy path and ownership tests |
@@ -439,7 +439,7 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 51 | Resolved | QSO-S03 | 742 | Fu Chen <fu@rangam.com> | Add recruiter regression checklist for candidate PRs | Candidate PRs identify recruiter route risk and verification |
 | 52 | Resolved | QSO-S04 | 744 | Fu Chen <fu@rangam.com> | Add observability plan to deployment | Auth denial, draft, generation, extraction, and API errors are observable |
 | 53 | Resolved | QSO-S05 | 745 | Fu Chen <fu@rangam.com> | Add incident runbook | Runbook covers auth, DB, AI provider, resume extraction, and deployment incidents |
-| 54 | Active | DATA-S04 | 691 | Fu Chen <fu@rangam.com> | Add metrics/rate-limit/idempotency boundaries | Durable runtime stores are available where needed |
+| 54 | Active | DATA-S04 | 691 | Fu Chen <fu@rangam.com> | Add metrics/rate-limit/idempotency boundaries | `/dashboard`, `/practice`, `/session/[sessionId]`, and `/summary/[sessionId]` loaders emit route metrics; mutation rate-limit/idempotency decisions remain open |
 | 55 | New | DATA-S06 | 694 | Fu Chen <fu@rangam.com> | Add dev seed candidates | Seed data supports happy path and ownership tests |
 | 56 | New | AUTH-S08 | 756 | Fu Chen <fu@rangam.com> | Implement login-start route after contract is known | `/auth/talentarbor/start?next=/practice` and `/dashboard` validate and preserve safe targets |
 

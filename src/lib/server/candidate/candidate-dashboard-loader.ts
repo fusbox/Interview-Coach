@@ -3,6 +3,7 @@ import type { QueryResultRow } from "pg";
 import { queryPostgres } from "@/lib/server/db/postgres";
 
 import { resolveLocalCandidateAuthHandoff } from "./candidate-dev-auth-resolver";
+import { withCandidateRouteMetrics } from "./candidate-observability";
 import { resolveCandidateProfileFromIdentity } from "./candidate-profile-repository";
 
 export type CandidateDashboardItem = {
@@ -46,67 +47,73 @@ type DashboardDraftRow = QueryResultRow & {
 };
 
 export async function loadCandidateDashboardForCurrentCandidate(): Promise<CandidateDashboardModel | null> {
-    const handoff = await resolveLocalCandidateAuthHandoff();
-    if (!handoff) {
-        return null;
-    }
+    return withCandidateRouteMetrics({
+        route: "/dashboard",
+        operation: "load_dashboard",
+        load: async () => {
+            const handoff = await resolveLocalCandidateAuthHandoff();
+            if (!handoff) {
+                return null;
+            }
 
-    const profile = await resolveCandidateProfileFromIdentity(handoff);
-    const result = await queryPostgres<DashboardDraftRow>(
-        `
-            select
-                d.practice_draft_id,
-                d.target_role,
-                d.status,
-                d.resume_target_screen,
-                d.session_id,
-                s.status as session_status,
-                s.current_question_index,
-                s.summary_narrative,
-                coalesce(q.question_count, 0)::int as question_count,
-                coalesce(a.submitted_count, 0)::int as submitted_count,
-                d.last_activity_at
-            from public.candidate_practice_drafts d
-            left join public.sessions s on s.session_id = d.session_id
-            left join (
-                select session_id, count(*)::int as question_count
-                from public.questions
-                group by session_id
-            ) q on q.session_id = d.session_id
-            left join (
-                select session_id, count(*) filter (where submitted_at is not null)::int as submitted_count
-                from public.answers
-                group by session_id
-            ) a on a.session_id = d.session_id
-            where d.candidate_profile_id = $1
-            order by d.last_activity_at desc
-            limit 20
-        `,
-        [profile.candidateProfileId],
-    );
+            const profile = await resolveCandidateProfileFromIdentity(handoff);
+            const result = await queryPostgres<DashboardDraftRow>(
+                `
+                    select
+                        d.practice_draft_id,
+                        d.target_role,
+                        d.status,
+                        d.resume_target_screen,
+                        d.session_id,
+                        s.status as session_status,
+                        s.current_question_index,
+                        s.summary_narrative,
+                        coalesce(q.question_count, 0)::int as question_count,
+                        coalesce(a.submitted_count, 0)::int as submitted_count,
+                        d.last_activity_at
+                    from public.candidate_practice_drafts d
+                    left join public.sessions s on s.session_id = d.session_id
+                    left join (
+                        select session_id, count(*)::int as question_count
+                        from public.questions
+                        group by session_id
+                    ) q on q.session_id = d.session_id
+                    left join (
+                        select session_id, count(*) filter (where submitted_at is not null)::int as submitted_count
+                        from public.answers
+                        group by session_id
+                    ) a on a.session_id = d.session_id
+                    where d.candidate_profile_id = $1
+                    order by d.last_activity_at desc
+                    limit 20
+                `,
+                [profile.candidateProfileId],
+            );
 
-    const items = result.rows.map(mapDashboardItem);
-    const completedItems = items
-        .filter((item) => item.kind === "completed")
-        .map((item) => toDashboardItem(item));
-    const activeItems = items
-        .filter((item) => item.kind === "active")
-        .map((item) => toDashboardItem(item));
+            const items = result.rows.map(mapDashboardItem);
+            const completedItems = items
+                .filter((item) => item.kind === "completed")
+                .map((item) => toDashboardItem(item));
+            const activeItems = items
+                .filter((item) => item.kind === "active")
+                .map((item) => toDashboardItem(item));
 
-    return {
-        candidate: {
-            candidateProfileId: profile.candidateProfileId,
-            displayName: profile.displayName || profile.email,
-            email: profile.email,
+            return {
+                candidate: {
+                    candidateProfileId: profile.candidateProfileId,
+                    displayName: profile.displayName || profile.email,
+                    email: profile.email,
+                },
+                stats: {
+                    activeCount: activeItems.length,
+                    completedCount: completedItems.length,
+                    totalPracticeCount: items.length,
+                },
+                activeItems,
+                completedItems,
+            };
         },
-        stats: {
-            activeCount: activeItems.length,
-            completedCount: completedItems.length,
-            totalPracticeCount: items.length,
-        },
-        activeItems,
-        completedItems,
-    };
+    });
 }
 
 function mapDashboardItem(row: DashboardDraftRow): CandidateDashboardItem & { kind: "active" | "completed" } {

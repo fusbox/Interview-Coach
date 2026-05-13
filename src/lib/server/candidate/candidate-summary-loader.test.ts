@@ -6,12 +6,14 @@ const {
     getSessionMock,
     resolveCandidateProfileFromIdentityMock,
     resolveLocalCandidateAuthHandoffMock,
+    withCandidateRouteMetricsMock,
 } = vi.hoisted(() => ({
     createSessionRepositoryMock: vi.fn(),
     findCandidatePracticeDraftBySessionIdMock: vi.fn(),
     getSessionMock: vi.fn(),
     resolveCandidateProfileFromIdentityMock: vi.fn(),
     resolveLocalCandidateAuthHandoffMock: vi.fn(),
+    withCandidateRouteMetricsMock: vi.fn(async ({ load }) => load()),
 }));
 
 vi.mock("@/lib/server/infrastructure/session-repository", () => ({
@@ -28,6 +30,10 @@ vi.mock("./candidate-profile-repository", () => ({
 
 vi.mock("./candidate-practice-draft-repository", () => ({
     findCandidatePracticeDraftBySessionId: findCandidatePracticeDraftBySessionIdMock,
+}));
+
+vi.mock("./candidate-observability", () => ({
+    withCandidateRouteMetrics: withCandidateRouteMetricsMock,
 }));
 
 describe("candidate summary loader", () => {
@@ -60,6 +66,10 @@ describe("candidate summary loader", () => {
         const { loadCandidateSummaryForCurrentCandidate } = await import("./candidate-summary-loader");
 
         await expect(loadCandidateSummaryForCurrentCandidate("session-1")).resolves.toBeNull();
+        expect(withCandidateRouteMetricsMock).toHaveBeenCalledWith(expect.objectContaining({
+            route: "/summary/[sessionId]",
+            operation: "load_summary",
+        }));
         expect(findCandidatePracticeDraftBySessionIdMock).not.toHaveBeenCalled();
     });
 
@@ -68,6 +78,10 @@ describe("candidate summary loader", () => {
         const { loadCandidateSummaryForCurrentCandidate } = await import("./candidate-summary-loader");
 
         await expect(loadCandidateSummaryForCurrentCandidate("session-1")).resolves.toBeNull();
+        expect(withCandidateRouteMetricsMock).toHaveBeenCalledWith(expect.objectContaining({
+            route: "/summary/[sessionId]",
+            operation: "load_summary",
+        }));
         expect(createSessionRepositoryMock).not.toHaveBeenCalled();
     });
 
@@ -110,5 +124,9 @@ describe("candidate summary loader", () => {
                 },
             ],
         });
+        expect(withCandidateRouteMetricsMock).toHaveBeenCalledWith(expect.objectContaining({
+            route: "/summary/[sessionId]",
+            operation: "load_summary",
+        }));
     });
 });

@@ -6,12 +6,14 @@ const {
     markViewedMock,
     resolveCandidateProfileFromIdentityMock,
     resolveLocalCandidateAuthHandoffMock,
+    withCandidateRouteMetricsMock,
 } = vi.hoisted(() => ({
     findCandidatePracticeDraftBySessionIdMock: vi.fn(),
     getSessionMock: vi.fn(),
     markViewedMock: vi.fn(),
     resolveCandidateProfileFromIdentityMock: vi.fn(),
     resolveLocalCandidateAuthHandoffMock: vi.fn(),
+    withCandidateRouteMetricsMock: vi.fn(async ({ load }) => load()),
 }));
 
 vi.mock("./candidate-dev-auth-resolver", () => ({
@@ -31,6 +33,10 @@ vi.mock("@/lib/server/infrastructure/session-repository", () => ({
         get: getSessionMock,
         markViewed: markViewedMock,
     })),
+}));
+
+vi.mock("./candidate-observability", () => ({
+    withCandidateRouteMetrics: withCandidateRouteMetricsMock,
 }));
 
 describe("candidate session loader", () => {
@@ -94,6 +100,10 @@ describe("candidate session loader", () => {
         });
         expect(getSessionMock).toHaveBeenCalledWith("session-1");
         expect(markViewedMock).toHaveBeenCalledWith("session-1");
+        expect(withCandidateRouteMetricsMock).toHaveBeenCalledWith(expect.objectContaining({
+            route: "/session/[sessionId]",
+            operation: "load_session",
+        }));
     });
 
     it("returns null when no candidate handoff exists", async () => {
@@ -105,6 +115,10 @@ describe("candidate session loader", () => {
         expect(resolveCandidateProfileFromIdentityMock).not.toHaveBeenCalled();
         expect(findCandidatePracticeDraftBySessionIdMock).not.toHaveBeenCalled();
         expect(getSessionMock).not.toHaveBeenCalled();
+        expect(withCandidateRouteMetricsMock).toHaveBeenCalledWith(expect.objectContaining({
+            route: "/session/[sessionId]",
+            operation: "load_session",
+        }));
     });
 
     it("returns null when the session is not linked to the current candidate draft", async () => {

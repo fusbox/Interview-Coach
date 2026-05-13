@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { getMetricsSnapshot, resetMetrics } from "@/lib/server/metrics";
-import { recordCandidateRouteMetric, recordCandidateRouteTiming } from "./candidate-observability";
+import {
+    recordCandidateRouteMetric,
+    recordCandidateRouteTiming,
+    withCandidateRouteMetrics,
+} from "./candidate-observability";
 
 describe("candidate observability boundary", () => {
     beforeEach(() => {
@@ -50,6 +54,80 @@ describe("candidate observability boundary", () => {
                     outcome: "error",
                     route: "/practice",
                 },
+            }),
+        ]));
+    });
+
+    it("records success metrics around candidate route loaders", async () => {
+        await expect(withCandidateRouteMetrics({
+            route: "/dashboard",
+            operation: "load_dashboard",
+            load: async () => ({ ok: true }),
+        })).resolves.toEqual({ ok: true });
+
+        const snapshot = getMetricsSnapshot();
+        expect(snapshot.counters).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                name: "candidate_route_total",
+                value: 1,
+                tags: expect.objectContaining({
+                    operation: "load_dashboard",
+                    outcome: "success",
+                    route: "/dashboard",
+                }),
+            }),
+        ]));
+        expect(snapshot.timings).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                name: "candidate_route_duration_ms",
+                count: 1,
+                tags: expect.objectContaining({
+                    operation: "load_dashboard",
+                    outcome: "success",
+                    route: "/dashboard",
+                }),
+            }),
+        ]));
+    });
+
+    it("records error metrics when candidate route loaders return null", async () => {
+        await expect(withCandidateRouteMetrics({
+            route: "/summary/[sessionId]",
+            operation: "load_summary",
+            load: async () => null,
+        })).resolves.toBeNull();
+
+        expect(getMetricsSnapshot().counters).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                name: "candidate_route_total",
+                value: 1,
+                tags: expect.objectContaining({
+                    operation: "load_summary",
+                    outcome: "error",
+                    route: "/summary/[sessionId]",
+                }),
+            }),
+        ]));
+    });
+
+    it("records error metrics and rethrows when candidate route loaders throw", async () => {
+        await expect(withCandidateRouteMetrics({
+            route: "/practice",
+            operation: "load_practice_setup",
+            load: async () => {
+                throw new Error("database unavailable");
+            },
+        })).rejects.toThrow("database unavailable");
+
+        expect(getMetricsSnapshot().counters).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                name: "candidate_route_total",
+                value: 1,
+                tags: expect.objectContaining({
+                    operation: "load_practice_setup",
+                    outcome: "error",
+                    route: "/practice",
+                }),
             }),
         ]));
     });

@@ -2,6 +2,7 @@ import type { Answer, InterviewSession, SessionStatus } from "@/lib/domain/types
 import { createSessionRepository } from "@/lib/server/infrastructure/session-repository";
 
 import { resolveLocalCandidateAuthHandoff } from "./candidate-dev-auth-resolver";
+import { withCandidateRouteMetrics } from "./candidate-observability";
 import { findCandidatePracticeDraftBySessionId } from "./candidate-practice-draft-repository";
 import { resolveCandidateProfileFromIdentity } from "./candidate-profile-repository";
 
@@ -25,33 +26,39 @@ export type CandidateSummaryModel = {
 };
 
 export async function loadCandidateSummaryForCurrentCandidate(sessionId: string): Promise<CandidateSummaryModel | null> {
-    const normalizedSessionId = sessionId.trim();
-    if (!normalizedSessionId) {
-        return null;
-    }
+    return withCandidateRouteMetrics({
+        route: "/summary/[sessionId]",
+        operation: "load_summary",
+        load: async () => {
+            const normalizedSessionId = sessionId.trim();
+            if (!normalizedSessionId) {
+                return null;
+            }
 
-    const handoff = await resolveLocalCandidateAuthHandoff();
-    if (!handoff) {
-        return null;
-    }
+            const handoff = await resolveLocalCandidateAuthHandoff();
+            if (!handoff) {
+                return null;
+            }
 
-    const profile = await resolveCandidateProfileFromIdentity(handoff);
-    const draft = await findCandidatePracticeDraftBySessionId({
-        candidateProfileId: profile.candidateProfileId,
-        sessionId: normalizedSessionId,
+            const profile = await resolveCandidateProfileFromIdentity(handoff);
+            const draft = await findCandidatePracticeDraftBySessionId({
+                candidateProfileId: profile.candidateProfileId,
+                sessionId: normalizedSessionId,
+            });
+
+            if (!draft) {
+                return null;
+            }
+
+            const repository = await createSessionRepository();
+            const session = await repository.get(normalizedSessionId);
+            if (!session) {
+                return null;
+            }
+
+            return mapSummary(session, draft.practiceDraftId);
+        },
     });
-
-    if (!draft) {
-        return null;
-    }
-
-    const repository = await createSessionRepository();
-    const session = await repository.get(normalizedSessionId);
-    if (!session) {
-        return null;
-    }
-
-    return mapSummary(session, draft.practiceDraftId);
 }
 
 function mapSummary(session: InterviewSession, practiceDraftId: string): CandidateSummaryModel {

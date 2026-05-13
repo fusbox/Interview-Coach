@@ -6,12 +6,14 @@ const {
     findLatestEditableCandidatePracticeDraftMock,
     resolveCandidateProfileFromIdentityMock,
     resolveLocalCandidateAuthHandoffMock,
+    withCandidateRouteMetricsMock,
 } = vi.hoisted(() => ({
     findCandidatePracticeDraftByIdMock: vi.fn(),
     listEditableCandidatePracticeDraftSummariesMock: vi.fn(),
     findLatestEditableCandidatePracticeDraftMock: vi.fn(),
     resolveCandidateProfileFromIdentityMock: vi.fn(),
     resolveLocalCandidateAuthHandoffMock: vi.fn(),
+    withCandidateRouteMetricsMock: vi.fn(async ({ load }) => load()),
 }));
 
 vi.mock("./candidate-dev-auth-resolver", () => ({
@@ -26,6 +28,10 @@ vi.mock("./candidate-practice-draft-repository", () => ({
     findCandidatePracticeDraftById: findCandidatePracticeDraftByIdMock,
     findLatestEditableCandidatePracticeDraft: findLatestEditableCandidatePracticeDraftMock,
     listEditableCandidatePracticeDraftSummaries: listEditableCandidatePracticeDraftSummariesMock,
+}));
+
+vi.mock("./candidate-observability", () => ({
+    withCandidateRouteMetrics: withCandidateRouteMetricsMock,
 }));
 
 describe("candidate practice setup loader", () => {
@@ -90,6 +96,10 @@ describe("candidate practice setup loader", () => {
         });
         expect(findLatestEditableCandidatePracticeDraftMock).toHaveBeenCalledWith("profile-1");
         expect(listEditableCandidatePracticeDraftSummariesMock).toHaveBeenCalledWith("profile-1");
+        expect(withCandidateRouteMetricsMock).toHaveBeenCalledWith(expect.objectContaining({
+            route: "/practice",
+            operation: "load_practice_setup",
+        }));
     });
 
     it("loads the selected candidate-owned draft when a draft id is provided", async () => {
@@ -147,6 +157,10 @@ describe("candidate practice setup loader", () => {
             practiceDraftId: "draft-selected",
         });
         expect(findLatestEditableCandidatePracticeDraftMock).not.toHaveBeenCalled();
+        expect(withCandidateRouteMetricsMock).toHaveBeenCalledWith(expect.objectContaining({
+            route: "/practice",
+            operation: "load_practice_setup",
+        }));
     });
 
     it("returns null when there is no local candidate handoff yet", async () => {
@@ -155,6 +169,10 @@ describe("candidate practice setup loader", () => {
         const { loadPracticeSetupDraftForCurrentCandidate } = await import("./candidate-practice-setup-loader");
 
         await expect(loadPracticeSetupDraftForCurrentCandidate()).resolves.toBeNull();
+        expect(withCandidateRouteMetricsMock).toHaveBeenCalledWith(expect.objectContaining({
+            route: "/practice",
+            operation: "load_practice_setup",
+        }));
         expect(resolveCandidateProfileFromIdentityMock).not.toHaveBeenCalled();
         expect(findLatestEditableCandidatePracticeDraftMock).not.toHaveBeenCalled();
     });
