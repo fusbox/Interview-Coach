@@ -108,7 +108,7 @@ Ground truth:
 | FND-F03 | 663 | Feature | Active | Fu Chen <fu@rangam.com> | Policy baselines | Retention, accessibility, and threat-model expectations are usable during implementation |
 | FND-S06 | 664 | Story | Active | Fu Chen <fu@rangam.com> | Add data retention policy | [Data Retention Policy](06-security/data-retention-policy.md) states processed-resume retention default |
 | FND-S07 | 665 | Story | Active | Fu Chen <fu@rangam.com> | Add accessibility baseline | [Accessibility Baseline](05-quality/accessibility-baseline.md) defines primary UI expectations |
-| FND-T03 | 666 | Task | New | Fu Chen <fu@rangam.com> | Revisit threat model after auth and resume ingestion are implemented | Threat model reflects actual route, auth-denial, resume, and storage behavior |
+| FND-T03 | 666 | Task | Active | Fu Chen <fu@rangam.com> | Revisit threat model after auth and resume ingestion are implemented | Threat model reflects actual route, auth-denial, resume, and storage behavior |
 
 ### EPIC-02 Candidate Public Funnel And Shared Host Routing
 
@@ -168,7 +168,7 @@ Ground truth:
 | AUTH-S03 | 680 | Story | Resolved | Fu Chen <fu@rangam.com> | Add password-backed dev auth and explicit mock mode | Local protected routes resolve a stable candidate context |
 | AUTH-S04 | 681 | Story | Resolved | Fu Chen <fu@rangam.com> | Protect candidate route group | `/practice`, `/dashboard`, `/session/[sessionId]`, and summary/history routes reject missing auth |
 | AUTH-S05 | 682 | Story | Resolved | Fu Chen <fu@rangam.com> | Add negative ownership behavior | Cross-candidate access returns forbidden or not found without leaking data |
-| AUTH-T02 | 683 | Task | Active | Fu Chen <fu@rangam.com> | Add auth-denial logging without secrets | Denials include route, reason, and actor mode only |
+| AUTH-T02 | 683 | Task | Closed | Fu Chen <fu@rangam.com> | Add auth-denial logging without secrets | Denials include route, reason, and actor mode only |
 | AUTH-F03 | 755 | Feature | Active | Himanshu Sagar <himanshusagar@rangam.com> | TalentArbor login return and identity handoff | Public CTAs can preserve candidate intent through login when integration supports it |
 | AUTH-S06 | 648 | Story | Active | Himanshu Sagar <himanshusagar@rangam.com> | Track TalentArbor login return contract | Return-target, identity handoff, and fallback questions are tracked until confirmed |
 | AUTH-S07 | 655 | Story | Active | Himanshu Sagar <himanshusagar@rangam.com> | Confirm TalentArbor login return parameter support | Supported parameter, state, allowlist, and fallback behavior are known |
@@ -463,8 +463,8 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 69 | Closed | FND-T01 | 657 | Fu Chen <fu@rangam.com> | Verify local quality command names | Local bootstrap now lists current quality, DB, and seeded browser smoke commands from `package.json` |
 | 70 | Closed | FND-T02 | 662 | Fu Chen <fu@rangam.com> | Implement DB setup/migrate/seed commands after DB layer lands | `db:setup` and `db:migrate` now wrap the current smoke Postgres migration/seed path |
 | 71 | Resolved | DATA-S03 | 690 | Fu Chen <fu@rangam.com> | Add draft/session repository boundaries | Audit confirmed candidate-owned draft/session persistence boundaries are implemented through repositories/services and covered by tests |
-| 72 | Active | AUTH-T02 | 683 | Fu Chen <fu@rangam.com> | Add auth-denial logging without secrets | Next implementation pass: add route/auth denial observability without logging secrets |
-| 73 | New | FND-T03 | 666 | Fu Chen <fu@rangam.com> | Revisit threat model after auth and resume ingestion are implemented | Queue after AUTH-T02 so the threat model can include the final auth-denial logging shape |
+| 72 | Closed | AUTH-T02 | 683 | Fu Chen <fu@rangam.com> | Add auth-denial logging without secrets | Candidate external-mode auth redirects log safe route, reason, actor type, and actor mode fields without logging secrets or query payloads |
+| 73 | Active | FND-T03 | 666 | Fu Chen <fu@rangam.com> | Revisit threat model after auth and resume ingestion are implemented | Current queued pass: refresh the threat model now that auth-denial, resume-ingestion, storage-retention, and candidate ownership shapes are implemented |
 
 ## Open Questions
 

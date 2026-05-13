@@ -31,6 +31,7 @@ Current candidate helper:
 - `withCandidateRouteMetrics` wraps candidate route loaders for `/dashboard`, `/practice`, `/session/[sessionId]`, and `/summary/[sessionId]`
 - `withCandidateMutationBoundary` applies shared rate-limit backend checks to candidate generation, session progress, answer submit, and retry mutations
 - current candidate server-action mutations are state-idempotent: repeat calls either set the same target state, return the already-submitted answer, or no-op when retry state is already clear
+- candidate protected-route redirects in external auth mode write structured logs with safe fields only: `actorType=candidate`, `actorMode=external`, `route=<path only>`, and `reason=missing_candidate_session`
 - helper tests live in `src/lib/server/candidate/candidate-observability.test.ts`
 
 ## Event Taxonomy
@@ -39,7 +40,7 @@ Use `actorType: candidate` on candidate logs and include an `appName` or tag val
 
 | Area | Event / Metric | Why It Matters | Sensitive Data Rule |
 | --- | --- | --- | --- |
-| Auth | `auth_denials_total` tagged `actorType=candidate`, `route`, `reason` | Detect broken SSO handoff, callback issues, or route guard loops | Do not log tokens, provider assertions, or full callback payloads |
+| Auth | auth denial structured logs and server-side `auth_denials_total` tagged `actorType=candidate`, `actorMode`, `route`, `reason` where the runtime supports metrics | Detect broken SSO handoff, callback issues, or route guard loops | Do not log tokens, provider assertions, full callback payloads, query strings, or return-state values |
 | Login return | login-start and callback outcomes | Confirm `/practice` and `/dashboard` returns work after TalentArbor login | Log allowlisted `next` path only |
 | Draft lifecycle | draft create/update/submit/generation status counters | Detect stuck drafts and setup friction | Do not log job description, resume text, or intake free text |
 | Resume ingestion | upload accepted, extraction success/failure, retention outcome | Confirm private upload and deletion behavior | Log safe failure code only, never parser output or storage URL |

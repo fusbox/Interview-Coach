@@ -24,6 +24,7 @@ export function updateSession(request: NextRequest) {
     if (protectedCandidatePage) {
         const { authMode } = getCandidateRuntimeConfig();
         if (authMode === "external") {
+            const denialReason = "missing_candidate_session";
             const loginUrl = request.nextUrl.clone();
             loginUrl.pathname = "/auth/talentarbor/start";
             loginUrl.search = "";
@@ -34,10 +35,12 @@ export function updateSession(request: NextRequest) {
 
             Logger.info("Candidate auth middleware redirected unauthenticated request", {
                 route: request.nextUrl.pathname,
+                actorMode: authMode,
                 actorType: "candidate",
                 durationMs: Date.now() - start,
                 method: request.method,
                 outcome: "redirect_to_candidate_login",
+                reason: denialReason,
             }, "CandidateAuthMiddleware");
 
             return NextResponse.redirect(loginUrl);

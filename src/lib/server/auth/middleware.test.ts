@@ -2,9 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { updateSession } from "./middleware";
 
+const { loggerInfoMock } = vi.hoisted(() => ({
+    loggerInfoMock: vi.fn(),
+}));
+
 vi.mock("@/lib/logger", () => ({
     Logger: {
-        info: vi.fn(),
+        info: loggerInfoMock,
         warn: vi.fn(),
         error: vi.fn(),
         debug: vi.fn(),
@@ -72,6 +76,24 @@ describe("updateSession app-auth middleware", () => {
 
         expect(response.status).toBe(307);
         expect(response.headers.get("location")).toBe(expectedLocation);
+    });
+
+    it("logs safe candidate auth denial fields when external auth redirects", () => {
+        process.env.CANDIDATE_AUTH_MODE = "external";
+
+        updateSession(makeRequest("/practice?draftId=draft_123"));
+
+        expect(loggerInfoMock).toHaveBeenCalledWith(
+            "Candidate auth middleware redirected unauthenticated request",
+            expect.objectContaining({
+                actorMode: "external",
+                actorType: "candidate",
+                reason: "missing_candidate_session",
+                route: "/practice",
+            }),
+            "CandidateAuthMiddleware"
+        );
+        expect(loggerInfoMock.mock.calls[0]?.[1]).not.toHaveProperty("next");
     });
 
     it.each([
