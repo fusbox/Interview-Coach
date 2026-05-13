@@ -44,6 +44,12 @@ describe("/dashboard page", () => {
                 },
             ],
             completedItems: [],
+            nextBestAction: {
+                title: "Resume QA Analyst",
+                body: "You have 1 of 3 answered. Pick up this active practice before starting another round.",
+                href: "/session/session-1",
+                actionLabel: "Resume practice",
+            },
         });
         const { default: DashboardRoute } = await import("./page");
 

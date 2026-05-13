@@ -58,16 +58,21 @@ Recommended process:
 
 - Agile is sufficient at this stage.
 - Area Paths:
+  - `Interview-Coach-Candidate`
   - `Interview-Coach-Candidate\Candidate`
   - `Interview-Coach-Candidate\Recruiter`
   - `Interview-Coach-Candidate\Shared Platform`
   - `Interview-Coach-Candidate\Integration`
+  - `Interview-Coach-Candidate\Quality`
 - Iterations:
+  - `Interview-Coach-Candidate`
   - `Interview-Coach-Candidate\Candidate Discovery`
   - `Interview-Coach-Candidate\Candidate MVP Shell`
   - `Interview-Coach-Candidate\Candidate Auth Handoff`
   - `Interview-Coach-Candidate\Candidate Practice MVP`
   - `Interview-Coach-Candidate\Candidate Dashboard MVP`
+
+Use only paths that already exist in the Fu-Lab Azure project. If a future item needs a path outside this list, define that path in Azure first or place the item in `Interview-Coach-Candidate` and note the desired path in History.
 
 Use the hierarchy:
 
@@ -140,7 +145,7 @@ For linked imports, use title hierarchy columns:
 ```csv
 ID,Work Item Type,Title 1,Title 2,State,Assigned To,Area Path,Iteration Path,Tags,Acceptance Criteria,History
 739,Feature,Smoke and regression testing,,Active,Fu Chen <fu@rangam.com>,Interview-Coach-Candidate\Quality,Interview-Coach-Candidate\Candidate Practice MVP,candidate;quality;regression,"Acceptance copy","History copy"
-,User Story,,QSO-S08 - Add seeded setup-to-summary smoke readiness,Active,Fu Chen <fu@rangam.com>,Interview-Coach-Candidate\Quality,Interview-Coach-Candidate\Candidate Practice MVP,candidate;quality;smoke;postgres,"Acceptance copy","History copy"
+,User Story,,QSO-S08 - Add seeded setup-to-summary smoke readiness,New,Fu Chen <fu@rangam.com>,Interview-Coach-Candidate\Quality,Interview-Coach-Candidate\Candidate Practice MVP,candidate;quality;smoke;postgres,"Acceptance copy","History copy"
 ```
 
 Rules:
@@ -149,7 +154,9 @@ Rules:
 - Child rows go immediately below the parent row and put the title in `Title 2`.
 - Grandchild task rows use `Title 3` when needed.
 - New items leave `ID` blank.
+- New items set `State` to `New`; do not create new items directly as `Active` or `Resolved`.
 - New items must include `Tags`.
+- Use only existing `Area Path` and `Iteration Path` values. If a path is missing, create it in Azure first or use the parent `Interview-Coach-Candidate` path.
 - Titles containing commas must be quoted.
 
 ## Queries To Create First
@@ -606,6 +613,7 @@ Minimum useful pipeline:
 3. Typecheck
 4. Unit/component tests
 5. Build
+6. Candidate Postgres smoke readiness
 
 Later pipeline:
 

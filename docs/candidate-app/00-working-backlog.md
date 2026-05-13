@@ -343,6 +343,7 @@ Ground truth:
 | QSO-S02 | 741 | Story | Resolved | Fu Chen <fu@rangam.com> | Add accessibility checks for primary pages | Automated baseline covers landing/practice/session/dashboard/summary; manual checks remain in the accessibility baseline |
 | QSO-S03 | 742 | Story | Resolved | Fu Chen <fu@rangam.com> | Add recruiter regression checklist for candidate PRs | Candidate PRs identify recruiter route risk and verification |
 | QSO-S08 | TBD | Story | Active | Fu Chen <fu@rangam.com> | Add seeded setup-to-summary smoke readiness | DB smoke validates deterministic setup, in-session, summary, and saved-feedback fixtures |
+| QSO-S09 | TBD | Story | New | Fu Chen <fu@rangam.com> | Add seeded browser smoke for candidate setup to summary | Browser smoke uses deterministic seeded candidate fixtures to validate setup, session, and summary navigation |
 | QSO-F02 | 743 | Feature | Active | Fu Chen <fu@rangam.com> | Observability and incident readiness | App emits useful telemetry without leaking sensitive data |
 | QSO-S04 | 744 | Story | Resolved | Fu Chen <fu@rangam.com> | Add observability plan to deployment | Auth denial, draft, generation, extraction, and API errors are observable |
 | QSO-S05 | 745 | Story | Resolved | Fu Chen <fu@rangam.com> | Add incident runbook | Runbook covers auth, DB, AI provider, resume extraction, and deployment incidents |
@@ -382,7 +383,8 @@ Ground truth:
 | OPS-S09 | 760 | Story | Active | Fu Chen <fu@rangam.com> | Import canonical backlog hierarchy into Fu-Lab Boards | Import file reflects this working backlog and imports cleanly |
 | OPS-S10 | 646 | Story | Active | Himanshu Sagar <himanshusagar@rangam.com> | Publish company code wiki when access allows | `/docs/candidate-app` is published from company Azure project as code wiki |
 | OPS-S11 | 761 | Story | New | Himanshu Sagar <himanshusagar@rangam.com> | Add branch policy after reviewers are available | Candidate branch has agreed PR/build requirements |
-| OPS-S12 | 762 | Story | Active | Fu Chen <fu@rangam.com> | Add candidate integration pipeline | Pipeline runs lint, typecheck, tests, and build |
+| OPS-S12 | 762 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate integration pipeline | Pipeline definition runs lint, typecheck, candidate tests, build, and candidate DB smoke readiness |
+| OPS-S13 | TBD | Story | New | Fu Chen <fu@rangam.com> | Wire candidate pipeline in Azure project | Azure pipeline is created from `azure-pipelines.candidate.yml` and build validation policy can reference it |
 
 ## Execution Sequence
 
@@ -454,8 +456,10 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 62 | Resolved | DASH-F02 | 736 | Fu Chen <fu@rangam.com> | Progress and coaching themes | Candidate dashboard shows useful next-practice guidance without noisy analytics |
 | 63 | Active | QSO-S08 | TBD | Fu Chen <fu@rangam.com> | Add seeded setup-to-summary smoke readiness | `db:smoke-candidate-setup-summary` validates deterministic setup, in-session, completed-summary, and saved-feedback fixtures |
 | 64 | Active | QSO-F01 | 739 | Fu Chen <fu@rangam.com> | Smoke and regression testing | Seed-backed DB smoke path exists; next browser smoke can build on the deterministic candidate fixtures |
-| 65 | Active | OPS-S12 | 762 | Fu Chen <fu@rangam.com> | Add candidate integration pipeline | Next queued bundle: define lightweight pipeline command set for lint, typecheck, focused tests, build, and DB smoke readiness |
-| 66 | New | AUTH-S08 | 756 | Fu Chen <fu@rangam.com> | Implement login-start route after contract is known | Blocked until Q-05/Q-06 identity handoff answers are known |
+| 65 | Resolved | OPS-S12 | 762 | Fu Chen <fu@rangam.com> | Add candidate integration pipeline | `azure-pipelines.candidate.yml` and `ci:candidate` scripts define lint, typecheck, candidate tests, build, and DB smoke readiness |
+| 66 | New | OPS-S13 | TBD | Fu Chen <fu@rangam.com> | Wire candidate pipeline in Azure project | Queue after import: create the Azure pipeline from `azure-pipelines.candidate.yml` and link it to branch policy when ready |
+| 67 | New | QSO-S09 | TBD | Fu Chen <fu@rangam.com> | Add seeded browser smoke for candidate setup to summary | Next implementation target: use seeded fixtures to validate browser navigation from setup/session to summary |
+| 68 | New | AUTH-S08 | 756 | Fu Chen <fu@rangam.com> | Implement login-start route after contract is known | Blocked until Q-05/Q-06 identity handoff answers are known |
 
 ## Open Questions
 
