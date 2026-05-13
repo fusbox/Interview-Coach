@@ -131,6 +131,27 @@ docs-ready
 blocked
 ```
 
+## CSV Import Rules
+
+Use Azure's tree import shape for parent/child relationships. Do not include a `Parent` column in import files; Azure treats `Parent` as a computed, read-only field and rejects updates to it.
+
+For linked imports, use title hierarchy columns:
+
+```csv
+ID,Work Item Type,Title 1,Title 2,State,Assigned To,Area Path,Iteration Path,Tags,Acceptance Criteria,History
+739,Feature,Smoke and regression testing,,Active,Fu Chen <fu@rangam.com>,Interview-Coach-Candidate\Quality,Interview-Coach-Candidate\Candidate Practice MVP,candidate;quality;regression,"Acceptance copy","History copy"
+,User Story,,QSO-S08 - Add seeded setup-to-summary smoke readiness,Active,Fu Chen <fu@rangam.com>,Interview-Coach-Candidate\Quality,Interview-Coach-Candidate\Candidate Practice MVP,candidate;quality;smoke;postgres,"Acceptance copy","History copy"
+```
+
+Rules:
+
+- Parent rows put the title in `Title 1`.
+- Child rows go immediately below the parent row and put the title in `Title 2`.
+- Grandchild task rows use `Title 3` when needed.
+- New items leave `ID` blank.
+- New items must include `Tags`.
+- Titles containing commas must be quoted.
+
 ## Queries To Create First
 
 Create saved shared queries:
