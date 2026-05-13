@@ -263,7 +263,7 @@ Ground truth:
 | SESS-F03 | 716 | Feature | Resolved | Fu Chen <fu@rangam.com> | Candidate feedback and summary | Candidate sees useful coaching without recruiter-facing readiness semantics |
 | SESS-S06 | 717 | Story | Resolved | Fu Chen <fu@rangam.com> | Implement candidate summary route | Completed session opens candidate-owned summary/history surface |
 | SESS-S07 | 764 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate answer and retry mutation surface | Candidate-owned answer submit and retry persist through server actions and Postgres session storage without invite-token dependency |
-| SESS-S08 | TBD | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate answer coaching action | Candidate-owned submitted answers can generate and display coaching through a candidate ownership boundary |
+| SESS-S08 | 764 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate answer coaching action | Candidate-owned submitted answers can generate and display coaching through a candidate ownership boundary |
 
 ### EPIC-07 Resume Ingestion And Candidate Context
 
@@ -317,8 +317,8 @@ Ground truth:
 | DASH-S02 | 733 | Story | Resolved | Fu Chen <fu@rangam.com> | Replace mock dashboard data | Dashboard reads candidate-owned server data |
 | DASH-S03 | 734 | Story | Resolved | Fu Chen <fu@rangam.com> | Add resume/review/repeat actions | Actions route to owned session, summary, or setup flow |
 | DASH-S04 | 735 | Story | Resolved | Fu Chen <fu@rangam.com> | Add dashboard tests | Query and route tests cover empty, active, completed, and missing-auth states |
-| DASH-F02 | 736 | Feature | New | Fu Chen <fu@rangam.com> | Progress and coaching themes | Candidate sees useful patterns without noisy analytics |
-| DASH-S05 | 737 | Story | New | Fu Chen <fu@rangam.com> | Surface next best practice recommendation | Recommendation is grounded in candidate-owned history |
+| DASH-F02 | 736 | Feature | Resolved | Fu Chen <fu@rangam.com> | Progress and coaching themes | Candidate sees useful patterns without noisy analytics |
+| DASH-S05 | 737 | Story | Resolved | Fu Chen <fu@rangam.com> | Surface next best practice recommendation | Recommendation is grounded in candidate-owned history |
 
 ### EPIC-09 Quality, Security, Observability, And Release Readiness
 
@@ -447,10 +447,12 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 56 | Resolved | SESS-S01 | 709 | Fu Chen <fu@rangam.com> | Identify candidate-safe session engine files | Session engine port plan lists shared domain/repository/service files and candidate adapters |
 | 57 | Closed | SESS-T01 | 710 | Fu Chen <fu@rangam.com> | Mark recruiter-only session assumptions | Session engine port plan lists invite-token, recruiter ownership, initials-gate, and recruiter-review exclusions |
 | 58 | Resolved | SESS-F01 | 708 | Fu Chen <fu@rangam.com> | Session engine port plan | Candidate-safe file inventory and exclusion map are documented |
-| 59 | Resolved | SESS-S08 | TBD | Fu Chen <fu@rangam.com> | Add candidate answer coaching action | Candidate-owned submitted answers generate and display coaching through `AIService.analyzeAnswer` without invite-token dependency |
+| 59 | Resolved | SESS-S08 | 764 | Fu Chen <fu@rangam.com> | Add candidate answer coaching action | Candidate-owned submitted answers generate and display coaching through `AIService.analyzeAnswer` without invite-token dependency |
 | 60 | Resolved | SESS-F03 | 716 | Fu Chen <fu@rangam.com> | Candidate feedback and summary | Candidate answer coaching and summary surfaces are implemented with candidate ownership checks and without recruiter-facing readiness semantics |
-| 61 | New | DASH-F02 | 736 | Fu Chen <fu@rangam.com> | Progress and coaching themes | Next queued bundle: use saved feedback and summary signals to shape candidate-facing next practice guidance without noisy analytics |
-| 62 | New | AUTH-S08 | 756 | Fu Chen <fu@rangam.com> | Implement login-start route after contract is known | Blocked until Q-05/Q-06 identity handoff answers are known |
+| 61 | Resolved | DASH-S05 | 737 | Fu Chen <fu@rangam.com> | Surface next best practice recommendation | Dashboard next best action is grounded in active session progress or latest completed-session coaching |
+| 62 | Resolved | DASH-F02 | 736 | Fu Chen <fu@rangam.com> | Progress and coaching themes | Candidate dashboard shows useful next-practice guidance without noisy analytics |
+| 63 | Active | QSO-F01 | 739 | Fu Chen <fu@rangam.com> | Smoke and regression testing | Next queued bundle: identify the smallest seeded candidate setup-to-summary smoke path and preserve recruiter route coverage |
+| 64 | New | AUTH-S08 | 756 | Fu Chen <fu@rangam.com> | Implement login-start route after contract is known | Blocked until Q-05/Q-06 identity handoff answers are known |
 
 ## Open Questions
 

@@ -69,17 +69,16 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
                 <aside className="space-y-4">
                     <div className="rounded-2xl border border-border bg-white p-5 shadow-flat">
                         <h2 className="text-sm font-bold text-text-primary">Next best action</h2>
+                        <h3 className="mt-3 text-lg font-bold text-text-primary">{dashboard.nextBestAction.title}</h3>
                         <p className="mt-2 text-sm leading-6 text-text-secondary">
-                            {dashboard.activeItems.length > 0
-                                ? "Resume the most recent active practice before starting a new one."
-                                : "Start a new practice session when you have a role in mind."}
+                            {dashboard.nextBestAction.body}
                         </p>
                     </div>
                     <Link
-                        href="/practice"
+                        href={dashboard.nextBestAction.href}
                         className="inline-flex w-full justify-center rounded-full bg-primary px-5 py-3 text-sm font-bold text-white shadow-flat transition hover:bg-primary-hover"
                     >
-                        New practice
+                        {dashboard.nextBestAction.actionLabel}
                     </Link>
                 </aside>
             </section>

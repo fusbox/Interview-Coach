@@ -117,6 +117,12 @@ describe("candidate dashboard loader", () => {
                     summarySnippet: "Clearer answers and stronger examples.",
                 },
             ],
+            nextBestAction: {
+                title: "Resume QA Analyst",
+                body: "You have 1 of 3 answered. Pick up this active practice before starting another round.",
+                href: "/session/session-1",
+                actionLabel: "Resume practice",
+            },
         });
 
         expect(queryPostgresMock).toHaveBeenCalledWith(expect.stringContaining("where d.candidate_profile_id = $1"), ["profile-1"]);
@@ -124,5 +130,39 @@ describe("candidate dashboard loader", () => {
             route: "/dashboard",
             operation: "load_dashboard",
         }));
+    });
+
+    it("grounds the next practice recommendation in completed feedback when no active session exists", async () => {
+        queryPostgresMock.mockResolvedValue({
+            rows: [
+                {
+                    practice_draft_id: "draft-2",
+                    target_role: "Support Lead",
+                    status: "completed",
+                    resume_target_screen: "session_summary",
+                    session_id: "session-2",
+                    session_status: "COMPLETED",
+                    current_question_index: 2,
+                    question_count: 2,
+                    submitted_count: 2,
+                    summary_narrative: "Clearer answers and stronger examples.",
+                    latest_recommendation: "Add a measurable outcome to your next answer.",
+                    last_activity_at: "2026-05-11T14:00:00.000Z",
+                },
+            ],
+        });
+        const { loadCandidateDashboardForCurrentCandidate } = await import("./candidate-dashboard-loader");
+
+        await expect(loadCandidateDashboardForCurrentCandidate()).resolves.toMatchObject({
+            nextBestAction: {
+                title: "Practice one focused improvement",
+                body: "From your Support Lead summary: Add a measurable outcome to your next answer.",
+                href: "/practice",
+                actionLabel: "Practice again",
+            },
+        });
+
+        expect(queryPostgresMock.mock.calls[0][0]).toContain("latest_recommendation");
+        expect(queryPostgresMock.mock.calls[0][0]).toContain("public.eval_results");
     });
 });

@@ -15,6 +15,14 @@ export type CandidateDashboardItem = {
     repeatHref?: string;
     lastActivityLabel: string;
     summarySnippet?: string;
+    coachingSnippet?: string;
+};
+
+export type CandidateDashboardNextBestAction = {
+    title: string;
+    body: string;
+    href: string;
+    actionLabel: string;
 };
 
 export type CandidateDashboardModel = {
@@ -30,6 +38,7 @@ export type CandidateDashboardModel = {
     };
     activeItems: CandidateDashboardItem[];
     completedItems: CandidateDashboardItem[];
+    nextBestAction: CandidateDashboardNextBestAction;
 };
 
 type DashboardDraftRow = QueryResultRow & {
@@ -43,6 +52,7 @@ type DashboardDraftRow = QueryResultRow & {
     question_count: number | string | null;
     submitted_count: number | string | null;
     summary_narrative: string | null;
+    latest_recommendation: string | null;
     last_activity_at: string | Date;
 };
 
@@ -68,6 +78,7 @@ export async function loadCandidateDashboardForCurrentCandidate(): Promise<Candi
                         s.status as session_status,
                         s.current_question_index,
                         s.summary_narrative,
+                        f.latest_recommendation,
                         coalesce(q.question_count, 0)::int as question_count,
                         coalesce(a.submitted_count, 0)::int as submitted_count,
                         d.last_activity_at
@@ -83,6 +94,14 @@ export async function loadCandidateDashboardForCurrentCandidate(): Promise<Candi
                         from public.answers
                         group by session_id
                     ) a on a.session_id = d.session_id
+                    left join lateral (
+                        select er.feedback_json ->> 'recommendation' as latest_recommendation
+                        from public.eval_results er
+                        where er.session_id = d.session_id
+                          and er.feedback_json ? 'recommendation'
+                        order by er.updated_at desc
+                        limit 1
+                    ) f on true
                     where d.candidate_profile_id = $1
                     order by d.last_activity_at desc
                     limit 20
@@ -111,6 +130,7 @@ export async function loadCandidateDashboardForCurrentCandidate(): Promise<Candi
                 },
                 activeItems,
                 completedItems,
+                nextBestAction: buildNextBestAction(activeItems, completedItems),
             };
         },
     });
@@ -133,6 +153,7 @@ function mapDashboardItem(row: DashboardDraftRow): CandidateDashboardItem & { ki
         repeatHref: isCompleted ? "/practice" : undefined,
         lastActivityLabel: formatDate(row.last_activity_at),
         summarySnippet: row.summary_narrative || undefined,
+        coachingSnippet: row.latest_recommendation || undefined,
     };
 }
 
@@ -146,6 +167,42 @@ function toDashboardItem(item: CandidateDashboardItem & { kind: "active" | "comp
         repeatHref: item.repeatHref,
         lastActivityLabel: item.lastActivityLabel,
         summarySnippet: item.summarySnippet,
+        coachingSnippet: item.coachingSnippet,
+    };
+}
+
+function buildNextBestAction(
+    activeItems: CandidateDashboardItem[],
+    completedItems: CandidateDashboardItem[],
+): CandidateDashboardNextBestAction {
+    const activeItem = activeItems[0];
+    if (activeItem) {
+        return {
+            title: `Resume ${activeItem.title}`,
+            body: `You have ${activeItem.progressLabel}. Pick up this active practice before starting another round.`,
+            href: activeItem.href,
+            actionLabel: "Resume practice",
+        };
+    }
+
+    const completedItem = completedItems[0];
+    if (completedItem) {
+        const signal = completedItem.coachingSnippet || completedItem.summarySnippet;
+        return {
+            title: "Practice one focused improvement",
+            body: signal
+                ? `From your ${completedItem.title} summary: ${signal}`
+                : `Use your ${completedItem.title} summary to choose one answer pattern and practice it again.`,
+            href: completedItem.repeatHref || "/practice",
+            actionLabel: "Practice again",
+        };
+    }
+
+    return {
+        title: "Start with a target role",
+        body: "Create a lightweight practice setup when you know what role you want to prepare for.",
+        href: "/practice",
+        actionLabel: "Start practice",
     };
 }
 
