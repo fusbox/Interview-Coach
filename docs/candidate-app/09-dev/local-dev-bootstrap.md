@@ -23,8 +23,11 @@ Current commands:
 - `npm run db:apply-schema`
 - `npm run db:apply-candidate-schema`
 - `npm run db:apply-candidate-drafts-schema`
+- `npm run db:seed`
+- `npm run db:seed-candidate-dev`
 - `npm run db:smoke-candidate-schema`
 - `npm run db:smoke-candidate-drafts-schema`
+- `npm run db:smoke-candidate-dev-seed`
 
 Current development server:
 
@@ -51,11 +54,28 @@ npm run postgres:smoke:start
 npm run db:apply-schema
 npm run db:apply-candidate-schema
 npm run db:apply-candidate-drafts-schema
+npm run db:seed
 npm run db:smoke-candidate-schema
 npm run db:smoke-candidate-drafts-schema
+npm run db:smoke-candidate-dev-seed
 ```
 
-This applies the recruiter Postgres baseline, applies the candidate identity/profile and practice draft migrations, and validates candidate profile, provider identity, and draft constraints inside rollback-only smoke scripts.
+This applies the recruiter Postgres baseline, applies the candidate identity/profile and practice draft migrations, seeds deterministic primary and alternate dev candidates, and validates candidate profile, provider identity, draft, session, and ownership fixtures inside rollback-only smoke scripts.
+
+Seeded candidate identities:
+
+- Primary: `candidate-dev-primary@talentarbor.local`
+- Alternate ownership-check candidate: `candidate-dev-alt@talentarbor.local`
+
+For primary password-mode local access:
+
+```text
+CANDIDATE_AUTH_MODE=password
+CANDIDATE_DEV_EMAIL=candidate-dev-primary@talentarbor.local
+CANDIDATE_DEV_ISSUER=interview-coach-local
+CANDIDATE_DEV_SUBJECT=candidate-dev-primary@talentarbor.local
+CANDIDATE_DEV_DISPLAY_NAME=Dev Candidate Primary
+```
 
 ## Environment Setup
 
@@ -63,29 +83,28 @@ Copy [.env.example](../../.env.example) to `.env.local` and fill only the values
 
 Early development can use:
 
-- `DEV_AUTH_MODE=mock`
+- `CANDIDATE_AUTH_MODE=mock`
 - `RATE_LIMIT_BACKEND=memory`
 - `METRICS_BACKEND=memory`
 - local or smoke Postgres once the database layer exists
 
 Production-like development should use:
 
-- `DEV_AUTH_MODE=password`
+- `CANDIDATE_AUTH_MODE=password`
 - `DATABASE_URL`
 - `APP_AUTH_BACKEND=postgres`
-- `PRACTICE_DRAFT_BACKEND=postgres`
+- `CANDIDATE_DATA_BACKEND=postgres`
 
 ## Bootstrap Acceptance Criteria
 
 - a new developer can install dependencies and start the app
 - local env shape is documented
 - database setup is scripted once migrations exist
-- seed data creates at least one dev candidate profile
+- seed data creates primary and alternate dev candidate profiles for happy-path and ownership checks
 - local auth can exercise protected candidate routes
 - quality scripts pass before implementation work is marked done
 
 ## Open Questions
 
 - Should local Postgres run through Docker, native Postgres, Azure-hosted dev DB, or all three?
-- Should seed data include multiple candidate profiles for ownership tests?
 - Should mock auth be enabled by cookie, env, or a test-only route?

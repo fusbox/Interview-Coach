@@ -201,7 +201,7 @@ Ground truth:
 | DATA-S04 | 691 | Story | Active | Fu Chen <fu@rangam.com> | Add metrics/rate-limit/idempotency boundaries | Route loader metrics are wired; mutation rate-limit/idempotency decisions remain open |
 | DATA-F03 | 692 | Feature | Active | Fu Chen <fu@rangam.com> | Migration and seed path | Local and integration environments can apply schema and seed dev candidates |
 | DATA-S05 | 693 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate DB migration | Migration applies cleanly on local Postgres |
-| DATA-S06 | 694 | Story | New | Fu Chen <fu@rangam.com> | Add dev seed candidates | Seed data supports happy path and ownership tests |
+| DATA-S06 | 694 | Story | Resolved | Fu Chen <fu@rangam.com> | Add dev seed candidates | Seed SQL and smoke validation support happy path and ownership tests |
 
 ### EPIC-05 Candidate Practice Setup And Drafts
 
@@ -439,8 +439,8 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 51 | Resolved | QSO-S03 | 742 | Fu Chen <fu@rangam.com> | Add recruiter regression checklist for candidate PRs | Candidate PRs identify recruiter route risk and verification |
 | 52 | Resolved | QSO-S04 | 744 | Fu Chen <fu@rangam.com> | Add observability plan to deployment | Auth denial, draft, generation, extraction, and API errors are observable |
 | 53 | Resolved | QSO-S05 | 745 | Fu Chen <fu@rangam.com> | Add incident runbook | Runbook covers auth, DB, AI provider, resume extraction, and deployment incidents |
-| 54 | Active | DATA-S04 | 691 | Fu Chen <fu@rangam.com> | Add metrics/rate-limit/idempotency boundaries | `/dashboard`, `/practice`, `/session/[sessionId]`, and `/summary/[sessionId]` loaders emit route metrics; mutation rate-limit/idempotency decisions remain open |
-| 55 | New | DATA-S06 | 694 | Fu Chen <fu@rangam.com> | Add dev seed candidates | Seed data supports happy path and ownership tests |
+| 54 | Active | DATA-S04 | 691 | Fu Chen <fu@rangam.com> | Add metrics/rate-limit/idempotency boundaries | Next queued pass: audit candidate mutations and settle rate-limit/idempotency boundaries after route metrics wiring |
+| 55 | Resolved | DATA-S06 | 694 | Fu Chen <fu@rangam.com> | Add dev seed candidates | `db:seed-candidate-dev` and `db:smoke-candidate-dev-seed` create and validate primary/alternate candidates |
 | 56 | New | AUTH-S08 | 756 | Fu Chen <fu@rangam.com> | Implement login-start route after contract is known | `/auth/talentarbor/start?next=/practice` and `/dashboard` validate and preserve safe targets |
 
 ## Open Questions
