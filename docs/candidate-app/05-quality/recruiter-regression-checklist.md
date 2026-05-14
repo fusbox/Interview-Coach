@@ -27,7 +27,7 @@ If the PR only changes isolated candidate docs, mark this checklist as not appli
 - `/` remains public and candidate-owned.
 - `/practice`, `/dashboard`, `/session/[sessionId]`, and `/summary/[sessionId]` remain candidate-auth protected.
 - `/recruiter` still lands on the recruiter create experience.
-- `/recruiter/create`, `/recruiter/templates`, `/recruiter/settings`, `/admin/feedback`, and `/qa/ai-quality` keep their current ownership and auth requirements.
+- `/recruiter/dashboard`, `/recruiter/create`, `/recruiter/templates`, `/recruiter/settings`, `/admin/feedback`, and `/qa/ai-quality` keep their current ownership and auth requirements.
 - `/s/[token]` still uses recruiter invite-token access and is not claimed by candidate SSO routes.
 - New top-level routes are checked against [Shared Host Routing Contract](../04-architecture/shared-host-routing-contract.md).
 
@@ -68,7 +68,7 @@ Add targeted tests based on changed surface:
 
 ```powershell
 npx vitest run src/app/shared-host-routes.test.ts src/lib/server/auth/middleware.test.ts
-npx playwright test e2e/candidate/primary-routes.spec.ts --workers=1
+npx playwright test e2e/candidate/primary-routes.spec.ts --project=chromium --workers=1
 ```
 
 Run recruiter e2e smoke when the PR touches recruiter routes, shared auth, shared APIs, global layout/CSS, or Postgres session/invite behavior:

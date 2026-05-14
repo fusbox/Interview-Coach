@@ -17,6 +17,7 @@ describe("shared host route ownership", () => {
         ["/summary/session_123", "summary/[sessionId]/page.tsx"],
         ["/recruiter", "(recruiter)/recruiter/page.tsx"],
         ["/recruiter/create", "(recruiter)/recruiter/create/page.tsx"],
+        ["/recruiter/dashboard", "(recruiter)/recruiter/dashboard/page.tsx"],
         ["/recruiter/templates", "(recruiter)/recruiter/templates/page.tsx"],
         ["/recruiter/settings", "(recruiter)/recruiter/settings/page.tsx"],
         ["/admin/feedback", "(recruiter)/admin/feedback/page.tsx"],

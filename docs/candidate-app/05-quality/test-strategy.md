@@ -24,7 +24,7 @@ Current CI scripts validate:
 
 Candidate integration now has Vitest coverage for candidate route, auth, persistence, dashboard next-practice guidance, session answer coaching, summary, resume, and quality helper behavior.
 
-`e2e/candidate/primary-routes.spec.ts` covers the shared-host route contract for `/`, `/recruiter`, candidate protected routes, and admin/QA protection.
+`e2e/candidate/primary-routes.spec.ts` covers the shared-host route contract for `/`, `/recruiter`, `/recruiter/dashboard`, candidate protected routes, recruiter/admin/QA protection, and the authenticated recruiter dashboard compatibility path.
 
 `npm run db:smoke-candidate-setup-summary` validates deterministic seeded candidate setup, in-session, completed-summary, and saved-feedback fixtures. `npm run test:e2e:candidate-seeded` then runs the DB-backed browser smoke in password-backed local candidate auth mode, using the primary seeded candidate to move from `/practice` into a generated session and summary. The browser smoke owns its temporary Next dev server process group in CI and should shut it down cleanly after Playwright finishes.
 

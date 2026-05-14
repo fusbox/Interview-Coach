@@ -78,11 +78,20 @@ test("recruiter shared-host alias lands on create page for authenticated recruit
     await expect(page.getByLabel("Target Role")).toBeVisible();
 });
 
-test("admin and qa routes remain protected under shared host", async ({ request }) => {
-    for (const route of ["/admin/feedback", "/qa/ai-quality"]) {
+test("recruiter, admin, and qa routes remain protected under shared host", async ({ request }) => {
+    for (const route of ["/recruiter/dashboard", "/recruiter/templates", "/recruiter/settings", "/admin/feedback", "/qa/ai-quality"]) {
         const response = await request.get(route, { maxRedirects: 0 });
 
         expect(response.status(), route).toBe(307);
         expect(response.headers()["location"], route).toBe(`/login?next=${encodeURIComponent(route)}`);
     }
+});
+
+test("recruiter dashboard compatibility route remains available for authenticated recruiters", async ({ page, context, baseURL }) => {
+    await addRecruiterCookie(context, baseURL);
+
+    await page.goto("/recruiter/dashboard");
+
+    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+    await expect(page.getByRole("link", { name: /new invite/i })).toHaveAttribute("href", "/recruiter/create");
 });

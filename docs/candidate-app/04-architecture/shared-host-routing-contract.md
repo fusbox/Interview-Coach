@@ -28,8 +28,8 @@ This document records the confirmed route and deployment shape for Interview Coa
 | `/summary` or `/summary/[sessionId]` | Candidate | Candidate auth required | Candidate-owned review/summary surface. Exact final path can evolve. |
 | `/settings` | Candidate | Candidate auth required | Candidate settings/profile if shipped. |
 | `/recruiter` | Recruiter | Recruiter auth/ATS launch required | Deployed recruiter create landing page. |
-| `/recruiter/create` | Recruiter | Recruiter auth required | Keep as compatibility alias or redirect to `/recruiter`. |
-| `/recruiter/dashboard` | Recruiter | Recruiter auth required | Existing recruiter dashboard. |
+| `/recruiter/create` | Recruiter | Recruiter auth required | Existing create-invite page and compatibility target for new-invite actions. |
+| `/recruiter/dashboard` | Recruiter | Recruiter auth required | Existing migrated recruiter dashboard restored as the deployed dashboard compatibility route. |
 | `/recruiter/templates` | Recruiter | Recruiter auth required | Existing recruiter templates. |
 | `/recruiter/settings` | Recruiter | Recruiter auth required | Existing recruiter settings. |
 | `/admin/feedback` | Admin | Admin auth required | Existing admin feedback. |
@@ -71,6 +71,7 @@ The standalone candidate repo can still be useful as an incubation workspace, bu
 ## Acceptance Criteria
 
 - `/recruiter` renders or redirects to the recruiter create experience without breaking existing `/recruiter/create` links.
+- `/recruiter/dashboard` remains recruiter-owned and renders the migrated recruiter dashboard for authenticated recruiters.
 - `/dashboard` is candidate-owned and never resolves to recruiter dashboard data.
 - `/practice` requires candidate access and supports return-after-login.
 - `/s/[token]` remains invite-token based.

@@ -139,7 +139,7 @@ Ground truth:
 | WEB-S07 | 670 | Story | Active | Himanshu Sagar <himanshusagar@rangam.com> | Confirm candidate CTA return behavior | Integration team confirms parameter/state/callback behavior or fallback |
 | WEB-T01 | 671 | Task | Active | Fu Chen <fu@rangam.com> | Validate `LoginWithType/2` parameter behavior in browser | Observed behavior is recorded in the login redirect contract |
 | WEB-F03 | 672 | Feature | Active | Fu Chen <fu@rangam.com> | Recruiter/admin/QA route preservation | Existing recruiter/admin/QA relative paths continue to work after candidate routes land |
-| WEB-S08 | 673 | Story | Active | Fu Chen <fu@rangam.com> | Preserve recruiter/admin/QA route behavior | `/recruiter/dashboard`, `/recruiter/templates`, `/recruiter/settings`, `/admin/feedback`, and `/qa/ai-quality` remain valid |
+| WEB-S08 | 673 | Story | Resolved | Fu Chen <fu@rangam.com> | Preserve recruiter/admin/QA route behavior | `/recruiter/dashboard` restores the migrated recruiter dashboard while `/recruiter/templates`, `/recruiter/settings`, `/admin/feedback`, and `/qa/ai-quality` remain protected under shared-host routing |
 
 ### EPIC-03 Candidate Identity And Auth Handoff
 
@@ -472,7 +472,7 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 75 | Resolved | DRFT-S08 | 769 | Fu Chen <fu@rangam.com> | Build practice setup UI MVP | Practice setup now saves role/JD/resume/intake, supports new or restored drafts, and renders the polished MVP setup UI |
 | 76 | Resolved | SESS-S09 | 770 | Fu Chen <fu@rangam.com> | Build live practice session UI MVP | Candidate session route now reuses recruiter session workspace patterns with candidate-owned server actions and hidden engagement debug inspection |
 | 77 | Resolved | DASH-S06 | 771 | Fu Chen <fu@rangam.com> | Build dashboard UI MVP | Dashboard UI now renders the polished MVP over the existing read model, including next action, active practice, completed history, empty state, and coaching snippets |
-| 78 | Active | WEB-S08 | 673 | Fu Chen <fu@rangam.com> | Preserve recruiter/admin/QA route behavior | Future regression pass: re-run shared-host route checks now that candidate UI MVP surfaces are in place |
+| 78 | Resolved | WEB-S08 | 673 | Fu Chen <fu@rangam.com> | Preserve recruiter/admin/QA route behavior | `/recruiter/dashboard` restored as the recruiter dashboard compatibility route; primary route smoke covers recruiter/admin/QA protection |
 | 79 | Active | OPS-S05 | 652 | Fu Chen <fu@rangam.com> | Define candidate integration PR policy | Future review pass: refresh PR/reviewer notes with implemented candidate UI MVP scope and current validation evidence |
 
 ## Open Questions
