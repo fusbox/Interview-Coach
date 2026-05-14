@@ -6,6 +6,9 @@ export const PRACTICE_SETUP_LIMITS = {
     targetRole: 120,
     jobDescription: 12_000,
     resumeText: MAX_NORMALIZED_RESUME_TEXT_LENGTH,
+    timeline: 240,
+    concerns: 1_000,
+    practiceFocus: 80,
 } as const;
 
 const optionalSetupText = (fieldName: string, maxLength: number) =>
@@ -30,10 +33,26 @@ export const practiceSetupSchema = z.object({
 
 export type PracticeSetupInput = z.infer<typeof practiceSetupSchema>;
 
+export const practiceSetupIntakeSchema = z.object({
+    confidenceLevel: z.enum(["low", "medium", "high"]).nullable(),
+    interviewType: z.enum(["behavioral", "technical", "case", "screening", "general"]).nullable(),
+    timeline: optionalSetupText("Timeline", PRACTICE_SETUP_LIMITS.timeline),
+    concerns: optionalSetupText("Concerns", PRACTICE_SETUP_LIMITS.concerns),
+    practiceFocus: z
+        .array(z.string().trim().min(1).max(PRACTICE_SETUP_LIMITS.practiceFocus))
+        .transform((values) => Array.from(new Set(values)).slice(0, 6)),
+});
+
+export type PracticeSetupIntakeInput = z.infer<typeof practiceSetupIntakeSchema>;
+
 export function parsePracticeSetupInput(payload: unknown): PracticeSetupInput {
     return practiceSetupSchema.parse(payload);
 }
 
 export function safeParsePracticeSetupInput(payload: unknown) {
     return practiceSetupSchema.safeParse(payload);
+}
+
+export function safeParsePracticeSetupIntakeInput(payload: unknown) {
+    return practiceSetupIntakeSchema.safeParse(payload);
 }

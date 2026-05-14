@@ -76,7 +76,13 @@ type PracticeSessionDraft = {
   jobDescription: string | null;
   resumeContext: ResumeContextSnapshot | null;
   customQuestions: CandidateCustomQuestion[];
-  intakeResponses: PracticeIntakeResponse[];
+  intakeResponses: {
+    confidenceLevel: "low" | "medium" | "high" | null;
+    interviewType: "behavioral" | "technical" | "case" | "screening" | "general" | null;
+    timeline: string | null;
+    concerns: string | null;
+    practiceFocus: string[];
+  };
   questionSetSnapshotId: string | null;
   sessionId: string | null;
   resumeTargetScreen: PracticeResumeTarget;
@@ -281,8 +287,8 @@ Build `/practice` against a server-backed `PracticeSessionDraft` with:
 - required `targetRole`
 - optional `jobDescription`
 - one normalized `resumeText` input path first
-- placeholder support for future `customQuestions` and `intakeResponses`
+- placeholder support for future `customQuestions` plus the first structured `intakeResponses` object
 - a draft `status` field and `resumeTargetScreen`
 - a generation/loading route state that can resume safely after refresh
 
-Once that is stable, expand the resume subsystem to file upload and multi-image capture, then layer candidate intake on top of the same draft contract.
+Once that is stable, expand the resume subsystem to file upload and multi-image capture, then deepen candidate intake on top of the same draft contract.

@@ -28,6 +28,8 @@ Candidate integration now has Vitest coverage for candidate route, auth, persist
 
 `npm run db:smoke-candidate-setup-summary` validates deterministic seeded candidate setup, in-session, completed-summary, and saved-feedback fixtures. `npm run test:e2e:candidate-seeded` then runs the DB-backed browser smoke in password-backed local candidate auth mode, using the primary seeded candidate to move from `/practice` into a generated session and summary. The browser smoke owns its temporary Next dev server process group in CI and should shut it down cleanly after Playwright finishes.
 
+The practice setup component/action tests cover the MVP setup contract: edited setup values are saved before generation, structured intake responses are submitted with the draft, and a new draft can be created when no editable draft was restored.
+
 ## Test Layers
 
 ### Unit Tests

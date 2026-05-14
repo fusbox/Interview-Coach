@@ -32,7 +32,7 @@ The setup form renders validation and future server submission errors through an
 
 When a candidate has an editable server-backed draft, `/practice` restores the latest draft and pre-fills the target role, job description, and resume text fields. The current implementation supports local candidate auth modes; external SSO restore uses the same draft read path once the callback/session boundary is finalized.
 
-Submitting a restored editable draft now performs the first durable generation transition: the draft moves to `generating` and its resume target moves to `practice_generating`. Actual AI question generation and session creation are intentionally deferred to the session lifecycle slices.
+Submitting setup now saves the candidate's latest role, job description, resume text, and structured intake before session creation. If an editable draft was restored, the app updates that draft; if no editable draft exists, it creates a new candidate-owned draft. The draft then moves through generation and routes the candidate into the session experience.
 
 ### Required input
 
@@ -54,7 +54,7 @@ Submitting a restored editable draft now performs the first durable generation t
 
 ## Candidate Intake
 
-The original PoC included a candidate intake flow for additional personalization. The first durable boundary now exists in the candidate-owned practice draft model; final UI sequencing can still evolve.
+The original PoC included a candidate intake flow for additional personalization. The first durable boundary now exists in the candidate-owned practice draft model, and `/practice` surfaces the MVP intake controls directly in setup.
 
 Current implementation boundary:
 
@@ -68,6 +68,8 @@ Structured draft-level intake persists:
 - timeline
 - concerns
 - practice focus values
+
+The current UI captures readiness/confidence, interview type, timeline, concerns, and selected focus areas. The setup action persists these fields before creating the session so downstream session and dashboard work can use the same draft context.
 
 The first implementation keeps intake draft-specific. Future work can decide whether some answers should be promoted into reusable candidate profile preferences.
 
@@ -98,6 +100,6 @@ The candidate app should preserve the recruiter app's strongest stateful-session
 
 - Guest trial flow
 - Full candidate dashboard implementation
-- Finalized intake questionnaire UX beyond the first structured persistence contract
+- Additional intake questionnaire depth beyond the MVP controls
 - Candidate-authored question UX, unless we decide to bring that forward early
 - Any recruiter-facing invite or review workflow

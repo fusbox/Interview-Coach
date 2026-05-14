@@ -5,9 +5,9 @@ import type { RestoredPracticeSetupDraft } from "@/lib/server/candidate";
 import { PracticeSetupForm } from "./PracticeSetupForm";
 
 const setupNotes = [
-    "Target role is the only required field for the first pass.",
-    "Job description and resume text will help tailor future generated questions.",
-    "Your setup will move to server-backed drafts in the next persistence slice.",
+    "Target role is the only required field.",
+    "Job description, resume text, and intake details tune the questions when they help.",
+    "Drafts are saved to your account so you can switch setup paths before practicing.",
 ];
 
 type PracticeSetupPageProps = {
@@ -19,7 +19,7 @@ export function PracticeSetupPage({ restoredDraft = null }: PracticeSetupPagePro
 
     return (
         <main className="candidate-design-system min-h-screen bg-surface-base text-text-primary">
-            <section className="border-b border-border bg-gradient-to-br from-brand-glass-start via-surface-base to-white">
+            <section className="border-b border-[rgb(var(--candidate-border)/0.78)] bg-gradient-to-br from-brand-glass-start via-surface-base to-white">
                 <div className="mx-auto grid w-full max-w-7xl gap-8 px-6 py-10 md:px-10 md:py-14 lg:grid-cols-[minmax(0,0.95fr)_minmax(24rem,0.75fr)]">
                     <div className="space-y-6">
                         <Link href="/" className="inline-flex text-sm font-semibold text-primary hover:underline">
@@ -29,8 +29,8 @@ export function PracticeSetupPage({ restoredDraft = null }: PracticeSetupPagePro
                             <h1 className="font-display text-5xl font-bold leading-none text-text-primary md:text-6xl">
                                 Set up your practice.
                             </h1>
-                            <p className="max-w-3xl text-lg leading-8 text-text-secondary">
-                                Start with the role you want, add context only when it helps, and keep the setup light enough to get into the interview quickly.
+                            <p className="max-w-3xl text-lg leading-8 text-[rgb(var(--candidate-muted))]">
+                                Start with the role you want, add context only when it helps, and tune the coach before the interview begins.
                             </p>
                         </div>
                     </div>
@@ -49,20 +49,20 @@ export function PracticeSetupPage({ restoredDraft = null }: PracticeSetupPagePro
                 </div>
             </section>
 
-            <section className="mx-auto grid w-full max-w-7xl gap-6 px-6 py-10 md:px-10 md:py-12 lg:grid-cols-[minmax(0,1fr)_20rem]">
+            <section className="mx-auto grid w-full max-w-7xl gap-6 px-6 py-10 md:px-10 md:py-12 xl:grid-cols-[minmax(0,1fr)_22rem]">
                 <PracticeSetupForm
                     initialValues={restoredDraft?.initialValues ?? null}
                     practiceDraftId={restoredDraft?.practiceDraftId ?? null}
                 />
 
                 <aside className="space-y-4">
-                    <div className="rounded-2xl border border-border bg-white p-5 shadow-flat">
-                        <h2 className="text-sm font-bold text-text-primary">Personalization</h2>
-                        <p className="mt-2 text-sm leading-6 text-text-secondary">
-                            Personalization intake will plug into this setup later without changing the route boundary.
+                    <div className="surface-sky border border-[rgb(var(--candidate-border)/0.78)] p-5">
+                        <h2 className="text-sm font-bold text-text-primary">Setup state</h2>
+                        <p className="mt-2 text-sm leading-6 text-[rgb(var(--candidate-muted))]">
+                            Your final edits are saved before the practice session is created, so the session reflects the setup on this screen.
                         </p>
                     </div>
-                    <div className="rounded-2xl border border-border bg-white p-5 shadow-flat">
+                    <div className="rounded-2xl border border-[rgb(var(--candidate-border)/0.78)] bg-white p-5 shadow-flat">
                         <h2 className="text-sm font-bold text-text-primary">Draft state</h2>
                         {availableDrafts.length > 0 ? (
                             <ul className="mt-3 space-y-3">

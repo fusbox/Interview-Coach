@@ -66,6 +66,13 @@ describe("candidate practice setup loader", () => {
             practiceDraftId: "draft-1",
             targetRole: "QA analyst",
             jobDescription: "Test regulated workflows.",
+            intakeResponses: {
+                confidenceLevel: null,
+                interviewType: null,
+                timeline: null,
+                concerns: null,
+                practiceFocus: [],
+            },
             resumeContext: {
                 pastedText: "Validated releases.",
                 extractedText: "Validated releases.",
@@ -92,6 +99,11 @@ describe("candidate practice setup loader", () => {
                 targetRole: "QA analyst",
                 jobDescription: "Test regulated workflows.",
                 resumeText: "Validated releases.",
+                confidenceLevel: null,
+                interviewType: null,
+                timeline: null,
+                concerns: null,
+                practiceFocus: [],
             },
         });
         expect(findLatestEditableCandidatePracticeDraftMock).toHaveBeenCalledWith("profile-1");
@@ -129,6 +141,13 @@ describe("candidate practice setup loader", () => {
             practiceDraftId: "draft-selected",
             targetRole: "Warehouse lead",
             jobDescription: null,
+            intakeResponses: {
+                confidenceLevel: "high",
+                interviewType: "behavioral",
+                timeline: "Interview tomorrow",
+                concerns: "Making examples concise.",
+                practiceFocus: ["specific examples"],
+            },
             resumeContext: {
                 pastedText: null,
                 extractedText: "",
@@ -150,6 +169,11 @@ describe("candidate practice setup loader", () => {
                 targetRole: "Warehouse lead",
                 jobDescription: null,
                 resumeText: null,
+                confidenceLevel: "high",
+                interviewType: "behavioral",
+                timeline: "Interview tomorrow",
+                concerns: "Making examples concise.",
+                practiceFocus: ["specific examples"],
             },
         });
         expect(findCandidatePracticeDraftByIdMock).toHaveBeenCalledWith({

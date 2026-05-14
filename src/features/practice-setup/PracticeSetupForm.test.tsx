@@ -84,7 +84,59 @@ describe("PracticeSetupForm", () => {
 
         await user.click(screen.getByRole("button", { name: /start generating questions/i }));
 
-        expect(startPracticeGenerationActionMock).toHaveBeenCalledWith("draft-1");
+        expect(startPracticeGenerationActionMock).toHaveBeenCalledWith({
+            practiceDraftId: "draft-1",
+            setup: {
+                targetRole: "QA analyst",
+                jobDescription: "Test regulated workflows.",
+                resumeText: "Validated releases.",
+            },
+            intakeResponses: {
+                confidenceLevel: null,
+                interviewType: null,
+                timeline: null,
+                concerns: null,
+                practiceFocus: [],
+            },
+        });
         expect(routerPushMock).toHaveBeenCalledWith("/session/session-1");
+    });
+
+    it("submits structured intake selections with the setup context", async () => {
+        const user = userEvent.setup();
+        startPracticeGenerationActionMock.mockResolvedValue({
+            ok: true,
+            practiceDraftId: "draft-1",
+            sessionId: "session-1",
+            resumeTargetScreen: "session_entry",
+        });
+        render(
+            <PracticeSetupForm
+                practiceDraftId="draft-1"
+                initialValues={{
+                    targetRole: "Customer success manager",
+                    jobDescription: null,
+                    resumeText: null,
+                    confidenceLevel: "medium",
+                    interviewType: "behavioral",
+                    timeline: "Interview next week",
+                    concerns: "Staying concise",
+                    practiceFocus: ["structure"],
+                }}
+            />,
+        );
+
+        await user.click(screen.getByLabelText(/specific examples/i));
+        await user.click(screen.getByRole("button", { name: /start generating questions/i }));
+
+        expect(startPracticeGenerationActionMock).toHaveBeenCalledWith(expect.objectContaining({
+            intakeResponses: {
+                confidenceLevel: "medium",
+                interviewType: "behavioral",
+                timeline: "Interview next week",
+                concerns: "Staying concise",
+                practiceFocus: ["structure", "specific examples"],
+            },
+        }));
     });
 });

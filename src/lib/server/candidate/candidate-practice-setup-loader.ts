@@ -15,6 +15,11 @@ export type RestoredPracticeSetupDraft = {
         targetRole: string;
         jobDescription: string | null;
         resumeText: string | null;
+        confidenceLevel: "low" | "medium" | "high" | null;
+        interviewType: "behavioral" | "technical" | "case" | "screening" | "general" | null;
+        timeline: string | null;
+        concerns: string | null;
+        practiceFocus: string[];
     };
 };
 
@@ -42,6 +47,13 @@ export async function loadPracticeSetupDraftForCurrentCandidate(selectedPractice
             if (!draft) {
                 return null;
             }
+            const intakeResponses = draft.intakeResponses ?? {
+                confidenceLevel: null,
+                interviewType: null,
+                timeline: null,
+                concerns: null,
+                practiceFocus: [],
+            };
 
             return {
                 practiceDraftId: draft.practiceDraftId,
@@ -50,6 +62,11 @@ export async function loadPracticeSetupDraftForCurrentCandidate(selectedPractice
                     targetRole: draft.targetRole,
                     jobDescription: draft.jobDescription,
                     resumeText: draft.resumeContext.pastedText || draft.resumeContext.extractedText || null,
+                    confidenceLevel: intakeResponses.confidenceLevel,
+                    interviewType: intakeResponses.interviewType,
+                    timeline: intakeResponses.timeline,
+                    concerns: intakeResponses.concerns,
+                    practiceFocus: intakeResponses.practiceFocus,
                 },
             };
         },

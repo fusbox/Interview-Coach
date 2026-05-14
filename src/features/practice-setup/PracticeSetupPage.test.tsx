@@ -26,7 +26,8 @@ describe("PracticeSetupPage", () => {
         render(<PracticeSetupPage />);
 
         expect(screen.getByText(/resume file upload is coming next/i)).toBeInTheDocument();
-        expect(screen.getByText(/personalization intake will plug into this setup later/i)).toBeInTheDocument();
+        expect(screen.getByRole("group", { name: /how ready do you feel/i })).toBeInTheDocument();
+        expect(screen.getByRole("group", { name: /what should the coach pay attention to/i })).toBeInTheDocument();
     });
 
     it("renders available draft choices with stable draft links", () => {
@@ -47,11 +48,17 @@ describe("PracticeSetupPage", () => {
                 targetRole: "Warehouse lead",
                 jobDescription: null,
                 resumeText: null,
+                confidenceLevel: "high",
+                interviewType: "technical",
+                timeline: "Interview tomorrow",
+                concerns: "Explaining tradeoffs",
+                practiceFocus: ["structure"],
             },
         }} />);
 
         expect(screen.getByRole("link", { name: /warehouse lead/i })).toHaveAttribute("href", "/practice?draftId=draft-2");
         expect(screen.getByText(/may 12, 2026/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/timeline/i)).toHaveValue("Interview tomorrow");
     });
 
     it("meets the candidate primary-page accessibility baseline", () => {

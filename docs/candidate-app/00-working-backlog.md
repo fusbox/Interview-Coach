@@ -233,7 +233,7 @@ Ground truth:
 | DRFT-S06 | 704 | Story | Resolved | Fu Chen <fu@rangam.com> | Submit draft into generation state | Draft status and resume target persist |
 | DRFT-F03 | 705 | Feature | Active | Fu Chen <fu@rangam.com> | Multiple draft management | Candidate can distinguish and resume more than one active/named draft |
 | DRFT-S07 | 706 | Story | Resolved | Fu Chen <fu@rangam.com> | Model draft naming and selection | Candidate can choose editable drafts by role label and last activity date |
-| DRFT-S08 | 769 | Story | New | Fu Chen <fu@rangam.com> | Build practice setup UI MVP | Candidate can complete setup, resume context, structured intake, and draft selection in an accessible polished flow |
+| DRFT-S08 | 769 | Story | Resolved | Fu Chen <fu@rangam.com> | Build practice setup UI MVP | `/practice` saves edited setup, resume context, structured intake, and draft selection before routing into session creation |
 
 ### EPIC-06 Candidate Session Engine Integration
 
@@ -387,7 +387,7 @@ Ground truth:
 | OPS-S10 | 646 | Story | Active | Himanshu Sagar <himanshusagar@rangam.com> | Publish company code wiki when access allows | `/docs/candidate-app` is published from company Azure project as code wiki |
 | OPS-S11 | 761 | Story | New | Himanshu Sagar <himanshusagar@rangam.com> | Add branch policy after reviewers are available | Candidate branch has agreed PR/build requirements |
 | OPS-S12 | 762 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate integration pipeline | Pipeline definition runs lint, typecheck, candidate tests, build, and candidate DB smoke readiness |
-| OPS-S13 | 767 | Story | Active | Fu Chen <fu@rangam.com> | Wire candidate pipeline in Azure project | Fu-Lab pipeline is created from `azure-pipelines.candidate.yml`; first runs reached `next build` and exposed build-time AI, email, and runtime-env contracts |
+| OPS-S13 | 767 | Story | Resolved | Fu Chen <fu@rangam.com> | Wire candidate pipeline in Azure project | Fu-Lab pipeline passes without STDIO close warning after rehearsal env and browser-smoke cleanup |
 
 ## Execution Sequence
 
@@ -460,7 +460,7 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 63 | Resolved | QSO-S08 | 766 | Fu Chen <fu@rangam.com> | Add seeded setup-to-summary smoke readiness | `db:smoke-candidate-setup-summary` validates deterministic setup, in-session, completed-summary, and saved-feedback fixtures |
 | 64 | Active | QSO-F01 | 739 | Fu Chen <fu@rangam.com> | Smoke and regression testing | Seed-backed DB smoke path exists; next browser smoke can build on the deterministic candidate fixtures |
 | 65 | Resolved | OPS-S12 | 762 | Fu Chen <fu@rangam.com> | Add candidate integration pipeline | `azure-pipelines.candidate.yml` and `ci:candidate` scripts define lint, typecheck, candidate tests, build, and DB smoke readiness |
-| 66 | Active | OPS-S13 | 767 | Fu Chen <fu@rangam.com> | Wire candidate pipeline in Azure project | Fu-Lab pipeline created; production build now has non-secret placeholders for AI, SMTP, encryption, public origin, and smoke DB connection plus Playwright Chromium install |
+| 66 | Resolved | OPS-S13 | 767 | Fu Chen <fu@rangam.com> | Wire candidate pipeline in Azure project | Fu-Lab pipeline passed end to end without STDIO close warning |
 | 67 | Resolved | QSO-S09 | 768 | Fu Chen <fu@rangam.com> | Add seeded browser smoke for candidate setup to summary | `test:e2e:candidate-seeded` validates seeded mock candidate navigation from practice setup through generated session completion and summary |
 | 68 | New | AUTH-S08 | 756 | Fu Chen <fu@rangam.com> | Implement login-start route after contract is known | Blocked until Q-05/Q-06 identity handoff answers are known |
 | 69 | Closed | FND-T01 | 657 | Fu Chen <fu@rangam.com> | Verify local quality command names | Local bootstrap now lists current quality, DB, and seeded browser smoke commands from `package.json` |
@@ -468,8 +468,8 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 71 | Resolved | DATA-S03 | 690 | Fu Chen <fu@rangam.com> | Add draft/session repository boundaries | Audit confirmed candidate-owned draft/session persistence boundaries are implemented through repositories/services and covered by tests |
 | 72 | Closed | AUTH-T02 | 683 | Fu Chen <fu@rangam.com> | Add auth-denial logging without secrets | Candidate external-mode auth redirects log safe route, reason, actor type, and actor mode fields without logging secrets or query payloads |
 | 73 | Closed | FND-T03 | 666 | Fu Chen <fu@rangam.com> | Revisit threat model after auth and resume ingestion are implemented | Threat model now reflects shared host, auth modes, route boundaries, candidate ownership, resume ingestion, storage assumptions, AI risks, logging, CI, and the fact that candidate UI polish is still ahead |
-| 74 | Active | OPS-S13 | 767 | Fu Chen <fu@rangam.com> | Wire candidate pipeline in Azure project | Continue user-guided Azure setup: rerun pipeline, capture next failure or passing evidence, then decide branch policy/build validation wiring |
-| 75 | New | DRFT-S08 | 769 | Fu Chen <fu@rangam.com> | Build practice setup UI MVP | Future UI pass: turn the backend-backed setup/draft/intake capabilities into a polished candidate-facing practice setup flow |
+| 74 | Resolved | OPS-S13 | 767 | Fu Chen <fu@rangam.com> | Wire candidate pipeline in Azure project | Passing Fu-Lab pipeline evidence captured; branch policy/build validation can wait until reviewer policy is ready |
+| 75 | Resolved | DRFT-S08 | 769 | Fu Chen <fu@rangam.com> | Build practice setup UI MVP | Practice setup now saves role/JD/resume/intake, supports new or restored drafts, and renders the polished MVP setup UI |
 | 76 | New | SESS-S09 | 770 | Fu Chen <fu@rangam.com> | Build live practice session UI MVP | Future UI pass: turn candidate session actions and coaching services into a polished interview practice experience |
 | 77 | New | DASH-S06 | 771 | Fu Chen <fu@rangam.com> | Build dashboard UI MVP | Future UI pass: turn dashboard read models and next-action logic into a polished candidate dashboard |
 
