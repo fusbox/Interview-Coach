@@ -28,8 +28,13 @@ variables:
   CANDIDATE_AUTH_MODE: mock
   CANDIDATE_MOCK_EMAIL: candidate-dev-primary@talentarbor.local
   CANDIDATE_MOCK_DISPLAY_NAME: Dev Candidate Primary
+  DATABASE_URL: "postgresql://postgres:interviewcoach-local-smoke-password@127.0.0.1:5434/interviewcoach_smoke"
+  ENCRYPTION_SECRET: candidate-pipeline-placeholder-secret-32-chars
   GEMINI_API_KEY: candidate-pipeline-placeholder
+  NEXT_PUBLIC_BASE_URL: "http://127.0.0.1:3000"
   NEXT_TELEMETRY_DISABLED: "1"
+  SMTP_USERNAME: candidate-pipeline@example.invalid
+  SMTP_PASSWORD: candidate-pipeline-placeholder-password
 
 jobs:
   - job: candidate_integration

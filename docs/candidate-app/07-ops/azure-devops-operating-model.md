@@ -616,7 +616,15 @@ Minimum useful pipeline:
 6. Candidate Postgres smoke readiness
 7. Seeded candidate browser smoke for setup/session/summary
 
-The Fu-Lab rehearsal pipeline should use a non-secret placeholder `GEMINI_API_KEY` so `next build` can compile production AI routes without granting the mirror project a real provider credential. Production or staging pipelines should use a secured Azure variable or variable group once AI-provider calls are exercised outside deterministic smoke fixtures.
+The Fu-Lab rehearsal pipeline should use non-secret placeholder values so `next build` can compile production server routes without granting the mirror project real provider credentials. Current rehearsal placeholders:
+
+- `GEMINI_API_KEY`: satisfies AI route production import checks.
+- `SMTP_USERNAME` and `SMTP_PASSWORD`: satisfy email delivery production import checks.
+- `ENCRYPTION_SECRET`: satisfies server encryption import checks and must be at least 32 characters.
+- `NEXT_PUBLIC_BASE_URL`: gives production-origin helpers a deterministic local origin for CI.
+- `DATABASE_URL`: points DB smoke scripts and seeded browser smoke at the Azure service container.
+
+Production or staging pipelines should replace these with secured Azure variables or variable groups. Do not use the Fu-Lab placeholder values for a deployed environment or a smoke run that intentionally calls real AI or email providers.
 
 Later pipeline:
 

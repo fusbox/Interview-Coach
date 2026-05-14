@@ -387,7 +387,7 @@ Ground truth:
 | OPS-S10 | 646 | Story | Active | Himanshu Sagar <himanshusagar@rangam.com> | Publish company code wiki when access allows | `/docs/candidate-app` is published from company Azure project as code wiki |
 | OPS-S11 | 761 | Story | New | Himanshu Sagar <himanshusagar@rangam.com> | Add branch policy after reviewers are available | Candidate branch has agreed PR/build requirements |
 | OPS-S12 | 762 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate integration pipeline | Pipeline definition runs lint, typecheck, candidate tests, build, and candidate DB smoke readiness |
-| OPS-S13 | 767 | Story | Active | Fu Chen <fu@rangam.com> | Wire candidate pipeline in Azure project | Fu-Lab pipeline is created from `azure-pipelines.candidate.yml`; first run reached `next build` and exposed the build-time AI env contract |
+| OPS-S13 | 767 | Story | Active | Fu Chen <fu@rangam.com> | Wire candidate pipeline in Azure project | Fu-Lab pipeline is created from `azure-pipelines.candidate.yml`; first runs reached `next build` and exposed build-time AI, email, and runtime-env contracts |
 
 ## Execution Sequence
 
@@ -460,7 +460,7 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 63 | Resolved | QSO-S08 | 766 | Fu Chen <fu@rangam.com> | Add seeded setup-to-summary smoke readiness | `db:smoke-candidate-setup-summary` validates deterministic setup, in-session, completed-summary, and saved-feedback fixtures |
 | 64 | Active | QSO-F01 | 739 | Fu Chen <fu@rangam.com> | Smoke and regression testing | Seed-backed DB smoke path exists; next browser smoke can build on the deterministic candidate fixtures |
 | 65 | Resolved | OPS-S12 | 762 | Fu Chen <fu@rangam.com> | Add candidate integration pipeline | `azure-pipelines.candidate.yml` and `ci:candidate` scripts define lint, typecheck, candidate tests, build, and DB smoke readiness |
-| 66 | Active | OPS-S13 | 767 | Fu Chen <fu@rangam.com> | Wire candidate pipeline in Azure project | Fu-Lab pipeline created; first run reached production build and now has non-secret `GEMINI_API_KEY` placeholder plus Playwright Chromium install |
+| 66 | Active | OPS-S13 | 767 | Fu Chen <fu@rangam.com> | Wire candidate pipeline in Azure project | Fu-Lab pipeline created; production build now has non-secret placeholders for AI, SMTP, encryption, public origin, and smoke DB connection plus Playwright Chromium install |
 | 67 | Resolved | QSO-S09 | 768 | Fu Chen <fu@rangam.com> | Add seeded browser smoke for candidate setup to summary | `test:e2e:candidate-seeded` validates seeded mock candidate navigation from practice setup through generated session completion and summary |
 | 68 | New | AUTH-S08 | 756 | Fu Chen <fu@rangam.com> | Implement login-start route after contract is known | Blocked until Q-05/Q-06 identity handoff answers are known |
 | 69 | Closed | FND-T01 | 657 | Fu Chen <fu@rangam.com> | Verify local quality command names | Local bootstrap now lists current quality, DB, and seeded browser smoke commands from `package.json` |
