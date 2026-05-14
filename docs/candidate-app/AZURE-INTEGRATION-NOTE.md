@@ -31,7 +31,8 @@ Planning: Fu-Lab Azure Boards #643
 4. [Shared Host Routing Contract](./04-architecture/shared-host-routing-contract.md)
 5. [Candidate Login Redirect Contract](./02-requirements/candidate-login-redirect-contract.md)
 6. [Azure DevOps Operating Model](./07-ops/azure-devops-operating-model.md)
-7. [ADR-0006: Shared Host And Azure Branch Integration](./08-decisions/ADR-0006-shared-host-and-azure-branch-integration.md)
+7. [Candidate Integration PR Policy](./07-ops/candidate-integration-pr-policy.md)
+8. [ADR-0006: Shared Host And Azure Branch Integration](./08-decisions/ADR-0006-shared-host-and-azure-branch-integration.md)
 
 ## Source-Of-Truth Rule
 

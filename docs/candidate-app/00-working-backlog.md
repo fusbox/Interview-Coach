@@ -28,6 +28,7 @@ It is the repo-local source of truth for what needs to be built, why it matters,
 - [Candidate App Threat Model](06-security/threat-model.md)
 - [Data Retention Policy](06-security/data-retention-policy.md)
 - [Azure DevOps Operating Model](07-ops/azure-devops-operating-model.md)
+- [Candidate Integration PR Policy](07-ops/candidate-integration-pr-policy.md)
 - [Decision Records](08-decisions/README.md)
 - [Local Dev Bootstrap](09-dev/local-dev-bootstrap.md)
 - [Candidate Integration Work Pass Checklist](START-WORK-PASS.md)
@@ -378,7 +379,7 @@ Ground truth:
 | OPS-S02 | 650 | Story | Resolved | Fu Chen <fu@rangam.com> | Port candidate docs into company Azure branch | `docs/candidate-app` exists in `feature/candidate-app-integration` |
 | OPS-S03 | 651 | Story | Resolved | Fu Chen <fu@rangam.com> | Open candidate integration PR in company Azure repo | Draft PR `!593` targets `feature/postgres-integration` |
 | OPS-S04 | 647 | Story | Resolved | Fu Chen <fu@rangam.com> | Create candidate integration dashboard | Dashboard includes context and active/blocked query widgets |
-| OPS-S05 | 652 | Story | Active | Fu Chen <fu@rangam.com> | Define candidate integration PR policy | Target branch, draft convention, external planning link, and reviewer expectations are documented |
+| OPS-S05 | 652 | Story | Resolved | Fu Chen <fu@rangam.com> | Define candidate integration PR policy | [Candidate Integration PR Policy](07-ops/candidate-integration-pr-policy.md) documents target branch, draft convention, evidence bundle, external planning link, and reviewer expectations |
 | OPS-S06 | 654 | Story | Active | Himanshu Sagar <himanshusagar@rangam.com> | Track candidate docs review for PR `!593` | Review feedback is captured in PR comments or Fu-Lab Boards |
 | OPS-S07 | 653 | Story | Resolved | Fu Chen <fu@rangam.com> | Create candidate integration starter checklist | [START-WORK-PASS.md](START-WORK-PASS.md) exists and is linked from docs hub |
 | OPS-F02 | 758 | Feature | Active | Fu Chen <fu@rangam.com> | Azure Boards import and traceability pattern | Work item import files can create correctly linked Azure hierarchy |
@@ -400,7 +401,7 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 3 | Resolved | OPS-S02 | 650 | Fu Chen <fu@rangam.com> | Port candidate docs into company Azure branch | `docs/candidate-app` added and pushed |
 | 4 | Resolved | OPS-S03 | 651 | Fu Chen <fu@rangam.com> | Open candidate integration PR | Draft PR `!593` exists |
 | 5 | Resolved | OPS-S07 | 653 | Fu Chen <fu@rangam.com> | Add candidate integration starter checklist | Checklist added and pushed |
-| 6 | Active | OPS-S05 | 652 | Fu Chen <fu@rangam.com> | Define candidate integration PR policy | Policy captured in work item/PR notes |
+| 6 | Resolved | OPS-S05 | 652 | Fu Chen <fu@rangam.com> | Define candidate integration PR policy | Policy captured in [Candidate Integration PR Policy](07-ops/candidate-integration-pr-policy.md) |
 | 7 | Active | OPS-S06 | 654 | Himanshu Sagar <himanshusagar@rangam.com> | Track candidate docs review for PR `!593` | Feedback captured and follow-ups created |
 | 8 | Active | AUTH-S07 | 655 | Himanshu Sagar <himanshusagar@rangam.com> | Confirm TalentArbor login return parameter support | Integration team confirms parameter/state/fallback behavior |
 | 9 | Active | WEB-S07 | 670 | Himanshu Sagar <himanshusagar@rangam.com> | Confirm candidate CTA return behavior | Login return behavior is captured in docs and work item |
@@ -473,7 +474,7 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 76 | Resolved | SESS-S09 | 770 | Fu Chen <fu@rangam.com> | Build live practice session UI MVP | Candidate session route now reuses recruiter session workspace patterns with candidate-owned server actions and hidden engagement debug inspection |
 | 77 | Resolved | DASH-S06 | 771 | Fu Chen <fu@rangam.com> | Build dashboard UI MVP | Dashboard UI now renders the polished MVP over the existing read model, including next action, active practice, completed history, empty state, and coaching snippets |
 | 78 | Resolved | WEB-S08 | 673 | Fu Chen <fu@rangam.com> | Preserve recruiter/admin/QA route behavior | `/recruiter/dashboard` restored as the recruiter dashboard compatibility route; primary route smoke covers recruiter/admin/QA protection |
-| 79 | Active | OPS-S05 | 652 | Fu Chen <fu@rangam.com> | Define candidate integration PR policy | Future review pass: refresh PR/reviewer notes with implemented candidate UI MVP scope and current validation evidence |
+| 79 | Resolved | OPS-S05 | 652 | Fu Chen <fu@rangam.com> | Define candidate integration PR policy | Refreshed reviewer policy includes implemented candidate UI MVP scope, recruiter regression evidence, branch strategy, and current blockers |
 
 ## Open Questions
 

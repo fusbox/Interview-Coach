@@ -594,7 +594,9 @@ A code wiki is still useful later because docs remain versioned with the code br
 
 ## PR Policy
 
-For `feature/candidate-app-integration`, start with lightweight guardrails:
+For `feature/candidate-app-integration`, use [Candidate Integration PR Policy](candidate-integration-pr-policy.md) as the durable PR-review contract.
+
+Start with lightweight guardrails:
 
 - linked work item recommended or required once Boards are populated
 - at least one reviewer once there is a real reviewer available
@@ -650,15 +652,33 @@ Every meaningful PR should link:
 Suggested PR description fields:
 
 ```markdown
+## Status
+
+Draft PR for candidate integration review. Do not merge until reviewer ownership, route/auth boundaries, and deployment expectations are agreed.
+
 ## What Changed
 
 ## Why
 
 ## Linked Work Items
 
+Planning: Fu-Lab Azure Boards #643
+
 ## Linked Docs
 
 ## Verification
+
+## Recruiter Regression Review
+
+- Shared host route ownership checked:
+- Auth/cookie boundaries checked:
+- Recruiter/admin/QA route risk:
+- Invite-token `/s/[token]` risk:
+- Shared API/data risk:
+- Verification run:
+- Residual risk:
+
+## Open Questions / Blockers
 
 ## Risks / Follow-Up
 ```

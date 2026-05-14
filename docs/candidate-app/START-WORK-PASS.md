@@ -17,6 +17,7 @@ Use this checklist at the start and end of each candidate integration pass.
    - [Working Backlog](./00-working-backlog.md)
    - [Shared Host Routing Contract](./04-architecture/shared-host-routing-contract.md)
    - [Candidate Login Redirect Contract](./02-requirements/candidate-login-redirect-contract.md)
+   - [Candidate Integration PR Policy](./07-ops/candidate-integration-pr-policy.md)
 
 3. Confirm the active Fu-Lab Azure Boards item under planning Feature `643`.
 
@@ -39,6 +40,10 @@ Use this checklist at the start and end of each candidate integration pass.
 Include this in the PR description:
 
 ```markdown
+## Status
+
+Draft PR for candidate integration review. Do not merge until reviewer ownership, route/auth boundaries, and deployment expectations are agreed.
+
 ## What Changed
 
 ## Why
@@ -49,6 +54,18 @@ Planning: [Fu-Lab Azure Boards 643](PASTE-WORK-ITEM-URL)
 ## Linked Docs
 
 ## Verification
+
+## Recruiter Regression Review
+
+- Shared host route ownership checked:
+- Auth/cookie boundaries checked:
+- Recruiter/admin/QA route risk:
+- Invite-token `/s/[token]` risk:
+- Shared API/data risk:
+- Verification run:
+- Residual risk:
+
+## Open Questions / Blockers
 
 ## Risks / Follow-Up
 ```

@@ -47,11 +47,12 @@ This folder is organized to keep product requirements, UX/design rules, and arch
 18. [Azure DevOps Operating Model](07-ops/azure-devops-operating-model.md)
 19. [Candidate Observability Plan](07-ops/candidate-observability-plan.md)
 20. [Candidate Incident Runbook](07-ops/candidate-incident-runbook.md)
+21. [Candidate Integration PR Policy](07-ops/candidate-integration-pr-policy.md)
 
 ### Decisions and developer setup
 
-21. [Decision Records](08-decisions/README.md)
-22. [Local Dev Bootstrap](09-dev/local-dev-bootstrap.md)
+22. [Decision Records](08-decisions/README.md)
+23. [Local Dev Bootstrap](09-dev/local-dev-bootstrap.md)
 
 ## Document Rules
 
