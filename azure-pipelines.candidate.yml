@@ -28,6 +28,7 @@ variables:
   CANDIDATE_AUTH_MODE: mock
   CANDIDATE_MOCK_EMAIL: candidate-dev-primary@talentarbor.local
   CANDIDATE_MOCK_DISPLAY_NAME: Dev Candidate Primary
+  GEMINI_API_KEY: candidate-pipeline-placeholder
   NEXT_TELEMETRY_DISABLED: "1"
 
 jobs:
@@ -43,6 +44,9 @@ jobs:
 
       - script: npm ci
         displayName: Install dependencies
+
+      - script: npx playwright install --with-deps chromium
+        displayName: Install Playwright Chromium
 
       - script: npm run lint
         displayName: Lint
