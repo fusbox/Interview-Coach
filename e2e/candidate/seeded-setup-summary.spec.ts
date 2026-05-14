@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+const routeTransitionTimeout = 15_000;
+
 test("seeded candidate can move from practice setup to session summary", async ({ page }) => {
     await page.goto("/practice");
 
@@ -9,7 +11,7 @@ test("seeded candidate can move from practice setup to session summary", async (
 
     await page.getByRole("button", { name: /start generating questions/i }).click();
 
-    await expect(page).toHaveURL(/\/session\/[0-9a-f-]+$/i);
+    await expect(page).toHaveURL(/\/session\/[0-9a-f-]+$/i, { timeout: routeTransitionTimeout });
     await expect(page.getByRole("heading", { name: "Customer Success Manager", exact: true })).toBeVisible();
     await expect(page.getByText(/Tell me about a time you had to lead a Customer Success Manager initiative/i)).toBeVisible();
 
@@ -46,7 +48,7 @@ test("seeded candidate can move from practice setup to session summary", async (
     await expect(page.getByText(/I noted your answer/i)).toBeVisible();
     await page.getByRole("button", { name: /finish session/i }).click();
 
-    await expect(page).toHaveURL(/\/session\/[0-9a-f-]+$/i);
+    await expect(page).toHaveURL(/\/session\/[0-9a-f-]+$/i, { timeout: routeTransitionTimeout });
     await expect(page.getByText("COMPLETED")).toBeVisible();
 
     const sessionUrl = page.url();

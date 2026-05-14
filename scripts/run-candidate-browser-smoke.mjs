@@ -24,6 +24,7 @@ const server = spawn(
     {
         stdio: "inherit",
         env,
+        detached: process.platform !== "win32",
     },
 );
 
@@ -32,7 +33,7 @@ try {
     const result = runPlaywright(env);
     process.exitCode = result.status ?? 1;
 } finally {
-    stopServer(server.pid);
+    await stopServer(server);
     process.exit(process.exitCode ?? 0);
 }
 
@@ -75,7 +76,8 @@ async function waitForServer(url, childProcess) {
     throw lastError ?? new Error(`Next dev server did not become ready at ${url}.`);
 }
 
-function stopServer(pid) {
+async function stopServer(childProcess) {
+    const pid = childProcess.pid;
     if (!pid) {
         return;
     }
@@ -94,4 +96,40 @@ function stopServer(pid) {
             // The process may already be gone.
         }
     }
+
+    if (await waitForExit(childProcess, 5000)) {
+        return;
+    }
+
+    try {
+        process.kill(-pid, "SIGKILL");
+    } catch {
+        try {
+            process.kill(pid, "SIGKILL");
+        } catch {
+            // The process may already be gone.
+        }
+    }
+
+    await waitForExit(childProcess, 2000);
+}
+
+function waitForExit(childProcess, timeoutMs) {
+    if (childProcess.exitCode !== null || childProcess.signalCode !== null) {
+        return Promise.resolve(true);
+    }
+
+    return new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+            childProcess.off("exit", onExit);
+            resolve(false);
+        }, timeoutMs);
+
+        function onExit() {
+            clearTimeout(timeout);
+            resolve(true);
+        }
+
+        childProcess.once("exit", onExit);
+    });
 }
