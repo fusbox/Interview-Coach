@@ -284,6 +284,13 @@ Phase 1 dashboard scope:
 - ability to repeat a completed session
 - summary snippets for completed sessions
 
+Current implementation status:
+
+- `/dashboard` uses the candidate-owned dashboard loader and renders a polished MVP over the existing read model.
+- The UI emphasizes the next practice step first, then separates active practice from completed history.
+- Completed history can surface summary or coaching snippets without introducing recruiter-facing readiness semantics.
+- Empty state routes candidates into `/practice` with the same lightweight setup-first direction used across the candidate experience.
+
 Phase 2 dashboard scope:
 
 - practice history by role

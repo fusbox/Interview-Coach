@@ -321,7 +321,7 @@ Ground truth:
 | DASH-S04 | 735 | Story | Resolved | Fu Chen <fu@rangam.com> | Add dashboard tests | Query and route tests cover empty, active, completed, and missing-auth states |
 | DASH-F02 | 736 | Feature | Resolved | Fu Chen <fu@rangam.com> | Progress and coaching themes | Candidate sees useful patterns without noisy analytics |
 | DASH-S05 | 737 | Story | Resolved | Fu Chen <fu@rangam.com> | Surface next best practice recommendation | Recommendation is grounded in candidate-owned history |
-| DASH-S06 | 771 | Story | New | Fu Chen <fu@rangam.com> | Build dashboard UI MVP | Candidate can scan active drafts, completed summaries, next actions, and resume/review/repeat affordances in a polished dashboard |
+| DASH-S06 | 771 | Story | Resolved | Fu Chen <fu@rangam.com> | Build dashboard UI MVP | Dashboard presents next practice step, active practice, completed history, coaching snippets, empty state, and resume/review/repeat affordances in the candidate design system |
 
 ### EPIC-09 Quality, Security, Observability, And Release Readiness
 
@@ -471,7 +471,9 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 74 | Resolved | OPS-S13 | 767 | Fu Chen <fu@rangam.com> | Wire candidate pipeline in Azure project | Passing Fu-Lab pipeline evidence captured; branch policy/build validation can wait until reviewer policy is ready |
 | 75 | Resolved | DRFT-S08 | 769 | Fu Chen <fu@rangam.com> | Build practice setup UI MVP | Practice setup now saves role/JD/resume/intake, supports new or restored drafts, and renders the polished MVP setup UI |
 | 76 | Resolved | SESS-S09 | 770 | Fu Chen <fu@rangam.com> | Build live practice session UI MVP | Candidate session route now reuses recruiter session workspace patterns with candidate-owned server actions and hidden engagement debug inspection |
-| 77 | New | DASH-S06 | 771 | Fu Chen <fu@rangam.com> | Build dashboard UI MVP | Future UI pass: turn dashboard read models and next-action logic into a polished candidate dashboard |
+| 77 | Resolved | DASH-S06 | 771 | Fu Chen <fu@rangam.com> | Build dashboard UI MVP | Dashboard UI now renders the polished MVP over the existing read model, including next action, active practice, completed history, empty state, and coaching snippets |
+| 78 | Active | WEB-S08 | 673 | Fu Chen <fu@rangam.com> | Preserve recruiter/admin/QA route behavior | Future regression pass: re-run shared-host route checks now that candidate UI MVP surfaces are in place |
+| 79 | Active | OPS-S05 | 652 | Fu Chen <fu@rangam.com> | Define candidate integration PR policy | Future review pass: refresh PR/reviewer notes with implemented candidate UI MVP scope and current validation evidence |
 
 ## Open Questions
 

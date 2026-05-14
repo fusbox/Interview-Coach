@@ -51,6 +51,9 @@ describe("CandidateDashboardPage", () => {
         render(<CandidateDashboardPage dashboard={baseModel} />);
 
         expect(screen.getByRole("heading", { name: /welcome back, candidate one/i })).toBeInTheDocument();
+        expect(screen.getByRole("region", { name: /next practice step/i })).toHaveTextContent("Resume QA Analyst");
+        expect(screen.getByRole("region", { name: /continue where you left off/i })).toHaveTextContent("QA Analyst");
+        expect(screen.getByRole("region", { name: /practice history/i })).toHaveTextContent("Support Lead");
         expect(screen.getByText("QA Analyst")).toBeInTheDocument();
         expect(screen.getAllByRole("link", { name: /resume practice/i })[0]).toHaveAttribute("href", "/session/session-1");
         expect(screen.getByText("Support Lead")).toBeInTheDocument();
@@ -79,8 +82,24 @@ describe("CandidateDashboardPage", () => {
             },
         }} />);
 
-        expect(screen.getByText(/no practice yet/i)).toBeInTheDocument();
+        expect(screen.getByRole("region", { name: /empty dashboard/i })).toHaveTextContent("Start simply");
         expect(screen.getByRole("link", { name: /start a practice session/i })).toHaveAttribute("href", "/practice");
+    });
+
+    it("surfaces completed-session coaching snippets in the history card", () => {
+        render(<CandidateDashboardPage dashboard={{
+            ...baseModel,
+            completedItems: [
+                {
+                    ...baseModel.completedItems[0],
+                    coachingSnippet: "Lead with the measurable result before the process detail.",
+                },
+            ],
+        }} />);
+
+        expect(screen.getByRole("region", { name: /practice history/i })).toHaveTextContent(
+            "Lead with the measurable result before the process detail.",
+        );
     });
 
     it("meets the candidate primary-page accessibility baseline", () => {

@@ -32,6 +32,8 @@ The practice setup component/action tests cover the MVP setup contract: edited s
 
 The candidate session component tests cover the recruiter-style session workspace adapted for authenticated candidates: progress header, prompt shell, typed answer submission, saved-answer coaching, retry/continue controls, pause/resume/completed states, and hidden engagement debug inspector access with available AI prompt context.
 
+The candidate dashboard component tests cover the MVP dashboard scan pattern: next practice step, active practice region, completed history region, coaching snippets, empty state, candidate-owned resume/review/repeat links, and the primary-page accessibility baseline.
+
 ## Test Layers
 
 ### Unit Tests
