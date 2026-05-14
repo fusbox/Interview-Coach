@@ -21,10 +21,15 @@ vi.mock("@/lib/server/candidate", () => ({
 vi.mock("@/features/candidate-session/actions", () => ({
     startCandidateSessionAction: vi.fn(),
     advanceCandidateSessionAction: vi.fn(),
+    analyzeCandidateAnswerAction: vi.fn(),
     pauseCandidateSessionAction: vi.fn(),
     resumeCandidateSessionAction: vi.fn(),
     retryCandidateQuestionAction: vi.fn(),
     submitCandidateAnswerAction: vi.fn(),
+}));
+
+vi.mock("@/lib/feature-flags", () => ({
+    showDemoTools: () => false,
 }));
 
 describe("/session/[sessionId] page", () => {
@@ -86,7 +91,7 @@ describe("/session/[sessionId] page", () => {
         expect(getBasicAccessibilityViolations(container)).toEqual([]);
     });
 
-    it("renders a next-question action for an in-progress session", async () => {
+    it("renders the recruiter-style answer workspace for an in-progress session", async () => {
         loadCandidateSessionForCurrentCandidateMock.mockResolvedValue({
             practiceDraftId: "draft-1",
             session: {
@@ -106,10 +111,10 @@ describe("/session/[sessionId] page", () => {
 
         render(await CandidateSessionRoute({ params: Promise.resolve({ sessionId: "session-1" }) }));
 
-        expect(screen.getByRole("button", { name: /next question/i })).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: /pause/i })).toBeInTheDocument();
-        expect(screen.getByLabelText(/your answer/i)).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: /save answer/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /pause session/i })).toBeInTheDocument();
+        expect(screen.getByRole("textbox", { name: /type your answer/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /submit answer/i })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /continue to next question/i })).not.toBeInTheDocument();
     });
 
     it("renders saved answer state and retry action for a submitted answer", async () => {
@@ -117,7 +122,7 @@ describe("/session/[sessionId] page", () => {
             practiceDraftId: "draft-1",
             session: {
                 id: "session-1",
-                status: "AWAITING_EVALUATION",
+                status: "REVIEWING",
                 role: "QA analyst",
                 currentQuestionIndex: 0,
                 questions: [
@@ -140,7 +145,7 @@ describe("/session/[sessionId] page", () => {
 
         expect(screen.getByText("I improved release quality with a checklist.")).toBeInTheDocument();
         expect(screen.getByRole("button", { name: /retry question/i })).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: /next question/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /continue to next question/i })).toBeInTheDocument();
     });
 
     it("renders a resume action for a paused session", async () => {
@@ -162,7 +167,7 @@ describe("/session/[sessionId] page", () => {
 
         render(await CandidateSessionRoute({ params: Promise.resolve({ sessionId: "session-1" }) }));
 
-        expect(screen.getByRole("button", { name: /resume/i })).toBeInTheDocument();
+        expect(screen.getAllByRole("button", { name: /resume/i }).length).toBeGreaterThan(0);
     });
 
     it("returns not found when the session is not owned by the current candidate", async () => {

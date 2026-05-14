@@ -265,7 +265,7 @@ Ground truth:
 | SESS-S06 | 717 | Story | Resolved | Fu Chen <fu@rangam.com> | Implement candidate summary route | Completed session opens candidate-owned summary/history surface |
 | SESS-S07 | 764 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate answer and retry mutation surface | Candidate-owned answer submit and retry persist through server actions and Postgres session storage without invite-token dependency |
 | SESS-S08 | 765 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate answer coaching action | Candidate-owned submitted answers can generate and display coaching through a candidate ownership boundary |
-| SESS-S09 | 770 | Story | New | Fu Chen <fu@rangam.com> | Build live practice session UI MVP | Candidate can answer, request coaching, retry, pause, resume, and complete a session through an accessible polished flow |
+| SESS-S09 | 770 | Story | Resolved | Fu Chen <fu@rangam.com> | Build live practice session UI MVP | `/session/[sessionId]` reuses recruiter session workspace patterns for prompt, progress, answer, coaching, retry, pause/resume, completion, and hidden engagement debug inspection |
 
 ### EPIC-07 Resume Ingestion And Candidate Context
 
@@ -470,7 +470,7 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 73 | Closed | FND-T03 | 666 | Fu Chen <fu@rangam.com> | Revisit threat model after auth and resume ingestion are implemented | Threat model now reflects shared host, auth modes, route boundaries, candidate ownership, resume ingestion, storage assumptions, AI risks, logging, CI, and the fact that candidate UI polish is still ahead |
 | 74 | Resolved | OPS-S13 | 767 | Fu Chen <fu@rangam.com> | Wire candidate pipeline in Azure project | Passing Fu-Lab pipeline evidence captured; branch policy/build validation can wait until reviewer policy is ready |
 | 75 | Resolved | DRFT-S08 | 769 | Fu Chen <fu@rangam.com> | Build practice setup UI MVP | Practice setup now saves role/JD/resume/intake, supports new or restored drafts, and renders the polished MVP setup UI |
-| 76 | New | SESS-S09 | 770 | Fu Chen <fu@rangam.com> | Build live practice session UI MVP | Future UI pass: turn candidate session actions and coaching services into a polished interview practice experience |
+| 76 | Resolved | SESS-S09 | 770 | Fu Chen <fu@rangam.com> | Build live practice session UI MVP | Candidate session route now reuses recruiter session workspace patterns with candidate-owned server actions and hidden engagement debug inspection |
 | 77 | New | DASH-S06 | 771 | Fu Chen <fu@rangam.com> | Build dashboard UI MVP | Future UI pass: turn dashboard read models and next-action logic into a polished candidate dashboard |
 
 ## Open Questions

@@ -30,6 +30,8 @@ Candidate integration now has Vitest coverage for candidate route, auth, persist
 
 The practice setup component/action tests cover the MVP setup contract: edited setup values are saved before generation, structured intake responses are submitted with the draft, and a new draft can be created when no editable draft was restored.
 
+The candidate session component tests cover the recruiter-style session workspace adapted for authenticated candidates: progress header, prompt shell, typed answer submission, saved-answer coaching, retry/continue controls, pause/resume/completed states, and hidden engagement debug inspector access with available AI prompt context.
+
 ## Test Layers
 
 ### Unit Tests

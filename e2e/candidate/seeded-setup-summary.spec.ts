@@ -16,40 +16,40 @@ test("seeded candidate can move from practice setup to session summary", async (
     await expect(page.getByText(/Tell me about a time you had to lead a Customer Success Manager initiative/i)).toBeVisible();
 
     await page.getByRole("button", { name: /^start practice$/i }).click();
-    await expect(page.getByText("IN_SESSION")).toBeVisible();
+    await expect(page.getByText("In Session")).toBeVisible();
 
-    await page.getByLabel(/your answer/i).fill(
+    await page.getByLabel(/type your answer/i).fill(
         "I mapped customer onboarding blockers, aligned success and support on a shared playbook, and improved renewal readiness for strategic accounts.",
     );
-    await page.getByRole("button", { name: /save answer/i }).click();
+    await page.getByRole("button", { name: /submit answer/i }).click();
 
     await expect(page.getByText(/I mapped customer onboarding blockers/i)).toBeVisible();
     await page.getByRole("button", { name: /get coaching/i }).click();
     await expect(page.getByText(/I noted your answer/i)).toBeVisible();
-    await page.getByRole("button", { name: /next question/i }).click();
+    await page.getByRole("button", { name: /continue to next question/i }).click();
 
     await expect(page.getByText(/How do you prioritize conflicting stakeholder requirements/i)).toBeVisible();
-    await page.getByLabel(/your answer/i).fill(
+    await page.getByLabel(/type your answer/i).fill(
         "I separate urgency from impact, name the tradeoff, and make the decision criteria visible before recommending a path.",
     );
-    await page.getByRole("button", { name: /save answer/i }).click();
+    await page.getByRole("button", { name: /submit answer/i }).click();
     await expect(page.getByText(/I separate urgency from impact/i)).toBeVisible();
     await page.getByRole("button", { name: /get coaching/i }).click();
     await expect(page.getByText(/I noted your answer/i)).toBeVisible();
-    await page.getByRole("button", { name: /next question/i }).click();
+    await page.getByRole("button", { name: /continue to next question/i }).click();
 
     await expect(page.getByText(/Describe your approach to product discovery/i)).toBeVisible();
-    await page.getByLabel(/your answer/i).fill(
+    await page.getByLabel(/type your answer/i).fill(
         "I start with the customer problem, validate the workflow with users, and then turn the evidence into a small testable plan.",
     );
-    await page.getByRole("button", { name: /save answer/i }).click();
+    await page.getByRole("button", { name: /submit answer/i }).click();
     await expect(page.getByText(/I start with the customer problem/i)).toBeVisible();
     await page.getByRole("button", { name: /get coaching/i }).click();
     await expect(page.getByText(/I noted your answer/i)).toBeVisible();
     await page.getByRole("button", { name: /finish session/i }).click();
 
     await expect(page).toHaveURL(/\/session\/[0-9a-f-]+$/i, { timeout: routeTransitionTimeout });
-    await expect(page.getByText("COMPLETED")).toBeVisible();
+    await expect(page.getByText("Session complete")).toBeVisible();
 
     const sessionUrl = page.url();
     const sessionId = sessionUrl.split("/session/")[1]?.split(/[?#]/)[0];
