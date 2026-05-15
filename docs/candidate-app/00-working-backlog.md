@@ -104,7 +104,7 @@ Ground truth:
 | FND-T04 | 642 | Task | Closed | Fu Chen <fu@rangam.com> | Establish working docs and ground-truth docs | Foundational docs exist and are hyperlinked |
 | FND-S04 | 659 | Story | Active | Fu Chen <fu@rangam.com> | Add ADRs and environment contract | [Decision Records](08-decisions/README.md) and `.env.example` exist |
 | FND-F02 | 660 | Feature | Active | Fu Chen <fu@rangam.com> | Local developer bootstrap | A developer can run the app, DB setup, seed data, and quality checks locally |
-| FND-S05 | 661 | Story | Active | Fu Chen <fu@rangam.com> | Document local bootstrap contract | [Local Dev Bootstrap](09-dev/local-dev-bootstrap.md) defines current and target commands |
+| FND-S05 | 661 | Story | Resolved | Fu Chen <fu@rangam.com> | Document local bootstrap contract | [Local Dev Bootstrap](09-dev/local-dev-bootstrap.md) defines current and target commands |
 | FND-T02 | 662 | Task | Closed | Fu Chen <fu@rangam.com> | Implement DB setup/migrate/seed commands after DB layer lands | `db:setup`, `db:migrate`, `db:seed`, and candidate readiness commands are available and documented |
 | FND-F03 | 663 | Feature | Active | Fu Chen <fu@rangam.com> | Policy baselines | Retention, accessibility, and threat-model expectations are usable during implementation |
 | FND-S06 | 664 | Story | Active | Fu Chen <fu@rangam.com> | Add data retention policy | [Data Retention Policy](06-security/data-retention-policy.md) states processed-resume retention default |
@@ -480,7 +480,7 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 
 | ID | Status | Question | Decision Needed By |
 | --- | --- | --- | --- |
-| Q-01 | Answered | Use both password-backed local dev auth and explicit mock candidate mode. | Apply during AUTH-S03 |
+| Q-01 | Answered | Use seeded `dev` mode for default local browser review, with password-backed local dev auth and explicit mock candidate mode available for targeted scenarios. | Apply during AUTH-S03 |
 | Q-02 | Answered | Multiple active/named drafts are a legitimate use case. | Apply during DRFT-S03 and DRFT-S07 |
 | Q-03 | Direction Set | Do not retain original uploaded resume files after normalization/redaction by default; persist processed resume artifact instead. | Revisit before RES-S03 |
 | Q-04 | Answered | `interviewcoach.talentarbor.com` is the shared host; `/` is public page, `/recruiter` is recruiter create, candidate routes are top-level siblings. | Apply during WEB-S02, WEB-S03, and AUTH-S06 |

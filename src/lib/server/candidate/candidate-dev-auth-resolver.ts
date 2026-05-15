@@ -4,6 +4,8 @@ import { toCandidateProfileResolutionInput, type CandidateAuthHandoff } from "./
 import { getCandidateRuntimeConfig } from "./candidate-runtime-config";
 
 const LOCAL_ISSUER = "interview-coach-local";
+const SEEDED_DEV_EMAIL = "candidate-dev-primary@talentarbor.local";
+const SEEDED_DEV_DISPLAY_NAME = "Dev Candidate Primary";
 const DEFAULT_MOCK_EMAIL = "dev-candidate@example.invalid";
 const DEFAULT_MOCK_DISPLAY_NAME = "Dev Candidate";
 
@@ -18,7 +20,22 @@ export async function resolveLocalCandidateAuthHandoff(): Promise<CandidateAuthH
         return resolveMockCandidateAuthHandoff();
     }
 
+    if (authMode === "dev") {
+        return resolveSeededDevCandidateAuthHandoff();
+    }
+
     return resolvePasswordCandidateAuthHandoff();
+}
+
+function resolveSeededDevCandidateAuthHandoff(): CandidateAuthHandoff {
+    return toCandidateProfileResolutionInput({
+        provider: "password",
+        issuer: LOCAL_ISSUER,
+        subject: SEEDED_DEV_EMAIL,
+        email: SEEDED_DEV_EMAIL,
+        displayName: SEEDED_DEV_DISPLAY_NAME,
+        workspace: "local_dev",
+    });
 }
 
 function resolveMockCandidateAuthHandoff(): CandidateAuthHandoff {

@@ -101,6 +101,7 @@ Adapters should resolve a provider-neutral `CandidateAuthHandoff` with `provider
 
 Local development can now produce the same handoff shape through:
 
+- `CANDIDATE_AUTH_MODE=dev` for the seeded primary local candidate
 - `CANDIDATE_AUTH_MODE=password` with `CANDIDATE_DEV_EMAIL`, optional `CANDIDATE_DEV_SUBJECT`, and optional `CANDIDATE_DEV_DISPLAY_NAME`
 - `CANDIDATE_AUTH_MODE=mock` with optional `CANDIDATE_MOCK_EMAIL` and `CANDIDATE_MOCK_DISPLAY_NAME`
 
@@ -111,7 +112,7 @@ Current route protection:
 - [Shared auth middleware](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/auth/middleware.ts)
 - [Shared auth middleware tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/auth/middleware.test.ts)
 
-The middleware keeps recruiter/admin/QA auth separate from candidate routes. Candidate protected routes redirect through `/auth/talentarbor/start` when `CANDIDATE_AUTH_MODE=external`, while explicit local `mock` or `password` modes are allowed through for development.
+The middleware keeps recruiter/admin/QA auth separate from candidate routes. Candidate protected routes redirect through `/auth/talentarbor/start` when `CANDIDATE_AUTH_MODE=external`, while explicit local `dev`, `mock`, or `password` modes are allowed through for development.
 
 ## Acceptance Criteria
 

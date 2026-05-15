@@ -179,15 +179,15 @@ Candidate mutation boundaries live in [Candidate mutation boundary](/c:/tmp/Inte
 - answer submit returns success when the question already has a submitted answer
 - question retry clears answer analysis state and no-ops when no answer exists
 
-The auth adapter contract normalizes trusted identity handoffs from TalentArbor, RangamWorks, local password auth, or mock auth before repository resolution.
+The auth adapter contract normalizes trusted identity handoffs from TalentArbor, RangamWorks, seeded local dev auth, local password auth, or mock auth before repository resolution.
 
-The dev auth resolver produces local `password` or `dev_mock` handoffs for candidate route work before the external identity handoff is finalized.
+The dev auth resolver produces local seeded, `password`, or `dev_mock` handoffs for candidate route work before the external identity handoff is finalized.
 
 Candidate runtime config currently enforces:
 
 - `CANDIDATE_DATA_BACKEND=postgres` only
-- `CANDIDATE_AUTH_MODE=external`, `password`, or `mock`
-- `password` and `mock` auth modes are local/test only and fail closed in production
+- `CANDIDATE_AUTH_MODE=external`, `dev`, `password`, or `mock`
+- `dev`, `password`, and `mock` auth modes are local/test only and fail closed in production
 
 ## Migration Rule
 
@@ -220,6 +220,7 @@ Candidate-specific selectors:
 
 - `CANDIDATE_DATA_BACKEND=postgres`
 - `CANDIDATE_AUTH_MODE=external`
+- `CANDIDATE_AUTH_MODE=dev` for local seeded-candidate browser review
 - `CANDIDATE_AUTH_MODE=password` for local password-backed dev auth
 - `CANDIDATE_AUTH_MODE=mock` for explicit local/test mock candidate mode
 - `CANDIDATE_DEV_EMAIL`, `CANDIDATE_DEV_SUBJECT`, and `CANDIDATE_DEV_DISPLAY_NAME` for local password-mode identity simulation

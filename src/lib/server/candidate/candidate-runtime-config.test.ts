@@ -19,19 +19,22 @@ describe("candidate runtime config", () => {
         });
     });
 
-    it("allows password and mock auth outside production", async () => {
+    it("allows dev, password, and mock auth outside production", async () => {
         process.env = {
             NODE_ENV: "development",
-            CANDIDATE_AUTH_MODE: "password",
+            CANDIDATE_AUTH_MODE: "dev",
             CANDIDATE_DATA_BACKEND: "postgres",
         };
 
         const { getCandidateRuntimeConfig } = await import("./candidate-runtime-config");
 
         expect(getCandidateRuntimeConfig()).toEqual({
-            authMode: "password",
+            authMode: "dev",
             dataBackend: "postgres",
         });
+
+        process.env.CANDIDATE_AUTH_MODE = "password";
+        expect(getCandidateRuntimeConfig().authMode).toBe("password");
 
         process.env.CANDIDATE_AUTH_MODE = "mock";
         expect(getCandidateRuntimeConfig().authMode).toBe("mock");
@@ -53,18 +56,21 @@ describe("candidate runtime config", () => {
         const { getCandidateRuntimeConfig } = await import("./candidate-runtime-config");
 
         expect(() => getCandidateRuntimeConfig()).toThrow(
-            'Unsupported CANDIDATE_AUTH_MODE value "magic". Expected "external", "password", or "mock".'
+            'Unsupported CANDIDATE_AUTH_MODE value "magic". Expected "external", "dev", "password", or "mock".'
         );
     });
 
     it("rejects local-only auth modes in production", async () => {
         process.env = {
             NODE_ENV: "production",
-            CANDIDATE_AUTH_MODE: "mock",
+            CANDIDATE_AUTH_MODE: "dev",
         };
 
         const { getCandidateRuntimeConfig } = await import("./candidate-runtime-config");
 
+        expect(() => getCandidateRuntimeConfig()).toThrow("CANDIDATE_AUTH_MODE=dev is not allowed in production.");
+
+        process.env.CANDIDATE_AUTH_MODE = "mock";
         expect(() => getCandidateRuntimeConfig()).toThrow("CANDIDATE_AUTH_MODE=mock is not allowed in production.");
 
         process.env.CANDIDATE_AUTH_MODE = "password";

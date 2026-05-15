@@ -59,11 +59,7 @@ Use the deeper docs only when a specific route, auth, data, security, or product
    ```text
    DATABASE_URL=postgresql://postgres:interviewcoach-local-smoke-password@127.0.0.1:5434/interviewcoach_smoke
    CANDIDATE_DATA_BACKEND=postgres
-   CANDIDATE_AUTH_MODE=password
-   CANDIDATE_DEV_EMAIL=candidate-dev-primary@talentarbor.local
-   CANDIDATE_DEV_ISSUER=interview-coach-local
-   CANDIDATE_DEV_SUBJECT=candidate-dev-primary@talentarbor.local
-   CANDIDATE_DEV_DISPLAY_NAME=Dev Candidate Primary
+   CANDIDATE_AUTH_MODE=dev
    NEXT_PUBLIC_BASE_URL=http://127.0.0.1:3000
    NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000
    ENCRYPTION_SECRET=local-review-placeholder-secret-32-chars
@@ -81,7 +77,7 @@ Use the deeper docs only when a specific route, auth, data, security, or product
 4. Start the app:
 
    ```powershell
-   npm run dev
+   npm run dev:candidate
    ```
 
 5. Open:
@@ -95,12 +91,10 @@ Use the deeper docs only when a specific route, auth, data, security, or product
 For local candidate validation, use the seeded candidate identity:
 
 ```text
-CANDIDATE_AUTH_MODE=password
-CANDIDATE_DEV_EMAIL=candidate-dev-primary@talentarbor.local
-CANDIDATE_DEV_ISSUER=interview-coach-local
-CANDIDATE_DEV_SUBJECT=candidate-dev-primary@talentarbor.local
-CANDIDATE_DEV_DISPLAY_NAME=Dev Candidate Primary
+CANDIDATE_AUTH_MODE=dev
 ```
+
+`dev` mode resolves the primary seeded candidate automatically and bypasses the external TalentArbor login route for local browser review. Use `password` mode only when you need to override the local candidate identity with explicit `CANDIDATE_DEV_*` values.
 
 The smoke setup uses the disposable local Postgres configuration. The placeholder values above are for local compile and smoke validation only. Do not use Fu-Lab mirror pipeline placeholder secrets or local placeholders as production or staging values.
 
@@ -167,7 +161,7 @@ Check:
 - Both routes redirect through `/auth/talentarbor/start`.
 - Unsafe external redirect targets are not accepted.
 
-For local authenticated candidate validation, use password or mock candidate mode from the environment notes, then check:
+For local authenticated candidate validation, use `dev` candidate mode from the environment notes, then check:
 
 ```text
 http://localhost:3000/practice

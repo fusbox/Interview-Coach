@@ -101,8 +101,8 @@ describe("updateSession app-auth middleware", () => {
         ["/dashboard"],
         ["/session/session_123"],
         ["/summary/session_123"],
-    ])("allows candidate protected route %s in explicit local mock mode", (path) => {
-        process.env.CANDIDATE_AUTH_MODE = "mock";
+    ])("allows candidate protected route %s in explicit local dev mode", (path) => {
+        process.env.CANDIDATE_AUTH_MODE = "dev";
 
         const response = updateSession(makeRequest(path));
 

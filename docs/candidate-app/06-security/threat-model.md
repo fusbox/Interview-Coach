@@ -30,7 +30,7 @@ Out of scope for this pass:
 
 Assumptions that materially affect risk:
 
-- Production candidate auth mode is `external`; `password` and `mock` are local/test conveniences only.
+- Production candidate auth mode is `external`; `dev`, `password`, and `mock` are local/test conveniences only.
 - `interviewcoach.talentarbor.com` remains one deployable Next app rather than independently deployed candidate/recruiter apps behind a proxy.
 - Candidate data is sensitive PII and interview-preparation content, but final legal/compliance retention requirements are not yet confirmed.
 - Resume upload implementation currently models private storage paths and extraction state; final blob storage and scanning controls still need platform decisions.
@@ -49,7 +49,7 @@ Open questions:
 
 - Shared Next.js App Router application serving public, candidate, recruiter, admin, QA, and invite-token routes.
 - Shared middleware that separates candidate protected route handling from recruiter/admin/QA app auth.
-- Candidate auth adapters that normalize external, password-backed dev, and mock identities into provider-neutral candidate profile resolution input.
+- Candidate auth adapters that normalize external, seeded local dev, password-backed dev, and mock identities into provider-neutral candidate profile resolution input.
 - Postgres repositories for candidate profiles, identities, practice drafts, sessions, dashboard read models, and resume context.
 - Resume normalization and extraction services that turn paste/upload inputs into normalized processed text or safe failure codes.
 - AI-backed session/question/coaching services reused through candidate-owned services and server actions.
@@ -59,7 +59,7 @@ Open questions:
 ### Data Flows And Trust Boundaries
 
 - Browser -> public `/`: public marketing/funnel request over HTTPS. No candidate-private data should load here.
-- Browser -> candidate protected routes: route path enters middleware. External mode redirects to `/auth/talentarbor/start`; local `password` and `mock` modes are allowed only outside production.
+- Browser -> candidate protected routes: route path enters middleware. External mode redirects to `/auth/talentarbor/start`; local `dev`, `password`, and `mock` modes are allowed only outside production.
 - Public CTA -> `/auth/talentarbor/start` -> TalentArbor login: allowlisted `next` path is stored in an HTTP-only, same-site cookie before redirecting to `https://talentarbor.com/Auth/LoginWithType/2`.
 - TalentArbor/RangamWorks -> callback or launch handoff: identity assertion details are still unconfirmed. The app expects a normalized issuer, subject, email, display name, workspace, and provider before profile resolution.
 - Candidate route/server action -> candidate profile repository -> Postgres: feature code resolves `candidate_profile_id` and queries candidate-owned rows using profile-scoped predicates.
@@ -196,7 +196,7 @@ Gaps and follow-ups:
 
 Abuse path:
 
-Candidate local password mode or mock mode is accidentally enabled in production, allowing non-SSO access to protected candidate data or bypassing expected identity assurance.
+Candidate local dev, password, or mock mode is accidentally enabled in production, allowing non-SSO access to protected candidate data or bypassing expected identity assurance.
 
 Risk:
 
@@ -206,7 +206,7 @@ Risk:
 
 Existing mitigations:
 
-- `candidate-runtime-config.ts` rejects `password` and `mock` auth modes when production server config is detected.
+- `candidate-runtime-config.ts` rejects `dev`, `password`, and `mock` auth modes when production server config is detected.
 - Middleware defaults candidate auth mode to `external`.
 
 Gaps and follow-ups:
@@ -337,7 +337,7 @@ Gaps and follow-ups:
 - no raw parser errors persisted in candidate draft metadata
 - no raw session token storage
 - no cross-candidate data access
-- no production mock or password candidate auth
+- no production dev, mock, or password candidate auth
 - no unvalidated file uploads
 - no raw resume text, extracted text, answers, generated coaching, provider auth payloads, or prompt bodies in ordinary logs
 - no generic shared-host route or API ownership changes without route/auth regression tests

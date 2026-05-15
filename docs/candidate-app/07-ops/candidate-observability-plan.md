@@ -98,7 +98,7 @@ NEXT_PUBLIC_APP_URL=https://interviewcoach.talentarbor.com
 CANDIDATE_AUTH_MODE=external
 ```
 
-Local development can keep memory metrics and mock/password candidate auth modes.
+Local development can keep memory metrics and `dev`, mock, or password candidate auth modes.
 
 ## Verification Before Production Pilot
 

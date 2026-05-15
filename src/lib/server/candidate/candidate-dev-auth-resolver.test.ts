@@ -60,6 +60,24 @@ describe("candidate dev auth resolver", () => {
         });
     });
 
+    it("resolves the seeded primary candidate in explicit dev mode without identity inputs", async () => {
+        process.env = {
+            NODE_ENV: "development",
+            CANDIDATE_AUTH_MODE: "dev",
+        };
+
+        const { resolveLocalCandidateAuthHandoff } = await import("./candidate-dev-auth-resolver");
+
+        await expect(resolveLocalCandidateAuthHandoff()).resolves.toEqual({
+            provider: "password",
+            issuer: "interview-coach-local",
+            subject: "candidate-dev-primary@talentarbor.local",
+            email: "candidate-dev-primary@talentarbor.local",
+            displayName: "Dev Candidate Primary",
+            workspace: "local_dev",
+        });
+    });
+
     it("requires a dev email for password-backed dev auth", async () => {
         process.env = {
             NODE_ENV: "development",
@@ -73,14 +91,19 @@ describe("candidate dev auth resolver", () => {
         );
     });
 
-    it("fails closed when mock or password mode is enabled in production", async () => {
+    it("fails closed when dev, mock, or password mode is enabled in production", async () => {
         process.env = {
             NODE_ENV: "production",
-            CANDIDATE_AUTH_MODE: "mock",
+            CANDIDATE_AUTH_MODE: "dev",
         };
 
         const { resolveLocalCandidateAuthHandoff } = await import("./candidate-dev-auth-resolver");
 
+        await expect(resolveLocalCandidateAuthHandoff()).rejects.toThrow(
+            "CANDIDATE_AUTH_MODE=dev is not allowed in production."
+        );
+
+        process.env.CANDIDATE_AUTH_MODE = "mock";
         await expect(resolveLocalCandidateAuthHandoff()).rejects.toThrow(
             "CANDIDATE_AUTH_MODE=mock is not allowed in production."
         );

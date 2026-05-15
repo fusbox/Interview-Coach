@@ -15,6 +15,7 @@ Current commands:
 
 - `npm install`
 - `npm run dev`
+- `npm run dev:candidate`
 - `npm run lint`
 - `npm run typecheck`
 - `npm run test:candidate`
@@ -48,8 +49,10 @@ The current smoke-Postgres bootstrap supports:
 ```powershell
 npm install
 npm run db:setup
-npm run dev
+npm run dev:candidate
 ```
+
+Use `npm run dev:candidate` when you want to browse candidate UI without routing through the external TalentArbor login. It starts the same Next dev server as `npm run dev`, but defaults local-only candidate auth to the seeded primary candidate.
 
 `db:setup` starts the local smoke Postgres container, applies the shared recruiter schema plus candidate migrations, and seeds deterministic candidate fixtures.
 
@@ -95,6 +98,14 @@ Seeded candidate identities:
 - Primary: `candidate-dev-primary@talentarbor.local`
 - Alternate ownership-check candidate: `candidate-dev-alt@talentarbor.local`
 
+For the quickest local UI pass:
+
+```text
+CANDIDATE_AUTH_MODE=dev
+```
+
+`dev` mode resolves the primary seeded candidate automatically. It is intended for local browser DX and is rejected in production.
+
 For primary password-mode local access:
 
 ```text
@@ -111,6 +122,7 @@ Copy [.env.example](../../.env.example) to `.env.local` and fill only the values
 
 Early development can use:
 
+- `CANDIDATE_AUTH_MODE=dev`
 - `CANDIDATE_AUTH_MODE=mock`
 - `RATE_LIMIT_BACKEND=memory`
 - `METRICS_BACKEND=memory`
