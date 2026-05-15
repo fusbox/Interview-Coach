@@ -14,6 +14,7 @@ Use this checklist at the start and end of each candidate integration pass.
 2. Read:
 
    - [AZURE-INTEGRATION-NOTE.md](./AZURE-INTEGRATION-NOTE.md)
+   - [Candidate Integration Reviewer Handoff](./REVIEWER-HANDOFF.md)
    - [Working Backlog](./00-working-backlog.md)
    - [Shared Host Routing Contract](./04-architecture/shared-host-routing-contract.md)
    - [Candidate Login Redirect Contract](./02-requirements/candidate-login-redirect-contract.md)
@@ -37,12 +38,31 @@ Use this checklist at the start and end of each candidate integration pass.
 
 ## Before PR
 
-Include this in the PR description:
+Use [Candidate Integration PR Policy](./07-ops/candidate-integration-pr-policy.md) for the full PR template. At minimum, include this in the PR description:
 
 ```markdown
 ## Status
 
 Draft PR for candidate integration review. Do not merge until reviewer ownership, route/auth boundaries, and deployment expectations are agreed.
+
+## Do This
+
+1. Confirm source branch: `feature/candidate-app-integration`.
+2. Confirm target branch: `feature/postgres-integration`.
+3. Read `docs/candidate-app/REVIEWER-HANDOFF.md`.
+4. Run:
+
+   ```powershell
+   npm install
+   Copy-Item .env.example .env.local
+   npm run db:setup
+   npm run ci:candidate
+   npm run test:e2e:candidate-seeded
+   npm run dev
+   ```
+
+5. Use `docs/candidate-app/REVIEWER-HANDOFF.md` for local `.env.local` values.
+6. Manually check `/`, `/practice`, `/dashboard`, `/recruiter`, and `/recruiter/dashboard`.
 
 ## What Changed
 

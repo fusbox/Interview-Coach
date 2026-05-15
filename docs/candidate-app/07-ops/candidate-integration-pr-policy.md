@@ -33,12 +33,44 @@ Move out of draft only after the branch has a reviewable candidate slice, the kn
 
 ## Required PR Sections
 
-Use this shape for the candidate integration PR:
+Use this shape for the candidate integration PR. Keep the full validation path visible in the PR description so reviewers do not have to understand the entire docs tree before they can start.
 
 ```markdown
 ## Status
 
 Draft PR for candidate integration review. Do not merge until reviewer ownership, route/auth boundaries, and deployment expectations are agreed.
+
+## Do This
+
+1. Confirm this PR source is `feature/candidate-app-integration`.
+2. Confirm this PR target is `feature/postgres-integration`.
+3. Read `docs/candidate-app/REVIEWER-HANDOFF.md`.
+4. Get the branch running locally:
+
+   ```powershell
+   git fetch origin feature/postgres-integration feature/candidate-app-integration
+   git switch feature/candidate-app-integration
+   git pull --ff-only origin feature/candidate-app-integration
+   npm install
+   Copy-Item .env.example .env.local
+   npm run db:setup
+   npm run ci:candidate
+   npm run test:e2e:candidate-seeded
+   npm run dev
+   ```
+
+5. Use `docs/candidate-app/REVIEWER-HANDOFF.md` for the local `.env.local` values.
+6. Open the manual validation routes:
+
+   ```text
+   http://localhost:3000/
+   http://localhost:3000/practice
+   http://localhost:3000/dashboard
+   http://localhost:3000/recruiter
+   http://localhost:3000/recruiter/dashboard
+   ```
+
+7. Do not complete the PR until the open blockers are accepted, deferred, or resolved.
 
 ## What Changed
 
@@ -50,6 +82,7 @@ Planning: Fu-Lab Azure Boards #643
 
 ## Linked Docs
 
+- docs/candidate-app/REVIEWER-HANDOFF.md
 - docs/candidate-app/00-working-backlog.md
 - docs/candidate-app/04-architecture/shared-host-routing-contract.md
 - docs/candidate-app/02-requirements/candidate-login-redirect-contract.md
@@ -90,13 +123,11 @@ As of this policy update, the candidate branch includes:
 
 ## Recommended Review Order
 
-1. Validate the Postgres recruiter baseline on `feature/postgres-integration`.
-2. Review this candidate branch as the delta on top of that baseline.
-3. Read [Shared Host Routing Contract](../04-architecture/shared-host-routing-contract.md).
-4. Read [Candidate Login Redirect Contract](../02-requirements/candidate-login-redirect-contract.md).
-5. Read [Recruiter Regression Checklist For Candidate PRs](../05-quality/recruiter-regression-checklist.md).
-6. Inspect candidate route, auth, DB, and UI changes.
-7. Confirm open TalentArbor login return and identity handoff questions before treating the branch as merge-ready.
+1. Read [Candidate Integration Reviewer Handoff](../REVIEWER-HANDOFF.md).
+2. Validate the Postgres recruiter baseline on `feature/postgres-integration`.
+3. Review this candidate branch as the delta on top of that baseline.
+4. Inspect candidate route, auth, DB, and UI changes.
+5. Confirm open TalentArbor login return and identity handoff questions before treating the branch as merge-ready.
 
 ## Minimum Review Gate
 

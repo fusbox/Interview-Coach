@@ -4,12 +4,64 @@
 > ### Current Product Scope
 > This repo is the candidate-led Interview Coach incubation workspace. The deployment target is now the shared `interviewcoach.talentarbor.com` app in the existing Azure project, with candidate slices ported through the branch strategy in [ADR-0006](08-decisions/ADR-0006-shared-host-and-azure-branch-integration.md).
 
-This folder is organized to keep product requirements, UX/design rules, and architecture contracts separate but aligned.
+This folder is organized to keep reviewer handoff, product requirements, UX/design rules, and architecture contracts separate but aligned.
 
-## Recommended Reading Order
+## Start Here
+
+### Reviewing Or Merging
+
+Read [Candidate Integration Reviewer Handoff](REVIEWER-HANDOFF.md).
+
+That doc starts with:
+
+- how to get the branch on your machine
+- what to install
+- how to set up the local smoke database
+- what commands to run
+- what routes to open
+- what a manual validation pass looks like
+- what is still blocked before merge
+
+Minimum local command path:
+
+```powershell
+git fetch origin feature/postgres-integration feature/candidate-app-integration
+git switch feature/candidate-app-integration
+git pull --ff-only origin feature/candidate-app-integration
+npm install
+Copy-Item .env.example .env.local
+npm run db:setup
+npm run ci:candidate
+npm run test:e2e:candidate-seeded
+npm run dev
+```
+
+Use [Candidate Integration Reviewer Handoff](REVIEWER-HANDOFF.md) for the `.env.local` values and the full manual validation pass.
+
+Then open:
+
+```text
+http://localhost:3000/
+http://localhost:3000/practice
+http://localhost:3000/dashboard
+http://localhost:3000/recruiter
+http://localhost:3000/recruiter/dashboard
+```
+
+### Continuing Implementation
+
+- [Working Backlog](00-working-backlog.md): current source of truth for work items and sequence
+- [Candidate Integration Work Pass Checklist](START-WORK-PASS.md): repeatable work-pass process
+
+### Investigating A Specific Concern
+
+Use the reference map below.
+
+## Reference Docs
 
 ### Active working plan
 
+- [Candidate Integration Reviewer Handoff](REVIEWER-HANDOFF.md)
 - [Working Backlog](00-working-backlog.md)
 - [Candidate Integration Work Pass Checklist](START-WORK-PASS.md)
 
