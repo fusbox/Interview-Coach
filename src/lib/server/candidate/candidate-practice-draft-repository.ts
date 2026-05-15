@@ -183,6 +183,7 @@ export async function createCandidatePracticeDraft(input: CreateCandidatePractic
     const candidateProfileId = normalizeId(input.candidateProfileId, "Candidate profile ID");
     const setup = normalizeSetupInput(input);
     const resumeContext = buildResumeContext(setup.resumeText);
+    const intakeResponses = emptyCandidatePracticeIntakeResponses();
 
     const result = await queryPostgres<CandidatePracticeDraftRow>(
         `
@@ -196,10 +197,10 @@ export async function createCandidatePracticeDraft(input: CreateCandidatePractic
                 resume_target_screen,
                 last_activity_at
             )
-            values ($1, $2, $3, $4, '[]'::jsonb, '[]'::jsonb, 'practice_setup', now())
+            values ($1, $2, $3, $4, '[]'::jsonb, $5, 'practice_setup', now())
             returning ${draftSelect}
         `,
-        [candidateProfileId, setup.targetRole, setup.jobDescription, resumeContext],
+        [candidateProfileId, setup.targetRole, setup.jobDescription, resumeContext, intakeResponses],
     );
 
     return mapCandidatePracticeDraftRow(result.rows[0]);

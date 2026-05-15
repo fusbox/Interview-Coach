@@ -77,8 +77,17 @@ describe("candidate practice draft repository", () => {
                         originalRetained: false,
                     },
                 }),
+                {
+                    confidenceLevel: null,
+                    interviewType: null,
+                    timeline: null,
+                    concerns: null,
+                    practiceFocus: [],
+                },
             ]),
         );
+        expect(queryPostgresMock.mock.calls[0][0]).toContain("values ($1, $2, $3, $4, '[]'::jsonb, $5, 'practice_setup', now())");
+        expect(queryPostgresMock.mock.calls[0][0]).not.toContain("'[]'::jsonb, 'practice_setup'");
     });
 
     it("finds a draft only through candidate ownership", async () => {
