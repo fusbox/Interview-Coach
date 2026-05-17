@@ -26,8 +26,8 @@ export function RecruiterMobileDock({ user }: { user?: AppUser | null }) {
     });
 
     const isActive = (path: string) => {
-        if (path === '/recruiter') {
-            return pathname === '/recruiter' || pathname?.startsWith('/recruiter/sessions');
+        if (path === '/recruiter/dashboard') {
+            return pathname === '/recruiter/dashboard' || pathname?.startsWith('/recruiter/sessions');
         }
         return pathname === path || pathname?.startsWith(`${path}/`);
     };
@@ -40,7 +40,7 @@ export function RecruiterMobileDock({ user }: { user?: AppUser | null }) {
 
     const navItems = [
         { icon: Plus, label: "Create", href: "/recruiter/create" },
-        { icon: List, label: "Invites & Sessions", href: "/recruiter" },
+        { icon: List, label: "Invites & Sessions", href: "/recruiter/dashboard" },
         { icon: LayoutTemplate, label: "Templates", href: "/recruiter/templates" },
         { icon: Settings, label: "Settings", href: "/recruiter/settings" },
     ];
