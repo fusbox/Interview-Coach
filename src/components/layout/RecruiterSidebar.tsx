@@ -34,8 +34,8 @@ export function RecruiterSidebar({ className, onNavigate, user, profile }: Recru
     const displayEmail = user?.email || "recruiter@example.com";
 
     const isActive = (path: string) => {
-        if (path === '/recruiter') {
-            return pathname === '/recruiter' || pathname?.startsWith('/recruiter/sessions');
+        if (path === '/recruiter/dashboard') {
+            return pathname === '/recruiter/dashboard' || pathname?.startsWith('/recruiter/sessions');
         }
         return pathname === path || pathname?.startsWith(`${path}/`);
     };
@@ -109,16 +109,16 @@ export function RecruiterSidebar({ className, onNavigate, user, profile }: Recru
                     </div>
 
                     <Link
-                        href="/recruiter"
+                        href="/recruiter/dashboard"
                         className={cn(
                             "flex items-center gap-3 p-2.5 rounded-xl font-medium transition-all duration-200 group",
-                            isActive('/recruiter')
+                            isActive('/recruiter/dashboard')
                                 ? "bg-primary/10 text-primary"
                                 : "text-text-muted hover:bg-surface-subtle hover:text-text-primary"
                         )}
                         onClick={onNavigate}
                     >
-                        <List size={18} className={cn("transition-colors", isActive('/recruiter') ? "text-primary" : "text-text-muted group-hover:text-text-primary")} />
+                        <List size={18} className={cn("transition-colors", isActive('/recruiter/dashboard') ? "text-primary" : "text-text-muted group-hover:text-text-primary")} />
                         <span>Invites & Sessions</span>
                     </Link>
 
