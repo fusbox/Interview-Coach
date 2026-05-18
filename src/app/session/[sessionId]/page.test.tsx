@@ -3,11 +3,22 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getBasicAccessibilityViolations } from "@/test/accessibility";
 
-const { loadCandidateSessionForCurrentCandidateMock, notFoundMock } = vi.hoisted(() => ({
+const {
+    loadCandidateSessionForCurrentCandidateMock,
+    notFoundMock,
+    prefetchMock,
+    speakMock,
+    stopSpeakingMock,
+    unlockMock,
+} = vi.hoisted(() => ({
     loadCandidateSessionForCurrentCandidateMock: vi.fn(),
     notFoundMock: vi.fn(() => {
         throw new Error("NEXT_NOT_FOUND");
     }),
+    prefetchMock: vi.fn(),
+    speakMock: vi.fn(),
+    stopSpeakingMock: vi.fn(),
+    unlockMock: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -32,9 +43,27 @@ vi.mock("@/lib/feature-flags", () => ({
     showDemoTools: () => false,
 }));
 
+vi.mock("@/features/audio/hooks/useTextToSpeech", () => ({
+    useTextToSpeech: () => ({
+        isPlaying: false,
+        isLoading: false,
+        prefetch: prefetchMock,
+        speak: speakMock,
+        stop: stopSpeakingMock,
+    }),
+}));
+
+vi.mock("@/features/audio/audio-engine", () => ({
+    audioEngine: {
+        prefetch: prefetchMock,
+        unlock: unlockMock,
+    },
+}));
+
 describe("/session/[sessionId] page", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        HTMLFormElement.prototype.requestSubmit = vi.fn();
     });
 
     it("renders real candidate-owned session state", async () => {
@@ -63,11 +92,16 @@ describe("/session/[sessionId] page", () => {
         render(await CandidateSessionRoute({ params: Promise.resolve({ sessionId: "session-1" }) }));
 
         expect(loadCandidateSessionForCurrentCandidateMock).toHaveBeenCalledWith("session-1");
-        expect(screen.getByRole("heading", { name: /qa analyst/i })).toBeInTheDocument();
-        expect(screen.getByText("Tell me about a release you improved.")).toBeInTheDocument();
-        expect(screen.getByText(/Question 1 of 1/)).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: /start practice/i })).toBeInTheDocument();
-    });
+        expect(screen.getByRole("heading", { name: /let's get you ready for your interview/i })).toBeInTheDocument();
+        expect(screen.getByText(/QA analyst/)).toBeInTheDocument();
+        expect(screen.queryByText("Tell me about a release you improved.")).not.toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /begin first question/i })).toBeInTheDocument();
+        expect(prefetchMock).toHaveBeenCalledWith(
+            "question-1",
+            "Tell me about a release you improved.",
+            { sessionId: "session-1" },
+        );
+    }, 10000);
 
     it("meets the candidate primary-page accessibility baseline", async () => {
         loadCandidateSessionForCurrentCandidateMock.mockResolvedValue({
@@ -111,7 +145,8 @@ describe("/session/[sessionId] page", () => {
 
         render(await CandidateSessionRoute({ params: Promise.resolve({ sessionId: "session-1" }) }));
 
-        expect(screen.getByRole("button", { name: /pause session/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /exit session/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /read question/i })).toBeInTheDocument();
         expect(screen.getByRole("textbox", { name: /type your answer/i })).toBeInTheDocument();
         expect(screen.getByRole("button", { name: /submit answer/i })).toBeInTheDocument();
         expect(screen.queryByRole("button", { name: /continue to next question/i })).not.toBeInTheDocument();

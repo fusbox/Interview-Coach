@@ -271,7 +271,8 @@ Ground truth:
 | SESS-S09 | 770 | Story | Resolved | Fu Chen <fu@rangam.com> | Build live practice session UI MVP | `/session/[sessionId]` reuses recruiter session workspace patterns for prompt, progress, answer, coaching, retry, pause/resume, completion, and hidden engagement debug inspection |
 | SESS-F05 | 777 | Feature | Resolved | Fu Chen <fu@rangam.com> | AI-backed candidate question generation | Candidate practice session creation uses the shared question-generation service instead of the mock role-only generator |
 | SESS-S10 | 778 | Story | Resolved | Fu Chen <fu@rangam.com> | Wire candidate session creation to shared AI question generation | Candidate setup passes role, optional JD, optional resume text, interview type, and question count into the shared generator; recruiter API behavior remains covered |
-| SESS-F04 | 773 | Feature | New | Fu Chen <fu@rangam.com> | Live session UI refinement | Candidate session flow, feedback presentation, voice/text controls, pause/resume affordances, and policy-adjacent notices are reviewed as product UI work after the shared session engine is stable |
+| SESS-F04 | 773 | Feature | Active | Fu Chen <fu@rangam.com> | Live session UI refinement | Candidate session flow, feedback presentation, voice/text controls, pause/resume affordances, and policy-adjacent notices are reviewed as product UI work after the shared session engine is stable |
+| SESS-S11 | TBD | Story | New | Fu Chen <fu@rangam.com> | Align candidate session entry and active-question controls with invite session | Candidate-owned sessions use an invite-style entry screen before Q1, remove the active-card Start Practice control, use Exit Session header language, expose read-question playback, prefetch Q1/Qn+1 audio, and keep the hidden engagement/AI context inspector available |
 
 ### EPIC-07 Resume Ingestion And Candidate Context
 
@@ -500,6 +501,8 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 93 | New | DASH-F03 | 774 | Fu Chen <fu@rangam.com> | Track dashboard UI refinement separately | Candidate-owned UI polish remains open while dashboard read-model scope is complete |
 | 94 | Resolved | SESS-F05 | 777 | Fu Chen <fu@rangam.com> | Track AI-backed candidate question generation | Shared question-generation service is implemented and used by recruiter API plus candidate session creation; recruiter regression and DB output checks produced expected invite/session/question/AI capture data |
 | 95 | Resolved | SESS-S10 | 778 | Fu Chen <fu@rangam.com> | Wire candidate session creation to shared AI question generation | Candidate setup now passes role, optional JD, optional resume text, interview type, and question count into the shared generator; focused tests, candidate suite, typecheck, lint, build, recruiter browser regression, and DB output checks passed |
+| 96 | New | SESS-S11 | TBD | Fu Chen <fu@rangam.com> | Align candidate session entry and active-question controls with invite session | Candidate route should match invite-session entry, exit/read controls, Q1/Qn+1 audio prefetch, and hidden debug inspector expectations |
+| 97 | Queued | SESS-F04 | 773 | Fu Chen <fu@rangam.com> | Continue deeper live-session UI parity | Next slices should compare candidate route against invite voice/text controls, hints/example drawer, feedback drawer, summary handoff, and follow-up email behavior |
 
 ## Open Questions
 

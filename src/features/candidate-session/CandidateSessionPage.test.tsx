@@ -1,9 +1,23 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { LoadedCandidateSession } from "@/lib/server/candidate";
 import { CandidateSessionPage } from "./CandidateSessionPage";
+
+const {
+    enginePrefetchMock,
+    prefetchMock,
+    speakMock,
+    stopSpeakingMock,
+    unlockMock,
+} = vi.hoisted(() => ({
+    prefetchMock: vi.fn(),
+    speakMock: vi.fn(),
+    stopSpeakingMock: vi.fn(),
+    enginePrefetchMock: vi.fn(),
+    unlockMock: vi.fn().mockResolvedValue(undefined),
+}));
 
 vi.mock("./actions", () => ({
     advanceCandidateSessionAction: vi.fn(),
@@ -17,6 +31,23 @@ vi.mock("./actions", () => ({
 
 vi.mock("@/lib/feature-flags", () => ({
     showDemoTools: () => true,
+}));
+
+vi.mock("@/features/audio/hooks/useTextToSpeech", () => ({
+    useTextToSpeech: () => ({
+        isPlaying: false,
+        isLoading: false,
+        prefetch: prefetchMock,
+        speak: speakMock,
+        stop: stopSpeakingMock,
+    }),
+}));
+
+vi.mock("@/features/audio/audio-engine", () => ({
+    audioEngine: {
+        prefetch: enginePrefetchMock,
+        unlock: unlockMock,
+    },
 }));
 
 const loadedSession: LoadedCandidateSession = {
@@ -42,6 +73,46 @@ const loadedSession: LoadedCandidateSession = {
 };
 
 describe("CandidateSessionPage", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        HTMLFormElement.prototype.requestSubmit = vi.fn();
+    });
+
+    it("renders an invite-style session entry screen before the first candidate question", async () => {
+        const user = userEvent.setup();
+
+        render(
+            <CandidateSessionPage
+                loadedSession={{
+                    ...loadedSession,
+                    session: {
+                        ...loadedSession.session,
+                        status: "NOT_STARTED",
+                        answers: {},
+                    },
+                }}
+            />,
+        );
+
+        expect(screen.getByRole("heading", { name: /let's get you ready for your interview/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /begin first question/i })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /start practice/i })).not.toBeInTheDocument();
+        expect(prefetchMock).toHaveBeenCalledWith(
+            "question-1",
+            "Tell me about a release you improved.",
+            { sessionId: "session-1" },
+        );
+
+        await user.click(screen.getByRole("button", { name: /begin first question/i }));
+
+        expect(unlockMock).toHaveBeenCalled();
+        expect(enginePrefetchMock).toHaveBeenCalledWith(
+            "question-1",
+            "Tell me about a release you improved.",
+            { sessionId: "session-1" },
+        );
+    });
+
     it("reuses the recruiter-style session workspace for candidate practice", () => {
         render(
             <CandidateSessionPage
@@ -63,11 +134,27 @@ describe("CandidateSessionPage", () => {
         expect(screen.getByRole("banner")).toHaveTextContent("QA Analyst");
         expect(screen.getByText("Question 1 of 2")).toBeInTheDocument();
         expect(screen.getByText("50% Complete")).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: /pause session/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /exit session/i })).toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "Tell me about a release you improved." })).toBeInTheDocument();
         expect(screen.getByRole("textbox", { name: /type your answer/i })).toBeInTheDocument();
         expect(screen.getByRole("button", { name: /submit answer/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /read question/i })).toBeInTheDocument();
         expect(screen.getAllByText("Coach's Lens").length).toBeGreaterThan(0);
+        expect(prefetchMock).toHaveBeenCalledWith(
+            "question-1",
+            "Tell me about a release you improved.",
+            { sessionId: "session-1" },
+        );
+        expect(prefetchMock).toHaveBeenCalledWith(
+            "question-2",
+            "How do you handle ambiguity?",
+            { sessionId: "session-1" },
+        );
+        expect(speakMock).toHaveBeenCalledWith(
+            "Tell me about a release you improved.",
+            "question-1",
+            { sessionId: "session-1" },
+        );
     });
 
     it("offers candidate coaching after an answer is saved but before analysis exists", () => {
@@ -175,6 +262,9 @@ describe("CandidateSessionPage", () => {
         expect(screen.getByText("Session Total")).toBeInTheDocument();
         expect(screen.getByText(/42s/)).toBeInTheDocument();
         await user.click(screen.getByRole("button", { name: /ai context/i }));
+        expect(screen.getByText("Tips & Hints Generator")).toBeInTheDocument();
+        expect(screen.getByText("Strong Response Generator")).toBeInTheDocument();
+        expect(screen.getByText("Core Analysis Evaluator")).toBeInTheDocument();
         expect(screen.getByText("Candidate analysis prompt snapshot")).toBeInTheDocument();
     });
 });

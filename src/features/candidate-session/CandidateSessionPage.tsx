@@ -7,7 +7,10 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import type { AnalysisResult } from "@/lib/domain/types";
 import type { LoadedCandidateSession } from "@/lib/server/candidate";
+import { CandidateQuestionPlaybackButton } from "./CandidateQuestionPlaybackButton";
+import { CandidateSessionAudioController } from "./CandidateSessionAudioController";
 import { CandidateSessionDebugOverlay } from "./CandidateSessionDebugOverlay";
+import { CandidateSessionEntryScreen } from "./CandidateSessionEntryScreen";
 import {
     advanceCandidateSessionAction,
     analyzeCandidateAnswerAction,
@@ -25,6 +28,7 @@ type CandidateSessionPageProps = {
 export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProps) {
     const { session } = loadedSession;
     const currentQuestion = session.questions[session.currentQuestionIndex] ?? session.questions[0] ?? null;
+    const nextQuestion = session.questions[session.currentQuestionIndex + 1] ?? null;
     const totalQuestions = session.questions.length;
     const questionPosition = currentQuestion ? session.questions.findIndex((question) => question.id === currentQuestion.id) + 1 : 0;
     const progressPercentage = totalQuestions > 0 ? Math.round((Math.max(questionPosition, 1) / totalQuestions) * 100) : 0;
@@ -86,6 +90,21 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
                 initialEngagedSeconds={session.engagedTimeSeconds}
                 analysisPrompt={currentAnalysis?.__debugPrompt}
             />
+            <CandidateSessionAudioController
+                sessionId={session.id}
+                currentQuestion={currentQuestion}
+                nextQuestion={nextQuestion}
+                shouldAutoPlayCurrent={session.status === "IN_SESSION"}
+            />
+            {session.status === "NOT_STARTED" ? (
+                <CandidateSessionEntryScreen
+                    role={session.role}
+                    sessionId={session.id}
+                    firstQuestion={currentQuestion}
+                    startAction={startAction}
+                />
+            ) : (
+                <>
             <header role="banner" className="sticky top-0 z-20 shrink-0 overflow-hidden border-b border-border bg-white/70 backdrop-blur-md">
                 <div className="mx-auto w-full max-w-4xl px-4 py-4 pb-3 md:px-6 lg:px-10">
                     <div className="mb-3 flex items-end justify-between gap-4">
@@ -113,7 +132,7 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
                                 </Button>
                             ) : (
                                 <form action={pauseAction}>
-                                    <HeaderButton icon={<X size={16} />} label="Pause session" />
+                                    <HeaderButton icon={<X size={16} />} label="Exit session" />
                                 </form>
                             )}
                         </div>
@@ -147,14 +166,7 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
                                             <CoachChip icon={<Lightbulb size={18} />} label="Coach's Lens" active={Boolean(currentAnalysis)} />
                                             <CoachChip icon={<Sparkles size={18} />} label={currentQuestion.category} />
                                         </div>
-                                        {session.status === "NOT_STARTED" ? (
-                                            <form action={startAction}>
-                                                <Button type="submit" emphasis="primary" density="comfortable" shape="app" label="strong">
-                                                    Start practice
-                                                    <ArrowRight size={16} className="ml-2" />
-                                                </Button>
-                                            </form>
-                                        ) : null}
+                                        <CandidateQuestionPlaybackButton sessionId={session.id} question={currentQuestion} />
                                     </div>
                                 }
                             >
@@ -191,6 +203,7 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
                                         <textarea
                                             id="answerText"
                                             name="answerText"
+                                            aria-label="Type your answer"
                                             rows={8}
                                             defaultValue={currentAnswer?.draft || currentAnswer?.transcript || ""}
                                             className="min-h-64 w-full resize-y rounded-3xl border border-border bg-white px-5 py-4 text-base leading-7 text-text-primary shadow-inner outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -262,6 +275,8 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
                     </div>
                 )}
             </section>
+                </>
+            )}
         </main>
     );
 }
