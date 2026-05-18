@@ -1,12 +1,12 @@
 import Link from "next/link";
 import type React from "react";
-import { ArrowRight, FileText, Lightbulb, Play, RotateCcw, Sparkles, X } from "lucide-react";
+import { ArrowRight, FileText, Play, RotateCcw, X } from "lucide-react";
 
 import { SessionPromptShell } from "@/components/patterns/SessionPromptShell";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/cn";
 import type { AnalysisResult } from "@/lib/domain/types";
 import type { LoadedCandidateSession } from "@/lib/server/candidate";
+import { CandidateActiveQuestionWorkspace } from "./CandidateActiveQuestionWorkspace";
 import { CandidateQuestionPlaybackButton } from "./CandidateQuestionPlaybackButton";
 import { CandidateSessionAudioController } from "./CandidateSessionAudioController";
 import { CandidateSessionDebugOverlay } from "./CandidateSessionDebugOverlay";
@@ -153,70 +153,46 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
                 ) : session.status === "PAUSED" ? (
                     <SessionPausedState resumeAction={resumeAction} role={session.role} />
                 ) : currentQuestion ? (
-                    <div className="mx-auto grid w-full max-w-6xl flex-1 gap-6 px-4 py-6 md:px-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:px-10">
-                        <section className="flex min-h-0 flex-col">
-                            <SessionPromptShell
-                                className={cn(
-                                    "min-h-[18rem]",
-                                    currentAnalysis ? "opacity-80" : "opacity-100",
-                                )}
-                                footer={
-                                    <div className="flex min-h-12 flex-wrap items-center justify-between gap-3">
-                                        <div className="flex flex-wrap gap-3">
-                                            <CoachChip icon={<Lightbulb size={18} />} label="Coach's Lens" active={Boolean(currentAnalysis)} />
-                                            <CoachChip icon={<Sparkles size={18} />} label={currentQuestion.category} />
+                    !hasSubmittedCurrentAnswer ? (
+                        <CandidateActiveQuestionWorkspace
+                            sessionId={session.id}
+                            role={session.role}
+                            currentQuestion={currentQuestion}
+                            nextQuestion={nextQuestion}
+                            submitAnswerAction={submitAnswerAction}
+                        />
+                    ) : (
+                        <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 md:px-6 lg:px-10">
+                            <section className="flex min-h-0 flex-col">
+                                <SessionPromptShell
+                                    className="min-h-[18rem] opacity-80"
+                                    footer={
+                                        <div className="flex min-h-12 flex-wrap items-center justify-between gap-3">
+                                            <div className="flex flex-wrap gap-3">
+                                                <span className="inline-flex items-center gap-2 rounded-xl border border-brand-deep bg-brand-deep px-3 py-2 text-sm font-semibold text-text-inverse shadow-lg">
+                                                    Coach&apos;s Lens
+                                                </span>
+                                                <span className="inline-flex items-center gap-2 rounded-xl border border-state-info/20 bg-state-info/10 px-3 py-2 text-sm font-semibold text-state-info">
+                                                    {currentQuestion.category}
+                                                </span>
+                                            </div>
+                                            <CandidateQuestionPlaybackButton sessionId={session.id} question={currentQuestion} />
                                         </div>
-                                        <CandidateQuestionPlaybackButton sessionId={session.id} question={currentQuestion} />
+                                    }
+                                >
+                                    <div className="space-y-8">
+                                        <div className="space-y-3">
+                                            <p className="text-xs font-black uppercase tracking-[0.2em] text-text-muted">
+                                                Interview prompt
+                                            </p>
+                                            <h2 className="font-display text-3xl font-bold leading-tight text-text-primary md:text-5xl">
+                                                {currentQuestion.text}
+                                            </h2>
+                                        </div>
                                     </div>
-                                }
-                            >
-                                <div className="space-y-8">
-                                    <div className="space-y-3">
-                                        <p className="text-xs font-black uppercase tracking-[0.2em] text-text-muted">
-                                            Interview prompt
-                                        </p>
-                                        <h2 className="font-display text-3xl font-bold leading-tight text-text-primary md:text-5xl">
-                                            {currentQuestion.text}
-                                        </h2>
-                                    </div>
-                                    {session.jobDescription ? (
-                                        <p className="max-w-3xl text-base leading-7 text-text-secondary">
-                                            Practice for: {session.jobDescription}
-                                        </p>
-                                    ) : null}
-                                </div>
-                            </SessionPromptShell>
+                                </SessionPromptShell>
 
-                            <div className="mt-6 flex flex-1 flex-col justify-center rounded-3xl border border-border bg-surface-base/80 p-4 shadow-flat md:p-6">
-                                {session.status === "AWAITING_EVALUATION" && !hasSubmittedCurrentAnswer ? (
-                                    <div className="space-y-3 py-12 text-center">
-                                        <p className="font-display text-3xl font-bold text-text-primary">Reviewing your response...</p>
-                                        <p className="text-sm leading-6 text-text-secondary">
-                                            The coach is preparing feedback. Refreshing this page will keep your place.
-                                        </p>
-                                    </div>
-                                ) : !hasSubmittedCurrentAnswer ? (
-                                    <form action={submitAnswerAction} className="space-y-4">
-                                        <label htmlFor="answerText" className="block text-sm font-black uppercase tracking-widest text-text-muted">
-                                            Type your answer
-                                        </label>
-                                        <textarea
-                                            id="answerText"
-                                            name="answerText"
-                                            aria-label="Type your answer"
-                                            rows={8}
-                                            defaultValue={currentAnswer?.draft || currentAnswer?.transcript || ""}
-                                            className="min-h-64 w-full resize-y rounded-3xl border border-border bg-white px-5 py-4 text-base leading-7 text-text-primary shadow-inner outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                            placeholder="Type the answer you would give in the interview."
-                                        />
-                                        <div className="flex justify-end">
-                                            <Button type="submit" emphasis="primary" density="hero" shape="app" label="strong">
-                                                Submit answer
-                                                <ArrowRight size={18} className="ml-2" />
-                                            </Button>
-                                        </div>
-                                    </form>
-                                ) : (
+                                <div className="mt-6 flex flex-1 flex-col justify-center rounded-3xl border border-border bg-surface-base/80 p-4 shadow-flat md:p-6">
                                     <SavedAnswerPanel
                                         transcript={currentAnswer?.transcript}
                                         analysis={currentAnalysis}
@@ -226,42 +202,10 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
                                         canAdvance={canAdvance}
                                         isLastQuestion={isLastQuestion}
                                     />
-                                )}
-                            </div>
-                        </section>
-
-                        <aside className="space-y-4">
-                            <div className="rounded-3xl border border-border bg-white p-5 shadow-flat">
-                                <p className="text-xs font-black uppercase tracking-[0.2em] text-text-muted">
-                                    Coach&apos;s Lens
-                                </p>
-                                <div className="mt-4 space-y-3 text-sm leading-6 text-text-secondary">
-                                    <p>
-                                        Answer the prompt naturally, then use coaching to decide whether to retry or keep moving.
-                                    </p>
-                                    <p>
-                                        Your place is saved as you move through the interview.
-                                    </p>
                                 </div>
-                            </div>
-
-                            <div className="rounded-3xl border border-border bg-surface-sky p-5 shadow-flat">
-                                <p className="text-xs font-black uppercase tracking-[0.2em] text-text-muted">
-                                    Session status
-                                </p>
-                                <dl className="mt-4 space-y-3 text-sm text-text-secondary">
-                                    <div>
-                                        <dt className="font-semibold text-text-primary">State</dt>
-                                        <dd>{formatStatus(session.status)}</dd>
-                                    </div>
-                                    <div>
-                                        <dt className="font-semibold text-text-primary">Saved draft</dt>
-                                        <dd className="break-all">{loadedSession.practiceDraftId}</dd>
-                                    </div>
-                                </dl>
-                            </div>
-                        </aside>
-                    </div>
+                            </section>
+                        </div>
+                    )
                 ) : (
                     <div className="mx-auto flex w-full max-w-4xl flex-1 items-center px-6 py-12">
                         <SessionPromptShell>
@@ -280,29 +224,12 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
         </main>
     );
 }
-
 function HeaderButton({ icon, label }: { icon: React.ReactNode; label: string }) {
     return (
         <Button type="submit" variant="ghost" density="compact" shape="pill" label="strong" className="gap-2 text-text-muted hover:text-text-primary">
             <span className="hidden md:inline">{label}</span>
             {icon}
         </Button>
-    );
-}
-
-function CoachChip({ icon, label, active = false }: { icon: React.ReactNode; label: string; active?: boolean }) {
-    return (
-        <span
-            className={cn(
-                "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold",
-                active
-                    ? "border-brand-deep bg-brand-deep text-text-inverse shadow-lg"
-                    : "border-state-info/20 bg-state-info/10 text-state-info",
-            )}
-        >
-            {icon}
-            {label}
-        </span>
     );
 }
 
@@ -444,12 +371,4 @@ function SessionCompleteState({ sessionId, role }: { sessionId: string; role: st
             </SessionPromptShell>
         </div>
     );
-}
-
-function formatStatus(status: string): string {
-    return status
-        .toLowerCase()
-        .split("_")
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(" ");
 }

@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getBasicAccessibilityViolations } from "@/test/accessibility";
@@ -53,6 +54,33 @@ vi.mock("@/features/audio/hooks/useTextToSpeech", () => ({
     }),
 }));
 
+vi.mock("@/features/audio/hooks/useSpeechToText", () => ({
+    useSpeechToText: () => ({
+        isListening: false,
+        transcript: "",
+        startListening: vi.fn(),
+        stopListening: vi.fn(),
+        abortListening: vi.fn(),
+        error: null,
+        isSupported: true,
+    }),
+}));
+
+vi.mock("@/features/audio/hooks/useAudioRecording", () => ({
+    useAudioRecording: () => ({
+        isRecording: false,
+        isInitializing: false,
+        audioBlob: null,
+        mediaStream: null,
+        permissionError: false,
+        permissionMessage: null,
+        startRecording: vi.fn(),
+        stopRecording: vi.fn(),
+        warmUp: vi.fn(),
+        resetAudio: vi.fn(),
+    }),
+}));
+
 vi.mock("@/features/audio/audio-engine", () => ({
     audioEngine: {
         prefetch: prefetchMock,
@@ -63,7 +91,10 @@ vi.mock("@/features/audio/audio-engine", () => ({
 describe("/session/[sessionId] page", () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        HTMLFormElement.prototype.requestSubmit = vi.fn();
+        Object.defineProperty(HTMLFormElement.prototype, "requestSubmit", {
+            configurable: true,
+            value: vi.fn(),
+        });
     });
 
     it("renders real candidate-owned session state", async () => {
@@ -126,6 +157,8 @@ describe("/session/[sessionId] page", () => {
     });
 
     it("renders the recruiter-style answer workspace for an in-progress session", async () => {
+        const user = userEvent.setup();
+
         loadCandidateSessionForCurrentCandidateMock.mockResolvedValue({
             practiceDraftId: "draft-1",
             session: {
@@ -147,6 +180,13 @@ describe("/session/[sessionId] page", () => {
 
         expect(screen.getByRole("button", { name: /exit session/i })).toBeInTheDocument();
         expect(screen.getByRole("button", { name: /read question/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /hints/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /example/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /record answer/i })).toBeInTheDocument();
+        expect(screen.queryByRole("textbox", { name: /type your answer/i })).not.toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: /text mode/i }));
+
         expect(screen.getByRole("textbox", { name: /type your answer/i })).toBeInTheDocument();
         expect(screen.getByRole("button", { name: /submit answer/i })).toBeInTheDocument();
         expect(screen.queryByRole("button", { name: /continue to next question/i })).not.toBeInTheDocument();

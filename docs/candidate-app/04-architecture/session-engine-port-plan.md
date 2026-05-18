@@ -77,12 +77,12 @@ Already implemented:
 - completed session summary route
 - route metrics and mutation rate-limit/state-idempotency boundaries
 - seeded setup-to-summary browser smoke through `npm run test:e2e:candidate-seeded`
-- live candidate session UI reusing mature recruiter session workspace patterns: sticky progress header, `SessionPromptShell`, typed-answer workspace, coaching/retry/continue controls, pause/resume/complete states, and the hidden engagement debug inspector
-- first-pass invite-session parity for candidate-owned session entry and active-question controls: an entry screen before Q1, no active-card `Start Practice` button, invite-style `Exit Session` header language, read-question playback, and Q1/Qn+1 TTS prefetching from the candidate session route
+- live candidate session UI reusing mature recruiter session workspace patterns: sticky progress header, `SessionPromptShell`, default voice-mode active question surface, Hints/Example panels, text-mode answer workspace, text submission multistep loader, coaching/retry/continue controls, pause/resume/complete states, and the hidden engagement debug inspector
+- invite-session parity for candidate-owned session entry and active-question controls: an entry screen before Q1, no active-card `Start Practice` button, invite-style `Exit Session` header language, read-question playback, Q1/Qn+1 TTS prefetching from the candidate session route, and active-question visual states aligned with the recruiter invite flow
 
 Still future or intentionally deferred:
 
-- deeper voice/audio parity with the mature invite-session component stack, including full voice recording controls, hints/example dropdown parity, feedback drawer parity, debrief email parity, and the final decision on whether generation should wait for Q1 audio before routing into `/session/[sessionId]`
+- deeper feedback/debrief parity with the mature invite-session component stack, including feedback drawer behavior, transcript/audio playback in feedback, summary/debrief handoff, follow-up email parity, and the final decision on whether generation should wait for Q1 audio before routing into `/session/[sessionId]`
 - durable request-replay idempotency for candidate API routes if candidate mutations move from server actions to HTTP APIs
 - candidate repeat-practice flow from completed sessions
 

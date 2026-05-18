@@ -75,7 +75,10 @@ const loadedSession: LoadedCandidateSession = {
 describe("CandidateSessionPage", () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        HTMLFormElement.prototype.requestSubmit = vi.fn();
+        Object.defineProperty(HTMLFormElement.prototype, "requestSubmit", {
+            configurable: true,
+            value: vi.fn(),
+        });
     });
 
     it("renders an invite-style session entry screen before the first candidate question", async () => {
@@ -113,7 +116,9 @@ describe("CandidateSessionPage", () => {
         );
     });
 
-    it("reuses the recruiter-style session workspace for candidate practice", () => {
+    it("reuses the recruiter-style active question workspace for candidate practice", async () => {
+        const user = userEvent.setup();
+
         render(
             <CandidateSessionPage
                 loadedSession={{
@@ -136,10 +141,23 @@ describe("CandidateSessionPage", () => {
         expect(screen.getByText("50% Complete")).toBeInTheDocument();
         expect(screen.getByRole("button", { name: /exit session/i })).toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "Tell me about a release you improved." })).toBeInTheDocument();
-        expect(screen.getByRole("textbox", { name: /type your answer/i })).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: /submit answer/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /hints/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /example/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /voice mode/i })).toHaveAttribute("aria-pressed", "true");
+        expect(screen.getByRole("button", { name: /text mode/i })).toHaveAttribute("aria-pressed", "false");
+        expect(screen.getByRole("button", { name: /record answer/i })).toBeInTheDocument();
+        expect(screen.getByText("Tap to record; tap again to stop")).toBeInTheDocument();
+        expect(screen.queryByRole("textbox", { name: /type your answer/i })).not.toBeInTheDocument();
         expect(screen.getByRole("button", { name: /read question/i })).toBeInTheDocument();
-        expect(screen.getAllByText("Coach's Lens").length).toBeGreaterThan(0);
+        expect(screen.queryByText("Session status")).not.toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: /text mode/i }));
+
+        expect(screen.getByRole("button", { name: /voice mode/i })).toHaveAttribute("aria-pressed", "false");
+        expect(screen.getByRole("button", { name: /text mode/i })).toHaveAttribute("aria-pressed", "true");
+        expect(screen.getByRole("textbox", { name: /type your answer/i })).toBeInTheDocument();
+        expect(screen.getByPlaceholderText("Type your answer here...")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /submit answer/i })).toBeInTheDocument();
         expect(prefetchMock).toHaveBeenCalledWith(
             "question-1",
             "Tell me about a release you improved.",
@@ -155,6 +173,71 @@ describe("CandidateSessionPage", () => {
             "question-1",
             { sessionId: "session-1" },
         );
+    });
+
+    it("opens recruiter-style hints and example panels for the active candidate question", async () => {
+        const user = userEvent.setup();
+
+        render(
+            <CandidateSessionPage
+                loadedSession={{
+                    ...loadedSession,
+                    session: {
+                        ...loadedSession.session,
+                        status: "IN_SESSION",
+                        answers: {},
+                        questions: [
+                            {
+                                ...loadedSession.session.questions[0],
+                                tips: {
+                                    doThis: "Use a specific release example.",
+                                    avoidThis: "Avoid describing process without outcome.",
+                                },
+                            },
+                        ],
+                    },
+                }}
+            />,
+        );
+
+        await user.click(screen.getByRole("button", { name: /hints/i }));
+
+        expect(screen.getAllByText("What to Aim For").length).toBeGreaterThan(0);
+        expect(screen.getAllByText("Use a specific release example.").length).toBeGreaterThan(0);
+        expect(screen.getAllByText("What to Avoid").length).toBeGreaterThan(0);
+        expect(screen.getAllByText("Avoid describing process without outcome.").length).toBeGreaterThan(0);
+
+        await user.click(screen.getByRole("button", { name: /example/i }));
+
+        expect(screen.getAllByText("Example Strong Response").length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/I would start by clarifying what changed/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText("Why This Works").length).toBeGreaterThan(0);
+    });
+
+    it("shows the recruiter-style text submission loader while feedback is being prepared", async () => {
+        const user = userEvent.setup();
+
+        render(
+            <CandidateSessionPage
+                loadedSession={{
+                    ...loadedSession,
+                    session: {
+                        ...loadedSession.session,
+                        status: "IN_SESSION",
+                        answers: {},
+                    },
+                }}
+            />,
+        );
+
+        await user.click(screen.getByRole("button", { name: /text mode/i }));
+        await user.type(screen.getByRole("textbox", { name: /type your answer/i }), "I tightened the release checklist.");
+        await user.click(screen.getByRole("button", { name: /submit answer/i }));
+
+        expect(screen.getByText("Reviewing your response...")).toBeInTheDocument();
+        expect(screen.getByText("Taking a look...")).toBeInTheDocument();
+        expect(screen.getByText("Reviewing answer content...")).toBeInTheDocument();
+        expect(screen.getByText("Creating feedback...")).toBeInTheDocument();
     });
 
     it("offers candidate coaching after an answer is saved but before analysis exists", () => {
