@@ -1,8 +1,16 @@
+import type { ReactNode } from "react";
+
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { loadPracticeSetupDraftForCurrentCandidateMock } = vi.hoisted(() => ({
     loadPracticeSetupDraftForCurrentCandidateMock: vi.fn(),
+}));
+
+vi.mock("@/components/shell/CandidateShell", () => ({
+    CandidateShell: ({ children }: { children: ReactNode }) => (
+        <div data-testid="candidate-shell">{children}</div>
+    ),
 }));
 
 vi.mock("@/features/practice-setup", () => ({
@@ -26,6 +34,7 @@ describe("/practice page", () => {
 
         render(await PracticePage({}));
 
+        expect(screen.getByTestId("candidate-shell")).toBeInTheDocument();
         expect(screen.getByText(/Practice setup feature boundary empty/)).toBeInTheDocument();
     });
 

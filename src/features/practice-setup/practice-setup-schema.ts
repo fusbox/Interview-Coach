@@ -6,6 +6,9 @@ export const PRACTICE_SETUP_LIMITS = {
     targetRole: 120,
     jobDescription: 12_000,
     resumeText: MAX_NORMALIZED_RESUME_TEXT_LENGTH,
+    questionCountMin: 3,
+    questionCountMax: 10,
+    questionCountDefault: 5,
     timeline: 240,
     concerns: 1_000,
     practiceFocus: 80,
@@ -29,6 +32,14 @@ export const practiceSetupSchema = z.object({
         .max(PRACTICE_SETUP_LIMITS.targetRole, `Target role must be ${PRACTICE_SETUP_LIMITS.targetRole} characters or fewer.`),
     jobDescription: optionalSetupText("Job description", PRACTICE_SETUP_LIMITS.jobDescription),
     resumeText: optionalSetupText("Resume text", PRACTICE_SETUP_LIMITS.resumeText),
+    questionCount: z.preprocess(
+        (value) => (value == null || value === "" ? PRACTICE_SETUP_LIMITS.questionCountDefault : value),
+        z.coerce
+            .number()
+            .int("Question count must be a whole number.")
+            .min(PRACTICE_SETUP_LIMITS.questionCountMin, `Question count must be at least ${PRACTICE_SETUP_LIMITS.questionCountMin}.`)
+            .max(PRACTICE_SETUP_LIMITS.questionCountMax, `Question count must be ${PRACTICE_SETUP_LIMITS.questionCountMax} or fewer.`),
+    ),
 });
 
 export type PracticeSetupInput = z.infer<typeof practiceSetupSchema>;

@@ -80,6 +80,7 @@ describe("practice setup actions", () => {
                 targetRole: " QA analyst ",
                 jobDescription: "Test regulated workflows.",
                 resumeText: "Validated releases.",
+                questionCount: 7,
             },
             intakeResponses: {
                 confidenceLevel: "medium",
@@ -119,6 +120,9 @@ describe("practice setup actions", () => {
         expect(createCandidateSessionFromDraftMock).toHaveBeenCalledWith({
             candidateProfileId: "profile-1",
             practiceDraftId: "draft-1",
+            generationConfig: {
+                questionCount: 7,
+            },
         });
     });
 
@@ -160,6 +164,7 @@ describe("practice setup actions", () => {
                 targetRole: "Customer Success Manager",
                 jobDescription: null,
                 resumeText: null,
+                questionCount: 5,
             },
             intakeResponses: {
                 confidenceLevel: null,
@@ -206,6 +211,7 @@ describe("practice setup actions", () => {
                 targetRole: "QA analyst",
                 jobDescription: null,
                 resumeText: null,
+                questionCount: 5,
             },
             intakeResponses: {
                 confidenceLevel: null,

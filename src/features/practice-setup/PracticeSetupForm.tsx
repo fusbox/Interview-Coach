@@ -2,13 +2,13 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Briefcase, ClipboardList, FileText, Sparkles, Upload } from "lucide-react";
+import { ArrowRight, Briefcase, ClipboardList, FileText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { FieldHint, FieldLabel, textFieldClassName, textareaFieldClassName } from "@/components/ui/FormField";
+import { FieldLabel, textFieldClassName, textareaFieldClassName } from "@/components/ui/FormField";
 
 import { startPracticeGenerationAction } from "./actions";
-import { safeParsePracticeSetupInput, safeParsePracticeSetupIntakeInput } from "./practice-setup-schema";
+import { PRACTICE_SETUP_LIMITS, safeParsePracticeSetupInput, safeParsePracticeSetupIntakeInput } from "./practice-setup-schema";
 
 type PracticeSetupField = "targetRole" | "jobDescription" | "resumeText";
 
@@ -22,11 +22,8 @@ export type PracticeSetupFormInitialValues = {
     targetRole?: string | null;
     jobDescription?: string | null;
     resumeText?: string | null;
-    confidenceLevel?: "low" | "medium" | "high" | null;
     interviewType?: "behavioral" | "technical" | "case" | "screening" | "general" | null;
-    timeline?: string | null;
-    concerns?: string | null;
-    practiceFocus?: string[] | null;
+    questionCount?: number | null;
 };
 
 type PracticeSetupErrors = Partial<Record<PracticeSetupField, string>>;
@@ -37,12 +34,6 @@ const fieldErrorIds: Record<PracticeSetupField, string> = {
     resumeText: "resume-text-error",
 };
 
-const confidenceOptions = [
-    { value: "low", label: "Getting started" },
-    { value: "medium", label: "Somewhat ready" },
-    { value: "high", label: "Nearly ready" },
-] as const;
-
 const interviewTypeOptions = [
     { value: "general", label: "General" },
     { value: "behavioral", label: "Behavioral" },
@@ -51,12 +42,7 @@ const interviewTypeOptions = [
     { value: "screening", label: "Screening" },
 ] as const;
 
-const practiceFocusOptions = [
-    { value: "structure", label: "Clear structure" },
-    { value: "specific examples", label: "Specific examples" },
-    { value: "concise answers", label: "Concise answers" },
-    { value: "confidence", label: "Confidence" },
-] as const;
+const questionCountOptions = [3, 5, 7, 10] as const;
 
 export function PracticeSetupForm({ initialValues = null, practiceDraftId = null, submissionError = null }: PracticeSetupFormProps) {
     const router = useRouter();
@@ -89,13 +75,14 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
             targetRole: formData.get("targetRole"),
             jobDescription: formData.get("jobDescription"),
             resumeText: formData.get("resumeText"),
+            questionCount: formData.get("questionCount"),
         });
         const intakeResult = safeParsePracticeSetupIntakeInput({
-            confidenceLevel: nullableFormValue(formData.get("confidenceLevel")),
+            confidenceLevel: null,
             interviewType: nullableFormValue(formData.get("interviewType")),
-            timeline: formData.get("timeline"),
-            concerns: formData.get("concerns"),
-            practiceFocus: formData.getAll("practiceFocus"),
+            timeline: null,
+            concerns: null,
+            practiceFocus: [],
         });
 
         if (!result.success) {
@@ -132,7 +119,7 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
         <form
             noValidate
             onSubmit={handleSubmit}
-            className="surface-elevated space-y-8 p-5 md:p-7"
+            className="surface-elevated space-y-8 p-5 shadow-raised-1 md:p-7"
             aria-label="Practice setup form"
         >
             <div className="flex items-start gap-3 border-b border-[rgb(var(--candidate-border)/0.72)] pb-5">
@@ -140,13 +127,9 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
                     <ClipboardList className="h-5 w-5" />
                 </span>
                 <div>
-                    <p className="eyebrow">Practice setup</p>
-                    <h2 className="mt-2 font-display text-2xl font-bold text-[rgb(var(--candidate-foreground))]">
-                        Tune the interview before you start.
-                    </h2>
-                    <p className="mt-2 max-w-2xl text-sm leading-7 text-[rgb(var(--candidate-muted))]">
-                        Add only the context that will make the questions more useful. You can keep it light and move straight into practice.
-                    </p>
+                    <h1 className="font-display text-2xl font-bold text-[rgb(var(--candidate-foreground))]">
+                        Practice Setup
+                    </h1>
                 </div>
             </div>
 
@@ -224,78 +207,29 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
                 </div>
             </div>
 
-            <section className="space-y-5 rounded-2xl border border-[rgb(var(--candidate-border)/0.78)] bg-[rgb(var(--candidate-surface-subtle))] p-4 md:p-5" aria-label="Personalization intake">
-                <div className="flex items-start gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--candidate-accent-soft))] text-[rgb(var(--candidate-accent))]">
-                        <Sparkles className="h-5 w-5" />
-                    </span>
-                    <div>
-                        <h3 className="text-sm font-bold text-[rgb(var(--candidate-foreground))]">Personalize the coaching</h3>
-                        <p className="mt-1 text-sm leading-6 text-[rgb(var(--candidate-muted))]">
-                            These details help shape the tone and focus without turning setup into a long questionnaire.
-                        </p>
-                    </div>
-                </div>
-
-                <fieldset className="space-y-3" aria-label="How ready do you feel">
-                    <legend className="sr-only">How ready do you feel?</legend>
-                    <FieldHint>How ready do you feel?</FieldHint>
-                    <div className="grid gap-3 sm:grid-cols-3">
-                        {confidenceOptions.map((option) => (
-                            <label key={option.value} className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-[rgb(var(--candidate-border))] bg-white px-4 py-3 text-sm font-semibold text-[rgb(var(--candidate-foreground))] transition hover:border-[rgb(var(--candidate-primary))]">
-                                <input type="radio" name="confidenceLevel" value={option.value} defaultChecked={initialValues?.confidenceLevel === option.value} />
-                                {option.label}
-                            </label>
+            <div className="grid gap-5 sm:grid-cols-2">
+                <div className="space-y-3">
+                    <FieldLabel htmlFor="interview-type">Interview type</FieldLabel>
+                    <select id="interview-type" name="interviewType" defaultValue={initialValues?.interviewType ?? ""} className={textFieldClassName}>
+                        <option value="">General practice</option>
+                        {interviewTypeOptions.map((option) => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
                         ))}
-                    </div>
-                </fieldset>
-
-                <div className="grid gap-5 lg:grid-cols-2">
-                    <div className="space-y-3">
-                        <FieldLabel htmlFor="interview-type">Interview type</FieldLabel>
-                        <select id="interview-type" name="interviewType" defaultValue={initialValues?.interviewType ?? ""} className={textFieldClassName}>
-                            <option value="">Choose if known</option>
-                            {interviewTypeOptions.map((option) => (
-                                <option key={option.value} value={option.value}>{option.label}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="space-y-3">
-                        <FieldLabel htmlFor="timeline">Timeline</FieldLabel>
-                        <input id="timeline" name="timeline" defaultValue={initialValues?.timeline ?? ""} placeholder="Interview next week, first round tomorrow..." className={textFieldClassName} />
-                    </div>
+                    </select>
                 </div>
-
-                <fieldset className="space-y-3" aria-label="What should the coach pay attention to">
-                    <legend className="sr-only">What should the coach pay attention to?</legend>
-                    <FieldHint>What should the coach pay attention to?</FieldHint>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                        {practiceFocusOptions.map((option) => (
-                            <label key={option.value} className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-[rgb(var(--candidate-border))] bg-white px-4 py-3 text-sm font-semibold text-[rgb(var(--candidate-foreground))] transition hover:border-[rgb(var(--candidate-primary))]">
-                                <input type="checkbox" name="practiceFocus" value={option.value} defaultChecked={initialValues?.practiceFocus?.includes(option.value) ?? false} />
-                                {option.label}
-                            </label>
-                        ))}
-                    </div>
-                </fieldset>
 
                 <div className="space-y-3">
-                    <FieldLabel htmlFor="concerns">Anything you want to improve?</FieldLabel>
-                    <textarea id="concerns" name="concerns" rows={4} defaultValue={initialValues?.concerns ?? ""} placeholder="For example: I ramble when I get nervous, or I need stronger examples." className={textareaFieldClassName} />
-                </div>
-            </section>
-
-            <div className="rounded-2xl border border-dashed border-[rgb(var(--candidate-border))] bg-[rgb(var(--candidate-surface-subtle))] p-4">
-                <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                        <Upload className="h-5 w-5" />
-                    </div>
-                    <div>
-                        <p className="text-sm font-bold text-text-primary">Resume file upload is coming next.</p>
-                        <p className="mt-1 text-sm leading-6 text-text-secondary">
-                            This first slice keeps pasted text available while preserving the upload path for the resume pipeline.
-                        </p>
-                    </div>
+                    <FieldLabel htmlFor="question-count">Question count</FieldLabel>
+                    <select
+                        id="question-count"
+                        name="questionCount"
+                        defaultValue={String(initialValues?.questionCount ?? PRACTICE_SETUP_LIMITS.questionCountDefault)}
+                        className={textFieldClassName}
+                    >
+                        {questionCountOptions.map((option) => (
+                            <option key={option} value={option}>{option}</option>
+                        ))}
+                    </select>
                 </div>
             </div>
 

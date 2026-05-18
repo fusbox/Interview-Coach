@@ -18,6 +18,7 @@ describe("practiceSetupSchema", () => {
             targetRole: "Customer success manager",
             jobDescription: "Support enterprise accounts.",
             resumeText: "Led onboarding programs.",
+            questionCount: 5,
         });
     });
 
@@ -26,6 +27,7 @@ describe("practiceSetupSchema", () => {
             targetRole: "QA analyst",
             jobDescription: null,
             resumeText: null,
+            questionCount: 5,
         });
 
         expect(
@@ -33,12 +35,26 @@ describe("practiceSetupSchema", () => {
                 targetRole: "QA analyst",
                 jobDescription: "   ",
                 resumeText: "",
+                questionCount: "7",
             }),
         ).toEqual({
             targetRole: "QA analyst",
             jobDescription: null,
             resumeText: null,
+            questionCount: 7,
         });
+    });
+
+    it("treats question count as lightweight setup configuration", () => {
+        expect(parsePracticeSetupInput({
+            targetRole: "QA analyst",
+            questionCount: "3",
+        })).toMatchObject({
+            questionCount: 3,
+        });
+
+        expect(safeParsePracticeSetupInput({ targetRole: "QA analyst", questionCount: 2 }).success).toBe(false);
+        expect(safeParsePracticeSetupInput({ targetRole: "QA analyst", questionCount: 11 }).success).toBe(false);
     });
 
     it("rejects blank target role values", () => {

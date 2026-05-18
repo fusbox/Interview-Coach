@@ -196,6 +196,7 @@ The first shared validation boundary is implemented in [practice-setup-schema.ts
 - `targetRole` is required, trimmed, and length-limited.
 - `jobDescription` is optional, trimmed, length-limited, and normalized to `null` when blank or omitted.
 - `resumeText` is optional, trimmed, length-limited, and normalized to `null` when blank or omitted.
+- `questionCount` is lightweight practice configuration, defaults to 5, and is constrained to 3-10 questions. It is used for generation/session snapshot shaping, but is not persisted as a core draft setup field.
 - Non-string setup payloads are rejected before they reach the future draft repository/service boundary.
 
 The first accessible form boundary is implemented in [PracticeSetupForm.tsx](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/PracticeSetupForm.tsx) and covered by [PracticeSetupForm.test.tsx](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/PracticeSetupForm.test.tsx). Validation summaries and future server submission errors must render through an announced alert region, and field errors must remain associated with their inputs.
@@ -226,8 +227,10 @@ Current restore boundary:
 Current submit boundary:
 
 - [Candidate practice draft repository](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.ts) transitions only candidate-owned editable drafts from `draft` to `generating`, then attaches the generated session and question snapshot IDs only while the draft is still in `generating`.
-- [Candidate session creation service](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-creation-service.ts) creates a candidate-owned shared session from the generating draft, persists generated questions as the immutable session question snapshot, and marks the draft `ready` with `resumeTargetScreen = "session_entry"`.
-- [Practice setup action](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/actions.ts) resolves the current local candidate profile, moves the draft into generation, and calls the session creation service.
+- [Shared question generation service](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/services/question-generation-service.ts) owns the AI provider call, schema validation, redacted AI-generation capture, mock fallback, and candidate question snapshot flattening.
+- [Recruiter question-generation API route](/c:/tmp/Interview-Coach-Recruiter-postgres/src/app/api/questions/generate/route.ts) continues to call the shared service with recruiter actor/app context.
+- [Candidate session creation service](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-creation-service.ts) creates a candidate-owned shared session from the generating draft, passes role/JD/resume/interview type/question count into the shared generation service, persists generated questions as the immutable session question snapshot, and marks the draft `ready` with `resumeTargetScreen = "session_entry"`.
+- [Practice setup action](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/actions.ts) resolves the current local candidate profile, moves the draft into generation, and calls the session creation service with lightweight generation configuration.
 - [Practice setup form](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/PracticeSetupForm.tsx) calls the action for restored drafts after client-side setup validation passes.
 
 The generation/loading screen and real `/session/[sessionId]` rendering remain separate follow-up slices.

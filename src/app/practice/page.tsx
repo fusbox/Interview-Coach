@@ -1,3 +1,4 @@
+import { CandidateShell } from "@/components/shell/CandidateShell";
 import { PracticeSetupPage } from "@/features/practice-setup";
 import { loadPracticeSetupDraftForCurrentCandidate } from "@/lib/server/candidate";
 
@@ -14,5 +15,9 @@ export default async function PracticePage({ searchParams }: PracticePageProps) 
         : resolvedSearchParams.draftId;
     const restoredDraft = await loadPracticeSetupDraftForCurrentCandidate(selectedDraftId);
 
-    return <PracticeSetupPage restoredDraft={restoredDraft} />;
+    return (
+        <CandidateShell>
+            <PracticeSetupPage restoredDraft={restoredDraft} />
+        </CandidateShell>
+    );
 }

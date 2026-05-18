@@ -28,7 +28,9 @@ Candidate integration now has Vitest coverage for candidate route, auth, persist
 
 `npm run db:smoke-candidate-setup-summary` validates deterministic seeded candidate setup, in-session, completed-summary, and saved-feedback fixtures. `npm run test:e2e:candidate-seeded` then runs the DB-backed browser smoke in password-backed local candidate auth mode, using the primary seeded candidate to move from `/practice` into a generated session and summary. The browser smoke owns its temporary Next dev server process group in CI and should shut it down cleanly after Playwright finishes.
 
-The practice setup component/action tests cover the MVP setup contract: edited setup values are saved before generation, structured intake responses are submitted with the draft, and a new draft can be created when no editable draft was restored.
+The practice setup component/action tests cover the MVP setup contract: edited setup values are saved before generation, lightweight session configuration such as interview type and question count is submitted for generation, structured intake responses are submitted with the draft, and a new draft can be created when no editable draft was restored.
+
+The shared question-generation service tests cover recruiter and candidate use of the same AI provider/schema/capture boundary. Candidate session creation tests verify that role, optional job description, optional resume text, interview type, and question count flow into generated immutable session snapshots without reintroducing invite-token assumptions.
 
 The candidate session component tests cover the recruiter-style session workspace adapted for authenticated candidates: progress header, prompt shell, typed answer submission, saved-answer coaching, retry/continue controls, pause/resume/completed states, and hidden engagement debug inspector access with available AI prompt context.
 

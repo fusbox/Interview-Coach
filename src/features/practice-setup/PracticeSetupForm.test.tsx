@@ -34,6 +34,7 @@ describe("PracticeSetupForm", () => {
                     targetRole: "QA analyst",
                     jobDescription: "Test regulated workflows.",
                     resumeText: "Validated releases.",
+                    interviewType: "behavioral",
                 }}
             />,
         );
@@ -41,6 +42,14 @@ describe("PracticeSetupForm", () => {
         expect(screen.getByLabelText(/target role/i)).toHaveValue("QA analyst");
         expect(screen.getByLabelText(/job description/i)).toHaveValue("Test regulated workflows.");
         expect(screen.getByLabelText(/resume text/i)).toHaveValue("Validated releases.");
+        expect(screen.getByLabelText(/interview type/i)).toHaveValue("behavioral");
+        expect(screen.getByLabelText(/question count/i)).toHaveValue("5");
+    });
+
+    it("uses the recruiter create card elevation", () => {
+        render(<PracticeSetupForm />);
+
+        expect(screen.getByRole("form", { name: /practice setup form/i })).toHaveClass("shadow-raised-1");
     });
 
     it("announces target role validation errors and associates the message to the field", async () => {
@@ -90,6 +99,7 @@ describe("PracticeSetupForm", () => {
                 targetRole: "QA analyst",
                 jobDescription: "Test regulated workflows.",
                 resumeText: "Validated releases.",
+                questionCount: 5,
             },
             intakeResponses: {
                 confidenceLevel: null,
@@ -102,7 +112,7 @@ describe("PracticeSetupForm", () => {
         expect(routerPushMock).toHaveBeenCalledWith("/session/session-1");
     });
 
-    it("submits structured intake selections with the setup context", async () => {
+    it("submits the MVP interview type while deferring non-MVP intake fields", async () => {
         const user = userEvent.setup();
         startPracticeGenerationActionMock.mockResolvedValue({
             ok: true,
@@ -117,25 +127,28 @@ describe("PracticeSetupForm", () => {
                     targetRole: "Customer success manager",
                     jobDescription: null,
                     resumeText: null,
-                    confidenceLevel: "medium",
+                    questionCount: 7,
                     interviewType: "behavioral",
-                    timeline: "Interview next week",
-                    concerns: "Staying concise",
-                    practiceFocus: ["structure"],
                 }}
             />,
         );
 
-        await user.click(screen.getByLabelText(/specific examples/i));
+        await user.selectOptions(screen.getByLabelText(/question count/i), "7");
         await user.click(screen.getByRole("button", { name: /start generating questions/i }));
 
         expect(startPracticeGenerationActionMock).toHaveBeenCalledWith(expect.objectContaining({
+            setup: {
+                targetRole: "Customer success manager",
+                jobDescription: null,
+                resumeText: null,
+                questionCount: 7,
+            },
             intakeResponses: {
-                confidenceLevel: "medium",
+                confidenceLevel: null,
                 interviewType: "behavioral",
-                timeline: "Interview next week",
-                concerns: "Staying concise",
-                practiceFocus: ["structure", "specific examples"],
+                timeline: null,
+                concerns: null,
+                practiceFocus: [],
             },
         }));
     });

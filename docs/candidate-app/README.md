@@ -96,15 +96,16 @@ Use the reference map below.
 15. [Recruiter Regression Checklist For Candidate PRs](05-quality/recruiter-regression-checklist.md)
 16. [Candidate App Threat Model](06-security/threat-model.md)
 17. [Data Retention Policy](06-security/data-retention-policy.md)
-18. [Azure DevOps Operating Model](07-ops/azure-devops-operating-model.md)
-19. [Candidate Observability Plan](07-ops/candidate-observability-plan.md)
-20. [Candidate Incident Runbook](07-ops/candidate-incident-runbook.md)
-21. [Candidate Integration PR Policy](07-ops/candidate-integration-pr-policy.md)
+18. [Privacy Policy Requirements](06-security/privacy-policy-requirements.md)
+19. [Azure DevOps Operating Model](07-ops/azure-devops-operating-model.md)
+20. [Candidate Observability Plan](07-ops/candidate-observability-plan.md)
+21. [Candidate Incident Runbook](07-ops/candidate-incident-runbook.md)
+22. [Candidate Integration PR Policy](07-ops/candidate-integration-pr-policy.md)
 
 ### Decisions and developer setup
 
-22. [Decision Records](08-decisions/README.md)
-23. [Local Dev Bootstrap](09-dev/local-dev-bootstrap.md)
+23. [Decision Records](08-decisions/README.md)
+24. [Local Dev Bootstrap](09-dev/local-dev-bootstrap.md)
 
 ## Document Rules
 

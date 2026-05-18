@@ -54,12 +54,13 @@ export async function startPracticeGenerationAction(input: StartPracticeGenerati
     const profile = await resolveCandidateProfileFromIdentity(handoff);
     const normalizedPracticeDraftId = input.practiceDraftId?.trim() || null;
     let practiceDraftId = normalizedPracticeDraftId;
+    const { questionCount, ...draftSetup } = setupResult.data;
 
     if (practiceDraftId) {
         const updatedDraft = await updateCandidatePracticeDraftSetup({
             candidateProfileId: profile.candidateProfileId,
             practiceDraftId,
-            ...setupResult.data,
+            ...draftSetup,
         });
 
         if (!updatedDraft) {
@@ -68,7 +69,7 @@ export async function startPracticeGenerationAction(input: StartPracticeGenerati
     } else {
         const createdDraft = await createCandidatePracticeDraft({
             candidateProfileId: profile.candidateProfileId,
-            ...setupResult.data,
+            ...draftSetup,
         });
         practiceDraftId = createdDraft.practiceDraftId;
     }
@@ -95,6 +96,9 @@ export async function startPracticeGenerationAction(input: StartPracticeGenerati
     const sessionResult = await createCandidateSessionFromDraft({
         candidateProfileId: profile.candidateProfileId,
         practiceDraftId: draft.practiceDraftId,
+        generationConfig: {
+            questionCount,
+        },
     });
 
     if (!sessionResult.ok) {

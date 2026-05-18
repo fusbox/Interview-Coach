@@ -99,11 +99,8 @@ describe("candidate practice setup loader", () => {
                 targetRole: "QA analyst",
                 jobDescription: "Test regulated workflows.",
                 resumeText: "Validated releases.",
-                confidenceLevel: null,
                 interviewType: null,
-                timeline: null,
-                concerns: null,
-                practiceFocus: [],
+                questionCount: 5,
             },
         });
         expect(findLatestEditableCandidatePracticeDraftMock).toHaveBeenCalledWith("profile-1");
@@ -169,11 +166,8 @@ describe("candidate practice setup loader", () => {
                 targetRole: "Warehouse lead",
                 jobDescription: null,
                 resumeText: null,
-                confidenceLevel: "high",
                 interviewType: "behavioral",
-                timeline: "Interview tomorrow",
-                concerns: "Making examples concise.",
-                practiceFocus: ["specific examples"],
+                questionCount: 5,
             },
         });
         expect(findCandidatePracticeDraftByIdMock).toHaveBeenCalledWith({

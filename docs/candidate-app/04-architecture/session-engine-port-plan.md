@@ -33,7 +33,7 @@ These files are reusable by candidate-led sessions with no candidate-specific fo
 | Repository factory | [session-repository.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/infrastructure/session-repository.ts) | Shared backend selector, currently Postgres-only |
 | Application commands | [get-session.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/application/session/get-session.ts), [update-session.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/application/session/update-session.ts), [start-session.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/application/session/start-session.ts) | Candidate services may reuse these only after candidate ownership has been resolved |
 | AI analysis | [ai-service.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/services/ai-service.ts) | Candidate answer analysis can reuse the provider/schema boundary; prompts must keep candidate privacy rules |
-| Question generation | [question-service.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/services/question-service.ts) | Candidate draft generation can reuse question generation behind candidate draft ownership |
+| Question generation | [question-generation-service.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/services/question-generation-service.ts) | Recruiter and candidate flows share the AI provider/schema/capture boundary while passing different actor/app context |
 
 ## Candidate Adapter Files
 
@@ -42,6 +42,7 @@ These files intentionally sit between authenticated candidate routes and the sha
 | Area | File | Responsibility |
 | --- | --- | --- |
 | Session creation | [candidate-session-creation-service.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-creation-service.ts) | Reads a candidate-owned generating draft, creates a shared session, attaches session/snapshot IDs back to the draft, and cleans up on attach failure |
+| Question snapshot generation | [question-generation-service.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/services/question-generation-service.ts) | Generates a recruiter-compatible question set, then flattens it into a candidate immutable session question snapshot ordered by lightweight practice configuration |
 | Session loading | [candidate-session-loader.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-loader.ts) | Verifies `candidate_profile_id` plus `session_id` ownership before reading the shared session record |
 | Session progress | [candidate-session-progress-service.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-progress-service.ts) | Starts, advances, pauses, resumes, and completes sessions after ownership checks |
 | Answer and retry mutations | [candidate-session-answer-service.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-answer-service.ts) | Submits and retries answers without invite-token dependency |
@@ -68,7 +69,8 @@ Do not port these assumptions into authenticated candidate routes:
 Already implemented:
 
 - candidate-owned draft to session creation
-- immutable question snapshot ID on the draft
+- AI-backed candidate question generation through the shared question generation service
+- immutable generated question snapshot attached to the candidate session and draft
 - candidate-owned session route loading
 - start, pause, resume, next question, and completion mutations
 - answer submit, candidate-owned answer coaching, and retry server actions

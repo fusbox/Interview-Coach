@@ -88,6 +88,10 @@ describe("candidate session creation service", () => {
                 candidateProfileId: "profile-1",
                 practiceDraftId: "draft-1",
                 questionSetSnapshotId: "snapshot-1",
+                practiceConfig: {
+                    interviewType: null,
+                    questionCount: 5,
+                },
                 resumeContext: {
                     captureMode: "pasted_text",
                     extractedText: "Reduced change failure rate by 25%.",
@@ -106,6 +110,73 @@ describe("candidate session creation service", () => {
             subjectId: "draft-1",
         }));
         expect(deleteSession).not.toHaveBeenCalled();
+    });
+
+    it("passes setup context and lightweight practice configuration to the shared question generator", async () => {
+        const generateQuestions = vi.fn().mockResolvedValue([
+            {
+                id: "question-1",
+                text: "Describe a reliability incident you improved.",
+                category: "Technical",
+                index: 0,
+            },
+        ]);
+
+        await createCandidateSessionFromDraft(
+            {
+                candidateProfileId: "profile-1",
+                practiceDraftId: "draft-1",
+                generationConfig: {
+                    questionCount: 7,
+                },
+            },
+            {
+                findDraftById: vi.fn().mockResolvedValue(practiceDraft({
+                    status: "generating",
+                    targetRole: "Reliability engineer",
+                    jobDescription: "Own deployment quality.",
+                    resumeContext: {
+                        sourceAssets: [],
+                        pastedText: "Reduced change failure rate by 25%.",
+                        extractedText: "Reduced change failure rate by 25%.",
+                        captureMode: "pasted_text",
+                        processedArtifact: {
+                            text: "Reduced change failure rate by 25%.",
+                            source: "pasted_text",
+                            originalRetained: false,
+                        },
+                    },
+                    intakeResponses: {
+                        confidenceLevel: null,
+                        interviewType: "technical",
+                        timeline: null,
+                        concerns: null,
+                        practiceFocus: [],
+                    },
+                })),
+                attachGeneratedSession: vi.fn().mockResolvedValue(practiceDraft({
+                    status: "ready",
+                    sessionId: "session-1",
+                    questionSetSnapshotId: "snapshot-1",
+                    resumeTargetScreen: "session_entry",
+                })),
+                sessionRepository: {
+                    create: vi.fn(),
+                    delete: vi.fn(),
+                },
+                generateQuestions,
+                createSessionId: () => "session-1",
+                createQuestionSetSnapshotId: () => "snapshot-1",
+            },
+        );
+
+        expect(generateQuestions).toHaveBeenCalledWith({
+            role: "Reliability engineer",
+            jobDescription: "Own deployment quality.",
+            resume: "Reduced change failure rate by 25%.",
+            interviewType: "technical",
+            questionCount: 7,
+        });
     });
 
     it("does not create a session when the draft is not in generation state", async () => {

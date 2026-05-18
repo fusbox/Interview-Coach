@@ -1,7 +1,7 @@
 import type { SessionRepository } from "@/lib/domain/repository";
 import type { InterviewSession, Question } from "@/lib/domain/types";
 import { createSessionRepository } from "@/lib/server/infrastructure/session-repository";
-import { QuestionService } from "@/lib/server/services/question-service";
+import { generateCandidateQuestionSnapshot, type QuestionGenerationInput } from "@/lib/server/services/question-generation-service";
 import { uuidv7 } from "uuidv7";
 
 import {
@@ -21,9 +21,15 @@ type CandidateSessionCreationDependencies = {
         questionSetSnapshotId: string;
     }) => Promise<CandidatePracticeDraft | null>;
     sessionRepository?: Pick<SessionRepository, "create" | "delete">;
-    generateQuestions?: (role: string) => Promise<Question[]>;
+    generateQuestions?: (input: QuestionGenerationInput) => Promise<Question[]>;
     createSessionId?: () => string;
     createQuestionSetSnapshotId?: () => string;
+};
+
+type CandidateSessionCreationInput = CandidatePracticeDraftLookup & {
+    generationConfig?: {
+        questionCount?: number | null;
+    };
 };
 
 type CandidateSessionCreationResult =
@@ -40,13 +46,12 @@ type CandidateSessionCreationResult =
     };
 
 export async function createCandidateSessionFromDraft(
-    input: CandidatePracticeDraftLookup,
+    input: CandidateSessionCreationInput,
     dependencies: CandidateSessionCreationDependencies = {},
 ): Promise<CandidateSessionCreationResult> {
     const findDraftById = dependencies.findDraftById ?? findCandidatePracticeDraftById;
     const attachGeneratedSession = dependencies.attachGeneratedSession ?? attachGeneratedSessionToCandidatePracticeDraft;
     const sessionRepository = dependencies.sessionRepository ?? await createSessionRepository();
-    const generateQuestions = dependencies.generateQuestions ?? QuestionService.generateQuestions;
     const createSessionId = dependencies.createSessionId ?? uuidv7;
     const createQuestionSetSnapshotId = dependencies.createQuestionSetSnapshotId ?? uuidv7;
 
@@ -65,7 +70,26 @@ export async function createCandidateSessionFromDraft(
         subjectId: input.practiceDraftId,
         mutate: async () => {
             const questionSetSnapshotId = createQuestionSetSnapshotId();
-            const questions = await generateQuestions(draft.targetRole);
+            const questionCount = input.generationConfig?.questionCount ?? 5;
+            const questionGenerationInput: QuestionGenerationInput = {
+                role: draft.targetRole,
+                jobDescription: draft.jobDescription,
+                resume: draft.resumeContext.extractedText || draft.resumeContext.pastedText || null,
+                interviewType: draft.intakeResponses.interviewType,
+                questionCount,
+            };
+            const questions = dependencies.generateQuestions
+                ? await dependencies.generateQuestions(questionGenerationInput)
+                : await generateCandidateQuestionSnapshot(
+                    questionGenerationInput,
+                    {
+                        appName: "candidate_app",
+                        actorType: "candidate",
+                        actorId: draft.candidateProfileId,
+                        correlationId: questionSetSnapshotId,
+                        sourceRefs: [{ type: "service", name: "candidate_session_generation" }],
+                    },
+                );
             if (questions.length === 0) {
                 return { ok: false, error: "Question generation returned no questions." };
             }
@@ -83,6 +107,10 @@ export async function createCandidateSessionFromDraft(
                     candidateProfileId: draft.candidateProfileId,
                     practiceDraftId: draft.practiceDraftId,
                     questionSetSnapshotId,
+                    practiceConfig: {
+                        interviewType: draft.intakeResponses.interviewType,
+                        questionCount,
+                    },
                     resumeContext: {
                         captureMode: draft.resumeContext.captureMode,
                         extractedText: draft.resumeContext.extractedText,

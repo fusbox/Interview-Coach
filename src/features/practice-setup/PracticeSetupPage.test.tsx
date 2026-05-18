@@ -15,22 +15,30 @@ describe("PracticeSetupPage", () => {
     it("renders the first candidate-owned setup form fields", () => {
         render(<PracticeSetupPage />);
 
-        expect(screen.getByRole("heading", { name: /set up your practice/i })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Practice Setup" })).toBeInTheDocument();
+        expect(screen.queryByText(/practice setup/i, { selector: "p" })).not.toBeInTheDocument();
+        expect(screen.queryByText(/add only the context/i)).not.toBeInTheDocument();
         expect(screen.getByLabelText(/target role/i)).toBeRequired();
         expect(screen.getByLabelText(/job description/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/resume text/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/interview type/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/question count/i)).toBeInTheDocument();
         expect(screen.getByRole("button", { name: /start generating questions/i })).toBeInTheDocument();
     });
 
-    it("keeps future personalization and upload paths visible but secondary", () => {
+    it("keeps deferred setup fields and companion panels out of the MVP surface", () => {
         render(<PracticeSetupPage />);
 
-        expect(screen.getByText(/resume file upload is coming next/i)).toBeInTheDocument();
-        expect(screen.getByRole("group", { name: /how ready do you feel/i })).toBeInTheDocument();
-        expect(screen.getByRole("group", { name: /what should the coach pay attention to/i })).toBeInTheDocument();
+        expect(screen.queryByText(/what happens next/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/setup state/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/draft state/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/resume file upload is coming next/i)).not.toBeInTheDocument();
+        expect(screen.queryByRole("group", { name: /how ready do you feel/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole("group", { name: /what should the coach pay attention to/i })).not.toBeInTheDocument();
+        expect(screen.queryByLabelText(/timeline/i)).not.toBeInTheDocument();
     });
 
-    it("renders available draft choices with stable draft links", () => {
+    it("prefills the MVP form fields from a restored draft without rendering draft choice cards", () => {
         render(<PracticeSetupPage restoredDraft={{
             practiceDraftId: "draft-2",
             availableDrafts: [
@@ -48,17 +56,15 @@ describe("PracticeSetupPage", () => {
                 targetRole: "Warehouse lead",
                 jobDescription: null,
                 resumeText: null,
-                confidenceLevel: "high",
                 interviewType: "technical",
-                timeline: "Interview tomorrow",
-                concerns: "Explaining tradeoffs",
-                practiceFocus: ["structure"],
+                questionCount: 7,
             },
         }} />);
 
-        expect(screen.getByRole("link", { name: /warehouse lead/i })).toHaveAttribute("href", "/practice?draftId=draft-2");
-        expect(screen.getByText(/may 12, 2026/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/timeline/i)).toHaveValue("Interview tomorrow");
+        expect(screen.getByLabelText(/target role/i)).toHaveValue("Warehouse lead");
+        expect(screen.getByLabelText(/interview type/i)).toHaveValue("technical");
+        expect(screen.getByLabelText(/question count/i)).toHaveValue("7");
+        expect(screen.queryByRole("link", { name: /warehouse lead/i })).not.toBeInTheDocument();
     });
 
     it("meets the candidate primary-page accessibility baseline", () => {

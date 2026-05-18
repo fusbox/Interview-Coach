@@ -27,6 +27,7 @@ It is the repo-local source of truth for what needs to be built, why it matters,
 - [Accessibility Baseline](05-quality/accessibility-baseline.md)
 - [Candidate App Threat Model](06-security/threat-model.md)
 - [Data Retention Policy](06-security/data-retention-policy.md)
+- [Privacy Policy Requirements](06-security/privacy-policy-requirements.md)
 - [Azure DevOps Operating Model](07-ops/azure-devops-operating-model.md)
 - [Candidate Integration PR Policy](07-ops/candidate-integration-pr-policy.md)
 - [Decision Records](08-decisions/README.md)
@@ -103,7 +104,7 @@ Ground truth:
 | FND-S03 | 641 | Story | Resolved | Fu Chen <fu@rangam.com> | Establish ground-truth docs and single working backlog | [README.md](README.md) links current docs and this backlog |
 | FND-T04 | 642 | Task | Closed | Fu Chen <fu@rangam.com> | Establish working docs and ground-truth docs | Foundational docs exist and are hyperlinked |
 | FND-S04 | 659 | Story | Active | Fu Chen <fu@rangam.com> | Add ADRs and environment contract | [Decision Records](08-decisions/README.md) and `.env.example` exist |
-| FND-F02 | 660 | Feature | Active | Fu Chen <fu@rangam.com> | Local developer bootstrap | A developer can run the app, DB setup, seed data, and quality checks locally |
+| FND-F02 | 660 | Feature | Resolved | Fu Chen <fu@rangam.com> | Local developer bootstrap | A developer can run the app, DB setup, seed data, and quality checks locally |
 | FND-S05 | 661 | Story | Resolved | Fu Chen <fu@rangam.com> | Document local bootstrap contract | [Local Dev Bootstrap](09-dev/local-dev-bootstrap.md) defines current and target commands |
 | FND-T02 | 662 | Task | Closed | Fu Chen <fu@rangam.com> | Implement DB setup/migrate/seed commands after DB layer lands | `db:setup`, `db:migrate`, `db:seed`, and candidate readiness commands are available and documented |
 | FND-F03 | 663 | Feature | Active | Fu Chen <fu@rangam.com> | Policy baselines | Retention, accessibility, and threat-model expectations are usable during implementation |
@@ -129,7 +130,7 @@ Ground truth:
 
 | ID | Azure ID | Level | State | Assigned To | Item | Acceptance Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| WEB-F01 | 751 | Feature | Active | Fu Chen <fu@rangam.com> | Shared host route ownership | Confirmed host, route owners, and collision risks are documented |
+| WEB-F01 | 751 | Feature | Resolved | Fu Chen <fu@rangam.com> | Shared host route ownership | Confirmed host, route owners, and collision risks are documented |
 | WEB-S01 | 644 | Story | Active | Fu Chen <fu@rangam.com> | Document shared host route and candidate login redirect contracts | Shared host and login redirect contracts exist in `docs/candidate-app` |
 | WEB-S02 | 649 | Story | Active | Himanshu Sagar <himanshusagar@rangam.com> | Track shared host route ownership | Route ownership questions are tracked for integration-team review |
 | WEB-S03 | 752 | Story | Resolved | Fu Chen <fu@rangam.com> | Port public candidate landing page into shared Azure branch | `/` renders the public candidate page in the shared app |
@@ -139,7 +140,7 @@ Ground truth:
 | WEB-S06 | 669 | Story | Resolved | Fu Chen <fu@rangam.com> | Update public CTA targets | Start practice and dashboard CTAs route through candidate login-start behavior |
 | WEB-S07 | 670 | Story | Active | Himanshu Sagar <himanshusagar@rangam.com> | Confirm candidate CTA return behavior | Integration team confirms parameter/state/callback behavior or fallback |
 | WEB-T01 | 671 | Task | Active | Fu Chen <fu@rangam.com> | Validate `LoginWithType/2` parameter behavior in browser | Observed behavior is recorded in the login redirect contract |
-| WEB-F03 | 672 | Feature | Active | Fu Chen <fu@rangam.com> | Recruiter/admin/QA route preservation | Existing recruiter/admin/QA relative paths continue to work after candidate routes land |
+| WEB-F03 | 672 | Feature | Resolved | Fu Chen <fu@rangam.com> | Recruiter/admin/QA route preservation | Existing recruiter/admin/QA relative paths continue to work after candidate routes land |
 | WEB-S08 | 673 | Story | Resolved | Fu Chen <fu@rangam.com> | Preserve recruiter/admin/QA route behavior | `/recruiter/dashboard` restores the migrated recruiter dashboard while `/recruiter/templates`, `/recruiter/settings`, `/admin/feedback`, and `/qa/ai-quality` remain protected under shared-host routing |
 
 ### EPIC-03 Candidate Identity And Auth Handoff
@@ -161,10 +162,10 @@ Ground truth:
 
 | ID | Azure ID | Level | State | Assigned To | Item | Acceptance Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| AUTH-F01 | 675 | Feature | Active | Fu Chen <fu@rangam.com> | Candidate profile and identity persistence | Candidate profile and external identity records exist in Postgres |
+| AUTH-F01 | 675 | Feature | Resolved | Fu Chen <fu@rangam.com> | Candidate profile and identity persistence | Candidate profile and external identity records exist in Postgres |
 | AUTH-S01 | 676 | Story | Resolved | Fu Chen <fu@rangam.com> | Create candidate profile and identity schema | Migration defines `candidate_profiles` and `candidate_identities` |
 | AUTH-T01 | 677 | Task | Closed | Fu Chen <fu@rangam.com> | Add ownership indexes and constraints | Schema supports candidate-scoped reads efficiently |
-| AUTH-F02 | 678 | Feature | Active | Fu Chen <fu@rangam.com> | Candidate access resolver | Feature code consumes `CandidateAccessContext`, not provider-specific cookies or claims |
+| AUTH-F02 | 678 | Feature | Resolved | Fu Chen <fu@rangam.com> | Candidate access resolver | Feature code consumes `CandidateAccessContext`, not provider-specific cookies or claims |
 | AUTH-S02 | 679 | Story | Resolved | Fu Chen <fu@rangam.com> | Define SSO/auth adapter interface | Interface captures issuer, subject, email, workspace, provider, and display name |
 | AUTH-S03 | 680 | Story | Resolved | Fu Chen <fu@rangam.com> | Add password-backed dev auth and explicit mock mode | Local protected routes resolve a stable candidate context |
 | AUTH-S04 | 681 | Story | Resolved | Fu Chen <fu@rangam.com> | Protect candidate route group | `/practice`, `/dashboard`, `/session/[sessionId]`, and summary/history routes reject missing auth |
@@ -194,14 +195,14 @@ Ground truth:
 
 | ID | Azure ID | Level | State | Assigned To | Item | Acceptance Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| DATA-F01 | 685 | Feature | Active | Fu Chen <fu@rangam.com> | Postgres client and config foundation | Server-only DB client supports `DATABASE_URL` and split `POSTGRES_*` env values |
+| DATA-F01 | 685 | Feature | Resolved | Fu Chen <fu@rangam.com> | Postgres client and config foundation | Server-only DB client supports `DATABASE_URL` and split `POSTGRES_*` env values |
 | DATA-S01 | 686 | Story | Resolved | Fu Chen <fu@rangam.com> | Port Postgres config/client patterns from migrated recruiter app | Config parsing and query wrapper tests pass |
 | DATA-T01 | 687 | Task | Closed | Fu Chen <fu@rangam.com> | Add env validation for candidate backend selectors | Invalid production backend values fail clearly |
-| DATA-F02 | 688 | Feature | Active | Fu Chen <fu@rangam.com> | Candidate repository layer | Candidate profiles, drafts, sessions, resumes, and dashboard reads use repository boundaries |
+| DATA-F02 | 688 | Feature | Resolved | Fu Chen <fu@rangam.com> | Candidate repository layer | Candidate profiles, drafts, sessions, resumes, and dashboard reads use repository boundaries |
 | DATA-S02 | 689 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate profile repository | Create/read/update behavior is tested |
 | DATA-S03 | 690 | Story | Resolved | Fu Chen <fu@rangam.com> | Add draft/session repository boundaries | Candidate-owned drafts and sessions are persisted through server code |
 | DATA-S04 | 691 | Story | Resolved | Fu Chen <fu@rangam.com> | Add metrics/rate-limit/idempotency boundaries | Route metrics and candidate mutation rate-limit/state-idempotency boundaries are tested |
-| DATA-F03 | 692 | Feature | Active | Fu Chen <fu@rangam.com> | Migration and seed path | Local and integration environments can apply schema and seed dev candidates |
+| DATA-F03 | 692 | Feature | Resolved | Fu Chen <fu@rangam.com> | Migration and seed path | Local and integration environments can apply schema and seed dev candidates |
 | DATA-S05 | 693 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate DB migration | Migration applies cleanly on local Postgres |
 | DATA-S06 | 694 | Story | Resolved | Fu Chen <fu@rangam.com> | Add dev seed candidates | Seed SQL and smoke validation support happy path and ownership tests |
 
@@ -223,18 +224,19 @@ Ground truth:
 
 | ID | Azure ID | Level | State | Assigned To | Item | Acceptance Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| DRFT-F01 | 696 | Feature | Active | Fu Chen <fu@rangam.com> | Practice setup feature slice | Route page delegates UI and behavior to feature code |
+| DRFT-F01 | 696 | Feature | Resolved | Fu Chen <fu@rangam.com> | Practice setup feature slice | Route page delegates UI and behavior to feature code |
 | DRFT-S01 | 697 | Story | Resolved | Fu Chen <fu@rangam.com> | Move practice form into `src/features/practice-setup` | Route delegates to feature module |
 | DRFT-S02 | 698 | Story | Resolved | Fu Chen <fu@rangam.com> | Add setup validation schema | Target role required; JD and resume optional; invalid payloads rejected |
 | DRFT-T01 | 699 | Task | Closed | Fu Chen <fu@rangam.com> | Add accessible validation messaging | Required-field and server errors are announced/readable |
-| DRFT-F02 | 700 | Feature | Active | Fu Chen <fu@rangam.com> | Server-backed draft lifecycle | Draft state is persisted and restorable across refresh/device |
+| DRFT-F02 | 700 | Feature | Resolved | Fu Chen <fu@rangam.com> | Server-backed draft lifecycle | Draft state is persisted and restorable across refresh/device |
 | DRFT-S03 | 701 | Story | Resolved | Fu Chen <fu@rangam.com> | Add draft service/repository | Draft create/read/update paths are tested |
 | DRFT-S04 | 702 | Story | Resolved | Fu Chen <fu@rangam.com> | Persist pasted resume text as normalized context | Draft stores normalized resume context |
 | DRFT-S05 | 703 | Story | Resolved | Fu Chen <fu@rangam.com> | Restore draft after refresh | Browser or route test proves server state restores form |
 | DRFT-S06 | 704 | Story | Resolved | Fu Chen <fu@rangam.com> | Submit draft into generation state | Draft status and resume target persist |
-| DRFT-F03 | 705 | Feature | Active | Fu Chen <fu@rangam.com> | Multiple draft management | Candidate can distinguish and resume more than one active/named draft |
+| DRFT-F03 | 705 | Feature | Resolved | Fu Chen <fu@rangam.com> | Multiple draft management | Candidate can distinguish and resume more than one active/named draft |
 | DRFT-S07 | 706 | Story | Resolved | Fu Chen <fu@rangam.com> | Model draft naming and selection | Candidate can choose editable drafts by role label and last activity date |
 | DRFT-S08 | 769 | Story | Resolved | Fu Chen <fu@rangam.com> | Build practice setup UI MVP | `/practice` saves edited setup, resume context, structured intake, and draft selection before routing into session creation |
+| DRFT-F04 | TBD | Feature | New | Fu Chen <fu@rangam.com> | Practice setup UI refinement | Practice setup copy, layout, progressive disclosure, policy notices, and final interaction polish are reviewed as product UI work after the backend/MVP shell is stable |
 
 ### EPIC-06 Candidate Session Engine Integration
 
@@ -257,7 +259,7 @@ Ground truth:
 | SESS-F01 | 708 | Feature | Resolved | Fu Chen <fu@rangam.com> | Session engine port plan | Candidate-safe session files and exclusions are documented |
 | SESS-S01 | 709 | Story | Resolved | Fu Chen <fu@rangam.com> | Identify candidate-safe session engine files | Port list references concrete source files from migrated recruiter app |
 | SESS-T01 | 710 | Task | Closed | Fu Chen <fu@rangam.com> | Mark recruiter-only session assumptions | Invite-token-only and recruiter-review assumptions are listed |
-| SESS-F02 | 711 | Feature | Active | Fu Chen <fu@rangam.com> | Candidate session lifecycle | Draft creates session and session resumes from persisted state |
+| SESS-F02 | 711 | Feature | Resolved | Fu Chen <fu@rangam.com> | Candidate session lifecycle | Draft creates session and session resumes from persisted state |
 | SESS-S02 | 712 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate session creation service | Draft produces session ID and immutable question snapshot |
 | SESS-S03 | 713 | Story | Resolved | Fu Chen <fu@rangam.com> | Render real session state in `/session/[sessionId]` | Page no longer uses static placeholder content |
 | SESS-S04 | 714 | Story | Resolved | Fu Chen <fu@rangam.com> | Persist session progress and resume target | Refresh returns to the correct in-session state |
@@ -267,6 +269,9 @@ Ground truth:
 | SESS-S07 | 764 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate answer and retry mutation surface | Candidate-owned answer submit and retry persist through server actions and Postgres session storage without invite-token dependency |
 | SESS-S08 | 765 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate answer coaching action | Candidate-owned submitted answers can generate and display coaching through a candidate ownership boundary |
 | SESS-S09 | 770 | Story | Resolved | Fu Chen <fu@rangam.com> | Build live practice session UI MVP | `/session/[sessionId]` reuses recruiter session workspace patterns for prompt, progress, answer, coaching, retry, pause/resume, completion, and hidden engagement debug inspection |
+| SESS-F05 | 777 | Feature | Resolved | Fu Chen <fu@rangam.com> | AI-backed candidate question generation | Candidate practice session creation uses the shared question-generation service instead of the mock role-only generator |
+| SESS-S10 | 778 | Story | Resolved | Fu Chen <fu@rangam.com> | Wire candidate session creation to shared AI question generation | Candidate setup passes role, optional JD, optional resume text, interview type, and question count into the shared generator; recruiter API behavior remains covered |
+| SESS-F04 | 773 | Feature | New | Fu Chen <fu@rangam.com> | Live session UI refinement | Candidate session flow, feedback presentation, voice/text controls, pause/resume affordances, and policy-adjacent notices are reviewed as product UI work after the shared session engine is stable |
 
 ### EPIC-07 Resume Ingestion And Candidate Context
 
@@ -286,16 +291,16 @@ Ground truth:
 
 | ID | Azure ID | Level | State | Assigned To | Item | Acceptance Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| RES-F01 | 719 | Feature | Active | Fu Chen <fu@rangam.com> | Resume text normalization | Pasted text becomes normalized `resumeText` and draft context |
+| RES-F01 | 719 | Feature | Resolved | Fu Chen <fu@rangam.com> | Resume text normalization | Pasted text becomes normalized `resumeText` and draft context |
 | RES-S01 | 720 | Story | Resolved | Fu Chen <fu@rangam.com> | Add resume normalization helper | Unit tests cover whitespace, empty, long, and unusual text cases |
 | RES-S02 | 721 | Story | Resolved | Fu Chen <fu@rangam.com> | Store processed resume artifact only | Processed text/metadata persists without raw file retention by default |
-| RES-F02 | 722 | Feature | Active | Fu Chen <fu@rangam.com> | Resume upload extraction boundary | Uploaded PDF/DOCX files produce extracted text or recoverable errors |
+| RES-F02 | 722 | Feature | Resolved | Fu Chen <fu@rangam.com> | Resume upload extraction boundary | Uploaded PDF/DOCX files produce extracted text or recoverable errors |
 | RES-S03 | 723 | Story | Resolved | Fu Chen <fu@rangam.com> | Add private file upload boundary | Pending upload metadata stores only private relative storage paths and processing-only retention |
 | RES-S04 | 724 | Story | Resolved | Fu Chen <fu@rangam.com> | Add PDF/DOCX extraction path | Extracted text flows into normalized context through a parser-agnostic service boundary |
 | RES-T01 | 725 | Task | Closed | Fu Chen <fu@rangam.com> | Delete original file after successful extraction by default | Successful extraction marks source asset retention as `original_deleted` |
 | RES-F03 | 726 | Feature | New | Fu Chen <fu@rangam.com> | Resume photo/OCR capture | Multi-page image capture produces ordered extracted text |
 | RES-S05 | 727 | Story | New | Fu Chen <fu@rangam.com> | Add photo/OCR capture path | Page order is preserved and merged text is normalized |
-| RES-F04 | 728 | Feature | Active | Fu Chen <fu@rangam.com> | Candidate intake profile | Candidate personalization data can tune practice and coaching |
+| RES-F04 | 728 | Feature | Resolved | Fu Chen <fu@rangam.com> | Candidate intake profile | Candidate personalization data can tune practice and coaching |
 | RES-S06 | 729 | Story | Resolved | Fu Chen <fu@rangam.com> | Add structured intake fields | Confidence, interview type, timeline, concerns, and practice focus persist |
 
 ### EPIC-08 Candidate Dashboard And History
@@ -315,7 +320,7 @@ Ground truth:
 
 | ID | Azure ID | Level | State | Assigned To | Item | Acceptance Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| DASH-F01 | 731 | Feature | Active | Fu Chen <fu@rangam.com> | Dashboard MVP read model | Contract includes active drafts, recent sessions, last activity, and summaries |
+| DASH-F01 | 731 | Feature | Resolved | Fu Chen <fu@rangam.com> | Dashboard MVP read model | Contract includes active drafts, recent sessions, last activity, and summaries |
 | DASH-S01 | 732 | Story | Resolved | Fu Chen <fu@rangam.com> | Define dashboard query contract | Empty, active, completed, and missing-auth states are represented |
 | DASH-S02 | 733 | Story | Resolved | Fu Chen <fu@rangam.com> | Replace mock dashboard data | Dashboard reads candidate-owned server data |
 | DASH-S03 | 734 | Story | Resolved | Fu Chen <fu@rangam.com> | Add resume/review/repeat actions | Actions route to owned session, summary, or setup flow |
@@ -323,6 +328,7 @@ Ground truth:
 | DASH-F02 | 736 | Feature | Resolved | Fu Chen <fu@rangam.com> | Progress and coaching themes | Candidate sees useful patterns without noisy analytics |
 | DASH-S05 | 737 | Story | Resolved | Fu Chen <fu@rangam.com> | Surface next best practice recommendation | Recommendation is grounded in candidate-owned history |
 | DASH-S06 | 771 | Story | Resolved | Fu Chen <fu@rangam.com> | Build dashboard UI MVP | Dashboard presents next practice step, active practice, completed history, coaching snippets, empty state, and resume/review/repeat affordances in the candidate design system |
+| DASH-F03 | 774 | Feature | New | Fu Chen <fu@rangam.com> | Dashboard UI refinement | Dashboard copy, hierarchy, empty states, history affordances, privacy cues, and final interaction polish are reviewed as product UI work after the read model and MVP shell are stable |
 
 ### EPIC-09 Quality, Security, Observability, And Release Readiness
 
@@ -339,21 +345,24 @@ Ground truth:
 - [Test Strategy](05-quality/test-strategy.md)
 - [Accessibility Baseline](05-quality/accessibility-baseline.md)
 - [Candidate App Threat Model](06-security/threat-model.md)
+- [Privacy Policy Requirements](06-security/privacy-policy-requirements.md)
 
 | ID | Azure ID | Level | State | Assigned To | Item | Acceptance Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| QSO-F01 | 739 | Feature | Active | Fu Chen <fu@rangam.com> | Smoke and regression testing | Browser smoke covers public, candidate, recruiter, admin, QA, and invite-token routes |
+| QSO-F01 | 739 | Feature | Resolved | Fu Chen <fu@rangam.com> | Smoke and regression testing | Browser smoke covers public, candidate, recruiter, admin, QA, and invite-token routes |
 | QSO-S01 | 740 | Story | Resolved | Fu Chen <fu@rangam.com> | Add primary route smoke tests | `/`, `/recruiter`, `/practice`, `/dashboard`, `/admin/feedback`, and `/qa/ai-quality` are covered |
 | QSO-S02 | 741 | Story | Resolved | Fu Chen <fu@rangam.com> | Add accessibility checks for primary pages | Automated baseline covers landing/practice/session/dashboard/summary; manual checks remain in the accessibility baseline |
 | QSO-S03 | 742 | Story | Resolved | Fu Chen <fu@rangam.com> | Add recruiter regression checklist for candidate PRs | Candidate PRs identify recruiter route risk and verification |
 | QSO-S08 | 766 | Story | Resolved | Fu Chen <fu@rangam.com> | Add seeded setup-to-summary smoke readiness | DB smoke validates deterministic setup, in-session, summary, and saved-feedback fixtures |
 | QSO-S09 | 768 | Story | Resolved | Fu Chen <fu@rangam.com> | Add seeded browser smoke for candidate setup to summary | Browser smoke uses deterministic seeded candidate fixtures to validate setup, session, and summary navigation |
-| QSO-F02 | 743 | Feature | Active | Fu Chen <fu@rangam.com> | Observability and incident readiness | App emits useful telemetry without leaking sensitive data |
+| QSO-F02 | 743 | Feature | Resolved | Fu Chen <fu@rangam.com> | Observability and incident readiness | App emits useful telemetry without leaking sensitive data |
 | QSO-S04 | 744 | Story | Resolved | Fu Chen <fu@rangam.com> | Add observability plan to deployment | Auth denial, draft, generation, extraction, and API errors are observable |
 | QSO-S05 | 745 | Story | Resolved | Fu Chen <fu@rangam.com> | Add incident runbook | Runbook covers auth, DB, AI provider, resume extraction, and deployment incidents |
-| QSO-F03 | 746 | Feature | Active | Fu Chen <fu@rangam.com> | Security and privacy review | Candidate data, redirects, resume ingestion, and ownership checks are reviewed |
+| QSO-F03 | 746 | Feature | Resolved | Fu Chen <fu@rangam.com> | Security and privacy review | Candidate data, redirects, resume ingestion, and ownership checks are reviewed |
 | QSO-S06 | 747 | Story | Resolved | Fu Chen <fu@rangam.com> | Review login redirect security | Open redirects, state tampering, and unsafe return targets are mitigated |
 | QSO-S07 | 748 | Story | Resolved | Fu Chen <fu@rangam.com> | Review resume data privacy | Retention, logging, and extraction failure paths avoid sensitive-data leaks |
+| QSO-F04 | 775 | Feature | New | Fu Chen <fu@rangam.com> | Privacy, cookie, and AI disclosure readiness | Policy gaps, app-local notices, retention boundaries, cookie behavior, AI vendor disclosure, and candidate data visibility are reviewed before production exposure |
+| QSO-S10 | 776 | Story | New | Fu Chen <fu@rangam.com> | Review Interview Coach privacy, cookie, and AI policy fit | [Privacy Policy Requirements](06-security/privacy-policy-requirements.md) is reviewed with policy owners; required notice, retention, cookie, AI vendor, and data-visibility follow-ups are confirmed or split into implementation items |
 
 ### EPIC-10 Azure DevOps Collaboration And Delivery
 
@@ -383,7 +392,7 @@ Ground truth:
 | OPS-S06 | 654 | Story | Active | Himanshu Sagar <himanshusagar@rangam.com> | Track candidate docs review for PR `!593` | Review feedback is captured in PR comments or Fu-Lab Boards |
 | OPS-S07 | 653 | Story | Resolved | Fu Chen <fu@rangam.com> | Create candidate integration starter checklist | [START-WORK-PASS.md](START-WORK-PASS.md) exists and is linked from docs hub |
 | OPS-F02 | 758 | Feature | Active | Fu Chen <fu@rangam.com> | Azure Boards import and traceability pattern | Work item import files can create correctly linked Azure hierarchy |
-| OPS-S08 | 759 | Story | Active | Fu Chen <fu@rangam.com> | Validate CSV import pattern for linked work items | Import CSV creates child story under Feature 643 |
+| OPS-S08 | 759 | Story | Resolved | Fu Chen <fu@rangam.com> | Validate CSV import pattern for linked work items | Import CSV creates child story under Feature 643 |
 | OPS-S09 | 760 | Story | Active | Fu Chen <fu@rangam.com> | Import canonical backlog hierarchy into Fu-Lab Boards | Import file reflects this working backlog and imports cleanly |
 | OPS-S10 | 646 | Story | Active | Himanshu Sagar <himanshusagar@rangam.com> | Publish company code wiki when access allows | `/docs/candidate-app` is published from company Azure project as code wiki |
 | OPS-S11 | 761 | Story | New | Himanshu Sagar <himanshusagar@rangam.com> | Add branch policy after reviewers are available | Candidate branch has agreed PR/build requirements |
@@ -459,7 +468,7 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 61 | Resolved | DASH-S05 | 737 | Fu Chen <fu@rangam.com> | Surface next best practice recommendation | Dashboard next best action is grounded in active session progress or latest completed-session coaching |
 | 62 | Resolved | DASH-F02 | 736 | Fu Chen <fu@rangam.com> | Progress and coaching themes | Candidate dashboard shows useful next-practice guidance without noisy analytics |
 | 63 | Resolved | QSO-S08 | 766 | Fu Chen <fu@rangam.com> | Add seeded setup-to-summary smoke readiness | `db:smoke-candidate-setup-summary` validates deterministic setup, in-session, completed-summary, and saved-feedback fixtures |
-| 64 | Active | QSO-F01 | 739 | Fu Chen <fu@rangam.com> | Smoke and regression testing | Seed-backed DB smoke path exists; next browser smoke can build on the deterministic candidate fixtures |
+| 64 | Resolved | QSO-F01 | 739 | Fu Chen <fu@rangam.com> | Smoke and regression testing | Seed-backed DB and browser smoke paths now cover deterministic candidate setup-to-summary readiness |
 | 65 | Resolved | OPS-S12 | 762 | Fu Chen <fu@rangam.com> | Add candidate integration pipeline | `azure-pipelines.candidate.yml` and `ci:candidate` scripts define lint, typecheck, candidate tests, build, and DB smoke readiness |
 | 66 | Resolved | OPS-S13 | 767 | Fu Chen <fu@rangam.com> | Wire candidate pipeline in Azure project | Fu-Lab pipeline passed end to end without STDIO close warning |
 | 67 | Resolved | QSO-S09 | 768 | Fu Chen <fu@rangam.com> | Add seeded browser smoke for candidate setup to summary | `test:e2e:candidate-seeded` validates seeded mock candidate navigation from practice setup through generated session completion and summary |
@@ -475,6 +484,22 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 77 | Resolved | DASH-S06 | 771 | Fu Chen <fu@rangam.com> | Build dashboard UI MVP | Dashboard UI now renders the polished MVP over the existing read model, including next action, active practice, completed history, empty state, and coaching snippets |
 | 78 | Resolved | WEB-S08 | 673 | Fu Chen <fu@rangam.com> | Preserve recruiter/admin/QA route behavior | `/recruiter/dashboard` restored as the recruiter dashboard compatibility route; primary route smoke covers recruiter/admin/QA protection |
 | 79 | Resolved | OPS-S05 | 652 | Fu Chen <fu@rangam.com> | Define candidate integration PR policy | Refreshed reviewer policy includes implemented candidate UI MVP scope, recruiter regression evidence, branch strategy, and current blockers |
+| 80 | Resolved | OPS-S08 | 759 | Fu Chen <fu@rangam.com> | Validate CSV import pattern for linked work items | Import CSV creates child story under Feature 643 |
+| 81 | New | QSO-S10 | TBD | Fu Chen <fu@rangam.com> | Review Interview Coach privacy, cookie, and AI policy fit | Policy owners review [Privacy Policy Requirements](06-security/privacy-policy-requirements.md); follow-up implementation items are created for notices, retention, cookie behavior, AI vendor disclosure, and data-visibility boundaries |
+| 82 | Resolved | FND-F02 | 660 | Fu Chen <fu@rangam.com> | Roll up local developer bootstrap | Child story/task are resolved or closed; package scripts and local bootstrap docs cover app, DB setup, seed, quality checks, and candidate browser review |
+| 83 | Resolved | WEB-F01 | 751 | Fu Chen <fu@rangam.com> | Roll up shared host route ownership | Public, recruiter, admin, QA, invite-token, and candidate route ownership is implemented and covered by route tests |
+| 84 | Resolved | WEB-F03 | 672 | Fu Chen <fu@rangam.com> | Roll up recruiter/admin/QA route preservation | Recruiter dashboard compatibility and shared-host regression coverage are in place |
+| 85 | Resolved | AUTH-F01 | 675 | Fu Chen <fu@rangam.com> | Roll up candidate profile and identity persistence | Candidate profile/identity schema, constraints, indexes, and repository coverage are in place |
+| 86 | Resolved | AUTH-F02 | 678 | Fu Chen <fu@rangam.com> | Roll up candidate access resolver | Auth adapter, local dev modes, protected route handling, ownership denial, and safe denial logging are covered |
+| 87 | Resolved | DATA-F01 | 685 | Fu Chen <fu@rangam.com> | Roll up Postgres client and config foundation | Server-only Postgres config/client and candidate backend selector guardrails are covered |
+| 88 | Resolved | DATA-F02 | 688 | Fu Chen <fu@rangam.com> | Roll up candidate repository layer | Candidate profile, draft, session, resume, dashboard, metrics, rate-limit, and idempotency boundaries are covered |
+| 89 | Resolved | DATA-F03 | 692 | Fu Chen <fu@rangam.com> | Roll up migration and seed path | Candidate migrations, dev seed, and smoke validation scripts are present |
+| 90 | Resolved | QSO-F02 | 743 | Fu Chen <fu@rangam.com> | Roll up observability and incident readiness | Candidate observability tests, observability plan, and incident runbook are in place |
+| 91 | Active | DRFT-F04 | 772 | Fu Chen <fu@rangam.com> | Track practice setup UI refinement separately | Candidate-owned UI polish remains open while backend/integration scope is complete |
+| 92 | Active | SESS-F04 | 773 | Fu Chen <fu@rangam.com> | Track live session UI refinement separately | Candidate-owned UI polish remains open while session engine integration scope is complete |
+| 93 | New | DASH-F03 | 774 | Fu Chen <fu@rangam.com> | Track dashboard UI refinement separately | Candidate-owned UI polish remains open while dashboard read-model scope is complete |
+| 94 | Resolved | SESS-F05 | 777 | Fu Chen <fu@rangam.com> | Track AI-backed candidate question generation | Shared question-generation service is implemented and used by recruiter API plus candidate session creation; recruiter regression and DB output checks produced expected invite/session/question/AI capture data |
+| 95 | Resolved | SESS-S10 | 778 | Fu Chen <fu@rangam.com> | Wire candidate session creation to shared AI question generation | Candidate setup now passes role, optional JD, optional resume text, interview type, and question count into the shared generator; focused tests, candidate suite, typecheck, lint, build, recruiter browser regression, and DB output checks passed |
 
 ## Open Questions
 

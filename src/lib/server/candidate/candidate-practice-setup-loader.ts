@@ -1,6 +1,7 @@
 import { resolveLocalCandidateAuthHandoff } from "./candidate-dev-auth-resolver";
 import { withCandidateRouteMetrics } from "./candidate-observability";
 import { resolveCandidateProfileFromIdentity } from "./candidate-profile-repository";
+import { PRACTICE_SETUP_LIMITS } from "@/features/practice-setup/practice-setup-schema";
 import {
     findCandidatePracticeDraftById,
     findLatestEditableCandidatePracticeDraft,
@@ -15,11 +16,8 @@ export type RestoredPracticeSetupDraft = {
         targetRole: string;
         jobDescription: string | null;
         resumeText: string | null;
-        confidenceLevel: "low" | "medium" | "high" | null;
         interviewType: "behavioral" | "technical" | "case" | "screening" | "general" | null;
-        timeline: string | null;
-        concerns: string | null;
-        practiceFocus: string[];
+        questionCount: number;
     };
 };
 
@@ -62,11 +60,8 @@ export async function loadPracticeSetupDraftForCurrentCandidate(selectedPractice
                     targetRole: draft.targetRole,
                     jobDescription: draft.jobDescription,
                     resumeText: draft.resumeContext.pastedText || draft.resumeContext.extractedText || null,
-                    confidenceLevel: intakeResponses.confidenceLevel,
                     interviewType: intakeResponses.interviewType,
-                    timeline: intakeResponses.timeline,
-                    concerns: intakeResponses.concerns,
-                    practiceFocus: intakeResponses.practiceFocus,
+                    questionCount: PRACTICE_SETUP_LIMITS.questionCountDefault,
                 },
             };
         },

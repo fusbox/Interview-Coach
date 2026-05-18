@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -10,6 +12,12 @@ const { loadCandidateDashboardForCurrentCandidateMock, notFoundMock } = vi.hoist
 
 vi.mock("next/navigation", () => ({
     notFound: notFoundMock,
+}));
+
+vi.mock("@/components/shell/CandidateShell", () => ({
+    CandidateShell: ({ children }: { children: ReactNode }) => (
+        <div data-testid="candidate-shell">{children}</div>
+    ),
 }));
 
 vi.mock("@/lib/server/candidate", () => ({
@@ -56,6 +64,7 @@ describe("/dashboard page", () => {
         render(await DashboardRoute());
 
         expect(loadCandidateDashboardForCurrentCandidateMock).toHaveBeenCalled();
+        expect(screen.getByTestId("candidate-shell")).toBeInTheDocument();
         expect(screen.getByRole("heading", { name: /welcome back, candidate one/i })).toBeInTheDocument();
         expect(screen.getByText("QA Analyst")).toBeInTheDocument();
     });

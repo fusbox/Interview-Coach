@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { CandidateShell } from "@/components/shell/CandidateShell";
 import { CandidateDashboardPage } from "@/features/candidate-dashboard";
 import { loadCandidateDashboardForCurrentCandidate } from "@/lib/server/candidate";
 
@@ -11,5 +12,9 @@ export default async function DashboardRoute() {
         notFound();
     }
 
-    return <CandidateDashboardPage dashboard={dashboard} />;
+    return (
+        <CandidateShell>
+            <CandidateDashboardPage dashboard={dashboard} />
+        </CandidateShell>
+    );
 }
