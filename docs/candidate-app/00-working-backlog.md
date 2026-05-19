@@ -201,7 +201,7 @@ Ground truth:
 | DATA-F02 | 688 | Feature | Resolved | Fu Chen <fu@rangam.com> | Candidate repository layer | Candidate profiles, drafts, sessions, resumes, and dashboard reads use repository boundaries |
 | DATA-S02 | 689 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate profile repository | Create/read/update behavior is tested |
 | DATA-S03 | 690 | Story | Resolved | Fu Chen <fu@rangam.com> | Add draft/session repository boundaries | Candidate-owned drafts and sessions are persisted through server code |
-| DATA-S04 | 691 | Story | Resolved | Fu Chen <fu@rangam.com> | Add metrics/rate-limit/idempotency boundaries | Route metrics and candidate mutation rate-limit/state-idempotency boundaries are tested |
+| DATA-S04 | 691 | Story | Resolved | Fu Chen <fu@rangam.com> | Add metrics/rate-limit/idempotency boundaries | Route metrics and candidate mutation rate-limit/state-idempotency boundaries are tested; expired Postgres idempotency keys can be reacquired for resumed hint generation |
 | DATA-F03 | 692 | Feature | Resolved | Fu Chen <fu@rangam.com> | Migration and seed path | Local and integration environments can apply schema and seed dev candidates |
 | DATA-S05 | 693 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate DB migration | Migration applies cleanly on local Postgres |
 | DATA-S06 | 694 | Story | Resolved | Fu Chen <fu@rangam.com> | Add dev seed candidates | Seed SQL and smoke validation support happy path and ownership tests |
@@ -505,6 +505,7 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 96 | Resolved | SESS-S11 | 779 | Fu Chen <fu@rangam.com> | Align candidate session entry and active-question controls with invite session | Candidate route now matches invite-session entry, default active-question voice surface, Hints/Example panels, text-mode answer entry, text submission loader, exit/read controls, Q1/Qn+1 audio prefetch, and hidden debug inspector expectations |
 | 97 | Active | SESS-F04 | 773 | Fu Chen <fu@rangam.com> | Continue deeper live-session UI parity | Product UI refinement remains active while feedback rendering, summary/debrief, and follow-up email parity are compared against the recruiter invite flow |
 | 98 | Active | SESS-S12 | 781 | Fu Chen <fu@rangam.com> | Align candidate feedback rendering with invite session | Next pass should compare candidate feedback rendering against invite feedback drawer/surface, retry/continue controls, transcript/audio playback, and summary transition behavior |
+| 99 | Resolved | DATA-S04 | 691 | Fu Chen <fu@rangam.com> | Fix expired hint idempotency key reuse | Postgres idempotency store now clears expired rows for the same scope/actor/key before reserving, so older resumed session questions can regenerate/replay hints instead of failing behind `/api/tips/generate` |
 
 ## Open Questions
 
