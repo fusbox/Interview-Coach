@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { audioEngine } from "@/features/audio/audio-engine";
 import AudioVisualizer from "@/features/audio/components/AudioVisualizer";
 import { useAudioRecording } from "@/features/audio/hooks/useAudioRecording";
-import { useSpeechToText } from "@/features/audio/hooks/useSpeechToText";
 import { useTextToSpeech } from "@/features/audio/hooks/useTextToSpeech";
 import { CategoryTooltip } from "@/features/session/components/CategoryTooltip";
 import { CoachLensDropdown } from "@/features/session/components/CoachLensDropdown";
@@ -58,13 +57,6 @@ export function CandidateActiveQuestionWorkspace({
         resetAudio,
     } = useAudioRecording();
     const {
-        transcript,
-        startListening,
-        stopListening,
-        abortListening,
-        error: speechError,
-    } = useSpeechToText();
-    const {
         isPlaying,
         isLoading: isTtsLoading,
         speak,
@@ -85,10 +77,12 @@ export function CandidateActiveQuestionWorkspace({
         setStrongResponseOpen(false);
         setAnswerText("");
         setErrorMessage(null);
-        abortListening({ resetTranscript: true });
         resetAudio();
         setLiveMessage("Question loaded.");
-    }, [currentQuestion.id, abortListening, resetAudio]);
+        // Only reset when the question changes. Microphone warm-up can change
+        // resetAudio's identity and should not close the coach lens panels.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentQuestion.id]);
 
     useEffect(() => {
         prefetch(currentQuestion.id, currentQuestion.text, { sessionId });
@@ -103,13 +97,6 @@ export function CandidateActiveQuestionWorkspace({
             setLiveMessage(permissionMessage);
         }
     }, [permissionError, permissionMessage]);
-
-    useEffect(() => {
-        if (speechError) {
-            setErrorMessage(speechError);
-            setLiveMessage(speechError);
-        }
-    }, [speechError]);
 
     useEffect(() => {
         if (mode !== "voice" || isRecording || audioBlob) {
@@ -136,21 +123,18 @@ export function CandidateActiveQuestionWorkspace({
 
         if (isRecording) {
             await stopRecording();
-            stopListening();
             setLiveMessage("Recording stopped.");
             return;
         }
 
         setErrorMessage(null);
         await startRecording();
-        startListening();
         setLiveMessage("Recording started.");
     }
 
     function switchToTextMode() {
         audioEngine.unlock();
         setMode("text");
-        abortListening({ resetTranscript: true });
         resetAudio();
         setErrorMessage(null);
         setTimeout(() => textareaRef.current?.focus(), 0);
@@ -166,7 +150,7 @@ export function CandidateActiveQuestionWorkspace({
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
-        const value = mode === "voice" ? transcript : answerText;
+        const value = mode === "voice" ? "" : answerText;
         if (mode === "text" && !value.trim()) {
             const message = "Enter an answer before submitting.";
             setErrorMessage(message);
@@ -364,7 +348,7 @@ export function CandidateActiveQuestionWorkspace({
                             )}
                         >
                             <form onSubmit={handleSubmit} className="w-full">
-                                <input type="hidden" name="answerText" value={mode === "voice" ? transcript : answerText} aria-label="Answer text" />
+                                <input type="hidden" name="answerText" value={mode === "voice" ? "" : answerText} aria-label="Answer text" />
                                 {mode === "voice" ? (
                                     <div className="w-full flex flex-col items-center gap-8">
                                         <div className="flex flex-col items-center justify-center gap-6">
@@ -393,7 +377,6 @@ export function CandidateActiveQuestionWorkspace({
                                                         <Button
                                                             type="button"
                                                             onClick={() => {
-                                                                abortListening({ resetTranscript: true });
                                                                 resetAudio();
                                                             }}
                                                             emphasis="secondary"

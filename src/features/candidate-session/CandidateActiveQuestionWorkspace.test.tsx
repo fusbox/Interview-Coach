@@ -14,9 +14,6 @@ const {
     stopRecordingMock,
     warmUpMock,
     resetAudioMock,
-    startListeningMock,
-    stopListeningMock,
-    abortListeningMock,
     fetchStrongResponseMock,
 } = vi.hoisted(() => ({
     refreshMock: vi.fn(),
@@ -28,9 +25,6 @@ const {
     stopRecordingMock: vi.fn().mockResolvedValue(undefined),
     warmUpMock: vi.fn().mockResolvedValue(null),
     resetAudioMock: vi.fn(),
-    startListeningMock: vi.fn(),
-    stopListeningMock: vi.fn(),
-    abortListeningMock: vi.fn(),
     fetchStrongResponseMock: vi.fn(),
 }));
 
@@ -68,16 +62,6 @@ vi.mock("@/features/audio/hooks/useAudioRecording", () => ({
         stopRecording: stopRecordingMock,
         warmUp: warmUpMock,
         resetAudio: resetAudioMock,
-    }),
-}));
-
-vi.mock("@/features/audio/hooks/useSpeechToText", () => ({
-    useSpeechToText: () => ({
-        transcript: "",
-        startListening: startListeningMock,
-        stopListening: stopListeningMock,
-        abortListening: abortListeningMock,
-        error: null,
     }),
 }));
 
@@ -177,6 +161,34 @@ describe("CandidateActiveQuestionWorkspace", () => {
         expect(screen.getByText("Creating feedback...")).toBeInTheDocument();
     });
 
+
+    it("keeps coach lens panels open until the user changes the lens", async () => {
+        const user = userEvent.setup();
+
+        render(
+            <CandidateActiveQuestionWorkspace
+                sessionId="session-1"
+                role="Manufacturing Technician"
+                currentQuestion={question}
+                nextQuestion={null}
+            />,
+        );
+
+        await user.click(screen.getByRole("button", { name: /hints/i }));
+
+        expect(screen.getAllByText("What to Aim For").length).toBeGreaterThan(0);
+        expect(screen.getAllByText("Use a specific example.").length).toBeGreaterThan(0);
+
+        await user.click(screen.getByRole("button", { name: /example/i }));
+
+        expect(screen.queryAllByText("What to Aim For")).toHaveLength(0);
+        expect(screen.getByText("Example Strong Response")).toBeInTheDocument();
+        expect(screen.getByText("A strong answer.")).toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: /example/i }));
+
+        expect(screen.queryByText("Example Strong Response")).not.toBeInTheDocument();
+    });
 
     it("submits captured voice audio through the shared analysis API", async () => {
         const user = userEvent.setup();
