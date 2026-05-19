@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { LoadedCandidateSession } from "@/lib/server/candidate";
 import { CandidateSessionPage } from "./CandidateSessionPage";
@@ -127,13 +127,31 @@ const loadedSession: LoadedCandidateSession = {
 };
 
 describe("CandidateSessionPage", () => {
+    let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
     beforeEach(() => {
         vi.clearAllMocks();
         vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 })));
+        consoleErrorSpy = vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+            const normalizedMessage = args.map(String).join(" ");
+            if (
+                normalizedMessage.includes("Invalid value for prop") &&
+                normalizedMessage.includes("`action`") &&
+                normalizedMessage.includes("form")
+            ) {
+                return;
+            }
+
+            throw new Error(`Unexpected console.error in CandidateSessionPage test: ${normalizedMessage}`);
+        });
         Object.defineProperty(HTMLFormElement.prototype, "requestSubmit", {
             configurable: true,
             value: vi.fn(),
         });
+    });
+
+    afterEach(() => {
+        consoleErrorSpy.mockRestore();
     });
 
     it("renders an invite-style session entry screen before the first candidate question", async () => {
