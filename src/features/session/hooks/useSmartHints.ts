@@ -46,7 +46,7 @@ export function useSmartHints(
     const cacheKey = buildCacheKey(sessionId, question?.id);
 
     const fetchHints = useCallback(async () => {
-        if (!question || !sessionId || !candidateToken || !cacheKey || isFetchingRef.current) return;
+        if (!question || !sessionId || !cacheKey || isFetchingRef.current) return;
 
         const cached = readCachedHints(cacheKey);
         if (cached) {
@@ -61,13 +61,17 @@ export function useSmartHints(
             let request = inFlightHintRequests.get(cacheKey);
 
             if (!request) {
+                const headers: Record<string, string> = {
+                    'Content-Type': 'application/json',
+                    'Idempotency-Key': cacheKey,
+                };
+                if (candidateToken) {
+                    headers['x-candidate-token'] = candidateToken;
+                }
+
                 request = fetch('/api/tips/generate', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-candidate-token': candidateToken,
-                        'Idempotency-Key': cacheKey,
-                    },
+                    headers,
                     body: JSON.stringify({
                         sessionId,
                         question: question.text,

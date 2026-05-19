@@ -2,6 +2,7 @@
 
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { ArrowRight, Keyboard, Lightbulb, Loader2, Mic, Pause, Play, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import { answerTextareaClassName } from "@/components/patterns/FormField";
 import { SectionHeader } from "@/components/patterns/SectionHeader";
@@ -15,17 +16,16 @@ import { useTextToSpeech } from "@/features/audio/hooks/useTextToSpeech";
 import { CategoryTooltip } from "@/features/session/components/CategoryTooltip";
 import { CoachLensDropdown } from "@/features/session/components/CoachLensDropdown";
 import { MultiStepLoader } from "@/features/session/components/MultiStepLoader";
+import { useSmartHints } from "@/features/session/hooks/useSmartHints";
+import { useStrongResponse } from "@/features/session/hooks/useStrongResponse";
 import { cn } from "@/lib/cn";
-import type { Question, QuestionTips, StrongResponseResult } from "@/lib/domain/types";
-
-type FormAction = (formData: FormData) => void | Promise<void>;
+import type { Question } from "@/lib/domain/types";
 
 type CandidateActiveQuestionWorkspaceProps = {
     sessionId: string;
     role: string;
     currentQuestion: Question;
     nextQuestion: Question | null;
-    submitAnswerAction: FormAction;
 };
 
 export function CandidateActiveQuestionWorkspace({
@@ -33,13 +33,14 @@ export function CandidateActiveQuestionWorkspace({
     role,
     currentQuestion,
     nextQuestion,
-    submitAnswerAction,
 }: CandidateActiveQuestionWorkspaceProps) {
+    const router = useRouter();
     const [mode, setMode] = useState<"voice" | "text">("voice");
     const [answerText, setAnswerText] = useState("");
     const [hintOpen, setHintOpen] = useState(false);
     const [strongResponseOpen, setStrongResponseOpen] = useState(false);
     const [showLoader, setShowLoader] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [liveMessage, setLiveMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -53,6 +54,7 @@ export function CandidateActiveQuestionWorkspace({
         permissionMessage,
         startRecording,
         stopRecording,
+        warmUp,
         resetAudio,
     } = useAudioRecording();
     const {
@@ -71,8 +73,12 @@ export function CandidateActiveQuestionWorkspace({
     } = useTextToSpeech();
 
     const questionText = currentQuestion.text;
-    const hints = buildCandidateHints(currentQuestion, role);
-    const strongResponse = buildCandidateStrongResponse(currentQuestion, role);
+    const { hints, isLoading: hintsLoading } = useSmartHints(currentQuestion, sessionId, undefined, role);
+    const {
+        data: strongResponse,
+        isLoading: strongResponseLoading,
+        fetchStrongResponse,
+    } = useStrongResponse(currentQuestion.id, currentQuestion.text, sessionId, undefined, role);
 
     useEffect(() => {
         setHintOpen(false);
@@ -104,6 +110,14 @@ export function CandidateActiveQuestionWorkspace({
             setLiveMessage(speechError);
         }
     }, [speechError]);
+
+    useEffect(() => {
+        if (mode !== "voice" || isRecording || audioBlob) {
+            return;
+        }
+
+        void warmUp();
+    }, [audioBlob, isRecording, mode, warmUp]);
 
     async function handleTogglePlayback() {
         await audioEngine.unlock();
@@ -149,7 +163,7 @@ export function CandidateActiveQuestionWorkspace({
         setErrorMessage(null);
     }
 
-    function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
         const value = mode === "voice" ? transcript : answerText;
@@ -168,15 +182,27 @@ export function CandidateActiveQuestionWorkspace({
         }
 
         setErrorMessage(null);
+        setIsSubmitting(true);
         setShowLoader(true);
         setLiveMessage("Answer submitted. Coach analysis is in progress.");
-        const formData = new FormData(event.currentTarget);
-        void Promise.resolve(submitAnswerAction(formData)).catch(() => {
+
+        try {
+            await submitAnswerToSharedSessionApi({
+                sessionId,
+                questionId: currentQuestion.id,
+                answerText: value,
+                modality: mode,
+                audioBlob: mode === "voice" ? audioBlob : null,
+            });
+            router.refresh();
+        } catch {
             setShowLoader(false);
             const message = "There was an error submitting your answer. Please try again.";
             setErrorMessage(message);
             setLiveMessage(message);
-        });
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
     return (
@@ -220,6 +246,7 @@ export function CandidateActiveQuestionWorkspace({
                                                 type="button"
                                                 onClick={() => {
                                                     audioEngine.unlock();
+                                                    void fetchStrongResponse();
                                                     setStrongResponseOpen((isOpen) => !isOpen);
                                                     setHintOpen(false);
                                                 }}
@@ -324,7 +351,7 @@ export function CandidateActiveQuestionWorkspace({
                                         mode={hintOpen ? "hints" : "example"}
                                         tips={hints}
                                         strongResponse={strongResponse}
-                                        isLoading={false}
+                                        isLoading={hintOpen ? hintsLoading : strongResponseLoading}
                                     />
                                 </div>
                             </div>
@@ -379,6 +406,7 @@ export function CandidateActiveQuestionWorkspace({
                                                         </Button>
                                                         <Button
                                                             type="submit"
+                                                            disabled={isSubmitting}
                                                             emphasis="primary"
                                                             density="hero"
                                                             shape="app"
@@ -422,7 +450,7 @@ export function CandidateActiveQuestionWorkspace({
                                         <div className="flex justify-end">
                                             <Button
                                                 type="submit"
-                                                disabled={!answerText.trim()}
+                                                disabled={!answerText.trim() || isSubmitting}
                                                 emphasis="primary"
                                                 density="hero"
                                                 shape="app"
@@ -462,20 +490,69 @@ export function CandidateActiveQuestionWorkspace({
     );
 }
 
-function buildCandidateHints(question: Question, role: string): QuestionTips {
-    if (question.tips) {
-        return question.tips;
+async function submitAnswerToSharedSessionApi(input: {
+    sessionId: string;
+    questionId: string;
+    answerText: string;
+    modality: "text" | "voice";
+    audioBlob: Blob | null;
+}) {
+    const submitResponse = await fetch(`/api/session/${input.sessionId}/questions/${input.questionId}/submit`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": buildSubmitIdempotencyKey(input),
+        },
+        body: JSON.stringify({
+            text: input.answerText,
+            modality: input.modality,
+        }),
+    });
+
+    if (!submitResponse.ok) {
+        throw new Error("Candidate answer submit failed.");
     }
 
-    return {
-        doThis: `Connect your answer to the ${role} work, name the actions you took, and make the result easy to follow.`,
-        avoidThis: "Avoid staying vague or only describing the situation without what you personally did next.",
-    };
+    const audioData = input.audioBlob ? await blobToAudioData(input.audioBlob) : undefined;
+    const analysisResponse = await fetch(`/api/session/${input.sessionId}/questions/${input.questionId}/analysis`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ audioData }),
+    });
+
+    if (!analysisResponse.ok) {
+        throw new Error("Candidate answer analysis failed.");
+    }
 }
 
-function buildCandidateStrongResponse(question: Question, role: string): StrongResponseResult {
+function buildSubmitIdempotencyKey(input: {
+    sessionId: string;
+    questionId: string;
+    answerText: string;
+    modality: "text" | "voice";
+}): string {
+    let hash = 0;
+    const stableInput = `${input.sessionId}:${input.questionId}:${input.modality}:${input.answerText}`;
+    for (let index = 0; index < stableInput.length; index += 1) {
+        hash = ((hash << 5) - hash + stableInput.charCodeAt(index)) | 0;
+    }
+
+    return `submit:${input.sessionId}:${input.questionId}:${Math.abs(hash)}`;
+}
+
+async function blobToAudioData(blob: Blob): Promise<{ base64: string; mimeType: string }> {
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(String(reader.result ?? ""));
+        reader.onerror = () => reject(new Error("Unable to read recorded audio."));
+        reader.readAsDataURL(blob);
+    });
+    const [, base64 = ""] = dataUrl.split(",");
+
     return {
-        strongResponse: `I would start by clarifying what changed and what mattered most for the ${role} work. Then I would explain the specific steps I took, how I stayed organized, and what result came from those actions. For this question, I would make sure my answer directly addresses: ${question.text}`,
-        whyThisWorks: "This works because it keeps the answer specific, shows ownership, and connects the example back to the role instead of staying at a general level.",
+        base64,
+        mimeType: blob.type,
     };
 }

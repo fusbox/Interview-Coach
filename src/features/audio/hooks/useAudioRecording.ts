@@ -1,5 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 
+import { isClientE2EMode } from '@/lib/e2e/test-mode';
+
 export const useAudioRecording = () => {
     const [isRecording, setIsRecording] = useState(false);
     const [isInitializing, setIsInitializing] = useState(false);
@@ -12,6 +14,8 @@ export const useAudioRecording = () => {
     const chunksRef = useRef<Blob[]>([]);
 
     const warmUp = useCallback(async () => {
+        if (isClientE2EMode()) return null;
+
         if (mediaStream) return mediaStream;
 
         setPermissionError(false);
@@ -34,6 +38,13 @@ export const useAudioRecording = () => {
         setPermissionMessage(null);
 
         try {
+            if (isClientE2EMode()) {
+                chunksRef.current = [new Blob(['e2e-audio'], { type: 'audio/webm' })];
+                setAudioBlob(null);
+                setIsRecording(true);
+                return null;
+            }
+
             let stream = mediaStream;
             if (!stream || !stream.active) {
                 stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -55,7 +66,7 @@ export const useAudioRecording = () => {
                 setAudioBlob(blob);
             };
 
-            mediaRecorder.start();
+            mediaRecorder.start(250);
             setIsRecording(true);
             return stream;
         } catch (err) {
@@ -71,9 +82,18 @@ export const useAudioRecording = () => {
 
     const stopRecording = useCallback((): Promise<Blob | null> => {
         return new Promise((resolve) => {
+            if (isClientE2EMode()) {
+                const blob = new Blob(chunksRef.current.length ? chunksRef.current : ['e2e-audio'], { type: 'audio/webm' });
+                setAudioBlob(blob);
+                setIsRecording(false);
+                resolve(blob);
+                return;
+            }
+
             if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-                mediaRecorderRef.current.onstop = () => {
-                    const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+                const recorder = mediaRecorderRef.current;
+                recorder.onstop = () => {
+                    const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
                     setAudioBlob(blob);
 
                     if (mediaStream) {
@@ -84,7 +104,21 @@ export const useAudioRecording = () => {
                     setIsRecording(false);
                     resolve(blob);
                 };
+                try {
+                    mediaRecorderRef.current.requestData();
+                } catch {
+                    // Some browsers throw if data is not ready; stop will still flush what exists.
+                }
                 mediaRecorderRef.current.stop();
+            } else if (mediaRecorderRef.current) {
+                const blob = new Blob(chunksRef.current, { type: mediaRecorderRef.current.mimeType || 'audio/webm' });
+                setAudioBlob(blob);
+                if (mediaStream) {
+                    mediaStream.getTracks().forEach((track) => track.stop());
+                    setMediaStream(null);
+                }
+                setIsRecording(false);
+                resolve(blob);
             } else {
                 if (mediaStream) {
                     mediaStream.getTracks().forEach((track) => track.stop());

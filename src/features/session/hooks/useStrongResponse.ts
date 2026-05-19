@@ -27,7 +27,7 @@ export function useStrongResponse(
     const isFetchingRef = useRef(false);
 
     const fetchStrongResponse = useCallback(async () => {
-        if (!questionId || !questionText || !sessionId || !candidateToken || isFetchingRef.current) return;
+        if (!questionId || !questionText || !sessionId || isFetchingRef.current) return;
 
         const cacheKey = `${CACHE_KEY_PREFIX}${questionId}`;
         const cached = sessionStorage.getItem(cacheKey);
@@ -47,12 +47,16 @@ export function useStrongResponse(
         setState(prev => ({ ...prev, isLoading: true, error: null }));
 
         try {
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+            };
+            if (candidateToken) {
+                headers['x-candidate-token'] = candidateToken;
+            }
+
             const response = await fetch('/api/response/generate', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-candidate-token': candidateToken,
-                },
+                headers,
                 body: JSON.stringify({ question: questionText, role, resumeText: resumeText || undefined, sessionId }),
             });
 

@@ -39,7 +39,7 @@ export async function POST(
             return validationErrorResponse(correlationId);
         }
 
-        const { text, analysis } = parseResult.data;
+        const { text, analysis, modality } = parseResult.data;
         const scope = `${SUBMIT_SCOPE_PREFIX}:${resolvedParams.question_id}`;
         let idempotencyReserved = false;
 
@@ -98,7 +98,7 @@ export async function POST(
         }
 
         try {
-            const updatedSession = submitAnswer(session, resolvedParams.question_id, answer, analysis || undefined);
+            const updatedSession = submitAnswer(session, resolvedParams.question_id, answer, analysis || undefined, modality);
 
             // Ensure atomic state by clearing existing analysis before update
             const repository = await createSessionRepository();

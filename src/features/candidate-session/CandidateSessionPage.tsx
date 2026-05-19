@@ -18,7 +18,6 @@ import {
     resumeCandidateSessionAction,
     retryCandidateQuestionAction,
     startCandidateSessionAction,
-    submitCandidateAnswerAction,
 } from "./actions";
 
 type CandidateSessionPageProps = {
@@ -58,14 +57,6 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
     async function resumeAction() {
         "use server";
         await resumeCandidateSessionAction(session.id);
-    }
-
-    async function submitAnswerAction(formData: FormData) {
-        "use server";
-        if (!currentQuestion) {
-            return;
-        }
-        await submitCandidateAnswerAction(session.id, currentQuestion.id, formData);
     }
 
     async function retryQuestionAction() {
@@ -159,7 +150,6 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
                             role={session.role}
                             currentQuestion={currentQuestion}
                             nextQuestion={nextQuestion}
-                            submitAnswerAction={submitAnswerAction}
                         />
                     ) : (
                         <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 md:px-6 lg:px-10">

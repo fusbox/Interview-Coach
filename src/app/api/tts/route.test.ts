@@ -51,4 +51,24 @@ describe("POST /api/tts", () => {
         });
         expect(generateSpeechMock).not.toHaveBeenCalled();
     });
+
+    it("allows candidate-owned session audio requests through shared authorization", async () => {
+        const { POST } = await import("./route");
+
+        const req = new Request("http://localhost/api/tts", {
+            method: "POST",
+            headers: { "x-session-id": "candidate-session-1" },
+            body: JSON.stringify({ text: "Tell me about a time you solved a problem." })
+        });
+
+        const res = await POST(req);
+
+        expect(res.status).toBe(200);
+        expect(authorizeCandidateSessionRequestMock).toHaveBeenCalledWith(
+            req,
+            "candidate-session-1",
+            expect.any(String)
+        );
+        expect(generateSpeechMock).toHaveBeenCalledWith("Tell me about a time you solved a problem.");
+    });
 });

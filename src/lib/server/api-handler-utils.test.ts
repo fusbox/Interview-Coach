@@ -2,10 +2,15 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextResponse } from "next/server";
 
 const requireCandidateTokenMock = vi.fn();
+const authorizeCandidateSessionRequestMock = vi.fn();
 const getSessionMock = vi.fn();
 
 vi.mock("@/lib/server/auth/candidate-token", () => ({
     requireCandidateToken: requireCandidateTokenMock
+}));
+
+vi.mock("@/lib/server/candidate-route-auth", () => ({
+    authorizeCandidateSessionRequest: authorizeCandidateSessionRequestMock
 }));
 
 vi.mock("@/lib/server/infrastructure/postgres-session-repository", () => ({
@@ -32,11 +37,17 @@ describe("validatedSessionHandler", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         requireCandidateTokenMock.mockResolvedValue({ ok: true, status: 200 });
+        authorizeCandidateSessionRequestMock.mockResolvedValue(null);
         getSessionMock.mockResolvedValue(session);
     });
 
     it("returns a sanitized unauthorized envelope for missing candidate auth", async () => {
-        requireCandidateTokenMock.mockResolvedValue({ ok: false, status: 401, error: "Missing candidate token" });
+        authorizeCandidateSessionRequestMock.mockResolvedValue(NextResponse.json({
+            code: "UNAUTHORIZED",
+            message: "Missing candidate token",
+            retryable: false,
+            correlationId: "corr-1"
+        }, { status: 401 }));
         const { validatedSessionHandler } = await import("./api-handler-utils");
 
         const res = await validatedSessionHandler(

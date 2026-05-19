@@ -10,6 +10,13 @@ export default defineConfig({
     use: {
         baseURL,
         trace: "on-first-retry",
+        permissions: ["microphone"],
+        launchOptions: {
+            args: [
+                "--use-fake-device-for-media-stream",
+                "--use-fake-ui-for-media-stream",
+            ],
+        },
     },
     projects: [
         {

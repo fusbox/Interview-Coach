@@ -8,6 +8,7 @@ const {
     loadCandidateSessionForCurrentCandidateMock,
     notFoundMock,
     prefetchMock,
+    refreshMock,
     speakMock,
     stopSpeakingMock,
     unlockMock,
@@ -17,6 +18,7 @@ const {
         throw new Error("NEXT_NOT_FOUND");
     }),
     prefetchMock: vi.fn(),
+    refreshMock: vi.fn(),
     speakMock: vi.fn(),
     stopSpeakingMock: vi.fn(),
     unlockMock: vi.fn().mockResolvedValue(undefined),
@@ -24,6 +26,9 @@ const {
 
 vi.mock("next/navigation", () => ({
     notFound: notFoundMock,
+    useRouter: () => ({
+        refresh: refreshMock,
+    }),
 }));
 
 vi.mock("@/lib/server/candidate", () => ({
@@ -86,6 +91,27 @@ vi.mock("@/features/audio/audio-engine", () => ({
         prefetch: prefetchMock,
         unlock: unlockMock,
     },
+}));
+
+vi.mock("@/features/session/hooks/useSmartHints", () => ({
+    useSmartHints: () => ({
+        hints: {
+            doThis: "Use a specific example.",
+            avoidThis: "Avoid vague claims.",
+        },
+        isLoading: false,
+    }),
+}));
+
+vi.mock("@/features/session/hooks/useStrongResponse", () => ({
+    useStrongResponse: () => ({
+        data: {
+            strongResponse: "A strong answer.",
+            whyThisWorks: "It connects actions to outcomes.",
+        },
+        isLoading: false,
+        fetchStrongResponse: vi.fn(),
+    }),
 }));
 
 describe("/session/[sessionId] page", () => {

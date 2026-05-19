@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
 import { createSessionRepository } from "@/lib/server/infrastructure/session-repository";
-import { requireCandidateToken } from "@/lib/server/auth/candidate-token";
 import { InterviewSession } from "@/lib/domain/types";
 import {
     createCorrelationId,
-    forbiddenResponse,
     internalErrorResponse,
     notFoundResponse,
-    unauthorizedResponse
 } from "@/lib/server/api-errors";
+import { authorizeCandidateSessionRequest } from "@/lib/server/candidate-route-auth";
 import { createServerLogger } from "@/lib/server/server-logger";
 
 export type ValidatedSessionHandler = (
@@ -41,13 +39,9 @@ export async function validatedSessionHandler(
 
     try {
         // 1. Authentication
-        const auth = await requireCandidateToken(request, params.session_id);
-        if (!auth.ok) {
-            if (auth.status === 401) {
-                return unauthorizedResponse(correlationId, auth.error);
-            }
-
-            return forbiddenResponse(correlationId, auth.error);
+        const authResponse = await authorizeCandidateSessionRequest(request, params.session_id, correlationId);
+        if (authResponse) {
+            return authResponse;
         }
 
         // 2. Session Existence

@@ -273,7 +273,7 @@ Ground truth:
 | SESS-S10 | 778 | Story | Resolved | Fu Chen <fu@rangam.com> | Wire candidate session creation to shared AI question generation | Candidate setup passes role, optional JD, optional resume text, interview type, and question count into the shared generator; recruiter API behavior remains covered |
 | SESS-F04 | 773 | Feature | Active | Fu Chen <fu@rangam.com> | Live session UI refinement | Candidate session flow, feedback presentation, voice/text controls, pause/resume affordances, and policy-adjacent notices are reviewed as product UI work after the shared session engine is stable |
 | SESS-S11 | 779 | Story | Resolved | Fu Chen <fu@rangam.com> | Align candidate session entry and active-question controls with invite session | Candidate-owned sessions use an invite-style entry screen before Q1, default to invite-style voice mode, expose Hints/Example panels, support text-mode answer entry with the shared multistep loader, use Exit Session header language, expose read-question playback, prefetch Q1/Qn+1 audio, and keep the hidden engagement/AI context inspector available |
-| SESS-S12 | TBD | Story | New | Fu Chen <fu@rangam.com> | Align candidate feedback rendering with invite session | Candidate feedback state, drawer/surface behavior, retry/continue affordances, transcript/audio playback, and transition to summary match the recruiter invite-session experience where candidate ownership allows it |
+| SESS-S12 | 781 | Story | Active | Fu Chen <fu@rangam.com> | Align candidate feedback rendering with invite session | Candidate feedback state, drawer/surface behavior, retry/continue affordances, transcript/audio playback, and transition to summary match the recruiter invite-session experience where candidate ownership allows it |
 
 ### EPIC-07 Resume Ingestion And Candidate Context
 
@@ -504,7 +504,7 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 95 | Resolved | SESS-S10 | 778 | Fu Chen <fu@rangam.com> | Wire candidate session creation to shared AI question generation | Candidate setup now passes role, optional JD, optional resume text, interview type, and question count into the shared generator; focused tests, candidate suite, typecheck, lint, build, recruiter browser regression, and DB output checks passed |
 | 96 | Resolved | SESS-S11 | 779 | Fu Chen <fu@rangam.com> | Align candidate session entry and active-question controls with invite session | Candidate route now matches invite-session entry, default active-question voice surface, Hints/Example panels, text-mode answer entry, text submission loader, exit/read controls, Q1/Qn+1 audio prefetch, and hidden debug inspector expectations |
 | 97 | Active | SESS-F04 | 773 | Fu Chen <fu@rangam.com> | Continue deeper live-session UI parity | Product UI refinement remains active while feedback rendering, summary/debrief, and follow-up email parity are compared against the recruiter invite flow |
-| 98 | Queued | SESS-S12 | TBD | Fu Chen <fu@rangam.com> | Align candidate feedback rendering with invite session | Next pass should compare candidate feedback rendering against invite feedback drawer/surface, retry/continue controls, transcript/audio playback, and summary transition behavior |
+| 98 | Active | SESS-S12 | 781 | Fu Chen <fu@rangam.com> | Align candidate feedback rendering with invite session | Next pass should compare candidate feedback rendering against invite feedback drawer/surface, retry/continue controls, transcript/audio playback, and summary transition behavior |
 
 ## Open Questions
 
