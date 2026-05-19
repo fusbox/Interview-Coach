@@ -19,6 +19,21 @@ export class PostgresIdempotencyStore implements IdempotencyStore {
     constructor(private readonly pool: Pool = getPostgresPool()) {}
 
     async begin(params: IdempotencyBeginInput): Promise<IdempotencyReservation> {
+        await this.pool.query(
+            `
+                delete from public.api_idempotency_keys
+                where scope = $1
+                  and actor_id = $2
+                  and key_hash = $3
+                  and expires_at <= now()
+            `,
+            [
+                params.scope,
+                params.actorId,
+                params.keyHash
+            ]
+        );
+
         const insertResult = await this.pool.query(
             `
                 insert into public.api_idempotency_keys (
