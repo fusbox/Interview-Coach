@@ -39,6 +39,10 @@ describe("candidate session creation service", () => {
             {
                 candidateProfileId: "profile-1",
                 practiceDraftId: "draft-1",
+                candidate: {
+                    displayName: "Fu Chen",
+                    email: "fu@example.com",
+                },
             },
             {
                 findDraftById: vi.fn().mockResolvedValue(practiceDraft({
@@ -84,6 +88,12 @@ describe("candidate session creation service", () => {
             jobDescription: "Own deployment quality.",
             questions: generatedQuestions,
             initialsRequired: false,
+            candidate: {
+                firstName: "Fu",
+                lastName: "Chen",
+                email: "fu@example.com",
+                resumeText: "Reduced change failure rate by 25%.",
+            },
             intakeData: {
                 candidateProfileId: "profile-1",
                 practiceDraftId: "draft-1",

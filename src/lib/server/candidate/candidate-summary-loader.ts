@@ -17,9 +17,10 @@ export type CandidateSummaryAnswer = {
 export type CandidateSummaryModel = {
     practiceDraftId: string;
     sessionId: string;
+    candidateFirstName: string | null;
     role: string;
     status: SessionStatus;
-    summaryNarrative: string;
+    summaryNarrative: string | null;
     answeredCount: number;
     questionCount: number;
     answers: CandidateSummaryAnswer[];
@@ -76,9 +77,10 @@ function mapSummary(session: InterviewSession, practiceDraftId: string): Candida
     return {
         practiceDraftId,
         sessionId: session.id,
+        candidateFirstName: session.candidate?.firstName || null,
         role: session.role,
         status: session.status,
-        summaryNarrative: session.summaryNarrative || buildFallbackSummary(answers.length, session.questions.length),
+        summaryNarrative: session.summaryNarrative || null,
         answeredCount: answers.length,
         questionCount: session.questions.length,
         answers,
@@ -93,12 +95,4 @@ function mapAnswer(answer: Answer, questionText: string, category: string): Cand
         transcript: answer.transcript || "",
         recommendation: answer.analysis?.recommendation || null,
     };
-}
-
-function buildFallbackSummary(answeredCount: number, questionCount: number): string {
-    if (answeredCount === 0) {
-        return "No submitted answers are available for this summary yet.";
-    }
-
-    return `You answered ${answeredCount} of ${questionCount} questions. Review the answers below and choose one area to strengthen next.`;
 }

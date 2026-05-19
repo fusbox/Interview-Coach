@@ -14,17 +14,27 @@ import { useAudioRecording } from "@/features/audio/hooks/useAudioRecording";
 import { useTextToSpeech } from "@/features/audio/hooks/useTextToSpeech";
 import { CategoryTooltip } from "@/features/session/components/CategoryTooltip";
 import { CoachLensDropdown } from "@/features/session/components/CoachLensDropdown";
+import { FeedbackDrawer } from "@/features/session/components/FeedbackDrawer";
 import { MultiStepLoader } from "@/features/session/components/MultiStepLoader";
 import { useSmartHints } from "@/features/session/hooks/useSmartHints";
 import { useStrongResponse } from "@/features/session/hooks/useStrongResponse";
 import { cn } from "@/lib/cn";
-import type { Question } from "@/lib/domain/types";
+import type { AnalysisResult, Question } from "@/lib/domain/types";
 
 type CandidateActiveQuestionWorkspaceProps = {
     sessionId: string;
     role: string;
     currentQuestion: Question;
     nextQuestion: Question | null;
+    isLastQuestion: boolean;
+    advanceAction: () => Promise<void>;
+    retryQuestionAction: () => Promise<void>;
+};
+
+type SubmittedFeedbackState = {
+    analysis: AnalysisResult;
+    transcript: string;
+    audioBlob: Blob | null;
 };
 
 export function CandidateActiveQuestionWorkspace({
@@ -32,6 +42,9 @@ export function CandidateActiveQuestionWorkspace({
     role,
     currentQuestion,
     nextQuestion,
+    isLastQuestion,
+    advanceAction,
+    retryQuestionAction,
 }: CandidateActiveQuestionWorkspaceProps) {
     const router = useRouter();
     const [mode, setMode] = useState<"voice" | "text">("voice");
@@ -42,6 +55,7 @@ export function CandidateActiveQuestionWorkspace({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [liveMessage, setLiveMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [submittedFeedback, setSubmittedFeedback] = useState<SubmittedFeedbackState | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const {
@@ -77,6 +91,7 @@ export function CandidateActiveQuestionWorkspace({
         setStrongResponseOpen(false);
         setAnswerText("");
         setErrorMessage(null);
+        setSubmittedFeedback(null);
         resetAudio();
         setLiveMessage("Question loaded.");
         // Only reset when the question changes. Microphone warm-up can change
@@ -171,14 +186,24 @@ export function CandidateActiveQuestionWorkspace({
         setLiveMessage("Answer submitted. Coach analysis is in progress.");
 
         try {
-            await submitAnswerToSharedSessionApi({
+            const result = await submitAnswerToSharedSessionApi({
                 sessionId,
                 questionId: currentQuestion.id,
                 answerText: value,
                 modality: mode,
                 audioBlob: mode === "voice" ? audioBlob : null,
             });
-            router.refresh();
+            if (result?.analysis) {
+                setSubmittedFeedback({
+                    analysis: result.analysis,
+                    transcript: result.transcript || value,
+                    audioBlob: mode === "voice" ? audioBlob : null,
+                });
+                setShowLoader(false);
+                setLiveMessage("Feedback is ready.");
+            } else {
+                router.refresh();
+            }
         } catch {
             setShowLoader(false);
             const message = "There was an error submitting your answer. Please try again.";
@@ -469,6 +494,16 @@ export function CandidateActiveQuestionWorkspace({
                         ]
                 }
             />
+            <FeedbackDrawer
+                isOpen={Boolean(submittedFeedback)}
+                analysis={submittedFeedback?.analysis}
+                onNext={advanceAction}
+                onRetry={retryQuestionAction}
+                isLastQuestion={isLastQuestion}
+                transcript={submittedFeedback?.transcript}
+                audioBlob={submittedFeedback?.audioBlob}
+                sessionId={sessionId}
+            />
         </>
     );
 }
@@ -479,7 +514,7 @@ async function submitAnswerToSharedSessionApi(input: {
     answerText: string;
     modality: "text" | "voice";
     audioBlob: Blob | null;
-}) {
+}): Promise<{ analysis?: AnalysisResult; transcript?: string } | null> {
     const submitResponse = await fetch(`/api/session/${input.sessionId}/questions/${input.questionId}/submit`, {
         method: "POST",
         headers: {
@@ -508,6 +543,14 @@ async function submitAnswerToSharedSessionApi(input: {
     if (!analysisResponse.ok) {
         throw new Error("Candidate answer analysis failed.");
     }
+
+    const updatedSession = await analysisResponse.json().catch(() => null);
+    const answer = updatedSession?.answers?.[input.questionId];
+
+    return {
+        analysis: answer?.analysis,
+        transcript: answer?.transcript,
+    };
 }
 
 function buildSubmitIdempotencyKey(input: {

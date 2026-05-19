@@ -27,6 +27,10 @@ vi.mock("next/navigation", () => ({
     }),
 }));
 
+vi.mock("@/app/actions/feedback", () => ({
+    captureFeedbackAction: vi.fn().mockResolvedValue({ ok: true }),
+}));
+
 vi.mock("./actions", () => ({
     advanceCandidateSessionAction: vi.fn(),
     analyzeCandidateAnswerAction: vi.fn(),
@@ -331,11 +335,9 @@ describe("CandidateSessionPage", () => {
             />,
         );
 
-        expect(screen.getAllByText("Coach's Lens").length).toBeGreaterThan(0);
+        expect(screen.getByRole("button", { name: /explore feedback/i })).toBeInTheDocument();
         expect(screen.getByText("You gave a useful starting point.")).toBeInTheDocument();
-        expect(screen.getByText("Add the measurable result")).toBeInTheDocument();
-        expect(screen.getByText("Tie the checklist to a release outcome.")).toBeInTheDocument();
-        expect(screen.getByText("Add a clearer metric.")).toBeInTheDocument();
+        expect(screen.getAllByRole("button", { name: /skip and finish session/i }).length).toBeGreaterThan(0);
         expect(screen.queryByRole("button", { name: /get coaching/i })).not.toBeInTheDocument();
     });
 

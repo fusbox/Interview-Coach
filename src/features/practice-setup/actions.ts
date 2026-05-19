@@ -96,6 +96,12 @@ export async function startPracticeGenerationAction(input: StartPracticeGenerati
     const sessionResult = await createCandidateSessionFromDraft({
         candidateProfileId: profile.candidateProfileId,
         practiceDraftId: draft.practiceDraftId,
+        ...(profile.email ? {
+            candidate: {
+                displayName: profile.displayName,
+                email: profile.email,
+            },
+        } : {}),
         generationConfig: {
             questionCount,
         },

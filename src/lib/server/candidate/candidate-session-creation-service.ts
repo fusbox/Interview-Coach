@@ -30,6 +30,10 @@ type CandidateSessionCreationInput = CandidatePracticeDraftLookup & {
     generationConfig?: {
         questionCount?: number | null;
     };
+    candidate?: {
+        displayName?: string | null;
+        email: string;
+    };
 };
 
 type CandidateSessionCreationResult =
@@ -99,6 +103,7 @@ export async function createCandidateSessionFromDraft(
                 status: "NOT_STARTED",
                 role: draft.targetRole,
                 jobDescription: draft.jobDescription ?? undefined,
+                candidate: buildSessionCandidate(input.candidate, draft.resumeContext.extractedText || draft.resumeContext.pastedText || undefined),
                 questions,
                 currentQuestionIndex: 0,
                 answers: {},
@@ -143,4 +148,24 @@ export async function createCandidateSessionFromDraft(
             };
         },
     });
+}
+
+function buildSessionCandidate(
+    candidate: CandidateSessionCreationInput["candidate"],
+    resumeText?: string,
+): InterviewSession["candidate"] | undefined {
+    if (!candidate?.email) {
+        return undefined;
+    }
+
+    const parts = (candidate.displayName || "Candidate").trim().split(/\s+/).filter(Boolean);
+    const firstName = parts[0] || "Candidate";
+    const lastName = parts.slice(1).join(" ") || "Practice";
+
+    return {
+        firstName,
+        lastName,
+        email: candidate.email,
+        resumeText,
+    };
 }

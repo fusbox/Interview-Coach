@@ -59,7 +59,7 @@ export async function advanceCandidateSessionAction(
         return result;
     }
 
-    redirect(`/session/${result.sessionId}`);
+    redirect(status === "COMPLETED" ? `/summary/${result.sessionId}` : `/session/${result.sessionId}`);
 }
 
 export async function pauseCandidateSessionAction(sessionId: string): Promise<CandidateSessionActionResult> {

@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { captureFeedbackAction } from "@/app/actions/feedback";
 import { ThumbsUp, ThumbsDown } from "lucide-react";

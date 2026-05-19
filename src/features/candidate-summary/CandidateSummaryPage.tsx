@@ -1,84 +1,188 @@
+import Image from "next/image";
 import Link from "next/link";
+import ReactMarkdown from "react-markdown";
+import { RotateCcw, XCircle } from "lucide-react";
 
+import { ContentCard } from "@/components/patterns/ContentCard";
+import { IconBadge } from "@/components/patterns/IconBadge";
+import { SectionHeader } from "@/components/patterns/SectionHeader";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/cn";
 import type { CandidateSummaryModel } from "@/lib/server/candidate";
+import { SessionSurvey } from "@/features/session/components/SessionSurvey";
+import { getIconForTitle, parseDebrief } from "@/features/session/components/SummaryUtilities";
 
 type CandidateSummaryPageProps = {
     summary: CandidateSummaryModel;
 };
 
 export function CandidateSummaryPage({ summary }: CandidateSummaryPageProps) {
+    const narrative = summary.summaryNarrative || undefined;
+    const hasNarrative = Boolean(narrative);
+    const titleText = `Great practice round, ${summary.candidateFirstName || "there"}!`;
+    const descriptionText = hasNarrative
+        ? "Here's your feedback summary."
+        : "One moment while I create your feedback summary";
+
     return (
-        <main className="candidate-design-system min-h-screen bg-surface-base text-text-primary">
-            <section className="border-b border-border bg-gradient-to-br from-brand-glass-start via-surface-base to-white">
-                <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-10 md:px-10 md:py-14">
-                    <Link href="/dashboard" className="text-sm font-semibold text-primary hover:underline">
-                        Back to dashboard
-                    </Link>
-                    <div className="max-w-5xl space-y-4">
-                        <p className="text-xs font-bold uppercase tracking-[0.14em] text-text-secondary">
-                            Candidate session summary
-                        </p>
-                        <h1 className="font-display text-4xl font-bold leading-tight text-text-primary md:text-6xl">
-                            {summary.role} summary
+        <main className="candidate-design-system relative flex min-h-[100dvh] w-full flex-col items-center bg-gradient-to-br from-brand-glass-start to-brand-glass-end text-text-primary">
+            <div className="absolute inset-0 bg-white/40 backdrop-blur-md" />
+            <div className="relative z-10 flex w-full max-w-4xl flex-col items-center space-y-12 px-6 py-12 md:px-12">
+                <header className="flex w-full flex-col items-start gap-1">
+                    <div className="relative mb-6 h-12 w-auto shrink-0">
+                        <Image
+                            src="/TA-logo.webp"
+                            alt="TalentArbor"
+                            width={200}
+                            height={58}
+                            className="object-contain"
+                            priority
+                            unoptimized
+                        />
+                    </div>
+                    <div className="w-full space-y-4 text-left">
+                        <h1 className="font-display text-2xl font-bold leading-tight text-primary md:text-3xl">
+                            {titleText}
                         </h1>
-                        <p className="max-w-4xl text-base leading-7 text-text-secondary md:text-lg">
-                            {summary.summaryNarrative}
+                        <p className="text-lg leading-relaxed text-text-secondary">
+                            {descriptionText}
                         </p>
                     </div>
-                    <div className="flex flex-wrap gap-3">
-                        <span className="rounded-full border border-border bg-white px-4 py-2 text-sm font-bold text-text-primary shadow-flat">
-                            {summary.answeredCount} of {summary.questionCount} answered
-                        </span>
-                        <span className="rounded-full border border-border bg-white px-4 py-2 text-sm font-bold text-text-primary shadow-flat">
-                            {summary.status}
-                        </span>
-                    </div>
-                </div>
-            </section>
+                </header>
 
-            <section className="mx-auto grid w-full max-w-7xl gap-6 px-6 py-10 md:px-10 md:py-12 lg:grid-cols-[minmax(0,1fr)_20rem]">
-                <div className="space-y-5">
-                    <h2 className="font-display text-3xl font-bold text-text-primary">Answers to review</h2>
-                    {summary.answers.length > 0 ? (
-                        <div className="grid gap-4">
-                            {summary.answers.map((answer) => (
-                                <article key={answer.questionId} className="rounded-2xl border border-border bg-white p-5 shadow-flat">
-                                    <div className="space-y-3">
-                                        <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">{answer.category}</p>
-                                        <h3 className="text-xl font-bold text-text-primary">{answer.questionText}</h3>
-                                        <p className="whitespace-pre-wrap text-sm leading-7 text-text-secondary">{answer.transcript}</p>
-                                        {answer.recommendation ? (
-                                            <div className="rounded-2xl border border-border bg-surface-sky p-4">
-                                                <p className="text-sm font-bold text-text-primary">What to strengthen</p>
-                                                <p className="mt-2 text-sm leading-6 text-text-secondary">{answer.recommendation}</p>
-                                            </div>
-                                        ) : null}
-                                    </div>
-                                </article>
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="rounded-2xl border border-border bg-white p-5 text-sm leading-6 text-text-secondary shadow-flat">
-                            No submitted answers are available yet.
-                        </p>
-                    )}
-                </div>
-
-                <aside className="space-y-4">
-                    <div className="rounded-2xl border border-border bg-white p-5 shadow-flat">
-                        <h2 className="text-sm font-bold text-text-primary">Next step</h2>
-                        <p className="mt-2 text-sm leading-6 text-text-secondary">
-                            Use this summary to choose one answer pattern to practice again.
-                        </p>
+                {hasNarrative ? (
+                    <div className="flex w-full flex-col gap-6">
+                        {parseDebrief(narrative).map((section) => (
+                            <ContentCard key={section.title} density="spacious" className="w-full">
+                                <div className="mb-3 flex items-center gap-4 border-b border-border/60 pb-4">
+                                    <IconBadge {...getIconForTitle(section.title)} size="sm" />
+                                    <h2 className="text-2xl font-bold text-text-primary">
+                                        {section.title}
+                                    </h2>
+                                </div>
+                                <div className="prose max-w-none prose-p:text-lg prose-p:leading-relaxed prose-p:text-text-secondary prose-li:text-lg prose-strong:text-text-primary">
+                                    <ReactMarkdown
+                                        components={{
+                                            strong: ({ className, ...props }) => (
+                                                <strong className={cn("font-bold text-text-primary", className)} {...props} />
+                                            ),
+                                            p: ({ className, ...props }) => (
+                                                <p className={cn("mb-5 last:mb-0", className)} {...props} />
+                                            ),
+                                            li: ({ className, ...props }) => (
+                                                <li className={cn("mb-5 last:mb-0", className)} {...props} />
+                                            ),
+                                        }}
+                                    >
+                                        {section.content}
+                                    </ReactMarkdown>
+                                </div>
+                            </ContentCard>
+                        ))}
                     </div>
-                    <Link
-                        href="/practice"
-                        className="inline-flex w-full justify-center rounded-full bg-primary px-5 py-3 text-sm font-bold text-white shadow-flat transition hover:bg-primary-hover"
-                    >
-                        Practice again
-                    </Link>
-                </aside>
-            </section>
+                ) : (
+                    <DebriefSkeleton />
+                )}
+
+                <section className="w-full max-w-2xl space-y-10 bg-transparent p-0">
+                    <div className="space-y-2 text-center">
+                        <SectionHeader
+                            title="How was your session?"
+                            className="flex-col items-center text-center sm:flex-col sm:items-center sm:justify-center"
+                            description={<span className="italic">Your feedback helps us improve the coaching experience.</span>}
+                        />
+                    </div>
+                    <SessionSurvey sessionId={summary.sessionId} />
+                </section>
+
+                <section className="flex w-full max-w-2xl flex-col items-center">
+                    <div className="w-full space-y-4">
+                        <Button
+                            asChild
+                            emphasis="tertiary"
+                            density="comfortable"
+                            shape="pill"
+                            label="strong"
+                            className="w-full gap-3 border-0 bg-transparent text-primary shadow-none hover:bg-transparent hover:text-primary"
+                        >
+                            <Link href="/dashboard">
+                                <XCircle size={20} />
+                                Close this window
+                            </Link>
+                        </Button>
+                        <Button
+                            asChild
+                            emphasis="primary"
+                            density="hero"
+                            shape="app"
+                            label="strong"
+                            className="h-16 w-full gap-3 text-lg shadow-floating"
+                        >
+                            <Link href="/practice">
+                                <RotateCcw size={24} />
+                                Practice Again
+                            </Link>
+                        </Button>
+                    </div>
+                </section>
+
+                <footer className="flex flex-row items-center justify-center gap-[0.4rem] whitespace-nowrap pt-8 font-medium tracking-wide text-muted-foreground">
+                    <span className="translate-y-px text-micro uppercase tracking-widest sm:text-xs">
+                        Interview Practice Powered By
+                    </span>
+                    <Image
+                        src="/TA-logo.webp"
+                        alt="TalentArbor"
+                        width={80}
+                        height={23}
+                        className="object-contain opacity-80"
+                        priority
+                        unoptimized
+                    />
+                </footer>
+            </div>
         </main>
+    );
+}
+
+function DebriefSkeleton() {
+    return (
+        <div className="flex w-full flex-col gap-6" aria-busy="true" aria-live="polite" aria-label="Feedback summary is loading">
+            <ContentCard density="spacious" className="w-full">
+                <Skeleton className="mb-6 h-8 w-48" />
+                <div className="space-y-3">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-2/3" />
+                </div>
+            </ContentCard>
+
+            <ContentCard density="spacious" className="w-full">
+                <Skeleton className="mb-6 h-8 w-40" />
+                <div className="space-y-8">
+                    <div className="space-y-3">
+                        <Skeleton className="h-5 w-1/3" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-5/6" />
+                    </div>
+                    <div className="space-y-3">
+                        <Skeleton className="h-5 w-1/4" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-3/4" />
+                    </div>
+                </div>
+            </ContentCard>
+
+            <ContentCard density="spacious" className="w-full">
+                <Skeleton className="mb-6 h-8 w-56" />
+                <div className="space-y-3">
+                    <Skeleton className="h-5 w-1/3" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-1/2" />
+                </div>
+            </ContentCard>
+        </div>
     );
 }

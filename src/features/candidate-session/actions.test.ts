@@ -95,6 +95,26 @@ describe("candidate session actions", () => {
         });
     });
 
+    it("redirects completed candidate sessions to the summary route", async () => {
+        advanceCandidateOwnedSessionMock.mockResolvedValue({
+            ok: true,
+            sessionId: "session-1",
+            status: "COMPLETED",
+            currentQuestionIndex: 3,
+            resumeTargetScreen: "session_summary",
+        });
+        const { advanceCandidateSessionAction } = await import("./actions");
+
+        await expect(advanceCandidateSessionAction("session-1", 3, "COMPLETED")).rejects.toThrow("NEXT_REDIRECT:/summary/session-1");
+
+        expect(advanceCandidateOwnedSessionMock).toHaveBeenCalledWith({
+            candidateProfileId: "profile-1",
+            sessionId: "session-1",
+            currentQuestionIndex: 3,
+            status: "COMPLETED",
+        });
+    });
+
     it("pauses the current candidate-owned session and redirects back to the route", async () => {
         pauseCandidateOwnedSessionMock.mockResolvedValue({
             ok: true,

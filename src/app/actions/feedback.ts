@@ -1,7 +1,6 @@
 "use server";
 
 import { createFeedbackRepository, FeedbackRecord } from "@/lib/server/infrastructure/feedback-repository";
-import { getCachedUser } from "@/lib/server/auth/current-user";
 
 export async function captureFeedbackAction(record: FeedbackRecord) {
     try {
@@ -9,6 +8,7 @@ export async function captureFeedbackAction(record: FeedbackRecord) {
 
         // If it's a recruiter-side signal, try to associate the recruiter ID
         if (record.type.startsWith('recruiter_')) {
+            const { getCachedUser } = await import("@/lib/server/auth/current-user");
             const user = await getCachedUser();
             if (user) {
                 record.recruiterId = user.id;

@@ -19,7 +19,6 @@ import {
 import { FeedbackPill } from '@/components/patterns/FeedbackPill';
 import { cn } from '@/lib/cn';
 import { captureFeedbackAction } from '@/app/actions/feedback';
-import { useSession } from '../context/SessionContext';
 import { SectionHeader } from '@/components/patterns/SectionHeader';
 import { AlertPanel } from '@/components/patterns/AlertPanel';
 import { FeedbackChoiceButton } from '@/components/patterns/FeedbackChoiceButton';
@@ -39,6 +38,7 @@ interface FeedbackOverlayProps {
     isLastQuestion?: boolean;
     transcript?: string;
     audioBlob?: Blob | null;
+    sessionId?: string;
 }
 
 type SectionKey = 'start' | 'delivery' | 'content' | 'next';
@@ -239,8 +239,8 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
     isLastQuestion,
     transcript,
     audioBlob,
+    sessionId,
 }) => {
-    const { session } = useSession();
     const [isPlaying, setIsPlaying] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [activeSection, setActiveSection] = useState<SectionKey>('start');
@@ -320,7 +320,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
         setErrorMessage(null);
         try {
             await captureFeedbackAction({
-                sessionId: session?.id,
+                sessionId,
                 type: `helpfulness_${type}`,
                 comment: val, // yes, somewhat, no
                 metadata: {
@@ -399,6 +399,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
     useEffect(() => {
         const container = scrollContainerRef.current;
         if (!container) return;
+        if (typeof IntersectionObserver === 'undefined') return;
 
         const observer = new IntersectionObserver(
             (entries) => {

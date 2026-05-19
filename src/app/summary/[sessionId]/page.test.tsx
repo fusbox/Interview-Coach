@@ -25,9 +25,10 @@ describe("/summary/[sessionId] page", () => {
         loadCandidateSummaryForCurrentCandidateMock.mockResolvedValue({
             practiceDraftId: "draft-1",
             sessionId: "session-1",
+            candidateFirstName: "Fu",
             role: "QA Analyst",
             status: "COMPLETED",
-            summaryNarrative: "You were clear and structured.",
+            summaryNarrative: "## Executive Summary\nYou were clear and structured.",
             answeredCount: 1,
             questionCount: 1,
             answers: [
@@ -45,7 +46,8 @@ describe("/summary/[sessionId] page", () => {
         render(await SummaryRoute({ params: Promise.resolve({ sessionId: "session-1" }) }));
 
         expect(loadCandidateSummaryForCurrentCandidateMock).toHaveBeenCalledWith("session-1");
-        expect(screen.getByRole("heading", { name: /qa analyst summary/i })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: /great practice round, fu/i })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: /executive summary/i })).toBeInTheDocument();
     });
 
     it("returns not found when the summary is missing or not owned", async () => {

@@ -11,6 +11,7 @@ import { CandidateQuestionPlaybackButton } from "./CandidateQuestionPlaybackButt
 import { CandidateSessionAudioController } from "./CandidateSessionAudioController";
 import { CandidateSessionDebugOverlay } from "./CandidateSessionDebugOverlay";
 import { CandidateSessionEntryScreen } from "./CandidateSessionEntryScreen";
+import { FeedbackDrawer } from "@/features/session/components/FeedbackDrawer";
 import {
     advanceCandidateSessionAction,
     analyzeCandidateAnswerAction,
@@ -150,6 +151,9 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
                             role={session.role}
                             currentQuestion={currentQuestion}
                             nextQuestion={nextQuestion}
+                            isLastQuestion={isLastQuestion}
+                            advanceAction={advanceAction}
+                            retryQuestionAction={retryQuestionAction}
                         />
                     ) : (
                         <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 md:px-6 lg:px-10">
@@ -182,17 +186,27 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
                                     </div>
                                 </SessionPromptShell>
 
-                                <div className="mt-6 flex flex-1 flex-col justify-center rounded-3xl border border-border bg-surface-base/80 p-4 shadow-flat md:p-6">
-                                    <SavedAnswerPanel
+                                {currentAnalysis ? (
+                                    <CandidateSubmittedFeedbackReview
+                                        sessionId={session.id}
                                         transcript={currentAnswer?.transcript}
                                         analysis={currentAnalysis}
-                                        analyzeAnswerAction={analyzeAnswerAction}
                                         retryQuestionAction={retryQuestionAction}
                                         advanceAction={advanceAction}
-                                        canAdvance={canAdvance}
                                         isLastQuestion={isLastQuestion}
                                     />
-                                </div>
+                                ) : (
+                                    <div className="mt-6 flex flex-1 flex-col justify-center rounded-3xl border border-border bg-surface-base/80 p-4 shadow-flat md:p-6">
+                                        <SavedAnswerPanel
+                                            transcript={currentAnswer?.transcript}
+                                            analyzeAnswerAction={analyzeAnswerAction}
+                                            retryQuestionAction={retryQuestionAction}
+                                            advanceAction={advanceAction}
+                                            canAdvance={canAdvance}
+                                            isLastQuestion={isLastQuestion}
+                                        />
+                                    </div>
+                                )}
                             </section>
                         </div>
                     )
@@ -225,7 +239,6 @@ function HeaderButton({ icon, label }: { icon: React.ReactNode; label: string })
 
 function SavedAnswerPanel({
     transcript,
-    analysis,
     analyzeAnswerAction,
     retryQuestionAction,
     advanceAction,
@@ -233,7 +246,6 @@ function SavedAnswerPanel({
     isLastQuestion,
 }: {
     transcript?: string;
-    analysis?: AnalysisResult;
     analyzeAnswerAction: () => Promise<void>;
     retryQuestionAction: () => Promise<void>;
     advanceAction: () => Promise<void>;
@@ -260,39 +272,16 @@ function SavedAnswerPanel({
                 <p className="text-sm font-black uppercase tracking-widest text-text-muted">
                     Coach&apos;s Lens
                 </p>
-                {analysis ? (
-                    <div className="mt-5 space-y-5">
-                        {analysis.ack ? (
-                            <p className="text-base leading-7 text-text-secondary">{analysis.ack}</p>
-                        ) : null}
-                        {analysis.contentPulse ? (
-                            <div className="rounded-2xl border border-primary/15 bg-surface-sky p-4">
-                                <h3 className="text-xl font-bold text-text-primary">
-                                    {analysis.contentPulse.headline}
-                                </h3>
-                                <p className="mt-2 text-sm leading-6 text-text-secondary">
-                                    {analysis.contentPulse.body}
-                                </p>
-                            </div>
-                        ) : null}
-                        {analysis.recommendation ? (
-                            <p className="text-lg font-semibold leading-7 text-text-primary">
-                                {analysis.recommendation}
-                            </p>
-                        ) : null}
-                    </div>
-                ) : (
-                    <div className="mt-5 space-y-4">
-                        <p className="text-base leading-7 text-text-secondary">
-                            Get focused coaching before you decide whether to retry or continue.
-                        </p>
-                        <form action={analyzeAnswerAction}>
-                            <Button type="submit" emphasis="primary" density="comfortable" shape="app" label="strong">
-                                Get coaching
-                            </Button>
-                        </form>
-                    </div>
-                )}
+                <div className="mt-5 space-y-4">
+                    <p className="text-base leading-7 text-text-secondary">
+                        Get focused coaching before you decide whether to retry or continue.
+                    </p>
+                    <form action={analyzeAnswerAction}>
+                        <Button type="submit" emphasis="primary" density="comfortable" shape="app" label="strong">
+                            Get coaching
+                        </Button>
+                    </form>
+                </div>
 
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                     {canAdvance ? (
@@ -312,6 +301,35 @@ function SavedAnswerPanel({
                 </div>
             </section>
         </div>
+    );
+}
+
+function CandidateSubmittedFeedbackReview({
+    sessionId,
+    transcript,
+    analysis,
+    retryQuestionAction,
+    advanceAction,
+    isLastQuestion,
+}: {
+    sessionId: string;
+    transcript?: string;
+    analysis: AnalysisResult;
+    retryQuestionAction: () => Promise<void>;
+    advanceAction: () => Promise<void>;
+    isLastQuestion: boolean;
+}) {
+    return (
+        <FeedbackDrawer
+            isOpen={true}
+            analysis={analysis}
+            onNext={advanceAction}
+            onRetry={retryQuestionAction}
+            isLastQuestion={isLastQuestion}
+            transcript={transcript}
+            audioBlob={null}
+            sessionId={sessionId}
+        />
     );
 }
 

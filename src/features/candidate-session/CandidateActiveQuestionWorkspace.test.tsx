@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ComponentProps } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CandidateActiveQuestionWorkspace } from "./CandidateActiveQuestionWorkspace";
@@ -32,6 +33,10 @@ vi.mock("next/navigation", () => ({
     useRouter: () => ({
         refresh: refreshMock,
     }),
+}));
+
+vi.mock("@/app/actions/feedback", () => ({
+    captureFeedbackAction: vi.fn().mockResolvedValue({ ok: true }),
 }));
 
 vi.mock("@/features/audio/audio-engine", () => ({
@@ -93,23 +98,62 @@ const question = {
     index: 0,
 };
 
+const analyzedSessionResponse = {
+    id: "session-1",
+    answers: {
+        "question-1": {
+            questionId: "question-1",
+            transcript: "I clarified the change and adapted.",
+            submittedAt: 1770000000000,
+            analysis: {
+                ack: "You gave a useful starting point.",
+                recommendation: "Try again with a more specific result.",
+                contentPulse: {
+                    dimension: "outcome_explicitness",
+                    headline: "Connect the action to impact",
+                    body: "Name what changed because of your adaptation.",
+                    quote: "clarified the change",
+                },
+                nextAction: {
+                    label: "Retry My Answer",
+                    actionType: "redo_answer",
+                },
+                meta: {
+                    tier: 1,
+                    modality: "text",
+                },
+            },
+        },
+    },
+};
+
+function renderWorkspace(overrides: Partial<ComponentProps<typeof CandidateActiveQuestionWorkspace>> = {}) {
+    return render(
+        <CandidateActiveQuestionWorkspace
+            sessionId="session-1"
+            role="Manufacturing Technician"
+            currentQuestion={question}
+            nextQuestion={null}
+            isLastQuestion={false}
+            advanceAction={vi.fn()}
+            retryQuestionAction={vi.fn()}
+            {...overrides}
+        />,
+    );
+}
+
 describe("CandidateActiveQuestionWorkspace", () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 })));
+        vi.stubGlobal("fetch", vi.fn()
+            .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }))
+            .mockResolvedValueOnce(new Response(JSON.stringify(analyzedSessionResponse), { status: 200 })));
     });
 
-    it("submits text answers through the shared session submit and analysis APIs", async () => {
+    it("submits text answers through the shared session submit and analysis APIs, then opens recruiter-style feedback", async () => {
         const user = userEvent.setup();
 
-        render(
-            <CandidateActiveQuestionWorkspace
-                sessionId="session-1"
-                role="Manufacturing Technician"
-                currentQuestion={question}
-                nextQuestion={null}
-            />,
-        );
+        renderWorkspace();
 
         await user.click(screen.getByRole("button", { name: /text mode/i }));
         await user.type(screen.getByRole("textbox", { name: /type your answer/i }), "I clarified the change and adapted.");
@@ -135,21 +179,16 @@ describe("CandidateActiveQuestionWorkspace", () => {
                 body: JSON.stringify({ audioData: undefined }),
             }),
         );
-        expect(refreshMock).toHaveBeenCalled();
+        expect(await screen.findByRole("button", { name: /explore feedback/i })).toBeInTheDocument();
+        expect(screen.getByText("You gave a useful starting point.")).toBeInTheDocument();
+        expect(refreshMock).not.toHaveBeenCalled();
     });
 
     it("shows the recruiter-style loader while shared answer analysis is pending", async () => {
         const user = userEvent.setup();
         vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => undefined)));
 
-        render(
-            <CandidateActiveQuestionWorkspace
-                sessionId="session-1"
-                role="Manufacturing Technician"
-                currentQuestion={question}
-                nextQuestion={null}
-            />,
-        );
+        renderWorkspace();
 
         await user.click(screen.getByRole("button", { name: /text mode/i }));
         await user.type(screen.getByRole("textbox", { name: /type your answer/i }), "I clarified the change and adapted.");
@@ -165,14 +204,7 @@ describe("CandidateActiveQuestionWorkspace", () => {
     it("keeps coach lens panels open until the user changes the lens", async () => {
         const user = userEvent.setup();
 
-        render(
-            <CandidateActiveQuestionWorkspace
-                sessionId="session-1"
-                role="Manufacturing Technician"
-                currentQuestion={question}
-                nextQuestion={null}
-            />,
-        );
+        renderWorkspace();
 
         await user.click(screen.getByRole("button", { name: /hints/i }));
 
@@ -193,14 +225,7 @@ describe("CandidateActiveQuestionWorkspace", () => {
     it("submits captured voice audio through the shared analysis API", async () => {
         const user = userEvent.setup();
 
-        render(
-            <CandidateActiveQuestionWorkspace
-                sessionId="session-1"
-                role="Manufacturing Technician"
-                currentQuestion={question}
-                nextQuestion={null}
-            />,
-        );
+        renderWorkspace();
 
         await user.click(screen.getByRole("button", { name: /submit recording/i }));
 
@@ -224,5 +249,6 @@ describe("CandidateActiveQuestionWorkspace", () => {
                 body: expect.stringContaining("\"mimeType\":\"audio/webm\""),
             }),
         );
+        expect(await screen.findByRole("button", { name: /explore feedback/i })).toBeInTheDocument();
     });
 });
