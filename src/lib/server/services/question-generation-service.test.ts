@@ -80,8 +80,9 @@ describe("question generation service", () => {
         expect(questions.map((question) => question.index)).toEqual([0, 1, 2]);
         expect(captureAiGenerationMock).toHaveBeenCalledWith(expect.objectContaining({
             appName: "candidate_app",
-            createdBy: "profile-1",
+            candidateId: "profile-1",
             sourceRefs: [{ type: "service", name: "candidate_session_generation" }],
         }));
+        expect(captureAiGenerationMock.mock.calls[0][0]).not.toHaveProperty("createdBy");
     });
 });

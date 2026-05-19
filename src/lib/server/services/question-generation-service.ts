@@ -58,6 +58,7 @@ export async function generateInterviewQuestionSet(
     if (!ai) {
         const mockQuestions = getMockQuestions(normalizedInput.role);
         const redactedMockQuestions = redactPii(mockQuestions);
+        const actorCaptureFields = getActorCaptureFields(context);
         await captureAiGeneration({
             appName: context.appName,
             surface: "question_generation",
@@ -77,7 +78,7 @@ export async function generateInterviewQuestionSet(
             latencyMs: Date.now() - startedAt,
             correlationId: context.correlationId,
             sourceRefs: context.sourceRefs,
-            createdBy: context.actorId,
+            ...actorCaptureFields,
             privacyFlags,
             redactionStatus: "redacted",
             retentionClass: "eval_redacted",
@@ -91,6 +92,7 @@ export async function generateInterviewQuestionSet(
         prompt: redactPii(prompt),
         promptVersion: QUESTION_GENERATION_PROMPT_VERSION,
     };
+    const actorCaptureFields = getActorCaptureFields(context);
 
     let rawProviderOutput: string | undefined;
     try {
@@ -121,7 +123,7 @@ export async function generateInterviewQuestionSet(
             latencyMs: Date.now() - startedAt,
             correlationId: context.correlationId,
             sourceRefs: context.sourceRefs,
-            createdBy: context.actorId,
+            ...actorCaptureFields,
             privacyFlags,
             redactionStatus: "redacted",
             retentionClass: "eval_redacted",
@@ -145,7 +147,7 @@ export async function generateInterviewQuestionSet(
             latencyMs: Date.now() - startedAt,
             correlationId: context.correlationId,
             sourceRefs: context.sourceRefs,
-            createdBy: context.actorId,
+            ...actorCaptureFields,
             error: serializeAiGenerationError(error),
             privacyFlags,
             redactionStatus: "redacted",
@@ -153,6 +155,18 @@ export async function generateInterviewQuestionSet(
         });
         throw error;
     }
+}
+
+function getActorCaptureFields(context: QuestionGenerationContext) {
+    if (!context.actorId) {
+        return {};
+    }
+
+    if (context.actorType === "candidate") {
+        return { candidateId: context.actorId };
+    }
+
+    return { createdBy: context.actorId };
 }
 
 export async function generateCandidateQuestionSnapshot(

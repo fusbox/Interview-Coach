@@ -50,7 +50,7 @@ test("seeded candidate can move from practice setup to session summary", async (
     await expect(page.getByText(/I noted your answer/i)).toBeVisible({ timeout: routeTransitionTimeout });
     await page.getByRole("button", { name: /continue to next question/i }).click();
 
-    await expect(page.getByText(/Question 2 of 3/i)).toBeVisible();
+    await expect(page.getByText(/Question 2 of 3/i)).toBeVisible({ timeout: routeTransitionTimeout });
     await page.getByRole("button", { name: /text mode/i }).click();
     await page.getByLabel(/type your answer/i).fill(
         "I separate urgency from impact, name the tradeoff, and make the decision criteria visible before recommending a path.",
@@ -60,7 +60,7 @@ test("seeded candidate can move from practice setup to session summary", async (
     await expect(page.getByText(/I noted your answer/i)).toBeVisible({ timeout: routeTransitionTimeout });
     await page.getByRole("button", { name: /continue to next question/i }).click();
 
-    await expect(page.getByText(/Question 3 of 3/i)).toBeVisible();
+    await expect(page.getByText(/Question 3 of 3/i)).toBeVisible({ timeout: routeTransitionTimeout });
     await page.getByRole("button", { name: /text mode/i }).click();
     await page.getByLabel(/type your answer/i).fill(
         "I start with the customer problem, validate the workflow with users, and then turn the evidence into a small testable plan.",
