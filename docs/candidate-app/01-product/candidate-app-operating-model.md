@@ -38,7 +38,7 @@ The project should use these living documents:
 - [Accessibility Baseline](../05-quality/accessibility-baseline.md)
 - [Recruiter Regression Checklist For Candidate PRs](../05-quality/recruiter-regression-checklist.md)
 - [Candidate App Threat Model](../06-security/threat-model.md)
-- [Data Retention Policy](../06-security/data-retention-policy.md)
+- [Privacy, Disclosures, And Consent Requirements](../06-security/privacy-disclosures-and-consent-requirements.md)
 - [Azure DevOps Operating Model](../07-ops/azure-devops-operating-model.md)
 - [Candidate Observability Plan](../07-ops/candidate-observability-plan.md)
 - [Candidate Incident Runbook](../07-ops/candidate-incident-runbook.md)

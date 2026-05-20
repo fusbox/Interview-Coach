@@ -111,6 +111,7 @@ describe("PracticeSetupForm", () => {
             />,
         );
 
+        await user.click(screen.getByLabelText(/i understand interview coach uses ai/i));
         await user.click(screen.getByRole("button", { name: /start generating questions/i }));
 
         expect(startPracticeGenerationActionMock).toHaveBeenCalledWith({
@@ -130,6 +131,30 @@ describe("PracticeSetupForm", () => {
             },
         });
         expect(routerPushMock).toHaveBeenCalledWith("/session/session-1");
+    });
+
+    it("requires the AI and data acknowledgement before generating practice questions", async () => {
+        const user = userEvent.setup();
+        startPracticeGenerationActionMock.mockResolvedValue({
+            ok: true,
+            practiceDraftId: "draft-1",
+            sessionId: "session-1",
+            resumeTargetScreen: "session_entry",
+        });
+        render(<PracticeSetupForm initialValues={{ targetRole: "QA analyst" }} />);
+
+        expect(screen.getByText(/resume text is optional/i)).toBeInTheDocument();
+        expect(screen.getByText(/interview coach uses ai to generate practice questions/i)).toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: /start generating questions/i }));
+
+        expect(await screen.findByRole("alert")).toHaveTextContent(/confirm the ai and data acknowledgement/i);
+        expect(startPracticeGenerationActionMock).not.toHaveBeenCalled();
+
+        await user.click(screen.getByLabelText(/i understand interview coach uses ai/i));
+        await user.click(screen.getByRole("button", { name: /start generating questions/i }));
+
+        expect(startPracticeGenerationActionMock).toHaveBeenCalledTimes(1);
     });
 
     it("submits the MVP interview type while deferring non-MVP intake fields", async () => {
@@ -154,6 +179,7 @@ describe("PracticeSetupForm", () => {
         );
 
         await user.selectOptions(screen.getByLabelText(/question count/i), "7");
+        await user.click(screen.getByLabelText(/i understand interview coach uses ai/i));
         await user.click(screen.getByRole("button", { name: /start generating questions/i }));
 
         expect(startPracticeGenerationActionMock).toHaveBeenCalledWith(expect.objectContaining({

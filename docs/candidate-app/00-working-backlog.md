@@ -26,8 +26,7 @@ It is the repo-local source of truth for what needs to be built, why it matters,
 - [Test Strategy](05-quality/test-strategy.md)
 - [Accessibility Baseline](05-quality/accessibility-baseline.md)
 - [Candidate App Threat Model](06-security/threat-model.md)
-- [Data Retention Policy](06-security/data-retention-policy.md)
-- [Privacy Policy Requirements](06-security/privacy-policy-requirements.md)
+- [Privacy, Disclosures, And Consent Requirements](06-security/privacy-disclosures-and-consent-requirements.md)
 - [Azure DevOps Operating Model](07-ops/azure-devops-operating-model.md)
 - [Candidate Integration PR Policy](07-ops/candidate-integration-pr-policy.md)
 - [Decision Records](08-decisions/README.md)
@@ -98,23 +97,23 @@ Ground truth:
 | ID | Azure ID | Level | State | Assigned To | Item | Acceptance Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
 | FND-F01 | 640 | Feature | Resolved | Fu Chen <fu@rangam.com> | Repo and docs baseline | Candidate docs, ADRs, package identity, CI scripts, and source assets exist |
-| FND-S01 | 656 | Story | Active | Fu Chen <fu@rangam.com> | Align package name and quality scripts | `lint`, `typecheck`, coverage, stability, and build scripts are available |
+| FND-S01 | 656 | Story | Resolved | Fu Chen <fu@rangam.com> | Align package name and quality scripts | `lint`, `typecheck`, coverage, stability, and build scripts are available |
 | FND-T01 | 657 | Task | Closed | Fu Chen <fu@rangam.com> | Verify local quality command names | Scripts are listed in package docs or local bootstrap |
-| FND-S02 | 658 | Story | Active | Fu Chen <fu@rangam.com> | Align public assets with migrated recruiter app | Candidate public assets match the migrated recruiter baseline where intentionally shared |
+| FND-S02 | 658 | Story | Resolved | Fu Chen <fu@rangam.com> | Align public assets with migrated recruiter app | Candidate public assets match the migrated recruiter baseline where intentionally shared |
 | FND-S03 | 641 | Story | Resolved | Fu Chen <fu@rangam.com> | Establish ground-truth docs and single working backlog | [README.md](README.md) links current docs and this backlog |
 | FND-T04 | 642 | Task | Closed | Fu Chen <fu@rangam.com> | Establish working docs and ground-truth docs | Foundational docs exist and are hyperlinked |
-| FND-S04 | 659 | Story | Active | Fu Chen <fu@rangam.com> | Add ADRs and environment contract | [Decision Records](08-decisions/README.md) and `.env.example` exist |
+| FND-S04 | 659 | Story | Resolved | Fu Chen <fu@rangam.com> | Add ADRs and environment contract | [Decision Records](08-decisions/README.md) and `.env.example` exist |
 | FND-F02 | 660 | Feature | Resolved | Fu Chen <fu@rangam.com> | Local developer bootstrap | A developer can run the app, DB setup, seed data, and quality checks locally |
 | FND-S05 | 661 | Story | Resolved | Fu Chen <fu@rangam.com> | Document local bootstrap contract | [Local Dev Bootstrap](09-dev/local-dev-bootstrap.md) defines current and target commands |
 | FND-T02 | 662 | Task | Closed | Fu Chen <fu@rangam.com> | Implement DB setup/migrate/seed commands after DB layer lands | `db:setup`, `db:migrate`, `db:seed`, and candidate readiness commands are available and documented |
 | FND-F03 | 663 | Feature | Active | Fu Chen <fu@rangam.com> | Policy baselines | Retention, accessibility, and threat-model expectations are usable during implementation |
-| FND-S06 | 664 | Story | Active | Fu Chen <fu@rangam.com> | Add data retention policy | [Data Retention Policy](06-security/data-retention-policy.md) states processed-resume retention default |
+| FND-S06 | 664 | Story | Resolved | Fu Chen <fu@rangam.com> | Add data retention policy | [Privacy, Disclosures, And Consent Requirements](06-security/privacy-disclosures-and-consent-requirements.md) states processed-resume retention default |
 | FND-S07 | 665 | Story | Active | Fu Chen <fu@rangam.com> | Add accessibility baseline | [Accessibility Baseline](05-quality/accessibility-baseline.md) defines primary UI expectations |
 | FND-T03 | 666 | Task | Closed | Fu Chen <fu@rangam.com> | Revisit threat model after auth and resume ingestion are implemented | Threat model reflects actual route, auth-denial, resume, and storage behavior |
 
 ### EPIC-02 Candidate Public Funnel And Shared Host Routing
 
-Azure Boards: #667 | State: Active | Assigned To: Fu Chen <fu@rangam.com>
+Azure Boards: #667 | State: Resolved | Assigned To: Fu Chen <fu@rangam.com>
 
 Outcome: The shared host can serve public, recruiter, admin, QA, invite-token, and authenticated candidate routes without collisions.
 
@@ -131,15 +130,12 @@ Ground truth:
 | ID | Azure ID | Level | State | Assigned To | Item | Acceptance Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
 | WEB-F01 | 751 | Feature | Resolved | Fu Chen <fu@rangam.com> | Shared host route ownership | Confirmed host, route owners, and collision risks are documented |
-| WEB-S01 | 644 | Story | Active | Fu Chen <fu@rangam.com> | Document shared host route and candidate login redirect contracts | Shared host and login redirect contracts exist in `docs/candidate-app` |
-| WEB-S02 | 649 | Story | Active | Himanshu Sagar <himanshusagar@rangam.com> | Track shared host route ownership | Route ownership questions are tracked for integration-team review |
 | WEB-S03 | 752 | Story | Resolved | Fu Chen <fu@rangam.com> | Port public candidate landing page into shared Azure branch | `/` renders the public candidate page in the shared app |
 | WEB-S04 | 753 | Story | Resolved | Fu Chen <fu@rangam.com> | Add `/recruiter` create-page alias | `/recruiter` lands on recruiter create while `/recruiter/create` stays compatible |
 | WEB-S05 | 754 | Story | Resolved | Fu Chen <fu@rangam.com> | Add shared-host route collision tests | Candidate, recruiter, admin, QA, anonymous, and invite-token contexts resolve correctly |
-| WEB-F02 | 668 | Feature | Active | Fu Chen <fu@rangam.com> | Candidate public CTA funnel | Public CTAs send candidates to the correct login entry and intended return target |
+| WEB-F02 | 668 | Feature | Resolved | Fu Chen <fu@rangam.com> | Candidate public CTA funnel | Public CTAs send candidates to the correct login entry and intended return target; remaining TalentArbor return behavior questions are tracked as integration tasks |
 | WEB-S06 | 669 | Story | Resolved | Fu Chen <fu@rangam.com> | Update public CTA targets | Start practice and dashboard CTAs route through candidate login-start behavior |
-| WEB-S07 | 670 | Story | Active | Himanshu Sagar <himanshusagar@rangam.com> | Confirm candidate CTA return behavior | Integration team confirms parameter/state/callback behavior or fallback |
-| WEB-T01 | 671 | Task | Active | Fu Chen <fu@rangam.com> | Validate `LoginWithType/2` parameter behavior in browser | Observed behavior is recorded in the login redirect contract |
+| WEB-S07 | 670 | Story | Resolved | Himanshu Sagar <himanshusagar@rangam.com> | Confirm candidate CTA return behavior | Return-behavior tracking is consolidated under the TalentArbor identity handoff work; implementation remains blocked by final contract answers |
 | WEB-F03 | 672 | Feature | Resolved | Fu Chen <fu@rangam.com> | Recruiter/admin/QA route preservation | Existing recruiter/admin/QA relative paths continue to work after candidate routes land |
 | WEB-S08 | 673 | Story | Resolved | Fu Chen <fu@rangam.com> | Preserve recruiter/admin/QA route behavior | `/recruiter/dashboard` restores the migrated recruiter dashboard while `/recruiter/templates`, `/recruiter/settings`, `/admin/feedback`, and `/qa/ai-quality` remain protected under shared-host routing |
 
@@ -172,14 +168,14 @@ Ground truth:
 | AUTH-S05 | 682 | Story | Resolved | Fu Chen <fu@rangam.com> | Add negative ownership behavior | Cross-candidate access returns forbidden or not found without leaking data |
 | AUTH-T02 | 683 | Task | Closed | Fu Chen <fu@rangam.com> | Add auth-denial logging without secrets | Denials include route, reason, and actor mode only |
 | AUTH-F03 | 755 | Feature | Active | Himanshu Sagar <himanshusagar@rangam.com> | TalentArbor login return and identity handoff | Public CTAs can preserve candidate intent through login when integration supports it |
-| AUTH-S06 | 648 | Story | Active | Himanshu Sagar <himanshusagar@rangam.com> | Track TalentArbor login return contract | Return-target, identity handoff, and fallback questions are tracked until confirmed |
-| AUTH-S07 | 655 | Story | Active | Himanshu Sagar <himanshusagar@rangam.com> | Confirm TalentArbor login return parameter support | Supported parameter, state, allowlist, and fallback behavior are known |
+| AUTH-S06 | 648 | Story | Resolved | Himanshu Sagar <himanshusagar@rangam.com> | Track TalentArbor login return contract | Return-target, identity handoff, and fallback questions are consolidated under AUTH-F03/AUTH-S08/AUTH-S09 until final contract answers are known |
+| AUTH-S07 | 655 | Story | Resolved | Himanshu Sagar <himanshusagar@rangam.com> | Confirm TalentArbor login return parameter support | Parameter/state/callback questions are consolidated under AUTH-F03/AUTH-S08/AUTH-S09 until final contract answers are known |
 | AUTH-S08 | 756 | Story | New | Fu Chen <fu@rangam.com> | Implement login-start route after contract is known | `/auth/talentarbor/start?next=/practice` and `/dashboard` validate and preserve safe targets |
 | AUTH-S09 | 757 | Story | New | Fu Chen <fu@rangam.com> | Implement callback/session resolution boundary | Successful external login resolves a candidate profile and redirects safely |
 
 ### EPIC-04 Shared Postgres And Backend Integration
 
-Azure Boards: #684 | State: Active | Assigned To: Fu Chen <fu@rangam.com>
+Azure Boards: #684 | State: Resolved | Assigned To: Fu Chen <fu@rangam.com>
 
 Outcome: Candidate persistence uses the migrated recruiter app's standard Postgres patterns without reintroducing Supabase.
 
@@ -236,11 +232,11 @@ Ground truth:
 | DRFT-F03 | 705 | Feature | Resolved | Fu Chen <fu@rangam.com> | Multiple draft management | Candidate can distinguish and resume more than one active/named draft |
 | DRFT-S07 | 706 | Story | Resolved | Fu Chen <fu@rangam.com> | Model draft naming and selection | Candidate can choose editable drafts by role label and last activity date |
 | DRFT-S08 | 769 | Story | Resolved | Fu Chen <fu@rangam.com> | Build practice setup UI MVP | `/practice` saves edited setup, resume context, structured intake, and draft selection before routing into session creation |
-| DRFT-F04 | TBD | Feature | New | Fu Chen <fu@rangam.com> | Practice setup UI refinement | Practice setup copy, layout, progressive disclosure, policy notices, and final interaction polish are reviewed as product UI work after the backend/MVP shell is stable |
+| DRFT-F04 | 772 | Feature | Active | Fu Chen <fu@rangam.com> | Practice setup UI refinement | Practice setup copy, layout, progressive disclosure, policy notices, and final interaction polish are reviewed as product UI work after the backend/MVP shell is stable |
 
 ### EPIC-06 Candidate Session Engine Integration
 
-Azure Boards: #707 | State: Active | Assigned To: Fu Chen <fu@rangam.com>
+Azure Boards: #707 | State: Resolved | Assigned To: Fu Chen <fu@rangam.com>
 
 Outcome: Candidate-owned drafts create and resume candidate-owned interview sessions using reusable session engine patterns.
 
@@ -271,7 +267,7 @@ Ground truth:
 | SESS-S09 | 770 | Story | Resolved | Fu Chen <fu@rangam.com> | Build live practice session UI MVP | `/session/[sessionId]` reuses recruiter session workspace patterns for prompt, progress, answer, coaching, retry, pause/resume, completion, and hidden engagement debug inspection |
 | SESS-F05 | 777 | Feature | Resolved | Fu Chen <fu@rangam.com> | AI-backed candidate question generation | Candidate practice session creation uses the shared question-generation service instead of the mock role-only generator |
 | SESS-S10 | 778 | Story | Resolved | Fu Chen <fu@rangam.com> | Wire candidate session creation to shared AI question generation | Candidate setup passes role, optional JD, optional resume text, interview type, and question count into the shared generator; recruiter API behavior remains covered |
-| SESS-F04 | 773 | Feature | Active | Fu Chen <fu@rangam.com> | Live session UI refinement | Candidate session flow, feedback presentation, voice/text controls, pause/resume affordances, and policy-adjacent notices are reviewed as product UI work after the shared session engine is stable |
+| SESS-F04 | 773 | Feature | Resolved | Fu Chen <fu@rangam.com> | Live session UI refinement | Candidate session flow, feedback presentation, voice/text controls, pause/resume affordances, and policy-adjacent notices are reviewed as product UI work after the shared session engine is stable |
 | SESS-S11 | 779 | Story | Resolved | Fu Chen <fu@rangam.com> | Align candidate session entry and active-question controls with invite session | Candidate-owned sessions use an invite-style entry screen before Q1, default to invite-style voice mode, expose Hints/Example panels, support text-mode answer entry with the shared multistep loader, use Exit Session header language, expose read-question playback, prefetch Q1/Qn+1 audio, and keep the hidden engagement/AI context inspector available |
 | SESS-S12 | 781 | Story | Resolved | Fu Chen <fu@rangam.com> | Align candidate feedback rendering with invite session | Candidate feedback now opens the shared invite-session feedback drawer after answer analysis, preserves current-turn transcript/audio for answer review, routes final-question completion to the candidate summary, and renders the recruiter-style candidate debrief surface with candidate-owned survey capture |
 
@@ -288,7 +284,7 @@ Non-goals: resume-builder document editing, long-term shared candidate platform 
 Ground truth:
 
 - [Storage And Resume Ingestion](04-architecture/storage-and-resume-ingestion.md)
-- [Data Retention Policy](06-security/data-retention-policy.md)
+- [Privacy, Disclosures, And Consent Requirements](06-security/privacy-disclosures-and-consent-requirements.md)
 - [ADR-0005: Processed Resume Retention By Default](08-decisions/ADR-0005-processed-resume-retention-by-default.md)
 
 | ID | Azure ID | Level | State | Assigned To | Item | Acceptance Evidence |
@@ -347,7 +343,7 @@ Ground truth:
 - [Test Strategy](05-quality/test-strategy.md)
 - [Accessibility Baseline](05-quality/accessibility-baseline.md)
 - [Candidate App Threat Model](06-security/threat-model.md)
-- [Privacy Policy Requirements](06-security/privacy-policy-requirements.md)
+- [Privacy, Disclosures, And Consent Requirements](06-security/privacy-disclosures-and-consent-requirements.md)
 
 | ID | Azure ID | Level | State | Assigned To | Item | Acceptance Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -363,8 +359,9 @@ Ground truth:
 | QSO-F03 | 746 | Feature | Resolved | Fu Chen <fu@rangam.com> | Security and privacy review | Candidate data, redirects, resume ingestion, and ownership checks are reviewed |
 | QSO-S06 | 747 | Story | Resolved | Fu Chen <fu@rangam.com> | Review login redirect security | Open redirects, state tampering, and unsafe return targets are mitigated |
 | QSO-S07 | 748 | Story | Resolved | Fu Chen <fu@rangam.com> | Review resume data privacy | Retention, logging, and extraction failure paths avoid sensitive-data leaks |
-| QSO-F04 | 775 | Feature | New | Fu Chen <fu@rangam.com> | Privacy, cookie, and AI disclosure readiness | Policy gaps, app-local notices, retention boundaries, cookie behavior, AI vendor disclosure, and candidate data visibility are reviewed before production exposure |
-| QSO-S10 | 776 | Story | New | Fu Chen <fu@rangam.com> | Review Interview Coach privacy, cookie, and AI policy fit | [Privacy Policy Requirements](06-security/privacy-policy-requirements.md) is reviewed with policy owners; required notice, retention, cookie, AI vendor, and data-visibility follow-ups are confirmed or split into implementation items |
+| QSO-F04 | 775 | Feature | Resolved | Fu Chen <fu@rangam.com> | Privacy, cookie, and AI disclosure readiness | App-local notices are implemented and policy/company clarification follow-ups are split to a policy-owner review task |
+| QSO-S10 | 776 | Story | Resolved | Fu Chen <fu@rangam.com> | Review Interview Coach privacy, cookie, and AI policy fit | [Privacy, Disclosures, And Consent Requirements](06-security/privacy-disclosures-and-consent-requirements.md) is reviewed with policy owners; required notice, retention, cookie, AI vendor, and data-visibility follow-ups are confirmed or split into implementation items |
+| QSO-T01 | TBD | Task | New | Himanshu Sagar <himanshusagar@rangam.com> | Review policy docs and resolve company-policy clarifications | Policy owner/integration review confirms governing policy, protected-route tags, retention/export/delete posture, company footer, and exact policy links |
 
 ### EPIC-10 Azure DevOps Collaboration And Delivery
 
@@ -384,20 +381,23 @@ Ground truth:
 
 | ID | Azure ID | Level | State | Assigned To | Item | Acceptance Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| OPS-F01 | 643 | Feature | Active | Fu Chen <fu@rangam.com> | Candidate app integration planning control plane | Fu-Lab Feature 643 tracks planning while company repo owns code |
+| OPS-S14 | 643 | Story | Active | Himanshu Sagar <himanshusagar@rangam.com> | Coordinate candidate integration planning control plane | Fu-Lab Boards, repo docs/code wiki, PR review, shared-host confirmation, and branch policy follow-ups stay aligned with the company repo integration path |
+| OPS-T04 | 644 | Task | Active | Himanshu Sagar <himanshusagar@rangam.com> | Review shared host route and candidate login redirect contracts | Integration team confirms the shared-host and login redirect docs reflect the intended deployment and handoff behavior |
+| OPS-T05 | 649 | Task | Active | Himanshu Sagar <himanshusagar@rangam.com> | Confirm shared host route ownership | Integration team confirms public, candidate, recruiter, admin, QA, invite-token, and API route ownership under `interviewcoach.talentarbor.com` |
+| OPS-T06 | 671 | Task | Active | Himanshu Sagar <himanshusagar@rangam.com> | Validate `LoginWithType/2` return behavior with integration team | Observed behavior and supported callback/state/return parameters are recorded in the login redirect contract |
 | OPS-S00 | 645 | Story | Closed | Fu Chen <fu@rangam.com> | Create candidate integration context branch in company Azure repo | Historical setup item retained for traceability |
 | OPS-S01 | 750 | Story | Resolved | Fu Chen <fu@rangam.com> | Create candidate integration branch in company Azure repo | `feature/candidate-app-integration` exists from `feature/postgres-integration` |
 | OPS-S02 | 650 | Story | Resolved | Fu Chen <fu@rangam.com> | Port candidate docs into company Azure branch | `docs/candidate-app` exists in `feature/candidate-app-integration` |
 | OPS-S03 | 651 | Story | Resolved | Fu Chen <fu@rangam.com> | Open candidate integration PR in company Azure repo | Draft PR `!593` targets `feature/postgres-integration` |
 | OPS-S04 | 647 | Story | Resolved | Fu Chen <fu@rangam.com> | Create candidate integration dashboard | Dashboard includes context and active/blocked query widgets |
 | OPS-S05 | 652 | Story | Resolved | Fu Chen <fu@rangam.com> | Define candidate integration PR policy | [Candidate Integration PR Policy](07-ops/candidate-integration-pr-policy.md) documents target branch, draft convention, evidence bundle, external planning link, and reviewer expectations |
-| OPS-S06 | 654 | Story | Active | Himanshu Sagar <himanshusagar@rangam.com> | Track candidate docs review for PR `!593` | Review feedback is captured in PR comments or Fu-Lab Boards |
+| OPS-S06 | 654 | Story | Active | Himanshu Sagar <himanshusagar@rangam.com> | Review candidate integration docs and handoff in PR `!593` | Himanshu reviews the candidate docs/handoff package in PR `!593`, confirms it gives the integration team enough context to merge and continue work, and captures approval, comments, or follow-up items in PR comments or Fu-Lab Boards |
 | OPS-S07 | 653 | Story | Resolved | Fu Chen <fu@rangam.com> | Create candidate integration starter checklist | [START-WORK-PASS.md](START-WORK-PASS.md) exists and is linked from docs hub |
 | OPS-F02 | 758 | Feature | Active | Fu Chen <fu@rangam.com> | Azure Boards import and traceability pattern | Work item import files can create correctly linked Azure hierarchy |
 | OPS-S08 | 759 | Story | Resolved | Fu Chen <fu@rangam.com> | Validate CSV import pattern for linked work items | Import CSV creates child story under Feature 643 |
 | OPS-S09 | 760 | Story | Resolved | Fu Chen <fu@rangam.com> | Import canonical backlog hierarchy into Fu-Lab Boards | Confirmed import file reflects this working backlog and imports cleanly |
-| OPS-S10 | 646 | Story | Active | Himanshu Sagar <himanshusagar@rangam.com> | Publish company code wiki when access allows | `/docs/candidate-app` is published from company Azure project as code wiki |
-| OPS-S11 | 761 | Story | New | Himanshu Sagar <himanshusagar@rangam.com> | Add branch policy after reviewers are available | Candidate branch has agreed PR/build requirements |
+| OPS-S10 | 646 | Story | Active | Himanshu Sagar <himanshusagar@rangam.com> | Publish company code wiki when access allows | `/docs/candidate-app` is published from company Azure project as code wiki after company project permissions/support are available |
+| OPS-S11 | 761 | Story | New | Himanshu Sagar <himanshusagar@rangam.com> | Add branch policy after reviewers are available | Candidate branch has agreed reviewer and build requirements after reviewer ownership is known |
 | OPS-S12 | 762 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate integration pipeline | Pipeline definition runs lint, typecheck, candidate tests, build, and candidate DB smoke readiness |
 | OPS-S13 | 767 | Story | Resolved | Fu Chen <fu@rangam.com> | Wire candidate pipeline in Azure project | Fu-Lab pipeline passes without STDIO close warning after rehearsal env and browser-smoke cleanup |
 
@@ -407,15 +407,15 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 
 | Seq | State | Backlog ID | Azure ID | Assigned To | Work | Verification |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Active | WEB-S01 | 644 | Fu Chen <fu@rangam.com> | Document shared host route and Azure branch decision | Shared host contract and ADR-0006 exist |
+| 1 | Active | OPS-T04 | 644 | Himanshu Sagar <himanshusagar@rangam.com> | Review shared host route and candidate login redirect contracts | Integration team confirms the shared-host and login redirect docs reflect intended deployment and handoff behavior |
 | 2 | Active | OPS-S01 | 750 | Fu Chen <fu@rangam.com> | Create candidate integration branch in company Azure repo | Branch tracks `azure/feature/candidate-app-integration` |
 | 3 | Resolved | OPS-S02 | 650 | Fu Chen <fu@rangam.com> | Port candidate docs into company Azure branch | `docs/candidate-app` added and pushed |
 | 4 | Resolved | OPS-S03 | 651 | Fu Chen <fu@rangam.com> | Open candidate integration PR | Draft PR `!593` exists |
 | 5 | Resolved | OPS-S07 | 653 | Fu Chen <fu@rangam.com> | Add candidate integration starter checklist | Checklist added and pushed |
 | 6 | Resolved | OPS-S05 | 652 | Fu Chen <fu@rangam.com> | Define candidate integration PR policy | Policy captured in [Candidate Integration PR Policy](07-ops/candidate-integration-pr-policy.md) |
-| 7 | Active | OPS-S06 | 654 | Himanshu Sagar <himanshusagar@rangam.com> | Track candidate docs review for PR `!593` | Feedback captured and follow-ups created |
-| 8 | Active | AUTH-S07 | 655 | Himanshu Sagar <himanshusagar@rangam.com> | Confirm TalentArbor login return parameter support | Integration team confirms parameter/state/fallback behavior |
-| 9 | Active | WEB-S07 | 670 | Himanshu Sagar <himanshusagar@rangam.com> | Confirm candidate CTA return behavior | Login return behavior is captured in docs and work item |
+| 7 | Active | OPS-S06 | 654 | Himanshu Sagar <himanshusagar@rangam.com> | Review candidate integration docs and handoff in PR `!593` | Approval, comments, or follow-ups are captured in PR comments or Fu-Lab Boards |
+| 8 | Resolved | AUTH-S07 | 655 | Himanshu Sagar <himanshusagar@rangam.com> | Confirm TalentArbor login return parameter support | Consolidated under AUTH-F03/AUTH-S08/AUTH-S09 until final contract answers are known |
+| 9 | Resolved | WEB-S07 | 670 | Himanshu Sagar <himanshusagar@rangam.com> | Confirm candidate CTA return behavior | Consolidated under AUTH-F03/AUTH-S08/AUTH-S09 until final contract answers are known |
 | 10 | Resolved | OPS-S09 | 760 | Fu Chen <fu@rangam.com> | Import canonical backlog hierarchy | Confirmed CSV import creates expected linked items |
 | 11 | Resolved | WEB-S03 | 752 | Fu Chen <fu@rangam.com> | Port public landing page into shared Azure branch | `/` renders candidate public page |
 | 12 | Resolved | WEB-S04 | 753 | Fu Chen <fu@rangam.com> | Add `/recruiter` create alias | `/recruiter` lands on recruiter create |
@@ -487,7 +487,7 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 78 | Resolved | WEB-S08 | 673 | Fu Chen <fu@rangam.com> | Preserve recruiter/admin/QA route behavior | `/recruiter/dashboard` restored as the recruiter dashboard compatibility route; primary route smoke covers recruiter/admin/QA protection |
 | 79 | Resolved | OPS-S05 | 652 | Fu Chen <fu@rangam.com> | Define candidate integration PR policy | Refreshed reviewer policy includes implemented candidate UI MVP scope, recruiter regression evidence, branch strategy, and current blockers |
 | 80 | Resolved | OPS-S08 | 759 | Fu Chen <fu@rangam.com> | Validate CSV import pattern for linked work items | Import CSV creates child story under Feature 643 |
-| 81 | New | QSO-S10 | TBD | Fu Chen <fu@rangam.com> | Review Interview Coach privacy, cookie, and AI policy fit | Policy owners review [Privacy Policy Requirements](06-security/privacy-policy-requirements.md); follow-up implementation items are created for notices, retention, cookie behavior, AI vendor disclosure, and data-visibility boundaries |
+| 81 | Resolved | QSO-S10 | 776 | Fu Chen <fu@rangam.com> | Review Interview Coach privacy, cookie, and AI policy fit | Policy requirements are consolidated in [Privacy, Disclosures, And Consent Requirements](06-security/privacy-disclosures-and-consent-requirements.md); remaining company-policy clarifications are split to QSO-T01 |
 | 82 | Resolved | FND-F02 | 660 | Fu Chen <fu@rangam.com> | Roll up local developer bootstrap | Child story/task are resolved or closed; package scripts and local bootstrap docs cover app, DB setup, seed, quality checks, and candidate browser review |
 | 83 | Resolved | WEB-F01 | 751 | Fu Chen <fu@rangam.com> | Roll up shared host route ownership | Public, recruiter, admin, QA, invite-token, and candidate route ownership is implemented and covered by route tests |
 | 84 | Resolved | WEB-F03 | 672 | Fu Chen <fu@rangam.com> | Roll up recruiter/admin/QA route preservation | Recruiter dashboard compatibility and shared-host regression coverage are in place |
@@ -498,22 +498,29 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 89 | Resolved | DATA-F03 | 692 | Fu Chen <fu@rangam.com> | Roll up migration and seed path | Candidate migrations, dev seed, and smoke validation scripts are present |
 | 90 | Resolved | QSO-F02 | 743 | Fu Chen <fu@rangam.com> | Roll up observability and incident readiness | Candidate observability tests, observability plan, and incident runbook are in place |
 | 91 | Active | DRFT-F04 | 772 | Fu Chen <fu@rangam.com> | Track practice setup UI refinement separately | Candidate-owned UI polish remains open while backend/integration scope is complete |
-| 92 | Active | SESS-F04 | 773 | Fu Chen <fu@rangam.com> | Track live session UI refinement separately | Candidate-owned UI polish remains open while session engine integration scope is complete |
+| 92 | Resolved | SESS-F04 | 773 | Fu Chen <fu@rangam.com> | Track live session UI refinement separately | Candidate session question, feedback, summary, voice/text, and disclosure parity have landed for the current MVP scope |
 | 93 | New | DASH-F03 | 774 | Fu Chen <fu@rangam.com> | Track dashboard UI refinement separately | Candidate-owned UI polish remains open while dashboard read-model scope is complete |
 | 94 | Resolved | SESS-F05 | 777 | Fu Chen <fu@rangam.com> | Track AI-backed candidate question generation | Shared question-generation service is implemented and used by recruiter API plus candidate session creation; recruiter regression and DB output checks produced expected invite/session/question/AI capture data |
 | 95 | Resolved | SESS-S10 | 778 | Fu Chen <fu@rangam.com> | Wire candidate session creation to shared AI question generation | Candidate setup now passes role, optional JD, optional resume text, interview type, and question count into the shared generator; focused tests, candidate suite, typecheck, lint, build, recruiter browser regression, and DB output checks passed |
 | 96 | Resolved | SESS-S11 | 779 | Fu Chen <fu@rangam.com> | Align candidate session entry and active-question controls with invite session | Candidate route now matches invite-session entry, default active-question voice surface, Hints/Example panels, text-mode answer entry, text submission loader, exit/read controls, Q1/Qn+1 audio prefetch, and hidden debug inspector expectations |
-| 97 | Active | SESS-F04 | 773 | Fu Chen <fu@rangam.com> | Continue deeper live-session UI parity | Product UI refinement remains active while feedback rendering, summary/debrief, and follow-up email parity are compared against the recruiter invite flow |
+| 97 | Resolved | SESS-F04 | 773 | Fu Chen <fu@rangam.com> | Continue deeper live-session UI parity | Feedback rendering, summary/debrief, and follow-up email parity have landed for the current MVP scope |
 | 98 | Resolved | SESS-S12 | 781 | Fu Chen <fu@rangam.com> | Align candidate feedback rendering with invite session | Shared feedback drawer is reused for candidate analysis, current-turn transcript/audio is available in View your answer, final-question completion routes to `/summary/[sessionId]`, candidate sessions now carry candidate identity for personalized debrief/follow-up email eligibility, and the summary page renders the recruiter-style debrief/survey without recruiter visibility copy; seeded browser smoke now covers setup, three answer submissions, feedback drawer exploration, transcript slide-over, finish redirect, and summary rendering |
 | 99 | Resolved | DATA-S04 | 691 | Fu Chen <fu@rangam.com> | Fix expired hint idempotency key reuse | Postgres idempotency store now clears expired rows for the same scope/actor/key before reserving, so older resumed session questions can regenerate/replay hints instead of failing behind `/api/tips/generate` |
 | 100 | Resolved | SESS-F04 | 773 | Fu Chen <fu@rangam.com> | Browser-validate feedback and summary parity | Seeded browser smoke validates practice setup, text answer submission, shared feedback drawer exploration, transcript slide-over, retry/continue/finish transition coverage through finish, `/summary/[sessionId]` routing, and debrief rendering; the smoke runner now blanks SMTP env values so local e2e does not attempt real debrief email delivery |
-| 101 | Active | SESS-F04 | 773 | Fu Chen <fu@rangam.com> | Continue live-session UI parity validation | Remaining live-session refinement focus is manual visual QA against recruiter screenshots and real-browser voice/STT edge cases that seeded Playwright cannot reliably exercise |
+| 101 | Resolved | SESS-F04 | 773 | Fu Chen <fu@rangam.com> | Continue live-session UI parity validation | Manual validation confirmed candidate session question presentation, answer submission, feedback, summary, and email behavior for the current MVP scope |
 | 102 | Resolved | SESS-F04 | 773 | Fu Chen <fu@rangam.com> | Make candidate summary route render before debrief generation | Candidate completion now skips blocking completion side effects, `/summary/[sessionId]` renders the skeleton immediately, an ownership-checked finalization endpoint generates the debrief/email after load, and the summary title falls back to the candidate profile first name when old sessions lack embedded candidate metadata |
 | 103 | Resolved | DRFT-F04 | 772 | Fu Chen <fu@rangam.com> | Remove redundant General interview type option | `/practice` now presents the null/default interview type as Balanced practice, removes the duplicate General option, and preserves legacy restored `general` values as the balanced default |
 | 104 | Resolved | SESS-F04 | 773 | Fu Chen <fu@rangam.com> | Confirm candidate finish-session redirect behavior | Current finish flow still uses the expected Next server-action `303` redirect from `/session/[sessionId]`; completion no longer blocks on debrief/email generation, and stale `POST /summary/[sessionId]` server-action errors point to an old dev client/server bundle rather than the current API finalizer path |
 | 105 | Resolved | QSO-S09 | 768 | Fu Chen <fu@rangam.com> | Make seeded browser smoke port deterministic | `test:e2e:candidate-seeded` now selects an available local port, passes the matching base URL into Playwright, and avoids false failures when port 3000 is already occupied |
 | 106 | Resolved | SESS-F04 | 773 | Fu Chen <fu@rangam.com> | Right-align text-mode submit action | Candidate text-mode Submit Answer footer now removes its extra horizontal inset so the action aligns to the same right rail as the textarea and session components above it |
 | 107 | Resolved | SESS-F04 | 773 | Fu Chen <fu@rangam.com> | Replace candidate summary practice-again CTA | Candidate summary now uses quiet page-navigation actions for Back to Dashboard and Back to Practice Setup, removing the recruiter-style Close this window and loud Practice Again CTA from the candidate debrief |
+| 108 | Resolved | SESS-F04 | 773 | Fu Chen <fu@rangam.com> | Equalize candidate summary navigation buttons | Back to Dashboard and Back to Practice Setup now share the same quiet nav-button treatment, hover state, border, rest color, and width rhythm instead of mixing secondary and tertiary emphasis styles |
+| 109 | Resolved | QSO-S10 | 776 | Fu Chen <fu@rangam.com> | Consolidate privacy, disclosure, consent, and retention docs | Security docs now use a two-doc structure: privacy/disclosures/consent requirements as the policy implementation source of truth, and the threat model as the engineering risk artifact |
+| 110 | Resolved | QSO-F04 | 775 | Fu Chen <fu@rangam.com> | Land candidate app-local disclosure and consent UI | Public home, candidate shell pages, practice setup, session entry, voice mode, and summary now include MVP disclosure, acknowledgement, and company-footer placeholder surfaces; policy/company clarification follow-ups are split to QSO-T01 |
+| 111 | New | QSO-T01 | TBD | Himanshu Sagar <himanshusagar@rangam.com> | Review policy docs and resolve company-policy clarifications | Review the linked security/policy docs and confirm governing policies, protected-route tags, retention/export/delete posture, company footer, and exact policy links |
+| 112 | Active | OPS-S14 | 643 | Himanshu Sagar <himanshusagar@rangam.com> | Coordinate candidate integration planning control plane | Fu-Lab board, repo docs/code wiki, PR review, shared-host confirmation, and branch policy follow-ups stay aligned |
+| 113 | Active | OPS-T05 | 649 | Himanshu Sagar <himanshusagar@rangam.com> | Confirm shared host route ownership | Integration team confirms route ownership for public, candidate, recruiter, admin, QA, invite-token, and API paths |
+| 114 | Active | OPS-T06 | 671 | Himanshu Sagar <himanshusagar@rangam.com> | Validate `LoginWithType/2` return behavior with integration team | Supported callback/state/return behavior is recorded in the login redirect contract |
 
 ## Open Questions
 
@@ -522,8 +529,8 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | Q-01 | Answered | Use seeded `dev` mode for default local browser review, with password-backed local dev auth and explicit mock candidate mode available for targeted scenarios. | Apply during AUTH-S03 |
 | Q-02 | Answered | Multiple active/named drafts are a legitimate use case. | Apply during DRFT-S03 and DRFT-S07 |
 | Q-03 | Direction Set | Do not retain original uploaded resume files after normalization/redaction by default; persist processed resume artifact instead. | Revisit before RES-S03 |
-| Q-04 | Answered | `interviewcoach.talentarbor.com` is the shared host; `/` is public page, `/recruiter` is recruiter create, candidate routes are top-level siblings. | Apply during WEB-S02, WEB-S03, and AUTH-S06 |
-| Q-05 | Open | Does `LoginWithType/2` preserve return URL/callback/state through TalentArbor login? | Before AUTH-S07 |
+| Q-04 | Answered | `interviewcoach.talentarbor.com` is the shared host; `/` is public page, `/recruiter` is recruiter create, candidate routes are top-level siblings. | Apply during WEB-S03, OPS-T05, and OPS-T06 |
+| Q-05 | Open | Does `LoginWithType/2` preserve return URL/callback/state through TalentArbor login? | Before AUTH-S08/AUTH-S09 |
 | Q-06 | Open | What identity handoff protocol will TalentArbor/RangamWorks provide to Interview Coach? | Before AUTH-S08 |
 
 ## Drift Check

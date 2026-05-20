@@ -45,4 +45,11 @@ describe("candidate public home page", () => {
         expect(hrefs).not.toContain("/recruiter/create");
         expect(hrefs).not.toContain("/login");
     });
+
+    it("renders candidate disclosure copy near the company footer placeholder", () => {
+        render(<Home />);
+
+        expect(screen.getByText(/interview coach uses ai for practice coaching/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/company footer placeholder/i)).toBeInTheDocument();
+    });
 });

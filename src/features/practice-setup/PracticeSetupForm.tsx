@@ -47,6 +47,7 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
     const router = useRouter();
     const [fieldErrors, setFieldErrors] = useState<PracticeSetupErrors>({});
     const [actionError, setActionError] = useState<string | null>(null);
+    const [acknowledgementError, setAcknowledgementError] = useState<string | null>(null);
 
     const hasFieldErrors = Object.keys(fieldErrors).length > 0;
     const alertMessage = useMemo(() => {
@@ -58,16 +59,21 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
             return actionError;
         }
 
+        if (acknowledgementError) {
+            return acknowledgementError;
+        }
+
         if (hasFieldErrors) {
             return "Review the highlighted fields before starting practice.";
         }
 
         return null;
-    }, [actionError, hasFieldErrors, submissionError]);
+    }, [acknowledgementError, actionError, hasFieldErrors, submissionError]);
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setActionError(null);
+        setAcknowledgementError(null);
 
         const formData = new FormData(event.currentTarget);
         const result = safeParsePracticeSetupInput({
@@ -96,6 +102,12 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
 
         if (!intakeResult.success) {
             setActionError("Review the personalization fields before starting practice.");
+            return;
+        }
+
+        if (formData.get("aiDataAcknowledgement") !== "on") {
+            setAcknowledgementError("Confirm the AI and data acknowledgement before starting practice.");
+            setFieldErrors({});
             return;
         }
 
@@ -230,6 +242,26 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
                         ))}
                     </select>
                 </div>
+            </div>
+
+            <div className="space-y-4 rounded-2xl border border-primary/15 bg-primary/5 p-4 text-sm leading-6 text-text-secondary">
+                <p>
+                    Interview Coach uses AI to generate practice questions and coaching from the role, job description,
+                    and resume text you provide. Your practice content may be saved so you can return to it in your
+                    candidate dashboard.
+                </p>
+                <p>Resume text is optional. Paste only what you want used for practice.</p>
+                <label className="flex items-start gap-3 font-semibold text-text-primary">
+                    <input
+                        type="checkbox"
+                        name="aiDataAcknowledgement"
+                        className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                    />
+                    <span>
+                        I understand Interview Coach uses AI for practice coaching and may save my practice content for
+                        my dashboard.
+                    </span>
+                </label>
             </div>
 
             <Button type="submit" density="hero" shape="pill" label="strong" className="w-full sm:w-auto">

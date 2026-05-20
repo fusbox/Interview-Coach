@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Briefcase, ClipboardList, FileText, HelpingHand, Search, Sparkles } from "lucide-react";
 
+import { CandidateDisclosureFooter } from "@/components/shell/CandidateDisclosureFooter";
 import { Button } from "@/components/ui/button";
 
 const practiceHighlights = [
@@ -12,7 +13,7 @@ const practiceHighlights = [
     },
     {
         title: "Include your resume when it helps",
-        body: "Paste resume text or upload a file when you want questions and coaching to reflect your background more closely.",
+        body: "Paste resume text when you want questions and coaching to reflect your background more closely.",
         icon: FileText,
     },
     {
@@ -220,6 +221,7 @@ export default function Home() {
                     </div>
                 </div>
             </section>
+            <CandidateDisclosureFooter />
         </main>
     );
 }

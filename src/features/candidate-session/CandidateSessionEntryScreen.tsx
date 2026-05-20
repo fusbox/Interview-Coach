@@ -52,7 +52,9 @@ export function CandidateSessionEntryScreen({
                         <div className="space-y-1">
                             <h2 className="font-bold text-text-primary">Private Coaching Feedback</h2>
                             <p className="text-sm leading-relaxed text-text-secondary">
-                                This space is for skill-building, not evaluation.
+                                Your answers are private practice content. They are used to provide coaching and may be
+                                saved in your candidate dashboard. They are not shared with recruiters or employers for
+                                hiring decisions.
                             </p>
                         </div>
                     </div>

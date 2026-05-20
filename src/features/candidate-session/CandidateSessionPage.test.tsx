@@ -175,6 +175,8 @@ describe("CandidateSessionPage", () => {
         );
 
         expect(screen.getByRole("heading", { name: /let's get you ready for your interview/i })).toBeInTheDocument();
+        expect(screen.getByText(/your answers are private practice content/i)).toBeInTheDocument();
+        expect(screen.getByText(/not shared with recruiters or employers for hiring decisions/i)).toBeInTheDocument();
         expect(screen.getByRole("button", { name: /begin first question/i })).toBeInTheDocument();
         expect(screen.queryByRole("button", { name: /start practice/i })).not.toBeInTheDocument();
         expect(prefetchMock).toHaveBeenCalledWith(

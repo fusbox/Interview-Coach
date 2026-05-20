@@ -16,6 +16,7 @@ const {
     warmUpMock,
     resetAudioMock,
     fetchStrongResponseMock,
+    audioRecordingStateMock,
 } = vi.hoisted(() => ({
     refreshMock: vi.fn(),
     unlockMock: vi.fn().mockResolvedValue(undefined),
@@ -27,6 +28,14 @@ const {
     warmUpMock: vi.fn().mockResolvedValue(null),
     resetAudioMock: vi.fn(),
     fetchStrongResponseMock: vi.fn(),
+    audioRecordingStateMock: {
+        isRecording: false,
+        isInitializing: false,
+        audioBlob: new Blob(["voice"], { type: "audio/webm" }) as Blob | null,
+        mediaStream: null,
+        permissionError: false,
+        permissionMessage: null,
+    },
 }));
 
 vi.mock("next/navigation", () => ({
@@ -57,12 +66,7 @@ vi.mock("@/features/audio/hooks/useTextToSpeech", () => ({
 
 vi.mock("@/features/audio/hooks/useAudioRecording", () => ({
     useAudioRecording: () => ({
-        isRecording: false,
-        isInitializing: false,
-        audioBlob: new Blob(["voice"], { type: "audio/webm" }),
-        mediaStream: null,
-        permissionError: false,
-        permissionMessage: null,
+        ...audioRecordingStateMock,
         startRecording: startRecordingMock,
         stopRecording: stopRecordingMock,
         warmUp: warmUpMock,
@@ -145,6 +149,13 @@ function renderWorkspace(overrides: Partial<ComponentProps<typeof CandidateActiv
 describe("CandidateActiveQuestionWorkspace", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        window.localStorage.clear();
+        audioRecordingStateMock.isRecording = false;
+        audioRecordingStateMock.isInitializing = false;
+        audioRecordingStateMock.audioBlob = new Blob(["voice"], { type: "audio/webm" });
+        audioRecordingStateMock.mediaStream = null;
+        audioRecordingStateMock.permissionError = false;
+        audioRecordingStateMock.permissionMessage = null;
         vi.stubGlobal("fetch", vi.fn()
             .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }))
             .mockResolvedValueOnce(new Response(JSON.stringify(analyzedSessionResponse), { status: 200 })));
@@ -263,5 +274,41 @@ describe("CandidateActiveQuestionWorkspace", () => {
             }),
         );
         expect(await screen.findByRole("button", { name: /explore feedback/i })).toBeInTheDocument();
+    });
+
+    it("shows a one-time voice notice before triggering microphone permission", async () => {
+        const user = userEvent.setup();
+        audioRecordingStateMock.audioBlob = null;
+
+        const { rerender } = renderWorkspace();
+
+        await user.click(screen.getByRole("button", { name: /record answer/i }));
+
+        expect(screen.getByRole("dialog", { name: /before you use voice mode/i })).toBeInTheDocument();
+        expect(screen.getByText(/your browser will ask for microphone permission/i)).toBeInTheDocument();
+        expect(startRecordingMock).not.toHaveBeenCalled();
+
+        await user.click(screen.getByRole("button", { name: /continue to microphone/i }));
+
+        expect(unlockMock).toHaveBeenCalled();
+        expect(startRecordingMock).toHaveBeenCalledTimes(1);
+        expect(window.localStorage.getItem("interviewCoach.voiceNoticeAcknowledged")).toBe("true");
+
+        rerender(
+            <CandidateActiveQuestionWorkspace
+                sessionId="session-1"
+                role="Manufacturing Technician"
+                currentQuestion={question}
+                nextQuestion={null}
+                isLastQuestion={false}
+                advanceAction={vi.fn()}
+                retryQuestionAction={vi.fn()}
+            />,
+        );
+
+        await user.click(screen.getByRole("button", { name: /record answer/i }));
+
+        expect(screen.queryByRole("dialog", { name: /before you use voice mode/i })).not.toBeInTheDocument();
+        expect(startRecordingMock).toHaveBeenCalledTimes(2);
     });
 });

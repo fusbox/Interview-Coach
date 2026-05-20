@@ -37,6 +37,8 @@ type SubmittedFeedbackState = {
     audioBlob: Blob | null;
 };
 
+const voiceNoticeStorageKey = "interviewCoach.voiceNoticeAcknowledged";
+
 export function CandidateActiveQuestionWorkspace({
     sessionId,
     role,
@@ -56,6 +58,8 @@ export function CandidateActiveQuestionWorkspace({
     const [liveMessage, setLiveMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [submittedFeedback, setSubmittedFeedback] = useState<SubmittedFeedbackState | null>(null);
+    const [showVoiceNotice, setShowVoiceNotice] = useState(false);
+    const [voiceNoticeAcknowledged, setVoiceNoticeAcknowledged] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const {
@@ -85,6 +89,10 @@ export function CandidateActiveQuestionWorkspace({
         isLoading: strongResponseLoading,
         fetchStrongResponse,
     } = useStrongResponse(currentQuestion.id, currentQuestion.text, sessionId, undefined, role);
+
+    useEffect(() => {
+        setVoiceNoticeAcknowledged(window.localStorage.getItem(voiceNoticeStorageKey) === "true");
+    }, []);
 
     useEffect(() => {
         setHintOpen(false);
@@ -134,17 +142,34 @@ export function CandidateActiveQuestionWorkspace({
     }
 
     async function handleToggleRecording() {
-        await audioEngine.unlock();
-
         if (isRecording) {
+            await audioEngine.unlock();
             await stopRecording();
             setLiveMessage("Recording stopped.");
             return;
         }
 
+        if (!voiceNoticeAcknowledged) {
+            setShowVoiceNotice(true);
+            setLiveMessage("Review the voice practice notice before microphone permission.");
+            return;
+        }
+
+        await startVoiceRecording();
+    }
+
+    async function startVoiceRecording() {
+        await audioEngine.unlock();
         setErrorMessage(null);
         await startRecording();
         setLiveMessage("Recording started.");
+    }
+
+    async function acknowledgeVoiceNoticeAndRecord() {
+        window.localStorage.setItem(voiceNoticeStorageKey, "true");
+        setVoiceNoticeAcknowledged(true);
+        setShowVoiceNotice(false);
+        await startVoiceRecording();
     }
 
     function switchToTextMode() {
@@ -507,6 +532,52 @@ export function CandidateActiveQuestionWorkspace({
                 audioBlob={submittedFeedback?.audioBlob}
                 sessionId={sessionId}
             />
+            {showVoiceNotice ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 px-4 backdrop-blur-sm">
+                    <section
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="voice-notice-title"
+                        className="w-full max-w-lg rounded-3xl border border-border bg-surface-base p-6 text-text-primary shadow-floating md:p-8"
+                    >
+                        <h2 id="voice-notice-title" className="font-display text-2xl font-bold">
+                            Before you use voice mode
+                        </h2>
+                        <div className="mt-4 space-y-3 text-sm leading-6 text-text-secondary">
+                            <p>
+                                Your browser will ask for microphone permission after you continue. Interview Coach uses
+                                your voice response to create coaching for this practice question.
+                            </p>
+                            <p>
+                                You can switch to text mode instead. Voice responses are practice content and are not
+                                shared with recruiters or employers for hiring decisions.
+                            </p>
+                        </div>
+                        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                            <Button
+                                type="button"
+                                emphasis="secondary"
+                                density="comfortable"
+                                shape="pill"
+                                label="strong"
+                                onClick={() => setShowVoiceNotice(false)}
+                            >
+                                Not now
+                            </Button>
+                            <Button
+                                type="button"
+                                emphasis="primary"
+                                density="comfortable"
+                                shape="pill"
+                                label="strong"
+                                onClick={acknowledgeVoiceNoticeAndRecord}
+                            >
+                                Continue to microphone
+                            </Button>
+                        </div>
+                    </section>
+                </div>
+            ) : null}
         </>
     );
 }

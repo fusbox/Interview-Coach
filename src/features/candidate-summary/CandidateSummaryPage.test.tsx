@@ -71,11 +71,19 @@ describe("CandidateSummaryPage", () => {
         expect(screen.getByText("You adapted well under pressure.")).toBeInTheDocument();
         expect(screen.getByText("Add stronger impact metrics next.")).toBeInTheDocument();
         expect(screen.getByText("How was your session?")).toBeInTheDocument();
-        expect(screen.getByRole("link", { name: /back to dashboard/i })).toHaveAttribute("href", "/dashboard");
-        expect(screen.getByRole("link", { name: /back to practice setup/i })).toHaveAttribute("href", "/practice");
+        const dashboardLink = screen.getByRole("link", { name: /back to dashboard/i });
+        const practiceSetupLink = screen.getByRole("link", { name: /back to practice setup/i });
+
+        expect(dashboardLink).toHaveAttribute("href", "/dashboard");
+        expect(practiceSetupLink).toHaveAttribute("href", "/practice");
+        expect(dashboardLink).toHaveClass("summary-nav-link");
+        expect(practiceSetupLink).toHaveClass("summary-nav-link");
         expect(screen.queryByRole("link", { name: /practice again/i })).not.toBeInTheDocument();
         expect(screen.queryByRole("link", { name: /close this window/i })).not.toBeInTheDocument();
         expect(screen.queryByText(/shared with your recruiter/i)).not.toBeInTheDocument();
+        expect(screen.getByText(/this summary is saved for your review/i)).toBeInTheDocument();
+        expect(screen.getByText(/practice summaries are not shared with recruiters, employers, or hiring-decision users/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/company footer placeholder/i)).toBeInTheDocument();
         expect(fetchMock).not.toHaveBeenCalled();
     });
 

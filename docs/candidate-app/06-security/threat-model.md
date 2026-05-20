@@ -5,9 +5,11 @@ Status: Working threat model refreshed after candidate auth, Postgres persistenc
 
 ## Purpose
 
-This document identifies the current security and privacy risks for the candidate-led Interview Coach app as it is being integrated into the shared recruiter Postgres repo.
+This document identifies the current security and privacy risks for the candidate Interview Coach app as it is being integrated into the shared recruiter Postgres repo.
 
 It should be updated whenever auth, persistence, uploads, AI services, UI exposure, or deployment boundaries change.
+
+Product/legal policy posture, app-local notices, consent moments, and retention requirements live in [Privacy, Disclosures, And Consent Requirements](privacy-disclosures-and-consent-requirements.md). This threat model should reference that artifact instead of duplicating disclosure copy or detailed retention policy.
 
 ## Scope And Assumptions
 
@@ -126,6 +128,7 @@ flowchart TD
 - Resume extraction behavior lives in [candidate-resume-extraction-service.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-resume-extraction-service.ts).
 - Candidate mutation rate limits live in [candidate-mutation-boundary.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-mutation-boundary.ts).
 - Candidate observability guidance lives in [candidate-observability-plan.md](../07-ops/candidate-observability-plan.md).
+- Privacy, disclosure, consent, and retention requirements live in [privacy-disclosures-and-consent-requirements.md](privacy-disclosures-and-consent-requirements.md).
 - Candidate CI is defined in [azure-pipelines.candidate.yml](/c:/tmp/Interview-Coach-Recruiter-postgres/azure-pipelines.candidate.yml).
 
 ## Attacker Model

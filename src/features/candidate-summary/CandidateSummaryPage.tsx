@@ -6,6 +6,7 @@ import { ClipboardList, LayoutDashboard } from "lucide-react";
 import { ContentCard } from "@/components/patterns/ContentCard";
 import { IconBadge } from "@/components/patterns/IconBadge";
 import { SectionHeader } from "@/components/patterns/SectionHeader";
+import { CandidateDisclosureFooter } from "@/components/shell/CandidateDisclosureFooter";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/cn";
@@ -17,6 +18,13 @@ import { CandidateSummaryFinalizer } from "./CandidateSummaryFinalizer";
 type CandidateSummaryPageProps = {
     summary: CandidateSummaryModel;
 };
+
+const summaryNavLinkClasses = [
+    "summary-nav-link",
+    "w-full min-w-[13rem] gap-2 border border-primary/15 bg-white/85 px-5 text-text-secondary shadow-flat",
+    "hover:border-primary/40 hover:bg-primary/5 hover:text-primary hover:shadow-raised-1",
+    "focus-visible:ring-primary/40 sm:w-auto",
+].join(" ");
 
 export function CandidateSummaryPage({ summary }: CandidateSummaryPageProps) {
     const narrative = summary.summaryNarrative || undefined;
@@ -102,14 +110,14 @@ export function CandidateSummaryPage({ summary }: CandidateSummaryPageProps) {
                 </section>
 
                 <section className="flex w-full max-w-2xl justify-center">
-                    <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-[minmax(13rem,1fr)_auto] sm:items-center">
+                    <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2 sm:items-center">
                         <Button
                             asChild
                             emphasis="secondary"
                             density="comfortable"
                             shape="pill"
                             label="strong"
-                            className="w-full gap-2 px-6 sm:w-auto"
+                            className={summaryNavLinkClasses}
                         >
                             <Link href="/dashboard">
                                 <LayoutDashboard size={18} />
@@ -118,11 +126,11 @@ export function CandidateSummaryPage({ summary }: CandidateSummaryPageProps) {
                         </Button>
                         <Button
                             asChild
-                            emphasis="tertiary"
+                            emphasis="secondary"
                             density="comfortable"
                             shape="pill"
                             label="strong"
-                            className="w-full gap-2 border border-border bg-white px-5 text-text-secondary shadow-flat hover:border-primary/30 hover:bg-white hover:text-primary sm:w-auto"
+                            className={summaryNavLinkClasses}
                         >
                             <Link href="/practice">
                                 <ClipboardList size={18} />
@@ -132,20 +140,10 @@ export function CandidateSummaryPage({ summary }: CandidateSummaryPageProps) {
                     </div>
                 </section>
 
-                <footer className="flex flex-row items-center justify-center gap-[0.4rem] whitespace-nowrap pt-8 font-medium tracking-wide text-muted-foreground">
-                    <span className="translate-y-px text-micro uppercase tracking-widest sm:text-xs">
-                        Interview Practice Powered By
-                    </span>
-                    <Image
-                        src="/TA-logo.webp"
-                        alt="TalentArbor"
-                        width={80}
-                        height={23}
-                        className="object-contain opacity-80"
-                        priority
-                        unoptimized
-                    />
-                </footer>
+                <CandidateDisclosureFooter>
+                    This summary is saved for your review in your candidate dashboard. Practice summaries are not shared
+                    with recruiters, employers, or hiring-decision users.
+                </CandidateDisclosureFooter>
             </div>
         </main>
     );
