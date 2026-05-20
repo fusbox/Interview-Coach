@@ -89,6 +89,7 @@ const TranscriptPanel: React.FC<{
                 <div className="flex items-center gap-2">
                     {audioBlob && (
                         <button
+                            type="button"
                             onClick={togglePlayback}
                             className={cn(
                                 'inline-flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all text-xs font-black uppercase',
@@ -103,6 +104,7 @@ const TranscriptPanel: React.FC<{
                     )}
                     {showClose && onClose && (
                         <button
+                            type="button"
                             onClick={onClose}
                             className="w-8 h-8 rounded-full bg-surface-subtle flex items-center justify-center text-text-muted hover:text-text-primary transition-colors"
                             aria-label="Close transcript"
@@ -169,6 +171,7 @@ const FeedbackNavButtons: React.FC<{
     return (
         <div className="mt-10 flex flex-col md:flex-row items-center gap-4 w-full">
             <Button
+                type="button"
                 onClick={onPrimary}
                 emphasis="primary"
                 density="hero"
@@ -179,6 +182,7 @@ const FeedbackNavButtons: React.FC<{
                 {primaryLabel}
             </Button>
             <Button
+                type="button"
                 onClick={onSkip}
                 variant="ghost"
                 density="hero"
@@ -201,6 +205,7 @@ const ProgressDots: React.FC<{
         <div className="hidden md:flex absolute left-6 md:left-8 top-1/2 -translate-y-1/2 z-40 flex-col gap-4">
             {sections.map((s) => (
                 <button
+                    type="button"
                     key={s.id}
                     onClick={() => onDotClick(s.id)}
                     className="group relative flex items-center h-4"
@@ -536,6 +541,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                     </h2>
                                     <div className="mt-12 flex flex-col md:flex-row items-center gap-4 justify-center w-full">
                                         <Button
+                                            type="button"
                                             onClick={() => {
                                                 audioEngine.unlock();
                                                 setHasExplored(true);
@@ -550,6 +556,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                             Explore Feedback
                                         </Button>
                                         <Button
+                                            type="button"
                                             onClick={() => {
                                                 audioEngine.unlock();
                                                 onNext();
@@ -690,6 +697,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                         {shouldRetry ? (
                                             <>
                                                 <Button
+                                                    type="button"
                                                     onClick={() => {
                                                         audioEngine.unlock();
                                                         onRetry();
@@ -704,6 +712,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                                     Retry My Answer
                                                 </Button>
                                                 <button
+                                                    type="button"
                                                     onClick={() => {
                                                         audioEngine.unlock();
                                                         onNext();
@@ -720,6 +729,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                         ) : (
                                             <>
                                                 <Button
+                                                    type="button"
                                                     onClick={() => {
                                                         audioEngine.unlock();
                                                         onNext();
@@ -734,6 +744,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                                     <ArrowRight size={18} className="ml-2" />
                                                 </Button>
                                                 <button
+                                                    type="button"
                                                     onClick={() => {
                                                         audioEngine.unlock();
                                                         onRetry();
@@ -765,6 +776,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                     className="pointer-events-auto"
                                 >
                                     <button
+                                        type="button"
                                         onClick={() => {
                                             audioEngine.unlock();
                                             setIsTranscriptOpen(true);
@@ -812,6 +824,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                         Transcript panel
                                     </div>
                                     <button
+                                        type="button"
                                         ref={transcriptCloseButtonRef}
                                         onClick={() => setIsTranscriptOpen(false)}
                                         className="sr-only"

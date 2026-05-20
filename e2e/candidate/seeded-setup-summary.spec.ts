@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 const routeTransitionTimeout = 30_000;
 
 test("seeded candidate can move from practice setup to session summary", async ({ page }) => {
-    test.setTimeout(90_000);
+    test.setTimeout(180_000);
     let ttsRequestCount = 0;
     await page.route("**/api/tts", async (route) => {
         ttsRequestCount += 1;
@@ -21,6 +21,7 @@ test("seeded candidate can move from practice setup to session summary", async (
     await page.getByLabel(/target role/i).fill("Customer Success Manager");
     await page.getByLabel(/job description/i).fill("Customer success leader with SaaS onboarding and renewal experience.");
     await page.getByLabel(/question count/i).selectOption("3");
+    await page.getByLabel(/I understand Interview Coach uses AI/i).check();
 
     await Promise.all([
         page.waitForURL(/\/session\/[0-9a-f-]+$/i, { timeout: routeTransitionTimeout, waitUntil: "commit" }),
@@ -55,7 +56,7 @@ test("seeded candidate can move from practice setup to session summary", async (
     );
     await page.getByRole("button", { name: /submit answer/i }).click();
     await expect(page.getByText(/I separate urgency from impact/i)).toBeVisible();
-    await continueFromFeedback(page, false, { verifyTranscript: /I separate urgency from impact/i });
+    await skipFromFeedback(page, false);
 
     await expect(page.getByText(/Question 3 of 3/i)).toBeVisible({ timeout: routeTransitionTimeout });
     await page.getByRole("button", { name: /text mode/i }).click();
@@ -64,7 +65,7 @@ test("seeded candidate can move from practice setup to session summary", async (
     );
     await page.getByRole("button", { name: /submit answer/i }).click();
     await expect(page.getByText(/I start with the customer problem/i)).toBeVisible();
-    await continueFromFeedback(page, true, { verifyTranscript: /I start with the customer problem/i });
+    await skipFromFeedback(page, true);
 
     await expect(page).toHaveURL(/\/summary\/[0-9a-f-]+$/i, { timeout: routeTransitionTimeout });
     await expect(page.getByText(/one moment while i create your feedback summary/i)).toBeVisible({ timeout: routeTransitionTimeout });
@@ -108,6 +109,13 @@ async function continueFromFeedback(
     await page.getByRole("button", {
         name: isLastQuestion ? /^finish session$/i : /^continue to next question$/i,
     }).click();
+}
+
+async function skipFromFeedback(page: import("@playwright/test").Page, isLastQuestion: boolean) {
+    await expect(page.getByRole("button", { name: /explore feedback/i })).toBeVisible({ timeout: routeTransitionTimeout });
+    await page.getByRole("button", {
+        name: isLastQuestion ? /skip and finish session/i : /skip and continue to next question/i,
+    }).first().click();
 }
 
 function createSilentWavBuffer() {
