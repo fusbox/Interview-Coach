@@ -57,12 +57,12 @@ export async function loadCandidateSummaryForCurrentCandidate(sessionId: string)
                 return null;
             }
 
-            return mapSummary(session, draft.practiceDraftId);
+            return mapSummary(session, draft.practiceDraftId, profile.displayName);
         },
     });
 }
 
-function mapSummary(session: InterviewSession, practiceDraftId: string): CandidateSummaryModel {
+function mapSummary(session: InterviewSession, practiceDraftId: string, profileDisplayName?: string | null): CandidateSummaryModel {
     const answers = session.questions
         .map((question) => {
             const answer = session.answers[question.id];
@@ -77,7 +77,7 @@ function mapSummary(session: InterviewSession, practiceDraftId: string): Candida
     return {
         practiceDraftId,
         sessionId: session.id,
-        candidateFirstName: session.candidate?.firstName || null,
+        candidateFirstName: session.candidate?.firstName || extractFirstName(profileDisplayName),
         role: session.role,
         status: session.status,
         summaryNarrative: session.summaryNarrative || null,
@@ -85,6 +85,10 @@ function mapSummary(session: InterviewSession, practiceDraftId: string): Candida
         questionCount: session.questions.length,
         answers,
     };
+}
+
+function extractFirstName(displayName?: string | null): string | null {
+    return displayName?.trim().split(/\s+/)[0] || null;
 }
 
 function mapAnswer(answer: Answer, questionText: string, category: string): CandidateSummaryAnswer {

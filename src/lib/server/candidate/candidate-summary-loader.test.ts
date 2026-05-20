@@ -112,6 +112,7 @@ describe("candidate summary loader", () => {
         await expect(loadCandidateSummaryForCurrentCandidate("session-1")).resolves.toMatchObject({
             practiceDraftId: "draft-1",
             sessionId: "session-1",
+            candidateFirstName: "Candidate",
             role: "QA Analyst",
             summaryNarrative: "You were clear and structured. Add stronger impact metrics next.",
             answeredCount: 1,
@@ -128,5 +129,28 @@ describe("candidate summary loader", () => {
             route: "/summary/[sessionId]",
             operation: "load_summary",
         }));
+    });
+
+    it("uses the session candidate first name when it exists", async () => {
+        getSessionMock.mockResolvedValue({
+            id: "session-1",
+            status: "COMPLETED",
+            role: "QA Analyst",
+            currentQuestionIndex: 0,
+            questions: [],
+            answers: {},
+            summaryNarrative: null,
+            candidate: {
+                firstName: "Fu",
+                lastName: "Chen",
+                email: "fu@example.com",
+            },
+            initialsRequired: false,
+        });
+        const { loadCandidateSummaryForCurrentCandidate } = await import("./candidate-summary-loader");
+
+        await expect(loadCandidateSummaryForCurrentCandidate("session-1")).resolves.toMatchObject({
+            candidateFirstName: "Fu",
+        });
     });
 });

@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 import { spawn, spawnSync } from "node:child_process";
+import { createServer } from "node:net";
 import { getSmokeDatabaseUrl } from "./smoke-postgres-config.mjs";
 
-const baseURL = "http://127.0.0.1:3000";
+const port = await findAvailablePort(3000);
+const baseURL = `http://127.0.0.1:${port}`;
 const env = {
     ...process.env,
     DATABASE_URL: process.env.DATABASE_URL || getSmokeDatabaseUrl(),
@@ -19,13 +21,16 @@ const env = {
     SMTP_PORT: "",
     SMTP_FROM_EMAIL: "",
     NEXT_PUBLIC_BASE_URL: baseURL,
+    PLAYWRIGHT_BASE_URL: baseURL,
     E2E_TEST_MODE: "true",
     NEXT_PUBLIC_E2E_TEST_MODE: "true",
 };
 
 const server = spawn(
     process.platform === "win32" ? "cmd.exe" : "npm",
-    process.platform === "win32" ? ["/c", "npm", "run", "dev"] : ["run", "dev"],
+    process.platform === "win32"
+        ? ["/c", "npm", "run", "dev", "--", "-p", String(port)]
+        : ["run", "dev", "--", "-p", String(port)],
     {
         stdio: "inherit",
         env,
@@ -136,5 +141,29 @@ function waitForExit(childProcess, timeoutMs) {
         }
 
         childProcess.once("exit", onExit);
+    });
+}
+
+function findAvailablePort(preferredPort) {
+    return new Promise((resolve, reject) => {
+        const server = createServer();
+
+        server.once("error", (error) => {
+            if (error.code === "EADDRINUSE" || error.code === "EACCES") {
+                findAvailablePort(preferredPort + 1).then(resolve, reject);
+                return;
+            }
+
+            reject(error);
+        });
+
+        server.once("listening", () => {
+            const address = server.address();
+            server.close(() => {
+                resolve(typeof address === "object" && address ? address.port : preferredPort);
+            });
+        });
+
+        server.listen(preferredPort, "127.0.0.1");
     });
 }

@@ -77,6 +77,9 @@ export {
     type CandidateSummaryModel,
 } from "./candidate-summary-loader";
 export {
+    finalizeCandidateOwnedSummary,
+} from "./candidate-summary-finalization-service";
+export {
     advanceCandidateOwnedSession,
     pauseCandidateOwnedSession,
     resumeCandidateOwnedSession,

@@ -5,7 +5,8 @@ export type CandidateMutationOperation =
     | "session_progress"
     | "session_answer_submit"
     | "session_answer_analyze"
-    | "session_question_retry";
+    | "session_question_retry"
+    | "session_summary_finalize";
 
 export type CandidateMutationFailure = {
     ok: false;
@@ -57,6 +58,13 @@ const CANDIDATE_MUTATION_POLICIES: Record<CandidateMutationOperation, CandidateM
         windowMs: 60_000,
         idempotencyStrategy: "state",
         idempotencyNote: "A retry clears existing answer analysis state and is a no-op when no answer exists.",
+    },
+    session_summary_finalize: {
+        operation: "session_summary_finalize",
+        maxRequests: 5,
+        windowMs: 60_000,
+        idempotencyStrategy: "state",
+        idempotencyNote: "A completed session with a persisted summary is treated as already finalized.",
     },
 };
 

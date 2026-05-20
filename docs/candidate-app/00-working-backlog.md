@@ -395,7 +395,7 @@ Ground truth:
 | OPS-S07 | 653 | Story | Resolved | Fu Chen <fu@rangam.com> | Create candidate integration starter checklist | [START-WORK-PASS.md](START-WORK-PASS.md) exists and is linked from docs hub |
 | OPS-F02 | 758 | Feature | Active | Fu Chen <fu@rangam.com> | Azure Boards import and traceability pattern | Work item import files can create correctly linked Azure hierarchy |
 | OPS-S08 | 759 | Story | Resolved | Fu Chen <fu@rangam.com> | Validate CSV import pattern for linked work items | Import CSV creates child story under Feature 643 |
-| OPS-S09 | 760 | Story | Active | Fu Chen <fu@rangam.com> | Import canonical backlog hierarchy into Fu-Lab Boards | Import file reflects this working backlog and imports cleanly |
+| OPS-S09 | 760 | Story | Resolved | Fu Chen <fu@rangam.com> | Import canonical backlog hierarchy into Fu-Lab Boards | Confirmed import file reflects this working backlog and imports cleanly |
 | OPS-S10 | 646 | Story | Active | Himanshu Sagar <himanshusagar@rangam.com> | Publish company code wiki when access allows | `/docs/candidate-app` is published from company Azure project as code wiki |
 | OPS-S11 | 761 | Story | New | Himanshu Sagar <himanshusagar@rangam.com> | Add branch policy after reviewers are available | Candidate branch has agreed PR/build requirements |
 | OPS-S12 | 762 | Story | Resolved | Fu Chen <fu@rangam.com> | Add candidate integration pipeline | Pipeline definition runs lint, typecheck, candidate tests, build, and candidate DB smoke readiness |
@@ -416,7 +416,7 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 7 | Active | OPS-S06 | 654 | Himanshu Sagar <himanshusagar@rangam.com> | Track candidate docs review for PR `!593` | Feedback captured and follow-ups created |
 | 8 | Active | AUTH-S07 | 655 | Himanshu Sagar <himanshusagar@rangam.com> | Confirm TalentArbor login return parameter support | Integration team confirms parameter/state/fallback behavior |
 | 9 | Active | WEB-S07 | 670 | Himanshu Sagar <himanshusagar@rangam.com> | Confirm candidate CTA return behavior | Login return behavior is captured in docs and work item |
-| 10 | Active | OPS-S09 | 760 | Fu Chen <fu@rangam.com> | Import canonical backlog hierarchy | CSV import creates expected linked items |
+| 10 | Resolved | OPS-S09 | 760 | Fu Chen <fu@rangam.com> | Import canonical backlog hierarchy | Confirmed CSV import creates expected linked items |
 | 11 | Resolved | WEB-S03 | 752 | Fu Chen <fu@rangam.com> | Port public landing page into shared Azure branch | `/` renders candidate public page |
 | 12 | Resolved | WEB-S04 | 753 | Fu Chen <fu@rangam.com> | Add `/recruiter` create alias | `/recruiter` lands on recruiter create |
 | 13 | Resolved | WEB-S05 | 754 | Fu Chen <fu@rangam.com> | Add shared-host route collision tests | Public CTA, login-start, middleware, and route ownership tests pass |
@@ -508,6 +508,12 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 99 | Resolved | DATA-S04 | 691 | Fu Chen <fu@rangam.com> | Fix expired hint idempotency key reuse | Postgres idempotency store now clears expired rows for the same scope/actor/key before reserving, so older resumed session questions can regenerate/replay hints instead of failing behind `/api/tips/generate` |
 | 100 | Resolved | SESS-F04 | 773 | Fu Chen <fu@rangam.com> | Browser-validate feedback and summary parity | Seeded browser smoke validates practice setup, text answer submission, shared feedback drawer exploration, transcript slide-over, retry/continue/finish transition coverage through finish, `/summary/[sessionId]` routing, and debrief rendering; the smoke runner now blanks SMTP env values so local e2e does not attempt real debrief email delivery |
 | 101 | Active | SESS-F04 | 773 | Fu Chen <fu@rangam.com> | Continue live-session UI parity validation | Remaining live-session refinement focus is manual visual QA against recruiter screenshots and real-browser voice/STT edge cases that seeded Playwright cannot reliably exercise |
+| 102 | Resolved | SESS-F04 | 773 | Fu Chen <fu@rangam.com> | Make candidate summary route render before debrief generation | Candidate completion now skips blocking completion side effects, `/summary/[sessionId]` renders the skeleton immediately, an ownership-checked finalization endpoint generates the debrief/email after load, and the summary title falls back to the candidate profile first name when old sessions lack embedded candidate metadata |
+| 103 | Resolved | DRFT-F04 | 772 | Fu Chen <fu@rangam.com> | Remove redundant General interview type option | `/practice` now presents the null/default interview type as Balanced practice, removes the duplicate General option, and preserves legacy restored `general` values as the balanced default |
+| 104 | Resolved | SESS-F04 | 773 | Fu Chen <fu@rangam.com> | Confirm candidate finish-session redirect behavior | Current finish flow still uses the expected Next server-action `303` redirect from `/session/[sessionId]`; completion no longer blocks on debrief/email generation, and stale `POST /summary/[sessionId]` server-action errors point to an old dev client/server bundle rather than the current API finalizer path |
+| 105 | Resolved | QSO-S09 | 768 | Fu Chen <fu@rangam.com> | Make seeded browser smoke port deterministic | `test:e2e:candidate-seeded` now selects an available local port, passes the matching base URL into Playwright, and avoids false failures when port 3000 is already occupied |
+| 106 | Resolved | SESS-F04 | 773 | Fu Chen <fu@rangam.com> | Right-align text-mode submit action | Candidate text-mode Submit Answer footer now removes its extra horizontal inset so the action aligns to the same right rail as the textarea and session components above it |
+| 107 | Resolved | SESS-F04 | 773 | Fu Chen <fu@rangam.com> | Replace candidate summary practice-again CTA | Candidate summary now uses quiet page-navigation actions for Back to Dashboard and Back to Practice Setup, removing the recruiter-style Close this window and loud Practice Again CTA from the candidate debrief |
 
 ## Open Questions
 

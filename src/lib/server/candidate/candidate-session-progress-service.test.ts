@@ -126,6 +126,12 @@ describe("candidate session progress service", () => {
             status: "completed",
             resumeTargetScreen: "session_summary",
         });
+        expect(updateSessionCommandMock).toHaveBeenCalledWith("session-1", {
+            currentQuestionIndex: 3,
+            status: "COMPLETED",
+        }, {
+            runCompletionSideEffects: false,
+        });
     });
 
     it("pauses a candidate-owned session without losing the in-progress resume target", async () => {

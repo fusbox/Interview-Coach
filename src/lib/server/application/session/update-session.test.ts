@@ -126,6 +126,32 @@ describe("updateSessionCommand", () => {
         expect(result.summaryNarrative).toBe("Summary text");
     });
 
+    it("can complete a session without blocking on summary side effects", async () => {
+        getMock
+            .mockResolvedValueOnce(createSession({ status: "IN_SESSION" }))
+            .mockResolvedValueOnce(createSession({ status: "COMPLETED", summaryNarrative: undefined }));
+
+        const result = await updateSessionCommand("session-1", { status: "COMPLETED" }, {
+            repository: {
+                get: getMock,
+                updatePartial: updatePartialMock,
+                setSummaryExpiry: setSummaryExpiryMock
+            },
+            summarizeSession: summarizeSessionMock,
+            sendDebriefEmail: sendDebriefEmailMock,
+            incrementMetric: incrementMetricMock,
+            now: () => 5000,
+            runCompletionSideEffects: false
+        });
+
+        expect(updatePartialMock).toHaveBeenCalledWith("session-1", { status: "COMPLETED" });
+        expect(summarizeSessionMock).not.toHaveBeenCalled();
+        expect(sendDebriefEmailMock).not.toHaveBeenCalled();
+        expect(setSummaryExpiryMock).not.toHaveBeenCalled();
+        expect(incrementMetricMock).not.toHaveBeenCalled();
+        expect(result.summaryNarrative).toBeUndefined();
+    });
+
     it("returns the updated session when summarization fails", async () => {
         getMock
             .mockResolvedValueOnce(createSession({ status: "IN_SESSION" }))

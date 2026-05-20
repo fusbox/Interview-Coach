@@ -1,9 +1,17 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getBasicAccessibilityViolations } from "@/test/accessibility";
 import type { CandidateSummaryModel } from "@/lib/server/candidate";
 import { CandidateSummaryPage } from "./CandidateSummaryPage";
+
+const { fetchMock, refreshMock } = vi.hoisted(() => ({
+    fetchMock: vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({ ok: true, generated: true }),
+    }),
+    refreshMock: vi.fn(),
+}));
 
 const summary: CandidateSummaryModel = {
     practiceDraftId: "draft-1",
@@ -41,7 +49,19 @@ vi.mock("@/app/actions/feedback", () => ({
     captureFeedbackAction: vi.fn().mockResolvedValue({ ok: true }),
 }));
 
+vi.mock("next/navigation", () => ({
+    useRouter: () => ({
+        refresh: refreshMock,
+    }),
+}));
+
 describe("CandidateSummaryPage", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.stubGlobal("fetch", fetchMock);
+        window.sessionStorage.clear();
+    });
+
     it("renders the recruiter-style candidate-owned debrief and actions", () => {
         render(<CandidateSummaryPage summary={summary} />);
 
@@ -51,16 +71,24 @@ describe("CandidateSummaryPage", () => {
         expect(screen.getByText("You adapted well under pressure.")).toBeInTheDocument();
         expect(screen.getByText("Add stronger impact metrics next.")).toBeInTheDocument();
         expect(screen.getByText("How was your session?")).toBeInTheDocument();
-        expect(screen.getByRole("link", { name: /practice again/i })).toHaveAttribute("href", "/practice");
+        expect(screen.getByRole("link", { name: /back to dashboard/i })).toHaveAttribute("href", "/dashboard");
+        expect(screen.getByRole("link", { name: /back to practice setup/i })).toHaveAttribute("href", "/practice");
+        expect(screen.queryByRole("link", { name: /practice again/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole("link", { name: /close this window/i })).not.toBeInTheDocument();
         expect(screen.queryByText(/shared with your recruiter/i)).not.toBeInTheDocument();
+        expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    it("renders the debrief skeleton while the generated narrative is pending", () => {
+    it("renders the debrief skeleton while the generated narrative is pending and finalizes after load", async () => {
         render(<CandidateSummaryPage summary={{ ...summary, summaryNarrative: null }} />);
 
         expect(screen.getByRole("heading", { name: /great practice round, fu/i })).toBeInTheDocument();
         expect(screen.getByText("One moment while I create your feedback summary")).toBeInTheDocument();
         expect(screen.getByLabelText(/feedback summary is loading/i)).toBeInTheDocument();
+        await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+            "/api/candidate/sessions/session-1/summary/finalize",
+            { method: "POST" },
+        ));
     });
 
     it("meets the candidate primary-page accessibility baseline", () => {

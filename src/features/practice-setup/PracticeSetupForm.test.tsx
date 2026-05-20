@@ -52,6 +52,26 @@ describe("PracticeSetupForm", () => {
         expect(screen.getByRole("form", { name: /practice setup form/i })).toHaveClass("shadow-raised-1");
     });
 
+    it("uses a single balanced default interview type option", () => {
+        render(<PracticeSetupForm />);
+
+        expect(screen.getByRole("option", { name: "Balanced practice" })).toHaveValue("");
+        expect(screen.queryByRole("option", { name: "General" })).not.toBeInTheDocument();
+    });
+
+    it("treats restored general interview type values as balanced practice", () => {
+        render(
+            <PracticeSetupForm
+                initialValues={{
+                    targetRole: "QA analyst",
+                    interviewType: "general",
+                }}
+            />,
+        );
+
+        expect(screen.getByLabelText(/interview type/i)).toHaveValue("");
+    });
+
     it("announces target role validation errors and associates the message to the field", async () => {
         const user = userEvent.setup();
         render(<PracticeSetupForm />);

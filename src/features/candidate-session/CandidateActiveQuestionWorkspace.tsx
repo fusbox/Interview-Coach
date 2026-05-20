@@ -454,7 +454,10 @@ export function CandidateActiveQuestionWorkspace({
                                 )}
 
                                 {mode === "text" ? (
-                                    <footer className="mt-6 shrink-0 border-t border-border bg-surface-base/40 px-4 py-4 backdrop-blur-md md:px-6 lg:px-10">
+                                    <footer
+                                        aria-label="Text answer actions"
+                                        className="mt-6 shrink-0 border-t border-border bg-surface-base/40 px-0 py-4 backdrop-blur-md"
+                                    >
                                         <div className="flex justify-end">
                                             <Button
                                                 type="submit"

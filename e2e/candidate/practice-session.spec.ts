@@ -233,5 +233,6 @@ test("candidate can complete a practice session from landing to summary", async 
 
     await expect(page.getByText(/Session Complete!/i)).toBeVisible();
     await expect(page.getByText("Your answer was clear and structured.")).toBeVisible();
-    await expect(page.getByRole("button", { name: /Practice Again/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Back to Dashboard/i })).toHaveAttribute("href", "/dashboard");
+    await expect(page.getByRole("link", { name: /Back to Practice Setup/i })).toHaveAttribute("href", "/practice");
 });

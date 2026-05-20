@@ -200,6 +200,19 @@ describe("CandidateActiveQuestionWorkspace", () => {
         expect(screen.getByText("Creating feedback...")).toBeInTheDocument();
     });
 
+    it("right-aligns the text answer submit action to the answer rail", async () => {
+        const user = userEvent.setup();
+
+        renderWorkspace();
+
+        await user.click(screen.getByRole("button", { name: /text mode/i }));
+
+        const actions = screen.getByLabelText("Text answer actions");
+        expect(actions).toHaveClass("px-0");
+        expect(actions).toHaveClass("py-4");
+        expect(actions.firstElementChild).toHaveClass("justify-end");
+    });
+
 
     it("keeps coach lens panels open until the user changes the lens", async () => {
         const user = userEvent.setup();

@@ -67,14 +67,17 @@ test("seeded candidate can move from practice setup to session summary", async (
     await continueFromFeedback(page, true, { verifyTranscript: /I start with the customer problem/i });
 
     await expect(page).toHaveURL(/\/summary\/[0-9a-f-]+$/i, { timeout: routeTransitionTimeout });
+    await expect(page.getByText(/one moment while i create your feedback summary/i)).toBeVisible({ timeout: routeTransitionTimeout });
 
     const sessionUrl = page.url();
     const sessionId = sessionUrl.split("/summary/")[1]?.split(/[?#]/)[0];
     expect(sessionId).toBeTruthy();
 
     await expect(page.getByRole("heading", { name: /great practice round, dev/i })).toBeVisible();
-    await expect(page.getByRole("heading", { name: /session debrief|executive summary/i })).toBeVisible();
-    await expect(page.getByRole("link", { name: /practice again/i })).toHaveAttribute("href", "/practice");
+    await expect(page.getByRole("heading", { name: /session debrief|executive summary/i })).toBeVisible({ timeout: routeTransitionTimeout });
+    await expect(page.getByRole("link", { name: /back to dashboard/i })).toHaveAttribute("href", "/dashboard");
+    await expect(page.getByRole("link", { name: /back to practice setup/i })).toHaveAttribute("href", "/practice");
+    await expect(page.getByRole("link", { name: /practice again/i })).toHaveCount(0);
 });
 
 async function continueFromFeedback(

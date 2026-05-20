@@ -68,10 +68,13 @@ export async function advanceCandidateOwnedSession(input: CandidateSessionAdvanc
                 return { ok: false, error: "Candidate session was not found." };
             }
 
-            const session = await updateSessionCommand(input.sessionId, {
+            const updateInput = {
                 currentQuestionIndex: input.currentQuestionIndex,
                 status: input.status,
-            });
+            };
+            const session = input.status === "COMPLETED"
+                ? await updateSessionCommand(input.sessionId, updateInput, { runCompletionSideEffects: false })
+                : await updateSessionCommand(input.sessionId, updateInput);
             const draftProgress = await persistDraftProgressTarget(input, session.status);
 
             return {

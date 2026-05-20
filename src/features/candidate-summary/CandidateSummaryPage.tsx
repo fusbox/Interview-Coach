@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
-import { RotateCcw, XCircle } from "lucide-react";
+import { ClipboardList, LayoutDashboard } from "lucide-react";
 
 import { ContentCard } from "@/components/patterns/ContentCard";
 import { IconBadge } from "@/components/patterns/IconBadge";
@@ -12,6 +12,7 @@ import { cn } from "@/lib/cn";
 import type { CandidateSummaryModel } from "@/lib/server/candidate";
 import { SessionSurvey } from "@/features/session/components/SessionSurvey";
 import { getIconForTitle, parseDebrief } from "@/features/session/components/SummaryUtilities";
+import { CandidateSummaryFinalizer } from "./CandidateSummaryFinalizer";
 
 type CandidateSummaryPageProps = {
     summary: CandidateSummaryModel;
@@ -27,6 +28,10 @@ export function CandidateSummaryPage({ summary }: CandidateSummaryPageProps) {
 
     return (
         <main className="candidate-design-system relative flex min-h-[100dvh] w-full flex-col items-center bg-gradient-to-br from-brand-glass-start to-brand-glass-end text-text-primary">
+            <CandidateSummaryFinalizer
+                sessionId={summary.sessionId}
+                enabled={!hasNarrative && summary.status === "COMPLETED"}
+            />
             <div className="absolute inset-0 bg-white/40 backdrop-blur-md" />
             <div className="relative z-10 flex w-full max-w-4xl flex-col items-center space-y-12 px-6 py-12 md:px-12">
                 <header className="flex w-full flex-col items-start gap-1">
@@ -96,32 +101,32 @@ export function CandidateSummaryPage({ summary }: CandidateSummaryPageProps) {
                     <SessionSurvey sessionId={summary.sessionId} />
                 </section>
 
-                <section className="flex w-full max-w-2xl flex-col items-center">
-                    <div className="w-full space-y-4">
+                <section className="flex w-full max-w-2xl justify-center">
+                    <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-[minmax(13rem,1fr)_auto] sm:items-center">
+                        <Button
+                            asChild
+                            emphasis="secondary"
+                            density="comfortable"
+                            shape="pill"
+                            label="strong"
+                            className="w-full gap-2 px-6 sm:w-auto"
+                        >
+                            <Link href="/dashboard">
+                                <LayoutDashboard size={18} />
+                                Back to Dashboard
+                            </Link>
+                        </Button>
                         <Button
                             asChild
                             emphasis="tertiary"
                             density="comfortable"
                             shape="pill"
                             label="strong"
-                            className="w-full gap-3 border-0 bg-transparent text-primary shadow-none hover:bg-transparent hover:text-primary"
-                        >
-                            <Link href="/dashboard">
-                                <XCircle size={20} />
-                                Close this window
-                            </Link>
-                        </Button>
-                        <Button
-                            asChild
-                            emphasis="primary"
-                            density="hero"
-                            shape="app"
-                            label="strong"
-                            className="h-16 w-full gap-3 text-lg shadow-floating"
+                            className="w-full gap-2 border border-border bg-white px-5 text-text-secondary shadow-flat hover:border-primary/30 hover:bg-white hover:text-primary sm:w-auto"
                         >
                             <Link href="/practice">
-                                <RotateCcw size={24} />
-                                Practice Again
+                                <ClipboardList size={18} />
+                                Back to Practice Setup
                             </Link>
                         </Button>
                     </div>

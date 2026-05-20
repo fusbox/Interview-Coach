@@ -35,7 +35,6 @@ const fieldErrorIds: Record<PracticeSetupField, string> = {
 };
 
 const interviewTypeOptions = [
-    { value: "general", label: "General" },
     { value: "behavioral", label: "Behavioral" },
     { value: "technical", label: "Technical" },
     { value: "case", label: "Case" },
@@ -211,7 +210,7 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
                 <div className="space-y-3">
                     <FieldLabel htmlFor="interview-type">Interview type</FieldLabel>
                     <select id="interview-type" name="interviewType" defaultValue={initialValues?.interviewType ?? ""} className={textFieldClassName}>
-                        <option value="">General practice</option>
+                        <option value="">Balanced practice</option>
                         {interviewTypeOptions.map((option) => (
                             <option key={option.value} value={option.value}>{option.label}</option>
                         ))}
