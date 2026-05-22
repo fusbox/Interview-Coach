@@ -202,4 +202,152 @@ describe("AIService malformed provider handling", () => {
             privacyFlags: ["contains_session_transcripts"]
         }));
     });
+
+    it("instructs answer feedback to generate one big upgrade as support for the next action", async () => {
+        generateContentMock.mockResolvedValueOnce({
+            text: JSON.stringify({
+                feedbackPlan: {
+                    centralRead: "The answer has a useful example but needs clearer outcome proof.",
+                    signal: { valence: "mixed", detectability: "moderate" },
+                    primaryAnchor: {
+                        source: "content",
+                        signalType: "quote",
+                        dimension: "outcome_explicitness",
+                        candidateEvidence: "I helped my team finish the checklist.",
+                        interviewerValue: "Shows ownership but needs impact.",
+                    },
+                    intervention: {
+                        type: "sharpen_signal",
+                        reason: "The candidate should add an observable result.",
+                    },
+                },
+                ack: "You gave a real teamwork example, which gives the interviewer something concrete to understand.",
+                transcript: "I helped my team finish the checklist.",
+                scores: {
+                    focus_relevance: { score: 4, label: "Relevant" },
+                    structural_clarity: { score: 4, label: "Clear" },
+                    specificity_concreteness: { score: 3, label: "Some detail" },
+                    outcome_explicitness: { score: 2, label: "Outcome is thin" },
+                    decision_rationale: { score: 3, label: "Basic rationale" },
+                    filler_words: { score: 5, label: "No issue" },
+                    signposting: { score: 3, label: "Basic structure" },
+                    conciseness: { score: 4, label: "Concise" },
+                    resilience: { score: 4, label: "Positive" },
+                },
+                contentPulse: {
+                    dimension: "outcome_explicitness",
+                    headline: "Show the result",
+                    body: "Your answer would be stronger if you named what changed after you helped.",
+                    quote: "I helped my team finish the checklist.",
+                },
+                nextAction: {
+                    label: "Retry My Answer",
+                    actionType: "redo_answer",
+                },
+                recommendation: "Try again and add what changed because of your help.",
+                oneBigUpgrade: {
+                    focus: "Add the result of your action",
+                    rationale: "This is the highest-leverage edit because the interviewer can already see effort, but not impact.",
+                    targetMoment: "I helped my team finish the checklist.",
+                    trySayingThis: "I helped my team finish the checklist, and we caught the missing items before the shift ended.",
+                },
+                meta: {
+                    tier: 1,
+                    modality: "text",
+                },
+            }),
+        });
+
+        const { AIService } = await import("./ai-service");
+
+        const result = await AIService.analyzeAnswer(
+            { id: "q1", text: "Tell me about a time you helped your team.", category: "behavioral", index: 0 },
+            "I helped my team finish the checklist.",
+            null,
+            { title: "Warehouse Associate", competencies: [] },
+        );
+
+        const prompt = generateContentMock.mock.calls[0][0].contents.parts[0].text;
+
+        expect(prompt).toContain("ONE BIG UPGRADE");
+        expect(prompt).toContain("support the existing nextAction");
+        expect(prompt).toContain("NEVER mention internal nextAction.actionType values");
+        expect(prompt).toContain("not a second strong response");
+        expect(prompt).toContain("1-3 sentences");
+        expect(result.oneBigUpgrade).toMatchObject({
+            focus: "Add the result of your action",
+            trySayingThis: expect.stringContaining("caught the missing items"),
+        });
+    });
+
+    it("removes internal next-action literals from one big upgrade copy before returning analysis", async () => {
+        generateContentMock.mockResolvedValueOnce({
+            text: JSON.stringify({
+                feedbackPlan: {
+                    centralRead: "The answer is strong and only needs one final polish.",
+                    signal: { valence: "strength", detectability: "clear" },
+                    primaryAnchor: {
+                        source: "content",
+                        signalType: "quote",
+                        dimension: "decision_rationale",
+                        candidateEvidence: "I chose QBRs because they build trust.",
+                        interviewerValue: "Shows strategic judgment.",
+                    },
+                    intervention: {
+                        type: "amplify_strength",
+                        reason: "The candidate already has a strong answer.",
+                    },
+                },
+                ack: "You connected the tool choice to customer trust, which is a strong CSM signal.",
+                transcript: "I chose QBRs because they build trust.",
+                scores: {
+                    focus_relevance: { score: 4, label: "Relevant" },
+                    structural_clarity: { score: 4, label: "Clear" },
+                    specificity_concreteness: { score: 4, label: "Specific" },
+                    outcome_explicitness: { score: 4, label: "Impact" },
+                    decision_rationale: { score: 5, label: "Strategic" },
+                    filler_words: { score: 5, label: "No issue" },
+                    signposting: { score: 4, label: "Organized" },
+                    conciseness: { score: 4, label: "Concise" },
+                    resilience: { score: 4, label: "Strong" },
+                },
+                contentPulse: {
+                    dimension: "decision_rationale",
+                    headline: "Show why the tool fits",
+                    body: "You made the tool choice stronger by explaining why it matters.",
+                    quote: "QBRs because they build trust",
+                },
+                nextAction: {
+                    label: "See Session Summary",
+                    actionType: "stop_for_now",
+                },
+                recommendation: "Finish the session and review the summary.",
+                oneBigUpgrade: {
+                    focus: "Explain the tool rationale",
+                    rationale: "This supports the 'stop_for_now' by giving you a clear final polish.",
+                    targetMoment: "QBRs because they build trust",
+                    trySayingThis: "This stop_for_now improvement is to say I use QBRs because they uncover needs.",
+                },
+                meta: {
+                    tier: 1,
+                    modality: "text",
+                },
+            }),
+        });
+
+        const { AIService } = await import("./ai-service");
+
+        const result = await AIService.analyzeAnswer(
+            { id: "q1", text: "What customer success tools do you use?", category: "behavioral", index: 0 },
+            "I chose QBRs because they build trust.",
+            null,
+            { title: "Senior CSM", competencies: [] },
+            undefined,
+            undefined,
+            { current: 3, total: 3 },
+        );
+
+        expect(result.oneBigUpgrade?.rationale).not.toMatch(/stop_for_now|redo_answer|next_question|practice_example/);
+        expect(result.oneBigUpgrade?.trySayingThis).not.toMatch(/stop_for_now|redo_answer|next_question|practice_example/);
+    });
 });

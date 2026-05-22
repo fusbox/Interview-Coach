@@ -689,6 +689,34 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                                     }
                                                 </p>
                                             </div>
+                                            {analysis?.oneBigUpgrade && (
+                                                <div className="rounded-3xl border border-primary/15 bg-surface-base/80 p-5 shadow-flat">
+                                                    <p className="text-xs font-black text-primary uppercase tracking-[0.2em]">
+                                                        One Big Upgrade
+                                                    </p>
+                                                    <div className="mt-3 space-y-3">
+                                                        <h4 className="text-xl font-bold text-text-primary">
+                                                            {analysis.oneBigUpgrade.focus}
+                                                        </h4>
+                                                        <p className="text-base font-medium leading-relaxed text-text-secondary">
+                                                            {analysis.oneBigUpgrade.rationale}
+                                                        </p>
+                                                        {analysis.oneBigUpgrade.targetMoment && (
+                                                            <p className="rounded-2xl border border-border/40 bg-surface-subtle/70 px-4 py-3 text-sm font-medium leading-relaxed text-text-muted">
+                                                                {analysis.oneBigUpgrade.targetMoment}
+                                                            </p>
+                                                        )}
+                                                        <div className="rounded-2xl bg-primary/5 px-4 py-3">
+                                                            <p className="text-micro font-black uppercase tracking-widest text-primary">
+                                                                Try saying this
+                                                            </p>
+                                                            <p className="mt-2 text-base font-semibold leading-relaxed text-text-primary">
+                                                                {analysis.oneBigUpgrade.trySayingThis}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 

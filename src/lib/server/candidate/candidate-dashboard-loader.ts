@@ -16,6 +16,7 @@ export type CandidateDashboardItem = {
     lastActivityLabel: string;
     summarySnippet?: string;
     coachingSnippet?: string;
+    coachingSnippetLabel?: string;
 };
 
 export type CandidateDashboardNextBestAction = {
@@ -53,7 +54,15 @@ type DashboardDraftRow = QueryResultRow & {
     submitted_count: number | string | null;
     summary_narrative: string | null;
     latest_recommendation: string | null;
+    latest_one_big_upgrade: unknown;
     last_activity_at: string | Date;
+};
+
+type DashboardOneBigUpgrade = {
+    focus: string;
+    rationale?: string;
+    targetMoment?: string;
+    trySayingThis: string;
 };
 
 export async function loadCandidateDashboardForCurrentCandidate(): Promise<CandidateDashboardModel | null> {
@@ -79,6 +88,7 @@ export async function loadCandidateDashboardForCurrentCandidate(): Promise<Candi
                         s.current_question_index,
                         s.summary_narrative,
                         f.latest_recommendation,
+                        f.latest_one_big_upgrade,
                         coalesce(q.question_count, 0)::int as question_count,
                         coalesce(a.submitted_count, 0)::int as submitted_count,
                         d.last_activity_at
@@ -95,10 +105,12 @@ export async function loadCandidateDashboardForCurrentCandidate(): Promise<Candi
                         group by session_id
                     ) a on a.session_id = d.session_id
                     left join lateral (
-                        select er.feedback_json ->> 'recommendation' as latest_recommendation
+                        select
+                            er.feedback_json ->> 'recommendation' as latest_recommendation,
+                            er.feedback_json -> 'oneBigUpgrade' as latest_one_big_upgrade
                         from public.eval_results er
                         where er.session_id = d.session_id
-                          and er.feedback_json ? 'recommendation'
+                          and (er.feedback_json ? 'recommendation' or er.feedback_json ? 'oneBigUpgrade')
                         order by er.updated_at desc
                         limit 1
                     ) f on true
@@ -142,6 +154,7 @@ function mapDashboardItem(row: DashboardDraftRow): CandidateDashboardItem & { ki
     const isCompleted = row.status === "completed" || row.session_status === "COMPLETED";
     const sessionHref = row.session_id ? `/session/${row.session_id}` : "/practice";
     const summaryHref = row.session_id ? `/summary/${row.session_id}` : sessionHref;
+    const oneBigUpgrade = parseOneBigUpgrade(row.latest_one_big_upgrade);
 
     return {
         kind: isCompleted ? "completed" : "active",
@@ -153,7 +166,10 @@ function mapDashboardItem(row: DashboardDraftRow): CandidateDashboardItem & { ki
         repeatHref: isCompleted ? "/practice" : undefined,
         lastActivityLabel: formatDate(row.last_activity_at),
         summarySnippet: row.summary_narrative || undefined,
-        coachingSnippet: row.latest_recommendation || undefined,
+        coachingSnippet: oneBigUpgrade
+            ? `${oneBigUpgrade.focus}: ${oneBigUpgrade.trySayingThis}`
+            : row.latest_recommendation || undefined,
+        coachingSnippetLabel: oneBigUpgrade ? "One big upgrade" : undefined,
     };
 }
 
@@ -168,6 +184,7 @@ function toDashboardItem(item: CandidateDashboardItem & { kind: "active" | "comp
         lastActivityLabel: item.lastActivityLabel,
         summarySnippet: item.summarySnippet,
         coachingSnippet: item.coachingSnippet,
+        coachingSnippetLabel: item.coachingSnippetLabel,
     };
 }
 
@@ -188,10 +205,13 @@ function buildNextBestAction(
     const completedItem = completedItems[0];
     if (completedItem) {
         const signal = completedItem.coachingSnippet || completedItem.summarySnippet;
+        const hasOneBigUpgrade = completedItem.coachingSnippetLabel === "One big upgrade";
         return {
-            title: "Practice one focused improvement",
+            title: hasOneBigUpgrade ? "Practice one focused upgrade" : "Practice one focused improvement",
             body: signal
-                ? `From your ${completedItem.title} summary: ${signal}`
+                ? hasOneBigUpgrade
+                    ? `From your ${completedItem.title} feedback: ${signal.replace(": ", ". Try: ")}`
+                    : `From your ${completedItem.title} summary: ${signal}`
                 : `Use your ${completedItem.title} summary to choose one answer pattern and practice it again.`,
             href: completedItem.repeatHref || "/practice",
             actionLabel: "Practice again",
@@ -246,4 +266,31 @@ function toNumber(value: number | string | null): number {
         return Number.isFinite(parsed) ? parsed : 0;
     }
     return 0;
+}
+
+function parseOneBigUpgrade(value: unknown): DashboardOneBigUpgrade | null {
+    const parsed = typeof value === "string" ? safeParseJson(value) : value;
+    if (!parsed || typeof parsed !== "object") {
+        return null;
+    }
+
+    const candidate = parsed as Record<string, unknown>;
+    if (typeof candidate.focus !== "string" || typeof candidate.trySayingThis !== "string") {
+        return null;
+    }
+
+    return {
+        focus: candidate.focus,
+        rationale: typeof candidate.rationale === "string" ? candidate.rationale : undefined,
+        targetMoment: typeof candidate.targetMoment === "string" ? candidate.targetMoment : undefined,
+        trySayingThis: candidate.trySayingThis,
+    };
+}
+
+function safeParseJson(value: string): unknown {
+    try {
+        return JSON.parse(value);
+    } catch {
+        return null;
+    }
 }

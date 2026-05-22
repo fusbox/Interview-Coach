@@ -102,6 +102,38 @@ describe("CandidateDashboardPage", () => {
         );
     });
 
+    it("labels one-big-upgrade snippets distinctly from generic notes", () => {
+        render(<CandidateDashboardPage dashboard={{
+            ...baseModel,
+            completedItems: [
+                {
+                    ...baseModel.completedItems[0],
+                    coachingSnippetLabel: "One big upgrade",
+                    coachingSnippet: "Lead with the result: I helped the team finish early.",
+                },
+            ],
+            nextBestAction: {
+                title: "Practice one focused upgrade",
+                body: "From your Support Lead feedback: Lead with the result. Try: I helped the team finish early.",
+                href: "/practice",
+                actionLabel: "Practice again",
+            },
+        }} />);
+
+        expect(screen.getByRole("region", { name: /next practice step/i })).toHaveTextContent("Practice one focused upgrade");
+        expect(screen.getByRole("region", { name: /practice history/i })).toHaveTextContent("One big upgrade");
+        expect(screen.getByRole("region", { name: /practice history/i })).toHaveTextContent("Lead with the result");
+    });
+
+    it("extends its background surface to the candidate content frame edges", () => {
+        const { container } = render(<CandidateDashboardPage dashboard={baseModel} />);
+
+        expect(container.firstElementChild).toHaveClass("-mx-4");
+        expect(container.firstElementChild).toHaveClass("-mt-4");
+        expect(container.firstElementChild).toHaveClass("lg:-mx-10");
+        expect(container.firstElementChild).toHaveClass("lg:-mt-10");
+    });
+
     it("meets the candidate primary-page accessibility baseline", () => {
         const { container } = render(<CandidateDashboardPage dashboard={baseModel} />);
 

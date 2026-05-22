@@ -35,10 +35,10 @@ const fieldErrorIds: Record<PracticeSetupField, string> = {
 };
 
 const interviewTypeOptions = [
-    { value: "behavioral", label: "Behavioral" },
-    { value: "technical", label: "Technical" },
-    { value: "case", label: "Case" },
-    { value: "screening", label: "Screening" },
+    { value: "behavioral", label: "Behavioral stories" },
+    { value: "technical", label: "Technical depth" },
+    { value: "case", label: "Case or scenario" },
+    { value: "screening", label: "Screening basics" },
 ] as const;
 
 const questionCountOptions = [3, 5, 7, 10] as const;
@@ -220,8 +220,17 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
 
             <div className="grid gap-5 sm:grid-cols-2">
                 <div className="space-y-3">
-                    <FieldLabel htmlFor="interview-type">Interview type</FieldLabel>
-                    <select id="interview-type" name="interviewType" defaultValue={initialValues?.interviewType ?? ""} className={textFieldClassName}>
+                    <FieldLabel htmlFor="interview-type">Practice focus</FieldLabel>
+                    <p id="interview-type-help" className="text-sm leading-6 text-text-secondary">
+                        Choose what this round should emphasize. Balanced practice mixes common interview question types.
+                    </p>
+                    <select
+                        id="interview-type"
+                        name="interviewType"
+                        defaultValue={initialValues?.interviewType ?? ""}
+                        aria-describedby="interview-type-help"
+                        className={textFieldClassName}
+                    >
                         <option value="">Balanced practice</option>
                         {interviewTypeOptions.map((option) => (
                             <option key={option.value} value={option.value}>{option.label}</option>

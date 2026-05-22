@@ -165,4 +165,47 @@ describe("candidate dashboard loader", () => {
         expect(queryPostgresMock.mock.calls[0][0]).toContain("latest_recommendation");
         expect(queryPostgresMock.mock.calls[0][0]).toContain("public.eval_results");
     });
+
+    it("prefers the latest one big upgrade when building dashboard coaching guidance", async () => {
+        queryPostgresMock.mockResolvedValue({
+            rows: [
+                {
+                    practice_draft_id: "draft-2",
+                    target_role: "Support Lead",
+                    status: "completed",
+                    resume_target_screen: "session_summary",
+                    session_id: "session-2",
+                    session_status: "COMPLETED",
+                    current_question_index: 2,
+                    question_count: 2,
+                    submitted_count: 2,
+                    summary_narrative: "Clearer answers and stronger examples.",
+                    latest_recommendation: "Add a measurable outcome to your next answer.",
+                    latest_one_big_upgrade: {
+                        focus: "Lead with the result",
+                        rationale: "The action is clear, but the outcome needs to show why it mattered.",
+                        targetMoment: "I helped the team",
+                        trySayingThis: "I helped the team finish early, which kept the customer handoff on schedule.",
+                    },
+                    last_activity_at: "2026-05-11T14:00:00.000Z",
+                },
+            ],
+        });
+        const { loadCandidateDashboardForCurrentCandidate } = await import("./candidate-dashboard-loader");
+
+        await expect(loadCandidateDashboardForCurrentCandidate()).resolves.toMatchObject({
+            completedItems: [
+                {
+                    coachingSnippetLabel: "One big upgrade",
+                    coachingSnippet: "Lead with the result: I helped the team finish early, which kept the customer handoff on schedule.",
+                },
+            ],
+            nextBestAction: {
+                title: "Practice one focused upgrade",
+                body: "From your Support Lead feedback: Lead with the result. Try: I helped the team finish early, which kept the customer handoff on schedule.",
+            },
+        });
+
+        expect(queryPostgresMock.mock.calls[0][0]).toContain("latest_one_big_upgrade");
+    });
 });

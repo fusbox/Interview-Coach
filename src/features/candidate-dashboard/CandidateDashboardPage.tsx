@@ -13,7 +13,7 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
     const hasPractice = dashboard.stats.totalPracticeCount > 0;
 
     return (
-        <main className="candidate-design-system min-h-screen bg-surface-base text-text-primary">
+        <main className="candidate-design-system -mx-4 -mt-4 min-h-screen bg-surface-base text-text-primary sm:-mx-6 sm:-mt-6 lg:-mx-10 lg:-mt-10">
             <section className="border-b border-[rgb(var(--candidate-border)/0.78)] bg-gradient-to-br from-brand-glass-start via-surface-base to-white">
                 <div className="mx-auto grid w-full max-w-7xl gap-8 px-6 py-10 md:px-10 md:py-14 lg:grid-cols-[minmax(0,1fr)_24rem]">
                     <div className="space-y-6">
@@ -202,7 +202,7 @@ function DashboardItemCard({
                     {signal ? (
                         <div className="rounded-2xl border border-primary/15 bg-surface-sky p-4">
                             <p className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">
-                                Useful note
+                                {item.coachingSnippetLabel || "Useful note"}
                             </p>
                             <p className="mt-2 text-sm leading-6 text-text-secondary">{signal}</p>
                         </div>

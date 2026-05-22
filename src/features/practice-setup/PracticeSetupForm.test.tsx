@@ -42,7 +42,7 @@ describe("PracticeSetupForm", () => {
         expect(screen.getByLabelText(/target role/i)).toHaveValue("QA analyst");
         expect(screen.getByLabelText(/job description/i)).toHaveValue("Test regulated workflows.");
         expect(screen.getByLabelText(/resume text/i)).toHaveValue("Validated releases.");
-        expect(screen.getByLabelText(/interview type/i)).toHaveValue("behavioral");
+        expect(screen.getByLabelText(/practice focus/i)).toHaveValue("behavioral");
         expect(screen.getByLabelText(/question count/i)).toHaveValue("5");
     });
 
@@ -59,6 +59,16 @@ describe("PracticeSetupForm", () => {
         expect(screen.queryByRole("option", { name: "General" })).not.toBeInTheDocument();
     });
 
+    it("frames interview type as practice focus with candidate-facing option labels", () => {
+        render(<PracticeSetupForm />);
+
+        expect(screen.getByLabelText(/practice focus/i)).toHaveAccessibleDescription(
+            "Choose what this round should emphasize. Balanced practice mixes common interview question types.",
+        );
+        expect(screen.getByRole("option", { name: "Behavioral stories" })).toHaveValue("behavioral");
+        expect(screen.getByRole("option", { name: "Screening basics" })).toHaveValue("screening");
+    });
+
     it("treats restored general interview type values as balanced practice", () => {
         render(
             <PracticeSetupForm
@@ -69,7 +79,7 @@ describe("PracticeSetupForm", () => {
             />,
         );
 
-        expect(screen.getByLabelText(/interview type/i)).toHaveValue("");
+        expect(screen.getByLabelText(/practice focus/i)).toHaveValue("");
     });
 
     it("announces target role validation errors and associates the message to the field", async () => {

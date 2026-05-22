@@ -59,6 +59,7 @@ openspec
 .codex
 .learning
 .untracked
+.deprecated
 tours.md
 AI-eval/
 

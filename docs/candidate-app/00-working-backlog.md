@@ -326,7 +326,8 @@ Ground truth:
 | DASH-F02 | 736 | Feature | Resolved | Fu Chen <fu@rangam.com> | Progress and coaching themes | Candidate sees useful patterns without noisy analytics |
 | DASH-S05 | 737 | Story | Resolved | Fu Chen <fu@rangam.com> | Surface next best practice recommendation | Recommendation is grounded in candidate-owned history |
 | DASH-S06 | 771 | Story | Resolved | Fu Chen <fu@rangam.com> | Build dashboard UI MVP | Dashboard presents next practice step, active practice, completed history, coaching snippets, empty state, and resume/review/repeat affordances in the candidate design system |
-| DASH-F03 | 774 | Feature | New | Fu Chen <fu@rangam.com> | Dashboard UI refinement | Dashboard copy, hierarchy, empty states, history affordances, privacy cues, and final interaction polish are reviewed as product UI work after the read model and MVP shell are stable |
+| DASH-F03 | 774 | Feature | Active | Fu Chen <fu@rangam.com> | Dashboard UI refinement | Dashboard copy, hierarchy, empty states, history affordances, privacy cues, and final interaction polish are reviewed as product UI work after the read model and MVP shell are stable |
+| DASH-T01 | 783 | Task | Closed | Fu Chen <fu@rangam.com> | Tune One Big Upgrade output voice and hidden-state hygiene | One Big Upgrade avoids internal action literals such as `stop_for_now`, avoids over-polished or fabricated language, and keeps Try saying this in candidate-ready voice/readability |
 
 ### EPIC-09 Quality, Security, Observability, And Release Readiness
 
@@ -361,7 +362,7 @@ Ground truth:
 | QSO-S07 | 748 | Story | Resolved | Fu Chen <fu@rangam.com> | Review resume data privacy | Retention, logging, and extraction failure paths avoid sensitive-data leaks |
 | QSO-F04 | 775 | Feature | Resolved | Fu Chen <fu@rangam.com> | Privacy, cookie, and AI disclosure readiness | App-local notices are implemented and policy/company clarification follow-ups are split to a policy-owner review task |
 | QSO-S10 | 776 | Story | Resolved | Fu Chen <fu@rangam.com> | Review Interview Coach privacy, cookie, and AI policy fit | [Privacy, Disclosures, And Consent Requirements](06-security/privacy-disclosures-and-consent-requirements.md) is reviewed with policy owners; required notice, retention, cookie, AI vendor, and data-visibility follow-ups are confirmed or split into implementation items |
-| QSO-T01 | TBD | Task | New | Himanshu Sagar <himanshusagar@rangam.com> | Review policy docs and resolve company-policy clarifications | Policy owner/integration review confirms governing policy, protected-route tags, retention/export/delete posture, company footer, and exact policy links |
+| QSO-T01 | 782 | Task | New | Himanshu Sagar <himanshusagar@rangam.com> | Review policy docs and resolve company-policy clarifications | Policy owner/integration review confirms governing policy, protected-route tags, retention/export/delete posture, company footer, and exact policy links |
 
 ### EPIC-10 Azure DevOps Collaboration And Delivery
 
@@ -517,10 +518,15 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 108 | Resolved | SESS-F04 | 773 | Fu Chen <fu@rangam.com> | Equalize candidate summary navigation buttons | Back to Dashboard and Back to Practice Setup now share the same quiet nav-button treatment, hover state, border, rest color, and width rhythm instead of mixing secondary and tertiary emphasis styles |
 | 109 | Resolved | QSO-S10 | 776 | Fu Chen <fu@rangam.com> | Consolidate privacy, disclosure, consent, and retention docs | Security docs now use a two-doc structure: privacy/disclosures/consent requirements as the policy implementation source of truth, and the threat model as the engineering risk artifact |
 | 110 | Resolved | QSO-F04 | 775 | Fu Chen <fu@rangam.com> | Land candidate app-local disclosure and consent UI | Public home, candidate shell pages, practice setup, session entry, voice mode, and summary now include MVP disclosure, acknowledgement, and company-footer placeholder surfaces; policy/company clarification follow-ups are split to QSO-T01 |
-| 111 | New | QSO-T01 | TBD | Himanshu Sagar <himanshusagar@rangam.com> | Review policy docs and resolve company-policy clarifications | Review the linked security/policy docs and confirm governing policies, protected-route tags, retention/export/delete posture, company footer, and exact policy links |
+| 111 | New | QSO-T01 | 782 | Himanshu Sagar <himanshusagar@rangam.com> | Review policy docs and resolve company-policy clarifications | Review the linked security/policy docs and confirm governing policies, protected-route tags, retention/export/delete posture, company footer, and exact policy links |
 | 112 | Active | OPS-S14 | 643 | Himanshu Sagar <himanshusagar@rangam.com> | Coordinate candidate integration planning control plane | Fu-Lab board, repo docs/code wiki, PR review, shared-host confirmation, and branch policy follow-ups stay aligned |
 | 113 | Active | OPS-T05 | 649 | Himanshu Sagar <himanshusagar@rangam.com> | Confirm shared host route ownership | Integration team confirms route ownership for public, candidate, recruiter, admin, QA, invite-token, and API paths |
 | 114 | Active | OPS-T06 | 671 | Himanshu Sagar <himanshusagar@rangam.com> | Validate `LoginWithType/2` return behavior with integration team | Supported callback/state/return behavior is recorded in the login redirect contract |
+| 115 | Active | DASH-F03 | 774 | Fu Chen <fu@rangam.com> | Start One Big Upgrade coaching signal | Shared answer analysis now asks for a single highest-leverage upgrade and renders it in the feedback flow as support for the existing next-action decision; dashboard use remains a follow-up refinement |
+| 116 | Active | DASH-F03 | 774 | Fu Chen <fu@rangam.com> | Surface One Big Upgrade on dashboard | Dashboard reads the latest persisted oneBigUpgrade from answer feedback, prefers it over older recommendation text for completed-session next steps, labels history snippets distinctly, and keeps recommendation/summary fallback for older sessions |
+| 117 | Closed | DASH-T01 | 783 | Fu Chen <fu@rangam.com> | Tune One Big Upgrade output voice and hidden-state hygiene | Analysis prompt now forbids internal next-action literals in candidate-facing One Big Upgrade copy, and a deterministic sanitizer removes leaked action literals before feedback reaches UI/dashboard surfaces |
+| 118 | Resolved | DRFT-F04 | 772 | Fu Chen <fu@rangam.com> | Clarify practice focus setup control | `/practice` keeps the persisted `interviewType` contract but labels it as Practice focus, explains that it changes question emphasis, and uses candidate-facing option labels |
+| 119 | Active | DASH-F03 | 774 | Fu Chen <fu@rangam.com> | Fix dashboard background frame | Dashboard root now extends to the shared candidate shell content edges so the painted background surface is not inset by shell padding |
 
 ## Open Questions
 

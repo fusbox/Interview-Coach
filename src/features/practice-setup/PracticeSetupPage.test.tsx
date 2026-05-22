@@ -21,7 +21,7 @@ describe("PracticeSetupPage", () => {
         expect(screen.getByLabelText(/target role/i)).toBeRequired();
         expect(screen.getByLabelText(/job description/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/resume text/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/interview type/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/practice focus/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/question count/i)).toBeInTheDocument();
         expect(screen.getByRole("button", { name: /start generating questions/i })).toBeInTheDocument();
     });
@@ -62,7 +62,7 @@ describe("PracticeSetupPage", () => {
         }} />);
 
         expect(screen.getByLabelText(/target role/i)).toHaveValue("Warehouse lead");
-        expect(screen.getByLabelText(/interview type/i)).toHaveValue("technical");
+        expect(screen.getByLabelText(/practice focus/i)).toHaveValue("technical");
         expect(screen.getByLabelText(/question count/i)).toHaveValue("7");
         expect(screen.queryByRole("link", { name: /warehouse lead/i })).not.toBeInTheDocument();
     });

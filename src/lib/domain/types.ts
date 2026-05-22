@@ -109,6 +109,13 @@ export interface FeedbackPlan {
     intervention: FeedbackIntervention;
 }
 
+export interface OneBigUpgrade {
+    focus: string;
+    rationale: string;
+    targetMoment?: string;
+    trySayingThis: string;
+}
+
 export interface AnalysisResult {
     ack?: string;
     scores?: Record<Dimension, DimensionScore>;
@@ -116,6 +123,8 @@ export interface AnalysisResult {
 
     contentPulse?: CoachingPulse;
     deliveryPulse?: CoachingPulse;
+
+    oneBigUpgrade?: OneBigUpgrade;
 
     nextAction?: {
         label: string;
