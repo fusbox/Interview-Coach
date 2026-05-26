@@ -14,7 +14,7 @@ $displayName = "AI TA Interview Coach"
 $nodePath = "C:\Program Files\nodejs\node.exe"
 $scriptPath = "scripts\start-production.mjs"
 $startupType = "Automatic"
-$port = "3002"
+$port = "3001"
 
 function Test-ServiceExists {
     param ([string]$Name)

@@ -9,7 +9,7 @@ const buildDir = path.join(rootDir, '.next');
 const logDir = path.join(rootDir, 'logs');
 const errorLogPath = path.join(logDir, 'error.log');
 
-const port = process.env.PORT || '3002';
+const port = process.env.PORT || '3001';
 const host = process.env.HOSTNAME || '0.0.0.0';
 
 const logError = (message, err) => {
