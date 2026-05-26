@@ -54,11 +54,21 @@ openspec
 .deprecated
 .todo
 .pfizer
+.ralph/
 .webreel
 .codex
 .learning
 .untracked
+.deprecated
 tours.md
 AI-eval/
+
+# Azure Boards import/export scratch
+docs/candidate-app/work-items*.csv
+
+# Understand-Anything local scratch
+.understand-anything/intermediate/
+.understand-anything/tmp/
+.understand-anything/diff-overlay.json
 
 

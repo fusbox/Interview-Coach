@@ -88,4 +88,24 @@ describe("useSmartHints", () => {
             "x-candidate-token": "candidate-token",
         });
     });
+
+    it("supports authenticated candidate sessions without an invite token", async () => {
+        const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+            doThis: "Use the role context",
+            avoidThis: "Avoid generic answers",
+        }), { status: 200 }));
+        vi.stubGlobal("fetch", fetchMock);
+
+        renderHook(() =>
+            useSmartHints(question, "session-1", undefined, "QA Engineer", blueprint)
+        );
+
+        await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+        const [, request] = fetchMock.mock.calls[0];
+
+        expect(request.headers).toMatchObject({
+            "Idempotency-Key": "smart_hints:session-1:question-1",
+        });
+        expect(request.headers).not.toHaveProperty("x-candidate-token");
+    });
 });

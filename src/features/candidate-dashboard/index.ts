@@ -1,0 +1,1 @@
+export { CandidateDashboardPage } from "./CandidateDashboardPage";

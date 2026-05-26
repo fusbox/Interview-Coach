@@ -55,7 +55,8 @@ export function submitAnswer(
     session: InterviewSession,
     questionId: string,
     answerText: string,
-    analysis?: AnalysisResult
+    analysis?: AnalysisResult,
+    modality: "text" | "voice" = "text"
 ): InterviewSession {
     // Basic state update - in a real app, this might trigger eval
     const updatedAnswers = {
@@ -63,6 +64,7 @@ export function submitAnswer(
         [questionId]: {
             questionId,
             transcript: answerText,
+            modality,
             submittedAt: Date.now(),
             analysis: analysis // Persist analysis if provided
         }

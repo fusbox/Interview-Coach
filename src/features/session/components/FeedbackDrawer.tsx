@@ -19,7 +19,6 @@ import {
 import { FeedbackPill } from '@/components/patterns/FeedbackPill';
 import { cn } from '@/lib/cn';
 import { captureFeedbackAction } from '@/app/actions/feedback';
-import { useSession } from '../context/SessionContext';
 import { SectionHeader } from '@/components/patterns/SectionHeader';
 import { AlertPanel } from '@/components/patterns/AlertPanel';
 import { FeedbackChoiceButton } from '@/components/patterns/FeedbackChoiceButton';
@@ -39,6 +38,7 @@ interface FeedbackOverlayProps {
     isLastQuestion?: boolean;
     transcript?: string;
     audioBlob?: Blob | null;
+    sessionId?: string;
 }
 
 type SectionKey = 'start' | 'delivery' | 'content' | 'next';
@@ -89,6 +89,7 @@ const TranscriptPanel: React.FC<{
                 <div className="flex items-center gap-2">
                     {audioBlob && (
                         <button
+                            type="button"
                             onClick={togglePlayback}
                             className={cn(
                                 'inline-flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all text-xs font-black uppercase',
@@ -103,6 +104,7 @@ const TranscriptPanel: React.FC<{
                     )}
                     {showClose && onClose && (
                         <button
+                            type="button"
                             onClick={onClose}
                             className="w-8 h-8 rounded-full bg-surface-subtle flex items-center justify-center text-text-muted hover:text-text-primary transition-colors"
                             aria-label="Close transcript"
@@ -169,6 +171,7 @@ const FeedbackNavButtons: React.FC<{
     return (
         <div className="mt-10 flex flex-col md:flex-row items-center gap-4 w-full">
             <Button
+                type="button"
                 onClick={onPrimary}
                 emphasis="primary"
                 density="hero"
@@ -179,6 +182,7 @@ const FeedbackNavButtons: React.FC<{
                 {primaryLabel}
             </Button>
             <Button
+                type="button"
                 onClick={onSkip}
                 variant="ghost"
                 density="hero"
@@ -201,6 +205,7 @@ const ProgressDots: React.FC<{
         <div className="hidden md:flex absolute left-6 md:left-8 top-1/2 -translate-y-1/2 z-40 flex-col gap-4">
             {sections.map((s) => (
                 <button
+                    type="button"
                     key={s.id}
                     onClick={() => onDotClick(s.id)}
                     className="group relative flex items-center h-4"
@@ -239,8 +244,8 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
     isLastQuestion,
     transcript,
     audioBlob,
+    sessionId,
 }) => {
-    const { session } = useSession();
     const [isPlaying, setIsPlaying] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [activeSection, setActiveSection] = useState<SectionKey>('start');
@@ -320,7 +325,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
         setErrorMessage(null);
         try {
             await captureFeedbackAction({
-                sessionId: session?.id,
+                sessionId,
                 type: `helpfulness_${type}`,
                 comment: val, // yes, somewhat, no
                 metadata: {
@@ -399,6 +404,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
     useEffect(() => {
         const container = scrollContainerRef.current;
         if (!container) return;
+        if (typeof IntersectionObserver === 'undefined') return;
 
         const observer = new IntersectionObserver(
             (entries) => {
@@ -535,6 +541,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                     </h2>
                                     <div className="mt-12 flex flex-col md:flex-row items-center gap-4 justify-center w-full">
                                         <Button
+                                            type="button"
                                             onClick={() => {
                                                 audioEngine.unlock();
                                                 setHasExplored(true);
@@ -549,6 +556,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                             Explore Feedback
                                         </Button>
                                         <Button
+                                            type="button"
                                             onClick={() => {
                                                 audioEngine.unlock();
                                                 onNext();
@@ -681,6 +689,34 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                                     }
                                                 </p>
                                             </div>
+                                            {analysis?.oneBigUpgrade && (
+                                                <div className="rounded-3xl border border-primary/15 bg-surface-base/80 p-5 shadow-flat">
+                                                    <p className="text-xs font-black text-primary uppercase tracking-[0.2em]">
+                                                        One Big Upgrade
+                                                    </p>
+                                                    <div className="mt-3 space-y-3">
+                                                        <h4 className="text-xl font-bold text-text-primary">
+                                                            {analysis.oneBigUpgrade.focus}
+                                                        </h4>
+                                                        <p className="text-base font-medium leading-relaxed text-text-secondary">
+                                                            {analysis.oneBigUpgrade.rationale}
+                                                        </p>
+                                                        {analysis.oneBigUpgrade.targetMoment && (
+                                                            <p className="rounded-2xl border border-border/40 bg-surface-subtle/70 px-4 py-3 text-sm font-medium leading-relaxed text-text-muted">
+                                                                {analysis.oneBigUpgrade.targetMoment}
+                                                            </p>
+                                                        )}
+                                                        <div className="rounded-2xl bg-primary/5 px-4 py-3">
+                                                            <p className="text-micro font-black uppercase tracking-widest text-primary">
+                                                                Try saying this
+                                                            </p>
+                                                            <p className="mt-2 text-base font-semibold leading-relaxed text-text-primary">
+                                                                {analysis.oneBigUpgrade.trySayingThis}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
@@ -689,6 +725,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                         {shouldRetry ? (
                                             <>
                                                 <Button
+                                                    type="button"
                                                     onClick={() => {
                                                         audioEngine.unlock();
                                                         onRetry();
@@ -703,6 +740,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                                     Retry My Answer
                                                 </Button>
                                                 <button
+                                                    type="button"
                                                     onClick={() => {
                                                         audioEngine.unlock();
                                                         onNext();
@@ -719,6 +757,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                         ) : (
                                             <>
                                                 <Button
+                                                    type="button"
                                                     onClick={() => {
                                                         audioEngine.unlock();
                                                         onNext();
@@ -733,6 +772,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                                     <ArrowRight size={18} className="ml-2" />
                                                 </Button>
                                                 <button
+                                                    type="button"
                                                     onClick={() => {
                                                         audioEngine.unlock();
                                                         onRetry();
@@ -764,6 +804,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                     className="pointer-events-auto"
                                 >
                                     <button
+                                        type="button"
                                         onClick={() => {
                                             audioEngine.unlock();
                                             setIsTranscriptOpen(true);
@@ -811,6 +852,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                         Transcript panel
                                     </div>
                                     <button
+                                        type="button"
                                         ref={transcriptCloseButtonRef}
                                         onClick={() => setIsTranscriptOpen(false)}
                                         className="sr-only"

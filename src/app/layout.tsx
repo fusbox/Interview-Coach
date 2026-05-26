@@ -23,9 +23,9 @@ export const metadata: Metadata = {
     description: 'AI-powered interview practice',
     icons: {
         icon: [
-            { url: '/favicon.png?v=20260504', type: 'image/png' },
+            { url: '/favicon.png?v=20260520', type: 'image/png' },
         ],
-        shortcut: ['/favicon.png?v=20260504'],
+        shortcut: ['/favicon.png?v=20260520'],
     },
 }
 
@@ -35,7 +35,7 @@ export default function RootLayout({
     children: React.ReactNode
 }) {
     return (
-        <html lang="en">
+        <html lang="en" suppressHydrationWarning>
             <body className={cn(
                 "min-h-screen bg-background font-sans antialiased",
                 inter.variable,

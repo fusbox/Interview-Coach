@@ -2,9 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { updateSession } from "./middleware";
 
+const { loggerInfoMock } = vi.hoisted(() => ({
+    loggerInfoMock: vi.fn(),
+}));
+
 vi.mock("@/lib/logger", () => ({
     Logger: {
-        info: vi.fn(),
+        info: loggerInfoMock,
         warn: vi.fn(),
         error: vi.fn(),
         debug: vi.fn(),
@@ -29,13 +33,18 @@ describe("updateSession app-auth middleware", () => {
         vi.clearAllMocks();
     });
 
-    it("redirects protected recruiter pages without an app session cookie", () => {
-        const response = updateSession(makeRequest("/recruiter?tab=open"));
+    it.each([
+        ["/recruiter?tab=open", "https://interviewcoach.test/login?next=%2Frecruiter%3Ftab%3Dopen"],
+        ["/recruiter/dashboard", "https://interviewcoach.test/login?next=%2Frecruiter%2Fdashboard"],
+        ["/recruiter/templates", "https://interviewcoach.test/login?next=%2Frecruiter%2Ftemplates"],
+        ["/recruiter/settings", "https://interviewcoach.test/login?next=%2Frecruiter%2Fsettings"],
+        ["/admin/feedback", "https://interviewcoach.test/login?next=%2Fadmin%2Ffeedback"],
+        ["/qa/ai-quality", "https://interviewcoach.test/login?next=%2Fqa%2Fai-quality"],
+    ])("redirects recruiter-owned protected page %s without an app session cookie", (path, expectedLocation) => {
+        const response = updateSession(makeRequest(path));
 
         expect(response.status).toBe(307);
-        expect(response.headers.get("location")).toBe(
-            "https://interviewcoach.test/login?next=%2Frecruiter%3Ftab%3Dopen"
-        );
+        expect(response.headers.get("location")).toBe(expectedLocation);
     });
 
     it("allows protected recruiter pages with an app session cookie", () => {
@@ -54,8 +63,59 @@ describe("updateSession app-auth middleware", () => {
         expect(response.headers.get("location")).toBeNull();
     });
 
-    it("allows public candidate pages without an app session cookie", () => {
-        const response = updateSession(makeRequest("/s/invite-token"));
+    it.each([
+        ["/practice", "https://interviewcoach.test/auth/talentarbor/start?next=%2Fpractice"],
+        ["/dashboard", "https://interviewcoach.test/auth/talentarbor/start?next=%2Fdashboard"],
+        ["/settings", "https://interviewcoach.test/auth/talentarbor/start?next=%2Fdashboard"],
+        ["/session/session_123", "https://interviewcoach.test/auth/talentarbor/start?next=%2Fsession%2Fsession_123"],
+        ["/summary/session_123", "https://interviewcoach.test/auth/talentarbor/start?next=%2Fsummary%2Fsession_123"],
+    ])("redirects candidate protected route %s through candidate login when external auth is active", (path, expectedLocation) => {
+        process.env.CANDIDATE_AUTH_MODE = "external";
+
+        const response = updateSession(makeRequest(path));
+
+        expect(response.status).toBe(307);
+        expect(response.headers.get("location")).toBe(expectedLocation);
+    });
+
+    it("logs safe candidate auth denial fields when external auth redirects", () => {
+        process.env.CANDIDATE_AUTH_MODE = "external";
+
+        updateSession(makeRequest("/practice?draftId=draft_123"));
+
+        expect(loggerInfoMock).toHaveBeenCalledWith(
+            "Candidate auth middleware redirected unauthenticated request",
+            expect.objectContaining({
+                actorMode: "external",
+                actorType: "candidate",
+                reason: "missing_candidate_session",
+                route: "/practice",
+            }),
+            "CandidateAuthMiddleware"
+        );
+        expect(loggerInfoMock.mock.calls[0]?.[1]).not.toHaveProperty("next");
+    });
+
+    it.each([
+        ["/practice"],
+        ["/dashboard"],
+        ["/session/session_123"],
+        ["/summary/session_123"],
+    ])("allows candidate protected route %s in explicit local dev mode", (path) => {
+        process.env.CANDIDATE_AUTH_MODE = "dev";
+
+        const response = updateSession(makeRequest(path));
+
+        expect(response.status).toBe(200);
+        expect(response.headers.get("location")).toBeNull();
+    });
+
+    it.each([
+        ["/"],
+        ["/auth/talentarbor/start?next=/practice"],
+        ["/s/invite-token"],
+    ])("does not let recruiter middleware claim candidate or public route %s", (path) => {
+        const response = updateSession(makeRequest(path));
 
         expect(response.status).toBe(200);
         expect(response.headers.get("location")).toBeNull();

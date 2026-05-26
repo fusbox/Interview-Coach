@@ -108,6 +108,13 @@ export const FeedbackPlanSchema = z.object({
     intervention: FeedbackInterventionSchema,
 });
 
+export const OneBigUpgradeSchema = z.object({
+    focus: z.string(),
+    rationale: z.string(),
+    targetMoment: z.string().optional(),
+    trySayingThis: z.string(),
+});
+
 export const AnalysisResultSchema = z.object({
     ack: z.string().optional(),
     scores: z.record(DimensionSchema, DimensionScoreSchema).optional(),
@@ -115,6 +122,8 @@ export const AnalysisResultSchema = z.object({
 
     contentPulse: CoachingPulseSchema.optional(),
     deliveryPulse: CoachingPulseSchema.optional(),
+
+    oneBigUpgrade: OneBigUpgradeSchema.optional(),
 
     nextAction: z.object({
         label: z.string(),

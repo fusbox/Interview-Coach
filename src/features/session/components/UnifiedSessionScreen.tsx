@@ -830,6 +830,7 @@ export default function UnifiedSessionScreen() {
                 isLastQuestion={currentQuestionIndex === (session?.questions.length ?? 0) - 1}
                 transcript={answerData?.transcript || (mode === 'voice' ? transcript : answerText)}
                 audioBlob={audioBlob}
+                sessionId={session?.id}
             />
 
             {canShowDebugTools && (

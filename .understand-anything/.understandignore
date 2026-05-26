@@ -1,0 +1,19 @@
+# .understandignore - local graph exclusions
+node_modules/
+.git/
+.next/
+coverage/
+dist/
+build/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.ico
+*.woff
+*.woff2
+*.pdf
+*.lock
+.understand-anything/intermediate/
+.understand-anything/tmp/

@@ -1,0 +1,105 @@
+trigger:
+  branches:
+    include:
+      - feature/candidate-app-integration
+
+pr:
+  branches:
+    include:
+      - feature/candidate-app-integration
+      - feature/postgres-integration
+
+pool:
+  vmImage: ubuntu-latest
+
+resources:
+  containers:
+    - container: candidate_postgres
+      image: ankane/pgvector:latest
+      env:
+        POSTGRES_PASSWORD: interviewcoach-local-smoke-password
+        POSTGRES_DB: interviewcoach_smoke
+      ports:
+        - 5434:5432
+
+variables:
+  NODE_VERSION: "20.x"
+  CANDIDATE_DATA_BACKEND: postgres
+  CANDIDATE_AUTH_MODE: mock
+  CANDIDATE_MOCK_EMAIL: candidate-dev-primary@talentarbor.local
+  CANDIDATE_MOCK_DISPLAY_NAME: Dev Candidate Primary
+  DATABASE_URL: "postgresql://postgres:interviewcoach-local-smoke-password@127.0.0.1:5434/interviewcoach_smoke"
+  ENCRYPTION_SECRET: candidate-pipeline-placeholder-secret-32-chars
+  GEMINI_API_KEY: candidate-pipeline-placeholder
+  NEXT_PUBLIC_BASE_URL: "http://127.0.0.1:3000"
+  NEXT_TELEMETRY_DISABLED: "1"
+  SMTP_USERNAME: candidate-pipeline@example.invalid
+  SMTP_PASSWORD: candidate-pipeline-placeholder-password
+
+jobs:
+  - job: candidate_integration
+    displayName: Candidate integration checks
+    services:
+      postgres: candidate_postgres
+    steps:
+      - task: NodeTool@0
+        inputs:
+          versionSpec: $(NODE_VERSION)
+        displayName: Use Node.js $(NODE_VERSION)
+
+      - script: npm ci
+        displayName: Install dependencies
+
+      - script: npx playwright install --with-deps chromium
+        displayName: Install Playwright Chromium
+
+      - script: npm run lint
+        displayName: Lint
+
+      - script: npm run typecheck
+        displayName: Typecheck
+
+      - script: npm run test:candidate
+        displayName: Candidate tests
+
+      - script: npm run build
+        displayName: Build
+
+      - script: |
+          node - <<'NODE'
+          const { Pool } = require("pg");
+
+          const connectionString = "postgresql://postgres:interviewcoach-local-smoke-password@127.0.0.1:5434/interviewcoach_smoke";
+          const deadline = Date.now() + 30000;
+          let lastError;
+
+          async function wait() {
+            while (Date.now() < deadline) {
+              const pool = new Pool({ connectionString, connectionTimeoutMillis: 2000 });
+              try {
+                await pool.query("select 1");
+                await pool.end();
+                console.log("Candidate smoke Postgres is ready.");
+                return;
+              } catch (error) {
+                lastError = error;
+                await pool.end().catch(() => undefined);
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+              }
+            }
+
+            throw lastError ?? new Error("Candidate smoke Postgres did not become ready.");
+          }
+
+          wait().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+        displayName: Wait for candidate smoke Postgres
+
+      - script: npm run db:smoke-candidate-readiness
+        displayName: Candidate Postgres smoke readiness
+
+      - script: npm run test:e2e:candidate-seeded
+        displayName: Candidate seeded browser smoke

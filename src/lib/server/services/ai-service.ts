@@ -24,6 +24,7 @@ const SESSION_DEBRIEF_PROMPT_VERSION = "session-debrief-v1";
 
 export class AIService {
     private static readonly detectabilityLevels = ["clear", "moderate", "ambiguous", "thin"] as const;
+    private static readonly internalNextActionLiteralPattern = /\b(?:stop_for_now|redo_answer|next_question|practice_example)\b/gi;
 
     private static mapDetectabilityToConfidence(
         detectability?: typeof AIService.detectabilityLevels[number]
@@ -39,6 +40,30 @@ export class AIService {
             default:
                 return "medium";
         }
+    }
+
+    private static sanitizeCandidateVisibleAnalysis(result: AnalysisResult): AnalysisResult {
+        if (!result.oneBigUpgrade) {
+            return result;
+        }
+
+        const cleanVisibleText = (value: string) => value
+            .replace(AIService.internalNextActionLiteralPattern, "next step")
+            .replace(/\s{2,}/g, " ")
+            .trim();
+
+        return {
+            ...result,
+            oneBigUpgrade: {
+                ...result.oneBigUpgrade,
+                focus: cleanVisibleText(result.oneBigUpgrade.focus),
+                rationale: cleanVisibleText(result.oneBigUpgrade.rationale),
+                targetMoment: result.oneBigUpgrade.targetMoment
+                    ? cleanVisibleText(result.oneBigUpgrade.targetMoment)
+                    : undefined,
+                trySayingThis: cleanVisibleText(result.oneBigUpgrade.trySayingThis),
+            },
+        };
     }
 
     /**
@@ -126,6 +151,14 @@ COACHING RULES:
   - If REDO, explain the missing critical piece the candidate should focus on.
   - If NEXT, affirm the strongest signal you heard and give one focused polish tip.
   - If LAST (Summary), briefly summarize their overall trajectory across the questions and congratulate them on finishing.
+- ONE BIG UPGRADE:
+  - Generate oneBigUpgrade as the single highest-leverage revision the candidate should make to this answer.
+  - It MUST support the existing nextAction and recommendation; do not create a competing recommendation path.
+  - NEVER mention internal nextAction.actionType values such as stop_for_now, redo_answer, next_question, or practice_example in any candidate-facing copy.
+  - It is not a second strong response, not a generic tip, and not a list of all missing signals.
+  - trySayingThis MUST be 1-3 sentences that sound like what this candidate might actually say or type.
+  - Match the candidate's modality, readability, and tone. For typed answers, make it candidate-ready written phrasing. For voice answers, make it candidate-ready spoken phrasing.
+  - Use only answer, resume, role, and job-description context. Do not fabricate employers, tools, metrics, outcomes, or experiences.
 
 EVIDENCE RULES & PULSE GENERATION:
 You must generate at least 1, but no more than 2, High-Impact "Pulses" highlighting the most critical feedback.
@@ -180,6 +213,12 @@ Generate feedback as strict JSON matching this schema:
     "dimension": "filler_words | signposting | conciseness | resilience",
     "headline": "string (Short action-oriented title)",
     "body": "string (Narrative coaching tying behavior to role impact. NO QUOTES.)"
+  },
+  "oneBigUpgrade": {
+    "focus": "string (short action label for the single highest-leverage edit)",
+    "rationale": "string (why this is the best single edit and how it supports nextAction)",
+    "targetMoment": "string (optional exact quote or paraphrase from the candidate answer)",
+    "trySayingThis": "string (1-3 sentence candidate-voice phrase that applies the upgrade; not a full strong answer)"
   },
   "nextAction": {
     "label": "string",
@@ -288,10 +327,10 @@ Generate feedback as strict JSON matching this schema:
             const text = response.text;
             rawProviderOutput = text;
             Logger.info("AI Raw Response Received", { textLength: text?.length, operation: "analyzeAnswer" });
-            const result = parseProviderJson(text, AnalysisResultSchema, {
+            const result = AIService.sanitizeCandidateVisibleAnalysis(parseProviderJson(text, AnalysisResultSchema, {
                 provider: "gemini",
                 operation: "analyzeAnswer"
-            });
+            }));
             Logger.info("AI Parsed Result", { hasScores: !!result.scores, hasAck: !!result.ack });
 
             const scoreValues: Record<string, number> = {};

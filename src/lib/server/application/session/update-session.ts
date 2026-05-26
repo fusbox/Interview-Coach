@@ -22,6 +22,7 @@ type UpdateSessionDependencies = {
     sendDebriefEmail: (session: InterviewSession) => Promise<unknown>;
     incrementMetric: typeof incrementMetric;
     now: () => number;
+    runCompletionSideEffects: boolean;
 };
 
 function normalizeRepositoryUpdates(updates: UpdateSessionInput): Partial<InterviewSession> {
@@ -53,6 +54,7 @@ export async function updateSessionCommand(
         (async (session: InterviewSession) => (await import("@/lib/server/services/email-service")).EmailService.sendDebriefEmail(session));
     const incrementCompletionMetric = dependencies?.incrementMetric ?? incrementMetric;
     const now = dependencies?.now ?? Date.now;
+    const runCompletionSideEffects = dependencies?.runCompletionSideEffects ?? true;
 
     const currentSession = await repository.get(sessionId);
     if (!currentSession) {
@@ -73,7 +75,7 @@ export async function updateSessionCommand(
         throw new SessionUpdateNotFoundError("Session not found");
     }
 
-    if (updates.status === "COMPLETED" && !session.summaryNarrative) {
+    if (runCompletionSideEffects && updates.status === "COMPLETED" && !session.summaryNarrative) {
         incrementCompletionMetric("session_completion_total", {
             outcome: "success"
         });
