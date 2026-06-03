@@ -110,6 +110,7 @@ export async function createCandidateSessionFromDraft(
                 initialsRequired: false,
                 intakeData: {
                     candidateProfileId: draft.candidateProfileId,
+                    roleProfileId: draft.roleProfileId,
                     practiceDraftId: draft.practiceDraftId,
                     questionSetSnapshotId,
                     practiceConfig: {

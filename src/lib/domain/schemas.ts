@@ -41,6 +41,11 @@ export const GeneratedInterviewQuestionsSchema = z.object({
             text: z.string().min(1),
         })
     ).min(1).max(2),
+    screening: z.object({
+        "Interest": z.string().min(1),
+        "Background": z.string().min(1),
+        "Availability": z.string().min(1),
+    }).optional(),
 });
 
 export const SmtpEmailSendResultSchema = z.object({

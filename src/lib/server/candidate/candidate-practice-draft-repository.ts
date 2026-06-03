@@ -4,6 +4,8 @@ import { safeParsePracticeSetupInput } from "@/features/practice-setup/practice-
 import { normalizeResumeText } from "@/lib/candidate/resume-normalization";
 import { queryPostgres } from "@/lib/server/db/postgres";
 
+import { resolveCandidateRolePreparationProfile } from "./candidate-role-profile-repository";
+
 export type PracticeSessionDraftStatus =
     | "draft"
     | "generating"
@@ -49,6 +51,7 @@ export type ProcessedResumeArtifact = {
 export type CandidatePracticeDraft = {
     practiceDraftId: string;
     candidateProfileId: string;
+    roleProfileId: string | null;
     status: PracticeSessionDraftStatus;
     targetRole: string;
     jobDescription: string | null;
@@ -142,6 +145,7 @@ export type UpdateCandidatePracticeDraftProgressBySessionIdInput = CandidatePrac
 type CandidatePracticeDraftRow = QueryResultRow & {
     practice_draft_id: string;
     candidate_profile_id: string;
+    role_profile_id: string | null;
     status: PracticeSessionDraftStatus;
     target_role: string;
     job_description: string | null;
@@ -162,6 +166,7 @@ type CandidatePracticeDraftRow = QueryResultRow & {
 const draftSelect = `
     practice_draft_id,
     candidate_profile_id,
+    role_profile_id,
     status,
     target_role,
     job_description,
@@ -184,11 +189,19 @@ export async function createCandidatePracticeDraft(input: CreateCandidatePractic
     const setup = normalizeSetupInput(input);
     const resumeContext = buildResumeContext(setup.resumeText);
     const intakeResponses = emptyCandidatePracticeIntakeResponses();
+    const roleProfile = await resolveCandidateRolePreparationProfile({
+        candidateProfileId,
+        targetRole: setup.targetRole,
+        jobDescription: setup.jobDescription,
+        resumeContext,
+        source: "manual",
+    });
 
     const result = await queryPostgres<CandidatePracticeDraftRow>(
         `
             insert into public.candidate_practice_drafts (
                 candidate_profile_id,
+                role_profile_id,
                 target_role,
                 job_description,
                 resume_context_json,
@@ -197,10 +210,10 @@ export async function createCandidatePracticeDraft(input: CreateCandidatePractic
                 resume_target_screen,
                 last_activity_at
             )
-            values ($1, $2, $3, $4, '[]'::jsonb, $5, 'practice_setup', now())
+            values ($1, $2, $3, $4, $5, '[]'::jsonb, $6, 'practice_setup', now())
             returning ${draftSelect}
         `,
-        [candidateProfileId, setup.targetRole, setup.jobDescription, resumeContext, intakeResponses],
+        [candidateProfileId, roleProfile.roleProfileId, setup.targetRole, setup.jobDescription, resumeContext, intakeResponses],
     );
 
     return mapCandidatePracticeDraftRow(result.rows[0]);
@@ -280,20 +293,28 @@ export async function updateCandidatePracticeDraftSetup(input: UpdateCandidatePr
     const candidateProfileId = normalizeId(input.candidateProfileId, "Candidate profile ID");
     const setup = normalizeSetupInput(input);
     const resumeContext = buildResumeContext(setup.resumeText);
+    const roleProfile = await resolveCandidateRolePreparationProfile({
+        candidateProfileId,
+        targetRole: setup.targetRole,
+        jobDescription: setup.jobDescription,
+        resumeContext,
+        source: "manual",
+    });
 
     const result = await queryPostgres<CandidatePracticeDraftRow>(
         `
             update public.candidate_practice_drafts
             set
-                target_role = $3,
-                job_description = $4,
-                resume_context_json = $5,
+                role_profile_id = $3,
+                target_role = $4,
+                job_description = $5,
+                resume_context_json = $6,
                 resume_target_screen = 'practice_setup',
                 last_activity_at = now()
             where practice_draft_id = $1 and candidate_profile_id = $2 and status = 'draft'
             returning ${draftSelect}
         `,
-        [practiceDraftId, candidateProfileId, setup.targetRole, setup.jobDescription, resumeContext],
+        [practiceDraftId, candidateProfileId, roleProfile.roleProfileId, setup.targetRole, setup.jobDescription, resumeContext],
     );
 
     return result.rows[0] ? mapCandidatePracticeDraftRow(result.rows[0]) : null;
@@ -633,7 +654,7 @@ function normalizeByteSize(value: number): number {
 function normalizeRequiredResumeExtractionText(value: string): string {
     const normalizedText = normalizeResumeText(value);
     if (!normalizedText) {
-        throw new Error("Extracted resume text is required.");
+        throw new Error("Extracted resume content is required.");
     }
     return normalizedText;
 }
@@ -748,6 +769,7 @@ function mapCandidatePracticeDraftRow(row: CandidatePracticeDraftRow): Candidate
     return {
         practiceDraftId: row.practice_draft_id,
         candidateProfileId: row.candidate_profile_id,
+        roleProfileId: row.role_profile_id ?? null,
         status: row.status,
         targetRole: row.target_role,
         jobDescription: row.job_description,

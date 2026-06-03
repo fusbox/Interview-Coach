@@ -27,7 +27,8 @@ describe("PracticeSetupForm", () => {
         vi.clearAllMocks();
     });
 
-    it("prefills values from a restored draft", () => {
+    it("prefills values from a restored draft", async () => {
+        const user = userEvent.setup();
         render(
             <PracticeSetupForm
                 initialValues={{
@@ -41,9 +42,12 @@ describe("PracticeSetupForm", () => {
 
         expect(screen.getByLabelText(/target role/i)).toHaveValue("QA analyst");
         expect(screen.getByLabelText(/job description/i)).toHaveValue("Test regulated workflows.");
-        expect(screen.getByLabelText(/resume text/i)).toHaveValue("Validated releases.");
-        expect(screen.getByLabelText(/practice focus/i)).toHaveValue("behavioral");
-        expect(screen.getByLabelText(/question count/i)).toHaveValue("5");
+        expect(screen.getByLabelText(/resume content/i)).toHaveValue("Validated releases.");
+
+        await user.click(screen.getByRole("button", { name: /advanced setup/i }));
+
+        expect(screen.getByRole("radio", { name: /Behavioral stories/i })).toBeChecked();
+        expect(screen.getByRole("radio", { name: "5 questions" })).toBeChecked();
     });
 
     it("uses the recruiter create card elevation", () => {
@@ -52,24 +56,49 @@ describe("PracticeSetupForm", () => {
         expect(screen.getByRole("form", { name: /practice setup form/i })).toHaveClass("shadow-raised-1");
     });
 
-    it("uses a single balanced default interview type option", () => {
+    it("keeps practice focus and question count in advanced setup", async () => {
+        const user = userEvent.setup();
         render(<PracticeSetupForm />);
 
-        expect(screen.getByRole("option", { name: "Balanced practice" })).toHaveValue("");
-        expect(screen.queryByRole("option", { name: "General" })).not.toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /advanced setup/i })).toHaveAttribute("aria-expanded", "false");
+        expect(screen.queryByLabelText(/practice focus/i)).not.toBeInTheDocument();
+        expect(screen.queryByLabelText(/question count/i)).not.toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: /advanced setup/i }));
+
+        expect(screen.getByRole("button", { name: /advanced setup/i })).toHaveAttribute("aria-expanded", "true");
+        expect(screen.getByRole("group", { name: /practice focus/i })).toBeInTheDocument();
+        expect(screen.getByRole("group", { name: /question count/i })).toBeInTheDocument();
     });
 
-    it("frames interview type as practice focus with candidate-facing option labels", () => {
+    it("uses a single balanced default interview type option", async () => {
+        const user = userEvent.setup();
         render(<PracticeSetupForm />);
 
-        expect(screen.getByLabelText(/practice focus/i)).toHaveAccessibleDescription(
+        await user.click(screen.getByRole("button", { name: /advanced setup/i }));
+
+        expect(screen.getByRole("radio", { name: /Balanced practice/i })).toHaveAttribute("value", "");
+        expect(screen.getByRole("radio", { name: /Balanced practice/i })).toBeChecked();
+        expect(screen.queryByRole("radio", { name: "General" })).not.toBeInTheDocument();
+    });
+
+    it("frames interview type as practice focus with candidate-facing option labels", async () => {
+        const user = userEvent.setup();
+        render(<PracticeSetupForm />);
+
+        await user.click(screen.getByRole("button", { name: /advanced setup/i }));
+
+        expect(screen.getByRole("group", { name: /practice focus/i })).toHaveAccessibleDescription(
             "Choose what this round should emphasize. Balanced practice mixes common interview question types.",
         );
-        expect(screen.getByRole("option", { name: "Behavioral stories" })).toHaveValue("behavioral");
-        expect(screen.getByRole("option", { name: "Screening basics" })).toHaveValue("screening");
+        expect(screen.getByRole("radio", { name: /Behavioral stories/i })).toHaveAttribute("value", "behavioral");
+        expect(screen.getByRole("radio", { name: /Screening basics/i })).toHaveAttribute("value", "screening");
+        expect(screen.getByText(/practice examples about judgment/i)).toBeInTheDocument();
+        expect(screen.getByText(/focus on explaining tools/i)).toBeInTheDocument();
     });
 
-    it("treats restored general interview type values as balanced practice", () => {
+    it("treats restored general interview type values as balanced practice", async () => {
+        const user = userEvent.setup();
         render(
             <PracticeSetupForm
                 initialValues={{
@@ -79,7 +108,27 @@ describe("PracticeSetupForm", () => {
             />,
         );
 
-        expect(screen.getByLabelText(/practice focus/i)).toHaveValue("");
+        await user.click(screen.getByRole("button", { name: /advanced setup/i }));
+
+        expect(screen.getByRole("radio", { name: /Balanced practice/i })).toBeChecked();
+    });
+
+    it("keeps advanced setup selections when the accordion is closed and reopened", async () => {
+        const user = userEvent.setup();
+        render(<PracticeSetupForm />);
+
+        await user.click(screen.getByRole("button", { name: /advanced setup/i }));
+        await user.click(screen.getByRole("radio", { name: /Technical depth/i }));
+        await user.click(screen.getByRole("radio", { name: "7 questions" }));
+        await user.click(screen.getByRole("button", { name: /advanced setup/i }));
+
+        expect(screen.getByRole("button", { name: /advanced setup/i })).toHaveAttribute("aria-expanded", "false");
+        expect(screen.queryByRole("group", { name: /practice focus/i })).not.toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: /advanced setup/i }));
+
+        expect(screen.getByRole("radio", { name: /Technical depth/i })).toBeChecked();
+        expect(screen.getByRole("radio", { name: "7 questions" })).toBeChecked();
     });
 
     it("announces target role validation errors and associates the message to the field", async () => {
@@ -94,6 +143,21 @@ describe("PracticeSetupForm", () => {
         expect(screen.getByRole("alert")).toHaveTextContent(/review the highlighted fields/i);
         expect(targetRole).toHaveAttribute("aria-invalid", "true");
         expect(targetRole).toHaveAttribute("aria-describedby", expect.stringContaining(error.id));
+    });
+
+    it("announces job description validation errors and associates the message to the field", async () => {
+        const user = userEvent.setup();
+        render(<PracticeSetupForm initialValues={{ targetRole: "QA analyst" }} />);
+
+        await user.click(screen.getByRole("button", { name: /start generating questions/i }));
+
+        const jobDescription = screen.getByLabelText(/job description/i);
+        const error = await screen.findByText("Job description is required.");
+
+        expect(screen.getByRole("alert")).toHaveTextContent(/review the highlighted fields/i);
+        expect(jobDescription).toHaveAttribute("required");
+        expect(jobDescription).toHaveAttribute("aria-invalid", "true");
+        expect(jobDescription).toHaveAttribute("aria-describedby", expect.stringContaining(error.id));
     });
 
     it("renders server submission errors in an announced region", () => {
@@ -151,9 +215,9 @@ describe("PracticeSetupForm", () => {
             sessionId: "session-1",
             resumeTargetScreen: "session_entry",
         });
-        render(<PracticeSetupForm initialValues={{ targetRole: "QA analyst" }} />);
+        render(<PracticeSetupForm initialValues={{ targetRole: "QA analyst", jobDescription: "Test regulated workflows." }} />);
 
-        expect(screen.getByText(/resume text is optional/i)).toBeInTheDocument();
+        expect(screen.getByText(/resume content is optional/i)).toBeInTheDocument();
         expect(screen.getByText(/interview coach uses ai to generate practice questions/i)).toBeInTheDocument();
 
         await user.click(screen.getByRole("button", { name: /start generating questions/i }));
@@ -180,7 +244,7 @@ describe("PracticeSetupForm", () => {
                 practiceDraftId="draft-1"
                 initialValues={{
                     targetRole: "Customer success manager",
-                    jobDescription: null,
+                    jobDescription: "Own customer renewals and adoption goals.",
                     resumeText: null,
                     questionCount: 7,
                     interviewType: "behavioral",
@@ -188,14 +252,15 @@ describe("PracticeSetupForm", () => {
             />,
         );
 
-        await user.selectOptions(screen.getByLabelText(/question count/i), "7");
+        await user.click(screen.getByRole("button", { name: /advanced setup/i }));
+        await user.click(screen.getByRole("radio", { name: "7 questions" }));
         await user.click(screen.getByLabelText(/i understand interview coach uses ai/i));
         await user.click(screen.getByRole("button", { name: /start generating questions/i }));
 
         expect(startPracticeGenerationActionMock).toHaveBeenCalledWith(expect.objectContaining({
             setup: {
                 targetRole: "Customer success manager",
-                jobDescription: null,
+                jobDescription: "Own customer renewals and adoption goals.",
                 resumeText: null,
                 questionCount: 7,
             },

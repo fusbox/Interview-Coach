@@ -70,6 +70,7 @@ export {
     loadCandidateDashboardForCurrentCandidate,
     type CandidateDashboardItem,
     type CandidateDashboardModel,
+    type CandidateDashboardTargetInterview,
 } from "./candidate-dashboard-loader";
 export {
     loadCandidateSummaryForCurrentCandidate,

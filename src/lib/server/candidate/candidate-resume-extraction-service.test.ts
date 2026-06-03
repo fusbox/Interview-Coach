@@ -64,7 +64,7 @@ describe("candidate resume extraction service", () => {
             },
         )).resolves.toEqual({
             ok: false,
-            error: "Resume text could not be extracted. Please try another file or paste resume text instead.",
+            error: "Resume content could not be extracted. Please try another file or include resume content instead.",
             code: "EXTRACTION_FAILED",
         });
 

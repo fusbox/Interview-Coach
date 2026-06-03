@@ -24,14 +24,24 @@ const optionalSetupText = (fieldName: string, maxLength: number) =>
             .transform((value) => (value.length > 0 ? value : null)),
     );
 
+const requiredSetupText = (fieldName: string, maxLength: number) =>
+    z.preprocess(
+        (value) => (value == null ? "" : value),
+        z
+            .string()
+            .trim()
+            .min(1, `${fieldName} is required.`)
+            .max(maxLength, `${fieldName} must be ${maxLength.toLocaleString()} characters or fewer.`),
+    );
+
 export const practiceSetupSchema = z.object({
     targetRole: z
         .string()
         .trim()
         .min(1, "Target role is required.")
         .max(PRACTICE_SETUP_LIMITS.targetRole, `Target role must be ${PRACTICE_SETUP_LIMITS.targetRole} characters or fewer.`),
-    jobDescription: optionalSetupText("Job description", PRACTICE_SETUP_LIMITS.jobDescription),
-    resumeText: optionalSetupText("Resume text", PRACTICE_SETUP_LIMITS.resumeText),
+    jobDescription: requiredSetupText("Job description", PRACTICE_SETUP_LIMITS.jobDescription),
+    resumeText: optionalSetupText("Resume content", PRACTICE_SETUP_LIMITS.resumeText),
     questionCount: z.preprocess(
         (value) => (value == null || value === "" ? PRACTICE_SETUP_LIMITS.questionCountDefault : value),
         z.coerce

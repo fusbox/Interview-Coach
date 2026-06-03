@@ -96,6 +96,7 @@ describe("candidate session creation service", () => {
             },
             intakeData: {
                 candidateProfileId: "profile-1",
+                roleProfileId: "role-profile-1",
                 practiceDraftId: "draft-1",
                 questionSetSnapshotId: "snapshot-1",
                 practiceConfig: {
@@ -282,6 +283,7 @@ function practiceDraft(overrides: Partial<CandidatePracticeDraft> = {}): Candida
     return {
         practiceDraftId: "draft-1",
         candidateProfileId: "profile-1",
+        roleProfileId: "role-profile-1",
         status: "draft",
         targetRole: "Target role",
         jobDescription: null,

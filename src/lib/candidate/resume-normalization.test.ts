@@ -12,7 +12,7 @@ describe("normalizeResumeText", () => {
         );
     });
 
-    it("returns null for empty or whitespace-only resume text", () => {
+    it("returns null for empty or whitespace-only resume content", () => {
         expect(normalizeResumeText("")).toBeNull();
         expect(normalizeResumeText(" \t \r\n ")).toBeNull();
     });
@@ -23,9 +23,9 @@ describe("normalizeResumeText", () => {
         );
     });
 
-    it("rejects normalized resume text above the supported length", () => {
+    it("rejects normalized resume content above the supported length", () => {
         expect(() => normalizeResumeText("a".repeat(MAX_NORMALIZED_RESUME_TEXT_LENGTH + 1))).toThrow(
-            `Resume text must be ${MAX_NORMALIZED_RESUME_TEXT_LENGTH.toLocaleString()} characters or fewer.`,
+            `Resume content must be ${MAX_NORMALIZED_RESUME_TEXT_LENGTH.toLocaleString()} characters or fewer.`,
         );
     });
 });

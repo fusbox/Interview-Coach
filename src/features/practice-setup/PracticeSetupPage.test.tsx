@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { getBasicAccessibilityViolations } from "@/test/accessibility";
@@ -12,18 +13,25 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("PracticeSetupPage", () => {
-    it("renders the first candidate-owned setup form fields", () => {
+    it("renders the first candidate-owned setup form fields", async () => {
+        const user = userEvent.setup();
         render(<PracticeSetupPage />);
 
         expect(screen.getByRole("heading", { name: "Practice Setup" })).toBeInTheDocument();
         expect(screen.queryByText(/practice setup/i, { selector: "p" })).not.toBeInTheDocument();
         expect(screen.queryByText(/add only the context/i)).not.toBeInTheDocument();
         expect(screen.getByLabelText(/target role/i)).toBeRequired();
-        expect(screen.getByLabelText(/job description/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/resume text/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/practice focus/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/question count/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/job description/i)).toBeRequired();
+        expect(screen.getByLabelText(/resume content/i)).toBeInTheDocument();
+        expect(screen.queryByLabelText(/practice focus/i)).not.toBeInTheDocument();
+        expect(screen.queryByLabelText(/question count/i)).not.toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /advanced setup/i })).toBeInTheDocument();
         expect(screen.getByRole("button", { name: /start generating questions/i })).toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: /advanced setup/i }));
+
+        expect(screen.getByRole("group", { name: /practice focus/i })).toBeInTheDocument();
+        expect(screen.getByRole("group", { name: /question count/i })).toBeInTheDocument();
     });
 
     it("keeps deferred setup fields and companion panels out of the MVP surface", () => {
@@ -38,7 +46,8 @@ describe("PracticeSetupPage", () => {
         expect(screen.queryByLabelText(/timeline/i)).not.toBeInTheDocument();
     });
 
-    it("prefills the MVP form fields from a restored draft without rendering draft choice cards", () => {
+    it("prefills the MVP form fields from a restored draft without rendering draft choice cards", async () => {
+        const user = userEvent.setup();
         render(<PracticeSetupPage restoredDraft={{
             practiceDraftId: "draft-2",
             availableDrafts: [
@@ -54,7 +63,7 @@ describe("PracticeSetupPage", () => {
             ],
             initialValues: {
                 targetRole: "Warehouse lead",
-                jobDescription: null,
+                jobDescription: "Coordinate warehouse operations and safety workflows.",
                 resumeText: null,
                 interviewType: "technical",
                 questionCount: 7,
@@ -62,8 +71,9 @@ describe("PracticeSetupPage", () => {
         }} />);
 
         expect(screen.getByLabelText(/target role/i)).toHaveValue("Warehouse lead");
-        expect(screen.getByLabelText(/practice focus/i)).toHaveValue("technical");
-        expect(screen.getByLabelText(/question count/i)).toHaveValue("7");
+        await user.click(screen.getByRole("button", { name: /advanced setup/i }));
+        expect(screen.getByRole("radio", { name: /Technical depth/i })).toBeChecked();
+        expect(screen.getByRole("radio", { name: "7 questions" })).toBeChecked();
         expect(screen.queryByRole("link", { name: /warehouse lead/i })).not.toBeInTheDocument();
     });
 

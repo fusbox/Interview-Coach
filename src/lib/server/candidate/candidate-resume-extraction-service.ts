@@ -85,7 +85,7 @@ export async function extractResumeUploadForCandidateDraft(
 function extractionFailure(code: "EXTRACTION_FAILED" | "EMPTY_EXTRACTION"): CandidateResumeExtractionResult {
     return {
         ok: false,
-        error: "Resume text could not be extracted. Please try another file or paste resume text instead.",
+        error: "Resume content could not be extracted. Please try another file or include resume content instead.",
         code,
     };
 }

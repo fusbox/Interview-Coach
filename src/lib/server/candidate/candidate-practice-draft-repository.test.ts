@@ -16,10 +16,17 @@ describe("candidate practice draft repository", () => {
     });
 
     it("creates a candidate-owned draft from validated setup input", async () => {
-        queryPostgresMock.mockResolvedValue({
+        queryPostgresMock.mockResolvedValueOnce({
+            rows: [roleProfileRow({
+                role_profile_id: "role-profile-1",
+                candidate_profile_id: "profile-1",
+            })],
+        });
+        queryPostgresMock.mockResolvedValueOnce({
             rows: [practiceDraftRow({
                 practice_draft_id: "draft-1",
                 candidate_profile_id: "profile-1",
+                role_profile_id: "role-profile-1",
                 target_role: "QA analyst",
                 job_description: "Test regulated workflows.",
                 resume_context_json: {
@@ -45,6 +52,7 @@ describe("candidate practice draft repository", () => {
         })).resolves.toMatchObject({
             practiceDraftId: "draft-1",
             candidateProfileId: "profile-1",
+            roleProfileId: "role-profile-1",
             status: "draft",
             targetRole: "QA analyst",
             jobDescription: "Test regulated workflows.",
@@ -61,10 +69,22 @@ describe("candidate practice draft repository", () => {
             resumeTargetScreen: "practice_setup",
         });
 
-        expect(queryPostgresMock).toHaveBeenCalledWith(
+        expect(queryPostgresMock).toHaveBeenNthCalledWith(
+            1,
+            expect.stringContaining("insert into public.candidate_role_preparation_profiles"),
+            expect.arrayContaining([
+                "profile-1",
+                "QA analyst",
+                "qa analyst",
+                "Test regulated workflows.",
+            ]),
+        );
+        expect(queryPostgresMock).toHaveBeenNthCalledWith(
+            2,
             expect.stringContaining("insert into public.candidate_practice_drafts"),
             expect.arrayContaining([
                 "profile-1",
+                "role-profile-1",
                 "QA analyst",
                 "Test regulated workflows.",
                 expect.objectContaining({
@@ -86,8 +106,9 @@ describe("candidate practice draft repository", () => {
                 },
             ]),
         );
-        expect(queryPostgresMock.mock.calls[0][0]).toContain("values ($1, $2, $3, $4, '[]'::jsonb, $5, 'practice_setup', now())");
-        expect(queryPostgresMock.mock.calls[0][0]).not.toContain("'[]'::jsonb, 'practice_setup'");
+        expect(queryPostgresMock.mock.calls[1][0]).toContain("role_profile_id");
+        expect(queryPostgresMock.mock.calls[1][0]).toContain("values ($1, $2, $3, $4, $5, '[]'::jsonb, $6, 'practice_setup', now())");
+        expect(queryPostgresMock.mock.calls[1][0]).not.toContain("'[]'::jsonb, 'practice_setup'");
     });
 
     it("finds a draft only through candidate ownership", async () => {
@@ -220,12 +241,24 @@ describe("candidate practice draft repository", () => {
     });
 
     it("updates draft setup fields while preserving candidate ownership", async () => {
-        queryPostgresMock.mockResolvedValue({
+        const jobDescription = "Coordinate warehouse safety and shift workflows.";
+
+        queryPostgresMock.mockResolvedValueOnce({
+            rows: [roleProfileRow({
+                role_profile_id: "role-profile-3",
+                candidate_profile_id: "profile-3",
+                target_role: "Warehouse supervisor",
+                normalized_target_role: "warehouse supervisor",
+                job_description_snapshot: jobDescription,
+            })],
+        });
+        queryPostgresMock.mockResolvedValueOnce({
             rows: [practiceDraftRow({
                 practice_draft_id: "draft-3",
                 candidate_profile_id: "profile-3",
+                role_profile_id: "role-profile-3",
                 target_role: "Warehouse supervisor",
-                job_description: null,
+                job_description: jobDescription,
                 resume_context_json: { pastedText: null, extractedText: "", captureMode: "none" },
             })],
         });
@@ -236,11 +269,12 @@ describe("candidate practice draft repository", () => {
             candidateProfileId: "profile-3",
             practiceDraftId: "draft-3",
             targetRole: "Warehouse supervisor",
-            jobDescription: "",
+            jobDescription: ` ${jobDescription} `,
             resumeText: "",
         })).resolves.toMatchObject({
             practiceDraftId: "draft-3",
-            jobDescription: null,
+            roleProfileId: "role-profile-3",
+            jobDescription,
             resumeContext: {
                 pastedText: null,
                 extractedText: "",
@@ -249,10 +283,30 @@ describe("candidate practice draft repository", () => {
             },
         });
 
-        expect(queryPostgresMock).toHaveBeenCalledWith(
-            expect.stringContaining("where practice_draft_id = $1 and candidate_profile_id = $2"),
-            expect.arrayContaining(["draft-3", "profile-3", "Warehouse supervisor", null]),
+        expect(queryPostgresMock).toHaveBeenNthCalledWith(
+            1,
+            expect.stringContaining("insert into public.candidate_role_preparation_profiles"),
+            expect.arrayContaining(["profile-3", "Warehouse supervisor", "warehouse supervisor", jobDescription]),
         );
+        expect(queryPostgresMock).toHaveBeenNthCalledWith(
+            2,
+            expect.stringContaining("where practice_draft_id = $1 and candidate_profile_id = $2"),
+            expect.arrayContaining(["draft-3", "profile-3", "role-profile-3", "Warehouse supervisor", jobDescription]),
+        );
+    });
+
+    it("rejects blank job descriptions before updating draft setup", async () => {
+        const { updateCandidatePracticeDraftSetup } = await import("./candidate-practice-draft-repository");
+
+        await expect(updateCandidatePracticeDraftSetup({
+            candidateProfileId: "profile-3",
+            practiceDraftId: "draft-3",
+            targetRole: "Warehouse supervisor",
+            jobDescription: "",
+            resumeText: "",
+        })).rejects.toThrow("Invalid candidate practice draft setup input.");
+
+        expect(queryPostgresMock).not.toHaveBeenCalled();
     });
 
     it("updates structured intake responses while preserving candidate ownership", async () => {
@@ -678,6 +732,7 @@ function practiceDraftRow(overrides: Record<string, unknown>) {
     return {
         practice_draft_id: "draft-id",
         candidate_profile_id: "profile-id",
+        role_profile_id: null,
         status: "draft",
         target_role: "Target role",
         job_description: null,
@@ -697,6 +752,24 @@ function practiceDraftRow(overrides: Record<string, unknown>) {
         generation_finished_at: null,
         generation_error: null,
         last_activity_at: "2026-05-12T10:00:00.000Z",
+        created_at: "2026-05-12T10:00:00.000Z",
+        updated_at: "2026-05-12T10:00:00.000Z",
+        ...overrides,
+    };
+}
+
+function roleProfileRow(overrides: Record<string, unknown>) {
+    return {
+        role_profile_id: "role-profile-id",
+        candidate_profile_id: "profile-id",
+        target_role: "Target role",
+        normalized_target_role: "target role",
+        job_description_snapshot: "Job description.",
+        job_description_hash: "hash",
+        resume_context_snapshot_json: null,
+        source: "manual",
+        status: "active",
+        last_practiced_at: null,
         created_at: "2026-05-12T10:00:00.000Z",
         updated_at: "2026-05-12T10:00:00.000Z",
         ...overrides,

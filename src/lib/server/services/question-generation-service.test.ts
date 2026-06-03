@@ -85,4 +85,40 @@ describe("question generation service", () => {
         }));
         expect(captureAiGenerationMock.mock.calls[0][0]).not.toHaveProperty("createdBy");
     });
+
+    it("prioritizes culture fit and screening-only questions for candidate screening basics", async () => {
+        const { generateCandidateQuestionSnapshot } = await import("./question-generation-service");
+
+        const questions = await generateCandidateQuestionSnapshot(
+            {
+                role: "Client Service Coordinator",
+                jobDescription: "Requires weekend availability and interest in client-facing veterinary care.",
+                interviewType: "screening",
+                questionCount: 6,
+            },
+            {
+                appName: "candidate_app",
+                actorType: "candidate",
+                actorId: "profile-1",
+                correlationId: "correlation-screening",
+                sourceRefs: [{ type: "service", name: "candidate_session_generation" }],
+            },
+            {
+                createQuestionId: (index) => `screening-question-${index + 1}`,
+            },
+        );
+
+        expect(questions).toHaveLength(6);
+        expect(questions.slice(0, 5).map((question) => question.category)).toEqual([
+            "Culture",
+            "Culture",
+            "Culture",
+            "Culture",
+            "Culture",
+        ]);
+        expect(questions[5]).toMatchObject({
+            category: "Screening",
+            framework: "Interest",
+        });
+    });
 });

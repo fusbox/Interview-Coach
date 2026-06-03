@@ -19,7 +19,7 @@ export function normalizeResumeText(input: string | null | undefined): string | 
     }
 
     if (normalized.length > MAX_NORMALIZED_RESUME_TEXT_LENGTH) {
-        throw new Error(`Resume text must be ${MAX_NORMALIZED_RESUME_TEXT_LENGTH.toLocaleString()} characters or fewer.`);
+        throw new Error(`Resume content must be ${MAX_NORMALIZED_RESUME_TEXT_LENGTH.toLocaleString()} characters or fewer.`);
     }
 
     return normalized;

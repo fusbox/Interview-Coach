@@ -22,10 +22,13 @@ describe("practiceSetupSchema", () => {
         });
     });
 
-    it("normalizes missing or blank optional context to null", () => {
-        expect(parsePracticeSetupInput({ targetRole: "QA analyst" })).toEqual({
+    it("normalizes missing or blank optional resume context to null", () => {
+        expect(parsePracticeSetupInput({
             targetRole: "QA analyst",
-            jobDescription: null,
+            jobDescription: "Test regulated workflows.",
+        })).toEqual({
+            targetRole: "QA analyst",
+            jobDescription: "Test regulated workflows.",
             resumeText: null,
             questionCount: 5,
         });
@@ -33,28 +36,43 @@ describe("practiceSetupSchema", () => {
         expect(
             parsePracticeSetupInput({
                 targetRole: "QA analyst",
-                jobDescription: "   ",
+                jobDescription: " Test regulated workflows. ",
                 resumeText: "",
                 questionCount: "7",
             }),
         ).toEqual({
             targetRole: "QA analyst",
-            jobDescription: null,
+            jobDescription: "Test regulated workflows.",
             resumeText: null,
             questionCount: 7,
         });
     });
 
+    it("requires job description context for role-specific practice", () => {
+        for (const jobDescription of [undefined, null, "   "]) {
+            const result = safeParsePracticeSetupInput({
+                targetRole: "QA analyst",
+                jobDescription,
+            });
+
+            expect(result.success).toBe(false);
+            if (!result.success) {
+                expect(result.error.flatten().fieldErrors.jobDescription).toContain("Job description is required.");
+            }
+        }
+    });
+
     it("treats question count as lightweight setup configuration", () => {
         expect(parsePracticeSetupInput({
             targetRole: "QA analyst",
+            jobDescription: "Test regulated workflows.",
             questionCount: "3",
         })).toMatchObject({
             questionCount: 3,
         });
 
-        expect(safeParsePracticeSetupInput({ targetRole: "QA analyst", questionCount: 2 }).success).toBe(false);
-        expect(safeParsePracticeSetupInput({ targetRole: "QA analyst", questionCount: 11 }).success).toBe(false);
+        expect(safeParsePracticeSetupInput({ targetRole: "QA analyst", jobDescription: "Test regulated workflows.", questionCount: 2 }).success).toBe(false);
+        expect(safeParsePracticeSetupInput({ targetRole: "QA analyst", jobDescription: "Test regulated workflows.", questionCount: 11 }).success).toBe(false);
     });
 
     it("rejects blank target role values", () => {
@@ -71,7 +89,7 @@ describe("practiceSetupSchema", () => {
 
     it("rejects invalid payload shapes before the service boundary", () => {
         expect(safeParsePracticeSetupInput({ targetRole: 42 }).success).toBe(false);
-        expect(safeParsePracticeSetupInput({ targetRole: "Designer", resumeText: 42 }).success).toBe(false);
+        expect(safeParsePracticeSetupInput({ targetRole: "Designer", jobDescription: "Design accessible products.", resumeText: 42 }).success).toBe(false);
     });
 
     it("enforces field length limits for setup payloads", () => {
@@ -81,6 +99,6 @@ describe("practiceSetupSchema", () => {
 
         expect(safeParsePracticeSetupInput({ targetRole }).success).toBe(false);
         expect(safeParsePracticeSetupInput({ targetRole: "Designer", jobDescription }).success).toBe(false);
-        expect(safeParsePracticeSetupInput({ targetRole: "Designer", resumeText }).success).toBe(false);
+        expect(safeParsePracticeSetupInput({ targetRole: "Designer", jobDescription: "Design accessible products.", resumeText }).success).toBe(false);
     });
 });

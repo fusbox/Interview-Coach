@@ -245,6 +245,12 @@ Generate interview questions in these categories:
    - Anchor these to the actual tools or tasks mentioned in the JD.
    - If a Resume is provided, tie the technical question to their stated tools/experience.
 
+4. Screening Questions - Generate exactly 3 questions as a keyed object.
+   - KEYS: "Interest", "Background", "Availability".
+   - Interest asks why the candidate is interested in this role or workplace.
+   - Background asks for a brief, role-relevant overview of experience without duplicating technical depth.
+   - Availability asks about schedule, shift, start date, travel, or other availability constraints only when the JD mentions them; otherwise ask a general readiness or logistics question.
+
 OUTPUT FORMAT (strict JSON, no other text):
 {
   "behavioral": {
@@ -262,7 +268,12 @@ OUTPUT FORMAT (strict JSON, no other text):
   },
   "technical": [
     { "text": "question text" }
-  ]
+  ],
+  "screening": {
+    "Interest": "complete question text",
+    "Background": "complete question text",
+    "Availability": "complete question text"
+  }
 }
 
 RULES:
@@ -294,20 +305,48 @@ function flattenCandidateQuestionSet(questionSet: GeneratedInterviewQuestions, i
         framework: "Technical",
         index: 0,
     }));
+    const screeningQuestions = Object.entries(questionSet.screening ?? {}).map(([framework, text]) => ({
+        id: "",
+        text,
+        category: "Screening",
+        framework,
+        index: 0,
+    }));
 
     if (interviewType === "technical") {
-        return [...technicalQuestions, ...behavioralQuestions, ...cultureQuestions];
+        return [...technicalQuestions, ...behavioralQuestions, ...cultureQuestions, ...screeningQuestions];
     }
 
     if (interviewType === "behavioral") {
-        return [...behavioralQuestions, ...cultureQuestions, ...technicalQuestions];
+        return [...behavioralQuestions, ...cultureQuestions, ...technicalQuestions, ...screeningQuestions];
+    }
+
+    if (interviewType === "case") {
+        return [
+            ...behavioralQuestions.filter((question) => question.framework === "Role-Specific Scenario"),
+            ...technicalQuestions,
+            ...behavioralQuestions.filter((question) => question.framework !== "Role-Specific Scenario"),
+            ...cultureQuestions,
+            ...screeningQuestions,
+        ];
+    }
+
+    if (interviewType === "screening") {
+        return [
+            ...cultureQuestions,
+            ...screeningQuestions,
+            ...behavioralQuestions,
+            ...technicalQuestions,
+        ];
     }
 
     return [
         ...behavioralQuestions.slice(0, 2),
         ...technicalQuestions,
+        ...screeningQuestions.slice(0, 1),
         ...cultureQuestions.slice(0, 2),
         ...behavioralQuestions.slice(2),
+        ...screeningQuestions.slice(1),
         ...cultureQuestions.slice(2),
     ];
 }
@@ -331,6 +370,11 @@ function getMockQuestions(role: string): GeneratedInterviewQuestions {
             { text: `What tools or techniques do you use most frequently as a ${role}?` },
             { text: `How do you check the quality of your work as a ${role}?` },
         ],
+        screening: {
+            "Interest": `What interests you most about this ${role} opportunity?`,
+            "Background": `Give me a quick overview of the experience that would help you succeed as a ${role}.`,
+            "Availability": `What should the team know about your availability or schedule readiness for this ${role}?`,
+        },
     };
 }
 

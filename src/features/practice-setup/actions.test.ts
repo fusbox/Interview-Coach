@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { PracticeSetupInput } from "./practice-setup-schema";
+
 const {
     createCandidatePracticeDraftMock,
     createCandidateSessionFromDraftMock,
@@ -162,7 +164,7 @@ describe("practice setup actions", () => {
             practiceDraftId: null,
             setup: {
                 targetRole: "Customer Success Manager",
-                jobDescription: null,
+                jobDescription: "Own customer renewals and adoption goals.",
                 resumeText: null,
                 questionCount: 5,
             },
@@ -182,7 +184,7 @@ describe("practice setup actions", () => {
         expect(createCandidatePracticeDraftMock).toHaveBeenCalledWith({
             candidateProfileId: "profile-1",
             targetRole: "Customer Success Manager",
-            jobDescription: null,
+            jobDescription: "Own customer renewals and adoption goals.",
             resumeText: null,
         });
         expect(updateCandidatePracticeDraftSetupMock).not.toHaveBeenCalled();
@@ -209,7 +211,7 @@ describe("practice setup actions", () => {
             practiceDraftId: "draft-other",
             setup: {
                 targetRole: "QA analyst",
-                jobDescription: null,
+                jobDescription: "Test regulated workflows.",
                 resumeText: null,
                 questionCount: 5,
             },
@@ -224,5 +226,32 @@ describe("practice setup actions", () => {
             ok: false,
             error: "Practice draft was not found.",
         });
+    });
+
+    it("rejects generation when job description context is missing", async () => {
+        const { startPracticeGenerationAction } = await import("./actions");
+
+        await expect(startPracticeGenerationAction({
+            practiceDraftId: null,
+            setup: {
+                targetRole: "QA analyst",
+                jobDescription: null,
+                resumeText: null,
+                questionCount: 5,
+            } as unknown as PracticeSetupInput,
+            intakeResponses: {
+                confidenceLevel: null,
+                interviewType: null,
+                timeline: null,
+                concerns: null,
+                practiceFocus: [],
+            },
+        })).resolves.toEqual({
+            ok: false,
+            error: "Review the highlighted fields before starting practice.",
+        });
+        expect(resolveLocalCandidateAuthHandoffMock).not.toHaveBeenCalled();
+        expect(createCandidatePracticeDraftMock).not.toHaveBeenCalled();
+        expect(updateCandidatePracticeDraftSetupMock).not.toHaveBeenCalled();
     });
 });

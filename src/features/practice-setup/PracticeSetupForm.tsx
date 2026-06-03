@@ -2,7 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Briefcase, ClipboardList, FileText } from "lucide-react";
+import { ArrowRight, Briefcase, ChevronDown, ClipboardList, FileText, SlidersHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { FieldLabel, textFieldClassName, textareaFieldClassName } from "@/components/ui/FormField";
@@ -35,10 +35,31 @@ const fieldErrorIds: Record<PracticeSetupField, string> = {
 };
 
 const interviewTypeOptions = [
-    { value: "behavioral", label: "Behavioral stories" },
-    { value: "technical", label: "Technical depth" },
-    { value: "case", label: "Case or scenario" },
-    { value: "screening", label: "Screening basics" },
+    {
+        value: "",
+        label: "Balanced practice",
+        description: "Mix common question types when you want a general interview round.",
+    },
+    {
+        value: "behavioral",
+        label: "Behavioral stories",
+        description: "Practice examples about judgment, teamwork, ownership, and how you handled past situations.",
+    },
+    {
+        value: "technical",
+        label: "Technical depth",
+        description: "Focus on explaining tools, methods, domain knowledge, and how you make decisions.",
+    },
+    {
+        value: "case",
+        label: "Case or scenario",
+        description: "Work through what you would do in realistic role-specific situations.",
+    },
+    {
+        value: "screening",
+        label: "Screening basics",
+        description: "Prepare for early conversations about fit, interest, availability, and background.",
+    },
 ] as const;
 
 const questionCountOptions = [3, 5, 7, 10] as const;
@@ -48,6 +69,11 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
     const [fieldErrors, setFieldErrors] = useState<PracticeSetupErrors>({});
     const [actionError, setActionError] = useState<string | null>(null);
     const [acknowledgementError, setAcknowledgementError] = useState<string | null>(null);
+    const [advancedSetupOpen, setAdvancedSetupOpen] = useState(false);
+    const initialInterviewType = normalizeInterviewType(initialValues?.interviewType);
+    const initialQuestionCount = String(initialValues?.questionCount ?? PRACTICE_SETUP_LIMITS.questionCountDefault);
+    const [selectedInterviewType, setSelectedInterviewType] = useState(initialInterviewType);
+    const [selectedQuestionCount, setSelectedQuestionCount] = useState(initialQuestionCount);
 
     const hasFieldErrors = Object.keys(fieldErrors).length > 0;
     const alertMessage = useMemo(() => {
@@ -76,9 +102,10 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
         setAcknowledgementError(null);
 
         const formData = new FormData(event.currentTarget);
+        const jobDescription = formData.get("jobDescription")?.toString() ?? "";
         const result = safeParsePracticeSetupInput({
             targetRole: formData.get("targetRole"),
-            jobDescription: formData.get("jobDescription"),
+            jobDescription,
             resumeText: formData.get("resumeText"),
             questionCount: formData.get("questionCount"),
         });
@@ -175,17 +202,18 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
             <div className="grid gap-5 lg:grid-cols-2">
                 <div className="space-y-3">
                     <FieldLabel htmlFor="job-description" className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-primary" />
-                    Job description
+                        <FileText className="h-4 w-4 text-primary" />
+                        Job description
                     </FieldLabel>
                     <textarea
                         id="job-description"
                         name="jobDescription"
                         rows={7}
+                        required
                         defaultValue={initialValues?.jobDescription ?? ""}
                         aria-invalid={fieldErrors.jobDescription ? "true" : "false"}
                         aria-describedby={fieldErrors.jobDescription ? fieldErrorIds.jobDescription : undefined}
-                        placeholder="Paste the role description if it will make practice more relevant."
+                        placeholder="Paste the role description so practice can target the role clearly."
                         className={`${textareaFieldClassName} aria-[invalid=true]:border-red-500 aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-red-100`}
                     />
                     {fieldErrors.jobDescription ? (
@@ -198,7 +226,7 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
                 <div className="space-y-3">
                     <FieldLabel htmlFor="resume-text" className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-primary" />
-                        Resume text
+                        Resume content
                     </FieldLabel>
                     <textarea
                         id="resume-text"
@@ -207,7 +235,7 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
                         defaultValue={initialValues?.resumeText ?? ""}
                         aria-invalid={fieldErrors.resumeText ? "true" : "false"}
                         aria-describedby={fieldErrors.resumeText ? fieldErrorIds.resumeText : undefined}
-                        placeholder="Paste resume text when you want questions to reflect your background."
+                        placeholder="Include resume content when you want questions to reflect your background."
                         className={`${textareaFieldClassName} aria-[invalid=true]:border-red-500 aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-red-100`}
                     />
                     {fieldErrors.resumeText ? (
@@ -218,48 +246,112 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
                 </div>
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2">
-                <div className="space-y-3">
-                    <FieldLabel htmlFor="interview-type">Practice focus</FieldLabel>
-                    <p id="interview-type-help" className="text-sm leading-6 text-text-secondary">
-                        Choose what this round should emphasize. Balanced practice mixes common interview question types.
-                    </p>
-                    <select
-                        id="interview-type"
-                        name="interviewType"
-                        defaultValue={initialValues?.interviewType ?? ""}
-                        aria-describedby="interview-type-help"
-                        className={textFieldClassName}
-                    >
-                        <option value="">Balanced practice</option>
-                        {interviewTypeOptions.map((option) => (
-                            <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                    </select>
-                </div>
+            {!advancedSetupOpen ? (
+                <>
+                    <input type="hidden" name="interviewType" value={selectedInterviewType} aria-label="Default interview type value" />
+                    <input type="hidden" name="questionCount" value={selectedQuestionCount} aria-label="Default question amount value" />
+                </>
+            ) : null}
 
-                <div className="space-y-3">
-                    <FieldLabel htmlFor="question-count">Question count</FieldLabel>
-                    <select
-                        id="question-count"
-                        name="questionCount"
-                        defaultValue={String(initialValues?.questionCount ?? PRACTICE_SETUP_LIMITS.questionCountDefault)}
-                        className={textFieldClassName}
+            <div className="rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-white/80 p-4 shadow-flat">
+                <button
+                    type="button"
+                    aria-expanded={advancedSetupOpen ? "true" : "false"}
+                    aria-controls="advanced-setup-panel"
+                    onClick={() => setAdvancedSetupOpen((isOpen) => !isOpen)}
+                    className="flex w-full items-center justify-between gap-4 text-left"
+                >
+                    <span className="flex items-center gap-3">
+                        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
+                        </span>
+                        <span>
+                            <span className="block text-sm font-bold text-text-primary">Advanced setup</span>
+                            <span className="mt-1 block text-sm leading-6 text-text-secondary">
+                                Adjust focus or question count only when you need a more specific round.
+                            </span>
+                        </span>
+                    </span>
+                    <ChevronDown
+                        className={`h-5 w-5 shrink-0 text-text-secondary transition-transform ${advancedSetupOpen ? "rotate-180" : ""}`}
+                        aria-hidden="true"
+                    />
+                </button>
+
+                {advancedSetupOpen ? (
+                    <div
+                        id="advanced-setup-panel"
+                        aria-label="Advanced setup controls"
+                        className="mt-5 rounded-2xl bg-[rgb(var(--candidate-surface-subtle))] p-4 shadow-flat sm:p-5"
                     >
-                        {questionCountOptions.map((option) => (
-                            <option key={option} value={option}>{option}</option>
-                        ))}
-                    </select>
-                </div>
+                        <div className="grid gap-5 sm:grid-cols-2">
+                            <fieldset
+                                className="space-y-3"
+                                aria-describedby="interview-type-help"
+                            >
+                                <legend className="ml-1 text-[0.625rem] font-bold uppercase tracking-wider text-[rgb(var(--candidate-muted))]">
+                                    Practice focus
+                                </legend>
+                                <p id="interview-type-help" className="text-sm leading-6 text-text-secondary sm:min-h-12">
+                                    Choose what this round should emphasize. Balanced practice mixes common interview question types.
+                                </p>
+                                <div className="space-y-2">
+                                    {interviewTypeOptions.map((option) => (
+                                        <AdvancedSetupOption
+                                            key={option.value || "balanced"}
+                                            name="interviewType"
+                                            value={option.value}
+                                            label={option.label}
+                                            description={option.description}
+                                            checked={selectedInterviewType === option.value}
+                                            onChange={setSelectedInterviewType}
+                                        />
+                                    ))}
+                                </div>
+                            </fieldset>
+
+                            <fieldset
+                                className="space-y-3"
+                                aria-describedby="question-count-help"
+                            >
+                                <legend className="ml-1 text-[0.625rem] font-bold uppercase tracking-wider text-[rgb(var(--candidate-muted))]">
+                                    Question count
+                                </legend>
+                                <p id="question-count-help" className="text-sm leading-6 text-text-secondary sm:min-h-12">
+                                    Choose how many prompts you want in this practice round.
+                                </p>
+                                <div className="space-y-2">
+                                    {questionCountOptions.map((option) => {
+                                        const value = String(option);
+
+                                        return (
+                                            <AdvancedSetupOption
+                                                key={option}
+                                                name="questionCount"
+                                                value={value}
+                                                label={`${option} questions`}
+                                                checked={selectedQuestionCount === value}
+                                                onChange={setSelectedQuestionCount}
+                                            />
+                                        );
+                                    })}
+                                </div>
+                            </fieldset>
+                        </div>
+                    </div>
+                ) : null}
             </div>
 
             <div className="space-y-4 rounded-2xl border border-primary/15 bg-primary/5 p-4 text-sm leading-6 text-text-secondary">
                 <p>
-                    Interview Coach uses AI to generate practice questions and coaching from the role, job description,
-                    and resume text you provide. Your practice content may be saved so you can return to it in your
-                    candidate dashboard.
+                    Interview Coach uses AI to generate practice questions, coaching, and summaries from the role,
+                    job description, and any resume content you include. Practice content is saved to support session
+                    continuity and your own review.
                 </p>
-                <p>Resume text is optional. Paste only what you want used for practice.</p>
+                <p>
+                    Resume content is optional. Include only what you want used for practice. Access to practice data is
+                    limited by app security controls and approved support or quality-review permissions.
+                </p>
                 <label className="flex items-start gap-3 font-semibold text-text-primary">
                     <input
                         type="checkbox"
@@ -268,7 +360,7 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
                     />
                     <span>
                         I understand Interview Coach uses AI for practice coaching and may save my practice content for
-                        my dashboard.
+                        session continuity, summaries, and my own review.
                     </span>
                 </label>
             </div>
@@ -283,4 +375,48 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
 
 function nullableFormValue(value: FormDataEntryValue | null) {
     return typeof value === "string" && value.trim() ? value : null;
+}
+
+function normalizeInterviewType(value: PracticeSetupFormInitialValues["interviewType"]) {
+    return value === "general" ? "" : (value ?? "");
+}
+
+function AdvancedSetupOption({
+    name,
+    value,
+    label,
+    description,
+    checked,
+    onChange,
+}: {
+    name: string;
+    value: string;
+    label: string;
+    description?: string;
+    checked: boolean;
+    onChange: (value: string) => void;
+}) {
+    return (
+        <label
+            className={[
+                "flex min-h-12 cursor-pointer flex-col items-start rounded-2xl border px-4 py-3 text-sm font-bold transition-all",
+                checked
+                    ? "border-primary/45 bg-primary/5 text-text-primary"
+                    : "border-[rgb(var(--candidate-border)/0.78)] bg-white text-text-primary hover:border-primary/45 hover:bg-primary/5",
+            ].join(" ")}
+        >
+            <input
+                type="radio"
+                name={name}
+                value={value}
+                checked={checked}
+                onChange={() => onChange(value)}
+                className="sr-only"
+            />
+            <span>{label}</span>
+            {description ? (
+                <span className="mt-1 text-sm font-normal leading-6 text-text-secondary">{description}</span>
+            ) : null}
+        </label>
+    );
 }
