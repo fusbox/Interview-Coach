@@ -50,6 +50,10 @@ Current implementation boundary:
 
 - [Candidate practice drafts schema migration](/c:/tmp/Interview-Coach-Recruiter-postgres/db/migrations/003_candidate_practice_drafts_schema.sql)
 - [Candidate practice drafts rollback smoke](/c:/tmp/Interview-Coach-Recruiter-postgres/db/validation/003_candidate_practice_drafts_schema_smoke.sql)
+- [Candidate role profiles schema migration](/c:/tmp/Interview-Coach-Recruiter-postgres/db/migrations/004_candidate_role_preparation_profiles_schema.sql)
+- [Candidate role profiles rollback smoke](/c:/tmp/Interview-Coach-Recruiter-postgres/db/validation/006_candidate_role_profiles_schema_smoke.sql)
+- [Candidate role profile repository](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-role-profile-repository.ts)
+- [Candidate role profile repository tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-role-profile-repository.test.ts)
 - [Candidate practice draft repository](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.ts)
 - [Candidate practice draft repository tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.test.ts)
 - [Candidate session creation service](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-creation-service.ts)
@@ -71,9 +75,10 @@ type PracticeSessionDraftStatus =
 type PracticeSessionDraft = {
   id: string;
   candidateProfileId: string;
+  roleProfileId: string | null;
   status: PracticeSessionDraftStatus;
   targetRole: string;
-  jobDescription: string | null;
+  jobDescription: string;
   resumeContext: ResumeContextSnapshot | null;
   customQuestions: CandidateCustomQuestion[];
   intakeResponses: {
@@ -194,7 +199,7 @@ Rules:
 The first shared validation boundary is implemented in [practice-setup-schema.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/practice-setup-schema.ts) and covered by [practice-setup-schema.test.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/practice-setup-schema.test.ts).
 
 - `targetRole` is required, trimmed, and length-limited.
-- `jobDescription` is optional, trimmed, length-limited, and normalized to `null` when blank or omitted.
+- `jobDescription` is required, trimmed, and length-limited.
 - `resumeText` is optional, trimmed, length-limited, and normalized to `null` when blank or omitted.
 - `questionCount` is lightweight practice configuration, defaults to 5, and is constrained to 3-10 questions. It is used for generation/session snapshot shaping, but is not persisted as a core draft setup field.
 - Non-string setup payloads are rejected before they reach the future draft repository/service boundary.
@@ -205,6 +210,7 @@ The first accessible form boundary is implemented in [PracticeSetupForm.tsx](/c:
 
 - Create or resume one active draft for the authenticated candidate.
 - Autosave role, job description, resume text references, and future intake/custom-question fields to the server.
+- Resolve or create a candidate role preparation profile from the target role and required job description, then store `roleProfileId` on new or relinked drafts.
 - Local form state can be optimistic, but server state remains the source of truth for resume/restore behavior.
 
 Current restore boundary:
@@ -214,10 +220,12 @@ Current restore boundary:
 - [Practice setup form](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/PracticeSetupForm.tsx) accepts restored initial values and pre-fills target role, job description, and resume text.
 - [Practice setup page](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/PracticeSetupPage.tsx) displays available editable draft choices by role label and last activity date.
 - [Candidate practice draft repository](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.ts) persists structured draft-level intake responses in `intake_responses_json`.
+- [Candidate role profile repository](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-role-profile-repository.ts) resolves a durable role/JD workspace before draft create/update writes.
 
 ### Submit for generation
 
 - Freeze the draft inputs used for question generation.
+- Carry the draft's `roleProfileId` into the shared session `intakeData` snapshot so summary/dashboard layers can group by role profile even before a direct `sessions.role_profile_id` column exists.
 - Transition draft status from `draft` to `generating`.
 - Persist `resumeTargetScreen = "practice_generating"`.
 - Run question generation and persist an immutable question snapshot.
@@ -288,7 +296,7 @@ Do not carry over these recruiter-specific assumptions:
 Build `/practice` against a server-backed `PracticeSessionDraft` with:
 
 - required `targetRole`
-- optional `jobDescription`
+- required `jobDescription`
 - one normalized `resumeText` input path first
 - placeholder support for future `customQuestions` plus the first structured `intakeResponses` object
 - a draft `status` field and `resumeTargetScreen`

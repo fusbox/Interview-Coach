@@ -100,6 +100,18 @@ The candidate component set now available in the shared repo includes:
 
 The copied components were adapted to candidate-prefixed RGB tokens so they do not depend on or overwrite recruiter token semantics.
 
+## Button Shape Guidance
+
+The shared `Button` primitive supports newer `emphasis`, `density`, `shape`, and `label` props while still carrying older `variant` and `size` props. New candidate work should prefer the newer props.
+
+Use `shape="app"` for primary and secondary workflow actions inside app surfaces, including setup submission, dashboard navigation, feedback actions, and summary navigation. This maps to the taller rounded-2xl button treatment and should be the default for candidate product flows.
+
+Use `shape="pill"` for compact chips, mode toggles, filter-like controls, and public/marketing-style CTA clusters where the pill shape communicates selection or lightweight navigation. Avoid using pill buttons for major app workflow actions unless the surrounding component is intentionally chip-like.
+
+Use `shape="square"` for icon-only or utility controls.
+
+The current codebase still contains a mix of legacy `rounded-md`, manual `rounded-xl`, `shape="pill"`, and `shape="app"` usage across recruiter, candidate, admin, and QA surfaces. This is acceptable during candidate integration, but new dashboard and practice work should follow the shape roles above so button emphasis remains predictable.
+
 ## Hydration Baseline
 
 The root layout uses `suppressHydrationWarning` on `<html>` because browser tools can inject attributes such as `data-scribe-recorder-ready` before React hydrates. That warning is low-risk when it is limited to an extension-injected root attribute. Component-level hydration mismatches, dynamic dates, random values, invalid HTML nesting, or differing server/client branches should still be investigated and fixed.

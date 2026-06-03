@@ -13,7 +13,7 @@ const practiceHighlights = [
     },
     {
         title: "Include your resume when it helps",
-        body: "Paste resume text when you want questions and coaching to reflect your background more closely.",
+        body: "Include resume content when you want questions and coaching to reflect your background more closely.",
         icon: FileText,
     },
     {

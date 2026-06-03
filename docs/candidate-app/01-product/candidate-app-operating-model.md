@@ -25,7 +25,16 @@ That means every meaningful implementation slice should connect:
 
 ## Working Doc Set
 
-The project should use these living documents:
+The project now uses a small active context stack plus detailed reference docs.
+
+Active context stack:
+
+- [SPEC](../SPEC.md): product intent and candidate-facing boundaries
+- [DATA_CONTRACT](../DATA_CONTRACT.md): data vocabulary, state names, and system truth
+- [HANDOFF](../HANDOFF.md): current execution state and immediate next slice
+- [Decision Records](../08-decisions/README.md): durable why-decisions
+
+Reference docs:
 
 - [Working Backlog](../00-working-backlog.md)
 - [Candidate App Operating Model](./candidate-app-operating-model.md)
@@ -47,7 +56,7 @@ The project should use these living documents:
 
 These documents should stay current enough to guide work. They do not need to describe every low-level implementation detail.
 
-The [Working Backlog](../00-working-backlog.md) is the only document intended to change during most implementation passes. The other documents are ground-truth orientation docs and should change only when the product or architecture direction changes.
+The [Working Backlog](../00-working-backlog.md) tracks work items and execution sequence. [HANDOFF](../HANDOFF.md) tracks the current working state. Other docs should change when product intent, data contracts, architecture, quality, security, or operations direction changes.
 
 ## Current Deployment Context
 

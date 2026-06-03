@@ -1,0 +1,52 @@
+flowchart TD
+    Setup["Practice setup<br/>Target role required<br/>JD required<br/>resume content optional<br/>practice focus optional"]
+    Draft["Draft state<br/>candidate_practice_drafts"]
+    Generate["Question generation<br/>role + JD + resume + focus + count"]
+    SessionEntry["Session entry<br/>candidate-owned session starts"]
+    ActiveQuestion["Active question<br/>prompt, category, hints, example, audio"]
+    AnswerSubmit["Answer submission<br/>voice or text"]
+    FeedbackFlow["Feedback flow<br/>feedbackPlan + nextAction + coachSignal target"]
+    MoreQuestions{"More questions?"}
+    Summary["Summary/debrief<br/>session-level synthesis"]
+    Dashboard["Dashboard<br/>interview preparedness read model"]
+
+    RoleWorkspace["prepProfile<br/>candidate_role_preparation_profiles"]
+    RoleSignals["Interview prep signals<br/>candidate-specific indicators"]
+    Evidence["Evidence bridge<br/>resume + answer evidence"]
+    ObservedSkills["Skill observations<br/>normalized feedback facts"]
+    Scaffold["Interview preparedness scaffold<br/>signal evidence states"]
+    Confidence["Confidence measurements<br/>self-report layer"]
+    NextPractice["Next practice recommendation<br/>prefilled path or setup"]
+
+    Setup --> Draft
+    Draft --> Generate
+    Generate --> SessionEntry
+    SessionEntry --> ActiveQuestion
+    ActiveQuestion --> AnswerSubmit
+    AnswerSubmit --> FeedbackFlow
+    FeedbackFlow --> MoreQuestions
+    MoreQuestions -- yes --> ActiveQuestion
+    MoreQuestions -- no --> Summary
+    Summary --> Dashboard
+
+    Draft --> RoleWorkspace
+    Summary --> RoleWorkspace
+    FeedbackFlow -. normalize .-> ObservedSkills
+    Generate -. derive .-> RoleSignals
+    Setup -. extract .-> Evidence
+    AnswerSubmit -. extract .-> Evidence
+    SessionEntry -. capture .-> Confidence
+    Summary -. capture .-> Confidence
+    RoleWorkspace --> RoleSignals
+    RoleWorkspace --> Evidence
+    RoleWorkspace --> ObservedSkills
+    RoleWorkspace --> Confidence
+    Evidence --> RoleSignals
+    ObservedSkills --> RoleSignals
+    RoleSignals --> Scaffold
+    Evidence --> Scaffold
+    ObservedSkills --> Scaffold
+    Confidence --> Scaffold
+    Scaffold --> NextPractice
+    NextPractice --> Setup
+    Scaffold --> Dashboard

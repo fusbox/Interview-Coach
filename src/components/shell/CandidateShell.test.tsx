@@ -35,6 +35,7 @@ describe("CandidateShell", () => {
         );
 
         expect(screen.getByText(/interview coach uses ai for practice coaching/i)).toBeInTheDocument();
+        expect(screen.getByText(/protected by app security and access controls/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/company footer placeholder/i)).toBeInTheDocument();
     });
 });

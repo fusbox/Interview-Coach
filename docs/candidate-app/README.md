@@ -6,6 +6,17 @@
 
 This folder is organized to keep reviewer handoff, product requirements, UX/design rules, and architecture contracts separate but aligned.
 
+## Active Context Stack
+
+Use these four anchors before digging into the detailed reference docs:
+
+- [SPEC](SPEC.md): product intent, candidate-facing scope, route/user-flow boundaries, and non-goals.
+- [DATA_CONTRACT](DATA_CONTRACT.md): data vocabulary, state names, schema/payload contracts, and interview-preparedness primitives.
+- [HANDOFF](HANDOFF.md): current execution state, known gaps, immediate next slice, and risks.
+- [Decision Records](08-decisions/README.md): durable why-decisions and supersession history.
+
+The older detailed docs remain useful reference material. If they conflict with the active context stack, prefer the active stack unless an ADR says otherwise.
+
 ## Start Here
 
 ### Reviewing Or Merging
@@ -50,6 +61,7 @@ http://localhost:3000/recruiter/dashboard
 
 ### Continuing Implementation
 
+- [Handoff](HANDOFF.md): current execution state and immediate next slice
 - [Working Backlog](00-working-backlog.md): current source of truth for work items and sequence
 - [Candidate Integration Work Pass Checklist](START-WORK-PASS.md): repeatable work-pass process
 
@@ -59,8 +71,11 @@ Use the reference map below.
 
 ## Reference Docs
 
-### Active working plan
+### Active context and working plan
 
+- [SPEC](SPEC.md)
+- [DATA_CONTRACT](DATA_CONTRACT.md)
+- [HANDOFF](HANDOFF.md)
 - [Candidate Integration Reviewer Handoff](REVIEWER-HANDOFF.md)
 - [Working Backlog](00-working-backlog.md)
 - [Candidate Integration Work Pass Checklist](START-WORK-PASS.md)
@@ -88,27 +103,30 @@ Use the reference map below.
 10. [Candidate Session Engine Port Plan](04-architecture/session-engine-port-plan.md)
 11. [Postgres Candidate Data Contract](04-architecture/postgres-candidate-data-contract.md)
 12. [Storage And Resume Ingestion](04-architecture/storage-and-resume-ingestion.md)
+13. [Role Preparedness Data Inventory](04-architecture/role-preparedness-data-inventory.md)
+14. [Interview Preparedness Signal Contract](04-architecture/preparedness-signal-contract.md)
 
 ### Quality, security, and operations
 
-13. [Test Strategy](05-quality/test-strategy.md)
-14. [Accessibility Baseline](05-quality/accessibility-baseline.md)
-15. [Recruiter Regression Checklist For Candidate PRs](05-quality/recruiter-regression-checklist.md)
-16. [Security And Privacy Docs](06-security/README.md)
-17. [Candidate App Threat Model](06-security/threat-model.md)
-18. [Privacy, Disclosures, And Consent Requirements](06-security/privacy-disclosures-and-consent-requirements.md)
-19. [Azure DevOps Operating Model](07-ops/azure-devops-operating-model.md)
-20. [Candidate Observability Plan](07-ops/candidate-observability-plan.md)
-21. [Candidate Incident Runbook](07-ops/candidate-incident-runbook.md)
-22. [Candidate Integration PR Policy](07-ops/candidate-integration-pr-policy.md)
+15. [Test Strategy](05-quality/test-strategy.md)
+16. [Accessibility Baseline](05-quality/accessibility-baseline.md)
+17. [Recruiter Regression Checklist For Candidate PRs](05-quality/recruiter-regression-checklist.md)
+18. [Security And Privacy Docs](06-security/README.md)
+19. [Candidate App Threat Model](06-security/threat-model.md)
+20. [Privacy, Disclosures, And Consent Requirements](06-security/privacy-disclosures-and-consent-requirements.md)
+21. [Azure DevOps Operating Model](07-ops/azure-devops-operating-model.md)
+22. [Candidate Observability Plan](07-ops/candidate-observability-plan.md)
+23. [Candidate Incident Runbook](07-ops/candidate-incident-runbook.md)
+24. [Candidate Integration PR Policy](07-ops/candidate-integration-pr-policy.md)
 
 ### Decisions and developer setup
 
-23. [Decision Records](08-decisions/README.md)
-24. [Local Dev Bootstrap](09-dev/local-dev-bootstrap.md)
+25. [Decision Records](08-decisions/README.md)
+26. [Local Dev Bootstrap](09-dev/local-dev-bootstrap.md)
 
 ## Document Rules
 
 - Requirements docs should describe what the user can do and what is intentionally out of scope.
 - Architecture docs should describe durable data/state contracts and implementation boundaries.
 - Future-state ideas should be explicitly labeled as future extensions instead of being mixed into current contracts.
+- Keep [HANDOFF](HANDOFF.md) short and current. Promote durable product or data changes to [SPEC](SPEC.md), [DATA_CONTRACT](DATA_CONTRACT.md), or a new ADR.

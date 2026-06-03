@@ -77,8 +77,8 @@ export const intakeSignals = [
 
 export const resumeSources = [
   {
-    title: "Paste resume text",
-    description: "Fastest path for candidates who already have a text version handy."
+    title: "Include resume content",
+    description: "Fastest path for candidates who already have resume content handy."
   },
   {
     title: "Upload a resume file",

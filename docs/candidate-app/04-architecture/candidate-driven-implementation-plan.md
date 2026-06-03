@@ -221,7 +221,7 @@ Suggested feature:
 Responsibilities:
 
 - target role input
-- optional JD input
+- required JD input
 - resume input options:
   - paste text
   - upload file

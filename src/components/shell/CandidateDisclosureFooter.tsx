@@ -5,7 +5,7 @@ type CandidateDisclosureFooterProps = {
 };
 
 const defaultDisclosure =
-    "Interview Coach uses AI for practice coaching and may save practice data for candidate dashboard review. It does not make hiring decisions.";
+    "Interview Coach uses AI for practice coaching. Practice data is protected by app security and access controls, and is not used to make hiring decisions.";
 
 export function CandidateDisclosureFooter({ children }: CandidateDisclosureFooterProps) {
     return (

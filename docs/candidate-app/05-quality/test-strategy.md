@@ -30,7 +30,9 @@ Candidate integration now has Vitest coverage for candidate route, auth, persist
 
 The practice setup component/action tests cover the MVP setup contract: edited setup values are saved before generation, lightweight session configuration such as interview type and question count is submitted for generation, structured intake responses are submitted with the draft, and a new draft can be created when no editable draft was restored.
 
-The shared question-generation service tests cover recruiter and candidate use of the same AI provider/schema/capture boundary. Candidate session creation tests verify that role, optional job description, optional resume text, interview type, and question count flow into generated immutable session snapshots without reintroducing invite-token assumptions.
+The shared question-generation service tests cover recruiter and candidate use of the same AI provider/schema/capture boundary. Candidate session creation tests verify that required role/job description context, optional resume text, interview type, question count, and role profile linkage flow into generated immutable session snapshots without reintroducing invite-token assumptions.
+
+The candidate role-profile migration and repository tests cover the first role-preparedness persistence anchor: `candidate_role_preparation_profiles`, nullable draft `role_profile_id` attachment for older-row compatibility, create-or-resolve behavior by candidate/normalized role/JD hash, and the rollback-only `db:smoke-candidate-role-profiles-schema` validation.
 
 The candidate session component tests cover the recruiter-style session workspace adapted for authenticated candidates: progress header, prompt shell, typed answer submission, saved-answer coaching, retry/continue controls, pause/resume/completed states, and hidden engagement debug inspector access with available AI prompt context.
 
@@ -144,6 +146,7 @@ PR gate should eventually run:
 - `npm run test:e2e:candidate-seeded`
 - dependency audit or security scan
 - migration validation once database migrations exist
+- `npm run db:smoke-candidate-role-profiles-schema` after candidate role-profile migration changes
 - recruiter regression smoke when candidate work touches shared routes, middleware, global CSS, public assets, or session/invite APIs
 
 ## Azure Traceability

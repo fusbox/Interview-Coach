@@ -9,7 +9,7 @@ This document defines what `/practice` should let an authenticated candidate do 
 
 ## Current User Goal
 
-As a candidate, I want to set up a practice interview around the role I am preparing for, optionally add my job description and resume context, and start a guided session without having to manage question generation myself.
+As a candidate, I want to set up a practice interview around the role I am preparing for, use the job description as required role context, optionally add resume context, and start a guided session without having to manage question generation myself.
 
 ## Current `/practice` Scope
 
@@ -26,7 +26,7 @@ Current route/feature boundary:
 
 The route delegates rendering to `src/features/practice-setup`, keeping the page shell thin before server-backed draft lifecycle work begins.
 
-The setup schema is the current shared contract for form/server boundary validation. It trims accepted text, requires `targetRole`, normalizes blank optional `jobDescription` and `resumeText` values to `null`, and rejects invalid payload shapes before draft persistence is added.
+The setup schema is the current shared contract for form/server boundary validation. It trims accepted text, requires `targetRole` and `jobDescription`, normalizes blank optional `resumeText` values to `null`, and rejects invalid payload shapes before draft persistence is added.
 
 The setup form renders validation and future server submission errors through an announced alert region. Field-level errors set `aria-invalid` and are connected to the relevant input with `aria-describedby`.
 
@@ -37,10 +37,10 @@ Submitting setup now saves the candidate's latest role, job description, resume 
 ### Required input
 
 - Target role
+- Job description text
 
 ### Optional input
 
-- Job description text
 - Resume text pasted directly into the app
 - Resume file upload
 - One or more photos of a printed resume, including multi-page capture

@@ -60,12 +60,35 @@ Current migration:
 - [Candidate identity rollback smoke](/c:/tmp/Interview-Coach-Recruiter-postgres/db/validation/002_candidate_identity_schema_smoke.sql)
 - [Candidate practice drafts schema migration](/c:/tmp/Interview-Coach-Recruiter-postgres/db/migrations/003_candidate_practice_drafts_schema.sql)
 - [Candidate practice drafts rollback smoke](/c:/tmp/Interview-Coach-Recruiter-postgres/db/validation/003_candidate_practice_drafts_schema_smoke.sql)
+- [Candidate role preparation profiles schema migration](/c:/tmp/Interview-Coach-Recruiter-postgres/db/migrations/004_candidate_role_preparation_profiles_schema.sql)
+- [Candidate role preparation profiles rollback smoke](/c:/tmp/Interview-Coach-Recruiter-postgres/db/validation/006_candidate_role_profiles_schema_smoke.sql)
 
 The initial migration creates `candidate_profiles` and `candidate_identities`, enforces provider/issuer/subject uniqueness, and keeps ownership anchored on `candidate_profile_id`.
 
 The draft migration creates `candidate_practice_drafts`, anchors every draft to `candidate_profile_id`, stores setup fields and normalized resume context, and adds ownership/status indexes for candidate-scoped draft reads.
 
 Pasted resume text is normalized through [resume-normalization.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/candidate/resume-normalization.ts) before draft persistence. The normalized text is stored inside `resume_context_json` as both `pastedText` and `extractedText` for the first text-only path.
+
+The role profile migration creates `candidate_role_preparation_profiles` as the durable candidate/role/JD anchor for dashboard V2. New and updated candidate drafts resolve an active or paused role profile by candidate, normalized role, and job description hash, then store `role_profile_id` on the draft. Older drafts without `role_profile_id` remain readable through nullable fallback behavior.
+
+### Candidate Role Preparation Profile
+
+Durable role-preparation workspace for a candidate preparing for a specific role and job description.
+
+Recommended fields:
+
+- `role_profile_id`
+- `candidate_profile_id`
+- `target_role`
+- `normalized_target_role`
+- `job_description_snapshot`
+- `job_description_hash`
+- `resume_context_snapshot_json`
+- `source`
+- `status`
+- `last_practiced_at`
+- `created_at`
+- `updated_at`
 
 ### Practice Draft
 
@@ -75,6 +98,7 @@ Recommended fields:
 
 - `practice_draft_id`
 - `candidate_profile_id`
+- `role_profile_id`
 - `status`
 - `target_role`
 - `job_description`
@@ -139,6 +163,8 @@ Current repository boundary:
 - [Candidate dev auth resolver tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-dev-auth-resolver.test.ts)
 - [Candidate runtime config](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-runtime-config.ts)
 - [Candidate runtime config tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-runtime-config.test.ts)
+- [Candidate role profile repository](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-role-profile-repository.ts)
+- [Candidate role profile repository tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-role-profile-repository.test.ts)
 - [Candidate practice draft repository](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.ts)
 - [Candidate practice draft repository tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.test.ts)
 - [Candidate session creation service](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-session-creation-service.ts)
@@ -156,7 +182,9 @@ Current repository boundary:
 
 The first repository resolves or creates candidate profiles from provider identity handoffs and maps provider identities to a `CandidateProfileAccessRecord` for future auth and route-guard code.
 
-The practice draft repository creates, reads, and updates candidate-owned setup drafts through `candidate_profile_id` ownership filters. It uses the shared practice setup schema for target role, job description, and pasted resume text normalization before persistence.
+The role profile repository resolves or creates an active role workspace from candidate profile, normalized target role, and required job description hash. This keeps dashboard V2 anchored on the candidate's target role and JD without comparing long job descriptions during normal lookup.
+
+The practice draft repository creates, reads, and updates candidate-owned setup drafts through `candidate_profile_id` ownership filters. It uses the shared practice setup schema for target role, job description, and pasted resume text normalization before persistence. Create/update writes resolve a role profile first and persist `role_profile_id` on the draft; read paths keep `roleProfileId` nullable so older rows remain valid.
 
 The repository also exposes a latest-editable-draft read ordered by `last_activity_at desc`, scoped to one `candidate_profile_id` and `status = 'draft'`, so `/practice` can restore setup state after refresh or return.
 
@@ -164,7 +192,7 @@ Editable draft summary reads list candidate-owned `draft` rows by role label and
 
 Structured intake persists inside `intake_responses_json` with confidence level, interview type, timeline, concerns, and practice focus values. Session creation forwards the normalized intake object into shared session intake data.
 
-The session creation service reads a candidate-owned draft in `generating`, creates a shared `sessions` record with generated questions and candidate-only intake context, then writes `session_id`, `question_set_snapshot_id`, `status = 'ready'`, and `resume_target_screen = 'session_entry'` back to the same candidate-owned draft. If the draft attach step fails after session creation, the service deletes the generated session before returning an error.
+The session creation service reads a candidate-owned draft in `generating`, creates a shared `sessions` record with generated questions and candidate-only intake context, then writes `session_id`, `question_set_snapshot_id`, `status = 'ready'`, and `resume_target_screen = 'session_entry'` back to the same candidate-owned draft. The draft's `roleProfileId` is carried into session `intakeData` for downstream summary/dashboard grouping. If the draft attach step fails after session creation, the service deletes the generated session before returning an error.
 
 The session loader uses `candidate_practice_drafts.session_id` plus `candidate_profile_id` as the candidate ownership boundary before reading the shared `sessions` record for `/session/[sessionId]`.
 

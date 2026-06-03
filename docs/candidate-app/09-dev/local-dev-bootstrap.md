@@ -109,12 +109,43 @@ CANDIDATE_AUTH_MODE=dev
 For primary password-mode local access:
 
 ```text
-CANDIDATE_AUTH_MODE=password
-CANDIDATE_DEV_EMAIL=candidate-dev-primary@talentarbor.local
-CANDIDATE_DEV_ISSUER=interview-coach-local
-CANDIDATE_DEV_SUBJECT=candidate-dev-primary@talentarbor.local
-CANDIDATE_DEV_DISPLAY_NAME=Dev Candidate Primary
+$env:CANDIDATE_AUTH_MODE = "password"
+$env:CANDIDATE_DEV_EMAIL = "candidate-dev-primary@talentarbor.local"
+$env:CANDIDATE_DEV_ISSUER = "interview-coach-local"
+$env:CANDIDATE_DEV_SUBJECT = "candidate-dev-primary@talentarbor.local"
+$env:CANDIDATE_DEV_DISPLAY_NAME = "Dev Candidate Primary"
 ```
+
+For alternate password-mode local access:
+
+```text
+$env:CANDIDATE_AUTH_MODE = "password"
+$env:CANDIDATE_DEV_EMAIL = "candidate-dev-alt@talentarbor.local"
+$env:CANDIDATE_DEV_ISSUER = "interview-coach-local"
+$env:CANDIDATE_DEV_SUBJECT = "candidate-dev-alt@talentarbor.local"
+$env:CANDIDATE_DEV_DISPLAY_NAME = "Dev Candidate Alternate"
+```
+
+## Inspect Candidate Practice Flow Data
+
+Use this query in the VS Code PostgreSQL extension or any Postgres client connected to the local smoke database when you need to inspect candidate-owned data from `/practice` through `/summary`.
+
+The result returns one row per candidate practice flow. The first columns make the grid readable; `flow_json` contains the full nested setup, session, question, answer, feedback, summary, event, and AI-generation trail.
+
+To narrow the output, set one or more values in the `params` CTE.
+
+Use the saved SQL file: [master_query.sql](master_query.sql).
+
+To copy it from PowerShell:
+
+```powershell
+Get-Content docs/candidate-app/09-dev/master_query.sql -Raw | Set-Clipboard
+```
+
+Notes:
+
+- The query prefers explicit `questionId` references for question-scoped AI rows, then falls back to `session_id + questionText` for older hint and strong-response captures.
+- TTS is intentionally status-only in this query: `ttsState`, `ttsAudioRefPresent`, and `ttsGeneratedAt`.
 
 ## Environment Setup
 

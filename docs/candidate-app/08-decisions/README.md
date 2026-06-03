@@ -10,3 +10,4 @@ Current decisions:
 - [ADR-0004: Multiple Active Practice Drafts](./ADR-0004-multiple-active-practice-drafts.md)
 - [ADR-0005: Processed Resume Retention By Default](./ADR-0005-processed-resume-retention-by-default.md)
 - [ADR-0006: Shared Host And Azure Branch Integration](./ADR-0006-shared-host-and-azure-branch-integration.md)
+- [ADR-0007: Lightweight Candidate Documentation Stack](./ADR-0007-lightweight-candidate-doc-stack.md)

@@ -97,7 +97,7 @@ Use the hierarchy:
 
 ## Work Item Fields
 
-For Features and Stories, use this shape in the Description:
+For Epics, Features, and Stories, use this shape in the Description:
 
 ```markdown
 ## Outcome
@@ -138,14 +138,18 @@ blocked
 
 ## CSV Import Rules
 
-Use Azure's tree import shape for parent/child relationships. Do not include a `Parent` column in import files; Azure treats `Parent` as a computed, read-only field and rejects updates to it.
+Import files do not include a `Parent` column. Azure treats `Parent` as a computed, read-only export field and rejects updates to it.
+
+Stories are the only work item type in the current Azure process with a dedicated `Acceptance Criteria` field. To keep imports consistent across mixed work item types, fold acceptance criteria content into `Description` unless an import is intentionally story-only.
+
+Use Azure's tree import shape for parent/child relationships.
 
 For linked imports, use title hierarchy columns:
 
 ```csv
-ID,Work Item Type,Title 1,Title 2,State,Assigned To,Area Path,Iteration Path,Tags,Acceptance Criteria,History
-739,Feature,Smoke and regression testing,,Active,Fu Chen <fu@rangam.com>,Interview-Coach-Candidate\Quality,Interview-Coach-Candidate\Candidate Practice MVP,candidate;quality;regression,"Acceptance copy","History copy"
-,User Story,,QSO-S08 - Add seeded setup-to-summary smoke readiness,New,Fu Chen <fu@rangam.com>,Interview-Coach-Candidate\Quality,Interview-Coach-Candidate\Candidate Practice MVP,candidate;quality;smoke;postgres,"Acceptance copy","History copy"
+ID,Work Item Type,Title 1,Title 2,State,Assigned To,Area Path,Iteration Path,Tags,Description,History
+739,Feature,Smoke and regression testing,,Active,Fu Chen <fu@rangam.com>,Interview-Coach-Candidate\Quality,Interview-Coach-Candidate\Candidate Practice MVP,candidate;quality;regression,"Description with acceptance criteria when needed","History copy"
+,User Story,,QSO-S08 - Add seeded setup-to-summary smoke readiness,New,Fu Chen <fu@rangam.com>,Interview-Coach-Candidate\Quality,Interview-Coach-Candidate\Candidate Practice MVP,candidate;quality;smoke;postgres,"Description with acceptance criteria when needed","History copy"
 ```
 
 Rules:

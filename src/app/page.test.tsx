@@ -50,6 +50,7 @@ describe("candidate public home page", () => {
         render(<Home />);
 
         expect(screen.getByText(/interview coach uses ai for practice coaching/i)).toBeInTheDocument();
+        expect(screen.getByText(/not used to make hiring decisions/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/company footer placeholder/i)).toBeInTheDocument();
     });
 });

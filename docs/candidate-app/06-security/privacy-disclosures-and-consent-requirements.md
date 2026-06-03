@@ -103,8 +103,8 @@ Initial retention:
 
 Examples:
 
-- pasted resume text
-- extracted text
+- pasted resume content
+- extracted resume content
 - normalized/redacted processed resume artifact
 - original uploaded PDF/DOCX/images
 
@@ -118,8 +118,8 @@ Requirements:
 
 Current pasted-text implementation:
 
-- pasted resume text is normalized before draft persistence
-- normalized pasted text is stored as a processed resume artifact inside draft resume context for the candidate-owned practice draft
+- pasted resume content is normalized before draft persistence
+- normalized pasted content is stored as a processed resume artifact inside draft resume context for the candidate-owned practice draft
 - `processedArtifact.originalRetained` is false for the current pasted-text path
 - no original file is created or retained for the pasted-text path
 
@@ -165,7 +165,7 @@ Examples:
 
 Initial retention:
 
-- retain completed session history for candidate dashboard value
+- retain completed session history for candidate review value
 - define candidate deletion/export behavior before production
 
 ### Voice And Audio
@@ -205,7 +205,7 @@ Examples:
 
 Requirements:
 
-- avoid raw resume text and raw answers in ordinary logs
+- avoid raw resume content and raw answers in ordinary logs
 - redact candidate identifiers where possible
 - preserve operational metadata needed for support and reliability
 - extraction failures must use safe reason codes instead of raw parser output
@@ -230,7 +230,7 @@ Current fit:
 
 Implemented on the public home page, candidate app shell pages such as `/practice` and `/dashboard`, and the candidate summary page:
 
-> Interview Coach uses AI for practice coaching and may save practice data for candidate dashboard review. It does not make hiring decisions.
+> Interview Coach uses AI for practice coaching. Practice data is protected by app security and access controls, and is not used to make hiring decisions.
 
 Each footer includes an empty company-footer placeholder with an integration note that the approved company footer belongs there.
 
@@ -238,17 +238,17 @@ Each footer includes an empty company-footer placeholder with an integration not
 
 Display near the start of candidate practice:
 
-> Interview Coach uses AI to generate practice questions and coaching from the role, job description, and resume text you provide. Your practice content may be saved so you can return to it in your candidate dashboard.
+> Interview Coach uses AI to generate practice questions, coaching, and summaries from the role, job description, and any resume content you include. Practice content is saved to support session continuity and your own review.
 
 Candidates must acknowledge:
 
-> I understand Interview Coach uses AI for practice coaching and may save my practice content for my dashboard.
+> I understand Interview Coach uses AI for practice coaching and may save my practice content for session continuity, summaries, and my own review.
 
 ### Resume Notice
 
 Display near resume paste:
 
-> Resume text is optional. Paste only what you want used for practice.
+> Resume content is optional. Include only what you want used for practice. Access to practice data is limited by app security controls and approved support or quality-review permissions.
 
 ### Voice Notice
 
@@ -256,19 +256,29 @@ Display as a first-time voice notice before triggering browser microphone permis
 
 > Your browser will ask for microphone permission after you continue. Interview Coach uses your voice response to create coaching for this practice question.
 
-> You can switch to text mode instead. Voice responses are practice content and are not shared with recruiters or employers for hiring decisions.
+> Text mode is always available. Voice answers are practice content. The transcript may be saved for feedback and your own review, but the app does not save a separate audio file after the question is completed.
 
 ### Session Entry Notice
 
 Display on the landing screen before the candidate starts the generated session:
 
-> Your answers are private practice content. They are used to provide coaching and may be saved in your candidate dashboard. They are not shared with recruiters or employers for hiring decisions.
+> Your answers are used to provide coaching and may be saved for session continuity, summaries, and your own review. They are protected by access controls and are not shared with recruiters or employers for hiring decisions.
 
 ### Summary Notice
 
 Display near the summary footer:
 
-> This summary is saved for your review in your candidate dashboard. Practice summaries are not shared with recruiters, employers, or hiring-decision users.
+> This summary is saved for your own review. Practice summaries are protected by access controls and are not shared with recruiters, employers, or hiring-decision users.
+
+### Runtime PII And Sensitive Data Scrubbing Review
+
+Current sanitizing should be treated as an MVP risk reducer, not a production-grade privacy boundary. Before production exposure, the team should vet runtime scrubbing for sensitive candidate content before AI provider calls and before writing AI-quality diagnostics, logs, prompt snapshots, or operational traces.
+
+Review surfaces include resume content, job descriptions, typed answers, voice transcripts, AI prompts and responses, summaries, debug inspectors, AI-quality records, logs, and observability payloads.
+
+[OpenAI privacy-filter](https://github.com/openai/privacy-filter) is a workable candidate to evaluate as a runtime data-minimization layer, but it should not be assumed to provide guaranteed anonymization or compliance by itself. The review should confirm deployment fit, runtime performance, model or dependency provenance, maintenance posture, false-positive and false-negative behavior, self-hosting constraints, failure handling, test coverage, and whether the resulting policy language can accurately describe what the app does.
+
+Any selected approach should define whether failures are fail-closed or degraded-mode, what metadata can be retained without storing raw sensitive spans, and which app surfaces must call the scrubber before AI generation or persistence.
 
 ## Consent Requirements
 
@@ -277,7 +287,7 @@ Display near the summary footer:
 The candidate should affirm or be clearly notified that:
 
 - AI is used to generate questions, analyze answers, and create coaching.
-- Practice data may be saved to support dashboard review and session continuity.
+- Practice data may be saved to support session continuity, summaries, and the candidate's own review.
 - The tool supports interview preparation and does not make hiring decisions.
 - Candidate practice data is private to the candidate by default.
 
@@ -286,7 +296,7 @@ The candidate should affirm or be clearly notified that:
 Resume paste/upload should be optional and accompanied by notice that:
 
 - resume content is used to tailor practice
-- processed resume text may be retained for practice/dashboard value
+- processed resume content may be retained for practice continuity and candidate review value
 - original uploaded files are not retained after successful extraction by default
 
 ### Required Near Voice Mode
@@ -320,6 +330,7 @@ Explicit product/legal review is required before:
 - Confirm authorized admin/QA visibility controls, logging, and disclosure language before production.
 - Confirm protected routes do not load marketing/session-replay tags without approval.
 - Confirm logs and diagnostics avoid raw resume, answer, audio, prompt, and provider-auth payloads.
+- Confirm runtime PII and sensitive-data scrubbing behavior before AI provider calls and AI-quality or observability persistence.
 - Confirm final SSO, hosting, AI provider, and cookie behavior match public policy statements.
 
 ## Open Review Questions

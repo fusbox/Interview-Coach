@@ -1,0 +1,69 @@
+flowchart LR
+    Candidate["candidate_profiles<br/>Candidate identity"]
+    Identity["candidate_identities<br/>SSO/provider mapping"]
+    Draft["candidate_practice_drafts<br/>Role, JD, resume context, intake"]
+    Session["sessions<br/>Role, status, summary, engagement"]
+    Question["questions<br/>Prompt, category, tips"]
+    Answer["answers<br/>Transcript, modality, analysis"]
+    Eval["eval_results<br/>feedbackPlan, nextAction, coachSignal target"]
+    Feedback["user_feedback<br/>helpfulness and session UX feedback"]
+    Events["events<br/>activity and audit trail"]
+    AIGen["ai_generations<br/>AI QA, prompt, cost, redaction"]
+    RoleProfile["candidate_role_preparation_profiles<br/>prepProfile anchor"]
+
+    RoleContext["Interview context<br/>target role + JD + resume context"]
+    PracticeCoverage["Derived practice coverage<br/>categories, sessions, completion"]
+    CoachSignals["Derived coaching signals<br/>feedbackPlan + next action"]
+    Confidence["candidate_confidence_measurements<br/>self-report, not performance"]
+    ResumeEvidence["Derived resume/answer evidence<br/>candidate examples and role links"]
+    PreparednessSignals["Derived interview prep signals<br/>JD + resume + practice evidence"]
+
+    SafeClaims["Safe UI claims now<br/>active/completed rounds<br/>latest coaching focus<br/>practice categories<br/>resume/JD presence<br/>session summaries"]
+    UnsafeClaims["Unsupported claims<br/>numeric preparedness score<br/>verified mastery<br/>complete interview coverage<br/>verified resume gap accuracy<br/>hiring quality"]
+
+    SignalMap["prep_profile_signals<br/>candidate-specific interview indicators"]
+    EvidenceItems["candidate_evidence_items<br/>Resume and answer evidence"]
+    Observations["skill_signal_observations<br/>Normalized feedback facts"]
+    Milestones["interview_prep_milestones<br/>Non-score scaffold states"]
+
+    Candidate --> Identity
+    Candidate --> Draft
+    Candidate --> RoleProfile
+    RoleProfile --> Draft
+    Draft --> Session
+    Session --> Question
+    Session --> Answer
+    Answer --> Eval
+    Session --> Feedback
+    Session --> Events
+    Session --> AIGen
+
+    Draft --> RoleContext
+    Session --> PracticeCoverage
+    Question --> PracticeCoverage
+    Eval --> CoachSignals
+    Session --> Confidence
+    Draft --> ResumeEvidence
+    Answer --> ResumeEvidence
+    RoleContext --> PreparednessSignals
+    ResumeEvidence --> PreparednessSignals
+    CoachSignals --> PreparednessSignals
+
+    RoleContext --> SafeClaims
+    PracticeCoverage --> SafeClaims
+    CoachSignals --> SafeClaims
+    Confidence --> SafeClaims
+    ResumeEvidence --> SafeClaims
+    PreparednessSignals --> SafeClaims
+
+    SafeClaims -. gap .-> UnsafeClaims
+    UnsafeClaims -. needs .-> SignalMap
+    UnsafeClaims -. needs .-> EvidenceItems
+    UnsafeClaims -. needs .-> Observations
+    UnsafeClaims -. needs .-> Milestones
+
+    RoleProfile --> SignalMap
+    RoleProfile --> EvidenceItems
+    RoleProfile --> Observations
+    RoleProfile --> Milestones
+    RoleProfile --> Confidence
