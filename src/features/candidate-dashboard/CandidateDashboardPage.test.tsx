@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
 import { getBasicAccessibilityViolations } from "@/test/accessibility";
@@ -16,19 +17,125 @@ const baseModel: CandidateDashboardModel = {
         completedCount: 1,
         totalPracticeCount: 2,
     },
+    selectedTargetInterviewId: "qa analyst",
+    targetInterviews: [
+        {
+            id: "qa analyst",
+            label: "QA Analyst",
+            href: "/dashboard?targetRole=qa%20analyst",
+            isSelected: true,
+            activeCount: 1,
+            completedCount: 0,
+        },
+        {
+            id: "support lead",
+            label: "Support Lead",
+            href: "/dashboard?targetRole=support%20lead",
+            isSelected: false,
+            activeCount: 0,
+            completedCount: 1,
+        },
+    ],
     activeItems: [
         {
             practiceDraftId: "draft-1",
+            roleProfileId: "role-profile-1",
+            roleContextLabel: "Role context saved",
             title: "QA Analyst",
             statusLabel: "In progress",
             progressLabel: "1 of 3 answered",
             href: "/session/session-1",
             lastActivityLabel: "May 12, 2026",
+            prepProfile: {
+                prepProfileId: "role-profile-1",
+                primarySignal: {
+                    label: "Make the answer easy to follow",
+                    state: "emerging",
+                },
+                signals: [
+                    {
+                        prepProfileId: "role-profile-1",
+                        signalId: "content:structural_clarity",
+                        label: "Make the answer easy to follow",
+                        lane: "interview_structure",
+                        evidenceState: "emerging",
+                        evidenceCounts: {
+                            not_practiced: 0,
+                            emerging: 1,
+                            clear: 0,
+                            strong: 0,
+                        },
+                        priority: "primary",
+                        sourceRefs: [
+                            {
+                                type: "content_pulse",
+                                id: "question-1",
+                                label: "Structure the answer",
+                                excerpt: "The answer needs a clearer beginning, middle, and end.",
+                            },
+                        ],
+                    },
+                    {
+                        prepProfileId: "role-profile-1",
+                        signalId: "content:specificity_concreteness",
+                        label: "Use concrete examples",
+                        lane: "answer_substance",
+                        evidenceState: "not_practiced",
+                        evidenceCounts: {
+                            not_practiced: 1,
+                            emerging: 0,
+                            clear: 0,
+                            strong: 0,
+                        },
+                        priority: "supporting",
+                        sourceRefs: [
+                            {
+                                type: "question",
+                                id: "question-2",
+                                label: "Specificity",
+                                excerpt: "Practice adding concrete details to this target interview.",
+                            },
+                        ],
+                    },
+                ],
+                categoryCards: [
+                    {
+                        categoryId: "behavioral",
+                        label: "Behavioral",
+                        questionCount: 1,
+                        evidenceState: "clear",
+                        averageScore: 3,
+                        sourceRefs: [],
+                    },
+                    {
+                        categoryId: "screening",
+                        label: "Screening",
+                        questionCount: 1,
+                        evidenceState: "emerging",
+                        averageScore: 1.8,
+                        sourceRefs: [],
+                    },
+                ],
+                signalCounts: {
+                    not_practiced: 2,
+                    emerging: 1,
+                    clear: 1,
+                    strong: 1,
+                },
+                recommendation: {
+                    label: "Resume QA Analyst",
+                    reason: "You have an unfinished practice round for this target interview.",
+                    source: "unfinished_session",
+                    href: "/session/session-1",
+                },
+            },
         },
     ],
     completedItems: [
         {
             practiceDraftId: "draft-2",
+            roleProfileId: null,
+            roleContextLabel: "Role context from practice history",
             title: "Support Lead",
             statusLabel: "Completed",
             progressLabel: "2 of 2 answered",
@@ -47,21 +154,37 @@ const baseModel: CandidateDashboardModel = {
 };
 
 describe("CandidateDashboardPage", () => {
-    it("renders active and completed candidate-owned practice items", () => {
+    it("renders the preparedness-map dashboard and opens a signal drilldown", async () => {
+        const user = userEvent.setup();
+
         render(<CandidateDashboardPage dashboard={baseModel} />);
 
-        expect(screen.getByRole("heading", { name: /welcome back, candidate one/i })).toBeInTheDocument();
-        expect(screen.getByRole("region", { name: /next practice step/i })).toHaveTextContent("Resume QA Analyst");
-        expect(screen.getByRole("region", { name: /continue where you left off/i })).toHaveTextContent("QA Analyst");
-        expect(screen.getByRole("region", { name: /practice history/i })).toHaveTextContent("Support Lead");
-        expect(screen.getByText("QA Analyst")).toBeInTheDocument();
-        expect(screen.getAllByRole("link", { name: /resume practice/i })[0]).toHaveAttribute("href", "/session/session-1");
-        expect(screen.getByText("Support Lead")).toBeInTheDocument();
-        expect(screen.getByRole("link", { name: /review summary/i })).toHaveAttribute("href", "/summary/session-2");
-        expect(screen.getByRole("link", { name: /practice again/i })).toHaveAttribute("href", "/practice");
-        expect(screen.getByText("Resume QA Analyst")).toBeInTheDocument();
-        expect(screen.getByText(/pick up this active practice/i)).toBeInTheDocument();
-        expect(screen.getAllByRole("link", { name: /resume practice/i })[1]).toHaveAttribute("href", "/session/session-1");
+        expect(screen.queryByRole("link", { name: /back to overview/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: /welcome back/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole("region", { name: /practice momentum/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole("region", { name: /resume-to-role bridge/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole("region", { name: /recommended practice path/i })).not.toBeInTheDocument();
+
+        expect(screen.getByRole("heading", { name: "QA Analyst", level: 2 })).toBeInTheDocument();
+        expect(screen.queryByText("Target interview")).not.toBeInTheDocument();
+        expect(screen.getByRole("navigation", { name: /target interviews/i })).toHaveTextContent("QA Analyst");
+        expect(screen.getByRole("link", { name: /support lead/i })).toHaveAttribute("href", "/dashboard?targetRole=support%20lead");
+        expect(screen.getByRole("region", { name: /preparedness map/i })).toHaveTextContent("Tap an area to see what your practice shows");
+        expect(screen.getByRole("button", { name: /interview structure/i })).toHaveTextContent("Emerging");
+        expect(screen.getByRole("button", { name: /answer substance/i })).toHaveTextContent("To practice");
+        expect(screen.queryByRole("button", { name: /interview range/i })).not.toBeInTheDocument();
+        expect(screen.getByRole("region", { name: /question coverage/i })).toHaveTextContent("Behavioral");
+        expect(screen.getByRole("region", { name: /question coverage/i })).toHaveTextContent("Screening");
+        expect(screen.getByRole("region", { name: /practice next/i })).toHaveTextContent("Resume QA Analyst");
+        expect(screen.getByRole("link", { name: /resume practice/i })).toHaveAttribute("href", "/session/session-1");
+
+        await user.click(screen.getByRole("button", { name: /interview structure/i }));
+
+        expect(screen.getByRole("dialog", { name: /interview structure/i })).toHaveTextContent("Why this matters");
+        expect(screen.getByRole("dialog", { name: /interview structure/i })).toHaveTextContent("What your practice shows");
+        expect(screen.getByRole("dialog", { name: /interview structure/i })).toHaveTextContent("How to use this");
+        expect(screen.getByRole("dialog", { name: /interview structure/i })).toHaveTextContent("The answer needs a clearer beginning");
+        expect(screen.queryByRole("link", { name: /practice this area/i })).not.toBeInTheDocument();
     });
 
     it("renders an empty state with a start-practice action", () => {
@@ -82,47 +205,62 @@ describe("CandidateDashboardPage", () => {
             },
         }} />);
 
-        expect(screen.getByRole("region", { name: /empty dashboard/i })).toHaveTextContent("Start simply");
-        expect(screen.getByRole("link", { name: /start a practice session/i })).toHaveAttribute("href", "/practice");
+        expect(screen.getByRole("region", { name: /empty preparedness dashboard/i })).toHaveTextContent("Start preparing for an interview");
+        expect(screen.getByLabelText("Preview of your map")).toHaveTextContent("Interview expectations");
+        expect(screen.getByRole("link", { name: /create practice/i })).toHaveAttribute("href", "/practice");
+        expect(screen.queryByRole("region", { name: /recommended practice path/i })).not.toBeInTheDocument();
     });
 
     it("surfaces completed-session coaching snippets in the history card", () => {
         render(<CandidateDashboardPage dashboard={{
             ...baseModel,
+            stats: {
+                activeCount: 0,
+                completedCount: 1,
+                totalPracticeCount: 1,
+            },
+            activeItems: [],
             completedItems: [
                 {
                     ...baseModel.completedItems[0],
                     coachingSnippet: "Lead with the measurable result before the process detail.",
                 },
             ],
+            nextBestAction: {
+                title: "Practice the latest coaching signal",
+                body: "Use the latest feedback as the focus for your next round.",
+                href: "/practice",
+                actionLabel: "Start focused practice",
+            },
         }} />);
 
-        expect(screen.getByRole("region", { name: /practice history/i })).toHaveTextContent(
+        expect(screen.getByRole("region", { name: /recent activity/i })).toHaveTextContent(
             "Lead with the measurable result before the process detail.",
         );
+        expect(screen.getByRole("region", { name: /practice next/i })).toHaveTextContent("Practice the latest coaching signal");
     });
 
-    it("labels one-big-upgrade snippets distinctly from generic notes", () => {
+    it("labels focused coaching snippets distinctly from generic notes", () => {
         render(<CandidateDashboardPage dashboard={{
             ...baseModel,
             completedItems: [
                 {
                     ...baseModel.completedItems[0],
-                    coachingSnippetLabel: "One big upgrade",
+                    coachingSnippetLabel: "For the biggest lift",
                     coachingSnippet: "Lead with the result: I helped the team finish early.",
                 },
             ],
             nextBestAction: {
-                title: "Practice one focused upgrade",
+                title: "Practice the biggest lift",
                 body: "From your Support Lead feedback: Lead with the result. Try: I helped the team finish early.",
                 href: "/practice",
                 actionLabel: "Practice again",
             },
         }} />);
 
-        expect(screen.getByRole("region", { name: /next practice step/i })).toHaveTextContent("Practice one focused upgrade");
-        expect(screen.getByRole("region", { name: /practice history/i })).toHaveTextContent("One big upgrade");
-        expect(screen.getByRole("region", { name: /practice history/i })).toHaveTextContent("Lead with the result");
+        expect(screen.getByRole("region", { name: /practice next/i })).toHaveTextContent("Practice the biggest lift");
+        expect(screen.getByRole("region", { name: /recent activity/i })).toHaveTextContent("For the biggest lift");
+        expect(screen.getByRole("region", { name: /recent activity/i })).toHaveTextContent("Lead with the result");
     });
 
     it("extends its background surface to the candidate content frame edges", () => {

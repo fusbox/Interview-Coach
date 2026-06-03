@@ -6,8 +6,17 @@ import { loadCandidateDashboardForCurrentCandidate } from "@/lib/server/candidat
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardRoute() {
-    const dashboard = await loadCandidateDashboardForCurrentCandidate();
+type DashboardRouteProps = {
+    searchParams?: Promise<{
+        targetRole?: string;
+    }>;
+};
+
+export default async function DashboardRoute({ searchParams }: DashboardRouteProps) {
+    const resolvedSearchParams = searchParams ? await searchParams : {};
+    const dashboard = await loadCandidateDashboardForCurrentCandidate({
+        targetRole: resolvedSearchParams.targetRole,
+    });
     if (!dashboard) {
         notFound();
     }
