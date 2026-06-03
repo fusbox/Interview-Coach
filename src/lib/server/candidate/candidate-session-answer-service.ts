@@ -1,4 +1,5 @@
 import type { AnalysisResult, SessionStatus } from "@/lib/domain/types";
+import { isFeedbackFlowAnalysisReady } from "@/lib/domain/analysis-readiness";
 import { transitionSessionStatus } from "@/lib/domain/session-state-machine";
 import { createSessionRepository } from "@/lib/server/infrastructure/session-repository";
 import { getAnalysisContext, submitAnswer } from "@/lib/server/session/orchestrator";
@@ -98,7 +99,7 @@ export async function analyzeCandidateOwnedAnswer(input: CandidateAnswerInput): 
                 return { ok: false, error: "Answer has not been submitted." };
             }
 
-            if (answer.analysis) {
+            if (isFeedbackFlowAnalysisReady(answer.analysis)) {
                 return {
                     ok: true,
                     sessionId: ownedSession.session.id,

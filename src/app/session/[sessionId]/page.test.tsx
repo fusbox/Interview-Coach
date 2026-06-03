@@ -218,7 +218,7 @@ describe("/session/[sessionId] page", () => {
         expect(screen.queryByRole("button", { name: /continue to next question/i })).not.toBeInTheDocument();
     });
 
-    it("renders saved answer state and retry action for a submitted answer", async () => {
+    it("renders feedback recovery for a submitted answer without usable analysis", async () => {
         loadCandidateSessionForCurrentCandidateMock.mockResolvedValue({
             practiceDraftId: "draft-1",
             session: {
@@ -245,8 +245,11 @@ describe("/session/[sessionId] page", () => {
         render(await CandidateSessionRoute({ params: Promise.resolve({ sessionId: "session-1" }) }));
 
         expect(screen.getByText("I improved release quality with a checklist.")).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: /retry question/i })).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: /continue to next question/i })).toBeInTheDocument();
+        expect(screen.getByText("Feedback recovery")).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: /finish preparing your coaching/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /regenerate feedback/i })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /retry question/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /continue to next question/i })).not.toBeInTheDocument();
     });
 
     it("renders a resume action for a paused session", async () => {

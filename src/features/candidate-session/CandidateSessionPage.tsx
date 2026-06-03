@@ -1,9 +1,10 @@
 import Link from "next/link";
 import type React from "react";
-import { ArrowRight, FileText, Play, RotateCcw, X } from "lucide-react";
+import { ArrowRight, Play, Sparkles, X } from "lucide-react";
 
 import { SessionPromptShell } from "@/components/patterns/SessionPromptShell";
 import { Button } from "@/components/ui/button";
+import { isFeedbackFlowAnalysisReady } from "@/lib/domain/analysis-readiness";
 import type { AnalysisResult } from "@/lib/domain/types";
 import type { LoadedCandidateSession } from "@/lib/server/candidate";
 import { CandidateActiveQuestionWorkspace } from "./CandidateActiveQuestionWorkspace";
@@ -12,6 +13,7 @@ import { CandidateSessionAudioController } from "./CandidateSessionAudioControll
 import { CandidateSessionDebugOverlay } from "./CandidateSessionDebugOverlay";
 import { CandidateSessionEntryScreen } from "./CandidateSessionEntryScreen";
 import { FeedbackDrawer } from "@/features/session/components/FeedbackDrawer";
+import { getQuestionCategoryPresentation } from "@/features/session/components/question-category-presentation";
 import {
     advanceCandidateSessionAction,
     analyzeCandidateAnswerAction,
@@ -27,19 +29,24 @@ type CandidateSessionPageProps = {
 
 export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProps) {
     const { session } = loadedSession;
-    const currentQuestion = session.questions[session.currentQuestionIndex] ?? session.questions[0] ?? null;
-    const nextQuestion = session.questions[session.currentQuestionIndex + 1] ?? null;
     const totalQuestions = session.questions.length;
-    const questionPosition = currentQuestion ? session.questions.findIndex((question) => question.id === currentQuestion.id) + 1 : 0;
-    const progressPercentage = totalQuestions > 0 ? Math.round((Math.max(questionPosition, 1) / totalQuestions) * 100) : 0;
-    const nextQuestionIndex = session.currentQuestionIndex + 1;
+    const displayQuestionIndex = totalQuestions > 0 ? Math.min(Math.max(session.currentQuestionIndex, 0), totalQuestions - 1) : 0;
+    const currentQuestion = session.questions[displayQuestionIndex] ?? null;
+    const nextQuestion = session.questions[displayQuestionIndex + 1] ?? null;
+    const questionPosition = session.status === "COMPLETED" ? totalQuestions : displayQuestionIndex + 1;
+    const progressPercentage = session.status === "COMPLETED"
+        ? 100
+        : totalQuestions > 0
+            ? Math.round((Math.max(questionPosition, 1) / totalQuestions) * 100)
+            : 0;
+    const nextQuestionIndex = displayQuestionIndex + 1;
     const isLastQuestion = nextQuestionIndex >= totalQuestions;
     const nextStatus = isLastQuestion ? "COMPLETED" : "IN_SESSION";
     const currentAnswer = currentQuestion ? session.answers[currentQuestion.id] : undefined;
     const hasSubmittedCurrentAnswer = Boolean(currentAnswer?.submittedAt);
     const currentAnalysis = currentAnswer?.analysis;
-    const canAdvance = hasSubmittedCurrentAnswer && ["IN_SESSION", "AWAITING_EVALUATION", "REVIEWING"].includes(session.status);
-
+    const hasUsableFeedbackFlowAnalysis = isFeedbackFlowAnalysisReady(currentAnalysis);
+    const currentQuestionCategory = currentQuestion ? getQuestionCategoryPresentation(currentQuestion.category) : null;
     async function startAction() {
         "use server";
         await startCandidateSessionAction(session.id);
@@ -149,6 +156,7 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
                         <CandidateActiveQuestionWorkspace
                             sessionId={session.id}
                             role={session.role}
+                            resumeText={session.candidate?.resumeText}
                             currentQuestion={currentQuestion}
                             nextQuestion={nextQuestion}
                             isLastQuestion={isLastQuestion}
@@ -167,7 +175,7 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
                                                     Coach&apos;s Lens
                                                 </span>
                                                 <span className="inline-flex items-center gap-2 rounded-xl border border-state-info/20 bg-state-info/10 px-3 py-2 text-sm font-semibold text-state-info">
-                                                    {currentQuestion.category}
+                                                    {currentQuestionCategory?.label}
                                                 </span>
                                             </div>
                                             <CandidateQuestionPlaybackButton sessionId={session.id} question={currentQuestion} />
@@ -186,7 +194,7 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
                                     </div>
                                 </SessionPromptShell>
 
-                                {currentAnalysis ? (
+                                {hasUsableFeedbackFlowAnalysis ? (
                                     <CandidateSubmittedFeedbackReview
                                         sessionId={session.id}
                                         transcript={currentAnswer?.transcript}
@@ -196,16 +204,10 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
                                         isLastQuestion={isLastQuestion}
                                     />
                                 ) : (
-                                    <div className="mt-6 flex flex-1 flex-col justify-center rounded-3xl border border-border bg-surface-base/80 p-4 shadow-flat md:p-6">
-                                        <SavedAnswerPanel
-                                            transcript={currentAnswer?.transcript}
-                                            analyzeAnswerAction={analyzeAnswerAction}
-                                            retryQuestionAction={retryQuestionAction}
-                                            advanceAction={advanceAction}
-                                            canAdvance={canAdvance}
-                                            isLastQuestion={isLastQuestion}
-                                        />
-                                    </div>
+                                    <FeedbackRecoveryState
+                                        analyzeAnswerAction={analyzeAnswerAction}
+                                        transcript={currentAnswer?.transcript}
+                                    />
                                 )}
                             </section>
                         </div>
@@ -237,70 +239,46 @@ function HeaderButton({ icon, label }: { icon: React.ReactNode; label: string })
     );
 }
 
-function SavedAnswerPanel({
-    transcript,
+function FeedbackRecoveryState({
     analyzeAnswerAction,
-    retryQuestionAction,
-    advanceAction,
-    canAdvance,
-    isLastQuestion,
+    transcript,
 }: {
-    transcript?: string;
     analyzeAnswerAction: () => Promise<void>;
-    retryQuestionAction: () => Promise<void>;
-    advanceAction: () => Promise<void>;
-    canAdvance: boolean;
-    isLastQuestion: boolean;
+    transcript?: string;
 }) {
     return (
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-            <section className="rounded-3xl border border-border/70 bg-white p-5">
-                <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                        <FileText size={20} />
-                    </div>
-                    <p className="text-sm font-black uppercase tracking-widest text-text-muted">
-                        Your saved answer
+        <SessionPromptShell className="mt-6">
+            <div className="space-y-6">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-text-inverse shadow-raised-2">
+                    <Sparkles size={22} />
+                </div>
+                <div className="space-y-3">
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-text-muted">
+                        Feedback recovery
+                    </p>
+                    <h3 className="font-display text-4xl font-bold leading-tight text-text-primary md:text-6xl">
+                        Finish preparing your coaching.
+                    </h3>
+                    <p className="max-w-2xl text-base leading-7 text-text-secondary">
+                        Your answer was saved, but this session needs a fresh feedback pass before it can show the current coaching cards.
                     </p>
                 </div>
-                <p className="mt-5 whitespace-pre-wrap text-base leading-7 text-text-secondary">
-                    {transcript || "No answer text was saved."}
-                </p>
-            </section>
 
-            <section className="rounded-3xl border border-border/70 bg-white p-5">
-                <p className="text-sm font-black uppercase tracking-widest text-text-muted">
-                    Coach&apos;s Lens
-                </p>
-                <div className="mt-5 space-y-4">
-                    <p className="text-base leading-7 text-text-secondary">
-                        Get focused coaching before you decide whether to retry or continue.
-                    </p>
-                    <form action={analyzeAnswerAction}>
-                        <Button type="submit" emphasis="primary" density="comfortable" shape="app" label="strong">
-                            Get coaching
-                        </Button>
-                    </form>
-                </div>
+                {transcript ? (
+                    <details className="rounded-2xl border border-border/60 bg-surface-base/70 p-4 text-sm text-text-secondary">
+                        <summary className="cursor-pointer font-bold text-text-primary">Review saved answer</summary>
+                        <p className="mt-3 whitespace-pre-wrap leading-6">{transcript}</p>
+                    </details>
+                ) : null}
 
-                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                    {canAdvance ? (
-                        <form action={advanceAction}>
-                            <Button type="submit" emphasis="primary" density="comfortable" shape="app" label="strong" className="w-full sm:w-auto">
-                                {isLastQuestion ? "Finish session" : "Continue to next question"}
-                                <ArrowRight size={16} className="ml-2" />
-                            </Button>
-                        </form>
-                    ) : null}
-                    <form action={retryQuestionAction}>
-                        <Button type="submit" emphasis="secondary" density="comfortable" shape="app" label="strong" className="w-full sm:w-auto">
-                            <RotateCcw size={16} className="mr-2" />
-                            Retry question
-                        </Button>
-                    </form>
-                </div>
-            </section>
-        </div>
+                <form action={analyzeAnswerAction}>
+                    <Button type="submit" emphasis="primary" density="hero" shape="app" label="strong">
+                        Regenerate feedback
+                        <ArrowRight size={18} className="ml-2" />
+                    </Button>
+                </form>
+            </div>
+        </SessionPromptShell>
     );
 }
 

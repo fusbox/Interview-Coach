@@ -3,34 +3,18 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import { getQuestionCategoryPresentation } from "./question-category-presentation";
+export { getQuestionCategoryPresentation };
+export type { QuestionCategoryPresentation } from "./question-category-presentation";
+
 interface CategoryTooltipProps {
     category: string;
     children: React.ReactNode;
 }
 
-const CATEGORY_DEFINITIONS: Record<string, { title: string, description: string }> = {
-    STAR: {
-        title: "STAR: Situation, Task, Action, Result",
-        description: "AKA Behavioral questions, focuses on past experiences."
-    },
-    PERMA: {
-        title: "PERMA: Positive Emotion, Engagement, Relationships, Meaning, Accomplishment",
-        description: "These consider workplace culture and fit."
-    },
-    TECHNICAL: {
-        title: "Technical",
-        description: "Assessments of role-specific skills and domain expertise."
-    },
-    OTHER: {
-        title: "General",
-        description: "General interview questions and conversation starters."
-    }
-};
-
 export function CategoryTooltip({ category, children }: CategoryTooltipProps) {
     const [isVisible, setIsVisible] = useState(false);
-    const upperCategory = category.toUpperCase();
-    const info = CATEGORY_DEFINITIONS[upperCategory] || CATEGORY_DEFINITIONS.OTHER;
+    const info = getQuestionCategoryPresentation(category);
 
     // Handlers for Desktop Hover
     const onMouseEnter = () => setIsVisible(true);

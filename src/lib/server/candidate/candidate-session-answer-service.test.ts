@@ -207,7 +207,7 @@ describe("candidate session answer service", () => {
         }));
     });
 
-    it("replays existing candidate answer coaching without calling the model again", async () => {
+    it("replays existing current-shape candidate answer coaching without calling the model again", async () => {
         getSessionMock.mockResolvedValue({
             ...baseSession,
             status: "REVIEWING",
@@ -216,7 +216,21 @@ describe("candidate session answer service", () => {
                     questionId: "question-1",
                     transcript: "Old answer",
                     submittedAt: 1770000000000,
-                    analysis: { recommendation: "Already analyzed." },
+                    analysis: {
+                        ack: "Already ready.",
+                        recommendation: "Already analyzed.",
+                        nextAction: {
+                            label: "Continue",
+                            actionType: "next_question",
+                        },
+                        contentPulse: {
+                            dimension: "outcome_explicitness",
+                            headline: "Show the result",
+                            body: "Tie the answer to an outcome.",
+                            quote: "Old answer",
+                        },
+                        meta: { tier: 1, modality: "text" },
+                    },
                 },
             },
         });
@@ -238,6 +252,50 @@ describe("candidate session answer service", () => {
 
         expect(analyzeAnswerMock).not.toHaveBeenCalled();
         expect(updateMock).not.toHaveBeenCalled();
+    });
+
+    it("regenerates candidate answer coaching when persisted analysis is legacy-shaped", async () => {
+        getSessionMock.mockResolvedValue({
+            ...baseSession,
+            status: "REVIEWING",
+            answers: {
+                "question-1": {
+                    questionId: "question-1",
+                    transcript: "Old answer",
+                    submittedAt: 1770000000000,
+                    analysis: { recommendation: "Legacy coaching without pulse fields." },
+                },
+            },
+        });
+        const { analyzeCandidateOwnedAnswer } = await import("./candidate-session-answer-service");
+
+        await expect(analyzeCandidateOwnedAnswer({
+            candidateProfileId: "profile-1",
+            sessionId: "session-1",
+            questionId: "question-1",
+        })).resolves.toMatchObject({
+            ok: true,
+            sessionId: "session-1",
+            status: "REVIEWING",
+            questionId: "question-1",
+            analysis: {
+                recommendation: "Add a clearer metric.",
+            },
+        });
+
+        expect(analyzeAnswerMock).toHaveBeenCalledOnce();
+        expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({
+            answers: {
+                "question-1": expect.objectContaining({
+                    transcript: "I tightened the release checklist.",
+                    analysis: expect.objectContaining({
+                        contentPulse: expect.objectContaining({
+                            headline: "Add the measurable result",
+                        }),
+                    }),
+                }),
+            },
+        }));
     });
 
     it("retries a submitted question by clearing submission and analysis state", async () => {

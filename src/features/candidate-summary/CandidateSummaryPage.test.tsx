@@ -81,8 +81,9 @@ describe("CandidateSummaryPage", () => {
         expect(screen.queryByRole("link", { name: /practice again/i })).not.toBeInTheDocument();
         expect(screen.queryByRole("link", { name: /close this window/i })).not.toBeInTheDocument();
         expect(screen.queryByText(/shared with your recruiter/i)).not.toBeInTheDocument();
-        expect(screen.getByText(/this summary is saved for your review/i)).toBeInTheDocument();
-        expect(screen.getByText(/practice summaries are not shared with recruiters, employers, or hiring-decision users/i)).toBeInTheDocument();
+        expect(screen.getByText(/this summary is saved for your own review/i)).toBeInTheDocument();
+        expect(screen.getByText(/protected by access controls/i)).toBeInTheDocument();
+        expect(screen.getByText(/not shared with recruiters, employers, or hiring-decision users/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/company footer placeholder/i)).toBeInTheDocument();
         expect(fetchMock).not.toHaveBeenCalled();
     });

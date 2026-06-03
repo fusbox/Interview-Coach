@@ -141,8 +141,8 @@ export function CandidateSummaryPage({ summary }: CandidateSummaryPageProps) {
                 </section>
 
                 <CandidateDisclosureFooter>
-                    This summary is saved for your review in your candidate dashboard. Practice summaries are not shared
-                    with recruiters, employers, or hiring-decision users.
+                    This summary is saved for your own review. Practice summaries are protected by access controls and
+                    are not shared with recruiters, employers, or hiring-decision users.
                 </CandidateDisclosureFooter>
             </div>
         </main>

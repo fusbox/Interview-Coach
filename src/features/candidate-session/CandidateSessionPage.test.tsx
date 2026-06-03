@@ -175,7 +175,8 @@ describe("CandidateSessionPage", () => {
         );
 
         expect(screen.getByRole("heading", { name: /let's get you ready for your interview/i })).toBeInTheDocument();
-        expect(screen.getByText(/your answers are private practice content/i)).toBeInTheDocument();
+        expect(screen.getByText(/your answers are used to provide coaching/i)).toBeInTheDocument();
+        expect(screen.getByText(/protected by access controls/i)).toBeInTheDocument();
         expect(screen.getByText(/not shared with recruiters or employers for hiring decisions/i)).toBeInTheDocument();
         expect(screen.getByRole("button", { name: /begin first question/i })).toBeInTheDocument();
         expect(screen.queryByRole("button", { name: /start practice/i })).not.toBeInTheDocument();
@@ -302,12 +303,40 @@ describe("CandidateSessionPage", () => {
         expect(screen.getByRole("button", { name: /submit answer/i })).toBeInTheDocument();
     });
 
-    it("offers candidate coaching after an answer is saved but before analysis exists", () => {
+    it("shows a current feedback recovery screen after an answer is saved but before usable analysis exists", () => {
         render(<CandidateSessionPage loadedSession={loadedSession} />);
 
-        expect(screen.getByText("Your saved answer")).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: /get coaching/i })).toBeInTheDocument();
+        expect(screen.getByText("Feedback recovery")).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: /finish preparing your coaching/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /regenerate feedback/i })).toBeInTheDocument();
+        expect(screen.queryByText("Your saved answer")).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /get coaching/i })).not.toBeInTheDocument();
         expect(screen.queryByText(/add a clearer metric/i)).not.toBeInTheDocument();
+    });
+
+    it("recovers legacy analysis payloads through the same feedback recovery screen", () => {
+        render(
+            <CandidateSessionPage
+                loadedSession={{
+                    ...loadedSession,
+                    session: {
+                        ...loadedSession.session,
+                        answers: {
+                            "question-1": {
+                                ...loadedSession.session.answers["question-1"],
+                                analysis: {
+                                    recommendation: "Legacy coaching copy without pulses.",
+                                },
+                            },
+                        },
+                    },
+                }}
+            />,
+        );
+
+        expect(screen.getByText("Feedback recovery")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /regenerate feedback/i })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /explore feedback/i })).not.toBeInTheDocument();
     });
 
     it("renders candidate-facing coaching when answer analysis exists", () => {
@@ -323,6 +352,10 @@ describe("CandidateSessionPage", () => {
                                 analysis: {
                                     ack: "You gave a useful starting point.",
                                     recommendation: "Add a clearer metric.",
+                                    nextAction: {
+                                        label: "Continue",
+                                        actionType: "next_question",
+                                    },
                                     contentPulse: {
                                         dimension: "outcome_explicitness",
                                         headline: "Add the measurable result",
@@ -373,6 +406,36 @@ describe("CandidateSessionPage", () => {
 
         expect(screen.getByText("Session complete")).toBeInTheDocument();
         expect(screen.getAllByRole("link", { name: /review summary/i })[0]).toHaveAttribute("href", "/summary/session-1");
+    });
+
+    it("shows completed sessions as fully complete when the stored index equals the question count", () => {
+        render(
+            <CandidateSessionPage
+                loadedSession={{
+                    ...loadedSession,
+                    session: {
+                        ...loadedSession.session,
+                        status: "COMPLETED",
+                        currentQuestionIndex: 2,
+                        questions: [
+                            loadedSession.session.questions[0],
+                            { id: "question-2", text: "How do you handle ambiguity?", category: "Behavioral", index: 1 },
+                        ],
+                        answers: {
+                            ...loadedSession.session.answers,
+                            "question-2": {
+                                questionId: "question-2",
+                                transcript: "I ask clarifying questions.",
+                                submittedAt: 1770000001000,
+                            },
+                        },
+                    },
+                }}
+            />,
+        );
+
+        expect(screen.getByText("Question 2 of 2")).toBeInTheDocument();
+        expect(screen.getByText("100% Complete")).toBeInTheDocument();
     });
 
     it("includes the hidden engagement debug inspector from the recruiter session experience", async () => {

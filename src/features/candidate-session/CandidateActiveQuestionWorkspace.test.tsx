@@ -16,6 +16,8 @@ const {
     warmUpMock,
     resetAudioMock,
     fetchStrongResponseMock,
+    useSmartHintsMock,
+    useStrongResponseMock,
     audioRecordingStateMock,
 } = vi.hoisted(() => ({
     refreshMock: vi.fn(),
@@ -28,6 +30,8 @@ const {
     warmUpMock: vi.fn().mockResolvedValue(null),
     resetAudioMock: vi.fn(),
     fetchStrongResponseMock: vi.fn(),
+    useSmartHintsMock: vi.fn(),
+    useStrongResponseMock: vi.fn(),
     audioRecordingStateMock: {
         isRecording: false,
         isInitializing: false,
@@ -75,24 +79,11 @@ vi.mock("@/features/audio/hooks/useAudioRecording", () => ({
 }));
 
 vi.mock("@/features/session/hooks/useSmartHints", () => ({
-    useSmartHints: () => ({
-        hints: {
-            doThis: "Use a specific example.",
-            avoidThis: "Avoid vague claims.",
-        },
-        isLoading: false,
-    }),
+    useSmartHints: (...args: unknown[]) => useSmartHintsMock(...args),
 }));
 
 vi.mock("@/features/session/hooks/useStrongResponse", () => ({
-    useStrongResponse: () => ({
-        data: {
-            strongResponse: "A strong answer.",
-            whyThisWorks: "It connects actions to outcomes.",
-        },
-        isLoading: false,
-        fetchStrongResponse: fetchStrongResponseMock,
-    }),
+    useStrongResponse: (...args: unknown[]) => useStrongResponseMock(...args),
 }));
 
 const question = {
@@ -162,6 +153,21 @@ describe("CandidateActiveQuestionWorkspace", () => {
         audioRecordingStateMock.mediaStream = null;
         audioRecordingStateMock.permissionError = false;
         audioRecordingStateMock.permissionMessage = null;
+        useSmartHintsMock.mockReturnValue({
+            hints: {
+                doThis: "Use a specific example.",
+                avoidThis: "Avoid vague claims.",
+            },
+            isLoading: false,
+        });
+        useStrongResponseMock.mockReturnValue({
+            data: {
+                strongResponse: "A strong answer.",
+                whyThisWorks: "It connects actions to outcomes.",
+            },
+            isLoading: false,
+            fetchStrongResponse: fetchStrongResponseMock,
+        });
         vi.stubGlobal("fetch", vi.fn()
             .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }))
             .mockResolvedValueOnce(new Response(JSON.stringify(analyzedSessionResponse), { status: 200 })));
@@ -255,6 +261,27 @@ describe("CandidateActiveQuestionWorkspace", () => {
         expect(screen.queryByText("Example Strong Response")).not.toBeInTheDocument();
     });
 
+    it("passes resume context into candidate hints and strong-response coaching", () => {
+        renderWorkspace({ resumeText: "Resume shows scheduling, EHR, and customer service experience." });
+
+        expect(useSmartHintsMock).toHaveBeenCalledWith(
+            question,
+            "session-1",
+            undefined,
+            "Manufacturing Technician",
+            undefined,
+            "Resume shows scheduling, EHR, and customer service experience.",
+        );
+        expect(useStrongResponseMock).toHaveBeenCalledWith(
+            "question-1",
+            "Tell me about a time you adapted quickly.",
+            "session-1",
+            undefined,
+            "Manufacturing Technician",
+            "Resume shows scheduling, EHR, and customer service experience.",
+        );
+    });
+
     it("submits captured voice audio through the shared analysis API", async () => {
         const user = userEvent.setup();
 
@@ -295,6 +322,8 @@ describe("CandidateActiveQuestionWorkspace", () => {
 
         expect(screen.getByRole("dialog", { name: /before you use voice mode/i })).toBeInTheDocument();
         expect(screen.getByText(/your browser will ask for microphone permission/i)).toBeInTheDocument();
+        expect(screen.getByText(/text mode is always available/i)).toBeInTheDocument();
+        expect(screen.getByText(/does not save a separate audio file/i)).toBeInTheDocument();
         expect(startRecordingMock).not.toHaveBeenCalled();
 
         await user.click(screen.getByRole("button", { name: /continue to microphone/i }));

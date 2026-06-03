@@ -12,7 +12,7 @@ import { audioEngine } from "@/features/audio/audio-engine";
 import AudioVisualizer from "@/features/audio/components/AudioVisualizer";
 import { useAudioRecording } from "@/features/audio/hooks/useAudioRecording";
 import { useTextToSpeech } from "@/features/audio/hooks/useTextToSpeech";
-import { CategoryTooltip } from "@/features/session/components/CategoryTooltip";
+import { CategoryTooltip, getQuestionCategoryPresentation } from "@/features/session/components/CategoryTooltip";
 import { CoachLensDropdown } from "@/features/session/components/CoachLensDropdown";
 import { FeedbackDrawer } from "@/features/session/components/FeedbackDrawer";
 import { MultiStepLoader } from "@/features/session/components/MultiStepLoader";
@@ -24,6 +24,7 @@ import type { AnalysisResult, Question } from "@/lib/domain/types";
 type CandidateActiveQuestionWorkspaceProps = {
     sessionId: string;
     role: string;
+    resumeText?: string;
     currentQuestion: Question;
     nextQuestion: Question | null;
     isLastQuestion: boolean;
@@ -42,6 +43,7 @@ const voiceNoticeStorageKey = "interviewCoach.voiceNoticeAcknowledged";
 export function CandidateActiveQuestionWorkspace({
     sessionId,
     role,
+    resumeText,
     currentQuestion,
     nextQuestion,
     isLastQuestion,
@@ -83,12 +85,13 @@ export function CandidateActiveQuestionWorkspace({
     } = useTextToSpeech();
 
     const questionText = currentQuestion.text;
-    const { hints, isLoading: hintsLoading } = useSmartHints(currentQuestion, sessionId, undefined, role);
+    const currentQuestionCategory = getQuestionCategoryPresentation(currentQuestion.category);
+    const { hints, isLoading: hintsLoading } = useSmartHints(currentQuestion, sessionId, undefined, role, undefined, resumeText);
     const {
         data: strongResponse,
         isLoading: strongResponseLoading,
         fetchStrongResponse,
-    } = useStrongResponse(currentQuestion.id, currentQuestion.text, sessionId, undefined, role);
+    } = useStrongResponse(currentQuestion.id, currentQuestion.text, sessionId, undefined, role, resumeText);
 
     useEffect(() => {
         setVoiceNoticeAcknowledged(window.localStorage.getItem(voiceNoticeStorageKey) === "true");
@@ -359,8 +362,8 @@ export function CandidateActiveQuestionWorkspace({
                             >
                                 <div className="flex justify-start mb-6">
                                     <CategoryTooltip category={currentQuestion.category}>
-                                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-brand-deep text-micro font-bold uppercase tracking-wider text-text-inverse cursor-help transition-colors">
-                                            {currentQuestion.category.toUpperCase()}
+                                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-brand-deep text-xs font-bold text-text-inverse cursor-help transition-colors">
+                                            {currentQuestionCategory.label}
                                         </span>
                                     </CategoryTooltip>
                                 </div>
@@ -546,11 +549,13 @@ export function CandidateActiveQuestionWorkspace({
                         <div className="mt-4 space-y-3 text-sm leading-6 text-text-secondary">
                             <p>
                                 Your browser will ask for microphone permission after you continue. Interview Coach uses
-                                your voice response to create coaching for this practice question.
+                                your voice response to create coaching for this practice question. Text mode is always
+                                available.
                             </p>
                             <p>
-                                You can switch to text mode instead. Voice responses are practice content and are not
-                                shared with recruiters or employers for hiring decisions.
+                                Voice answers are practice content. The transcript may be saved for feedback and your
+                                own review, but the app does not save a separate audio file after the question is
+                                completed.
                             </p>
                         </div>
                         <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

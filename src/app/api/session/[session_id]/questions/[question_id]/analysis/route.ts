@@ -3,6 +3,7 @@ import { createSessionRepository } from "@/lib/server/infrastructure/session-rep
 import { AIService } from "@/lib/server/services/ai-service";
 import { getAnalysisContext } from "@/lib/server/session/orchestrator";
 import { SessionStatus } from "@/lib/domain/types";
+import { isFeedbackFlowAnalysisReady } from "@/lib/domain/analysis-readiness";
 import { buildAnalysisIdempotencyKey } from "@/lib/domain/idempotency-keys";
 import { validatedSessionHandler } from "@/lib/server/api-handler-utils";
 import { QuestionAnalysisRequestSchema } from "@/lib/domain/schemas";
@@ -31,7 +32,7 @@ export async function POST(
             return validationErrorResponse(correlationId, "Answer not submitted");
         }
 
-        if (answer.analysis) {
+        if (isFeedbackFlowAnalysisReady(answer.analysis)) {
             return NextResponse.json(session);
         }
 

@@ -41,24 +41,19 @@ class AudioEngine {
         }
 
         try {
-            const AudioCtx = window.AudioContext ||
-                (window as unknown as WebkitWindow).webkitAudioContext;
+            const ctx = this.ensureContext();
 
-            if (!AudioCtx) {
+            if (!ctx) {
                 return;
             }
 
-            if (!this.ctx) {
-                this.ctx = new AudioCtx();
-            }
-
             // Always try to resume if not running
-            if (this.ctx.state !== 'running') {
-                await this.ctx.resume();
+            if (ctx.state !== 'running') {
+                await ctx.resume();
             }
 
             // Verify state after resume attempt
-            if (this.ctx.state === 'running') {
+            if (ctx.state === 'running') {
                 this.state = 'unlocked';
             }
         } catch (err) {
@@ -118,7 +113,8 @@ class AudioEngine {
 
     /** Prefetch audio for a question (fire-and-forget). */
     prefetch(id: string, text: string, auth?: CandidateAudioAuth): void {
-        if (!this.ctx || this.cache.has(id) || this.pending.has(id)) return;
+        if (this.cache.has(id) || this.pending.has(id)) return;
+        if (!this.ensureContext()) return;
 
         // Fire-and-forget — just populate cache
         this.getOrFetch(id, text, auth).catch(() => { /* swallow */ });
@@ -141,6 +137,26 @@ class AudioEngine {
     }
 
     // --- Internal ---
+
+    private ensureContext(): AudioContext | null {
+        if (this.ctx) {
+            return this.ctx;
+        }
+
+        if (typeof window === 'undefined') {
+            return null;
+        }
+
+        const AudioCtx = window.AudioContext ||
+            (window as unknown as WebkitWindow).webkitAudioContext;
+
+        if (!AudioCtx) {
+            return null;
+        }
+
+        this.ctx = new AudioCtx();
+        return this.ctx;
+    }
 
     private setPlaybackState(next: PlaybackState): void {
         if (this.playbackState === next) return;

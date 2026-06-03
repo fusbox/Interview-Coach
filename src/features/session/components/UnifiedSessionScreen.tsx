@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CategoryTooltip } from './CategoryTooltip';
+import { CategoryTooltip, getQuestionCategoryPresentation } from './CategoryTooltip';
 import { EngagementDebugOverlay } from '@/components/debug/EngagementDebugOverlay';
 import { TRANSITION_DURATION, AUDIO_BUFFER_MULTIPLIER } from '@/lib/constants';
 import { AlertPanel } from '@/components/patterns/AlertPanel';
@@ -61,6 +61,7 @@ export default function UnifiedSessionScreen() {
     const hasSubmitted = currentQuestionId ? !!session?.answers[currentQuestionId]?.submittedAt : false;
     const currentQuestion = session?.questions[currentQuestionIndex];
     const currentQuestionText = currentQuestion?.text ?? '';
+    const currentQuestionCategory = currentQuestion ? getQuestionCategoryPresentation(currentQuestion.category) : null;
 
     // Input States
     const [mode, setMode] = useState<'voice' | 'text'>('voice');
@@ -544,8 +545,8 @@ export default function UnifiedSessionScreen() {
                             >
                                 <div className="flex justify-start mb-6">
                                     <CategoryTooltip category={currentQuestion.category}>
-                                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-brand-deep text-micro font-bold uppercase tracking-wider text-text-inverse cursor-help transition-colors">
-                                            {currentQuestion.category.toUpperCase()}
+                                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-brand-deep text-xs font-bold text-text-inverse cursor-help transition-colors">
+                                            {currentQuestionCategory?.label}
                                         </span>
                                     </CategoryTooltip>
                                 </div>
