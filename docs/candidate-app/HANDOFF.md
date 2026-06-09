@@ -43,6 +43,7 @@ Last updated: 2026-06-09
 - Candidate practice drafts and sessions now persist `interviewStage`, and candidate question snapshots use `QuestionPlan` ordering when a stage is present while preserving legacy `interviewType` ordering as fallback.
 - Shared answer analysis now records `candidate_app` only for candidate-led sessions with candidate/prepProfile context and otherwise records `recruiter_app` for recruiter-invited sessions.
 - Candidate-only answer feedback coaching (`coachSignal` / "For the biggest lift") is opt-in at the feedback drawer and enabled only from candidate session surfaces; recruiter-invited sessions keep the existing shared feedback flow without that candidate-only block.
+- Recruiter `/recruiter/create` now has an Interview Details block for interview stage and question count, gates question creation behind Add Questions, and passes stage/count into the shared question-generation request for AI-quality observability and prompt context.
 
 ## Current State And Context
 
@@ -63,7 +64,7 @@ Known current behavior:
 - Confidence measurement has not landed.
 - Runtime PII/sensitive-data scrubbing and QA masking are still open hardening items.
 - Host launch token/auth details are not finalized, so platform launch schema changes are documented but not implemented.
-- Recruiter create has not yet been redesigned to expose interview-stage/question-count planning. Candidate `/practice` has been rewired first.
+- Recruiter create now exposes interview-stage/question-count planning as a first pass. It still uses the existing STAR/PERMA/Technical editor once question creation is opened; category-section parity, distribution explanation, and reset/start-over UX are not yet landed.
 
 Active docs now use this lighter stack:
 
@@ -82,8 +83,8 @@ Harden the remaining dashboard data-contract seams before adding more visual pol
 
 Recommended next implementation slice:
 
-1. Recheck recruiter-invited answer feedback manually after the `coachSignal` gate to confirm the existing feedback flow still reads as expected.
-2. Decide the recruiter `/recruiter/create` implementation slice for interview-stage/question-count planning without changing invited-session feedback behavior.
+1. Continue the recruiter `/recruiter/create` redesign after the stage/count gate: map generated/manual questions into plain-language category sections and add the category distribution confirmation step.
+2. Keep recruiter-invited answer feedback behavior stable while shared generation/planning changes continue.
 3. Continue product tuning of category-scoped My Read copy against more realistic sessions.
 4. Keep completed-session route recovery queued as lower priority until dashboard release behavior is otherwise stable.
 
@@ -91,7 +92,7 @@ Recommended next implementation slice:
 
 - Same-title/different-JD prep profiles are not distinguishable in the dashboard until a profile switcher or stricter profile selector lands.
 - Practice Next still relies on active/latest completed-session prioritization and does not yet synthesize a coach-configured next round from cross-session lane/category patterns.
-- `QuestionPlan` now drives candidate `/practice` question snapshot ordering, but recruiter create still uses the existing question generation UI/path until its redesign lands.
+- `QuestionPlan` now informs both candidate `/practice` and recruiter `/recruiter/create` generation context, but recruiter create still needs the richer category-section UI and distribution confirmation flow.
 - Category coverage cards now have drilldowns and score-driven ordering, but category-scoped coach-read copy remains first-pass and needs product tuning against more realistic sessions.
 - Legacy `oneBigUpgrade` can still exist in persisted payloads, but current read paths should treat it as compatibility fallback only.
 - Sensitive data can still be too visible in AI-quality/debug surfaces until masking/redaction work lands.

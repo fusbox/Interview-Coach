@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Sparkles, Trash2, Loader2, Save, X } from "lucide-react";
-import { Details, QuestionInput, StepFooterProps } from "../constants";
+import { Details, InterviewDetails, QuestionInput, StepFooterProps } from "../constants";
 import { useEffect, useState, useLayoutEffect, useRef, useId } from "react";
 import { ChevronRight } from "lucide-react";
 import { showDemoTools } from "@/lib/feature-flags";
@@ -12,10 +12,13 @@ import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { AlertPanel } from "@/components/patterns/AlertPanel";
 import { FieldGroup, FieldHint, FieldLabel, textFieldClassName, textareaFieldClassName } from "@/components/patterns/FormField";
 import { useAccessibleDialog } from "@/lib/hooks/use-accessible-dialog";
+import { INTERVIEW_STAGE_OPTIONS, normalizeInterviewStage } from "@/lib/domain/interview-stage";
 
 interface StepJobAndQuestionsProps {
     details: Details;
     setDetails: (details: Details) => void;
+    interviewDetails: InterviewDetails;
+    setInterviewDetails: (details: InterviewDetails) => void;
     star: QuestionInput[];
     setStar: (val: QuestionInput[]) => void;
     perma: QuestionInput[];
@@ -78,8 +81,11 @@ const AutoResizeTextarea = ({
     );
 };
 
+const questionCountOptions = [3, 5, 7, 10] as const;
+
 export function StepJobAndQuestions({
     details, setDetails,
+    interviewDetails, setInterviewDetails,
     star, setStar,
     perma, setPerma,
     technical, setTechnical,
@@ -95,6 +101,11 @@ export function StepJobAndQuestions({
     const isDemo = showDemoTools();
     const [isSaving, setIsSaving] = useState(false);
     const [showSaveModal, setShowSaveModal] = useState(false);
+    const [isQuestionBuilderReady, setIsQuestionBuilderReady] = useState(false);
+    const [isManualEntryReady, setIsManualEntryReady] = useState(false);
+    const [questionCountMode, setQuestionCountMode] = useState<"preset" | "other">(
+        questionCountOptions.includes(interviewDetails.questionCount as (typeof questionCountOptions)[number]) ? "preset" : "other",
+    );
     const [templateName, setTemplateName] = useState("");
     const [isShared, setIsShared] = useState(true);
     const [saveError, setSaveError] = useState<string | null>(null);
@@ -110,6 +121,9 @@ export function StepJobAndQuestions({
     const reqIdInputId = useId();
     const targetRoleInputId = useId();
     const jobDescriptionInputId = useId();
+    const interviewStageHelpId = useId();
+    const questionCountHelpId = useId();
+    const otherQuestionCountInputId = useId();
     const templateNameInputId = useId();
 
     useAccessibleDialog({
@@ -168,6 +182,8 @@ export function StepJobAndQuestions({
         setStar(template.questions.star);
         setPerma(template.questions.perma);
         setTechnical(template.questions.technical);
+        setIsQuestionBuilderReady(true);
+        setIsManualEntryReady(true);
     };
 
     const handleSaveSubmit = async (e: React.FormEvent) => {
@@ -212,6 +228,8 @@ export function StepJobAndQuestions({
         setGenerationFeedback(null);
         try {
             await onGenerateQuestionsAI();
+            setIsQuestionBuilderReady(true);
+            setIsManualEntryReady(false);
         } catch {
             setGenerationFeedback({
                 tone: "critical",
@@ -220,12 +238,41 @@ export function StepJobAndQuestions({
         }
     };
 
+    const isJobDetailsComplete = Boolean(details.role.trim() && details.reqId.trim() && details.jd.trim());
+
+    const handleAddQuestions = () => {
+        if (!isJobDetailsComplete || isTourLocked) {
+            return;
+        }
+        setIsQuestionBuilderReady(true);
+    };
+
+    const handleManualEntry = () => {
+        setIsManualEntryReady(true);
+        setIsQuestionBuilderReady(true);
+        setGenerationFeedback(null);
+    };
+
+    const updateInterviewStage = (value: string) => {
+        setInterviewDetails({
+            ...interviewDetails,
+            interviewStage: normalizeInterviewStage(value),
+        });
+    };
+
+    const updateQuestionCount = (questionCount: number) => {
+        setInterviewDetails({
+            ...interviewDetails,
+            questionCount: Math.min(Math.max(Math.trunc(questionCount), 1), 20),
+        });
+    };
+
     const hasAtLeastOneQuestion =
         star.some(q => q.text.trim()) ||
         perma.some(q => q.text.trim()) ||
         technical.some(q => q.text.trim());
 
-    const isNextDisabled = !details.role.trim() || !details.reqId.trim() || !details.jd.trim() || !hasAtLeastOneQuestion;
+    const isNextDisabled = !isJobDetailsComplete || !hasAtLeastOneQuestion;
 
     return (
         <div className="space-y-10">
@@ -320,10 +367,143 @@ export function StepJobAndQuestions({
                             </FieldGroup>
                     </CardContent>
                 </Card>
+
+                <Card
+                    className="border-border/50 shadow-raised-1"
+                    data-tour-step-id="tour-recruiter-create-interview-details"
+                >
+                    <CardHeader className="pb-4">
+                        <CardTitle className="text-base font-bold font-sans flex items-center gap-2.5">
+                            <div className="w-1 h-4 bg-primary rounded-full" />
+                            Interview Details
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <fieldset className="space-y-3" aria-describedby={interviewStageHelpId}>
+                            <legend className="text-micro font-bold uppercase tracking-widest text-primary">
+                                Interview Stage
+                            </legend>
+                            <p id={interviewStageHelpId} className="text-sm leading-6 text-text-secondary">
+                                Choose the closest match for the interview the candidate is preparing for. If you are not sure, use Not sure yet.
+                            </p>
+                            <div className="grid gap-3 md:grid-cols-2">
+                                {INTERVIEW_STAGE_OPTIONS.map((option) => (
+                                    <label
+                                        key={option.value}
+                                        className={`flex cursor-pointer gap-3 rounded-2xl border px-4 py-3 transition-all ${
+                                            interviewDetails.interviewStage === option.value
+                                                ? "border-primary/40 bg-primary/5 text-text-primary"
+                                                : "border-border bg-surface-base text-text-secondary hover:border-primary/30 hover:bg-primary/5"
+                                        } ${isTourLocked ? "cursor-not-allowed opacity-60" : ""}`}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="recruiterInterviewStage"
+                                            value={option.value}
+                                            checked={interviewDetails.interviewStage === option.value}
+                                            onChange={(event) => updateInterviewStage(event.target.value)}
+                                            disabled={isTourLocked}
+                                            className="mt-1 h-4 w-4 border-border text-primary focus:ring-primary/20"
+                                        />
+                                        <span>
+                                            <span className="block text-sm font-bold text-text-primary">{option.label}</span>
+                                            <span className="mt-1 block text-sm leading-6 text-text-secondary">{option.description}</span>
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+                        </fieldset>
+
+                        <fieldset className="space-y-3" aria-describedby={questionCountHelpId}>
+                            <legend className="text-micro font-bold uppercase tracking-widest text-primary">
+                                Question Count
+                            </legend>
+                            <p id={questionCountHelpId} className="text-sm leading-6 text-text-secondary">
+                                Select how many questions to add to this practice invite.
+                            </p>
+                            <div className="flex flex-wrap gap-3">
+                                {questionCountOptions.map((option) => (
+                                    <label
+                                        key={option}
+                                        className={`inline-flex cursor-pointer items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-bold transition-all ${
+                                            questionCountMode === "preset" && interviewDetails.questionCount === option
+                                                ? "border-primary/40 bg-primary/5 text-primary"
+                                                : "border-border bg-surface-base text-text-secondary hover:border-primary/30 hover:bg-primary/5"
+                                        } ${isTourLocked ? "cursor-not-allowed opacity-60" : ""}`}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="recruiterQuestionCount"
+                                            value={option}
+                                            checked={questionCountMode === "preset" && interviewDetails.questionCount === option}
+                                            onChange={() => {
+                                                setQuestionCountMode("preset");
+                                                updateQuestionCount(option);
+                                            }}
+                                            disabled={isTourLocked}
+                                            className="h-4 w-4 border-border text-primary focus:ring-primary/20"
+                                        />
+                                        {option} questions
+                                    </label>
+                                ))}
+                                <label
+                                    className={`inline-flex cursor-pointer items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-bold transition-all ${
+                                        questionCountMode === "other"
+                                            ? "border-primary/40 bg-primary/5 text-primary"
+                                            : "border-border bg-surface-base text-text-secondary hover:border-primary/30 hover:bg-primary/5"
+                                    } ${isTourLocked ? "cursor-not-allowed opacity-60" : ""}`}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="recruiterQuestionCount"
+                                        value="other"
+                                        checked={questionCountMode === "other"}
+                                        onChange={() => setQuestionCountMode("other")}
+                                        disabled={isTourLocked}
+                                        className="h-4 w-4 border-border text-primary focus:ring-primary/20"
+                                    />
+                                    Other
+                                </label>
+                            </div>
+                            {questionCountMode === "other" && (
+                                <FieldGroup className="max-w-xs space-y-2">
+                                    <FieldLabel htmlFor={otherQuestionCountInputId}>Number of questions</FieldLabel>
+                                    <input
+                                        id={otherQuestionCountInputId}
+                                        className={`${textFieldClassName} h-11 py-0`}
+                                        type="number"
+                                        min={1}
+                                        max={20}
+                                        value={interviewDetails.questionCount}
+                                        disabled={isTourLocked}
+                                        onChange={(event) => updateQuestionCount(Number(event.target.value))}
+                                    />
+                                    <FieldHint>Use any number from 1 to 20.</FieldHint>
+                                </FieldGroup>
+                            )}
+
+                            <div className="pt-2">
+                                <Button
+                                    type="button"
+                                    emphasis="primary"
+                                    density="comfortable"
+                                    shape="app"
+                                    label="strong"
+                                    onClick={handleAddQuestions}
+                                    disabled={!isJobDetailsComplete || isTourLocked}
+                                >
+                                    Add Questions
+                                </Button>
+                            </div>
+                        </fieldset>
+                    </CardContent>
+                </Card>
                 
                 {/* Questions Group: AI Generator + Question Sections */}
+                {isQuestionBuilderReady && (
                 <div className="space-y-4" data-tour-step-id="tour-recruiter-create-questions">
                     {/* AI Generator Action - Contextually placed closer to questions */}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                     {onGenerateQuestionsAI && (
                         <div className="space-y-3">
                             <div className="flex justify-start" data-tour-step-id="tour-recruiter-create-ai-generate">
@@ -357,6 +537,21 @@ export function StepJobAndQuestions({
                             )}
                         </div>
                     )}
+                        <Button
+                            type="button"
+                            emphasis="secondary"
+                            density="comfortable"
+                            shape="app"
+                            label="strong"
+                            onClick={handleManualEntry}
+                            disabled={isTourLocked}
+                        >
+                            Enter my own questions
+                        </Button>
+                    </div>
+
+                    {(isManualEntryReady || hasAtLeastOneQuestion) && (
+                    <>
 
                     {/* STAR Section */}
                     <Card className="border-border/50 shadow-raised-1">
@@ -499,7 +694,10 @@ export function StepJobAndQuestions({
                             </Button>
                         </CardContent>
                     </Card>
+                    </>
+                    )}
                 </div>
+                )}
             </div>
 
             <StepFooter

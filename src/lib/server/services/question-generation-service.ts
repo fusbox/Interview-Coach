@@ -68,6 +68,8 @@ export async function generateInterviewQuestionSet(
         role: normalizedInput.role,
         hasJobDescription: !!normalizedInput.jobDescription,
         hasResumeText: !!normalizedInput.resume,
+        interviewStage: normalizedInput.interviewStage,
+        questionCount: normalizedInput.questionCount,
     });
 
     if (!ai) {
@@ -229,7 +231,7 @@ function normalizeQuestionCount(questionCount: number | null | undefined) {
         return 5;
     }
 
-    return Math.min(Math.max(questionCount, 3), 10);
+    return Math.min(Math.max(questionCount, 1), 20);
 }
 
 function buildQuestionGenerationPrompt(input: QuestionGenerationInput) {

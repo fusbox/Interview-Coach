@@ -171,6 +171,7 @@ Rules:
 - keep generated question text and answer evaluation separate from the deterministic plan.
 - candidate `/practice` uses the plain-language interview-stage labels above and stores the selected `interviewStage` on draft intake responses and session `practiceConfig`;
 - candidate question snapshots use `QuestionPlan` ordering when an `interviewStage` is present; legacy `interviewType` ordering remains a compatibility fallback for older inputs.
+- recruiter `/recruiter/create` sends `interviewStage` and `questionCount` through the same shared question generation boundary so generated questions reflect the intended interview moment and count without changing recruiter-invited answer feedback behavior.
 
 ### PracticeDraft
 

@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { StepJobAndQuestions } from "./StepJobAndQuestions";
-import type { Details, QuestionInput, StepFooterProps } from "../constants";
+import type { Details, InterviewDetails, QuestionInput, StepFooterProps } from "../constants";
 
 function StepFooterStub({ onNext, isNextDisabled, customAction }: StepFooterProps) {
     return (
@@ -16,8 +16,15 @@ function StepFooterStub({ onNext, isNextDisabled, customAction }: StepFooterProp
 }
 
 describe("StepJobAndQuestions", () => {
+    const defaultInterviewDetails: InterviewDetails = {
+        interviewStage: "not_sure",
+        questionCount: 5,
+    };
+
     it("keeps next disabled until req id, role, job description, and a question are present", async () => {
+        const user = userEvent.setup();
         let details: Details = { role: "", jd: "", firstName: "", lastName: "", candidateEmail: "", reqId: "" };
+        let interviewDetails = defaultInterviewDetails;
         let star: QuestionInput[] = [{ id: "s1", text: "", category: "STAR", label: "STAR 1" }];
         const perma: QuestionInput[] = [];
         const technical: QuestionInput[] = [];
@@ -30,11 +37,17 @@ describe("StepJobAndQuestions", () => {
             star = next;
             rerenderComponent();
         });
+        const setInterviewDetails = vi.fn((next: InterviewDetails) => {
+            interviewDetails = next;
+            rerenderComponent();
+        });
 
         const renderComponent = () => render(
             <StepJobAndQuestions
                 details={details}
                 setDetails={setDetails}
+                interviewDetails={interviewDetails}
+                setInterviewDetails={setInterviewDetails}
                 star={star}
                 setStar={setStar}
                 perma={perma}
@@ -53,6 +66,8 @@ describe("StepJobAndQuestions", () => {
                 <StepJobAndQuestions
                     details={details}
                     setDetails={setDetails}
+                    interviewDetails={interviewDetails}
+                    setInterviewDetails={setInterviewDetails}
                     star={star}
                     setStar={setStar}
                     perma={perma}
@@ -73,6 +88,8 @@ describe("StepJobAndQuestions", () => {
         fireEvent.change(screen.getByLabelText("Job Description"), {
             target: { value: "Own QA coverage for customer-facing product releases." }
         });
+        await user.click(screen.getByRole("button", { name: "Add Questions" }));
+        await user.click(screen.getByRole("button", { name: "Enter my own questions" }));
         fireEvent.change(screen.getByLabelText("STAR question 1"), {
             target: { value: "Tell me about a time you improved quality." }
         });
@@ -86,6 +103,7 @@ describe("StepJobAndQuestions", () => {
         const user = userEvent.setup();
         const onSaveTemplate = vi.fn().mockResolvedValue(undefined);
         let details: Details = { role: "QA Engineer", jd: "", firstName: "", lastName: "", candidateEmail: "", reqId: "REQ-11" };
+        let interviewDetails = defaultInterviewDetails;
         let star: QuestionInput[] = [{ id: "s1", text: "Existing question", category: "STAR", label: "STAR 1" }];
         let perma: QuestionInput[] = [];
         let technical: QuestionInput[] = [];
@@ -104,6 +122,10 @@ describe("StepJobAndQuestions", () => {
         });
         const setTechnical = vi.fn((next: QuestionInput[]) => {
             technical = next;
+            rerenderComponent();
+        });
+        const setInterviewDetails = vi.fn((next: InterviewDetails) => {
+            interviewDetails = next;
             rerenderComponent();
         });
 
@@ -126,6 +148,8 @@ describe("StepJobAndQuestions", () => {
             <StepJobAndQuestions
                 details={details}
                 setDetails={setDetails}
+                interviewDetails={interviewDetails}
+                setInterviewDetails={setInterviewDetails}
                 star={star}
                 setStar={setStar}
                 perma={perma}
@@ -145,6 +169,8 @@ describe("StepJobAndQuestions", () => {
                 <StepJobAndQuestions
                     details={details}
                     setDetails={setDetails}
+                    interviewDetails={interviewDetails}
+                    setInterviewDetails={setInterviewDetails}
                     star={star}
                     setStar={setStar}
                     perma={perma}
@@ -180,13 +206,15 @@ describe("StepJobAndQuestions", () => {
         });
     });
 
-    it("prompts for target role and job description before generating AI questions", async () => {
+    it("keeps question creation gated until job details are complete", async () => {
         const user = userEvent.setup();
 
         render(
             <StepJobAndQuestions
                 details={{ role: "", jd: "", firstName: "", lastName: "", candidateEmail: "", reqId: "" }}
                 setDetails={vi.fn()}
+                interviewDetails={defaultInterviewDetails}
+                setInterviewDetails={vi.fn()}
                 star={[{ id: "s1", text: "", category: "STAR", label: "STAR 1" }]}
                 setStar={vi.fn()}
                 perma={[]}
@@ -200,11 +228,12 @@ describe("StepJobAndQuestions", () => {
             />
         );
 
-        await user.click(screen.getByRole("button", { name: /ai generate questions/i }));
+        expect(screen.getByRole("button", { name: "Add Questions" })).toBeDisabled();
+        expect(screen.queryByRole("button", { name: /ai generate questions/i })).not.toBeInTheDocument();
+        expect(screen.queryByLabelText("STAR question 1")).not.toBeInTheDocument();
 
-        expect(await screen.findByRole("status")).toHaveTextContent(
-            "Add a Target Role and Job Description first so AI can generate relevant interview questions."
-        );
+        await user.click(screen.getByRole("button", { name: "Add Questions" }));
+        expect(screen.queryByRole("button", { name: /ai generate questions/i })).not.toBeInTheDocument();
     });
 
     it("shows a visible failure panel when AI question generation rejects", async () => {
@@ -213,8 +242,10 @@ describe("StepJobAndQuestions", () => {
 
         render(
             <StepJobAndQuestions
-                details={{ role: "QA Engineer", jd: "Support release validation and regression coverage.", firstName: "", lastName: "", candidateEmail: "", reqId: "" }}
+                details={{ role: "QA Engineer", jd: "Support release validation and regression coverage.", firstName: "", lastName: "", candidateEmail: "", reqId: "REQ-12" }}
                 setDetails={vi.fn()}
+                interviewDetails={defaultInterviewDetails}
+                setInterviewDetails={vi.fn()}
                 star={[{ id: "s1", text: "", category: "STAR", label: "STAR 1" }]}
                 setStar={vi.fn()}
                 perma={[]}
@@ -228,11 +259,71 @@ describe("StepJobAndQuestions", () => {
             />
         );
 
+        await user.click(screen.getByRole("button", { name: "Add Questions" }));
         await user.click(screen.getByRole("button", { name: /ai generate questions/i }));
 
         expect(await screen.findByRole("alert")).toHaveTextContent(
             "AI question generation failed. Please review the job details and try again."
         );
         expect(onGenerateQuestionsAI).toHaveBeenCalledTimes(1);
+    });
+
+    it("updates interview stage and question count controls", async () => {
+        const user = userEvent.setup();
+        let interviewDetails = defaultInterviewDetails;
+        const setInterviewDetails = vi.fn((next: InterviewDetails) => {
+            interviewDetails = next;
+            rerenderComponent();
+        });
+
+        const renderComponent = () => render(
+            <StepJobAndQuestions
+                details={{ role: "QA Engineer", jd: "Support release validation and regression coverage.", firstName: "", lastName: "", candidateEmail: "", reqId: "REQ-13" }}
+                setDetails={vi.fn()}
+                interviewDetails={interviewDetails}
+                setInterviewDetails={setInterviewDetails}
+                star={[{ id: "s1", text: "", category: "STAR", label: "STAR 1" }]}
+                setStar={vi.fn()}
+                perma={[]}
+                setPerma={vi.fn()}
+                technical={[]}
+                setTechnical={vi.fn()}
+                onNext={vi.fn()}
+                StepFooter={StepFooterStub}
+                onSaveTemplate={vi.fn()}
+            />
+        );
+
+        const rendered = renderComponent();
+        const rerenderComponent = () => {
+            rendered.rerender(
+                <StepJobAndQuestions
+                    details={{ role: "QA Engineer", jd: "Support release validation and regression coverage.", firstName: "", lastName: "", candidateEmail: "", reqId: "REQ-13" }}
+                    setDetails={vi.fn()}
+                    interviewDetails={interviewDetails}
+                    setInterviewDetails={setInterviewDetails}
+                    star={[{ id: "s1", text: "", category: "STAR", label: "STAR 1" }]}
+                    setStar={vi.fn()}
+                    perma={[]}
+                    setPerma={vi.fn()}
+                    technical={[]}
+                    setTechnical={vi.fn()}
+                    onNext={vi.fn()}
+                    StepFooter={StepFooterStub}
+                    onSaveTemplate={vi.fn()}
+                />
+            );
+        };
+
+        await user.click(screen.getByRole("radio", { name: /first conversation or screening/i }));
+        expect(setInterviewDetails).toHaveBeenLastCalledWith(expect.objectContaining({
+            interviewStage: "initial_screening",
+        }));
+
+        await user.click(screen.getByRole("radio", { name: "7 questions" }));
+        expect(setInterviewDetails).toHaveBeenLastCalledWith(expect.objectContaining({
+            interviewStage: "initial_screening",
+            questionCount: 7,
+        }));
     });
 });

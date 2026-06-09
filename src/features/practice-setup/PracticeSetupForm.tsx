@@ -10,7 +10,7 @@ import {
     INTERVIEW_STAGE_OPTIONS,
     normalizeInterviewStage,
     type InterviewStage,
-} from "@/lib/server/services/question-plan-service";
+} from "@/lib/domain/interview-stage";
 
 import { startPracticeGenerationAction } from "./actions";
 import { PRACTICE_SETUP_LIMITS, safeParsePracticeSetupInput, safeParsePracticeSetupIntakeInput } from "./practice-setup-schema";

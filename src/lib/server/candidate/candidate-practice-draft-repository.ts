@@ -3,7 +3,7 @@ import type { QueryResultRow } from "pg";
 import { safeParsePracticeSetupInput } from "@/features/practice-setup/practice-setup-schema";
 import { normalizeResumeText } from "@/lib/candidate/resume-normalization";
 import { queryPostgres } from "@/lib/server/db/postgres";
-import { normalizeInterviewStage, type InterviewStage } from "@/lib/server/services/question-plan-service";
+import { normalizeInterviewStage, type InterviewStage } from "@/lib/domain/interview-stage";
 
 import { resolveCandidateRolePreparationProfile } from "./candidate-role-profile-repository";
 

@@ -2,7 +2,7 @@ import { resolveLocalCandidateAuthHandoff } from "./candidate-dev-auth-resolver"
 import { withCandidateRouteMetrics } from "./candidate-observability";
 import { resolveCandidateProfileFromIdentity } from "./candidate-profile-repository";
 import { PRACTICE_SETUP_LIMITS } from "@/features/practice-setup/practice-setup-schema";
-import type { InterviewStage } from "@/lib/server/services/question-plan-service";
+import type { InterviewStage } from "@/lib/domain/interview-stage";
 import {
     findCandidatePracticeDraftById,
     findLatestEditableCandidatePracticeDraft,

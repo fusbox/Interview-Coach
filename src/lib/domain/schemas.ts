@@ -330,6 +330,8 @@ export const GenerateQuestionsRequestSchema = z.object({
     role: z.string().trim().min(1, "Role is required"),
     jobDescription: z.string().trim().optional(),
     resume: z.string().trim().optional(),
+    interviewStage: z.enum(["not_sure", "initial_screening", "initial_interview", "follow_up_final", "practice_only"]).optional(),
+    questionCount: z.number().int().min(1).max(20).optional(),
 });
 
 export const InviteSendRequestSchema = z.object({

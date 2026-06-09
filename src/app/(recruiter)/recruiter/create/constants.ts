@@ -15,6 +15,11 @@ export interface QuestionInput {
     isLocked?: boolean; // If structural (STAR/PERMA)
 }
 
+export interface InterviewDetails {
+    interviewStage: "not_sure" | "initial_screening" | "initial_interview" | "follow_up_final" | "practice_only";
+    questionCount: number;
+}
+
 export const STAR_TEMPLATE: QuestionInput[] = [
     { id: 'b1', text: '', category: 'STAR', label: 'Conflict/Resolution', isLocked: false },
     { id: 'b2', text: '', category: 'STAR', label: 'Adaptability', isLocked: false },

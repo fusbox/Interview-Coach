@@ -625,6 +625,7 @@ This sequence is the operational checklist. Every item maps to the backlog tree 
 | 196 | Active | DASH-F03 | 774 | Fu Chen <fu@rangam.com> | Format dashboard My Read coach guidance | My Read detail modals now preserve full coach-read content and format recognized sections into Overall Read, What Stood Out, For the Biggest Lift, and Next Step while removing internal "Coach signals" language from candidate-facing output |
 | 197 | Active | DASH-F03 | 774 | Fu Chen <fu@rangam.com> | Stabilize dashboard modal width | Lane, category, and nested My Read modals now share the same viewport-constrained width rule across screen sizes to avoid breakpoint-driven width jumps and inconsistent wrapping |
 | 794 | Resolved | DASH-F03 | 774 | Fu Chen <fu@rangam.com> | Harden canonical answer modality persistence | Voice modality now carries through candidate server-action submission, shared submit route tests, audio-analysis reconciliation, and migration 005 backfill so `answers.modality` is the canonical source for voice submissions; dashboard `analysis.meta.modality` fallback is compatibility-only |
+| 198 | Active | SESS-F05 | 777 | Fu Chen <fu@rangam.com> | Add recruiter interview-detail planning controls | Recruiter `/recruiter/create` now exposes interview stage and question count before question creation, gates generated/manual question entry behind Add Questions, and passes stage/count to the shared question-generation boundary while preserving recruiter-invited feedback behavior |
 
 ## Open Questions
 

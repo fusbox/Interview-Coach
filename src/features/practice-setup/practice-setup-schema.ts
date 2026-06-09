@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { MAX_NORMALIZED_RESUME_TEXT_LENGTH } from "@/lib/candidate/resume-normalization";
-import { normalizeInterviewStage } from "@/lib/server/services/question-plan-service";
+import { normalizeInterviewStage } from "@/lib/domain/interview-stage";
 
 export const PRACTICE_SETUP_LIMITS = {
     targetRole: 120,

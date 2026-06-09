@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Check, ChevronLeft, RotateCcw } from "lucide-react";
-import { Details, InviteBatchSummary, QuestionInput, STAR_TEMPLATE, PERMA_TEMPLATE, DEV_CANDIDATE_POOL, DEV_JOB_POOL, RecruiterProfile, InviteFailure, InviteResult } from "./constants";
+import { Details, InterviewDetails, InviteBatchSummary, QuestionInput, STAR_TEMPLATE, PERMA_TEMPLATE, DEV_CANDIDATE_POOL, DEV_JOB_POOL, RecruiterProfile, InviteFailure, InviteResult } from "./constants";
 
 // Sub-components
 import { StepJobAndQuestions } from "./components/StepJobAndQuestions";
@@ -54,6 +54,10 @@ export default function CreateInviteWizard() {
 
     const [details, setDetails] = useState<Details>({
         role: "", jd: "", firstName: "", lastName: "", candidateEmail: "", reqId: ""
+    });
+    const [interviewDetails, setInterviewDetails] = useState<InterviewDetails>({
+        interviewStage: "not_sure",
+        questionCount: 5,
     });
 
     const [candidates, setCandidates] = useState<CandidateRow[]>([
@@ -161,6 +165,8 @@ export default function CreateInviteWizard() {
         role: details.role,
         jd: details.jd,
         reqId: details.reqId,
+        interviewStage: interviewDetails.interviewStage,
+        questionCount: interviewDetails.questionCount,
         candidates: candidates.map((candidate) => ({
             firstName: candidate.firstName,
             lastName: candidate.lastName,
@@ -170,7 +176,7 @@ export default function CreateInviteWizard() {
         star: star.map(({ id, text, category, label }) => ({ id, text, category, label })),
         perma: perma.map(({ id, text, category, label }) => ({ id, text, category, label })),
         technical: technical.map(({ id, text, category, label }) => ({ id, text, category, label }))
-    }), [details.role, details.jd, details.reqId, candidates, star, perma, technical]);
+    }), [details.role, details.jd, details.reqId, interviewDetails.interviewStage, interviewDetails.questionCount, candidates, star, perma, technical]);
 
     // Stale State Protection: Clear results only when the underlying draft changes after generation.
     useEffect(() => {
@@ -186,7 +192,7 @@ export default function CreateInviteWizard() {
 
     useEffect(() => {
         setCreateInviteKey(createIdempotencyKey());
-    }, [details.role, details.jd, details.reqId, candidates, star, perma, technical]);
+    }, [details.role, details.jd, details.reqId, interviewDetails.interviewStage, interviewDetails.questionCount, candidates, star, perma, technical]);
 
     const handleSaveTemplate = async (name: string, isShared: boolean) => {
         const res = await saveTemplateAction({
@@ -392,7 +398,12 @@ export default function CreateInviteWizard() {
             const res = await fetch("/api/questions/generate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ role: details.role, jobDescription: details.jd })
+                body: JSON.stringify({
+                    role: details.role,
+                    jobDescription: details.jd,
+                    interviewStage: interviewDetails.interviewStage,
+                    questionCount: interviewDetails.questionCount,
+                })
             });
             if (!res.ok) throw new Error("Generation failed");
             const data = await res.json();
@@ -631,6 +642,8 @@ export default function CreateInviteWizard() {
             {step === 1 && (
                 <StepJobAndQuestions
                     details={details} setDetails={setDetails}
+                    interviewDetails={interviewDetails}
+                    setInterviewDetails={setInterviewDetails}
                     star={star} setStar={setStar}
                     perma={perma} setPerma={setPerma}
                     technical={technical} setTechnical={setTechnical}
@@ -683,6 +696,7 @@ export default function CreateInviteWizard() {
                         setInviteSummary(null);
                         setStep(1);
                         setDetails({ role: "", jd: "", firstName: "", lastName: "", candidateEmail: "", reqId: "" });
+                        setInterviewDetails({ interviewStage: "not_sure", questionCount: 5 });
                         setCandidates([]);
                         setStar(STAR_TEMPLATE);
                         setPerma(PERMA_TEMPLATE);

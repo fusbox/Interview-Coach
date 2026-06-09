@@ -77,7 +77,9 @@ describe("POST /api/questions/generate", () => {
             body: JSON.stringify({
                 role: "Warehouse Associate",
                 jobDescription: "Pick, pack, and stage warehouse orders.",
-                resume: "Previous forklift and inventory experience."
+                resume: "Previous forklift and inventory experience.",
+                interviewStage: "initial_screening",
+                questionCount: 7,
             })
         });
 
@@ -95,7 +97,9 @@ describe("POST /api/questions/generate", () => {
             inputSnapshot: {
                 role: "Warehouse Associate",
                 hasJobDescription: true,
-                hasResumeText: true
+                hasResumeText: true,
+                interviewStage: "initial_screening",
+                questionCount: 7,
             },
             contextArtifacts: [
                 expect.objectContaining({
