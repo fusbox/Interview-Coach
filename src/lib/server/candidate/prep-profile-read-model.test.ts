@@ -28,6 +28,13 @@ describe("prep profile read model", () => {
                     framework: "Interest",
                     index: 1,
                 },
+                {
+                    ...baseQuestion,
+                    id: "question-3",
+                    text: "Tell me about a time you changed your approach for a customer.",
+                    category: "STAR",
+                    index: 2,
+                },
             ],
             answers: [
                 {
@@ -108,7 +115,13 @@ describe("prep profile read model", () => {
             expect.objectContaining({
                 categoryId: "behavioral",
                 label: "Behavioral",
-                questionCount: 1,
+                questionCount: 2,
+                practicedQuestionCount: 1,
+                upcomingQuestionCount: 1,
+                questionStatuses: [
+                    { questionId: "question-1", questionNumber: 1, status: "practiced" },
+                    { questionId: "question-3", questionNumber: 3, status: "upcoming" },
+                ],
                 evidenceState: "clear",
             }),
             expect.objectContaining({

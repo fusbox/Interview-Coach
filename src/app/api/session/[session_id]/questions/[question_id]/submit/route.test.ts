@@ -128,6 +128,31 @@ describe("POST /api/session/[session_id]/questions/[question_id]/submit", () => 
         });
     });
 
+    it("persists voice modality on voice answer submission", async () => {
+        const { POST } = await import("./route");
+
+        const req = new Request("http://localhost/api/session/session-1/questions/question-1/submit", {
+            method: "POST",
+            headers: { "Idempotency-Key": "submit-key-voice" },
+            body: JSON.stringify({ text: "", modality: "voice" })
+        });
+
+        const res = await POST(req, { params: Promise.resolve({ session_id: "session-1", question_id: "question-1" }) });
+        const body = await res.json();
+
+        expect(res.status).toBe(200);
+        expect(body.answers["question-1"]).toEqual(expect.objectContaining({
+            modality: "voice",
+        }));
+        expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({
+            answers: {
+                "question-1": expect.objectContaining({
+                    modality: "voice",
+                }),
+            },
+        }));
+    });
+
     it("returns 400 when analysis payload fails schema validation", async () => {
         const { POST } = await import("./route");
 

@@ -36,6 +36,7 @@ export type CandidateDashboardItem = {
     href: string;
     repeatHref?: string;
     lastActivityLabel: string;
+    lastActivityAt: number;
     summarySnippet?: string;
     coachingSnippet?: string;
     coachingSnippetLabel?: string;
@@ -92,7 +93,7 @@ type DashboardDraftRow = QueryResultRow & {
     submitted_count: number | string | null;
     summary_narrative: string | null;
     latest_recommendation: string | null;
-    latest_one_big_upgrade: unknown;
+    latest_coach_signal: unknown;
     last_activity_at: string | Date;
 };
 
@@ -109,7 +110,7 @@ type DashboardSessionEvidenceRow = QueryResultRow & {
     feedback_json: unknown;
 };
 
-type DashboardOneBigUpgrade = {
+type DashboardCoachSignal = {
     focus: string;
     rationale?: string;
     targetMoment?: string;
@@ -145,7 +146,7 @@ export async function loadCandidateDashboardForCurrentCandidate(input: {
                         s.current_question_index,
                         s.summary_narrative,
                         f.latest_recommendation,
-                        f.latest_one_big_upgrade,
+                            f.latest_coach_signal,
                         coalesce(q.question_count, 0)::int as question_count,
                         coalesce(a.submitted_count, 0)::int as submitted_count,
                         d.last_activity_at
@@ -165,10 +166,10 @@ export async function loadCandidateDashboardForCurrentCandidate(input: {
                     left join lateral (
                         select
                             er.feedback_json ->> 'recommendation' as latest_recommendation,
-                            er.feedback_json -> 'oneBigUpgrade' as latest_one_big_upgrade
+                            coalesce(er.feedback_json -> 'coachSignal', er.feedback_json -> 'oneBigUpgrade') as latest_coach_signal
                         from public.eval_results er
                         where er.session_id = d.session_id
-                          and (er.feedback_json ? 'recommendation' or er.feedback_json ? 'oneBigUpgrade')
+                          and (er.feedback_json ? 'recommendation' or er.feedback_json ? 'coachSignal' or er.feedback_json ? 'oneBigUpgrade')
                         order by er.updated_at desc
                         limit 1
                     ) f on true
@@ -223,6 +224,7 @@ function toDashboardItem(item: CandidateDashboardItem & { kind: "active" | "comp
         href: item.href,
         repeatHref: item.repeatHref,
         lastActivityLabel: item.lastActivityLabel,
+        lastActivityAt: item.lastActivityAt,
         summarySnippet: item.summarySnippet,
         coachingSnippet: item.coachingSnippet,
         coachingSnippetLabel: item.coachingSnippetLabel,
@@ -434,7 +436,7 @@ function toNumber(value: number | string | null): number {
     return 0;
 }
 
-function parseOneBigUpgrade(value: unknown): DashboardOneBigUpgrade | null {
+function parseCoachSignal(value: unknown): DashboardCoachSignal | null {
     const parsed = typeof value === "string" ? safeParseJson(value) : value;
     if (!parsed || typeof parsed !== "object") {
         return null;
@@ -470,7 +472,7 @@ function mapDashboardItem(
     const isCompleted = isCompletedRow(row);
     const sessionHref = row.session_id ? `/session/${row.session_id}` : "/practice";
     const summaryHref = row.session_id ? `/summary/${row.session_id}` : sessionHref;
-    const oneBigUpgrade = parseOneBigUpgrade(row.latest_one_big_upgrade);
+    const coachSignal = parseCoachSignal(row.latest_coach_signal);
     const prepProfile = buildDashboardPrepProfileSummary(row, evidenceRows, isCompleted ? null : sessionHref);
 
     return {
@@ -484,11 +486,12 @@ function mapDashboardItem(
         href: isCompleted ? summaryHref : sessionHref,
         repeatHref: isCompleted ? "/practice" : undefined,
         lastActivityLabel: formatDate(row.last_activity_at),
+        lastActivityAt: toTimestamp(row.last_activity_at) ?? 0,
         summarySnippet: row.summary_narrative || undefined,
-        coachingSnippet: oneBigUpgrade
-            ? `${oneBigUpgrade.focus}: ${oneBigUpgrade.trySayingThis}`
+        coachingSnippet: coachSignal
+            ? `${coachSignal.focus}: ${coachSignal.trySayingThis}`
             : row.latest_recommendation || undefined,
-        coachingSnippetLabel: oneBigUpgrade ? "For the biggest lift" : undefined,
+        coachingSnippetLabel: coachSignal ? "For the biggest lift" : undefined,
         prepProfile,
     };
 }
@@ -547,12 +550,13 @@ function mapEvidenceAnswer(row: DashboardSessionEvidenceRow): Answer | null {
     }
 
     const parsedAnalysis = AnalysisResultSchema.safeParse(row.feedback_json);
+    const analysis = parsedAnalysis.success ? parsedAnalysis.data as AnalysisResult : undefined;
     const answer: Answer = {
         questionId: row.question_id ?? "",
         transcript: row.final_text ?? "",
-        modality: row.modality ?? undefined,
+        modality: row.modality ?? analysis?.meta?.modality ?? undefined,
         submittedAt: toTimestamp(row.submitted_at),
-        analysis: parsedAnalysis.success ? parsedAnalysis.data as AnalysisResult : undefined,
+        analysis,
     };
 
     return answer;

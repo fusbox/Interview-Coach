@@ -279,14 +279,16 @@ export class PostgresSessionRepository implements SessionRepository {
                         session_id,
                         question_id,
                         attempt_number,
+                        modality,
                         final_text,
                         draft_text,
                         submitted_at
                     )
-                    values ($1, $2, 1, $3, $4, $5)
+                    values ($1, $2, 1, $3, $4, $5, $6)
                     on conflict (question_id, attempt_number)
                     do update set
                         session_id = excluded.session_id,
+                        modality = excluded.modality,
                         final_text = excluded.final_text,
                         draft_text = excluded.draft_text,
                         submitted_at = excluded.submitted_at
@@ -294,6 +296,7 @@ export class PostgresSessionRepository implements SessionRepository {
                 [
                     sessionId,
                     questionId,
+                    answer.modality ?? "text",
                     answer.transcript ?? null,
                     answer.draft ?? null,
                     this.asIsoTimestamp(answer.submittedAt)
@@ -459,6 +462,7 @@ export class PostgresSessionRepository implements SessionRepository {
             answers[answer.question_id] = {
                 questionId: answer.question_id,
                 transcript: answer.final_text || "",
+                modality: answer.modality || undefined,
                 draft: answer.draft_text || "",
                 submittedAt: this.asTimestamp(answer.submitted_at),
                 analysis: evalRow

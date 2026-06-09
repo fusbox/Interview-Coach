@@ -109,6 +109,7 @@ CANDIDATE_AUTH_MODE=dev
 For primary password-mode local access:
 
 ```text
+$env:CANDIDATE_DEV_AUTH_ENABLED = "true"
 $env:CANDIDATE_AUTH_MODE = "password"
 $env:CANDIDATE_DEV_EMAIL = "candidate-dev-primary@talentarbor.local"
 $env:CANDIDATE_DEV_ISSUER = "interview-coach-local"
@@ -119,6 +120,7 @@ $env:CANDIDATE_DEV_DISPLAY_NAME = "Dev Candidate Primary"
 For alternate password-mode local access:
 
 ```text
+$env:CANDIDATE_DEV_AUTH_ENABLED = "true"
 $env:CANDIDATE_AUTH_MODE = "password"
 $env:CANDIDATE_DEV_EMAIL = "candidate-dev-alt@talentarbor.local"
 $env:CANDIDATE_DEV_ISSUER = "interview-coach-local"

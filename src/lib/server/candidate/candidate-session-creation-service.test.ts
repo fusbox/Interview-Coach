@@ -101,6 +101,7 @@ describe("candidate session creation service", () => {
                 questionSetSnapshotId: "snapshot-1",
                 practiceConfig: {
                     interviewType: null,
+                    interviewStage: "not_sure",
                     questionCount: 5,
                 },
                 resumeContext: {
@@ -159,7 +160,8 @@ describe("candidate session creation service", () => {
                     },
                     intakeResponses: {
                         confidenceLevel: null,
-                        interviewType: "technical",
+                        interviewType: null,
+                        interviewStage: "follow_up_final",
                         timeline: null,
                         concerns: null,
                         practiceFocus: [],
@@ -185,7 +187,8 @@ describe("candidate session creation service", () => {
             role: "Reliability engineer",
             jobDescription: "Own deployment quality.",
             resume: "Reduced change failure rate by 25%.",
-            interviewType: "technical",
+            interviewType: null,
+            interviewStage: "follow_up_final",
             questionCount: 7,
         });
     });
@@ -298,6 +301,7 @@ function practiceDraft(overrides: Partial<CandidatePracticeDraft> = {}): Candida
         intakeResponses: {
             confidenceLevel: null,
             interviewType: null,
+            interviewStage: "not_sure",
             timeline: null,
             concerns: null,
             practiceFocus: [],

@@ -113,6 +113,32 @@ describe("candidate session answer service", () => {
         }));
     });
 
+    it("persists voice modality for candidate-owned answer submissions", async () => {
+        const { submitCandidateOwnedAnswer } = await import("./candidate-session-answer-service");
+
+        await expect(submitCandidateOwnedAnswer({
+            candidateProfileId: "profile-1",
+            sessionId: "session-1",
+            questionId: "question-1",
+            answerText: "I talked through the checklist.",
+            modality: "voice",
+        })).resolves.toMatchObject({
+            ok: true,
+            sessionId: "session-1",
+            status: "AWAITING_EVALUATION",
+            questionId: "question-1",
+        });
+
+        expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({
+            answers: {
+                "question-1": expect.objectContaining({
+                    transcript: "I talked through the checklist.",
+                    modality: "voice",
+                }),
+            },
+        }));
+    });
+
     it("returns validation feedback for a blank answer", async () => {
         const { submitCandidateOwnedAnswer } = await import("./candidate-session-answer-service");
 

@@ -103,7 +103,7 @@ const analyzedSessionResponse = {
             analysis: {
                 ack: "You gave a useful starting point.",
                 recommendation: "Try again with a more specific result.",
-                oneBigUpgrade: {
+                coachSignal: {
                     focus: "Add the result",
                     rationale: "The answer has a clear action, but the interviewer needs to hear the outcome.",
                     targetMoment: "I clarified the change",
@@ -204,7 +204,7 @@ describe("CandidateActiveQuestionWorkspace", () => {
         );
         expect(await screen.findByRole("button", { name: /explore feedback/i })).toBeInTheDocument();
         expect(screen.getByText("You gave a useful starting point.")).toBeInTheDocument();
-        expect(screen.getByText("One Big Upgrade")).toBeInTheDocument();
+        expect(screen.getByText("For the biggest lift")).toBeInTheDocument();
         expect(screen.getByText("Add the result")).toBeInTheDocument();
         expect(screen.getByText(/we finished without missing the deadline/i)).toBeInTheDocument();
         expect(refreshMock).not.toHaveBeenCalled();

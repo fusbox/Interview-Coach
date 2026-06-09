@@ -534,6 +534,7 @@ export function CandidateActiveQuestionWorkspace({
                 transcript={submittedFeedback?.transcript}
                 audioBlob={submittedFeedback?.audioBlob}
                 sessionId={sessionId}
+                showCoachSignal
             />
             {showVoiceNotice ? (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 px-4 backdrop-blur-sm">

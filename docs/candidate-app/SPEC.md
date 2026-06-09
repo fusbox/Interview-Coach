@@ -1,7 +1,7 @@
 # Candidate App Spec
 
 Status: Canonical product intent
-Last updated: 2026-06-01
+Last updated: 2026-06-09
 
 ## Purpose
 
@@ -42,10 +42,12 @@ The candidate creates a practice round by providing:
 - target role, required;
 - job description, required;
 - resume content, optional;
-- practice focus, optional advanced setup;
+- what interview moment they are preparing for, optional advanced setup;
 - question count, optional advanced setup.
 
 The default setup should stay short. Advanced setup may expand inline, but it should not make setup feel like a long intake interview.
+
+Question planning should stay deterministic and explainable before any AI question text is generated. The app may use target role, job description, resume context, interview stage, and question count to choose the intended category mix, but it should not imply that the generated question set alone defines overall interview preparedness.
 
 Candidate setup should clearly state:
 
@@ -70,6 +72,8 @@ Expected behavior:
 - candidate can pause/resume without losing progress;
 - candidate can reach dashboard without weakening session ownership.
 
+The candidate-led feedback flow may show candidate-only coaching elements such as "For the biggest lift." Recruiter-invited sessions share core answer analysis, but their existing user-facing feedback behavior should remain stable unless a recruiter-app change is explicitly specified.
+
 ### Summary
 
 After the final question, the candidate should route to summary immediately. The summary page owns the loading state while debrief content is generated or loaded.
@@ -92,7 +96,8 @@ The dashboard should be organized around a `prepProfile`: the candidate's prepar
 The dashboard should show:
 
 - the target interview context currently being prepared;
-- a fixed interview preparedness scaffold;
+- a fixed interview preparedness scaffold for answer performance;
+- question coverage across the kinds of interview questions practiced for that target interview;
 - the next practice action;
 - recent or previous sessions;
 - evidence-backed drilldowns;
@@ -107,19 +112,31 @@ The dashboard should not become a page of generic cards. It should visually answ
 
 ## Interview Preparedness Product Rules
 
-Interview preparedness is not a score.
+Interview preparedness is not a candidate-facing score.
 
-The candidate-facing scaffold uses stable top-level lanes:
+The candidate-facing performance scaffold uses stable top-level lanes:
 
-- Role Fit
 - Answer Substance
 - Interview Structure
 - Communication Delivery
-- Interview Range
 
-The lane scaffold should stay fixed. What varies is the signal mix underneath each lane, based on the target role, job description, resume context, practice focus, generated questions, answers, coaching feedback, and summaries.
+The lane scaffold should stay fixed. Lane state may be derived from hidden answer-evaluation scoring, but the dashboard must present the result qualitatively and evidence-first.
+
+Interview range is represented separately as question coverage, not as a lane. Expected category cards are:
+
+- Behavioral
+- Culture / Fit
+- Technical / Role-Specific
+- Case / Scenario
+- Screening
+
+Category coverage should distinguish practiced questions from generated-but-unanswered upcoming questions. Category state should be based on practiced/scored answers only; unanswered upcoming questions should not count as zero-score evidence.
+
+What varies by target interview is the question mix, evidence, drilldown content, and next practice recommendation, based on the target role, job description, resume context, interview stage, generated questions, answers, coaching feedback, and summaries.
 
 Resume and job description context are source evidence. They are not standalone dashboard lanes.
+
+Role Fit is out of current-release dashboard scope unless a specific future extraction/evaluation contract supports candidate-facing claims.
 
 Confidence is a self-reported trend. It is not performance evidence and is not a preparedness lane.
 
@@ -134,6 +151,8 @@ The app may make claims such as:
 - "This area is starting to build evidence."
 - "This is useful to practice next."
 - "Your resume content was used to shape coaching for this role."
+- "You practiced this kind of question."
+- "This question is upcoming in an unfinished round."
 
 The app must not claim:
 
@@ -165,3 +184,5 @@ The app must not claim:
 ## Change Rule
 
 Do not broaden candidate-facing scope or add new candidate claims without updating this file first.
+
+Shared services used by both candidate-led and recruiter-invited sessions must preserve recruiter-invited user-facing behavior unless this SPEC or a recruiter-app spec explicitly changes that behavior.

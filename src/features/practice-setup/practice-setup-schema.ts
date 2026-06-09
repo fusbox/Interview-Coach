@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { MAX_NORMALIZED_RESUME_TEXT_LENGTH } from "@/lib/candidate/resume-normalization";
+import { normalizeInterviewStage } from "@/lib/server/services/question-plan-service";
 
 export const PRACTICE_SETUP_LIMITS = {
     targetRole: 120,
@@ -56,7 +57,8 @@ export type PracticeSetupInput = z.infer<typeof practiceSetupSchema>;
 
 export const practiceSetupIntakeSchema = z.object({
     confidenceLevel: z.enum(["low", "medium", "high"]).nullable(),
-    interviewType: z.enum(["behavioral", "technical", "case", "screening", "general"]).nullable(),
+    interviewType: z.enum(["behavioral", "technical", "case", "screening", "general"]).nullable().optional().transform((value) => value ?? null),
+    interviewStage: z.preprocess(normalizeInterviewStage, z.enum(["not_sure", "initial_screening", "initial_interview", "follow_up_final", "practice_only"])),
     timeline: optionalSetupText("Timeline", PRACTICE_SETUP_LIMITS.timeline),
     concerns: optionalSetupText("Concerns", PRACTICE_SETUP_LIMITS.concerns),
     practiceFocus: z

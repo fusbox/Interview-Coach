@@ -7,11 +7,13 @@ import {
     EmptyPreparednessDashboard,
     PracticeNextCard,
     PreparednessMap,
+    QuestionCategoryDrilldown,
     QuestionCategoryCoverage,
     RecentActivityList,
     SkillDrilldown,
     TargetInterviewSwitcher,
     toQuestionCategoryCards,
+    toQuestionCategoryDrilldowns,
     toPreparednessSkills,
 } from "./components/CandidateDashboardComponents";
 
@@ -23,6 +25,7 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
     const hasPractice = dashboard.stats.totalPracticeCount > 0;
     const latestItem = dashboard.activeItems[0] || dashboard.completedItems[0] || null;
     const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
+    const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
     const scopedItems = [...dashboard.activeItems, ...dashboard.completedItems];
     const skills = toPreparednessSkills({
         latestItem,
@@ -30,7 +33,9 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
         fallbackHref: dashboard.nextBestAction.href || "/practice",
     });
     const categoryCards = toQuestionCategoryCards(scopedItems);
+    const categoryDrilldowns = toQuestionCategoryDrilldowns(categoryCards);
     const selectedSkill = skills.find((skill) => skill.id === selectedSkillId) || null;
+    const selectedCategory = categoryDrilldowns.find((category) => category.id === selectedCategoryId) || null;
     const recentItems = scopedItems.slice(0, 4);
 
     return (
@@ -47,7 +52,7 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
 
                         <TargetInterviewSwitcher targetInterviews={dashboard.targetInterviews} />
                         <PreparednessMap skills={skills} onSkillClick={setSelectedSkillId} />
-                        <QuestionCategoryCoverage categories={categoryCards} />
+                        <QuestionCategoryCoverage categories={categoryCards} onCategoryClick={setSelectedCategoryId} />
                         <RecentActivityList items={recentItems} />
                     </section>
 
@@ -68,6 +73,9 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
 
             {selectedSkill ? (
                 <SkillDrilldown skill={selectedSkill} onClose={() => setSelectedSkillId(null)} />
+            ) : null}
+            {selectedCategory ? (
+                <QuestionCategoryDrilldown category={selectedCategory} onClose={() => setSelectedCategoryId(null)} />
             ) : null}
         </main>
     );

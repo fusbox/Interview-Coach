@@ -1,7 +1,7 @@
 # Candidate App Data Contract
 
 Status: Canonical system truth
-Last updated: 2026-06-01
+Last updated: 2026-06-09
 
 ## Purpose
 
@@ -17,7 +17,7 @@ This file may include implementation names where they are part of the current co
   - draft field: `role_profile_id`;
   - session intake field: `roleProfileId`.
 - Do not introduce a separate "resume bridge" lane. Resume and JD context are evidence and framing sources.
-- Do not use `oneBigUpgrade` as user-facing copy. Treat it as legacy/internal until replaced by `coachSignal`.
+- Do not use `oneBigUpgrade` as user-facing copy. Treat it as legacy/internal compatibility only; new feedback should use `coachSignal`.
 
 ## Core Objects
 
@@ -106,11 +106,71 @@ Required:
 Optional:
 
 - resume content;
-- practice focus;
+- interview stage;
 - question count;
 - host-platform launch metadata when available.
 
 Current setup rule: candidate-led `/practice` requires a job description because production entry is expected to supply JD context and the practice model is role-specific.
+
+### QuestionPlan
+
+`QuestionPlan` is the deterministic plan for the question category mix before AI question text generation.
+
+Current implementation:
+
+- service: `src/lib/server/services/question-plan-service.ts`;
+- test: `src/lib/server/services/question-plan-service.test.ts`.
+
+Current contract:
+
+```ts
+type InterviewStage =
+    | "not_sure"
+    | "initial_screening"
+    | "initial_interview"
+    | "follow_up_final"
+    | "practice_only";
+
+type InterviewStageOption = {
+    value: InterviewStage;
+    label:
+        | "Not sure yet"
+        | "First conversation or screening"
+        | "First interview"
+        | "Follow-up or final interview"
+        | "No interview scheduled";
+    description: string;
+};
+
+type QuestionPlanCategory =
+    | "screening"
+    | "behavioral"
+    | "culture_fit"
+    | "case_scenario"
+    | "technical_role_specific";
+
+type QuestionPlanSlot = {
+    id: string;
+    index: number;
+    category: QuestionPlanCategory;
+};
+
+type QuestionPlan = {
+    interviewStage: InterviewStage;
+    questionCount: number;
+    categoryCounts: Record<QuestionPlanCategory, number>;
+    slots: QuestionPlanSlot[];
+};
+```
+
+Rules:
+
+- clamp supported question counts to 1-20 for shared recruiter/candidate planning;
+- preserve canonical category order: Screening, Behavioral, Culture/Fit, Case/Scenario, Technical/Role-Specific;
+- treat the plan as the intended sampling strategy, not the definition of total interview preparedness;
+- keep generated question text and answer evaluation separate from the deterministic plan.
+- candidate `/practice` uses the plain-language interview-stage labels above and stores the selected `interviewStage` on draft intake responses and session `practiceConfig`;
+- candidate question snapshots use `QuestionPlan` ordering when an `interviewStage` is present; legacy `interviewType` ordering remains a compatibility fallback for older inputs.
 
 ### PracticeDraft
 
@@ -184,7 +244,15 @@ Answers persist:
 - submitted timestamp;
 - analysis result when available.
 
-Canonical answer modality is the persisted answer modality. `analysis.meta.modality` is diagnostic/evaluation metadata and should not be the UI source of truth.
+Canonical answer modality is the persisted answer modality. `analysis.meta.modality` is diagnostic/evaluation metadata and should not be the UI source of truth for newly submitted answers.
+
+Modality persistence rules:
+
+- answer submit routes and server actions must pass explicit `text` or `voice` modality into the session orchestrator;
+- Postgres answer upserts must persist `answers.modality`;
+- answer analysis with audio input must reconcile the canonical answer modality to `voice` before persisting the updated session;
+- dashboard read models may use `analysis.meta.modality` only as an older-row compatibility fallback, not as the normal correctness path.
+- migration `005_backfill_answer_modality_from_analysis.sql` repairs previously persisted answers where feedback analysis proves voice input but the answer row still has the default `text` modality.
 
 ### AnalysisResult
 
@@ -198,7 +266,8 @@ Important fields:
 - `feedbackPlan`;
 - `recommendation`;
 - `nextAction`;
-- legacy/internal `oneBigUpgrade` until replaced by `coachSignal`;
+- `coachSignal`;
+- legacy/internal `oneBigUpgrade` only as compatibility fallback for older persisted feedback JSON;
 - hidden numeric `scores`;
 - metadata for QA/evaluation.
 
@@ -207,6 +276,15 @@ the internal numeric scores on completed-session analyses rather than from
 qualitative pulse/anchor inference. Signposting belongs to Structure only.
 
 The old analysis route should not be used for active behavior. Current candidate/recruiter feedback should use the question-scoped analysis flow.
+
+### AI Capture AppName
+
+Shared AI calls must record the correct app ownership:
+
+- `candidate_app` for candidate-led sessions with candidate/prepProfile context;
+- `recruiter_app` for recruiter-invited sessions.
+
+Candidate-only answer feedback fields such as `coachSignal` may be generated and rendered for candidate-led sessions. Recruiter-invited answer feedback should not request or render candidate-only coaching fields unless the recruiter-app experience is explicitly changed.
 
 ### FeedbackPlan
 
@@ -228,19 +306,18 @@ inference.
 
 ### CoachSignal
 
-`coachSignal` is the desired replacement for candidate-facing "one big upgrade" language.
+`coachSignal` is the replacement for candidate-facing "one big upgrade" language.
 
-Current status: not fully implemented.
+Current status: implemented in the answer-feedback schema, model prompt, sanitizer, session feedback UI, dashboard loader, and prepProfile read-model adapters. Older persisted feedback JSON may still contain `oneBigUpgrade`; read paths may map it to `coachSignal`, but new generation and candidate-facing code should not depend on the legacy field name.
 
-Expected future contract:
+Current contract:
 
 ```ts
 type CoachSignal = {
-    label: string;
-    qualityBand: "foundation" | "sharpen" | "polish" | "reinforce";
-    targetMoment?: string;
+    focus: string;
     rationale: string;
-    trySayingThis?: string;
+    targetMoment?: string;
+    trySayingThis: string;
 };
 ```
 
@@ -261,13 +338,13 @@ type PrepSignalLane =
 
 Candidate-facing lane labels:
 
-- Role Fit
 - Answer Substance
 - Interview Structure
 - Communication Delivery
-- Interview Range
 
-Resume/JD context is evidence and signal framing, not a lane.
+Role Fit is out of release scope. Interview Range is represented as question category coverage cards, not as a lane.
+
+Resume/JD context is evidence and signal framing, not a standalone lane.
 
 Confidence is not a lane.
 
@@ -303,10 +380,28 @@ type PrepEvidenceRef = {
     id?: string;
     label: string;
     excerpt?: string;
+    questionText?: string;
+    answerTranscript?: string;
+    answerModality?: "text" | "voice";
+    answerSubmittedAt?: number;
+    sessionId?: string;
+    sessionTitle?: string;
+    sessionStatusLabel?: string;
+    sessionActivityLabel?: string;
+    sessionSortAt?: number;
+    evaluation?: string;
 };
 ```
 
-Evidence refs must use candidate-safe excerpts. Do not surface raw resume content, full transcripts, prompts, or AI-quality internals in normal candidate UI.
+Evidence refs must use candidate-safe excerpts and evaluation copy. Dashboard lane and category drilldowns may show the candidate's own answer transcript, modality, submitted date, and session grouping context for practiced questions. Do not surface raw resume content, prompts, hidden numeric scores, or AI-quality internals in normal candidate UI.
+
+Answer modality is persisted in `answers.modality` and should be carried into `PrepEvidenceRef.answerModality`. For historical answers saved before modality was written at every submit/recovery boundary, dashboard read paths may fall back to `analysis.meta.modality` when present. If neither source can prove voice mode, the UI must treat the answer as text rather than guessing.
+
+`PrepEvidenceRef.evaluation` should preserve the full candidate-safe coach read. The dashboard may format recognized sections such as overall read, signal observations, biggest-lift guidance, and next step, but it must not truncate the detail modal content or expose internal labels such as "Coach signals" to candidates.
+
+Dashboard drilldowns should group practiced Q/A cards by session, newest session first, then sort each session's questions by submitted answer time ascending.
+
+Dashboard question coverage cards use generated-session question coverage plus submitted-answer score evidence. Cards must distinguish each question's candidate-facing status as `Practiced` when an answer was submitted and `Upcoming` when the question exists but is unanswered. Card state/color is derived from practiced/scored questions only; unanswered upcoming questions are coverage context and must not be treated as zero-score evidence. When multiple sessions contribute to the same category, the card state must be recomputed from the weighted average of practiced/scored questions rather than preserving the strongest historical state. Cards sort by practice need first (`not_practiced`, `emerging`, `clear`, `strong`) and by the canonical category order as the tie-breaker.
 
 ### Evidence States
 
@@ -364,7 +459,7 @@ Confidence should never be treated as performance evidence.
 
 ## Superseded Or Legacy Concepts
 
-- `oneBigUpgrade`: legacy/internal output name; migrate to `coachSignal` and candidate-facing "biggest lift" language.
+- `oneBigUpgrade`: legacy/internal output name retained only for older persisted payload compatibility. New generated output should use `coachSignal` and candidate-facing "biggest lift" language.
 - `scoring_dimensions`: legacy/optional unless explicitly populated and consumed.
 - `competencies`: prompt language may use competencies, but dashboard claims require populated evidence.
 - Resume bridge lane: superseded; use resume/JD as evidence and framing across lanes.

@@ -100,6 +100,7 @@ describe("candidate practice draft repository", () => {
                 {
                     confidenceLevel: null,
                     interviewType: null,
+                    interviewStage: "not_sure",
                     timeline: null,
                     concerns: null,
                     practiceFocus: [],
@@ -331,10 +332,11 @@ describe("candidate practice draft repository", () => {
             candidateProfileId: "profile-intake",
             practiceDraftId: "draft-intake",
             intakeResponses: {
-                confidenceLevel: "medium",
-                interviewType: "behavioral",
-                timeline: " Interview next week ",
-                concerns: " Staying concise ",
+                    confidenceLevel: "medium",
+                    interviewType: "behavioral",
+                    interviewStage: "follow_up_final",
+                    timeline: " Interview next week ",
+                    concerns: " Staying concise ",
                 practiceFocus: [" structure ", "", "specific examples", "structure"],
             },
         })).resolves.toMatchObject({
@@ -356,6 +358,7 @@ describe("candidate practice draft repository", () => {
                 {
                     confidenceLevel: "medium",
                     interviewType: "behavioral",
+                    interviewStage: "follow_up_final",
                     timeline: "Interview next week",
                     concerns: "Staying concise",
                     practiceFocus: ["structure", "specific examples"],

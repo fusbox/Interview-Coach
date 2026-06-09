@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
     PRACTICE_SETUP_LIMITS,
     parsePracticeSetupInput,
+    safeParsePracticeSetupIntakeInput,
     safeParsePracticeSetupInput,
 } from "./practice-setup-schema";
 
@@ -73,6 +74,38 @@ describe("practiceSetupSchema", () => {
 
         expect(safeParsePracticeSetupInput({ targetRole: "QA analyst", jobDescription: "Test regulated workflows.", questionCount: 2 }).success).toBe(false);
         expect(safeParsePracticeSetupInput({ targetRole: "QA analyst", jobDescription: "Test regulated workflows.", questionCount: 11 }).success).toBe(false);
+    });
+
+    it("defaults interview stage to not sure yet while preserving legacy interview type as nullable", () => {
+        expect(safeParsePracticeSetupIntakeInput({
+            confidenceLevel: null,
+            interviewType: null,
+            interviewStage: null,
+            timeline: null,
+            concerns: null,
+            practiceFocus: [],
+        })).toMatchObject({
+            success: true,
+            data: expect.objectContaining({
+                interviewType: null,
+                interviewStage: "not_sure",
+            }),
+        });
+
+        expect(safeParsePracticeSetupIntakeInput({
+            confidenceLevel: null,
+            interviewType: "behavioral",
+            interviewStage: "follow_up_final",
+            timeline: null,
+            concerns: null,
+            practiceFocus: [],
+        })).toMatchObject({
+            success: true,
+            data: expect.objectContaining({
+                interviewType: "behavioral",
+                interviewStage: "follow_up_final",
+            }),
+        });
     });
 
     it("rejects blank target role values", () => {

@@ -113,12 +113,14 @@ export const FeedbackPlanSchema = z.object({
     intervention: FeedbackInterventionSchema,
 });
 
-export const OneBigUpgradeSchema = z.object({
+export const CoachSignalSchema = z.object({
     focus: z.string(),
     rationale: z.string(),
     targetMoment: z.string().optional(),
     trySayingThis: z.string(),
 });
+
+export const OneBigUpgradeSchema = CoachSignalSchema;
 
 export const AnalysisResultSchema = z.object({
     ack: z.string().optional(),
@@ -128,6 +130,7 @@ export const AnalysisResultSchema = z.object({
     contentPulse: CoachingPulseSchema.optional(),
     deliveryPulse: CoachingPulseSchema.optional(),
 
+    coachSignal: CoachSignalSchema.optional(),
     oneBigUpgrade: OneBigUpgradeSchema.optional(),
 
     nextAction: z.object({

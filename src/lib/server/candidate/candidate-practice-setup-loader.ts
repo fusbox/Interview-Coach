@@ -2,6 +2,7 @@ import { resolveLocalCandidateAuthHandoff } from "./candidate-dev-auth-resolver"
 import { withCandidateRouteMetrics } from "./candidate-observability";
 import { resolveCandidateProfileFromIdentity } from "./candidate-profile-repository";
 import { PRACTICE_SETUP_LIMITS } from "@/features/practice-setup/practice-setup-schema";
+import type { InterviewStage } from "@/lib/server/services/question-plan-service";
 import {
     findCandidatePracticeDraftById,
     findLatestEditableCandidatePracticeDraft,
@@ -17,6 +18,7 @@ export type RestoredPracticeSetupDraft = {
         jobDescription: string | null;
         resumeText: string | null;
         interviewType: "behavioral" | "technical" | "case" | "screening" | "general" | null;
+        interviewStage: InterviewStage;
         questionCount: number;
     };
 };
@@ -48,6 +50,7 @@ export async function loadPracticeSetupDraftForCurrentCandidate(selectedPractice
             const intakeResponses = draft.intakeResponses ?? {
                 confidenceLevel: null,
                 interviewType: null,
+                interviewStage: "not_sure",
                 timeline: null,
                 concerns: null,
                 practiceFocus: [],
@@ -61,6 +64,7 @@ export async function loadPracticeSetupDraftForCurrentCandidate(selectedPractice
                     jobDescription: draft.jobDescription,
                     resumeText: draft.resumeContext.pastedText || draft.resumeContext.extractedText || null,
                     interviewType: intakeResponses.interviewType,
+                    interviewStage: intakeResponses.interviewStage,
                     questionCount: PRACTICE_SETUP_LIMITS.questionCountDefault,
                 },
             };

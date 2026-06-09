@@ -113,6 +113,7 @@ export async function submitCandidateAnswerAction(
         sessionId,
         questionId,
         answerText: String(formData.get("answerText") ?? ""),
+        modality: parseAnswerModality(formData.get("answerModality")),
     });
 
     if (!result.ok) {
@@ -120,6 +121,10 @@ export async function submitCandidateAnswerAction(
     }
 
     redirect(`/session/${result.sessionId}`);
+}
+
+function parseAnswerModality(value: FormDataEntryValue | null): "text" | "voice" {
+    return value === "voice" ? "voice" : "text";
 }
 
 export async function analyzeCandidateAnswerAction(

@@ -80,6 +80,7 @@ runIntegration("PostgresSessionRepository integration", () => {
                 [questionId]: {
                     questionId,
                     transcript: "I contained a phishing incident.",
+                    modality: "voice",
                     draft: "draft",
                     submittedAt: Date.now(),
                     analysis: makeAnalysis()
@@ -125,6 +126,7 @@ runIntegration("PostgresSessionRepository integration", () => {
         ]);
         expect(stored?.answers[questionId]).toEqual(expect.objectContaining({
             transcript: "I contained a phishing incident.",
+            modality: "voice",
             draft: "draft",
             analysis: expect.objectContaining({
                 ack: "Good start."

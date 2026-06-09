@@ -80,6 +80,7 @@ export async function createCandidateSessionFromDraft(
                 jobDescription: draft.jobDescription,
                 resume: draft.resumeContext.extractedText || draft.resumeContext.pastedText || null,
                 interviewType: draft.intakeResponses.interviewType,
+                interviewStage: draft.intakeResponses.interviewStage,
                 questionCount,
             };
             const questions = dependencies.generateQuestions
@@ -115,6 +116,7 @@ export async function createCandidateSessionFromDraft(
                     questionSetSnapshotId,
                     practiceConfig: {
                         interviewType: draft.intakeResponses.interviewType,
+                        interviewStage: draft.intakeResponses.interviewStage,
                         questionCount,
                     },
                     resumeContext: {

@@ -27,6 +27,16 @@ export type PrepEvidenceRef = {
     id?: string;
     label: string;
     excerpt?: string;
+    questionText?: string;
+    answerTranscript?: string;
+    answerModality?: Answer["modality"];
+    answerSubmittedAt?: number;
+    sessionId?: string;
+    sessionTitle?: string;
+    sessionStatusLabel?: string;
+    sessionActivityLabel?: string;
+    sessionSortAt?: number;
+    evaluation?: string;
 };
 
 export type PrepSignal = {
@@ -37,6 +47,7 @@ export type PrepSignal = {
     evidenceState: PrepEvidenceState;
     evidenceCounts: Record<PrepEvidenceState, number>;
     averageScore?: number;
+    scoreCount?: number;
     fillPercent?: number;
     priority: "primary" | "supporting" | "background";
     sourceRefs: PrepEvidenceRef[];
@@ -46,6 +57,13 @@ export type PrepQuestionCategoryCard = {
     categoryId: "behavioral" | "culture_fit" | "technical_role_specific" | "case_scenario" | "screening";
     label: string;
     questionCount: number;
+    practicedQuestionCount?: number;
+    upcomingQuestionCount?: number;
+    questionStatuses?: Array<{
+        questionId: string;
+        questionNumber: number;
+        status: "practiced" | "upcoming";
+    }>;
     evidenceState: PrepEvidenceState;
     averageScore?: number;
     sourceRefs: PrepEvidenceRef[];
@@ -210,7 +228,7 @@ function buildScoreDrivenReadModel(
 ): PrepProfileReadModel {
     const answerByQuestionId = new Map(answers.map((answer) => [answer.questionId, answer]));
     const scoredAnswers = answers.filter((answer) => answer.analysis?.scores);
-    const signals = RELEASE_LANE_DIMENSIONS.map((lane) => buildScoreDrivenLaneSignal(input, lane, scoredAnswers));
+    const signals = RELEASE_LANE_DIMENSIONS.map((lane) => buildScoreDrivenLaneSignal(input, lane, questions, answerByQuestionId, scoredAnswers));
     const categoryCards = buildScoreDrivenCategoryCards(input, questions, answerByQuestionId);
     const observations = questions
         .map((question) => {
@@ -231,6 +249,8 @@ function buildScoreDrivenReadModel(
 function buildScoreDrivenLaneSignal(
     input: PrepProfileReadModelInput,
     lane: (typeof RELEASE_LANE_DIMENSIONS)[number],
+    questions: Question[],
+    answerByQuestionId: Map<string, Answer>,
     answers: Answer[],
 ): PrepSignal {
     const scores = answers.flatMap((answer) => collectScores(answer.analysis, lane.dimensions));
@@ -245,9 +265,10 @@ function buildScoreDrivenLaneSignal(
         evidenceState,
         evidenceCounts: evidenceCountFor(evidenceState),
         averageScore: averageScore === null ? undefined : roundScore(averageScore),
+        scoreCount: scores.length,
         fillPercent: scoreToFillPercent(averageScore),
         priority: evidenceState === "emerging" ? "primary" : "supporting",
-        sourceRefs: buildScoreLaneRefs(answers, lane.dimensions),
+        sourceRefs: buildScoreLaneRefs(questions, answerByQuestionId, lane.dimensions),
     };
 }
 
@@ -297,15 +318,25 @@ function buildScoreDrivenCategoryCards(
             categoryId,
             label: group.label,
             questionCount: group.questions.length,
+            practicedQuestionCount: group.questions.filter((question) => Boolean(answerByQuestionId.get(question.id)?.submittedAt)).length,
+            upcomingQuestionCount: group.questions.filter((question) => !answerByQuestionId.get(question.id)?.submittedAt).length,
+            questionStatuses: group.questions
+                .map((question) => ({
+                    questionId: question.id,
+                    questionNumber: question.index + 1,
+                    status: answerByQuestionId.get(question.id)?.submittedAt ? "practiced" as const : "upcoming" as const,
+                }))
+                .sort((a, b) => a.questionNumber - b.questionNumber),
             evidenceState: scoreToEvidenceState(averageScore),
             averageScore: averageScore === null ? undefined : roundScore(averageScore),
             sourceRefs: group.questions.flatMap((question) => {
                 const answer = answerByQuestionId.get(question.id);
-                return [
-                    { type: "question" as const, id: question.id, label: group.label, excerpt: excerpt(question.text) },
-                    ...buildAnalysisEvidenceRefs(question.id, answer?.analysis),
-                    ...buildResumeContextRefs(input),
-                ];
+                return buildQuestionAnswerRefs({
+                    question,
+                    answer,
+                    label: group.label,
+                    evaluation: buildCategoryEvaluation(answer?.analysis, group.label),
+                });
             }),
         };
     });
@@ -562,31 +593,74 @@ function scoreToFillPercent(score: number | null): number {
     return Math.round((score - 3) * 100);
 }
 
-function buildScoreLaneRefs(answers: Answer[], dimensions: Dimension[]): PrepEvidenceRef[] {
-    return answers.flatMap((answer) => {
-        const analysis = answer.analysis;
+function buildScoreLaneRefs(
+    questions: Question[],
+    answerByQuestionId: Map<string, Answer>,
+    dimensions: Dimension[],
+): PrepEvidenceRef[] {
+    return questions.flatMap((question) => {
+        const answer = answerByQuestionId.get(question.id);
+        const analysis = answer?.analysis;
         if (!analysis?.scores) {
             return [];
         }
 
-        const refs = buildAnalysisEvidenceRefs(answer.questionId, analysis);
         const scoredDimensions = dimensions
             .map((dimension) => analysis.scores?.[dimension] ? `${titleCaseDimension(dimension)}: ${analysis.scores[dimension].label}` : null)
             .filter((value): value is string => Boolean(value));
-        if (scoredDimensions.length === 0) {
-            return refs;
-        }
 
-        return [
-            ...refs,
-            {
-                type: "feedback_plan" as const,
-                id: answer.questionId,
-                label: "Score evidence",
-                excerpt: excerpt(scoredDimensions.join("; ")),
-            },
-        ];
+        return buildQuestionAnswerRefs({
+            question,
+            answer,
+            label: "Practice",
+            evaluation: [
+                analysis.feedbackPlan?.centralRead,
+                scoredDimensions.length > 0 ? `Coach signals: ${scoredDimensions.join("; ")}` : null,
+            ].filter((value): value is string => Boolean(value)).join(" "),
+        });
     });
+}
+
+function buildQuestionAnswerRefs({
+    question,
+    answer,
+    label,
+    evaluation,
+}: {
+    question: Question;
+    answer: Answer | undefined;
+    label: string;
+    evaluation?: string;
+}): PrepEvidenceRef[] {
+    if (!answer?.analysis) {
+        return [];
+    }
+
+    return [{
+        type: "answer",
+        id: question.id,
+        label,
+        excerpt: excerpt(answer.transcript || "No answer transcript captured."),
+        questionText: question.text,
+        answerTranscript: answer.transcript || "",
+        answerModality: answer.modality,
+        answerSubmittedAt: answer.submittedAt,
+        evaluation: evaluation || undefined,
+    }];
+}
+
+function buildCategoryEvaluation(analysis: AnalysisResult | undefined, categoryLabel: string): string | undefined {
+    if (!analysis) {
+        return undefined;
+    }
+
+    const coachSignal = analysis.coachSignal ?? analysis.oneBigUpgrade;
+
+    return [
+        analysis.feedbackPlan?.centralRead ? `${categoryLabel} feedback: ${analysis.feedbackPlan.centralRead}` : null,
+        coachSignal ? `For the biggest lift: ${coachSignal.focus}. Try: ${coachSignal.trySayingThis}` : null,
+        analysis.recommendation ? `Next step: ${analysis.recommendation}` : null,
+    ].filter((value): value is string => Boolean(value)).join(" ");
 }
 
 function normalizeQuestionCategory(category: string | undefined): {

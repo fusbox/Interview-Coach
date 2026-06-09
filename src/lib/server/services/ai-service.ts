@@ -42,8 +42,17 @@ export class AIService {
         }
     }
 
-    private static sanitizeCandidateVisibleAnalysis(result: AnalysisResult): AnalysisResult {
-        if (!result.oneBigUpgrade) {
+    private static sanitizeCandidateVisibleAnalysis(result: AnalysisResult, appName: AiGenerationCaptureContext["appName"] = "candidate_app"): AnalysisResult {
+        if (appName !== "candidate_app") {
+            return {
+                ...result,
+                coachSignal: undefined,
+                oneBigUpgrade: undefined,
+            };
+        }
+
+        const coachSignal = result.coachSignal ?? result.oneBigUpgrade;
+        if (!coachSignal) {
             return result;
         }
 
@@ -54,15 +63,16 @@ export class AIService {
 
         return {
             ...result,
-            oneBigUpgrade: {
-                ...result.oneBigUpgrade,
-                focus: cleanVisibleText(result.oneBigUpgrade.focus),
-                rationale: cleanVisibleText(result.oneBigUpgrade.rationale),
-                targetMoment: result.oneBigUpgrade.targetMoment
-                    ? cleanVisibleText(result.oneBigUpgrade.targetMoment)
+            coachSignal: {
+                ...coachSignal,
+                focus: cleanVisibleText(coachSignal.focus),
+                rationale: cleanVisibleText(coachSignal.rationale),
+                targetMoment: coachSignal.targetMoment
+                    ? cleanVisibleText(coachSignal.targetMoment)
                     : undefined,
-                trySayingThis: cleanVisibleText(result.oneBigUpgrade.trySayingThis),
+                trySayingThis: cleanVisibleText(coachSignal.trySayingThis),
             },
+            oneBigUpgrade: undefined,
         };
     }
 
@@ -101,6 +111,27 @@ export class AIService {
         const contextPrompt = buildAnalysisContext(question, blueprint, intakeData, retryContext);
         const progressPrompt = progress
             ? `PROGRESS: The candidate is on question ${progress.current} of ${progress.total}.`
+            : "";
+        const includeCoachSignal = captureContext.appName !== "recruiter_app";
+        const coachSignalRules = includeCoachSignal
+            ? `- COACH SIGNAL:
+  - Generate coachSignal as the single highest-leverage learning focus the candidate should practice from this answer.
+  - It MUST support the existing nextAction and recommendation; do not create a competing recommendation path.
+  - NEVER mention internal nextAction.actionType values such as stop_for_now, redo_answer, next_question, or practice_example in any candidate-facing copy.
+  - It is not a second strong response, not a generic tip, and not a list of all missing signals.
+  - trySayingThis MUST be 1-3 sentences that sound like what this candidate might actually say or type.
+  - Match the candidate's modality, readability, and tone. For typed answers, make it candidate-ready written phrasing. For voice answers, make it candidate-ready spoken phrasing.
+  - Use only answer, resume, role, and job-description context. Do not fabricate employers, tools, metrics, outcomes, or experiences.
+`
+            : "";
+        const coachSignalSchema = includeCoachSignal
+            ? `,
+  "coachSignal": {
+    "focus": "string (short action label for the single highest-leverage edit)",
+    "rationale": "string (why this is the best single edit and how it supports nextAction)",
+    "targetMoment": "string (optional exact quote or paraphrase from the candidate answer)",
+    "trySayingThis": "string (1-3 sentence candidate-voice phrase that applies the upgrade; not a full strong answer)"
+  }`
             : "";
 
         // 2. Strict JSON System Prompt (V3 Pulse Engine)
@@ -151,14 +182,7 @@ COACHING RULES:
   - If REDO, explain the missing critical piece the candidate should focus on.
   - If NEXT, affirm the strongest signal you heard and give one focused polish tip.
   - If LAST (Summary), briefly summarize their overall trajectory across the questions and congratulate them on finishing.
-- ONE BIG UPGRADE:
-  - Generate oneBigUpgrade as the single highest-leverage revision the candidate should make to this answer.
-  - It MUST support the existing nextAction and recommendation; do not create a competing recommendation path.
-  - NEVER mention internal nextAction.actionType values such as stop_for_now, redo_answer, next_question, or practice_example in any candidate-facing copy.
-  - It is not a second strong response, not a generic tip, and not a list of all missing signals.
-  - trySayingThis MUST be 1-3 sentences that sound like what this candidate might actually say or type.
-  - Match the candidate's modality, readability, and tone. For typed answers, make it candidate-ready written phrasing. For voice answers, make it candidate-ready spoken phrasing.
-  - Use only answer, resume, role, and job-description context. Do not fabricate employers, tools, metrics, outcomes, or experiences.
+${coachSignalRules}
 
 EVIDENCE RULES & PULSE GENERATION:
 You must generate at least 1, but no more than 2, High-Impact "Pulses" highlighting the most critical feedback.
@@ -213,13 +237,7 @@ Generate feedback as strict JSON matching this schema:
     "dimension": "filler_words | signposting | conciseness | resilience",
     "headline": "string (Short action-oriented title)",
     "body": "string (Narrative coaching tying behavior to role impact. NO QUOTES.)"
-  },
-  "oneBigUpgrade": {
-    "focus": "string (short action label for the single highest-leverage edit)",
-    "rationale": "string (why this is the best single edit and how it supports nextAction)",
-    "targetMoment": "string (optional exact quote or paraphrase from the candidate answer)",
-    "trySayingThis": "string (1-3 sentence candidate-voice phrase that applies the upgrade; not a full strong answer)"
-  },
+  }${coachSignalSchema},
   "nextAction": {
     "label": "string",
     "actionType": "redo_answer | next_question"
@@ -330,7 +348,7 @@ Generate feedback as strict JSON matching this schema:
             const result = AIService.sanitizeCandidateVisibleAnalysis(parseProviderJson(text, AnalysisResultSchema, {
                 provider: "gemini",
                 operation: "analyzeAnswer"
-            }));
+            }), captureContext.appName);
             Logger.info("AI Parsed Result", { hasScores: !!result.scores, hasAck: !!result.ack });
 
             const scoreValues: Record<string, number> = {};

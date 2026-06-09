@@ -46,6 +46,7 @@ const baseModel: CandidateDashboardModel = {
             progressLabel: "1 of 3 answered",
             href: "/session/session-1",
             lastActivityLabel: "May 12, 2026",
+            lastActivityAt: Date.parse("2026-05-12T00:00:00.000Z"),
             prepProfile: {
                 prepProfileId: "role-profile-1",
                 primarySignal: {
@@ -142,6 +143,7 @@ const baseModel: CandidateDashboardModel = {
             href: "/summary/session-2",
             repeatHref: "/practice",
             lastActivityLabel: "May 11, 2026",
+            lastActivityAt: Date.parse("2026-05-11T00:00:00.000Z"),
             summarySnippet: "Clearer answers and stronger examples.",
         },
     ],
@@ -181,8 +183,9 @@ describe("CandidateDashboardPage", () => {
         await user.click(screen.getByRole("button", { name: /interview structure/i }));
 
         expect(screen.getByRole("dialog", { name: /interview structure/i })).toHaveTextContent("Why this matters");
-        expect(screen.getByRole("dialog", { name: /interview structure/i })).toHaveTextContent("What your practice shows");
-        expect(screen.getByRole("dialog", { name: /interview structure/i })).toHaveTextContent("How to use this");
+        expect(screen.getByRole("dialog", { name: /interview structure/i })).toHaveTextContent("Tap/click any card below to see coach guidance.");
+        expect(screen.getByRole("dialog", { name: /interview structure/i })).not.toHaveTextContent("What your practice shows");
+        expect(screen.getByRole("dialog", { name: /interview structure/i })).not.toHaveTextContent("How to use this");
         expect(screen.getByRole("dialog", { name: /interview structure/i })).toHaveTextContent("The answer needs a clearer beginning");
         expect(screen.queryByRole("link", { name: /practice this area/i })).not.toBeInTheDocument();
     });
@@ -205,8 +208,9 @@ describe("CandidateDashboardPage", () => {
             },
         }} />);
 
-        expect(screen.getByRole("region", { name: /empty preparedness dashboard/i })).toHaveTextContent("Start preparing for an interview");
-        expect(screen.getByLabelText("Preview of your map")).toHaveTextContent("Interview expectations");
+        expect(screen.getByRole("region", { name: /empty preparedness dashboard/i })).toHaveTextContent("Start with the interview you want to prepare for.");
+        expect(screen.getByLabelText("Preview of your preparedness map")).toHaveTextContent("Answer Substance");
+        expect(screen.getByLabelText("Preview of question coverage")).toHaveTextContent("Behavioral");
         expect(screen.getByRole("link", { name: /create practice/i })).toHaveAttribute("href", "/practice");
         expect(screen.queryByRole("region", { name: /recommended practice path/i })).not.toBeInTheDocument();
     });

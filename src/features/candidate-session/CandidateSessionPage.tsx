@@ -307,6 +307,7 @@ function CandidateSubmittedFeedbackReview({
             transcript={transcript}
             audioBlob={null}
             sessionId={sessionId}
+            showCoachSignal
         />
     );
 }

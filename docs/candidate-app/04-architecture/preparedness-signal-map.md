@@ -82,6 +82,12 @@ average across all nine internal score dimensions for questions in that
 category. Cards use the same score-to-state colors as the performance lanes,
 without partial fill.
 
+When category evidence is aggregated across sessions, the dashboard recomputes
+the visible category state from the weighted average score. It should not keep a
+category green just because one historical session was strong. Category cards
+sort by practice need first, then by canonical category order, so categories
+with lower current evidence appear before already-strong categories.
+
 Screening means screening-only questions such as interest, background,
 availability, logistics, or basic qualifications. Screening Basics in practice
 setup can emphasize Culture Fit, but Culture Fit remains its own dashboard
@@ -107,7 +113,13 @@ evidence:
 | `recommendation` / `nextAction` | Candidate-safe next-step wording. |
 | `scores` | Drives state and color, but should not be displayed as raw numeric scores in normal candidate UI. |
 
-Normal dashboard UI must not show raw prompts, full transcripts, raw resume content, or AI-quality debug payloads.
+Lane and category drilldowns should share the same mobile-first interaction model:
+
+1. open the lane or category modal;
+2. show practiced question and candidate answer transcript/mode cards;
+3. open a focused coach-read modal for candidate-safe evaluation copy.
+
+Lane coach-read copy should be scoped to the lane's dimension group. Category coach-read copy should be scoped to the question category. Normal dashboard UI must not show raw prompts, raw resume content, hidden numeric scores, or AI-quality debug payloads. Showing the candidate their own answer transcript is allowed in dashboard evidence drilldowns.
 
 ## Release Lane Rollup
 
@@ -127,7 +139,5 @@ normal candidate UI.
 
 - Same-title target interviews are still grouped by target role until a profile selector lands.
 - Role Fit is intentionally out of release scope.
-- The current dashboard implementation still uses the transitional `PrepSignal` read model and must be replaced with the score-driven release read model.
-- Category cards for Behavioral, Culture Fit, Technical/Role-Specific, Case/Scenario, and Screening are not implemented yet.
-- Modal content needs a candidate-safe presentation of question evidence and feedback.
+- Category-card and lane modal copy needs browser validation and product tuning against real candidate sessions.
 - Confidence is intentionally separate and not included as a lane.

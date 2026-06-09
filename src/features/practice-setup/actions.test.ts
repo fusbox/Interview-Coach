@@ -86,7 +86,8 @@ describe("practice setup actions", () => {
             },
             intakeResponses: {
                 confidenceLevel: "medium",
-                interviewType: "behavioral",
+                interviewType: null,
+                interviewStage: "initial_interview",
                 timeline: "Interview next week",
                 concerns: "Staying concise",
                 practiceFocus: ["structure", "examples"],
@@ -109,7 +110,8 @@ describe("practice setup actions", () => {
             practiceDraftId: "draft-1",
             intakeResponses: {
                 confidenceLevel: "medium",
-                interviewType: "behavioral",
+                interviewType: null,
+                interviewStage: "initial_interview",
                 timeline: "Interview next week",
                 concerns: "Staying concise",
                 practiceFocus: ["structure", "examples"],
@@ -170,7 +172,8 @@ describe("practice setup actions", () => {
             },
             intakeResponses: {
                 confidenceLevel: null,
-                interviewType: "general",
+                interviewType: null,
+                interviewStage: "not_sure",
                 timeline: null,
                 concerns: null,
                 practiceFocus: [],
@@ -218,6 +221,7 @@ describe("practice setup actions", () => {
             intakeResponses: {
                 confidenceLevel: null,
                 interviewType: null,
+                interviewStage: "not_sure",
                 timeline: null,
                 concerns: null,
                 practiceFocus: [],
@@ -242,6 +246,7 @@ describe("practice setup actions", () => {
             intakeResponses: {
                 confidenceLevel: null,
                 interviewType: null,
+                interviewStage: "not_sure",
                 timeline: null,
                 concerns: null,
                 practiceFocus: [],

@@ -69,6 +69,7 @@ describe("candidate practice setup loader", () => {
             intakeResponses: {
                 confidenceLevel: null,
                 interviewType: null,
+                interviewStage: "not_sure",
                 timeline: null,
                 concerns: null,
                 practiceFocus: [],
@@ -100,6 +101,7 @@ describe("candidate practice setup loader", () => {
                 jobDescription: "Test regulated workflows.",
                 resumeText: "Validated releases.",
                 interviewType: null,
+                interviewStage: "not_sure",
                 questionCount: 5,
             },
         });
@@ -140,7 +142,8 @@ describe("candidate practice setup loader", () => {
             jobDescription: null,
             intakeResponses: {
                 confidenceLevel: "high",
-                interviewType: "behavioral",
+                interviewType: null,
+                interviewStage: "follow_up_final",
                 timeline: "Interview tomorrow",
                 concerns: "Making examples concise.",
                 practiceFocus: ["specific examples"],
@@ -166,7 +169,8 @@ describe("candidate practice setup loader", () => {
                 targetRole: "Warehouse lead",
                 jobDescription: null,
                 resumeText: null,
-                interviewType: "behavioral",
+                interviewType: null,
+                interviewStage: "follow_up_final",
                 questionCount: 5,
             },
         });

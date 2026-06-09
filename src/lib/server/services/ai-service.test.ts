@@ -245,7 +245,7 @@ describe("AIService malformed provider handling", () => {
                     actionType: "redo_answer",
                 },
                 recommendation: "Try again and add what changed because of your help.",
-                oneBigUpgrade: {
+                coachSignal: {
                     focus: "Add the result of your action",
                     rationale: "This is the highest-leverage edit because the interviewer can already see effort, but not impact.",
                     targetMoment: "I helped my team finish the checklist.",
@@ -269,18 +269,19 @@ describe("AIService malformed provider handling", () => {
 
         const prompt = generateContentMock.mock.calls[0][0].contents.parts[0].text;
 
-        expect(prompt).toContain("ONE BIG UPGRADE");
+        expect(prompt).toContain("COACH SIGNAL");
         expect(prompt).toContain("support the existing nextAction");
         expect(prompt).toContain("NEVER mention internal nextAction.actionType values");
         expect(prompt).toContain("not a second strong response");
         expect(prompt).toContain("1-3 sentences");
-        expect(result.oneBigUpgrade).toMatchObject({
+        expect(result.coachSignal).toMatchObject({
             focus: "Add the result of your action",
             trySayingThis: expect.stringContaining("caught the missing items"),
         });
+        expect(result.oneBigUpgrade).toBeUndefined();
     });
 
-    it("removes internal next-action literals from one big upgrade copy before returning analysis", async () => {
+    it("removes internal next-action literals from coach signal copy before returning analysis", async () => {
         generateContentMock.mockResolvedValueOnce({
             text: JSON.stringify({
                 feedbackPlan: {
@@ -322,7 +323,7 @@ describe("AIService malformed provider handling", () => {
                     actionType: "stop_for_now",
                 },
                 recommendation: "Finish the session and review the summary.",
-                oneBigUpgrade: {
+                coachSignal: {
                     focus: "Explain the tool rationale",
                     rationale: "This supports the 'stop_for_now' by giving you a clear final polish.",
                     targetMoment: "QBRs because they build trust",
@@ -347,7 +348,128 @@ describe("AIService malformed provider handling", () => {
             { current: 3, total: 3 },
         );
 
-        expect(result.oneBigUpgrade?.rationale).not.toMatch(/stop_for_now|redo_answer|next_question|practice_example/);
-        expect(result.oneBigUpgrade?.trySayingThis).not.toMatch(/stop_for_now|redo_answer|next_question|practice_example/);
+        expect(result.coachSignal?.rationale).not.toMatch(/stop_for_now|redo_answer|next_question|practice_example/);
+        expect(result.coachSignal?.trySayingThis).not.toMatch(/stop_for_now|redo_answer|next_question|practice_example/);
+        expect(result.oneBigUpgrade).toBeUndefined();
+    });
+
+    it("normalizes legacy one big upgrade provider output into coach signal", async () => {
+        generateContentMock.mockResolvedValueOnce({
+            text: JSON.stringify({
+                ack: "You named a useful action.",
+                scores: {
+                    focus_relevance: { score: 4, label: "Relevant" },
+                    structural_clarity: { score: 4, label: "Clear" },
+                    specificity_concreteness: { score: 3, label: "Some detail" },
+                    outcome_explicitness: { score: 3, label: "Outcome present" },
+                    decision_rationale: { score: 3, label: "Basic rationale" },
+                    filler_words: { score: 5, label: "No issue" },
+                    signposting: { score: 3, label: "Basic structure" },
+                    conciseness: { score: 4, label: "Concise" },
+                    resilience: { score: 4, label: "Positive" },
+                },
+                oneBigUpgrade: {
+                    focus: "Add one result",
+                    rationale: "This gives the interviewer stronger proof.",
+                    trySayingThis: "I finished the checklist and helped the team avoid a delay.",
+                },
+                nextAction: {
+                    label: "Next question",
+                    actionType: "next_question",
+                },
+                meta: {
+                    tier: 1,
+                    modality: "text",
+                },
+            }),
+        });
+
+        const { AIService } = await import("./ai-service");
+
+        const result = await AIService.analyzeAnswer(
+            { id: "q1", text: "Tell me about a time you helped your team.", category: "behavioral", index: 0 },
+            "I helped my team finish the checklist.",
+            null,
+            { title: "Warehouse Associate", competencies: [] },
+        );
+
+        expect(result.coachSignal).toMatchObject({
+            focus: "Add one result",
+        });
+        expect(result.oneBigUpgrade).toBeUndefined();
+    });
+
+    it("does not request or return candidate-only coach signal for recruiter app answer feedback", async () => {
+        generateContentMock.mockResolvedValueOnce({
+            text: JSON.stringify({
+                feedbackPlan: {
+                    centralRead: "The answer is relevant and organized.",
+                    signal: { valence: "strength", detectability: "clear" },
+                    primaryAnchor: {
+                        source: "content",
+                        signalType: "quote",
+                        dimension: "focus_relevance",
+                        candidateEvidence: "I would first confirm the issue.",
+                        interviewerValue: "Shows practical troubleshooting.",
+                    },
+                    intervention: {
+                        type: "amplify_strength",
+                        reason: "The candidate gave a clear first step.",
+                    },
+                },
+                ack: "You gave a clear troubleshooting first step.",
+                transcript: "I would first confirm the issue.",
+                scores: {
+                    focus_relevance: { score: 4, label: "Relevant" },
+                    structural_clarity: { score: 4, label: "Clear" },
+                    specificity_concreteness: { score: 4, label: "Specific" },
+                    outcome_explicitness: { score: 3, label: "Some outcome" },
+                    decision_rationale: { score: 4, label: "Good rationale" },
+                    filler_words: { score: 5, label: "No issue" },
+                    signposting: { score: 4, label: "Organized" },
+                    conciseness: { score: 4, label: "Concise" },
+                    resilience: { score: 4, label: "Positive" },
+                },
+                contentPulse: {
+                    dimension: "focus_relevance",
+                    headline: "Start with confirmation",
+                    body: "Your answer stayed focused on the client's immediate need.",
+                    quote: "confirm the issue",
+                },
+                coachSignal: {
+                    focus: "Candidate-only field",
+                    rationale: "This should not be returned for recruiter-invited analysis.",
+                    trySayingThis: "Candidate-only phrasing.",
+                },
+                nextAction: {
+                    label: "Next question",
+                    actionType: "next_question",
+                },
+                recommendation: "Continue to the next question.",
+                meta: {
+                    tier: 1,
+                    modality: "text",
+                },
+            }),
+        });
+
+        const { AIService } = await import("./ai-service");
+
+        const result = await AIService.analyzeAnswer(
+            { id: "q1", text: "How would you troubleshoot an account login issue?", category: "behavioral", index: 0 },
+            "I would first confirm the issue.",
+            null,
+            { title: "Support Specialist", competencies: [] },
+            undefined,
+            undefined,
+            { current: 1, total: 3 },
+            { appName: "recruiter_app" },
+        );
+
+        const prompt = generateContentMock.mock.calls[0][0].contents.parts[0].text;
+
+        expect(prompt).not.toContain("COACH SIGNAL");
+        expect(result.coachSignal).toBeUndefined();
+        expect(result.oneBigUpgrade).toBeUndefined();
     });
 });

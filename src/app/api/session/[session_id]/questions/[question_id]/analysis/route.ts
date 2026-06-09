@@ -13,6 +13,7 @@ import {
     validationErrorResponse
 } from "@/lib/server/api-errors";
 import { transitionSessionStatus } from "@/lib/domain/session-state-machine";
+import type { InterviewSession } from "@/lib/domain/types";
 import {
     beginIdempotentRequest,
     completeIdempotentRequest,
@@ -20,6 +21,26 @@ import {
 } from "@/lib/server/idempotency";
 
 const ANALYSIS_IDEMPOTENCY_SCOPE_PREFIX = "session_analysis";
+
+function getCandidateProfileIdFromIntake(intakeData: InterviewSession["intakeData"]): string | undefined {
+    const candidateProfileId = intakeData?.candidateProfileId;
+    return typeof candidateProfileId === "string" && candidateProfileId.trim()
+        ? candidateProfileId
+        : undefined;
+}
+
+function resolveAnalysisAppName(session: InterviewSession): "recruiter_app" | "candidate_app" {
+    if (getCandidateProfileIdFromIntake(session.intakeData)) {
+        return "candidate_app";
+    }
+
+    const roleProfileId = session.intakeData?.roleProfileId;
+    if (typeof roleProfileId === "string" && roleProfileId.trim()) {
+        return "candidate_app";
+    }
+
+    return "recruiter_app";
+}
 
 export async function POST(
     request: Request,
@@ -47,9 +68,13 @@ export async function POST(
             return validationErrorResponse(correlationId);
         }
         const { audioData } = parseResult.data;
+        const requestedModality = audioData ? "voice" : answer.modality;
         const scope = `${ANALYSIS_IDEMPOTENCY_SCOPE_PREFIX}:${resolvedParams.question_id}`;
         const idempotencyKey = req.headers.get("Idempotency-Key")?.trim()
-            || buildAnalysisIdempotencyKey(session.id, resolvedParams.question_id, answer);
+            || buildAnalysisIdempotencyKey(session.id, resolvedParams.question_id, {
+                ...answer,
+                modality: requestedModality,
+            });
         let idempotencyReserved = false;
 
         const reservation = await beginIdempotentRequest({
@@ -60,7 +85,7 @@ export async function POST(
                 questionId: resolvedParams.question_id,
                 submittedAt: answer.submittedAt,
                 transcript: answer.transcript,
-                modality: answer.modality,
+                modality: requestedModality,
                 retryContext: answer.retryContext,
             },
         });
@@ -96,6 +121,8 @@ export async function POST(
         };
 
         try {
+            const appName = resolveAnalysisAppName(session);
+            const candidateId = getCandidateProfileIdFromIntake(session.intakeData);
             const analysis = await AIService.analyzeAnswer(
                 context.question,
                 answer.transcript || null,
@@ -105,10 +132,11 @@ export async function POST(
                 answer.retryContext,
                 progress,
                 {
-                    appName: "candidate_app",
+                    appName,
                     correlationId,
                     sessionId: session.id,
-                    createdBy: session.recruiterId,
+                    createdBy: appName === "recruiter_app" ? session.recruiterId : undefined,
+                    candidateId: appName === "candidate_app" ? candidateId : undefined,
                     sourceRefs: [
                         {
                             type: "route",
@@ -119,9 +147,10 @@ export async function POST(
                             questionId: resolvedParams.question_id,
                         },
                     ],
-                    privacyFlags: answer.modality === "voice" ? ["contains_audio_input"] : [],
+                    privacyFlags: requestedModality === "voice" ? ["contains_audio_input"] : [],
                 }
             );
+            const resolvedModality = audioData ? "voice" : analysis.meta?.modality ?? answer.modality;
 
             const updatedSession = {
                 ...session,
@@ -130,6 +159,7 @@ export async function POST(
                     ...session.answers,
                     [resolvedParams.question_id]: {
                         ...answer,
+                        modality: resolvedModality,
                         transcript: analysis.transcript || answer.transcript,
                         analysis
                     }

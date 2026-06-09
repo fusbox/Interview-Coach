@@ -35,7 +35,7 @@ describe("PracticeSetupForm", () => {
                     targetRole: "QA analyst",
                     jobDescription: "Test regulated workflows.",
                     resumeText: "Validated releases.",
-                    interviewType: "behavioral",
+                    interviewStage: "initial_screening",
                 }}
             />,
         );
@@ -46,7 +46,7 @@ describe("PracticeSetupForm", () => {
 
         await user.click(screen.getByRole("button", { name: /advanced setup/i }));
 
-        expect(screen.getByRole("radio", { name: /Behavioral stories/i })).toBeChecked();
+        expect(screen.getByRole("radio", { name: /First conversation or screening/i })).toBeChecked();
         expect(screen.getByRole("radio", { name: "5 questions" })).toBeChecked();
     });
 
@@ -56,61 +56,61 @@ describe("PracticeSetupForm", () => {
         expect(screen.getByRole("form", { name: /practice setup form/i })).toHaveClass("shadow-raised-1");
     });
 
-    it("keeps practice focus and question count in advanced setup", async () => {
+    it("keeps interview stage and question count in advanced setup", async () => {
         const user = userEvent.setup();
         render(<PracticeSetupForm />);
 
         expect(screen.getByRole("button", { name: /advanced setup/i })).toHaveAttribute("aria-expanded", "false");
-        expect(screen.queryByLabelText(/practice focus/i)).not.toBeInTheDocument();
+        expect(screen.queryByLabelText(/what are you preparing for/i)).not.toBeInTheDocument();
         expect(screen.queryByLabelText(/question count/i)).not.toBeInTheDocument();
 
         await user.click(screen.getByRole("button", { name: /advanced setup/i }));
 
         expect(screen.getByRole("button", { name: /advanced setup/i })).toHaveAttribute("aria-expanded", "true");
-        expect(screen.getByRole("group", { name: /practice focus/i })).toBeInTheDocument();
+        expect(screen.getByRole("group", { name: /what are you preparing for/i })).toBeInTheDocument();
         expect(screen.getByRole("group", { name: /question count/i })).toBeInTheDocument();
     });
 
-    it("uses a single balanced default interview type option", async () => {
+    it("uses not sure yet as the plain-language default interview stage", async () => {
         const user = userEvent.setup();
         render(<PracticeSetupForm />);
 
         await user.click(screen.getByRole("button", { name: /advanced setup/i }));
 
-        expect(screen.getByRole("radio", { name: /Balanced practice/i })).toHaveAttribute("value", "");
-        expect(screen.getByRole("radio", { name: /Balanced practice/i })).toBeChecked();
-        expect(screen.queryByRole("radio", { name: "General" })).not.toBeInTheDocument();
+        expect(screen.getByRole("radio", { name: /Not sure yet/i })).toHaveAttribute("value", "not_sure");
+        expect(screen.getByRole("radio", { name: /Not sure yet/i })).toBeChecked();
+        expect(screen.queryByRole("radio", { name: /Balanced practice/i })).not.toBeInTheDocument();
     });
 
-    it("frames interview type as practice focus with candidate-facing option labels", async () => {
+    it("frames interview stage with candidate-facing option labels", async () => {
         const user = userEvent.setup();
         render(<PracticeSetupForm />);
 
         await user.click(screen.getByRole("button", { name: /advanced setup/i }));
 
-        expect(screen.getByRole("group", { name: /practice focus/i })).toHaveAccessibleDescription(
-            "Choose what this round should emphasize. Balanced practice mixes common interview question types.",
+        expect(screen.getByRole("group", { name: /what are you preparing for/i })).toHaveAccessibleDescription(
+            "If you know where you are in the interview process, choose the closest match. If not, Not sure yet keeps the round balanced.",
         );
-        expect(screen.getByRole("radio", { name: /Behavioral stories/i })).toHaveAttribute("value", "behavioral");
-        expect(screen.getByRole("radio", { name: /Screening basics/i })).toHaveAttribute("value", "screening");
-        expect(screen.getByText(/practice examples about judgment/i)).toBeInTheDocument();
-        expect(screen.getByText(/focus on explaining tools/i)).toBeInTheDocument();
+        expect(screen.getByRole("radio", { name: /First conversation or screening/i })).toHaveAttribute("value", "initial_screening");
+        expect(screen.getByRole("radio", { name: /Follow-up or final interview/i })).toHaveAttribute("value", "follow_up_final");
+        expect(screen.getByText(/Prepare for interest, background, availability/i)).toBeInTheDocument();
+        expect(screen.getByText(/Go deeper on role scenarios/i)).toBeInTheDocument();
     });
 
-    it("treats restored general interview type values as balanced practice", async () => {
+    it("treats missing restored interview stage values as not sure yet", async () => {
         const user = userEvent.setup();
         render(
             <PracticeSetupForm
                 initialValues={{
                     targetRole: "QA analyst",
-                    interviewType: "general",
+                    interviewStage: null,
                 }}
             />,
         );
 
         await user.click(screen.getByRole("button", { name: /advanced setup/i }));
 
-        expect(screen.getByRole("radio", { name: /Balanced practice/i })).toBeChecked();
+        expect(screen.getByRole("radio", { name: /Not sure yet/i })).toBeChecked();
     });
 
     it("keeps advanced setup selections when the accordion is closed and reopened", async () => {
@@ -118,16 +118,16 @@ describe("PracticeSetupForm", () => {
         render(<PracticeSetupForm />);
 
         await user.click(screen.getByRole("button", { name: /advanced setup/i }));
-        await user.click(screen.getByRole("radio", { name: /Technical depth/i }));
+        await user.click(screen.getByRole("radio", { name: /First interview/i }));
         await user.click(screen.getByRole("radio", { name: "7 questions" }));
         await user.click(screen.getByRole("button", { name: /advanced setup/i }));
 
         expect(screen.getByRole("button", { name: /advanced setup/i })).toHaveAttribute("aria-expanded", "false");
-        expect(screen.queryByRole("group", { name: /practice focus/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole("group", { name: /what are you preparing for/i })).not.toBeInTheDocument();
 
         await user.click(screen.getByRole("button", { name: /advanced setup/i }));
 
-        expect(screen.getByRole("radio", { name: /Technical depth/i })).toBeChecked();
+        expect(screen.getByRole("radio", { name: /First interview/i })).toBeChecked();
         expect(screen.getByRole("radio", { name: "7 questions" })).toBeChecked();
     });
 
@@ -199,6 +199,7 @@ describe("PracticeSetupForm", () => {
             intakeResponses: {
                 confidenceLevel: null,
                 interviewType: null,
+                interviewStage: "not_sure",
                 timeline: null,
                 concerns: null,
                 practiceFocus: [],
@@ -231,7 +232,7 @@ describe("PracticeSetupForm", () => {
         expect(startPracticeGenerationActionMock).toHaveBeenCalledTimes(1);
     });
 
-    it("submits the MVP interview type while deferring non-MVP intake fields", async () => {
+    it("submits the interview stage while deferring non-MVP intake fields", async () => {
         const user = userEvent.setup();
         startPracticeGenerationActionMock.mockResolvedValue({
             ok: true,
@@ -247,7 +248,7 @@ describe("PracticeSetupForm", () => {
                     jobDescription: "Own customer renewals and adoption goals.",
                     resumeText: null,
                     questionCount: 7,
-                    interviewType: "behavioral",
+                    interviewStage: "follow_up_final",
                 }}
             />,
         );
@@ -266,7 +267,8 @@ describe("PracticeSetupForm", () => {
             },
             intakeResponses: {
                 confidenceLevel: null,
-                interviewType: "behavioral",
+                interviewType: null,
+                interviewStage: "follow_up_final",
                 timeline: null,
                 concerns: null,
                 practiceFocus: [],

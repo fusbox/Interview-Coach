@@ -58,6 +58,7 @@ vi.mock("@/lib/server/idempotency", () => ({
 describe("POST /api/session/[session_id]/questions/[question_id]/analysis", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        session.intakeData = {};
         beginIdempotentRequestMock.mockResolvedValue({ kind: "acquired" });
         completeIdempotentRequestMock.mockResolvedValue(undefined);
         releaseIdempotentRequestMock.mockResolvedValue(undefined);
@@ -115,6 +116,9 @@ describe("POST /api/session/[session_id]/questions/[question_id]/analysis", () =
             },
         });
         expect(analyzeAnswerMock).toHaveBeenCalledTimes(1);
+        expect(analyzeAnswerMock.mock.calls[0][7]).toEqual(expect.objectContaining({
+            appName: "recruiter_app",
+        }));
         expect(updateMock).toHaveBeenCalledTimes(1);
         expect(completeIdempotentRequestMock).toHaveBeenCalledWith({
             scope: "session_analysis:question-1",
@@ -129,6 +133,79 @@ describe("POST /api/session/[session_id]/questions/[question_id]/analysis", () =
                 })
             }),
         });
+    });
+
+    it("upgrades canonical answer modality to voice when audio analysis is provided", async () => {
+        analyzeAnswerMock.mockResolvedValue({
+            transcript: "voice transcript",
+            summary: "voice analysis",
+            meta: { tier: 1, modality: "voice" },
+        });
+        const { POST } = await import("./route");
+
+        const req = new Request("http://localhost/api/session/session-1/questions/question-1/analysis", {
+            method: "POST",
+            body: JSON.stringify({
+                audioData: {
+                    base64: "abc123",
+                    mimeType: "audio/webm",
+                },
+            })
+        });
+
+        const res = await POST(req, { params: Promise.resolve({ session_id: "session-1", question_id: "question-1" }) });
+        const body = await res.json();
+
+        expect(res.status).toBe(200);
+        expect(body.answers["question-1"]).toEqual(expect.objectContaining({
+            modality: "voice",
+            transcript: "voice transcript",
+        }));
+        expect(beginIdempotentRequestMock).toHaveBeenCalledWith(expect.objectContaining({
+            payload: expect.objectContaining({
+                modality: "voice",
+            }),
+        }));
+        expect(analyzeAnswerMock.mock.calls[0]).toEqual([
+            expect.objectContaining({ id: "question-1" }),
+            "old answer",
+            { base64: "abc123", mimeType: "audio/webm" },
+            expect.objectContaining({ title: "QA Engineer" }),
+            {},
+            undefined,
+            { current: 1, total: 1 },
+            expect.objectContaining({
+                privacyFlags: ["contains_audio_input"],
+            }),
+        ]);
+        expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({
+            answers: {
+                "question-1": expect.objectContaining({
+                    modality: "voice",
+                    transcript: "voice transcript",
+                }),
+            },
+        }));
+    });
+
+    it("labels candidate-led answer analysis with the candidate app name", async () => {
+        session.intakeData = {
+            candidateProfileId: "candidate-profile-1",
+            roleProfileId: "role-profile-1",
+        };
+        const { POST } = await import("./route");
+
+        const req = new Request("http://localhost/api/session/session-1/questions/question-1/analysis", {
+            method: "POST",
+            body: JSON.stringify({})
+        });
+
+        const res = await POST(req, { params: Promise.resolve({ session_id: "session-1", question_id: "question-1" }) });
+
+        expect(res.status).toBe(200);
+        expect(analyzeAnswerMock.mock.calls[0][7]).toEqual(expect.objectContaining({
+            appName: "candidate_app",
+        }));
     });
 
     it("replays completed answer analysis without calling the model again", async () => {

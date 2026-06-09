@@ -16,6 +16,7 @@ type CandidateAnswerInput = {
 
 type SubmitCandidateAnswerInput = CandidateAnswerInput & {
     answerText: string;
+    modality?: "text" | "voice";
 };
 
 type RetryCandidateQuestionInput = CandidateAnswerInput & {
@@ -68,7 +69,7 @@ export async function submitCandidateOwnedAnswer(input: SubmitCandidateAnswerInp
                 };
             }
 
-            const updatedSession = submitAnswer(ownedSession.session, input.questionId, answerText);
+            const updatedSession = submitAnswer(ownedSession.session, input.questionId, answerText, undefined, input.modality ?? "text");
 
             await ownedSession.repository.deleteAnalysis(input.sessionId, input.questionId);
             await ownedSession.repository.update(updatedSession);

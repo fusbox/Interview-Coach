@@ -3,6 +3,7 @@ import type { QueryResultRow } from "pg";
 import { safeParsePracticeSetupInput } from "@/features/practice-setup/practice-setup-schema";
 import { normalizeResumeText } from "@/lib/candidate/resume-normalization";
 import { queryPostgres } from "@/lib/server/db/postgres";
+import { normalizeInterviewStage, type InterviewStage } from "@/lib/server/services/question-plan-service";
 
 import { resolveCandidateRolePreparationProfile } from "./candidate-role-profile-repository";
 
@@ -82,6 +83,7 @@ export type CandidatePracticeDraftSummary = {
 export type CandidatePracticeIntakeResponses = {
     confidenceLevel: "low" | "medium" | "high" | null;
     interviewType: "behavioral" | "technical" | "case" | "screening" | "general" | null;
+    interviewStage: InterviewStage;
     timeline: string | null;
     concerns: string | null;
     practiceFocus: string[];
@@ -709,6 +711,7 @@ function normalizeCandidatePracticeIntakeResponses(value: CandidatePracticeIntak
     return {
         confidenceLevel: normalizeConfidenceLevel(record.confidenceLevel),
         interviewType: normalizeInterviewType(record.interviewType),
+        interviewStage: normalizeInterviewStage(record.interviewStage),
         timeline: normalizeOptionalIntakeText(record.timeline, 240),
         concerns: normalizeOptionalIntakeText(record.concerns, 1_000),
         practiceFocus: normalizePracticeFocus(record.practiceFocus),
@@ -719,6 +722,7 @@ function emptyCandidatePracticeIntakeResponses(): CandidatePracticeIntakeRespons
     return {
         confidenceLevel: null,
         interviewType: null,
+        interviewStage: "not_sure",
         timeline: null,
         concerns: null,
         practiceFocus: [],

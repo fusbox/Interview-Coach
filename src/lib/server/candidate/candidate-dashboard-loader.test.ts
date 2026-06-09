@@ -107,10 +107,25 @@ describe("candidate dashboard loader", () => {
                         question_text: "Tell me about a time you handled a difficult customer.",
                         category: "behavioral",
                         answer_id: "answer-1",
-                        modality: "text",
+                        modality: "voice",
                         final_text: "I listened, clarified the issue, and followed up with a fix.",
                         submitted_at: "2026-05-11T14:05:00.000Z",
                         feedback_json: {
+                            meta: {
+                                tier: 1,
+                                modality: "voice",
+                            },
+                            scores: {
+                                focus_relevance: { score: 4, label: "Relevant customer example." },
+                                specificity_concreteness: { score: 4, label: "Specific customer handling steps." },
+                                outcome_explicitness: { score: 3, label: "Outcome is present but could be sharper." },
+                                decision_rationale: { score: 3, label: "Reasoning is understandable." },
+                                structural_clarity: { score: 4, label: "Easy to follow." },
+                                signposting: { score: 3, label: "Some transitions are clear." },
+                                filler_words: { score: 4, label: "Clean delivery." },
+                                conciseness: { score: 4, label: "Concise answer." },
+                                resilience: { score: 4, label: "Composed response." },
+                            },
                             feedbackPlan: {
                                 centralRead: "The answer shows calm customer handling.",
                                 signal: { valence: "strength", detectability: "clear" },
@@ -138,7 +153,9 @@ describe("candidate dashboard loader", () => {
             });
         const { loadCandidateDashboardForCurrentCandidate } = await import("./candidate-dashboard-loader");
 
-        await expect(loadCandidateDashboardForCurrentCandidate()).resolves.toMatchObject({
+        const dashboard = await loadCandidateDashboardForCurrentCandidate();
+
+        expect(dashboard).toMatchObject({
             candidate: {
                 candidateProfileId: "profile-1",
                 displayName: "Candidate One",
@@ -168,18 +185,15 @@ describe("candidate dashboard loader", () => {
                         prepProfileId: "draft-2",
                         signals: expect.arrayContaining([
                             expect.objectContaining({
-                                signalId: "content:outcome_explicitness",
-                                label: "Show what changed",
+                                signalId: "lane:answer_substance",
+                                label: "Answer Substance",
                                 lane: "answer_substance",
-                                evidenceState: "strong",
+                                evidenceState: "clear",
                             }),
                         ]),
                         recommendation: {
                             label: "Keep building interview preparedness",
                             source: "session_summary",
-                        },
-                        signalCounts: {
-                            strong: 3,
                         },
                     },
                 },
@@ -190,6 +204,15 @@ describe("candidate dashboard loader", () => {
                 href: "/session/session-1",
                 actionLabel: "Resume practice",
             },
+        });
+        const laneSourceRef = dashboard!.completedItems[0]!.prepProfile!.signals[0]!.sourceRefs[0]!;
+        const categorySourceRef = dashboard!.completedItems[0]!.prepProfile!.categoryCards![0]!.sourceRefs[0]!;
+
+        expect(laneSourceRef).toMatchObject({
+            answerModality: "voice",
+        });
+        expect(categorySourceRef).toMatchObject({
+            answerModality: "voice",
         });
 
         expect(queryPostgresMock).toHaveBeenCalledWith(expect.stringContaining("where d.candidate_profile_id = $1"), ["profile-1"]);
@@ -223,7 +246,7 @@ describe("candidate dashboard loader", () => {
                         submitted_count: 3,
                         summary_narrative: "Strong client service practice.",
                         latest_recommendation: null,
-                        latest_one_big_upgrade: null,
+                        latest_coach_signal: null,
                         last_activity_at: "2026-05-13T14:00:00.000Z",
                     },
                     {
@@ -242,7 +265,7 @@ describe("candidate dashboard loader", () => {
                         submitted_count: 3,
                         summary_narrative: "Technical support practice.",
                         latest_recommendation: null,
-                        latest_one_big_upgrade: null,
+                        latest_coach_signal: null,
                         last_activity_at: "2026-05-12T14:00:00.000Z",
                     },
                 ],
@@ -287,7 +310,7 @@ describe("candidate dashboard loader", () => {
                         submitted_count: 3,
                         summary_narrative: "Strong client service practice.",
                         latest_recommendation: null,
-                        latest_one_big_upgrade: null,
+                        latest_coach_signal: null,
                         last_activity_at: "2026-05-13T14:00:00.000Z",
                     },
                     {
@@ -306,7 +329,7 @@ describe("candidate dashboard loader", () => {
                         submitted_count: 3,
                         summary_narrative: "Technical support practice.",
                         latest_recommendation: null,
-                        latest_one_big_upgrade: null,
+                        latest_coach_signal: null,
                         last_activity_at: "2026-05-12T14:00:00.000Z",
                     },
                 ],
@@ -356,7 +379,7 @@ describe("candidate dashboard loader", () => {
                     submitted_count: 3,
                     summary_narrative: "Good structure with room for more detail.",
                     latest_recommendation: null,
-                    latest_one_big_upgrade: null,
+                    latest_coach_signal: null,
                     last_activity_at: "2026-05-10T14:00:00.000Z",
                 },
             ],
@@ -410,7 +433,7 @@ describe("candidate dashboard loader", () => {
         expect(queryPostgresMock.mock.calls[0][0]).toContain("public.eval_results");
     });
 
-    it("prefers the latest one big upgrade when building dashboard coaching guidance", async () => {
+    it("prefers the latest coach signal when building dashboard coaching guidance", async () => {
         queryPostgresMock.mockResolvedValue({
             rows: [
                 {
@@ -425,7 +448,7 @@ describe("candidate dashboard loader", () => {
                     submitted_count: 2,
                     summary_narrative: "Clearer answers and stronger examples.",
                     latest_recommendation: "Add a measurable outcome to your next answer.",
-                    latest_one_big_upgrade: {
+                    latest_coach_signal: {
                         focus: "Lead with the result",
                         rationale: "The action is clear, but the outcome needs to show why it mattered.",
                         targetMoment: "I helped the team",
@@ -450,6 +473,8 @@ describe("candidate dashboard loader", () => {
             },
         });
 
-        expect(queryPostgresMock.mock.calls[0][0]).toContain("latest_one_big_upgrade");
+        expect(queryPostgresMock.mock.calls[0][0]).toContain("latest_coach_signal");
+        expect(queryPostgresMock.mock.calls[0][0]).toContain("feedback_json -> 'coachSignal'");
+        expect(queryPostgresMock.mock.calls[0][0]).toContain("feedback_json -> 'oneBigUpgrade'");
     });
 });

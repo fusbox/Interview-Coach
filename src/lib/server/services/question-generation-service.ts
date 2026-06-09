@@ -10,6 +10,14 @@ import { redactPii } from "@/lib/server/ai-quality/redaction";
 import { ProviderResponseError } from "@/lib/server/provider-errors";
 import { parseProviderJson } from "@/lib/server/provider-response";
 import { ai, AI_MODELS } from "@/lib/server/services/ai-config";
+import {
+    buildQuestionPlan,
+    getInterviewStageLabel,
+    normalizeInterviewStage,
+    type InterviewStage,
+    type QuestionPlan,
+    type QuestionPlanCategory,
+} from "@/lib/server/services/question-plan-service";
 
 export const QUESTION_GENERATION_PROMPT_VERSION = "question-generation-v1";
 
@@ -22,6 +30,7 @@ export type QuestionGenerationInput = {
     jobDescription?: string | null;
     resume?: string | null;
     interviewType?: PracticeInterviewType | null;
+    interviewStage?: InterviewStage | null;
     questionCount?: number | null;
 };
 
@@ -37,6 +46,12 @@ export type QuestionGenerationContext = {
 type CandidateQuestionSnapshotDependencies = {
     createQuestionId?: (index: number) => string;
 };
+
+type NormalizedQuestionGenerationInput = Required<Pick<QuestionGenerationInput, "role">>
+    & Omit<QuestionGenerationInput, "role" | "interviewStage">
+    & { interviewStage: InterviewStage | null };
+
+type CandidateQuestionTemplate = Omit<Question, "id" | "index">;
 
 export async function generateInterviewQuestionSet(
     input: QuestionGenerationInput,
@@ -174,11 +189,22 @@ export async function generateCandidateQuestionSnapshot(
     context: QuestionGenerationContext,
     dependencies: CandidateQuestionSnapshotDependencies = {},
 ): Promise<Question[]> {
-    const questionSet = await generateInterviewQuestionSet(input, context);
-    const count = normalizeQuestionCount(input.questionCount);
+    const normalizedInput = normalizeQuestionGenerationInput(input);
+    const questionSet = await generateInterviewQuestionSet(normalizedInput, context);
+    const questionPlan = normalizedInput.interviewStage
+        ? buildQuestionPlan({
+            interviewStage: normalizedInput.interviewStage,
+            questionCount: normalizedInput.questionCount,
+        })
+        : null;
+    const count = questionPlan?.questionCount ?? normalizeQuestionCount(normalizedInput.questionCount);
     const createQuestionId = dependencies.createQuestionId ?? (() => uuidv7());
 
-    return flattenCandidateQuestionSet(questionSet, input.interviewType ?? null)
+    const flattenedQuestions = questionPlan
+        ? flattenCandidateQuestionSetByPlan(questionSet, questionPlan, normalizedInput.interviewType ?? null)
+        : flattenCandidateQuestionSet(questionSet, normalizedInput.interviewType ?? null);
+
+    return flattenedQuestions
         .slice(0, count)
         .map((question, index) => ({
             ...question,
@@ -187,12 +213,13 @@ export async function generateCandidateQuestionSnapshot(
         }));
 }
 
-function normalizeQuestionGenerationInput(input: QuestionGenerationInput): Required<Pick<QuestionGenerationInput, "role">> & Omit<QuestionGenerationInput, "role"> {
+function normalizeQuestionGenerationInput(input: QuestionGenerationInput): NormalizedQuestionGenerationInput {
     return {
         role: input.role.trim(),
         jobDescription: input.jobDescription?.trim() || null,
         resume: input.resume?.trim() || null,
         interviewType: input.interviewType ?? null,
+        interviewStage: input.interviewStage ? normalizeInterviewStage(input.interviewStage) : null,
         questionCount: normalizeQuestionCount(input.questionCount),
     };
 }
@@ -207,8 +234,10 @@ function normalizeQuestionCount(questionCount: number | null | undefined) {
 
 function buildQuestionGenerationPrompt(input: QuestionGenerationInput) {
     const readingLevelContext = getReadingLevelContext(input.role);
+    const interviewStage = normalizeInterviewStage(input.interviewStage);
     const practiceConfiguration = [
-        input.interviewType ? `- Interview type: ${input.interviewType}` : null,
+        input.interviewStage ? `- Interview stage: ${getInterviewStageLabel(interviewStage)}` : null,
+        input.interviewType ? `- Practice emphasis: ${input.interviewType}` : null,
         input.questionCount ? `- Desired session length: ${input.questionCount} questions` : null,
     ].filter(Boolean).join("\n");
 
@@ -283,35 +312,13 @@ RULES:
 - Output ONLY valid JSON.`;
 }
 
-function flattenCandidateQuestionSet(questionSet: GeneratedInterviewQuestions, interviewType: PracticeInterviewType | null): Question[] {
-    const behavioralQuestions = Object.entries(questionSet.behavioral).map(([framework, text]) => ({
-        id: "",
-        text,
-        category: "Behavioral",
-        framework,
-        index: 0,
-    }));
-    const cultureQuestions = Object.entries(questionSet.culture).map(([framework, text]) => ({
-        id: "",
-        text,
-        category: "Culture",
-        framework,
-        index: 0,
-    }));
-    const technicalQuestions = questionSet.technical.map((question) => ({
-        id: "",
-        text: question.text,
-        category: "Technical",
-        framework: "Technical",
-        index: 0,
-    }));
-    const screeningQuestions = Object.entries(questionSet.screening ?? {}).map(([framework, text]) => ({
-        id: "",
-        text,
-        category: "Screening",
-        framework,
-        index: 0,
-    }));
+function flattenCandidateQuestionSet(questionSet: GeneratedInterviewQuestions, interviewType: PracticeInterviewType | null): CandidateQuestionTemplate[] {
+    const {
+        behavioralQuestions,
+        cultureQuestions,
+        technicalQuestions,
+        screeningQuestions,
+    } = buildCandidateQuestionBuckets(questionSet);
 
     if (interviewType === "technical") {
         return [...technicalQuestions, ...behavioralQuestions, ...cultureQuestions, ...screeningQuestions];
@@ -349,6 +356,85 @@ function flattenCandidateQuestionSet(questionSet: GeneratedInterviewQuestions, i
         ...screeningQuestions.slice(1),
         ...cultureQuestions.slice(2),
     ];
+}
+
+function flattenCandidateQuestionSetByPlan(
+    questionSet: GeneratedInterviewQuestions,
+    questionPlan: QuestionPlan,
+    legacyInterviewType: PracticeInterviewType | null,
+): CandidateQuestionTemplate[] {
+    const buckets = buildCandidateQuestionBuckets(questionSet);
+    const byPlanCategory: Record<QuestionPlanCategory, CandidateQuestionTemplate[]> = {
+        screening: buckets.screeningQuestions,
+        behavioral: buckets.behavioralQuestions.filter((question) => question.framework !== "Role-Specific Scenario"),
+        culture_fit: buckets.cultureQuestions,
+        case_scenario: buckets.behavioralQuestions.filter((question) => question.framework === "Role-Specific Scenario"),
+        technical_role_specific: buckets.technicalQuestions,
+    };
+    const fallbackQuestions = flattenCandidateQuestionSet(questionSet, legacyInterviewType);
+    const selectedQuestions: CandidateQuestionTemplate[] = [];
+    const usedKeys = new Set<string>();
+
+    for (const slot of questionPlan.slots) {
+        const question = takeUnusedQuestion(byPlanCategory[slot.category], usedKeys) ?? takeUnusedQuestion(fallbackQuestions, usedKeys);
+        if (question) {
+            selectedQuestions.push(question);
+        }
+    }
+
+    return selectedQuestions;
+}
+
+function takeUnusedQuestion(questions: CandidateQuestionTemplate[], usedKeys: Set<string>) {
+    const question = questions.find((candidate) => !usedKeys.has(getCandidateQuestionKey(candidate)));
+    if (!question) {
+        return null;
+    }
+
+    usedKeys.add(getCandidateQuestionKey(question));
+    return question;
+}
+
+function getCandidateQuestionKey(question: CandidateQuestionTemplate) {
+    return `${question.category}:${question.framework ?? ""}:${question.text}`;
+}
+
+function buildCandidateQuestionBuckets(questionSet: GeneratedInterviewQuestions) {
+    const behavioralQuestions = Object.entries(questionSet.behavioral).map(([framework, text]) => ({
+        id: "",
+        text,
+        category: "Behavioral",
+        framework,
+        index: 0,
+    }));
+    const cultureQuestions = Object.entries(questionSet.culture).map(([framework, text]) => ({
+        id: "",
+        text,
+        category: "Culture",
+        framework,
+        index: 0,
+    }));
+    const technicalQuestions = questionSet.technical.map((question) => ({
+        id: "",
+        text: question.text,
+        category: "Technical",
+        framework: "Technical",
+        index: 0,
+    }));
+    const screeningQuestions = Object.entries(questionSet.screening ?? {}).map(([framework, text]) => ({
+        id: "",
+        text,
+        category: "Screening",
+        framework,
+        index: 0,
+    }));
+
+    return {
+        behavioralQuestions,
+        cultureQuestions,
+        technicalQuestions,
+        screeningQuestions,
+    };
 }
 
 function getMockQuestions(role: string): GeneratedInterviewQuestions {

@@ -160,6 +160,7 @@ describe("candidate session actions", () => {
         });
         const formData = new FormData();
         formData.set("answerText", "I improved release quality with a clearer checklist.");
+        formData.set("answerModality", "voice");
         const { submitCandidateAnswerAction } = await import("./actions");
 
         await expect(submitCandidateAnswerAction("session-1", "question-1", formData))
@@ -171,6 +172,7 @@ describe("candidate session actions", () => {
             sessionId: "session-1",
             questionId: "question-1",
             answerText: "I improved release quality with a clearer checklist.",
+            modality: "voice",
         });
     });
 

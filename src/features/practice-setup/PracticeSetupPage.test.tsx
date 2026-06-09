@@ -23,14 +23,14 @@ describe("PracticeSetupPage", () => {
         expect(screen.getByLabelText(/target role/i)).toBeRequired();
         expect(screen.getByLabelText(/job description/i)).toBeRequired();
         expect(screen.getByLabelText(/resume content/i)).toBeInTheDocument();
-        expect(screen.queryByLabelText(/practice focus/i)).not.toBeInTheDocument();
+        expect(screen.queryByLabelText(/what are you preparing for/i)).not.toBeInTheDocument();
         expect(screen.queryByLabelText(/question count/i)).not.toBeInTheDocument();
         expect(screen.getByRole("button", { name: /advanced setup/i })).toBeInTheDocument();
         expect(screen.getByRole("button", { name: /start generating questions/i })).toBeInTheDocument();
 
         await user.click(screen.getByRole("button", { name: /advanced setup/i }));
 
-        expect(screen.getByRole("group", { name: /practice focus/i })).toBeInTheDocument();
+        expect(screen.getByRole("group", { name: /what are you preparing for/i })).toBeInTheDocument();
         expect(screen.getByRole("group", { name: /question count/i })).toBeInTheDocument();
     });
 
@@ -65,14 +65,15 @@ describe("PracticeSetupPage", () => {
                 targetRole: "Warehouse lead",
                 jobDescription: "Coordinate warehouse operations and safety workflows.",
                 resumeText: null,
-                interviewType: "technical",
+                interviewType: null,
+                interviewStage: "initial_interview",
                 questionCount: 7,
             },
         }} />);
 
         expect(screen.getByLabelText(/target role/i)).toHaveValue("Warehouse lead");
         await user.click(screen.getByRole("button", { name: /advanced setup/i }));
-        expect(screen.getByRole("radio", { name: /Technical depth/i })).toBeChecked();
+        expect(screen.getByRole("radio", { name: /First interview/i })).toBeChecked();
         expect(screen.getByRole("radio", { name: "7 questions" })).toBeChecked();
         expect(screen.queryByRole("link", { name: /warehouse lead/i })).not.toBeInTheDocument();
     });

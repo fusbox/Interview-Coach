@@ -109,12 +109,14 @@ export interface FeedbackPlan {
     intervention: FeedbackIntervention;
 }
 
-export interface OneBigUpgrade {
+export interface CoachSignal {
     focus: string;
     rationale: string;
     targetMoment?: string;
     trySayingThis: string;
 }
+
+export type OneBigUpgrade = CoachSignal;
 
 export interface AnalysisResult {
     ack?: string;
@@ -124,6 +126,7 @@ export interface AnalysisResult {
     contentPulse?: CoachingPulse;
     deliveryPulse?: CoachingPulse;
 
+    coachSignal?: CoachSignal;
     oneBigUpgrade?: OneBigUpgrade;
 
     nextAction?: {

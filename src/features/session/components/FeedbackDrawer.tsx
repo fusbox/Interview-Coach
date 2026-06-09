@@ -39,6 +39,7 @@ interface FeedbackOverlayProps {
     transcript?: string;
     audioBlob?: Blob | null;
     sessionId?: string;
+    showCoachSignal?: boolean;
 }
 
 type SectionKey = 'start' | 'delivery' | 'content' | 'next';
@@ -245,6 +246,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
     transcript,
     audioBlob,
     sessionId,
+    showCoachSignal = false,
 }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -689,21 +691,21 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                                     }
                                                 </p>
                                             </div>
-                                            {analysis?.oneBigUpgrade && (
+                                            {showCoachSignal && (analysis?.coachSignal ?? analysis?.oneBigUpgrade) && (
                                                 <div className="rounded-3xl border border-primary/15 bg-surface-base/80 p-5 shadow-flat">
                                                     <p className="text-xs font-black text-primary uppercase tracking-[0.2em]">
-                                                        One Big Upgrade
+                                                        For the biggest lift
                                                     </p>
                                                     <div className="mt-3 space-y-3">
                                                         <h4 className="text-xl font-bold text-text-primary">
-                                                            {analysis.oneBigUpgrade.focus}
+                                                            {(analysis.coachSignal ?? analysis.oneBigUpgrade)?.focus}
                                                         </h4>
                                                         <p className="text-base font-medium leading-relaxed text-text-secondary">
-                                                            {analysis.oneBigUpgrade.rationale}
+                                                            {(analysis.coachSignal ?? analysis.oneBigUpgrade)?.rationale}
                                                         </p>
-                                                        {analysis.oneBigUpgrade.targetMoment && (
+                                                        {(analysis.coachSignal ?? analysis.oneBigUpgrade)?.targetMoment && (
                                                             <p className="rounded-2xl border border-border/40 bg-surface-subtle/70 px-4 py-3 text-sm font-medium leading-relaxed text-text-muted">
-                                                                {analysis.oneBigUpgrade.targetMoment}
+                                                                {(analysis.coachSignal ?? analysis.oneBigUpgrade)?.targetMoment}
                                                             </p>
                                                         )}
                                                         <div className="rounded-2xl bg-primary/5 px-4 py-3">
@@ -711,7 +713,7 @@ export const FeedbackDrawer: React.FC<FeedbackOverlayProps> = ({
                                                                 Try saying this
                                                             </p>
                                                             <p className="mt-2 text-base font-semibold leading-relaxed text-text-primary">
-                                                                {analysis.oneBigUpgrade.trySayingThis}
+                                                                {(analysis.coachSignal ?? analysis.oneBigUpgrade)?.trySayingThis}
                                                             </p>
                                                         </div>
                                                     </div>

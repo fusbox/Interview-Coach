@@ -6,6 +6,11 @@ import { ArrowRight, Briefcase, ChevronDown, ClipboardList, FileText, SlidersHor
 
 import { Button } from "@/components/ui/button";
 import { FieldLabel, textFieldClassName, textareaFieldClassName } from "@/components/ui/FormField";
+import {
+    INTERVIEW_STAGE_OPTIONS,
+    normalizeInterviewStage,
+    type InterviewStage,
+} from "@/lib/server/services/question-plan-service";
 
 import { startPracticeGenerationAction } from "./actions";
 import { PRACTICE_SETUP_LIMITS, safeParsePracticeSetupInput, safeParsePracticeSetupIntakeInput } from "./practice-setup-schema";
@@ -23,6 +28,7 @@ export type PracticeSetupFormInitialValues = {
     jobDescription?: string | null;
     resumeText?: string | null;
     interviewType?: "behavioral" | "technical" | "case" | "screening" | "general" | null;
+    interviewStage?: InterviewStage | null;
     questionCount?: number | null;
 };
 
@@ -34,34 +40,6 @@ const fieldErrorIds: Record<PracticeSetupField, string> = {
     resumeText: "resume-text-error",
 };
 
-const interviewTypeOptions = [
-    {
-        value: "",
-        label: "Balanced practice",
-        description: "Mix common question types when you want a general interview round.",
-    },
-    {
-        value: "behavioral",
-        label: "Behavioral stories",
-        description: "Practice examples about judgment, teamwork, ownership, and how you handled past situations.",
-    },
-    {
-        value: "technical",
-        label: "Technical depth",
-        description: "Focus on explaining tools, methods, domain knowledge, and how you make decisions.",
-    },
-    {
-        value: "case",
-        label: "Case or scenario",
-        description: "Work through what you would do in realistic role-specific situations.",
-    },
-    {
-        value: "screening",
-        label: "Screening basics",
-        description: "Prepare for early conversations about fit, interest, availability, and background.",
-    },
-] as const;
-
 const questionCountOptions = [3, 5, 7, 10] as const;
 
 export function PracticeSetupForm({ initialValues = null, practiceDraftId = null, submissionError = null }: PracticeSetupFormProps) {
@@ -70,9 +48,9 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
     const [actionError, setActionError] = useState<string | null>(null);
     const [acknowledgementError, setAcknowledgementError] = useState<string | null>(null);
     const [advancedSetupOpen, setAdvancedSetupOpen] = useState(false);
-    const initialInterviewType = normalizeInterviewType(initialValues?.interviewType);
+    const initialInterviewStage = normalizeInterviewStage(initialValues?.interviewStage);
     const initialQuestionCount = String(initialValues?.questionCount ?? PRACTICE_SETUP_LIMITS.questionCountDefault);
-    const [selectedInterviewType, setSelectedInterviewType] = useState(initialInterviewType);
+    const [selectedInterviewStage, setSelectedInterviewStage] = useState(initialInterviewStage);
     const [selectedQuestionCount, setSelectedQuestionCount] = useState(initialQuestionCount);
 
     const hasFieldErrors = Object.keys(fieldErrors).length > 0;
@@ -111,7 +89,8 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
         });
         const intakeResult = safeParsePracticeSetupIntakeInput({
             confidenceLevel: null,
-            interviewType: nullableFormValue(formData.get("interviewType")),
+            interviewType: null,
+            interviewStage: formData.get("interviewStage"),
             timeline: null,
             concerns: null,
             practiceFocus: [],
@@ -248,7 +227,7 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
 
             {!advancedSetupOpen ? (
                 <>
-                    <input type="hidden" name="interviewType" value={selectedInterviewType} aria-label="Default interview type value" />
+                    <input type="hidden" name="interviewStage" value={selectedInterviewStage} aria-label="Default interview stage value" />
                     <input type="hidden" name="questionCount" value={selectedQuestionCount} aria-label="Default question amount value" />
                 </>
             ) : null}
@@ -268,7 +247,7 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
                         <span>
                             <span className="block text-sm font-bold text-text-primary">Advanced setup</span>
                             <span className="mt-1 block text-sm leading-6 text-text-secondary">
-                                Adjust focus or question count only when you need a more specific round.
+                                Choose the interview moment and number of questions when you want a more specific round.
                             </span>
                         </span>
                     </span>
@@ -287,24 +266,24 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
                         <div className="grid gap-5 sm:grid-cols-2">
                             <fieldset
                                 className="space-y-3"
-                                aria-describedby="interview-type-help"
+                                aria-describedby="interview-stage-help"
                             >
                                 <legend className="ml-1 text-[0.625rem] font-bold uppercase tracking-wider text-[rgb(var(--candidate-muted))]">
-                                    Practice focus
+                                    What are you preparing for?
                                 </legend>
-                                <p id="interview-type-help" className="text-sm leading-6 text-text-secondary sm:min-h-12">
-                                    Choose what this round should emphasize. Balanced practice mixes common interview question types.
+                                <p id="interview-stage-help" className="text-sm leading-6 text-text-secondary sm:min-h-12">
+                                    If you know where you are in the interview process, choose the closest match. If not, Not sure yet keeps the round balanced.
                                 </p>
                                 <div className="space-y-2">
-                                    {interviewTypeOptions.map((option) => (
+                                    {INTERVIEW_STAGE_OPTIONS.map((option) => (
                                         <AdvancedSetupOption
-                                            key={option.value || "balanced"}
-                                            name="interviewType"
+                                            key={option.value}
+                                            name="interviewStage"
                                             value={option.value}
                                             label={option.label}
                                             description={option.description}
-                                            checked={selectedInterviewType === option.value}
-                                            onChange={setSelectedInterviewType}
+                                            checked={selectedInterviewStage === option.value}
+                                            onChange={(value) => setSelectedInterviewStage(normalizeInterviewStage(value))}
                                         />
                                     ))}
                                 </div>
@@ -371,14 +350,6 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
             </Button>
         </form>
     );
-}
-
-function nullableFormValue(value: FormDataEntryValue | null) {
-    return typeof value === "string" && value.trim() ? value : null;
-}
-
-function normalizeInterviewType(value: PracticeSetupFormInitialValues["interviewType"]) {
-    return value === "general" ? "" : (value ?? "");
 }
 
 function AdvancedSetupOption({
