@@ -408,11 +408,21 @@ export default function CreateInviteWizard() {
             if (!res.ok) throw new Error("Generation failed");
             const data = await res.json();
 
-            if (data.behavioral) {
-                setStar(STAR_TEMPLATE.map(t => ({
+            const screeningQuestions = data.screening
+                ? Object.entries(data.screening).map(([label, text], index) => ({
+                    id: `screening-${index + 1}`,
+                    text: typeof text === "string" ? text : "",
+                    category: "Screening",
+                    label,
+                }))
+                : [];
+
+            if (data.behavioral || screeningQuestions.length > 0) {
+                const behavioralQuestions = STAR_TEMPLATE.map(t => ({
                     ...t,
-                    text: data.behavioral[t.label] || ""
-                })));
+                    text: data.behavioral?.[t.label] || ""
+                }));
+                setStar([...screeningQuestions, ...behavioralQuestions]);
             }
             if (data.culture) {
                 setPerma(PERMA_TEMPLATE.map(t => ({

@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Sparkles, Trash2, Loader2, Save, X } from "lucide-react";
+import { Sparkles, Loader2, Save, X } from "lucide-react";
 import { Details, InterviewDetails, QuestionInput, StepFooterProps } from "../constants";
 import { useEffect, useState, useLayoutEffect, useRef, useId, useMemo } from "react";
 import { ChevronRight } from "lucide-react";
@@ -111,6 +111,69 @@ function getRecruiterInterviewStageLabel(value: InterviewStage): string {
     return recruiterInterviewStageLabels.get(value) ?? "First interview";
 }
 
+function isScreeningQuestion(question: QuestionInput): boolean {
+    return question.category.toLowerCase() === "screening";
+}
+
+function isCaseScenarioQuestion(question: QuestionInput): boolean {
+    const label = question.label.toLowerCase();
+    const category = question.category.toLowerCase();
+    return category.includes("case") ||
+        category.includes("scenario") ||
+        label.includes("scenario") ||
+        label.includes("role-specific");
+}
+
+function getQuestionSectionGroups({
+    star,
+    perma,
+    technical,
+}: {
+    star: QuestionInput[];
+    perma: QuestionInput[];
+    technical: QuestionInput[];
+}) {
+    const screening = star.filter(isScreeningQuestion);
+    const caseScenario = star.filter((question) => !isScreeningQuestion(question) && isCaseScenarioQuestion(question));
+    const behavioral = star.filter((question) => !isScreeningQuestion(question) && !isCaseScenarioQuestion(question));
+
+    return {
+        screening,
+        behavioral,
+        cultureFit: perma,
+        caseScenario,
+        technicalRoleSpecific: technical,
+    };
+}
+
+function createEmptyQuestion(id: string, category: string, label: string): QuestionInput {
+    return { id, text: "", category, label };
+}
+
+function buildManualQuestionInputs(questionPlan: ReturnType<typeof buildQuestionPlan>) {
+    const star = [
+        ...Array.from({ length: questionPlan.categoryCounts.screening }, (_, index) =>
+            createEmptyQuestion(`screening-${index + 1}`, "Screening", `Screening Q${index + 1}`)
+        ),
+        ...Array.from({ length: questionPlan.categoryCounts.behavioral }, (_, index) =>
+            createEmptyQuestion(`behavioral-${index + 1}`, "Behavioral", `Behavioral Q${index + 1}`)
+        ),
+        ...Array.from({ length: questionPlan.categoryCounts.case_scenario }, (_, index) =>
+            createEmptyQuestion(`case-${index + 1}`, "Case / Scenario", `Case / Scenario Q${index + 1}`)
+        ),
+    ];
+
+    const perma = Array.from({ length: questionPlan.categoryCounts.culture_fit }, (_, index) =>
+        createEmptyQuestion(`culture-${index + 1}`, "Culture / Fit", `Culture / Fit Q${index + 1}`)
+    );
+
+    const technical = Array.from({ length: questionPlan.categoryCounts.technical_role_specific }, (_, index) =>
+        createEmptyQuestion(`technical-${index + 1}`, "Technical", `Technical / Role-Specific Q${index + 1}`)
+    );
+
+    return { star, perma, technical };
+}
+
 export function StepJobAndQuestions({
     details, setDetails,
     interviewDetails, setInterviewDetails,
@@ -194,19 +257,6 @@ export function StepJobAndQuestions({
             }))
             .filter((row) => row.count > 0)
     ), [questionPlan]);
-
-    const addTechnical = () => {
-        setTechnical([...technical, {
-            id: `tech-${Date.now()}`,
-            text: '',
-            category: 'Technical',
-            label: `Technical Q${technical.length + 1}`
-        }]);
-    };
-
-    const removeQuestion = (set: (val: QuestionInput[]) => void, list: QuestionInput[], id: string) => {
-        set(list.filter(q => q.id !== id));
-    };
 
     const updateQuestion = (set: (val: QuestionInput[]) => void, list: QuestionInput[], id: string, text: string) => {
         set(list.map(q => q.id === id ? { ...q, text } : q));
@@ -296,6 +346,10 @@ export function StepJobAndQuestions({
     const handleConfirmQuestionMix = () => {
         setIsQuestionMixAccepted(true);
         if (questionMixReviewMode === "manual") {
+            const manualQuestions = buildManualQuestionInputs(questionPlan);
+            setStar(manualQuestions.star);
+            setPerma(manualQuestions.perma);
+            setTechnical(manualQuestions.technical);
             setIsManualEntryReady(true);
         }
         setQuestionMixReviewMode(null);
@@ -333,6 +387,65 @@ export function StepJobAndQuestions({
         technical.some(q => q.text.trim());
 
     const isNextDisabled = !isJobDetailsComplete || !hasAtLeastOneQuestion;
+    const questionGroups = getQuestionSectionGroups({ star, perma, technical });
+
+    const renderQuestionSection = ({
+        title,
+        questions,
+        setQuestions,
+        list,
+        ariaLabelPrefix,
+        emptyMessage,
+    }: {
+        title: string;
+        questions: QuestionInput[];
+        setQuestions: (val: QuestionInput[]) => void;
+        list: QuestionInput[];
+        ariaLabelPrefix: string;
+        emptyMessage: string;
+    }) => (
+        <Card className="border-border/50 shadow-raised-1">
+            <CardHeader className="pb-4">
+                <CardTitle className="text-base font-bold font-sans flex items-center gap-2.5">
+                    <div className="w-1 h-4 bg-primary rounded-full" />
+                    {title}
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                {questions.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-border bg-surface-subtle px-4 py-3 text-sm text-text-secondary">
+                        {emptyMessage}
+                    </div>
+                ) : questions.map((question, index) => (
+                    <div key={question.id} className="flex gap-2 items-center animate-in fade-in slide-in-from-top-1 duration-base">
+                        <div className="flex-1 relative group/field">
+                            <AutoResizeTextarea
+                                className={`${textareaFieldClassName} min-h-[44px] pl-4 pr-10`}
+                                value={question.text}
+                                onChange={(value) => updateQuestion(setQuestions, list, question.id, value)}
+                                placeholder={`${title.replace(" Questions", "")} Question ${index + 1}...`}
+                                ariaLabel={`${ariaLabelPrefix} question ${index + 1}`}
+                                name={`${ariaLabelPrefix.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-question-${index + 1}`}
+                                disabled={isTourLocked}
+                            />
+                            {question.text && (
+                                <button
+                                    type="button"
+                                    onClick={() => clearQuestion(setQuestions, list, question.id)}
+                                    disabled={isTourLocked}
+                                    className="absolute right-3 top-3 p-1 text-rose-700 hover:text-rose-800 transition-all duration-base dark:text-rose-300 dark:hover:text-rose-200"
+                                    title="Clear content"
+                                    aria-label={`Clear ${ariaLabelPrefix} question ${index + 1}`}
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </CardContent>
+        </Card>
+    );
 
     return (
         <div className="space-y-10">
@@ -599,147 +712,46 @@ export function StepJobAndQuestions({
                     {isQuestionMixAccepted && (isManualEntryReady || hasAtLeastOneQuestion) && (
                     <>
 
-                    {/* STAR Section */}
-                    <Card className="border-border/50 shadow-raised-1">
-                        <CardHeader className="pb-4">
-                            <CardTitle className="text-base font-bold font-sans flex items-center gap-2.5">
-                                <div className="w-1 h-4 bg-primary rounded-full" />
-                                STAR Questions (Behavioral)
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {star.map((q, idx) => (
-                                <div key={q.id} className="relative group/field">
-                                    <AutoResizeTextarea
-                                        className={`${textareaFieldClassName} min-h-[44px] pl-4 pr-10`}
-                                        value={q.text}
-                                        onChange={val => updateQuestion(setStar, star, q.id, val)}
-                                        placeholder={`STAR Question ${idx + 1}...`}
-                                        ariaLabel={`STAR question ${idx + 1}`}
-                                        name={`star-question-${idx + 1}`}
-                                        disabled={isTourLocked}
-                                    />
-                                    {q.text && (
-                                        <button
-                                            type="button"
-                                            onClick={() => clearQuestion(setStar, star, q.id)}
-                                            disabled={isTourLocked}
-                                            className="absolute right-3 top-3 p-1 text-rose-700 hover:text-rose-800 transition-all duration-base dark:text-rose-300 dark:hover:text-rose-200"
-                                            title="Clear content"
-                                            aria-label={`Clear STAR question ${idx + 1}`}
-                                        >
-                                            <X className="w-4 h-4" />
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
-                        </CardContent>
-                    </Card>
-
-                    {/* PERMA Section */}
-                    <Card className="border-border/50 shadow-raised-1">
-                        <CardHeader className="pb-4">
-                            <CardTitle className="text-base font-bold font-sans flex items-center gap-2.5">
-                                <div className="w-1 h-4 bg-primary rounded-full" />
-                                PERMA Questions (Culture/Fit)
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {perma.map((q, idx) => (
-                                <div key={q.id} className="relative group/field">
-                                    <AutoResizeTextarea
-                                        className={`${textareaFieldClassName} min-h-[44px] pl-4 pr-10`}
-                                        value={q.text}
-                                        onChange={val => updateQuestion(setPerma, perma, q.id, val)}
-                                        placeholder={`${q.label} Question...`}
-                                        ariaLabel={`${q.label} question`}
-                                        name={`perma-question-${idx + 1}`}
-                                        disabled={isTourLocked}
-                                    />
-                                    {q.text && (
-                                        <button
-                                            type="button"
-                                            onClick={() => clearQuestion(setPerma, perma, q.id)}
-                                            disabled={isTourLocked}
-                                            className="absolute right-3 top-3 p-1 text-rose-700 hover:text-rose-800 transition-all duration-base dark:text-rose-300 dark:hover:text-rose-200"
-                                            title="Clear content"
-                                            aria-label={`Clear ${q.label} question`}
-                                        >
-                                            <X className="w-4 h-4" />
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
-                        </CardContent>
-                    </Card>
-
-                    {/* Technical Section */}
-                    <Card className="border-border/50 shadow-raised-1 overflow-hidden transition-all duration-base">
-                        <CardHeader className="flex flex-row items-center justify-between pb-4 bg-surface-base border-b border-border/30">
-                            <CardTitle className="text-base font-bold font-sans flex items-center gap-2.5">
-                                <div className="w-1 h-4 bg-primary rounded-full" />
-                                Technical & Role-Specific Questions
-                            </CardTitle>
-                            <Button
-                                emphasis="secondary"
-                                density="compact"
-                                shape="square"
-                                label="strong"
-                                onClick={addTechnical}
-                                type="button"
-                                disabled={isTourLocked}
-                                className="hidden sm:flex rounded-xl text-emerald-800 border-emerald-400 hover:bg-emerald-50 hover:border-emerald-500 hover:text-emerald-900 transition-all dark:text-emerald-200 dark:border-emerald-400/50 dark:hover:bg-emerald-500/10"
-                            >
-                                <Plus className="w-4 h-4 mr-1" /> Add
-                            </Button>
-                        </CardHeader>
-                        <CardContent className="space-y-4 pt-6">
-                            {technical.map((q, idx) => (
-                                <div key={q.id} className="flex gap-2 items-center animate-in fade-in slide-in-from-top-1 duration-base">
-                                    <div className="flex-1 relative group/field">
-                                        <AutoResizeTextarea
-                                        className={`${textareaFieldClassName} min-h-[44px] pl-4 pr-10`}
-                                        value={q.text}
-                                        onChange={val => updateQuestion(setTechnical, technical, q.id, val)}
-                                        placeholder={`Technical Question ${idx + 1}...`}
-                                        ariaLabel={`Technical question ${idx + 1}`}
-                                        name={`technical-question-${idx + 1}`}
-                                        disabled={isTourLocked}
-                                    />
-                                        {q.text && (
-                                            <button
-                                                type="button"
-                                                onClick={() => clearQuestion(setTechnical, technical, q.id)}
-                                                disabled={isTourLocked}
-                                                className="absolute right-3 top-3 p-1 text-rose-700 hover:text-rose-800 transition-all duration-base dark:text-rose-300 dark:hover:text-rose-200"
-                                                title="Clear content"
-                                                aria-label={`Clear technical question ${idx + 1}`}
-                                            >
-                                                <X className="w-4 h-4" />
-                                            </button>
-                                        )}
-                                    </div>
-                                    {technical.length > 1 && (
-                                        <Button size="icon" variant="ghost" shape="square" className="text-rose-700 hover:bg-rose-50 shrink-0 dark:text-rose-300 dark:hover:bg-rose-500/10" onClick={() => removeQuestion(setTechnical, technical, q.id)} aria-label={`Remove technical question ${idx + 1}`} disabled={isTourLocked}>
-                                            <Trash2 className="w-4 h-4" />
-                                        </Button>
-                                    )}
-                                </div>
-                            ))}
-                            <Button
-                                emphasis="secondary"
-                                density="comfortable"
-                                shape="app"
-                                label="strong"
-                                onClick={addTechnical}
-                                type="button"
-                                disabled={isTourLocked}
-                                className="mt-2 w-full border-dashed text-emerald-800 border-emerald-400 hover:bg-emerald-50 hover:border-emerald-500 dark:text-emerald-200 dark:border-emerald-400/50 dark:hover:bg-emerald-500/10 sm:hidden"
-                            >
-                                <Plus className="w-4 h-4 mr-2" /> Add Technical Question
-                            </Button>
-                        </CardContent>
-                    </Card>
+                    {renderQuestionSection({
+                        title: "Screening Questions",
+                        questions: questionGroups.screening,
+                        setQuestions: setStar,
+                        list: star,
+                        ariaLabelPrefix: "Screening",
+                        emptyMessage: "No screening questions are planned for this invite.",
+                    })}
+                    {renderQuestionSection({
+                        title: "Behavioral Questions",
+                        questions: questionGroups.behavioral,
+                        setQuestions: setStar,
+                        list: star,
+                        ariaLabelPrefix: "Behavioral",
+                        emptyMessage: "No behavioral questions are planned for this invite.",
+                    })}
+                    {renderQuestionSection({
+                        title: "Culture / Fit Questions",
+                        questions: questionGroups.cultureFit,
+                        setQuestions: setPerma,
+                        list: perma,
+                        ariaLabelPrefix: "Culture / Fit",
+                        emptyMessage: "No culture or fit questions are planned for this invite.",
+                    })}
+                    {renderQuestionSection({
+                        title: "Case / Scenario Questions",
+                        questions: questionGroups.caseScenario,
+                        setQuestions: setStar,
+                        list: star,
+                        ariaLabelPrefix: "Case / Scenario",
+                        emptyMessage: "No case or scenario questions are planned for this invite.",
+                    })}
+                    {renderQuestionSection({
+                        title: "Technical / Role-Specific Questions",
+                        questions: questionGroups.technicalRoleSpecific,
+                        setQuestions: setTechnical,
+                        list: technical,
+                        ariaLabelPrefix: "Technical / Role-Specific",
+                        emptyMessage: "No technical or role-specific questions are planned for this invite.",
+                    })}
                     </>
                     )}
                 </div>

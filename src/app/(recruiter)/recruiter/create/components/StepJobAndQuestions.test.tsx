@@ -90,7 +90,7 @@ describe("StepJobAndQuestions", () => {
         });
         await user.click(screen.getByRole("button", { name: "Enter my own questions" }));
         await user.click(screen.getByRole("button", { name: "Looks good" }));
-        fireEvent.change(screen.getByLabelText("STAR question 1"), {
+        fireEvent.change(screen.getByLabelText("Behavioral question 1"), {
             target: { value: "Tell me about a time you improved quality." }
         });
 
@@ -231,10 +231,10 @@ describe("StepJobAndQuestions", () => {
         expect(screen.queryByRole("button", { name: "Add Questions" })).not.toBeInTheDocument();
         expect(screen.getByRole("button", { name: /ai generate questions/i })).toBeDisabled();
         expect(screen.getByRole("button", { name: "Enter my own questions" })).toBeDisabled();
-        expect(screen.queryByLabelText("STAR question 1")).not.toBeInTheDocument();
+        expect(screen.queryByLabelText("Behavioral question 1")).not.toBeInTheDocument();
 
         await user.click(screen.getByRole("button", { name: "Enter my own questions" }));
-        expect(screen.queryByLabelText("STAR question 1")).not.toBeInTheDocument();
+        expect(screen.queryByLabelText("Behavioral question 1")).not.toBeInTheDocument();
     });
 
     it("shows direct question entry actions and recruiter-specific stage choices", () => {
@@ -323,12 +323,19 @@ describe("StepJobAndQuestions", () => {
         expect(screen.getByText("I've set up this question mix for a 5-question First conversation or screening practice session.")).toBeInTheDocument();
         expect(screen.getByText("Screening")).toBeInTheDocument();
         expect(screen.getByText("2 questions")).toBeInTheDocument();
-        expect(screen.queryByLabelText("STAR question 1")).not.toBeInTheDocument();
+        expect(screen.queryByLabelText("Behavioral question 1")).not.toBeInTheDocument();
 
         await user.click(screen.getByRole("button", { name: "Looks good" }));
 
         expect(screen.queryByRole("dialog", { name: "Review question setup" })).not.toBeInTheDocument();
-        expect(screen.getByLabelText("STAR question 1")).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Screening Questions" })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Behavioral Questions" })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Culture / Fit Questions" })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Case / Scenario Questions" })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Technical / Role-Specific Questions" })).toBeInTheDocument();
+        expect(screen.queryByText("STAR Questions (Behavioral)")).not.toBeInTheDocument();
+        expect(screen.queryByText("PERMA Questions (Culture/Fit)")).not.toBeInTheDocument();
+        expect(screen.getByLabelText("Behavioral question 1")).toBeInTheDocument();
     });
 
     it("updates interview stage and question count controls", async () => {
