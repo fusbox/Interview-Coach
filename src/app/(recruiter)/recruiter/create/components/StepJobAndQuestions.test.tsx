@@ -90,6 +90,7 @@ describe("StepJobAndQuestions", () => {
         });
         await user.click(screen.getByRole("button", { name: "Add Questions" }));
         await user.click(screen.getByRole("button", { name: "Enter my own questions" }));
+        await user.click(screen.getByRole("button", { name: "Looks good" }));
         fireEvent.change(screen.getByLabelText("STAR question 1"), {
             target: { value: "Tell me about a time you improved quality." }
         });
@@ -266,6 +267,43 @@ describe("StepJobAndQuestions", () => {
             "AI question generation failed. Please review the job details and try again."
         );
         expect(onGenerateQuestionsAI).toHaveBeenCalledTimes(1);
+    });
+
+    it("confirms the planned question mix before manual question entry is shown", async () => {
+        const user = userEvent.setup();
+
+        render(
+            <StepJobAndQuestions
+                details={{ role: "QA Engineer", jd: "Support release validation and regression coverage.", firstName: "", lastName: "", candidateEmail: "", reqId: "REQ-14" }}
+                setDetails={vi.fn()}
+                interviewDetails={{ interviewStage: "initial_screening", questionCount: 5 }}
+                setInterviewDetails={vi.fn()}
+                star={[{ id: "s1", text: "", category: "STAR", label: "STAR 1" }]}
+                setStar={vi.fn()}
+                perma={[]}
+                setPerma={vi.fn()}
+                technical={[]}
+                setTechnical={vi.fn()}
+                onNext={vi.fn()}
+                onGenerateQuestionsAI={vi.fn()}
+                StepFooter={StepFooterStub}
+                onSaveTemplate={vi.fn()}
+            />
+        );
+
+        await user.click(screen.getByRole("button", { name: "Add Questions" }));
+        await user.click(screen.getByRole("button", { name: "Enter my own questions" }));
+
+        expect(screen.getByRole("dialog", { name: "Review question setup" })).toBeInTheDocument();
+        expect(screen.getByText("I've set up this question mix for a 5-question First conversation or screening practice session.")).toBeInTheDocument();
+        expect(screen.getByText("Screening")).toBeInTheDocument();
+        expect(screen.getByText("2 questions")).toBeInTheDocument();
+        expect(screen.queryByLabelText("STAR question 1")).not.toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: "Looks good" }));
+
+        expect(screen.queryByRole("dialog", { name: "Review question setup" })).not.toBeInTheDocument();
+        expect(screen.getByLabelText("STAR question 1")).toBeInTheDocument();
     });
 
     it("updates interview stage and question count controls", async () => {

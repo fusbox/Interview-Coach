@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Sparkles, Trash2, Loader2, Save, X } from "lucide-react";
 import { Details, InterviewDetails, QuestionInput, StepFooterProps } from "../constants";
-import { useEffect, useState, useLayoutEffect, useRef, useId } from "react";
+import { useEffect, useState, useLayoutEffect, useRef, useId, useMemo } from "react";
 import { ChevronRight } from "lucide-react";
 import { showDemoTools } from "@/lib/feature-flags";
 import { RecruiterTemplate } from "@/lib/domain/template";
@@ -12,7 +12,8 @@ import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { AlertPanel } from "@/components/patterns/AlertPanel";
 import { FieldGroup, FieldHint, FieldLabel, textFieldClassName, textareaFieldClassName } from "@/components/patterns/FormField";
 import { useAccessibleDialog } from "@/lib/hooks/use-accessible-dialog";
-import { INTERVIEW_STAGE_OPTIONS, normalizeInterviewStage } from "@/lib/domain/interview-stage";
+import { getInterviewStageLabel, INTERVIEW_STAGE_OPTIONS, normalizeInterviewStage } from "@/lib/domain/interview-stage";
+import { buildQuestionPlan, QUESTION_PLAN_CATEGORY_ORDER, type QuestionPlanCategory } from "@/lib/domain/question-plan";
 
 interface StepJobAndQuestionsProps {
     details: Details;
@@ -83,6 +84,14 @@ const AutoResizeTextarea = ({
 
 const questionCountOptions = [3, 5, 7, 10] as const;
 
+const questionPlanCategoryLabels: Record<QuestionPlanCategory, string> = {
+    screening: "Screening",
+    behavioral: "Behavioral",
+    culture_fit: "Culture / Fit",
+    case_scenario: "Case / Scenario",
+    technical_role_specific: "Technical / Role-Specific",
+};
+
 export function StepJobAndQuestions({
     details, setDetails,
     interviewDetails, setInterviewDetails,
@@ -103,6 +112,8 @@ export function StepJobAndQuestions({
     const [showSaveModal, setShowSaveModal] = useState(false);
     const [isQuestionBuilderReady, setIsQuestionBuilderReady] = useState(false);
     const [isManualEntryReady, setIsManualEntryReady] = useState(false);
+    const [isQuestionMixAccepted, setIsQuestionMixAccepted] = useState(false);
+    const [questionMixReviewMode, setQuestionMixReviewMode] = useState<"ai" | "manual" | null>(null);
     const [questionCountMode, setQuestionCountMode] = useState<"preset" | "other">(
         questionCountOptions.includes(interviewDetails.questionCount as (typeof questionCountOptions)[number]) ? "preset" : "other",
     );
@@ -117,6 +128,7 @@ export function StepJobAndQuestions({
     const saveDialogRef = useRef<HTMLDivElement>(null);
     const generationFeedbackTimeoutRef = useRef<number | null>(null);
     const saveDialogTitleId = useId();
+    const questionMixDialogTitleId = useId();
     const templateSelectId = useId();
     const reqIdInputId = useId();
     const targetRoleInputId = useId();
@@ -150,8 +162,20 @@ export function StepJobAndQuestions({
     useEffect(() => {
         if (isTourLocked) {
             setShowSaveModal(false);
+            setQuestionMixReviewMode(null);
         }
     }, [isTourLocked]);
+
+    const questionPlan = useMemo(() => buildQuestionPlan(interviewDetails), [interviewDetails]);
+    const questionPlanRows = useMemo(() => (
+        QUESTION_PLAN_CATEGORY_ORDER
+            .map((category) => ({
+                category,
+                label: questionPlanCategoryLabels[category],
+                count: questionPlan.categoryCounts[category],
+            }))
+            .filter((row) => row.count > 0)
+    ), [questionPlan]);
 
     const addTechnical = () => {
         setTechnical([...technical, {
@@ -184,6 +208,7 @@ export function StepJobAndQuestions({
         setTechnical(template.questions.technical);
         setIsQuestionBuilderReady(true);
         setIsManualEntryReady(true);
+        setIsQuestionMixAccepted(true);
     };
 
     const handleSaveSubmit = async (e: React.FormEvent) => {
@@ -230,6 +255,8 @@ export function StepJobAndQuestions({
             await onGenerateQuestionsAI();
             setIsQuestionBuilderReady(true);
             setIsManualEntryReady(false);
+            setIsQuestionMixAccepted(false);
+            setQuestionMixReviewMode("ai");
         } catch {
             setGenerationFeedback({
                 tone: "critical",
@@ -245,12 +272,36 @@ export function StepJobAndQuestions({
             return;
         }
         setIsQuestionBuilderReady(true);
+        setIsQuestionMixAccepted(false);
     };
 
     const handleManualEntry = () => {
-        setIsManualEntryReady(true);
         setIsQuestionBuilderReady(true);
+        setIsManualEntryReady(false);
+        setIsQuestionMixAccepted(false);
+        setQuestionMixReviewMode("manual");
         setGenerationFeedback(null);
+    };
+
+    const handleConfirmQuestionMix = () => {
+        setIsQuestionMixAccepted(true);
+        if (questionMixReviewMode === "manual") {
+            setIsManualEntryReady(true);
+        }
+        setQuestionMixReviewMode(null);
+    };
+
+    const handleBackToInterviewDetails = () => {
+        setQuestionMixReviewMode(null);
+        setIsQuestionMixAccepted(false);
+        setIsManualEntryReady(false);
+        setIsQuestionBuilderReady(false);
+
+        if (questionMixReviewMode === "ai") {
+            setStar(star.map((question) => ({ ...question, text: "" })));
+            setPerma(perma.map((question) => ({ ...question, text: "" })));
+            setTechnical(technical.map((question) => ({ ...question, text: "" })));
+        }
     };
 
     const updateInterviewStage = (value: string) => {
@@ -550,7 +601,7 @@ export function StepJobAndQuestions({
                         </Button>
                     </div>
 
-                    {(isManualEntryReady || hasAtLeastOneQuestion) && (
+                    {isQuestionMixAccepted && (isManualEntryReady || hasAtLeastOneQuestion) && (
                     <>
 
                     {/* STAR Section */}
@@ -699,6 +750,79 @@ export function StepJobAndQuestions({
                 </div>
                 )}
             </div>
+
+            {questionMixReviewMode && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 glass-overlay animate-in fade-in duration-slow">
+                    <Card
+                        className="w-full max-w-xl overflow-hidden border-border/50 shadow-floating animate-in zoom-in-95 duration-base ease-emphasized"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby={questionMixDialogTitleId}
+                    >
+                        <div className="border-b border-border/50 bg-surface-base p-6">
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="space-y-2">
+                                    <p className="text-micro font-bold uppercase tracking-widest text-primary">
+                                        Question setup
+                                    </p>
+                                    <h3 id={questionMixDialogTitleId} className="font-sans text-xl font-bold text-text-primary">
+                                        Review question setup
+                                    </h3>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    shape="pill"
+                                    onClick={handleBackToInterviewDetails}
+                                    aria-label="Back to job and interview details"
+                                >
+                                    <X className="h-5 w-5" />
+                                </Button>
+                            </div>
+                            <p className="mt-4 text-sm leading-6 text-text-secondary">
+                                I&apos;ve set up this question mix for a {questionPlan.questionCount}-question {getInterviewStageLabel(questionPlan.interviewStage)} practice session.
+                            </p>
+                        </div>
+                        <div className="space-y-4 p-6">
+                            <div className="rounded-2xl border border-border/60 bg-surface-subtle p-4">
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    {questionPlanRows.map((row) => (
+                                        <div key={row.category} className="rounded-xl border border-border bg-surface-base px-4 py-3">
+                                            <p className="text-sm font-bold text-text-primary">{row.label}</p>
+                                            <p className="mt-1 text-sm text-text-secondary">
+                                                {row.count} {row.count === 1 ? "question" : "questions"}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                                <Button
+                                    type="button"
+                                    emphasis="secondary"
+                                    density="comfortable"
+                                    shape="app"
+                                    label="strong"
+                                    onClick={handleBackToInterviewDetails}
+                                >
+                                    Back to job/interview details
+                                </Button>
+                                <Button
+                                    type="button"
+                                    emphasis="primary"
+                                    density="comfortable"
+                                    shape="app"
+                                    label="strong"
+                                    onClick={handleConfirmQuestionMix}
+                                >
+                                    Looks good
+                                </Button>
+                            </div>
+                        </div>
+                    </Card>
+                </div>
+            )}
 
             <StepFooter
                 onNext={onNext}

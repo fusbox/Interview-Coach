@@ -118,7 +118,8 @@ Current setup rule: candidate-led `/practice` requires a job description because
 
 Current implementation:
 
-- service: `src/lib/server/services/question-plan-service.ts`;
+- domain helper: `src/lib/domain/question-plan.ts`;
+- server compatibility re-export: `src/lib/server/services/question-plan-service.ts`;
 - test: `src/lib/server/services/question-plan-service.test.ts`.
 
 Current contract:
