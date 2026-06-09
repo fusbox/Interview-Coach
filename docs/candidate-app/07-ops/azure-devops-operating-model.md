@@ -162,6 +162,7 @@ Rules:
 - New items must include `Tags`.
 - Use only existing `Area Path` and `Iteration Path` values. If a path is missing, create it in Azure first or use the parent `Interview-Coach-Candidate` path.
 - Titles containing commas must be quoted.
+- Quote `Description`, `History`, and any other field that may contain commas, line breaks, or pasted prose. Azure CSV import treats commas as delimiters unless the field is wrapped in double quotes, which can split History content into unintended columns.
 
 ## Queries To Create First
 

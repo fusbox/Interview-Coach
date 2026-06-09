@@ -12,7 +12,7 @@ import { SectionHeader } from "@/components/patterns/SectionHeader";
 import { AlertPanel } from "@/components/patterns/AlertPanel";
 import { FieldGroup, FieldHint, FieldLabel, textFieldClassName, textareaFieldClassName } from "@/components/patterns/FormField";
 import { useAccessibleDialog } from "@/lib/hooks/use-accessible-dialog";
-import { getInterviewStageLabel, INTERVIEW_STAGE_OPTIONS, normalizeInterviewStage } from "@/lib/domain/interview-stage";
+import { INTERVIEW_STAGE_OPTIONS, type InterviewStage, normalizeInterviewStage } from "@/lib/domain/interview-stage";
 import { buildQuestionPlan, QUESTION_PLAN_CATEGORY_ORDER, type QuestionPlanCategory } from "@/lib/domain/question-plan";
 
 interface StepJobAndQuestionsProps {
@@ -92,6 +92,25 @@ const questionPlanCategoryLabels: Record<QuestionPlanCategory, string> = {
     technical_role_specific: "Technical / Role-Specific",
 };
 
+const recruiterInterviewStageOptions = INTERVIEW_STAGE_OPTIONS
+    .filter((option) => option.value !== "not_sure")
+    .map((option) => option.value === "practice_only"
+        ? {
+            ...option,
+            label: "General practice",
+            description: "Use a balanced role-specific question set when this is not tied to a scheduled interview stage.",
+        }
+        : option
+    );
+
+const recruiterInterviewStageLabels = new Map<InterviewStage, string>(
+    recruiterInterviewStageOptions.map((option) => [option.value, option.label])
+);
+
+function getRecruiterInterviewStageLabel(value: InterviewStage): string {
+    return recruiterInterviewStageLabels.get(value) ?? "First interview";
+}
+
 export function StepJobAndQuestions({
     details, setDetails,
     interviewDetails, setInterviewDetails,
@@ -110,7 +129,6 @@ export function StepJobAndQuestions({
     const isDemo = showDemoTools();
     const [isSaving, setIsSaving] = useState(false);
     const [showSaveModal, setShowSaveModal] = useState(false);
-    const [isQuestionBuilderReady, setIsQuestionBuilderReady] = useState(false);
     const [isManualEntryReady, setIsManualEntryReady] = useState(false);
     const [isQuestionMixAccepted, setIsQuestionMixAccepted] = useState(false);
     const [questionMixReviewMode, setQuestionMixReviewMode] = useState<"ai" | "manual" | null>(null);
@@ -206,7 +224,6 @@ export function StepJobAndQuestions({
         setStar(template.questions.star);
         setPerma(template.questions.perma);
         setTechnical(template.questions.technical);
-        setIsQuestionBuilderReady(true);
         setIsManualEntryReady(true);
         setIsQuestionMixAccepted(true);
     };
@@ -238,10 +255,10 @@ export function StepJobAndQuestions({
             generationFeedbackTimeoutRef.current = null;
         }
 
-        if (!details.role.trim() || !details.jd.trim()) {
+        if (!isJobDetailsComplete) {
             setGenerationFeedback({
                 tone: "warning",
-                message: "Add a Target Role and Job Description first so AI can generate relevant interview questions.",
+                message: "Add Req ID, Target Role, and Job Description first so AI can generate relevant interview questions.",
             });
             generationFeedbackTimeoutRef.current = window.setTimeout(() => {
                 setGenerationFeedback(null);
@@ -253,7 +270,6 @@ export function StepJobAndQuestions({
         setGenerationFeedback(null);
         try {
             await onGenerateQuestionsAI();
-            setIsQuestionBuilderReady(true);
             setIsManualEntryReady(false);
             setIsQuestionMixAccepted(false);
             setQuestionMixReviewMode("ai");
@@ -267,16 +283,10 @@ export function StepJobAndQuestions({
 
     const isJobDetailsComplete = Boolean(details.role.trim() && details.reqId.trim() && details.jd.trim());
 
-    const handleAddQuestions = () => {
+    const handleManualEntry = () => {
         if (!isJobDetailsComplete || isTourLocked) {
             return;
         }
-        setIsQuestionBuilderReady(true);
-        setIsQuestionMixAccepted(false);
-    };
-
-    const handleManualEntry = () => {
-        setIsQuestionBuilderReady(true);
         setIsManualEntryReady(false);
         setIsQuestionMixAccepted(false);
         setQuestionMixReviewMode("manual");
@@ -295,7 +305,6 @@ export function StepJobAndQuestions({
         setQuestionMixReviewMode(null);
         setIsQuestionMixAccepted(false);
         setIsManualEntryReady(false);
-        setIsQuestionBuilderReady(false);
 
         if (questionMixReviewMode === "ai") {
             setStar(star.map((question) => ({ ...question, text: "" })));
@@ -435,10 +444,10 @@ export function StepJobAndQuestions({
                                 Interview Stage
                             </legend>
                             <p id={interviewStageHelpId} className="text-sm leading-6 text-text-secondary">
-                                Choose the closest match for the interview the candidate is preparing for. If you are not sure, use Not sure yet.
+                                Choose the closest match for the practice invite.
                             </p>
                             <div className="grid gap-3 md:grid-cols-2">
-                                {INTERVIEW_STAGE_OPTIONS.map((option) => (
+                                {recruiterInterviewStageOptions.map((option) => (
                                     <label
                                         key={option.value}
                                         className={`flex cursor-pointer gap-3 rounded-2xl border px-4 py-3 transition-all ${
@@ -533,25 +542,11 @@ export function StepJobAndQuestions({
                                 </FieldGroup>
                             )}
 
-                            <div className="pt-2">
-                                <Button
-                                    type="button"
-                                    emphasis="primary"
-                                    density="comfortable"
-                                    shape="app"
-                                    label="strong"
-                                    onClick={handleAddQuestions}
-                                    disabled={!isJobDetailsComplete || isTourLocked}
-                                >
-                                    Add Questions
-                                </Button>
-                            </div>
                         </fieldset>
                     </CardContent>
                 </Card>
                 
                 {/* Questions Group: AI Generator + Question Sections */}
-                {isQuestionBuilderReady && (
                 <div className="space-y-4" data-tour-step-id="tour-recruiter-create-questions">
                     {/* AI Generator Action - Contextually placed closer to questions */}
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -560,7 +555,7 @@ export function StepJobAndQuestions({
                             <div className="flex justify-start" data-tour-step-id="tour-recruiter-create-ai-generate">
                                 <Button
                                     onClick={handleGenerateQuestions}
-                                    disabled={isGeneratingQuestions || isTourLocked}
+                                    disabled={!isJobDetailsComplete || isGeneratingQuestions || isTourLocked}
                                     emphasis="primary"
                                     density="comfortable"
                                     shape="pill"
@@ -595,7 +590,7 @@ export function StepJobAndQuestions({
                             shape="app"
                             label="strong"
                             onClick={handleManualEntry}
-                            disabled={isTourLocked}
+                            disabled={!isJobDetailsComplete || isTourLocked}
                         >
                             Enter my own questions
                         </Button>
@@ -748,7 +743,6 @@ export function StepJobAndQuestions({
                     </>
                     )}
                 </div>
-                )}
             </div>
 
             {questionMixReviewMode && (
@@ -781,7 +775,7 @@ export function StepJobAndQuestions({
                                 </Button>
                             </div>
                             <p className="mt-4 text-sm leading-6 text-text-secondary">
-                                I&apos;ve set up this question mix for a {questionPlan.questionCount}-question {getInterviewStageLabel(questionPlan.interviewStage)} practice session.
+                                I&apos;ve set up this question mix for a {questionPlan.questionCount}-question {getRecruiterInterviewStageLabel(questionPlan.interviewStage)} practice session.
                             </p>
                         </div>
                         <div className="space-y-4 p-6">

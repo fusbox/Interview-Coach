@@ -88,7 +88,6 @@ describe("StepJobAndQuestions", () => {
         fireEvent.change(screen.getByLabelText("Job Description"), {
             target: { value: "Own QA coverage for customer-facing product releases." }
         });
-        await user.click(screen.getByRole("button", { name: "Add Questions" }));
         await user.click(screen.getByRole("button", { name: "Enter my own questions" }));
         await user.click(screen.getByRole("button", { name: "Looks good" }));
         fireEvent.change(screen.getByLabelText("STAR question 1"), {
@@ -229,12 +228,40 @@ describe("StepJobAndQuestions", () => {
             />
         );
 
-        expect(screen.getByRole("button", { name: "Add Questions" })).toBeDisabled();
-        expect(screen.queryByRole("button", { name: /ai generate questions/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Add Questions" })).not.toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /ai generate questions/i })).toBeDisabled();
+        expect(screen.getByRole("button", { name: "Enter my own questions" })).toBeDisabled();
         expect(screen.queryByLabelText("STAR question 1")).not.toBeInTheDocument();
 
-        await user.click(screen.getByRole("button", { name: "Add Questions" }));
-        expect(screen.queryByRole("button", { name: /ai generate questions/i })).not.toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "Enter my own questions" }));
+        expect(screen.queryByLabelText("STAR question 1")).not.toBeInTheDocument();
+    });
+
+    it("shows direct question entry actions and recruiter-specific stage choices", () => {
+        render(
+            <StepJobAndQuestions
+                details={{ role: "QA Engineer", jd: "Support release validation and regression coverage.", firstName: "", lastName: "", candidateEmail: "", reqId: "REQ-15" }}
+                setDetails={vi.fn()}
+                interviewDetails={{ interviewStage: "initial_interview", questionCount: 5 }}
+                setInterviewDetails={vi.fn()}
+                star={[{ id: "s1", text: "", category: "STAR", label: "STAR 1" }]}
+                setStar={vi.fn()}
+                perma={[]}
+                setPerma={vi.fn()}
+                technical={[]}
+                setTechnical={vi.fn()}
+                onNext={vi.fn()}
+                onGenerateQuestionsAI={vi.fn()}
+                StepFooter={StepFooterStub}
+                onSaveTemplate={vi.fn()}
+            />
+        );
+
+        expect(screen.queryByRole("button", { name: "Add Questions" })).not.toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /ai generate questions/i })).toBeEnabled();
+        expect(screen.getByRole("button", { name: "Enter my own questions" })).toBeEnabled();
+        expect(screen.queryByText("Not sure yet")).not.toBeInTheDocument();
+        expect(screen.getByText("General practice")).toBeInTheDocument();
     });
 
     it("shows a visible failure panel when AI question generation rejects", async () => {
@@ -260,7 +287,6 @@ describe("StepJobAndQuestions", () => {
             />
         );
 
-        await user.click(screen.getByRole("button", { name: "Add Questions" }));
         await user.click(screen.getByRole("button", { name: /ai generate questions/i }));
 
         expect(await screen.findByRole("alert")).toHaveTextContent(
@@ -291,7 +317,6 @@ describe("StepJobAndQuestions", () => {
             />
         );
 
-        await user.click(screen.getByRole("button", { name: "Add Questions" }));
         await user.click(screen.getByRole("button", { name: "Enter my own questions" }));
 
         expect(screen.getByRole("dialog", { name: "Review question setup" })).toBeInTheDocument();

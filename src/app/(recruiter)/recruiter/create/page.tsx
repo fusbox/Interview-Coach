@@ -56,7 +56,7 @@ export default function CreateInviteWizard() {
         role: "", jd: "", firstName: "", lastName: "", candidateEmail: "", reqId: ""
     });
     const [interviewDetails, setInterviewDetails] = useState<InterviewDetails>({
-        interviewStage: "not_sure",
+        interviewStage: "initial_interview",
         questionCount: 5,
     });
 
@@ -696,7 +696,7 @@ export default function CreateInviteWizard() {
                         setInviteSummary(null);
                         setStep(1);
                         setDetails({ role: "", jd: "", firstName: "", lastName: "", candidateEmail: "", reqId: "" });
-                        setInterviewDetails({ interviewStage: "not_sure", questionCount: 5 });
+                        setInterviewDetails({ interviewStage: "initial_interview", questionCount: 5 });
                         setCandidates([]);
                         setStar(STAR_TEMPLATE);
                         setPerma(PERMA_TEMPLATE);

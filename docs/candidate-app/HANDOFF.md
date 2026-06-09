@@ -43,7 +43,7 @@ Last updated: 2026-06-09
 - Candidate practice drafts and sessions now persist `interviewStage`, and candidate question snapshots use `QuestionPlan` ordering when a stage is present while preserving legacy `interviewType` ordering as fallback.
 - Shared answer analysis now records `candidate_app` only for candidate-led sessions with candidate/prepProfile context and otherwise records `recruiter_app` for recruiter-invited sessions.
 - Candidate-only answer feedback coaching (`coachSignal` / "For the biggest lift") is opt-in at the feedback drawer and enabled only from candidate session surfaces; recruiter-invited sessions keep the existing shared feedback flow without that candidate-only block.
-- Recruiter `/recruiter/create` now has an Interview Details block for interview stage and question count, gates question creation behind Add Questions, and passes stage/count into the shared question-generation request for AI-quality observability and prompt context.
+- Recruiter `/recruiter/create` now has an Interview Details block for interview stage and question count, shows the AI/manual question-entry buttons directly once the step is visible, keeps those buttons disabled until job details are complete, and passes stage/count into the shared question-generation request for AI-quality observability and prompt context.
 - Recruiter `/recruiter/create` now shows a category distribution confirmation before manual/generated question fields are revealed, using the shared deterministic question plan to summarize Screening, Behavioral, Culture/Fit, Case/Scenario, and Technical/Role-Specific counts.
 
 ## Current State And Context
@@ -65,7 +65,7 @@ Known current behavior:
 - Confidence measurement has not landed.
 - Runtime PII/sensitive-data scrubbing and QA masking are still open hardening items.
 - Host launch token/auth details are not finalized, so platform launch schema changes are documented but not implemented.
-- Recruiter create now exposes interview-stage/question-count planning and a category distribution confirmation as a first pass. It still uses the existing STAR/PERMA/Technical editor once question creation is accepted; five-section editor parity and fuller reset/start-over UX are not yet landed.
+- Recruiter create now exposes interview-stage/question-count planning and a category distribution confirmation as a first pass. The recruiter stage list omits the candidate-facing "Not sure yet" option and labels the balanced `practice_only` plan as "General practice." It still uses the existing STAR/PERMA/Technical editor once question creation is accepted; five-section editor parity and fuller reset/start-over UX are not yet landed.
 
 Active docs now use this lighter stack:
 
