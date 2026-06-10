@@ -174,6 +174,65 @@ function buildManualQuestionInputs(questionPlan: ReturnType<typeof buildQuestion
     return { star, perma, technical };
 }
 
+function selectPlannedQuestions(
+    questions: QuestionInput[],
+    count: number,
+    createFallback: (index: number) => QuestionInput
+): QuestionInput[] {
+    return Array.from({ length: count }, (_, index) => {
+        const fallback = createFallback(index);
+        const generated = questions[index];
+
+        if (!generated) {
+            return fallback;
+        }
+
+        return {
+            ...generated,
+            id: fallback.id,
+            category: fallback.category,
+            label: fallback.label,
+        };
+    });
+}
+
+function buildQuestionInputsFromPlan(
+    questionPlan: ReturnType<typeof buildQuestionPlan>,
+    questionGroups: ReturnType<typeof getQuestionSectionGroups>
+) {
+    const star = [
+        ...selectPlannedQuestions(
+            questionGroups.screening,
+            questionPlan.categoryCounts.screening,
+            (index) => createEmptyQuestion(`screening-${index + 1}`, "Screening", `Screening Q${index + 1}`)
+        ),
+        ...selectPlannedQuestions(
+            questionGroups.behavioral,
+            questionPlan.categoryCounts.behavioral,
+            (index) => createEmptyQuestion(`behavioral-${index + 1}`, "Behavioral", `Behavioral Q${index + 1}`)
+        ),
+        ...selectPlannedQuestions(
+            questionGroups.caseScenario,
+            questionPlan.categoryCounts.case_scenario,
+            (index) => createEmptyQuestion(`case-${index + 1}`, "Case / Scenario", `Case / Scenario Q${index + 1}`)
+        ),
+    ];
+
+    const perma = selectPlannedQuestions(
+        questionGroups.cultureFit,
+        questionPlan.categoryCounts.culture_fit,
+        (index) => createEmptyQuestion(`culture-${index + 1}`, "Culture / Fit", `Culture / Fit Q${index + 1}`)
+    );
+
+    const technical = selectPlannedQuestions(
+        questionGroups.technicalRoleSpecific,
+        questionPlan.categoryCounts.technical_role_specific,
+        (index) => createEmptyQuestion(`technical-${index + 1}`, "Technical", `Technical / Role-Specific Q${index + 1}`)
+    );
+
+    return { star, perma, technical };
+}
+
 export function StepJobAndQuestions({
     details, setDetails,
     interviewDetails, setInterviewDetails,
@@ -351,6 +410,12 @@ export function StepJobAndQuestions({
             setPerma(manualQuestions.perma);
             setTechnical(manualQuestions.technical);
             setIsManualEntryReady(true);
+        } else if (questionMixReviewMode === "ai") {
+            const plannedQuestions = buildQuestionInputsFromPlan(questionPlan, questionGroups);
+            setStar(plannedQuestions.star);
+            setPerma(plannedQuestions.perma);
+            setTechnical(plannedQuestions.technical);
+            setIsManualEntryReady(false);
         }
         setQuestionMixReviewMode(null);
     };
@@ -388,6 +453,61 @@ export function StepJobAndQuestions({
 
     const isNextDisabled = !isJobDetailsComplete || !hasAtLeastOneQuestion;
     const questionGroups = getQuestionSectionGroups({ star, perma, technical });
+    const questionSectionConfigs: Array<{
+        category: QuestionPlanCategory;
+        title: string;
+        questions: QuestionInput[];
+        setQuestions: (val: QuestionInput[]) => void;
+        list: QuestionInput[];
+        ariaLabelPrefix: string;
+        emptyMessage: string;
+    }> = [
+        {
+            category: "screening",
+            title: "Screening Questions",
+            questions: questionGroups.screening,
+            setQuestions: setStar,
+            list: star,
+            ariaLabelPrefix: "Screening",
+            emptyMessage: "No screening questions are planned for this invite.",
+        },
+        {
+            category: "behavioral",
+            title: "Behavioral Questions",
+            questions: questionGroups.behavioral,
+            setQuestions: setStar,
+            list: star,
+            ariaLabelPrefix: "Behavioral",
+            emptyMessage: "No behavioral questions are planned for this invite.",
+        },
+        {
+            category: "culture_fit",
+            title: "Culture / Fit Questions",
+            questions: questionGroups.cultureFit,
+            setQuestions: setPerma,
+            list: perma,
+            ariaLabelPrefix: "Culture / Fit",
+            emptyMessage: "No culture or fit questions are planned for this invite.",
+        },
+        {
+            category: "case_scenario",
+            title: "Case / Scenario Questions",
+            questions: questionGroups.caseScenario,
+            setQuestions: setStar,
+            list: star,
+            ariaLabelPrefix: "Case / Scenario",
+            emptyMessage: "No case or scenario questions are planned for this invite.",
+        },
+        {
+            category: "technical_role_specific",
+            title: "Technical / Role-Specific Questions",
+            questions: questionGroups.technicalRoleSpecific,
+            setQuestions: setTechnical,
+            list: technical,
+            ariaLabelPrefix: "Technical / Role-Specific",
+            emptyMessage: "No technical or role-specific questions are planned for this invite.",
+        },
+    ];
 
     const renderQuestionSection = ({
         title,
@@ -710,49 +830,15 @@ export function StepJobAndQuestions({
                     </div>
 
                     {isQuestionMixAccepted && (isManualEntryReady || hasAtLeastOneQuestion) && (
-                    <>
-
-                    {renderQuestionSection({
-                        title: "Screening Questions",
-                        questions: questionGroups.screening,
-                        setQuestions: setStar,
-                        list: star,
-                        ariaLabelPrefix: "Screening",
-                        emptyMessage: "No screening questions are planned for this invite.",
-                    })}
-                    {renderQuestionSection({
-                        title: "Behavioral Questions",
-                        questions: questionGroups.behavioral,
-                        setQuestions: setStar,
-                        list: star,
-                        ariaLabelPrefix: "Behavioral",
-                        emptyMessage: "No behavioral questions are planned for this invite.",
-                    })}
-                    {renderQuestionSection({
-                        title: "Culture / Fit Questions",
-                        questions: questionGroups.cultureFit,
-                        setQuestions: setPerma,
-                        list: perma,
-                        ariaLabelPrefix: "Culture / Fit",
-                        emptyMessage: "No culture or fit questions are planned for this invite.",
-                    })}
-                    {renderQuestionSection({
-                        title: "Case / Scenario Questions",
-                        questions: questionGroups.caseScenario,
-                        setQuestions: setStar,
-                        list: star,
-                        ariaLabelPrefix: "Case / Scenario",
-                        emptyMessage: "No case or scenario questions are planned for this invite.",
-                    })}
-                    {renderQuestionSection({
-                        title: "Technical / Role-Specific Questions",
-                        questions: questionGroups.technicalRoleSpecific,
-                        setQuestions: setTechnical,
-                        list: technical,
-                        ariaLabelPrefix: "Technical / Role-Specific",
-                        emptyMessage: "No technical or role-specific questions are planned for this invite.",
-                    })}
-                    </>
+                        <>
+                            {questionSectionConfigs
+                                .filter((section) => questionPlan.categoryCounts[section.category] > 0)
+                                .map((section) => (
+                                    <div key={section.category}>
+                                        {renderQuestionSection(section)}
+                                    </div>
+                                ))}
+                        </>
                     )}
                 </div>
             </div>

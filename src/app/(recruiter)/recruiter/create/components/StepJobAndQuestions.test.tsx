@@ -331,11 +331,106 @@ describe("StepJobAndQuestions", () => {
         expect(screen.getByRole("heading", { name: "Screening Questions" })).toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "Behavioral Questions" })).toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "Culture / Fit Questions" })).toBeInTheDocument();
-        expect(screen.getByRole("heading", { name: "Case / Scenario Questions" })).toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "Technical / Role-Specific Questions" })).toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: "Case / Scenario Questions" })).not.toBeInTheDocument();
         expect(screen.queryByText("STAR Questions (Behavioral)")).not.toBeInTheDocument();
         expect(screen.queryByText("PERMA Questions (Culture/Fit)")).not.toBeInTheDocument();
-        expect(screen.getByLabelText("Behavioral question 1")).toBeInTheDocument();
+    });
+
+    it("trims AI-generated questions to the confirmed question setup", async () => {
+        const user = userEvent.setup();
+        let star: QuestionInput[] = [];
+        let perma: QuestionInput[] = [];
+        let technical: QuestionInput[] = [];
+
+        const setStar = vi.fn((next: QuestionInput[]) => {
+            star = next;
+            rerenderComponent();
+        });
+        const setPerma = vi.fn((next: QuestionInput[]) => {
+            perma = next;
+            rerenderComponent();
+        });
+        const setTechnical = vi.fn((next: QuestionInput[]) => {
+            technical = next;
+            rerenderComponent();
+        });
+        const onGenerateQuestionsAI = vi.fn(async () => {
+            star = [
+                { id: "screening-1", text: "Tell me about yourself.", category: "Screening", label: "Background" },
+                { id: "screening-2", text: "Why are you interested in this role?", category: "Screening", label: "Interest" },
+                { id: "behavioral-1", text: "Tell me about a time you helped a client.", category: "Behavioral", label: "Behavioral Q1" },
+                { id: "behavioral-2", text: "Tell me about a time you learned quickly.", category: "Behavioral", label: "Behavioral Q2" },
+                { id: "case-1", text: "How would you handle a scheduling conflict?", category: "Case / Scenario", label: "Case / Scenario Q1" },
+            ];
+            perma = [
+                { id: "culture-1", text: "What helps you do your best work?", category: "Culture / Fit", label: "Culture Q1" },
+                { id: "culture-2", text: "What team environment fits you?", category: "Culture / Fit", label: "Culture Q2" },
+            ];
+            technical = [
+                { id: "tech-1", text: "How do you use a CRM?", category: "Technical", label: "Technical Q1" },
+                { id: "tech-2", text: "How do you document customer issues?", category: "Technical", label: "Technical Q2" },
+            ];
+            rerenderComponent();
+        });
+
+        const renderComponent = () => render(
+            <StepJobAndQuestions
+                details={{ role: "Client Services Specialist", jd: "Support clients, document issues, and resolve account questions.", firstName: "", lastName: "", candidateEmail: "", reqId: "REQ-16" }}
+                setDetails={vi.fn()}
+                interviewDetails={{ interviewStage: "initial_screening", questionCount: 5 }}
+                setInterviewDetails={vi.fn()}
+                star={star}
+                setStar={setStar}
+                perma={perma}
+                setPerma={setPerma}
+                technical={technical}
+                setTechnical={setTechnical}
+                onNext={vi.fn()}
+                onGenerateQuestionsAI={onGenerateQuestionsAI}
+                StepFooter={StepFooterStub}
+                onSaveTemplate={vi.fn()}
+            />
+        );
+
+        const rendered = renderComponent();
+        const rerenderComponent = () => {
+            rendered.rerender(
+                <StepJobAndQuestions
+                    details={{ role: "Client Services Specialist", jd: "Support clients, document issues, and resolve account questions.", firstName: "", lastName: "", candidateEmail: "", reqId: "REQ-16" }}
+                    setDetails={vi.fn()}
+                    interviewDetails={{ interviewStage: "initial_screening", questionCount: 5 }}
+                    setInterviewDetails={vi.fn()}
+                    star={star}
+                    setStar={setStar}
+                    perma={perma}
+                    setPerma={setPerma}
+                    technical={technical}
+                    setTechnical={setTechnical}
+                    onNext={vi.fn()}
+                    onGenerateQuestionsAI={onGenerateQuestionsAI}
+                    StepFooter={StepFooterStub}
+                    onSaveTemplate={vi.fn()}
+                />
+            );
+        };
+
+        await user.click(screen.getByRole("button", { name: /ai generate questions/i }));
+        expect(await screen.findByRole("dialog", { name: "Review question setup" })).toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "Looks good" }));
+
+        expect(onGenerateQuestionsAI).toHaveBeenCalledTimes(1);
+        expect(screen.getByRole("heading", { name: "Screening Questions" })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Behavioral Questions" })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Culture / Fit Questions" })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Technical / Role-Specific Questions" })).toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: "Case / Scenario Questions" })).not.toBeInTheDocument();
+        expect(screen.getAllByRole("textbox", { name: /^Screening question/i })).toHaveLength(2);
+        expect(screen.getAllByRole("textbox", { name: /^Behavioral question/i })).toHaveLength(1);
+        expect(screen.getAllByRole("textbox", { name: /^Culture \/ Fit question/i })).toHaveLength(1);
+        expect(screen.getAllByRole("textbox", { name: /^Technical \/ Role-Specific question/i })).toHaveLength(1);
+        expect(screen.queryByDisplayValue("Tell me about a time you learned quickly.")).not.toBeInTheDocument();
+        expect(screen.queryByDisplayValue("How would you handle a scheduling conflict?")).not.toBeInTheDocument();
     });
 
     it("updates interview stage and question count controls", async () => {

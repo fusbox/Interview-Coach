@@ -431,7 +431,7 @@ export default function CreateInviteWizard() {
                 })));
             }
             if (data.technical) {
-                setTechnical(data.technical.slice(0, 2).map((q: { text: string }, i: number) => ({
+                setTechnical(data.technical.map((q: { text: string }, i: number) => ({
                     id: `tech-${i + 1}`, text: q.text, category: 'Technical', label: `Technical Q${i + 1}`
                 })));
             }

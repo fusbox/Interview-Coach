@@ -1,7 +1,7 @@
 # Candidate App Handoff
 
 Status: Active execution state
-Last updated: 2026-06-09
+Last updated: 2026-06-10
 
 ## Completed
 
@@ -46,6 +46,7 @@ Last updated: 2026-06-09
 - Recruiter `/recruiter/create` now has an Interview Details block for interview stage and question count, shows the AI/manual question-entry buttons directly once the step is visible, keeps those buttons disabled until job details are complete, and passes stage/count into the shared question-generation request for AI-quality observability and prompt context.
 - Recruiter `/recruiter/create` now shows a category distribution confirmation before manual/generated question fields are revealed, using the shared deterministic question plan to summarize Screening, Behavioral, Culture/Fit, Case/Scenario, and Technical/Role-Specific counts.
 - Recruiter `/recruiter/create` now renders the accepted/generated question editor as five plain-language sections in order: Screening, Behavioral, Culture/Fit, Case/Scenario, and Technical/Role-Specific. Manual entry fields are shaped from the confirmed `QuestionPlan`, and AI-generated screening questions are retained instead of dropped.
+- Recruiter `/recruiter/create` now enforces the confirmed `QuestionPlan` after either manual or AI selection: zero-count sections stay hidden, generated AI output is trimmed/padded to the planned category counts, and the old two-question technical cap no longer controls the editor.
 
 ## Current State And Context
 
@@ -66,7 +67,7 @@ Known current behavior:
 - Confidence measurement has not landed.
 - Runtime PII/sensitive-data scrubbing and QA masking are still open hardening items.
 - Host launch token/auth details are not finalized, so platform launch schema changes are documented but not implemented.
-- Recruiter create now exposes interview-stage/question-count planning, category distribution confirmation, and five-section question editing as a first pass. The recruiter stage list omits the candidate-facing "Not sure yet" option and labels the balanced `practice_only` plan as "General practice." Fuller reset/start-over UX and deeper generated-question section fidelity still need validation.
+- Recruiter create now exposes interview-stage/question-count planning, category distribution confirmation, and five-section question editing as a first pass. The recruiter stage list omits the candidate-facing "Not sure yet" option and labels the balanced `practice_only` plan as "General practice." The accepted editor now follows the confirmed plan for both AI and manual entry. Fuller reset/start-over UX still needs product validation.
 
 Active docs now use this lighter stack:
 
@@ -85,7 +86,7 @@ Harden the remaining dashboard data-contract seams before adding more visual pol
 
 Recommended next implementation slice:
 
-1. Continue recruiter `/recruiter/create` redesign validation: confirm generated and manual five-section question editing persists invites/templates correctly and decide the reset/start-over affordance.
+1. Continue recruiter `/recruiter/create` redesign validation: confirm generated and manual planned-section question editing persists invites/templates correctly and decide the reset/start-over affordance.
 2. Keep recruiter-invited answer feedback behavior stable while shared generation/planning changes continue.
 3. Continue product tuning of category-scoped My Read copy against more realistic sessions.
 4. Keep completed-session route recovery queued as lower priority until dashboard release behavior is otherwise stable.
@@ -94,7 +95,7 @@ Recommended next implementation slice:
 
 - Same-title/different-JD prep profiles are not distinguishable in the dashboard until a profile switcher or stricter profile selector lands.
 - Practice Next still relies on active/latest completed-session prioritization and does not yet synthesize a coach-configured next round from cross-session lane/category patterns.
-- `QuestionPlan` now informs both candidate `/practice` and recruiter `/recruiter/create` generation context, recruiter create shows a distribution confirmation, and the editor renders five plain-language category sections. The reset/start-over affordance and generated-question distribution fidelity still need product validation.
+- `QuestionPlan` now informs both candidate `/practice` and recruiter `/recruiter/create` generation context, recruiter create shows a distribution confirmation, and the editor renders only the planned plain-language category sections. The reset/start-over affordance still needs product validation.
 - Category coverage cards now have drilldowns and score-driven ordering, but category-scoped coach-read copy remains first-pass and needs product tuning against more realistic sessions.
 - Legacy `oneBigUpgrade` can still exist in persisted payloads, but current read paths should treat it as compatibility fallback only.
 - Sensitive data can still be too visible in AI-quality/debug surfaces until masking/redaction work lands.
