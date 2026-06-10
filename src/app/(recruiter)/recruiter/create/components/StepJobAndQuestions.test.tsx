@@ -558,12 +558,18 @@ describe("StepJobAndQuestions", () => {
             );
         };
 
-        await user.click(screen.getByRole("radio", { name: /first conversation or screening/i }));
+        const screeningStageOption = screen.getByRole("radio", { name: /first conversation or screening/i });
+        const sevenQuestionOption = screen.getByRole("radio", { name: "7 questions" });
+
+        expect(screeningStageOption).toHaveClass("accent-primary");
+        expect(sevenQuestionOption).toHaveClass("accent-primary");
+
+        await user.click(screeningStageOption);
         expect(setInterviewDetails).toHaveBeenLastCalledWith(expect.objectContaining({
             interviewStage: "initial_screening",
         }));
 
-        await user.click(screen.getByRole("radio", { name: "7 questions" }));
+        await user.click(sevenQuestionOption);
         expect(setInterviewDetails).toHaveBeenLastCalledWith(expect.objectContaining({
             interviewStage: "initial_screening",
             questionCount: 7,

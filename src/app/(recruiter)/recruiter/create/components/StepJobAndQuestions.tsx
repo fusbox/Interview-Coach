@@ -706,7 +706,7 @@ export function StepJobAndQuestions({
                                             checked={interviewDetails.interviewStage === option.value}
                                             onChange={(event) => updateInterviewStage(event.target.value)}
                                             disabled={isTourLocked}
-                                            className="mt-1 h-4 w-4 border-border text-primary focus:ring-primary/20"
+                                            className="mt-1 h-4 w-4 border-border text-primary accent-primary focus:ring-primary/20"
                                         />
                                         <span>
                                             <span className="block text-sm font-bold text-text-primary">{option.label}</span>
@@ -744,7 +744,7 @@ export function StepJobAndQuestions({
                                                 updateQuestionCount(option);
                                             }}
                                             disabled={isTourLocked}
-                                            className="h-4 w-4 border-border text-primary focus:ring-primary/20"
+                                            className="h-4 w-4 border-border text-primary accent-primary focus:ring-primary/20"
                                         />
                                         {option} questions
                                     </label>
@@ -763,7 +763,7 @@ export function StepJobAndQuestions({
                                         checked={questionCountMode === "other"}
                                         onChange={() => setQuestionCountMode("other")}
                                         disabled={isTourLocked}
-                                        className="h-4 w-4 border-border text-primary focus:ring-primary/20"
+                                        className="h-4 w-4 border-border text-primary accent-primary focus:ring-primary/20"
                                     />
                                     Other
                                 </label>
