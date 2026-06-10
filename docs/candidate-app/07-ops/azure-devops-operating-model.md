@@ -140,7 +140,7 @@ blocked
 
 Import files do not include a `Parent` column. Azure treats `Parent` as a computed, read-only export field and rejects updates to it.
 
-Stories are the only work item type in the current Azure process with a dedicated `Acceptance Criteria` field. To keep imports consistent across mixed work item types, fold acceptance criteria content into `Description` unless an import is intentionally story-only.
+`User Story` is the Azure CSV work item type for story-level items. User Stories are the only work item type in the current Azure process with a dedicated `Acceptance Criteria` field. To keep imports consistent across mixed work item types, fold acceptance criteria content into `Description` unless an import is intentionally User Story-only.
 
 Use Azure's tree import shape for parent/child relationships.
 
