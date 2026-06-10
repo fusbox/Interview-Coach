@@ -61,6 +61,12 @@ describe("InviteEmailPreviewModal accessibility", () => {
         await waitFor(() => {
             expect(primaryButton).toHaveFocus();
         });
+
+        expect(primaryButton.closest("[data-tour-step-id='tour-recruiter-create-preview-modal']")).toHaveClass(
+            "rounded-3xl",
+            "border-border",
+            "shadow-floating"
+        );
     });
 
     it("announces send errors through an alert region", async () => {

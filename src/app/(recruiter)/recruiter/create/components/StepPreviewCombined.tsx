@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/cn";
 import { InviteEmailPreviewModal } from "@/components/patterns/InviteEmailPreviewModal";
 import { AlertPanel } from "@/components/patterns/AlertPanel";
+import { getQuestionSectionGroups, questionPlanCategoryLabels } from "./question-section-groups";
 
 interface StepPreviewCombinedProps {
     details: Details;
@@ -62,6 +63,18 @@ export function StepPreviewCombined({
     const activeStar = star.filter(q => q.text.trim());
     const activePerma = perma.filter(q => q.text.trim());
     const activeTechnical = technical.filter(q => q.text.trim());
+    const activeQuestionGroups = getQuestionSectionGroups({
+        star: activeStar,
+        perma: activePerma,
+        technical: activeTechnical,
+    });
+    const configurationRows = [
+        { label: questionPlanCategoryLabels.screening, count: activeQuestionGroups.screening.length },
+        { label: questionPlanCategoryLabels.behavioral, count: activeQuestionGroups.behavioral.length },
+        { label: questionPlanCategoryLabels.culture_fit, count: activeQuestionGroups.cultureFit.length },
+        { label: questionPlanCategoryLabels.case_scenario, count: activeQuestionGroups.caseScenario.length },
+        { label: questionPlanCategoryLabels.technical_role_specific, count: activeQuestionGroups.technicalRoleSpecific.length },
+    ];
 
     useEffect(() => {
         if (isGenerated && !localIsGenerated) {
@@ -187,11 +200,7 @@ export function StepPreviewCombined({
                                         Configuration
                                     </p>
                                     <div className="space-y-2">
-                                        {[
-                                            { label: 'Behavioral', count: activeStar.length },
-                                            { label: 'Culture', count: activePerma.length },
-                                            { label: 'Technical', count: activeTechnical.length }
-                                        ].map((cat, i) => (
+                                        {configurationRows.map((cat, i) => (
                                             <div key={i} className={cn(
                                                 "flex items-center gap-4 transition-all duration-300",
                                                 cat.count > 0 ? "text-text-primary" : "text-text-disabled opacity-60"

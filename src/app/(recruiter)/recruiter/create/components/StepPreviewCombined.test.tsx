@@ -62,4 +62,26 @@ describe("StepPreviewCombined accessibility", () => {
 
         expect(await screen.findByRole("alert")).toHaveTextContent("Authentication required");
     });
+
+    it("summarizes the five question categories in configuration", () => {
+        render(
+            <StepPreviewCombined
+                {...baseProps}
+                star={[
+                    { id: "screening-1", text: "Tell me about yourself.", category: "Screening", label: "Screening Q1" },
+                    { id: "behavioral-1", text: "Tell me about a time you helped a client.", category: "Behavioral", label: "Behavioral Q1" },
+                    { id: "case-1", text: "How would you handle a client escalation?", category: "Case / Scenario", label: "Case / Scenario Q1" },
+                ]}
+                perma={[{ id: "culture-1", text: "What team setting helps you do your best work?", category: "Culture / Fit", label: "Culture Q1" }]}
+                technical={[{ id: "technical-1", text: "How do you document account issues?", category: "Technical", label: "Technical Q1" }]}
+            />
+        );
+
+        expect(screen.getByText("Screening")).toBeInTheDocument();
+        expect(screen.getByText("Behavioral")).toBeInTheDocument();
+        expect(screen.getByText("Culture / Fit")).toBeInTheDocument();
+        expect(screen.getByText("Case / Scenario")).toBeInTheDocument();
+        expect(screen.getByText("Technical / Role-Specific")).toBeInTheDocument();
+        expect(screen.queryByText("Culture")).not.toBeInTheDocument();
+    });
 });

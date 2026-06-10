@@ -168,12 +168,12 @@ export const InviteEmailPreviewModal: React.FC<InviteEmailPreviewModalProps> = (
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
                         ref={dialogRef}
                         className={cn(
-                            "relative w-full overflow-hidden bg-surface-base border border-border/50 shadow-2xl rounded-[32px] flex flex-col",
+                            "relative w-full overflow-hidden bg-surface-base border flex flex-col",
                             sendSuccess
-                                ? "max-w-md h-auto"
+                                ? "max-w-md h-auto border-border shadow-floating rounded-3xl"
                                 : tourMode
-                                  ? "max-w-5xl h-[calc(100vh-11rem)] md:h-[90vh]"
-                                  : "max-w-5xl h-[90vh]"
+                                  ? "max-w-5xl h-[calc(100vh-11rem)] md:h-[90vh] border-border/50 shadow-2xl rounded-[32px]"
+                                  : "max-w-5xl h-[90vh] border-border/50 shadow-2xl rounded-[32px]"
                         )}
                         data-tour-step-id="tour-recruiter-create-preview-modal"
                         tabIndex={-1}

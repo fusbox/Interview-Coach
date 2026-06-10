@@ -229,7 +229,7 @@ describe("StepJobAndQuestions", () => {
         );
 
         expect(screen.queryByRole("button", { name: "Add Questions" })).not.toBeInTheDocument();
-        expect(screen.getByRole("button", { name: /ai generate questions/i })).toBeDisabled();
+        expect(screen.getByRole("button", { name: "Generate Questions with AI" })).toBeDisabled();
         expect(screen.getByRole("button", { name: "Enter my own questions" })).toBeDisabled();
         expect(screen.queryByLabelText("Behavioral question 1")).not.toBeInTheDocument();
 
@@ -258,7 +258,9 @@ describe("StepJobAndQuestions", () => {
         );
 
         expect(screen.queryByRole("button", { name: "Add Questions" })).not.toBeInTheDocument();
-        expect(screen.getByRole("button", { name: /ai generate questions/i })).toBeEnabled();
+        const aiButton = screen.getByRole("button", { name: "Generate Questions with AI" });
+        expect(aiButton).toBeEnabled();
+        expect(aiButton.querySelector("svg")).toHaveClass("text-amber-300");
         expect(screen.getByRole("button", { name: "Enter my own questions" })).toBeEnabled();
         expect(screen.queryByText("Not sure yet")).not.toBeInTheDocument();
         expect(screen.getByText("General practice")).toBeInTheDocument();
@@ -287,7 +289,7 @@ describe("StepJobAndQuestions", () => {
             />
         );
 
-        await user.click(screen.getByRole("button", { name: /ai generate questions/i }));
+        await user.click(screen.getByRole("button", { name: "Generate Questions with AI" }));
 
         expect(await screen.findByRole("alert")).toHaveTextContent(
             "AI question generation failed. Please review the job details and try again."
@@ -321,8 +323,8 @@ describe("StepJobAndQuestions", () => {
 
         const dialog = screen.getByRole("dialog", { name: "Review question setup" });
         expect(dialog).toBeInTheDocument();
-        expect(dialog).toHaveClass("rounded-[32px]", "border-border/50", "shadow-2xl");
-        expect(screen.getByText("I've set up this question mix for a 5-question First conversation or screening practice session.")).toBeInTheDocument();
+        expect(dialog).toHaveClass("rounded-3xl", "border-border", "shadow-floating");
+        expect(screen.getByText("5 questions - First conversation or screening")).toBeInTheDocument();
         expect(screen.getByText("Screening")).toBeInTheDocument();
         expect(screen.getByText("2 questions")).toBeInTheDocument();
         expect(screen.queryByLabelText("Behavioral question 1")).not.toBeInTheDocument();
@@ -404,15 +406,51 @@ describe("StepJobAndQuestions", () => {
 
         expect(screen.getByText("Question setup")).toBeInTheDocument();
         expect(screen.getByText("5 questions - First conversation or screening")).toBeInTheDocument();
-        expect(screen.queryByRole("button", { name: /ai generate questions/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: "Interview Details" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Generate Questions with AI" })).not.toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "Enter my own questions" })).not.toBeInTheDocument();
 
         await user.click(screen.getByRole("button", { name: "Start over" }));
 
         expect(screen.queryByText("5 questions - First conversation or screening")).not.toBeInTheDocument();
         expect(screen.queryByRole("heading", { name: "Screening Questions" })).not.toBeInTheDocument();
-        expect(screen.getByRole("button", { name: /ai generate questions/i })).toBeEnabled();
+        expect(screen.getByRole("heading", { name: "Interview Details" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Generate Questions with AI" })).toBeEnabled();
         expect(screen.getByRole("button", { name: "Enter my own questions" })).toBeEnabled();
+    });
+
+    it("restores the accepted setup banner and visible question list when returning with existing questions", () => {
+        render(
+            <StepJobAndQuestions
+                details={{ role: "QA Engineer", jd: "Support release validation and regression coverage.", firstName: "", lastName: "", candidateEmail: "", reqId: "REQ-18" }}
+                setDetails={vi.fn()}
+                interviewDetails={{ interviewStage: "initial_screening", questionCount: 5 }}
+                setInterviewDetails={vi.fn()}
+                star={[
+                    { id: "screening-1", text: "Tell me about yourself.", category: "Screening", label: "Screening Q1" },
+                    { id: "behavioral-1", text: "Tell me about a time you helped a client.", category: "Behavioral", label: "Behavioral Q1" },
+                ]}
+                setStar={vi.fn()}
+                perma={[{ id: "culture-1", text: "What team environment fits you?", category: "Culture / Fit", label: "Culture Q1" }]}
+                setPerma={vi.fn()}
+                technical={[{ id: "technical-1", text: "How do you use a CRM?", category: "Technical", label: "Technical Q1" }]}
+                setTechnical={vi.fn()}
+                onNext={vi.fn()}
+                onGenerateQuestionsAI={vi.fn()}
+                StepFooter={StepFooterStub}
+                onSaveTemplate={vi.fn()}
+            />
+        );
+
+        expect(screen.getByText("Question setup")).toBeInTheDocument();
+        expect(screen.getByText("5 questions - First conversation or screening")).toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: "Interview Details" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Generate Questions with AI" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Enter my own questions" })).not.toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Screening Questions" })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Behavioral Questions" })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Culture / Fit Questions" })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Technical / Role-Specific Questions" })).toBeInTheDocument();
     });
 
     it("trims AI-generated questions to the confirmed question setup", async () => {
@@ -493,7 +531,7 @@ describe("StepJobAndQuestions", () => {
             );
         };
 
-        await user.click(screen.getByRole("button", { name: /ai generate questions/i }));
+        await user.click(screen.getByRole("button", { name: "Generate Questions with AI" }));
         expect(await screen.findByRole("dialog", { name: "Review question setup" })).toBeInTheDocument();
         await user.click(screen.getByRole("button", { name: "Looks good" }));
 

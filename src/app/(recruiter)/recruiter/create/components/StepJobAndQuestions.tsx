@@ -14,6 +14,7 @@ import { FieldGroup, FieldHint, FieldLabel, textFieldClassName, textareaFieldCla
 import { useAccessibleDialog } from "@/lib/hooks/use-accessible-dialog";
 import { INTERVIEW_STAGE_OPTIONS, type InterviewStage, normalizeInterviewStage } from "@/lib/domain/interview-stage";
 import { buildQuestionPlan, QUESTION_PLAN_CATEGORY_ORDER, type QuestionPlanCategory } from "@/lib/domain/question-plan";
+import { getQuestionSectionGroups, questionPlanCategoryLabels } from "./question-section-groups";
 
 interface StepJobAndQuestionsProps {
     details: Details;
@@ -84,14 +85,6 @@ const AutoResizeTextarea = ({
 
 const questionCountOptions = [3, 5, 7, 10] as const;
 
-const questionPlanCategoryLabels: Record<QuestionPlanCategory, string> = {
-    screening: "Screening",
-    behavioral: "Behavioral",
-    culture_fit: "Culture / Fit",
-    case_scenario: "Case / Scenario",
-    technical_role_specific: "Technical / Role-Specific",
-};
-
 const recruiterInterviewStageOptions = INTERVIEW_STAGE_OPTIONS
     .filter((option) => option.value !== "not_sure")
     .map((option) => option.value === "practice_only"
@@ -109,41 +102,6 @@ const recruiterInterviewStageLabels = new Map<InterviewStage, string>(
 
 function getRecruiterInterviewStageLabel(value: InterviewStage): string {
     return recruiterInterviewStageLabels.get(value) ?? "First interview";
-}
-
-function isScreeningQuestion(question: QuestionInput): boolean {
-    return question.category.toLowerCase() === "screening";
-}
-
-function isCaseScenarioQuestion(question: QuestionInput): boolean {
-    const label = question.label.toLowerCase();
-    const category = question.category.toLowerCase();
-    return category.includes("case") ||
-        category.includes("scenario") ||
-        label.includes("scenario") ||
-        label.includes("role-specific");
-}
-
-function getQuestionSectionGroups({
-    star,
-    perma,
-    technical,
-}: {
-    star: QuestionInput[];
-    perma: QuestionInput[];
-    technical: QuestionInput[];
-}) {
-    const screening = star.filter(isScreeningQuestion);
-    const caseScenario = star.filter((question) => !isScreeningQuestion(question) && isCaseScenarioQuestion(question));
-    const behavioral = star.filter((question) => !isScreeningQuestion(question) && !isCaseScenarioQuestion(question));
-
-    return {
-        screening,
-        behavioral,
-        cultureFit: perma,
-        caseScenario,
-        technicalRoleSpecific: technical,
-    };
 }
 
 function createEmptyQuestion(id: string, category: string, label: string): QuestionInput {
@@ -460,6 +418,7 @@ export function StepJobAndQuestions({
         star.some(q => q.text.trim()) ||
         perma.some(q => q.text.trim()) ||
         technical.some(q => q.text.trim());
+    const isQuestionSetupAccepted = isQuestionMixAccepted || hasAtLeastOneQuestion;
 
     const isNextDisabled = !isJobDetailsComplete || !hasAtLeastOneQuestion;
     const questionGroups = getQuestionSectionGroups({ star, perma, technical });
@@ -671,10 +630,11 @@ export function StepJobAndQuestions({
                     </CardContent>
                 </Card>
 
-                <Card
-                    className="border-border/50 shadow-raised-1"
-                    data-tour-step-id="tour-recruiter-create-interview-details"
-                >
+                {!isQuestionSetupAccepted && (
+                    <Card
+                        className="border-border/50 shadow-raised-1"
+                        data-tour-step-id="tour-recruiter-create-interview-details"
+                    >
                     <CardHeader className="pb-4">
                         <CardTitle className="text-base font-bold font-sans flex items-center gap-2.5">
                             <div className="w-1 h-4 bg-primary rounded-full" />
@@ -787,13 +747,14 @@ export function StepJobAndQuestions({
 
                         </fieldset>
                     </CardContent>
-                </Card>
+                    </Card>
+                )}
                 
                 {/* Questions Group: AI Generator + Question Sections */}
                 <div className="space-y-4" data-tour-step-id="tour-recruiter-create-questions">
                     {/* AI Generator Action - Contextually placed closer to questions */}
-                    <div className="flex min-h-[52px] flex-col gap-3 sm:flex-row sm:items-center">
-                        {isQuestionMixAccepted ? (
+                    <div className="flex min-h-[52px] flex-col gap-3">
+                        {isQuestionSetupAccepted ? (
                             <div className="flex w-full flex-col gap-3 rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 shadow-flat sm:flex-row sm:items-center sm:justify-between">
                                 <div className="min-w-0">
                                     <p className="text-micro font-bold uppercase tracking-widest text-primary">
@@ -818,9 +779,9 @@ export function StepJobAndQuestions({
                             </div>
                         ) : (
                             <>
-                                {onGenerateQuestionsAI && (
-                                    <div className="space-y-3">
-                                        <div className="flex justify-start" data-tour-step-id="tour-recruiter-create-ai-generate">
+                                <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+                                    {onGenerateQuestionsAI && (
+                                        <div data-tour-step-id="tour-recruiter-create-ai-generate">
                                             <Button
                                                 onClick={handleGenerateQuestions}
                                                 disabled={!isJobDetailsComplete || isGeneratingQuestions || isTourLocked}
@@ -833,40 +794,39 @@ export function StepJobAndQuestions({
                                                 {isGeneratingQuestions ? (
                                                     <><Loader2 className="w-4 h-4 animate-spin" /> Generating Questions...</>
                                                 ) : (
-                                                    <><Sparkles className="w-4 h-4" /> AI Generate Questions</>
+                                                    <><Sparkles className="w-4 h-4 text-amber-300" /> Generate Questions with AI</>
                                                 )}
                                             </Button>
                                         </div>
-
-                                        {generationFeedback && (
-                                            <AlertPanel
-                                                tone={generationFeedback.tone}
-                                                size="sm"
-                                                role={generationFeedback.tone === "critical" ? "alert" : "status"}
-                                                aria-live={generationFeedback.tone === "critical" ? "assertive" : "polite"}
-                                                className="max-w-2xl animate-in fade-in slide-in-from-top-1"
-                                            >
-                                                {generationFeedback.message}
-                                            </AlertPanel>
-                                        )}
-                                    </div>
+                                    )}
+                                    <Button
+                                        type="button"
+                                        emphasis="secondary"
+                                        density="comfortable"
+                                        shape="app"
+                                        label="strong"
+                                        onClick={handleManualEntry}
+                                        disabled={!isJobDetailsComplete || isTourLocked}
+                                    >
+                                        Enter my own questions
+                                    </Button>
+                                </div>
+                                {generationFeedback && (
+                                    <AlertPanel
+                                        tone={generationFeedback.tone}
+                                        size="sm"
+                                        role={generationFeedback.tone === "critical" ? "alert" : "status"}
+                                        aria-live={generationFeedback.tone === "critical" ? "assertive" : "polite"}
+                                        className="mx-auto w-full max-w-2xl animate-in fade-in slide-in-from-top-1"
+                                    >
+                                        {generationFeedback.message}
+                                    </AlertPanel>
                                 )}
-                                <Button
-                                    type="button"
-                                    emphasis="secondary"
-                                    density="comfortable"
-                                    shape="app"
-                                    label="strong"
-                                    onClick={handleManualEntry}
-                                    disabled={!isJobDetailsComplete || isTourLocked}
-                                >
-                                    Enter my own questions
-                                </Button>
                             </>
                         )}
                     </div>
 
-                    {isQuestionMixAccepted && (isManualEntryReady || hasAtLeastOneQuestion) && (
+                    {isQuestionSetupAccepted && (isManualEntryReady || hasAtLeastOneQuestion) && (
                         <>
                             {questionSectionConfigs
                                 .filter((section) => questionPlan.categoryCounts[section.category] > 0)
@@ -883,7 +843,7 @@ export function StepJobAndQuestions({
             {questionMixReviewMode && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 glass-overlay animate-in fade-in duration-slow">
                     <Card
-                        className="w-full max-w-xl overflow-hidden rounded-[32px] border-border/50 shadow-2xl animate-in zoom-in-95 duration-base ease-emphasized"
+                        className="w-full max-w-xl overflow-hidden rounded-3xl border-border shadow-floating animate-in zoom-in-95 duration-base ease-emphasized"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby={questionMixDialogTitleId}
@@ -910,7 +870,7 @@ export function StepJobAndQuestions({
                                 </Button>
                             </div>
                             <p className="mt-4 text-sm leading-6 text-text-secondary">
-                                I&apos;ve set up this question mix for a {questionPlan.questionCount}-question {getRecruiterInterviewStageLabel(questionPlan.interviewStage)} practice session.
+                                {questionPlan.questionCount} {questionPlan.questionCount === 1 ? "question" : "questions"} - {getRecruiterInterviewStageLabel(questionPlan.interviewStage)}
                             </p>
                         </div>
                         <div className="space-y-4 p-6">
