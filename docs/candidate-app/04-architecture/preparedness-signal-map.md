@@ -23,15 +23,18 @@ Canonical contract: [Preparedness Signal Contract](./preparedness-signal-contrac
 id: 79184746-7eb1-4100-b297-7557dbef5efc
 ---
 flowchart TD
-    Questions[Completed session questions] --> CategoryCards[Question category cards]
+    Questions[Completed session questions] --> CategoryCards[Question category read model]
     Answers[Submitted answers] --> Analysis[Answer analysis JSON]
     Analysis --> Scores[hidden numeric scores]
-    Scores --> Lanes[Substance / Structure / Delivery lanes]
+    Scores --> Lanes[Substance / Structure / Delivery lane states]
     Scores --> CategoryCards
+    Scores --> Matrix[Lane x Category matrix cells]
     Analysis --> Feedback[feedbackPlan, contentPulse, deliveryPulse, recommendation]
     Feedback --> Modal[Candidate-safe modal explanations]
     CategoryCards --> Modal
-    Lanes --> Map[Preparedness Map]
+    Lanes --> Matrix
+    CategoryCards --> Matrix
+    Matrix --> Map[Preparedness Map]
 ```
 
 ## Release Dashboard Model
@@ -67,9 +70,8 @@ Score dimensions:
 
 ### Question Category Cards
 
-Interview Range is not a lane for this release. Instead, the dashboard renders
-question category cards for categories relevant to the selected target
-interview context:
+Interview Range is not a lane for this release. Instead, the dashboard uses
+question categories as the second axis of the Preparedness Map matrix:
 
 - Behavioral;
 - Culture Fit;
@@ -77,16 +79,19 @@ interview context:
 - Case / Scenario;
 - Screening.
 
-Each category card shows completed-session question count and a composite
-average across all nine internal score dimensions for questions in that
-category. Cards use the same score-to-state colors as the performance lanes,
-without partial fill.
+Each category carries completed-session question count and a composite average
+across all nine internal score dimensions for questions in that category. Each
+category also carries lane-specific score states for Substance, Structure, and
+Delivery so the dashboard can render the matrix cell for "this lane in this
+kind of question" without inventing a new candidate-facing score.
 
 When category evidence is aggregated across sessions, the dashboard recomputes
 the visible category state from the weighted average score. It should not keep a
-category green just because one historical session was strong. Category cards
-sort by practice need first, then by canonical category order, so categories
-with lower current evidence appear before already-strong categories.
+category green just because one historical session was strong. Category
+ordering may still sort by practice need for lists. The release matrix presents
+question categories as rows and the three performance lanes as columns so the
+grid stays narrow enough for mobile and row, column, and cell drilldowns remain
+predictable.
 
 Screening means screening-only questions such as interest, background,
 availability, logistics, or basic qualifications. Screening Basics in practice
@@ -113,13 +118,13 @@ evidence:
 | `recommendation` / `nextAction` | Candidate-safe next-step wording. |
 | `scores` | Drives state and color, but should not be displayed as raw numeric scores in normal candidate UI. |
 
-Lane and category drilldowns should share the same mobile-first interaction model:
+Lane, category, and matrix-cell drilldowns should share the same mobile-first interaction model:
 
-1. open the lane or category modal;
+1. open the lane, category, or cell modal;
 2. show practiced question and candidate answer transcript/mode cards;
 3. open a focused coach-read modal for candidate-safe evaluation copy.
 
-Lane coach-read copy should be scoped to the lane's dimension group. Category coach-read copy should be scoped to the question category. Normal dashboard UI must not show raw prompts, raw resume content, hidden numeric scores, or AI-quality debug payloads. Showing the candidate their own answer transcript is allowed in dashboard evidence drilldowns.
+Lane coach-read copy should be scoped to the lane's dimension group. Category coach-read copy should be scoped to the question category. Matrix-cell drilldowns should show the intersection: the practiced questions in that category whose evidence supports the selected lane. Normal dashboard UI must not show raw prompts, raw resume content, hidden numeric scores, or AI-quality debug payloads. Showing the candidate their own answer transcript is allowed in dashboard evidence drilldowns.
 
 ## Release Lane Rollup
 

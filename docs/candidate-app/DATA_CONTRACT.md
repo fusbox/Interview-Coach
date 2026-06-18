@@ -85,6 +85,10 @@ Reference: [Platform Launch PrepProfile Migration](./04-architecture/platform-la
 
 Signal mapping reference: [Preparedness Signal Map](./04-architecture/preparedness-signal-map.md).
 
+Question category reference: [Question Category Contract](./04-architecture/question-category-contract.md).
+
+Instant-read dashboard reference: [Instant Read Surface Plan](./04-architecture/instant-read-surface-plan.md).
+
 Current dashboard scoping rule:
 
 1. Prefer an unfinished candidate-owned session as the selected target interview context.
@@ -136,6 +140,7 @@ type InterviewStageOption = {
     value: InterviewStage;
     label:
         | "Not sure yet"
+        | "I'm not sure / No interview scheduled yet"
         | "First conversation or screening"
         | "First interview"
         | "Follow-up or final interview"
@@ -170,9 +175,36 @@ Rules:
 - preserve canonical category order: Screening, Behavioral, Culture/Fit, Case/Scenario, Technical/Role-Specific;
 - treat the plan as the intended sampling strategy, not the definition of total interview preparedness;
 - keep generated question text and answer evaluation separate from the deterministic plan.
-- candidate `/practice` uses the plain-language interview-stage labels above and stores the selected `interviewStage` on draft intake responses and session `practiceConfig`;
+- candidate `/practice` uses first-class stage/count controls. The UI merges `not_sure` and `practice_only` into one balanced-practice choice labelled "I'm not sure / No interview scheduled yet" and stores that selection as `practice_only` for new candidate submissions;
 - candidate question snapshots use `QuestionPlan` ordering when an `interviewStage` is present; legacy `interviewType` ordering remains a compatibility fallback for older inputs.
 - recruiter `/recruiter/create` sends `interviewStage` and `questionCount` through the same shared question generation boundary so generated questions reflect the intended interview moment and count without changing recruiter-invited answer feedback behavior.
+- shared question generation is now `QuestionPlan`-first for planned requests. The prompt tells the model how to use target role, JD, optional resume content, interview stage, and question count, then asks for exactly the planned category counts.
+- generated-question provider payloads are flexible keyed category containers, not fixed legacy pools. Valid output may contain only the categories needed by the plan, including empty objects/arrays for zero-count categories.
+- after provider parsing, the service repairs schema-valid output that under-fills a planned category by adding deterministic role-specific fallback questions. The UI may trim a larger pool down to the confirmed plan, but it should not silently accept fewer usable questions than `QuestionPlan.questionCount`.
+- legacy `interviewType` remains compatibility-only for older candidate inputs and fallback ordering when no `interviewStage`/`QuestionPlan` is available. New recruiter and candidate setup work should use `interviewStage` plus `questionCount`; retiring `interviewType` is blocked until older-row read behavior is reviewed.
+- candidate-created sessions persist the resolved `QuestionPlan` as `sessions.intakeData.questionPlanSnapshot` at session creation time. This is the immutable planned sampling contract for that practice round and should be used for later dashboard coverage/recovery reads instead of rebuilding from mutable setup state.
+
+### PracticeCoverageBaseline
+
+`PracticeCoverageBaseline` is the release-basic rigor primitive for dashboard follow-up practice.
+
+Rules:
+
+- derive it from the same `buildQuestionPlan` allocation used for question generation;
+- treat `categoryMinimums` as the minimum category coverage for the planned interview scope;
+- compare the baseline against practiced category counts before recommending lower-scoring matrix improvement cells;
+- do not expose mastery, numeric scores, or hidden rigor terms to candidates;
+- do not use it to change recruiter-invited feedback behavior.
+
+Current shape:
+
+```ts
+type PracticeCoverageBaseline = {
+  interviewStage: InterviewStage;
+  minimumQuestionCount: number;
+  categoryMinimums: Record<QuestionPlanCategory, number>;
+};
+```
 
 ### PracticeDraft
 
@@ -403,7 +435,68 @@ Answer modality is persisted in `answers.modality` and should be carried into `P
 
 Dashboard drilldowns should group practiced Q/A cards by session, newest session first, then sort each session's questions by submitted answer time ascending.
 
-Dashboard question coverage cards use generated-session question coverage plus submitted-answer score evidence. Cards must distinguish each question's candidate-facing status as `Practiced` when an answer was submitted and `Upcoming` when the question exists but is unanswered. Card state/color is derived from practiced/scored questions only; unanswered upcoming questions are coverage context and must not be treated as zero-score evidence. When multiple sessions contribute to the same category, the card state must be recomputed from the weighted average of practiced/scored questions rather than preserving the strongest historical state. Cards sort by practice need first (`not_practiced`, `emerging`, `clear`, `strong`) and by the canonical category order as the tie-breaker.
+Dashboard question coverage uses generated-session question coverage plus submitted-answer score evidence. Category state/color is derived from practiced/scored questions only; unanswered upcoming questions are coverage context and must not be treated as zero-score evidence. When multiple sessions contribute to the same category, category state must be recomputed from the weighted average of practiced/scored questions rather than preserving the strongest historical state.
+
+Question category read-model cards must distinguish each question's candidate-facing status as `Practiced` when an answer was submitted and `Upcoming` when the question exists but is unanswered. They also carry optional lane-specific score states for the release dashboard matrix:
+
+```ts
+type PrepQuestionCategoryCard = {
+    categoryId: "behavioral" | "culture_fit" | "technical" | "case_scenario" | "screening";
+    label: string;
+    questionCount: number;
+    practicedQuestionCount?: number;
+    upcomingQuestionCount?: number;
+    questionStatuses?: Array<{
+        questionId: string;
+        questionNumber: number;
+        status: "practiced" | "upcoming";
+    }>;
+    evidenceState: "not_practiced" | "emerging" | "clear" | "strong";
+    averageScore?: number;
+    laneStates?: Partial<Record<"answer_substance" | "interview_structure" | "communication_delivery", {
+        evidenceState: "not_practiced" | "emerging" | "clear" | "strong";
+        averageScore?: number;
+        scoreCount: number;
+    }>>;
+    sourceRefs: PrepEvidenceRef[];
+};
+```
+
+The dashboard preparedness matrix is a derived UI model, not persisted data. Rows are generated/practiced question categories, columns are the fixed release lanes, and each cell is computed from `PrepQuestionCategoryCard.laneStates` when available. If lane-specific category scores are unavailable, the UI may fall back conservatively to the lane state only when matching evidence exists.
+
+The dashboard instant-read surface is also a derived UI model, not persisted data. It summarizes the same scoped prepProfile evidence used by the matrix, but it must stay qualitative and low-detail:
+
+```ts
+type InstantReadPreparednessModel = {
+    overallRead: {
+        label: string;
+        state: "not_practiced" | "emerging" | "clear" | "strong";
+        summary: string;
+    };
+    lanes: Array<{
+        id: "answer_substance" | "interview_structure" | "communication_delivery";
+        label: string;
+        state: "not_practiced" | "emerging" | "clear" | "strong";
+        evidenceLevel: "none" | "thin" | "enough" | "strong";
+        fillPercent?: number;
+    }>;
+    categoryCoverage: Array<{
+        categoryId: "behavioral" | "culture_fit" | "technical_role_specific" | "case_scenario" | "screening";
+        label: string;
+        plannedCount: number;
+        practicedCount: number;
+        state: "not_practiced" | "emerging" | "clear" | "strong";
+    }>;
+};
+```
+
+Rules:
+
+- source the model from the same selected-target-interview scope as the matrix;
+- use color for qualitative preparedness state;
+- use fill, opacity, or quiet marks for evidence amount and question coverage;
+- do not show numeric scores, percentages, raw scoring dimensions, or hidden model terms on the instant-read surface;
+- keep the matrix as the evidence-backed detail layer for lane, category, and cell drilldowns.
 
 ### Evidence States
 

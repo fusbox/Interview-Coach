@@ -1,7 +1,7 @@
 # Candidate App Spec
 
 Status: Canonical product intent
-Last updated: 2026-06-09
+Last updated: 2026-06-12
 
 ## Purpose
 
@@ -44,10 +44,10 @@ The candidate creates a practice round by providing:
 - target role, required;
 - job description, required;
 - resume content, optional;
-- what interview moment they are preparing for, optional advanced setup;
-- question count, optional advanced setup.
+- what interview moment they are preparing for;
+- question count.
 
-The default setup should stay short. Advanced setup may expand inline, but it should not make setup feel like a long intake interview.
+The default setup should stay short. Stage and question count are first-class practice configuration, not intake. Future advanced setup may expand inline for additional coaching customization, but it should not make setup feel like a long intake interview.
 
 Question planning should stay deterministic and explainable before any AI question text is generated. The app may use target role, job description, resume context, interview stage, and question count to choose the intended category mix, but it should not imply that the generated question set alone defines overall interview preparedness.
 
@@ -98,11 +98,11 @@ The dashboard should be organized around a `prepProfile`: the candidate's prepar
 The dashboard should show:
 
 - the target interview context currently being prepared;
-- a fixed interview preparedness scaffold for answer performance;
-- question coverage across the kinds of interview questions practiced for that target interview;
+- an instant-read preparedness snapshot that gives the candidate a fast, non-score coach read;
+- a matrix-backed interview preparedness map that crosses answer-performance lanes with the question categories practiced for that target interview;
 - the next practice action;
 - recent or previous sessions;
-- evidence-backed drilldowns;
+- evidence-backed drilldowns by lane, category, or lane/category cell;
 - confidence trend when implemented.
 
 The dashboard should not become a page of generic cards. It should visually answer:
@@ -111,6 +111,8 @@ The dashboard should not become a page of generic cards. It should visually answ
 - what evidence the candidate has already built;
 - what is still thin or unpracticed;
 - what the candidate should do next.
+
+The matrix should be available as the evidence-backed detail layer, but it does not have to be the first surface the candidate sees. A front-facing snapshot may use a graphical treatment such as a constellation, compass, or other qualitative preparedness visualization when it remains accessible, non-numeric, and directly backed by the same matrix evidence.
 
 ## Interview Preparedness Product Rules
 
@@ -124,15 +126,21 @@ The candidate-facing performance scaffold uses stable top-level lanes:
 
 The lane scaffold should stay fixed. Lane state may be derived from hidden answer-evaluation scoring, but the dashboard must present the result qualitatively and evidence-first.
 
-Interview range is represented separately as question coverage, not as a lane. Expected category cards are:
+Interview range is represented through the category axis of the preparedness map, not as a lane. Expected categories are:
 
 - Behavioral
 - Culture / Fit
+- Scenario
 - Technical / Role-Specific
-- Case / Scenario
 - Screening
 
-Category coverage should distinguish practiced questions from generated-but-unanswered upcoming questions. Category state should be based on practiced/scored answers only; unanswered upcoming questions should not count as zero-score evidence.
+Behavioral questions ask for real past examples. Scenario questions ask what the candidate would do in an imagined work situation. Culture/Fit questions ask about motivation, values, work style, and role alignment. Screening questions ask about basic interest, background, qualifications, availability, or logistics. Technical/Role-Specific questions ask about job-specific knowledge, tools, processes, or judgment.
+
+Category coverage should distinguish practiced questions from generated-but-unanswered upcoming questions. Category state and lane/category cell state should be based on practiced/scored answers only; unanswered upcoming questions should not count as zero-score evidence.
+
+The dashboard may expose lane-only, category-only, and lane/category-cell drilldowns. All three views must reuse the same evidence-safe interaction model: practiced question and candidate answer cards first, then candidate-safe "My Read" detail copy.
+
+For the release matrix view, question categories should render as rows and the fixed performance lanes should render as columns: Substance, Structure, and Delivery. This keeps the matrix narrow enough for mobile while preserving the row/column/cell drilldown model.
 
 What varies by target interview is the question mix, evidence, drilldown content, and next practice recommendation, based on the target role, job description, resume context, interview stage, generated questions, answers, coaching feedback, and summaries.
 

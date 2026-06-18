@@ -158,6 +158,7 @@ Rules:
 - Child rows go immediately below the parent row and put the title in `Title 2`.
 - Grandchild task rows use `Title 3` when needed.
 - New items leave `ID` blank.
+- Quote any field that contains commas, semicolons, line breaks, or markdown punctuation that Azure could misread as delimiters. This is especially important for `Description`, `Acceptance Criteria`, and `History`.
 - New items set `State` to `New`; do not create new items directly as `Active` or `Resolved`.
 - New items must include `Tags`.
 - Use only existing `Area Path` and `Iteration Path` values. If a path is missing, create it in Azure first or use the parent `Interview-Coach-Candidate` path.
