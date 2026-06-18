@@ -7,8 +7,12 @@ export {
 
 export {
     QUESTION_PLAN_CATEGORY_ORDER,
+    buildPracticeCoverageBaseline,
+    buildPracticeCoverageBaselineFromQuestionPlan,
     buildQuestionPlan,
     normalizeQuestionPlanCount,
+    parseQuestionPlanSnapshot,
+    type PracticeCoverageBaseline,
     type QuestionPlan,
     type QuestionPlanCategory,
     type QuestionPlanSlot,

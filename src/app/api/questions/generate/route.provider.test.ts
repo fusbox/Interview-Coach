@@ -98,11 +98,11 @@ describe("POST /api/questions/generate provider validation", () => {
             modelName: "mock-model",
             rawOutput: providerText,
             parsedOutput: body,
-            inputSnapshot: {
+            inputSnapshot: expect.objectContaining({
                 role: "Warehouse Associate",
                 hasJobDescription: true,
                 hasResumeText: false
-            },
+            }),
             contextArtifacts: [
                 expect.objectContaining({
                     type: "job_description",
@@ -116,9 +116,154 @@ describe("POST /api/questions/generate provider validation", () => {
         }));
     });
 
+    it("repairs schema-valid provider output when the planned question mix needs more category slots", async () => {
+        const providerText = JSON.stringify({
+            behavioral: {
+                "Conflict/Resolution": "Tell me about a time you calmed down an upset client.",
+                "Adaptability": "Tell me about a time priorities changed quickly.",
+                "Initiative/Growth": "Tell me about a time you improved a client support process.",
+                "Role-Specific Scenario": "A client needs help while another task is urgent. What do you do first?"
+            },
+            culture: {
+                "Positive Emotion": "What helps you stay positive during client-facing work?",
+                "Engagement": "What parts of client service keep you focused?",
+                "Relationships": "How do you build trust with clients and teammates?",
+                "Meaning": "What makes client service work meaningful to you?",
+                "Accomplishment": "What client support accomplishment are you proud of?"
+            },
+            technical: [
+                { text: "How do you document client issues in a CRM?" }
+            ],
+            screening: {
+                "Interest": "Why are you interested in this client service role?",
+                "Background": "Give me a quick overview of your client service background.",
+                "Availability": "What should we know about your schedule availability?"
+            }
+        });
+        generateContentMock.mockResolvedValue({ text: providerText });
+
+        const { POST } = await import("./route");
+        const req = new Request("http://localhost/api/questions/generate", {
+            method: "POST",
+            body: JSON.stringify({
+                role: "Client Service Coordinator",
+                jobDescription: "Support clients, resolve urgent issues, and document follow-up.",
+                interviewStage: "follow_up_final",
+                questionCount: 7
+            })
+        });
+
+        const res = await POST(req as never);
+        const body = await res.json();
+        const caseScenarioLabels = Object.keys(body.behavioral).filter((label) => (
+            label.toLowerCase().includes("scenario") || label.toLowerCase().includes("role-specific")
+        ));
+
+        expect(res.status).toBe(200);
+        expect(caseScenarioLabels).toHaveLength(2);
+        expect(body.behavioral["Role-Specific Scenario 2"]).toContain("Client Service Coordinator");
+        expect(captureAiGenerationMock).toHaveBeenCalledWith(expect.objectContaining({
+            parsedOutput: expect.objectContaining({
+                behavioral: expect.objectContaining({
+                    "Role-Specific Scenario 2": expect.stringContaining("Client Service Coordinator")
+                })
+            })
+        }));
+    });
+
+    it("accepts exact plan-shaped provider output without requiring the legacy fixed question pool", async () => {
+        const providerText = JSON.stringify({
+            behavioral: {},
+            culture: {},
+            technical: [],
+            screening: {
+                "Interest": "What interests you most about this client service role?"
+            }
+        });
+        generateContentMock.mockResolvedValue({ text: providerText });
+
+        const { POST } = await import("./route");
+        const req = new Request("http://localhost/api/questions/generate", {
+            method: "POST",
+            body: JSON.stringify({
+                role: "Client Service Specialist",
+                jobDescription: "Help clients understand services and coordinate follow-up.",
+                interviewStage: "initial_screening",
+                questionCount: 1
+            })
+        });
+
+        const res = await POST(req as never);
+        const body = await res.json();
+
+        expect(res.status).toBe(200);
+        expect(Object.keys(body.screening)).toEqual(["Interest"]);
+        expect(Object.keys(body.behavioral)).toEqual([]);
+        expect(Object.keys(body.culture)).toEqual([]);
+        expect(body.technical).toEqual([]);
+        expect(captureAiGenerationMock).toHaveBeenCalledWith(expect.objectContaining({
+            promptSnapshot: expect.objectContaining({
+                prompt: expect.stringContaining("Planned category mix: 1 Screening")
+            }),
+            parsedOutput: expect.objectContaining({
+                screening: {
+                    Interest: "What interests you most about this client service role?"
+                }
+            })
+        }));
+    });
+
+    it("accepts multiple planned case questions without fixed legacy key requirements", async () => {
+        const providerText = JSON.stringify({
+            behavioral: {
+                "Behavioral 1": "Tell me about a time you resolved a difficult client concern.",
+                "Behavioral 2": "Tell me about a time you adapted to a sudden client need.",
+                "Case/Scenario 1": "A client needs urgent help while another task is overdue. What do you do first?",
+                "Case/Scenario 2": "A teammate misses a handoff and a client is waiting. How would you handle it?"
+            },
+            culture: {
+                "Culture / Fit 1": "What kind of client-service team helps you do your best work?",
+                "Culture / Fit 2": "How do you build trust with teammates during busy client-service work?"
+            },
+            technical: [
+                { text: "How do you document a client issue so the next person can follow up?" }
+            ],
+            screening: {}
+        });
+        generateContentMock.mockResolvedValue({ text: providerText });
+
+        const { POST } = await import("./route");
+        const req = new Request("http://localhost/api/questions/generate", {
+            method: "POST",
+            body: JSON.stringify({
+                role: "Client Service Coordinator",
+                jobDescription: "Support clients, resolve urgent issues, and document follow-up.",
+                interviewStage: "follow_up_final",
+                questionCount: 7
+            })
+        });
+
+        const res = await POST(req as never);
+        const body = await res.json();
+
+        expect(res.status).toBe(200);
+        expect(Object.keys(body.behavioral)).toEqual([
+            "Behavioral 1",
+            "Behavioral 2",
+            "Case/Scenario 1",
+            "Case/Scenario 2"
+        ]);
+        expect(Object.keys(body.culture)).toEqual(["Culture / Fit 1", "Culture / Fit 2"]);
+        expect(body.technical).toHaveLength(1);
+        expect(Object.keys(body.screening)).toEqual([]);
+    });
+
     it("returns a sanitized internal error when Gemini returns schema-invalid JSON", async () => {
         const providerText = JSON.stringify({
-            behavioral: { "Conflict/Resolution": "only one key" }
+            behavioral: { "Conflict/Resolution": "" },
+            culture: {},
+            technical: [],
+            screening: {},
         });
         generateContentMock.mockResolvedValue({ text: providerText });
 
@@ -149,11 +294,11 @@ describe("POST /api/questions/generate provider validation", () => {
             modelName: "mock-model",
             rawOutput: providerText,
             parsedOutput: null,
-            inputSnapshot: {
+            inputSnapshot: expect.objectContaining({
                 role: "QA Engineer",
                 hasJobDescription: false,
                 hasResumeText: false,
-            },
+            }),
             error: expect.objectContaining({
                 name: "ProviderResponseError",
                 provider: "gemini",

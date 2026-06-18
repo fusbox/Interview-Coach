@@ -28,6 +28,12 @@ type QuestionPlanInput = {
     questionCount?: number | null;
 };
 
+export type PracticeCoverageBaseline = {
+    interviewStage: InterviewStage;
+    minimumQuestionCount: number;
+    categoryMinimums: Record<QuestionPlanCategory, number>;
+};
+
 const QUESTION_COUNT_MIN = 1;
 const QUESTION_COUNT_MAX = 20;
 
@@ -100,6 +106,81 @@ export function normalizeQuestionPlanCount(questionCount: number | null | undefi
     }
 
     return Math.min(Math.max(Math.trunc(questionCount), QUESTION_COUNT_MIN), QUESTION_COUNT_MAX);
+}
+
+export function buildPracticeCoverageBaseline(input: QuestionPlanInput = {}): PracticeCoverageBaseline {
+    const plan = buildQuestionPlan(input);
+    return buildPracticeCoverageBaselineFromQuestionPlan(plan);
+}
+
+export function buildPracticeCoverageBaselineFromQuestionPlan(plan: QuestionPlan): PracticeCoverageBaseline {
+    return {
+        interviewStage: plan.interviewStage,
+        minimumQuestionCount: plan.questionCount,
+        categoryMinimums: plan.categoryCounts,
+    };
+}
+
+export function parseQuestionPlanSnapshot(value: unknown): QuestionPlan | null {
+    if (!value || typeof value !== "object") {
+        return null;
+    }
+
+    const candidate = value as Record<string, unknown>;
+    const interviewStage = normalizeInterviewStage(candidate.interviewStage);
+    const questionCount = normalizeQuestionPlanCount(asFiniteNumber(candidate.questionCount));
+    const rawCategoryCounts = candidate.categoryCounts && typeof candidate.categoryCounts === "object"
+        ? candidate.categoryCounts as Record<string, unknown>
+        : {};
+    const categoryCounts = QUESTION_PLAN_CATEGORY_ORDER.reduce((counts, category) => {
+        counts[category] = Math.max(0, Math.trunc(asFiniteNumber(rawCategoryCounts[category]) ?? 0));
+        return counts;
+    }, { ...EMPTY_CATEGORY_COUNTS });
+    const slots = Array.isArray(candidate.slots)
+        ? candidate.slots
+            .map((slot, fallbackIndex): QuestionPlanSlot | null => {
+                if (!slot || typeof slot !== "object") {
+                    return null;
+                }
+                const source = slot as Record<string, unknown>;
+                const category = typeof source.category === "string" && QUESTION_PLAN_CATEGORY_ORDER.includes(source.category as QuestionPlanCategory)
+                    ? source.category as QuestionPlanCategory
+                    : null;
+                if (!category) {
+                    return null;
+                }
+                const index = asFiniteNumber(source.index) ?? fallbackIndex;
+                return {
+                    id: typeof source.id === "string" && source.id.trim() ? source.id : `${category}-${fallbackIndex + 1}`,
+                    index: Math.max(0, Math.trunc(index)),
+                    category,
+                };
+            })
+            .filter((slot): slot is QuestionPlanSlot => Boolean(slot))
+            .sort((a, b) => a.index - b.index)
+        : [];
+
+    if (Object.values(categoryCounts).reduce((sum, count) => sum + count, 0) !== questionCount || slots.length !== questionCount) {
+        return buildQuestionPlan({ interviewStage, questionCount });
+    }
+
+    return {
+        interviewStage,
+        questionCount,
+        categoryCounts,
+        slots,
+    };
+}
+
+function asFiniteNumber(value: unknown): number | null {
+    if (typeof value === "number" && Number.isFinite(value)) {
+        return value;
+    }
+    if (typeof value === "string") {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : null;
+    }
+    return null;
 }
 
 function allocateCategoryCounts(

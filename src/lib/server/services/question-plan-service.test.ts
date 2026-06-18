@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+    buildPracticeCoverageBaseline,
     buildQuestionPlan,
     getInterviewStageLabel,
     INTERVIEW_STAGE_OPTIONS,
     normalizeInterviewStage,
+    parseQuestionPlanSnapshot,
     QUESTION_PLAN_CATEGORY_ORDER,
 } from "./question-plan-service";
 
@@ -66,5 +68,65 @@ describe("question-plan-service", () => {
         expect(normalizeInterviewStage("")).toBe("not_sure");
         expect(normalizeInterviewStage("screening")).toBe("not_sure");
         expect(normalizeInterviewStage("follow_up_final")).toBe("follow_up_final");
+    });
+
+    it("derives practice coverage baseline from the same stage-aware question plan", () => {
+        const baseline = buildPracticeCoverageBaseline({
+            interviewStage: "initial_screening",
+            questionCount: 5,
+        });
+
+        expect(baseline).toEqual({
+            interviewStage: "initial_screening",
+            minimumQuestionCount: 5,
+            categoryMinimums: expect.objectContaining({
+                screening: 2,
+                behavioral: 1,
+                culture_fit: 1,
+                technical_role_specific: 1,
+                case_scenario: 0,
+            }),
+        });
+    });
+
+    it("parses persisted question plan snapshots and repairs inconsistent shapes", () => {
+        const snapshot = parseQuestionPlanSnapshot({
+            interviewStage: "initial_screening",
+            questionCount: 3,
+            categoryCounts: {
+                screening: 1,
+                behavioral: 1,
+                culture_fit: 1,
+                case_scenario: 0,
+                technical_role_specific: 0,
+            },
+            slots: [
+                { id: "screening-1", index: 0, category: "screening" },
+                { id: "behavioral-1", index: 1, category: "behavioral" },
+                { id: "culture_fit-1", index: 2, category: "culture_fit" },
+            ],
+        });
+
+        expect(snapshot?.categoryCounts).toMatchObject({
+            screening: 1,
+            behavioral: 1,
+            culture_fit: 1,
+        });
+
+        const repaired = parseQuestionPlanSnapshot({
+            interviewStage: "initial_screening",
+            questionCount: 3,
+            categoryCounts: {
+                screening: 1,
+            },
+            slots: [],
+        });
+
+        expect(repaired?.slots).toHaveLength(3);
+        expect(repaired?.categoryCounts).toMatchObject({
+            screening: 1,
+            behavioral: 1,
+            culture_fit: 1,
+        });
     });
 });

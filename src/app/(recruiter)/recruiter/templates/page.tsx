@@ -12,6 +12,8 @@ import { AlertPanel } from "@/components/patterns/AlertPanel";
 import { SearchField } from "@/components/patterns/SearchField";
 import { PageHeaderBlock } from "@/components/patterns/PageHeaderBlock";
 import { Check, X as CloseIcon } from "lucide-react";
+import { QUESTION_PLAN_CATEGORY_ORDER, type QuestionPlanCategory } from "@/lib/domain/question-plan";
+import { getQuestionSectionGroups, questionPlanCategoryLabels } from "../create/components/question-section-groups";
 
 interface EditableTemplateTitleProps {
     template: RecruiterTemplate;
@@ -108,6 +110,25 @@ function EditableTemplateTitle({ template, onUpdate, isEditable }: EditableTempl
             )}
         </div>
     );
+}
+
+function getTemplateCategoryRows(template: RecruiterTemplate) {
+    const groups = getQuestionSectionGroups(template.questions);
+    const counts: Record<QuestionPlanCategory, number> = {
+        screening: groups.screening.length,
+        behavioral: groups.behavioral.length,
+        culture_fit: groups.cultureFit.length,
+        case_scenario: groups.caseScenario.length,
+        technical_role_specific: groups.technicalRoleSpecific.length,
+    };
+
+    return QUESTION_PLAN_CATEGORY_ORDER
+        .map((category) => ({
+            category,
+            label: questionPlanCategoryLabels[category],
+            count: counts[category],
+        }))
+        .filter((row) => row.count > 0);
 }
 
 export default function TemplatesPage() {
@@ -235,6 +256,7 @@ export default function TemplatesPage() {
                         {filteredTemplates.map((template) => {
                             const isOwner = template.recruiterId === recruiterId;
                             const canManage = isOwner || isAdmin;
+                            const categoryRows = getTemplateCategoryRows(template);
                             return (
                                 <div key={template.id} className="group flex flex-col h-full animate-in fade-in zoom-in-95 duration-base ease-standard">
                                     <div className="flex-1 bg-surface-base rounded-t-2xl border-t border-x border-border/40 p-6 shadow-raised-1 transition-all duration-base hover:shadow-raised-2">
@@ -252,15 +274,19 @@ export default function TemplatesPage() {
                                         </p>
 
                                         <div className="flex flex-wrap items-center gap-2 pt-2">
-                                            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/10 px-3 py-0.5 font-bold uppercase text-[9px] tracking-widest rounded-lg">
-                                                {template.questions.star?.length || 0} STAR
-                                            </Badge>
-                                            <Badge variant="outline" className="bg-sky-50 text-sky-800 border-sky-200 px-3 py-0.5 font-bold uppercase text-[9px] tracking-widest rounded-lg dark:bg-sky-500/15 dark:text-sky-200 dark:border-sky-400/30">
-                                                {template.questions.perma?.length || 0} PERMA
-                                            </Badge>
-                                            <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-200 px-3 py-0.5 font-bold uppercase text-[9px] tracking-widest rounded-lg dark:bg-amber-500/15 dark:text-amber-200 dark:border-amber-400/30">
-                                                {template.questions.technical?.length || 0} Tech
-                                            </Badge>
+                                            {categoryRows.length > 0 ? categoryRows.map((row) => (
+                                                <Badge
+                                                    key={row.category}
+                                                    variant="outline"
+                                                    className="bg-primary/5 text-primary border-primary/10 px-3 py-0.5 font-bold uppercase text-[9px] tracking-widest rounded-lg"
+                                                >
+                                                    {row.count} {row.label}
+                                                </Badge>
+                                            )) : (
+                                                <Badge variant="outline" className="bg-surface-subtle text-text-muted border-border px-3 py-0.5 font-bold uppercase text-[9px] tracking-widest rounded-lg">
+                                                    No questions
+                                                </Badge>
+                                            )}
 
                                             <div className="ml-auto">
                                                 {template.isShared ? (

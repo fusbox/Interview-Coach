@@ -104,7 +104,7 @@ describe("StepJobAndQuestions", () => {
         const onSaveTemplate = vi.fn().mockResolvedValue(undefined);
         let details: Details = { role: "QA Engineer", jd: "", firstName: "", lastName: "", candidateEmail: "", reqId: "REQ-11" };
         let interviewDetails = defaultInterviewDetails;
-        let star: QuestionInput[] = [{ id: "s1", text: "Existing question", category: "STAR", label: "STAR 1" }];
+        let star: QuestionInput[] = [];
         let perma: QuestionInput[] = [];
         let technical: QuestionInput[] = [];
 
@@ -185,12 +185,30 @@ describe("StepJobAndQuestions", () => {
             );
         };
 
-        await user.selectOptions(screen.getByLabelText("Use a Template"), "template-1");
+        await user.click(screen.getByRole("button", { name: "Use a Template" }));
+
+        const templateDialog = await screen.findByRole("dialog", { name: /use a template/i });
+        expect(within(templateDialog).getByText("Warehouse Pack")).toBeInTheDocument();
+        expect(within(templateDialog).getByText("Warehouse Associate")).toBeInTheDocument();
+        expect(within(templateDialog).getByText(/Created Mar 20, 2026/i)).toBeInTheDocument();
+        expect(within(templateDialog).getByText("1 Behavioral")).toBeInTheDocument();
+        expect(within(templateDialog).getByText("1 Culture / Fit")).toBeInTheDocument();
+        expect(within(templateDialog).getByText("1 Technical / Role-Specific")).toBeInTheDocument();
+
+        await user.click(within(templateDialog).getByRole("button", { name: /Warehouse Pack/i }));
 
         expect(setDetails).toHaveBeenCalledWith(expect.objectContaining({ role: "Warehouse Associate" }));
         expect(setStar).toHaveBeenCalledWith(templates[0].questions.star);
         expect(setPerma).toHaveBeenCalledWith(templates[0].questions.perma);
         expect(setTechnical).toHaveBeenCalledWith(templates[0].questions.technical);
+        expect(screen.getByText("Template questions loaded")).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Behavioral Questions" })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Culture / Fit Questions" })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Technical / Role-Specific Questions" })).toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: "Screening Questions" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: "Case / Scenario Questions" })).not.toBeInTheDocument();
+        expect(screen.getByLabelText("Behavioral question 1")).toHaveAttribute("readonly");
+        expect(screen.queryByRole("button", { name: /Clear .* question/i })).not.toBeInTheDocument();
 
         await user.click(screen.getByRole("button", { name: /save as template/i }));
         expect(await screen.findByRole("dialog", { name: "Save Interview Template" })).toBeInTheDocument();
@@ -204,6 +222,39 @@ describe("StepJobAndQuestions", () => {
         await waitFor(() => {
             expect(onSaveTemplate).toHaveBeenCalledWith("Night Shift Pack", true);
         });
+    });
+
+    it("renders URL-loaded template questions with the template banner and only populated sections", async () => {
+        render(
+            <StepJobAndQuestions
+                details={{ role: "Warehouse Associate", jd: "Move inventory safely.", firstName: "", lastName: "", candidateEmail: "", reqId: "REQ-14" }}
+                setDetails={vi.fn()}
+                interviewDetails={defaultInterviewDetails}
+                setInterviewDetails={vi.fn()}
+                star={[{ id: "t-star", text: "Describe a time you handled a safety issue.", category: "STAR", label: "Safety" }]}
+                setStar={vi.fn()}
+                perma={[]}
+                setPerma={vi.fn()}
+                technical={[]}
+                setTechnical={vi.fn()}
+                onNext={vi.fn()}
+                StepFooter={StepFooterStub}
+                onSaveTemplate={vi.fn()}
+                initialQuestionSetupSource="template"
+            />
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText("Template questions loaded")).toBeInTheDocument();
+        });
+
+        expect(screen.getByRole("heading", { name: "Behavioral Questions" })).toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: "Screening Questions" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: "Culture / Fit Questions" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: "Case / Scenario Questions" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: "Technical / Role-Specific Questions" })).not.toBeInTheDocument();
+        expect(screen.getByLabelText("Behavioral question 1")).toHaveAttribute("readonly");
+        expect(screen.queryByRole("button", { name: /Clear .* question/i })).not.toBeInTheDocument();
     });
 
     it("keeps question creation gated until job details are complete", async () => {
@@ -405,14 +456,16 @@ describe("StepJobAndQuestions", () => {
         await user.click(screen.getByRole("button", { name: "Looks good" }));
 
         expect(screen.getByText("Question setup")).toBeInTheDocument();
-        expect(screen.getByText("5 questions - First conversation or screening")).toBeInTheDocument();
+        expect(screen.getByText("5 questions - First conversation or screening. Please enter from the approved question plan.")).toBeInTheDocument();
+        expect(screen.getByLabelText("Screening question 1")).not.toHaveAttribute("readonly");
+        expect(screen.queryByRole("button", { name: /Clear .* question/i })).not.toBeInTheDocument();
         expect(screen.queryByRole("heading", { name: "Interview Details" })).not.toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "Generate Questions with AI" })).not.toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "Enter my own questions" })).not.toBeInTheDocument();
 
         await user.click(screen.getByRole("button", { name: "Start over" }));
 
-        expect(screen.queryByText("5 questions - First conversation or screening")).not.toBeInTheDocument();
+        expect(screen.queryByText("5 questions - First conversation or screening. Please enter from the approved question plan.")).not.toBeInTheDocument();
         expect(screen.queryByRole("heading", { name: "Screening Questions" })).not.toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "Interview Details" })).toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Generate Questions with AI" })).toBeEnabled();
@@ -545,6 +598,8 @@ describe("StepJobAndQuestions", () => {
         expect(screen.getAllByRole("textbox", { name: /^Behavioral question/i })).toHaveLength(1);
         expect(screen.getAllByRole("textbox", { name: /^Culture \/ Fit question/i })).toHaveLength(1);
         expect(screen.getAllByRole("textbox", { name: /^Technical \/ Role-Specific question/i })).toHaveLength(1);
+        expect(screen.getByLabelText("Screening question 1")).toHaveAttribute("readonly");
+        expect(screen.queryByRole("button", { name: /Clear .* question/i })).not.toBeInTheDocument();
         expect(screen.queryByDisplayValue("Tell me about a time you learned quickly.")).not.toBeInTheDocument();
         expect(screen.queryByDisplayValue("How would you handle a scheduling conflict?")).not.toBeInTheDocument();
     });

@@ -92,6 +92,36 @@ describe("prep profile read model", () => {
             evidenceState: "emerging",
             averageScore: 2,
             fillPercent: 0,
+            dimensionStates: [
+                {
+                    dimension: "focus_relevance",
+                    label: "Focus",
+                    evidenceState: "emerging",
+                    averageScore: 2.5,
+                    scoreCount: 2,
+                },
+                {
+                    dimension: "specificity_concreteness",
+                    label: "Specific detail",
+                    evidenceState: "emerging",
+                    averageScore: 2,
+                    scoreCount: 2,
+                },
+                {
+                    dimension: "outcome_explicitness",
+                    label: "Outcome clarity",
+                    evidenceState: "emerging",
+                    averageScore: 1.5,
+                    scoreCount: 2,
+                },
+                {
+                    dimension: "decision_rationale",
+                    label: "Decision logic",
+                    evidenceState: "emerging",
+                    averageScore: 2,
+                    scoreCount: 2,
+                },
+            ],
             evidenceCounts: {
                 not_practiced: 0,
                 emerging: 1,
@@ -123,12 +153,46 @@ describe("prep profile read model", () => {
                     { questionId: "question-3", questionNumber: 3, status: "upcoming" },
                 ],
                 evidenceState: "clear",
+                laneStates: {
+                    answer_substance: {
+                        evidenceState: "emerging",
+                        averageScore: 2.5,
+                        scoreCount: 4,
+                    },
+                    interview_structure: {
+                        evidenceState: "strong",
+                        averageScore: 4,
+                        scoreCount: 2,
+                    },
+                    communication_delivery: {
+                        evidenceState: "clear",
+                        averageScore: 3,
+                        scoreCount: 3,
+                    },
+                },
             }),
             expect.objectContaining({
                 categoryId: "screening",
                 label: "Screening",
                 questionCount: 1,
                 evidenceState: "emerging",
+                laneStates: {
+                    answer_substance: {
+                        evidenceState: "emerging",
+                        averageScore: 1.5,
+                        scoreCount: 4,
+                    },
+                    interview_structure: {
+                        evidenceState: "emerging",
+                        averageScore: 2,
+                        scoreCount: 2,
+                    },
+                    communication_delivery: {
+                        evidenceState: "clear",
+                        averageScore: 3.33,
+                        scoreCount: 3,
+                    },
+                },
             }),
         ]);
     });
@@ -165,6 +229,69 @@ describe("prep profile read model", () => {
             source: "first_practice",
             label: "Practice practice behavioral questions",
         });
+    });
+
+    it("keeps planned category coverage visible before the first answer is scored", () => {
+        const model = buildPrepProfileReadModel({
+            prepProfileId: "profile-1",
+            targetRole: "Client Services Representative",
+            jobDescription: "Help clients resolve account issues and explain next steps clearly.",
+            sessionId: "session-1",
+            questions: [
+                {
+                    ...baseQuestion,
+                    id: "question-1",
+                    category: "Screening",
+                    text: "Why are you interested in this client services role?",
+                    index: 0,
+                },
+                {
+                    ...baseQuestion,
+                    id: "question-2",
+                    category: "STAR",
+                    text: "Tell me about a time you helped an upset client.",
+                    index: 1,
+                },
+                {
+                    ...baseQuestion,
+                    id: "question-3",
+                    category: "Technical / Role-Specific",
+                    text: "How would you help someone who cannot log in?",
+                    index: 2,
+                },
+            ],
+            answers: [],
+        });
+
+        expect(model.categoryCards).toEqual([
+            expect.objectContaining({
+                categoryId: "screening",
+                label: "Screening",
+                questionCount: 1,
+                practicedQuestionCount: 0,
+                upcomingQuestionCount: 1,
+                evidenceState: "not_practiced",
+                questionStatuses: [{ questionId: "question-1", questionNumber: 1, status: "upcoming" }],
+            }),
+            expect.objectContaining({
+                categoryId: "behavioral",
+                label: "Behavioral",
+                questionCount: 1,
+                practicedQuestionCount: 0,
+                upcomingQuestionCount: 1,
+                evidenceState: "not_practiced",
+                questionStatuses: [{ questionId: "question-2", questionNumber: 2, status: "upcoming" }],
+            }),
+            expect.objectContaining({
+                categoryId: "technical_role_specific",
+                label: "Technical / Role-Specific",
+                questionCount: 1,
+                practicedQuestionCount: 0,
+                upcomingQuestionCount: 1,
+                evidenceState: "not_practiced",
+                questionStatuses: [{ questionId: "question-3", questionNumber: 3, status: "upcoming" }],
+            }),
+        ]);
     });
 
     it("elevates a signal immediately when the latest evidence is strong while preserving prior weak evidence", () => {

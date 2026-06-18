@@ -22,30 +22,30 @@ export const StrongResponseResultSchema = z.object({
     whyThisWorks: z.string().min(1),
 });
 
+const GeneratedQuestionObjectSchema = z.record(z.string().min(1), z.string().min(1));
+
 export const GeneratedInterviewQuestionsSchema = z.object({
-    behavioral: z.object({
-        "Conflict/Resolution": z.string().min(1),
-        "Adaptability": z.string().min(1),
-        "Initiative/Growth": z.string().min(1),
-        "Role-Specific Scenario": z.string().min(1),
-    }),
-    culture: z.object({
-        "Positive Emotion": z.string().min(1),
-        "Engagement": z.string().min(1),
-        "Relationships": z.string().min(1),
-        "Meaning": z.string().min(1),
-        "Accomplishment": z.string().min(1),
-    }),
+    behavioral: GeneratedQuestionObjectSchema.default({}),
+    culture: GeneratedQuestionObjectSchema.default({}),
     technical: z.array(
         z.object({
             text: z.string().min(1),
         })
-    ).min(1).max(2),
-    screening: z.object({
-        "Interest": z.string().min(1),
-        "Background": z.string().min(1),
-        "Availability": z.string().min(1),
-    }).optional(),
+    ).max(20).default([]),
+    screening: GeneratedQuestionObjectSchema.default({}),
+}).superRefine((value, ctx) => {
+    const questionCount = Object.keys(value.behavioral).length
+        + Object.keys(value.culture).length
+        + value.technical.length
+        + Object.keys(value.screening).length;
+
+    if (questionCount === 0) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "At least one generated question is required",
+            path: ["behavioral"],
+        });
+    }
 });
 
 export const SmtpEmailSendResultSchema = z.object({

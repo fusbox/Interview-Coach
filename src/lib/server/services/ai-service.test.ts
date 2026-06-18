@@ -63,6 +63,7 @@ describe("AIService malformed provider handling", () => {
         );
 
         expect(result.contentPulse?.headline).toBe("System Offline");
+        expect(result.meta).not.toHaveProperty("readinessLevel");
         expect(incrementMetricMock).toHaveBeenCalledWith("ai_requests_total", {
             operation: "analysis",
             outcome: "malformed_response"
@@ -279,6 +280,7 @@ describe("AIService malformed provider handling", () => {
             trySayingThis: expect.stringContaining("caught the missing items"),
         });
         expect(result.oneBigUpgrade).toBeUndefined();
+        expect(result.meta).not.toHaveProperty("readinessLevel");
     });
 
     it("removes internal next-action literals from coach signal copy before returning analysis", async () => {

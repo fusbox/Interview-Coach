@@ -14,7 +14,7 @@ export function CandidateSidebar() {
     const isDashboardActive = pathname === "/dashboard" || pathname?.startsWith("/dashboard/");
 
     return (
-        <aside className="sticky top-0 hidden h-screen w-[300px] shrink-0 flex-col border-r bg-surface-base px-6 py-6 md:flex">
+        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r bg-surface-base px-6 py-6 md:flex">
             <div className="pb-8">
                 <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
                     <div className="relative h-8 w-36">

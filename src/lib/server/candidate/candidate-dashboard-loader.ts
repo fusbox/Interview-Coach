@@ -2,6 +2,7 @@ import type { QueryResultRow } from "pg";
 
 import type { AnalysisResult, Answer, Question } from "@/lib/domain/types";
 import { AnalysisResultSchema } from "@/lib/domain/schemas";
+import { buildPracticeCoverageBaselineFromQuestionPlan, parseQuestionPlanSnapshot, type PracticeCoverageBaseline } from "@/lib/server/services/question-plan-service";
 import { queryPostgres } from "@/lib/server/db/postgres";
 
 import { buildPrepProfileReadModel, type PrepEvidenceState, type PrepProfileReadModel, type PrepQuestionCategoryCard, type PrepSignal } from "./prep-profile-read-model";
@@ -26,6 +27,8 @@ export type CandidateDashboardPrepProfileSummary = {
     };
 };
 
+export type CandidateDashboardPracticeCoverageBaseline = PracticeCoverageBaseline;
+
 export type CandidateDashboardItem = {
     practiceDraftId: string;
     roleProfileId: string | null;
@@ -40,6 +43,7 @@ export type CandidateDashboardItem = {
     summarySnippet?: string;
     coachingSnippet?: string;
     coachingSnippetLabel?: string;
+    practiceCoverageBaseline?: CandidateDashboardPracticeCoverageBaseline;
     prepProfile?: CandidateDashboardPrepProfileSummary;
 };
 
@@ -89,6 +93,7 @@ type DashboardDraftRow = QueryResultRow & {
     session_id: string | null;
     session_status: string | null;
     current_question_index: number | null;
+    question_plan_snapshot: unknown;
     question_count: number | string | null;
     submitted_count: number | string | null;
     summary_narrative: string | null;
@@ -144,6 +149,7 @@ export async function loadCandidateDashboardForCurrentCandidate(input: {
                         d.session_id,
                         s.status as session_status,
                         s.current_question_index,
+                        s.intake_json -> 'questionPlanSnapshot' as question_plan_snapshot,
                         s.summary_narrative,
                         f.latest_recommendation,
                             f.latest_coach_signal,
@@ -228,6 +234,7 @@ function toDashboardItem(item: CandidateDashboardItem & { kind: "active" | "comp
         summarySnippet: item.summarySnippet,
         coachingSnippet: item.coachingSnippet,
         coachingSnippetLabel: item.coachingSnippetLabel,
+        practiceCoverageBaseline: item.practiceCoverageBaseline,
         prepProfile: item.prepProfile,
     };
 }
@@ -474,6 +481,7 @@ function mapDashboardItem(
     const summaryHref = row.session_id ? `/summary/${row.session_id}` : sessionHref;
     const coachSignal = parseCoachSignal(row.latest_coach_signal);
     const prepProfile = buildDashboardPrepProfileSummary(row, evidenceRows, isCompleted ? null : sessionHref);
+    const practiceCoverageBaseline = buildDashboardPracticeCoverageBaseline(row.question_plan_snapshot);
 
     return {
         kind: isCompleted ? "completed" : "active",
@@ -492,8 +500,18 @@ function mapDashboardItem(
             ? `${coachSignal.focus}: ${coachSignal.trySayingThis}`
             : row.latest_recommendation || undefined,
         coachingSnippetLabel: coachSignal ? "For the biggest lift" : undefined,
+        practiceCoverageBaseline,
         prepProfile,
     };
+}
+
+function buildDashboardPracticeCoverageBaseline(value: unknown): CandidateDashboardPracticeCoverageBaseline | undefined {
+    const snapshot = parseQuestionPlanSnapshot(value);
+    if (!snapshot) {
+        return undefined;
+    }
+
+    return buildPracticeCoverageBaselineFromQuestionPlan(snapshot);
 }
 
 function buildDashboardPrepProfileSummary(

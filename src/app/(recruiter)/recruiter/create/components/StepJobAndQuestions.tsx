@@ -34,6 +34,7 @@ interface StepJobAndQuestionsProps {
     StepFooter: React.ComponentType<StepFooterProps>;
     templates?: RecruiterTemplate[];
     onSaveTemplate: (name: string, isShared: boolean) => Promise<void>;
+    initialQuestionSetupSource?: "template" | null;
     isTourLocked?: boolean;
 }
 
@@ -46,6 +47,7 @@ const AutoResizeTextarea = ({
     ariaLabel,
     name,
     disabled = false,
+    readOnly = false,
 }: {
     value: string;
     onChange: (val: string) => void;
@@ -54,6 +56,7 @@ const AutoResizeTextarea = ({
     ariaLabel?: string;
     name?: string;
     disabled?: boolean;
+    readOnly?: boolean;
 }) => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fieldId = useId();
@@ -78,7 +81,7 @@ const AutoResizeTextarea = ({
             style={{ resize: 'none', overflow: 'hidden' }}
             aria-label={ariaLabel}
             disabled={disabled}
-            readOnly={disabled}
+            readOnly={disabled || readOnly}
         />
     );
 };
@@ -191,6 +194,35 @@ function buildQuestionInputsFromPlan(
     return { star, perma, technical };
 }
 
+function getTemplateCategoryRows(template: RecruiterTemplate) {
+    const groups = getQuestionSectionGroups(template.questions);
+    return QUESTION_PLAN_CATEGORY_ORDER
+        .map((category) => {
+            const countByCategory: Record<QuestionPlanCategory, number> = {
+                screening: groups.screening.length,
+                behavioral: groups.behavioral.length,
+                culture_fit: groups.cultureFit.length,
+                case_scenario: groups.caseScenario.length,
+                technical_role_specific: groups.technicalRoleSpecific.length,
+            };
+
+            return {
+                category,
+                label: questionPlanCategoryLabels[category],
+                count: countByCategory[category],
+            };
+        })
+        .filter((row) => row.count > 0);
+}
+
+function formatTemplateDate(value: string) {
+    return new Date(value).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+    });
+}
+
 export function StepJobAndQuestions({
     details, setDetails,
     interviewDetails, setInterviewDetails,
@@ -204,14 +236,18 @@ export function StepJobAndQuestions({
     StepFooter,
     templates = [],
     onSaveTemplate,
+    initialQuestionSetupSource = null,
     isTourLocked = false
 }: StepJobAndQuestionsProps) {
     const isDemo = showDemoTools();
     const [isSaving, setIsSaving] = useState(false);
     const [showSaveModal, setShowSaveModal] = useState(false);
+    const [showTemplateModal, setShowTemplateModal] = useState(false);
     const [isManualEntryReady, setIsManualEntryReady] = useState(false);
     const [isQuestionMixAccepted, setIsQuestionMixAccepted] = useState(false);
     const [questionMixReviewMode, setQuestionMixReviewMode] = useState<"ai" | "manual" | null>(null);
+    const [questionSetupSource, setQuestionSetupSource] = useState<"ai" | "manual" | "template" | null>(null);
+    const [hasAppliedInitialTemplateSource, setHasAppliedInitialTemplateSource] = useState(false);
     const [questionCountMode, setQuestionCountMode] = useState<"preset" | "other">(
         questionCountOptions.includes(interviewDetails.questionCount as (typeof questionCountOptions)[number]) ? "preset" : "other",
     );
@@ -224,10 +260,11 @@ export function StepJobAndQuestions({
     } | null>(null);
     const saveTemplateInputRef = useRef<HTMLInputElement>(null);
     const saveDialogRef = useRef<HTMLDivElement>(null);
+    const templateDialogRef = useRef<HTMLDivElement>(null);
     const generationFeedbackTimeoutRef = useRef<number | null>(null);
     const saveDialogTitleId = useId();
+    const templateDialogTitleId = useId();
     const questionMixDialogTitleId = useId();
-    const templateSelectId = useId();
     const reqIdInputId = useId();
     const targetRoleInputId = useId();
     const jobDescriptionInputId = useId();
@@ -241,6 +278,12 @@ export function StepJobAndQuestions({
         containerRef: saveDialogRef,
         initialFocusRef: saveTemplateInputRef,
         onClose: () => setShowSaveModal(false),
+    });
+
+    useAccessibleDialog({
+        isOpen: showTemplateModal,
+        containerRef: templateDialogRef,
+        onClose: () => setShowTemplateModal(false),
     });
 
     useEffect(() => {
@@ -275,12 +318,26 @@ export function StepJobAndQuestions({
             .filter((row) => row.count > 0)
     ), [questionPlan]);
 
+    const loadedQuestionCount = star.length + perma.length + technical.length;
+
+    const activeQuestionSetupSource = questionSetupSource;
+    const areQuestionFieldsReadOnly = activeQuestionSetupSource === "ai" || activeQuestionSetupSource === "template";
+
+    useEffect(() => {
+        if (
+            initialQuestionSetupSource === "template" &&
+            !hasAppliedInitialTemplateSource &&
+            loadedQuestionCount > 0
+        ) {
+            setIsManualEntryReady(true);
+            setIsQuestionMixAccepted(true);
+            setQuestionSetupSource("template");
+            setHasAppliedInitialTemplateSource(true);
+        }
+    }, [hasAppliedInitialTemplateSource, initialQuestionSetupSource, loadedQuestionCount]);
+
     const updateQuestion = (set: (val: QuestionInput[]) => void, list: QuestionInput[], id: string, text: string) => {
         set(list.map(q => q.id === id ? { ...q, text } : q));
-    };
-
-    const clearQuestion = (set: (val: QuestionInput[]) => void, list: QuestionInput[], id: string) => {
-        set(list.map(q => q.id === id ? { ...q, text: '' } : q));
     };
 
     const handleApplyTemplate = (templateId: string) => {
@@ -293,6 +350,10 @@ export function StepJobAndQuestions({
         setTechnical(template.questions.technical);
         setIsManualEntryReady(true);
         setIsQuestionMixAccepted(true);
+        setQuestionSetupSource("template");
+        setQuestionMixReviewMode(null);
+        setGenerationFeedback(null);
+        setShowTemplateModal(false);
     };
 
     const handleSaveSubmit = async (e: React.FormEvent) => {
@@ -337,9 +398,10 @@ export function StepJobAndQuestions({
         setGenerationFeedback(null);
         try {
             await onGenerateQuestionsAI();
-            setIsManualEntryReady(false);
-            setIsQuestionMixAccepted(false);
-            setQuestionMixReviewMode("ai");
+        setIsManualEntryReady(false);
+        setIsQuestionMixAccepted(false);
+        setQuestionSetupSource(null);
+        setQuestionMixReviewMode("ai");
         } catch {
             setGenerationFeedback({
                 tone: "critical",
@@ -356,6 +418,7 @@ export function StepJobAndQuestions({
         }
         setIsManualEntryReady(false);
         setIsQuestionMixAccepted(false);
+        setQuestionSetupSource(null);
         setQuestionMixReviewMode("manual");
         setGenerationFeedback(null);
     };
@@ -368,12 +431,14 @@ export function StepJobAndQuestions({
             setPerma(manualQuestions.perma);
             setTechnical(manualQuestions.technical);
             setIsManualEntryReady(true);
+            setQuestionSetupSource("manual");
         } else if (questionMixReviewMode === "ai") {
             const plannedQuestions = buildQuestionInputsFromPlan(questionPlan, questionGroups);
             setStar(plannedQuestions.star);
             setPerma(plannedQuestions.perma);
             setTechnical(plannedQuestions.technical);
             setIsManualEntryReady(false);
+            setQuestionSetupSource("ai");
         }
         setQuestionMixReviewMode(null);
     };
@@ -382,6 +447,7 @@ export function StepJobAndQuestions({
         setQuestionMixReviewMode(null);
         setIsQuestionMixAccepted(false);
         setIsManualEntryReady(false);
+        setQuestionSetupSource(null);
         setGenerationFeedback(null);
         setStar([]);
         setPerma([]);
@@ -392,6 +458,7 @@ export function StepJobAndQuestions({
         setQuestionMixReviewMode(null);
         setIsQuestionMixAccepted(false);
         setIsManualEntryReady(false);
+        setQuestionSetupSource(null);
 
         if (questionMixReviewMode === "ai") {
             setStar(star.map((question) => ({ ...question, text: "" })));
@@ -509,26 +576,15 @@ export function StepJobAndQuestions({
                     <div key={question.id} className="flex gap-2 items-center animate-in fade-in slide-in-from-top-1 duration-base">
                         <div className="flex-1 relative group/field">
                             <AutoResizeTextarea
-                                className={`${textareaFieldClassName} min-h-[44px] pl-4 pr-10`}
+                                className={`${textareaFieldClassName} min-h-[44px] px-4`}
                                 value={question.text}
                                 onChange={(value) => updateQuestion(setQuestions, list, question.id, value)}
                                 placeholder={`${title.replace(" Questions", "")} Question ${index + 1}...`}
                                 ariaLabel={`${ariaLabelPrefix} question ${index + 1}`}
                                 name={`${ariaLabelPrefix.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-question-${index + 1}`}
                                 disabled={isTourLocked}
+                                readOnly={areQuestionFieldsReadOnly}
                             />
-                            {question.text && (
-                                <button
-                                    type="button"
-                                    onClick={() => clearQuestion(setQuestions, list, question.id)}
-                                    disabled={isTourLocked}
-                                    className="absolute right-3 top-3 p-1 text-rose-700 hover:text-rose-800 transition-all duration-base dark:text-rose-300 dark:hover:text-rose-200"
-                                    title="Clear content"
-                                    aria-label={`Clear ${ariaLabelPrefix} question ${index + 1}`}
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
-                            )}
                         </div>
                     </div>
                 ))}
@@ -577,27 +633,6 @@ export function StepJobAndQuestions({
                                 Job Details
                             </CardTitle>
 
-                            {/* Template Select */}
-                            <div className="flex w-full flex-col gap-2 md:w-auto md:min-w-[280px]">
-                                <label htmlFor={templateSelectId} className="text-micro font-bold uppercase tracking-widest text-primary">
-                                    Use a Template
-                                </label>
-                                <div className="relative w-full">
-                                    <select
-                                        id={templateSelectId}
-                                        name="templateId"
-                                        className="h-11 w-full rounded-xl border border-border bg-surface-base px-4 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-flat"
-                                        defaultValue=""
-                                        disabled={isTourLocked}
-                                        onChange={(e) => handleApplyTemplate(e.target.value)}
-                                    >
-                                        <option value="" disabled>Select a Template...</option>
-                                        {templates.map(t => (
-                                            <option key={t.id} value={t.id}>{t.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-6">
@@ -758,10 +793,12 @@ export function StepJobAndQuestions({
                             <div className="flex w-full flex-col gap-3 rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 shadow-flat sm:flex-row sm:items-center sm:justify-between">
                                 <div className="min-w-0">
                                     <p className="text-micro font-bold uppercase tracking-widest text-primary">
-                                        Question setup
+                                        {activeQuestionSetupSource === "template" ? "Template questions loaded" : "Question setup"}
                                     </p>
                                     <p className="mt-1 truncate text-sm font-semibold text-text-secondary">
-                                        {questionPlan.questionCount} {questionPlan.questionCount === 1 ? "question" : "questions"} - {getRecruiterInterviewStageLabel(questionPlan.interviewStage)}
+                                        {activeQuestionSetupSource === "template"
+                                            ? `${loadedQuestionCount} ${loadedQuestionCount === 1 ? "question" : "questions"} from template`
+                                            : `${questionPlan.questionCount} ${questionPlan.questionCount === 1 ? "question" : "questions"} - ${getRecruiterInterviewStageLabel(questionPlan.interviewStage)}${activeQuestionSetupSource === "manual" ? ". Please enter from the approved question plan." : ""}`}
                                     </p>
                                 </div>
                                 <Button
@@ -810,6 +847,18 @@ export function StepJobAndQuestions({
                                     >
                                         Enter my own questions
                                     </Button>
+                                    <Button
+                                        type="button"
+                                        emphasis="secondary"
+                                        density="comfortable"
+                                        shape="app"
+                                        label="strong"
+                                        onClick={() => setShowTemplateModal(true)}
+                                        disabled={templates.length === 0 || isTourLocked}
+                                        title={templates.length === 0 ? "No templates are configured yet." : undefined}
+                                    >
+                                        Use a Template
+                                    </Button>
                                 </div>
                                 {generationFeedback && (
                                     <AlertPanel
@@ -829,7 +878,10 @@ export function StepJobAndQuestions({
                     {isQuestionSetupAccepted && (isManualEntryReady || hasAtLeastOneQuestion) && (
                         <>
                             {questionSectionConfigs
-                                .filter((section) => questionPlan.categoryCounts[section.category] > 0)
+                                .filter((section) => activeQuestionSetupSource === "template"
+                                    ? section.questions.length > 0
+                                    : questionPlan.categoryCounts[section.category] > 0
+                                )
                                 .map((section) => (
                                     <div key={section.category}>
                                         {renderQuestionSection(section)}
@@ -839,6 +891,90 @@ export function StepJobAndQuestions({
                     )}
                 </div>
             </div>
+
+            {showTemplateModal && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 glass-overlay animate-in fade-in duration-slow"
+                    onPointerDown={(event) => {
+                        if (event.target === event.currentTarget) {
+                            setShowTemplateModal(false);
+                        }
+                    }}
+                >
+                    <Card
+                        ref={templateDialogRef}
+                        className="w-full max-w-2xl overflow-hidden rounded-3xl border-border shadow-floating animate-in zoom-in-95 duration-base ease-emphasized"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby={templateDialogTitleId}
+                        tabIndex={-1}
+                    >
+                        <div className="flex items-start justify-between gap-4 border-b border-border/50 bg-surface-base p-6">
+                            <div>
+                                <p className="text-micro font-bold uppercase tracking-widest text-primary">
+                                    Templates
+                                </p>
+                                <h3 id={templateDialogTitleId} className="mt-2 font-sans text-xl font-bold text-text-primary">
+                                    Use a template
+                                </h3>
+                                <p className="mt-2 text-sm leading-6 text-text-secondary">
+                                    Choose a saved role and question set to load into this invite.
+                                </p>
+                            </div>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                shape="pill"
+                                onClick={() => setShowTemplateModal(false)}
+                                aria-label="Close template selection"
+                            >
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </div>
+                        <div className="max-h-[65vh] space-y-3 overflow-y-auto p-6">
+                            {templates.map((template) => {
+                                const rows = getTemplateCategoryRows(template);
+                                const total = rows.reduce((sum, row) => sum + row.count, 0);
+
+                                return (
+                                    <button
+                                        key={template.id}
+                                        type="button"
+                                        onClick={() => handleApplyTemplate(template.id)}
+                                        className="w-full rounded-2xl border border-border bg-surface-base p-4 text-left shadow-flat transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-raised-1 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                    >
+                                        <span className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                            <span>
+                                                <span className="block text-base font-bold text-text-primary">{template.name}</span>
+                                                <span className="mt-1 block text-sm font-semibold text-text-secondary">{template.targetRole}</span>
+                                            </span>
+                                            <span className="text-micro font-bold uppercase tracking-widest text-text-disabled">
+                                                Created {formatTemplateDate(template.createdAt)}
+                                            </span>
+                                        </span>
+                                        <span className="mt-4 flex flex-wrap gap-2">
+                                            {rows.map((row) => (
+                                                <span
+                                                    key={row.category}
+                                                    className="rounded-lg border border-primary/10 bg-primary/5 px-3 py-1 text-[0.625rem] font-bold uppercase tracking-widest text-primary"
+                                                >
+                                                    {row.count} {row.label}
+                                                </span>
+                                            ))}
+                                            {total === 0 ? (
+                                                <span className="rounded-lg border border-border bg-surface-subtle px-3 py-1 text-[0.625rem] font-bold uppercase tracking-widest text-text-muted">
+                                                    No questions
+                                                </span>
+                                            ) : null}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </Card>
+                </div>
+            )}
 
             {questionMixReviewMode && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 glass-overlay animate-in fade-in duration-slow">

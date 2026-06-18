@@ -171,16 +171,23 @@ describe("CandidateDashboardPage", () => {
         expect(screen.queryByText("Target interview")).not.toBeInTheDocument();
         expect(screen.getByRole("navigation", { name: /target interviews/i })).toHaveTextContent("QA Analyst");
         expect(screen.getByRole("link", { name: /support lead/i })).toHaveAttribute("href", "/dashboard?targetRole=support%20lead");
-        expect(screen.getByRole("region", { name: /preparedness map/i })).toHaveTextContent("Tap an area to see what your practice shows");
-        expect(screen.getByRole("button", { name: /interview structure/i })).toHaveTextContent("Emerging");
-        expect(screen.getByRole("button", { name: /answer substance/i })).toHaveTextContent("To practice");
+        expect(screen.getByRole("region", { name: /preparedness map/i })).toHaveTextContent("How your answers are shaping up");
+        expect(screen.getByRole("tab", { name: /quick view/i })).toHaveAttribute("aria-selected", "true");
+        expect(screen.getByRole("button", { name: /open structure details/i })).toHaveTextContent("Structure");
+
+        await user.click(screen.getByRole("tab", { name: /details/i }));
+
+        expect(screen.getByRole("button", { name: /^interview structure$/i })).toHaveTextContent("Structure");
+        expect(screen.getByRole("button", { name: /^answer substance$/i })).toHaveTextContent("Substance");
+        expect(screen.getByRole("button", { name: /^interview structure$/i })).not.toHaveTextContent("Emerging");
         expect(screen.queryByRole("button", { name: /interview range/i })).not.toBeInTheDocument();
-        expect(screen.getByRole("region", { name: /question coverage/i })).toHaveTextContent("Behavioral");
-        expect(screen.getByRole("region", { name: /question coverage/i })).toHaveTextContent("Screening");
+        expect(screen.queryByRole("region", { name: /question coverage/i })).not.toBeInTheDocument();
+        expect(screen.getAllByRole("button", { name: /behavioral/i }).length).toBeGreaterThan(0);
+        expect(screen.getAllByRole("button", { name: /screening/i }).length).toBeGreaterThan(0);
         expect(screen.getByRole("region", { name: /practice next/i })).toHaveTextContent("Resume QA Analyst");
         expect(screen.getByRole("link", { name: /resume practice/i })).toHaveAttribute("href", "/session/session-1");
 
-        await user.click(screen.getByRole("button", { name: /interview structure/i }));
+        await user.click(screen.getByRole("button", { name: /^interview structure$/i }));
 
         expect(screen.getByRole("dialog", { name: /interview structure/i })).toHaveTextContent("Why this matters");
         expect(screen.getByRole("dialog", { name: /interview structure/i })).toHaveTextContent("Tap/click any card below to see coach guidance.");
@@ -209,8 +216,9 @@ describe("CandidateDashboardPage", () => {
         }} />);
 
         expect(screen.getByRole("region", { name: /empty preparedness dashboard/i })).toHaveTextContent("Start with the interview you want to prepare for.");
-        expect(screen.getByLabelText("Preview of your preparedness map")).toHaveTextContent("Answer Substance");
-        expect(screen.getByLabelText("Preview of question coverage")).toHaveTextContent("Behavioral");
+        expect(screen.getByLabelText("Preview of your preparedness map")).toHaveTextContent("Preparedness map preview");
+        expect(screen.getByLabelText("Preview of your preparedness map")).toHaveTextContent("Answer skills");
+        expect(screen.getByLabelText("Preview of your preparedness map")).toHaveTextContent("Question mix");
         expect(screen.getByRole("link", { name: /create practice/i })).toHaveAttribute("href", "/practice");
         expect(screen.queryByRole("region", { name: /recommended practice path/i })).not.toBeInTheDocument();
     });
@@ -242,6 +250,53 @@ describe("CandidateDashboardPage", () => {
             "Lead with the measurable result before the process detail.",
         );
         expect(screen.getByRole("region", { name: /practice next/i })).toHaveTextContent("Practice the latest coaching signal");
+    });
+
+    it("lists the upcoming questions from an active practice plan in Practice Next", () => {
+        render(<CandidateDashboardPage dashboard={{
+            ...baseModel,
+            activeItems: [
+                {
+                    ...baseModel.activeItems[0],
+                    prepProfile: {
+                        ...baseModel.activeItems[0].prepProfile!,
+                        signals: [],
+                        categoryCards: [
+                            {
+                                categoryId: "behavioral",
+                                label: "Behavioral",
+                                questionCount: 2,
+                                practicedQuestionCount: 1,
+                                upcomingQuestionCount: 1,
+                                questionStatuses: [
+                                    { questionId: "question-1", questionNumber: 1, status: "practiced" },
+                                    { questionId: "question-2", questionNumber: 2, status: "upcoming" },
+                                ],
+                                evidenceState: "strong",
+                                sourceRefs: [],
+                            },
+                            {
+                                categoryId: "screening",
+                                label: "Screening",
+                                questionCount: 1,
+                                practicedQuestionCount: 0,
+                                upcomingQuestionCount: 1,
+                                questionStatuses: [
+                                    { questionId: "question-3", questionNumber: 3, status: "upcoming" },
+                                ],
+                                evidenceState: "not_practiced",
+                                sourceRefs: [],
+                            },
+                        ],
+                    },
+                },
+            ],
+        }} />);
+
+        const practiceNext = screen.getByRole("region", { name: /practice next/i });
+        expect(practiceNext).toHaveTextContent("Upcoming practice items");
+        expect(practiceNext).toHaveTextContent("Q2: Behavioral");
+        expect(practiceNext).toHaveTextContent("Q3: Screening");
     });
 
     it("labels focused coaching snippets distinctly from generic notes", () => {

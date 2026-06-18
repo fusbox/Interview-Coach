@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useState, type CSSProperties } from "react";
 import { ArrowRight, Briefcase, CheckCircle2, ChevronDown, ChevronRight, Circle, FileText, MessageSquare, Mic, Sparkles, X } from "lucide-react";
+import { Cell, Pie, PieChart } from "recharts";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import type { CandidateDashboardItem, CandidateDashboardTargetInterview } from "@/lib/server/candidate";
-import type { PrepEvidenceRef, PrepQuestionCategoryCard, PrepSignal, PrepSignalLane } from "@/lib/server/candidate/prep-profile-read-model";
+import type { PrepEvidenceRef, PrepQuestionCategoryCard, PrepSignal, PrepSignalLane, ReleasePrepSignalLane } from "@/lib/server/candidate/prep-profile-read-model";
 
 export type PreparednessState = "not_practiced" | "emerging" | "clear" | "strong";
 
@@ -16,10 +17,20 @@ export type PreparednessSkill = {
     label: string;
     state: PreparednessState;
     evidenceCounts: Record<PreparednessState, number>;
+    dimensionStates?: PreparednessDimensionState[];
     whyItMatters: string;
     evidence: PreparednessEvidence[];
     nextPracticeAction: string;
     href: string;
+    fillPercent?: number;
+};
+
+export type PreparednessDimensionState = {
+    dimension: string;
+    label: string;
+    evidenceState: PreparednessState;
+    averageScore?: number;
+    scoreCount: number;
     fillPercent?: number;
 };
 
@@ -53,6 +64,158 @@ export type QuestionCategoryDrilldownModel = {
     whyItMatters: string;
     evidence: PreparednessEvidence[];
 };
+
+export type PreparednessMatrixModel = {
+    categories: PrepQuestionCategoryCard[];
+    rows: PreparednessMatrixRow[];
+    cells: PreparednessMatrixCell[];
+};
+
+export type PreparednessMatrixRow = {
+    skill: PreparednessSkill;
+    cells: PreparednessMatrixCell[];
+};
+
+export type PreparednessMatrixCell = QuestionCategoryDrilldownModel & {
+    laneId: string;
+    laneLabel: string;
+    categoryId: PrepQuestionCategoryCard["categoryId"];
+    categoryLabel: string;
+};
+
+export type InstantReadEvidenceLevel = "none" | "thin" | "enough" | "strong";
+
+export type InstantReadPreparednessModel = {
+    overallRead: {
+        label: string;
+        state: PreparednessState;
+        summary: string;
+    };
+    lanes: Array<{
+        id: string;
+        label: string;
+        state: PreparednessState;
+        evidenceLevel: InstantReadEvidenceLevel;
+        fillPercent?: number;
+        dimensionStates?: PreparednessDimensionState[];
+    }>;
+    categoryCoverage: Array<{
+        categoryId: PrepQuestionCategoryCard["categoryId"];
+        label: string;
+        plannedCount: number;
+        practicedCount: number;
+        upcomingCount: number;
+        state: PreparednessState;
+    }>;
+};
+
+export type PracticeNextListItem = {
+    id: string;
+    label: string;
+    detail: string;
+    state: PreparednessState;
+};
+
+type InstantReadSelection =
+    | { type: "lane"; id: string }
+    | { type: "category"; id: string }
+    | null;
+
+type InstantReadFocusRead = {
+    kicker: string;
+    label: string;
+    state: PreparednessState;
+    summary: string;
+};
+
+type PreparednessMapExperienceView = "snapshot" | "matrix";
+
+export function PreparednessMapExperience({
+    snapshot,
+    matrix,
+    onLaneClick,
+    onCategoryClick,
+    onCellClick,
+}: {
+    snapshot: InstantReadPreparednessModel;
+    matrix: PreparednessMatrixModel;
+    onLaneClick: (skillId: string) => void;
+    onCategoryClick: (categoryId: string) => void;
+    onCellClick: (cellId: string) => void;
+}) {
+    const [view, setView] = useState<PreparednessMapExperienceView>("snapshot");
+    const isSnapshot = view === "snapshot";
+
+    return (
+        <section aria-label="Preparedness map" className="space-y-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                    <h2 className="font-display text-2xl font-bold tracking-tight text-text-primary">Preparedness map</h2>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-text-secondary">
+                    How your answers are shaping up. Switch to Details when you want to dig into your answers.
+                </p>
+                </div>
+                <div
+                    role="tablist"
+                    aria-label="Preparedness map view"
+                    className="inline-flex w-full rounded-2xl border border-[rgb(var(--candidate-border)/0.78)] bg-white p-1 shadow-flat sm:w-auto"
+                >
+                    <button
+                        type="button"
+                        role="tab"
+                        aria-selected={isSnapshot}
+                        aria-controls="preparedness-snapshot-view"
+                        onClick={() => setView("snapshot")}
+                        className={cn(
+                            "flex-1 whitespace-nowrap rounded-xl px-4 py-2 text-sm font-bold transition-colors duration-base ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 sm:flex-none",
+                            isSnapshot
+                                ? "bg-primary text-white shadow-flat"
+                                : "text-text-secondary hover:bg-surface-base hover:text-text-primary",
+                        )}
+                    >
+                        Quick View
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        aria-selected={!isSnapshot}
+                        aria-controls="preparedness-matrix-view"
+                        onClick={() => setView("matrix")}
+                        className={cn(
+                            "flex-1 whitespace-nowrap rounded-xl px-4 py-2 text-sm font-bold transition-colors duration-base ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 sm:flex-none",
+                            !isSnapshot
+                                ? "bg-primary text-white shadow-flat"
+                                : "text-text-secondary hover:bg-surface-base hover:text-text-primary",
+                        )}
+                    >
+                        Details
+                    </button>
+                </div>
+            </div>
+
+            {isSnapshot ? (
+                <div id="preparedness-snapshot-view" role="tabpanel" aria-label="Quick preparedness view">
+                    <PreparednessInstantRead
+                        snapshot={snapshot}
+                        onLaneClick={onLaneClick}
+                        onCategoryClick={onCategoryClick}
+                        showHeader={false}
+                    />
+                </div>
+            ) : (
+                <div id="preparedness-matrix-view" role="tabpanel" aria-label="Detailed practice map">
+                    <PreparednessMatrix
+                        matrix={matrix}
+                        onLaneClick={onLaneClick}
+                        onCategoryClick={onCategoryClick}
+                        onCellClick={onCellClick}
+                        showHeader={false}
+                    />
+                </div>
+            )}
+        </section>
+    );
+}
 
 type PreparednessLaneConfig = {
     id: PrepSignalLane;
@@ -177,6 +340,603 @@ export function QuestionCategoryCoverage({
     );
 }
 
+export function PreparednessInstantRead({
+    snapshot,
+    onLaneClick,
+    onCategoryClick,
+    showHeader = true,
+}: {
+    snapshot: InstantReadPreparednessModel;
+    onLaneClick: (skillId: string) => void;
+    onCategoryClick: (categoryId: string) => void;
+    showHeader?: boolean;
+}) {
+    const [activeSelection, setActiveSelection] = useState<InstantReadSelection>(null);
+    const activeRead = getInstantReadFocusRead(snapshot, activeSelection);
+    const activeStyles = getPreparednessStateStyles(activeRead.state);
+    const skillRing = toInstantReadSkillRing(snapshot.lanes);
+    const categoryMix = toInstantReadCategoryMix(snapshot.categoryCoverage);
+
+    return (
+        <section aria-label="Preparedness snapshot" className="space-y-4">
+            {showHeader ? (
+                <div>
+                    <h2 className="font-display text-2xl font-bold tracking-tight text-text-primary">Preparedness snapshot</h2>
+                    <p className="mt-1 text-sm leading-6 text-text-secondary">
+                        How your answers are shaping up before you open the full practice breakdown.
+                    </p>
+                </div>
+            ) : null}
+
+            <div
+                className="relative overflow-hidden rounded-[1.75rem] border border-[rgb(var(--candidate-border)/0.78)] bg-white p-4 shadow-flat sm:p-5 lg:p-6"
+            >
+                <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,0.9fr)] lg:items-center">
+                    <div className="space-y-4 text-center lg:text-left">
+                        <span className={cn("inline-flex rounded-full px-3 py-1 text-xs font-bold shadow-flat", activeStyles.badge)}>
+                            {activeRead.kicker}
+                        </span>
+                        <div aria-live="polite" className="space-y-2">
+                            <h3 className="font-display text-3xl font-bold leading-tight text-text-primary sm:text-4xl">
+                                {activeRead.label}
+                            </h3>
+                            <p className="mx-auto max-w-xl text-sm leading-6 text-text-secondary lg:mx-0">
+                                {activeRead.summary}
+                            </p>
+                        </div>
+                        {activeSelection ? (
+                            <button
+                                type="button"
+                                onClick={() => setActiveSelection(null)}
+                                className="inline-flex rounded-full px-3 py-1.5 text-xs font-bold text-primary transition-colors duration-base ease-standard hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                            >
+                                Overall read
+                            </button>
+                        ) : null}
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+                        <div
+                            role="img"
+                            aria-label="Skill ring"
+                            className="rounded-[1.5rem] border border-[rgb(var(--candidate-border)/0.64)] bg-[rgb(var(--candidate-surface-subtle)/0.7)] p-3"
+                        >
+                            <p className="px-2 text-xs font-black uppercase tracking-[0.16em] text-text-muted">Answer skills</p>
+                            <div className="mx-auto flex justify-center overflow-hidden">
+                                <PieChart width={260} height={230}>
+                                    <Pie
+                                        data={skillRing.lanes}
+                                        dataKey="value"
+                                        cx="50%"
+                                        cy="50%"
+                                        startAngle={90}
+                                        endAngle={-270}
+                                        innerRadius={38}
+                                        outerRadius={72}
+                                        paddingAngle={3}
+                                        cornerRadius={9}
+                                        stroke="white"
+                                        strokeWidth={4}
+                                        isAnimationActive={false}
+                                    >
+                                        {skillRing.lanes.map((entry) => (
+                                            <Cell key={entry.id} fill={entry.fill} />
+                                        ))}
+                                    </Pie>
+                                    <Pie
+                                        data={skillRing.dimensions}
+                                        dataKey="value"
+                                        cx="50%"
+                                        cy="50%"
+                                        startAngle={90}
+                                        endAngle={-270}
+                                        innerRadius={82}
+                                        outerRadius={106}
+                                        paddingAngle={2}
+                                        cornerRadius={7}
+                                        stroke="white"
+                                        strokeWidth={3}
+                                        isAnimationActive={false}
+                                    >
+                                        {skillRing.dimensions.map((entry) => (
+                                            <Cell key={entry.id} fill={entry.fill} />
+                                        ))}
+                                    </Pie>
+                                </PieChart>
+                            </div>
+                        </div>
+
+                        <div
+                            role="img"
+                            aria-label="Question mix"
+                            className="rounded-[1.5rem] border border-[rgb(var(--candidate-border)/0.64)] bg-white p-3"
+                        >
+                            <p className="px-2 text-xs font-black uppercase tracking-[0.16em] text-text-muted">Question mix</p>
+                            <div className="mx-auto flex justify-center overflow-hidden">
+                                <PieChart width={260} height={230}>
+                                    <Pie
+                                        data={categoryMix}
+                                        dataKey="value"
+                                        cx="50%"
+                                        cy="50%"
+                                        startAngle={90}
+                                        endAngle={-270}
+                                        innerRadius={54}
+                                        outerRadius={100}
+                                        paddingAngle={4}
+                                        cornerRadius={10}
+                                        stroke="white"
+                                        strokeWidth={4}
+                                        isAnimationActive={false}
+                                    >
+                                        {categoryMix.map((entry) => (
+                                            <Cell key={entry.id} fill={entry.fill} opacity={entry.opacity} />
+                                        ))}
+                                    </Pie>
+                                </PieChart>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                    <div className="rounded-2xl bg-surface-base/72 p-3">
+                        <div className="mb-2 flex items-center justify-between gap-3">
+                            <p className="text-xs font-black uppercase tracking-[0.16em] text-text-muted">Skill areas</p>
+                            <p className="text-xs font-semibold text-primary">Tap for detail</p>
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-3 md:grid-cols-1 xl:grid-cols-3">
+                            {snapshot.lanes.map((lane) => {
+                                const styles = getPreparednessStateStyles(lane.state);
+
+                                return (
+                                    <button
+                                        key={lane.id}
+                                        type="button"
+                                        data-evidence-state={lane.state}
+                                        aria-label={`Open ${formatMatrixLaneLabel(lane.label)} details`}
+                                        onMouseEnter={() => setActiveSelection({ type: "lane", id: lane.id })}
+                                        onFocus={() => setActiveSelection({ type: "lane", id: lane.id })}
+                                        onClick={() => onLaneClick(lane.id)}
+                                        className={cn(
+                                            "rounded-2xl border px-3 py-3 text-left shadow-flat transition-all duration-base ease-standard hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-[0.99]",
+                                            styles.wrapper,
+                                        )}
+                                    >
+                                        <span className="text-[0.68rem] font-black uppercase tracking-[0.14em] text-text-muted">
+                                            {formatPreparednessState(lane.state)}
+                                        </span>
+                                        <span className="mt-1 block text-sm font-bold text-text-primary">{formatMatrixLaneLabel(lane.label)}</span>
+                                        <span className="mt-1 block text-xs font-semibold text-text-muted">{formatEvidenceLevel(lane.evidenceLevel)}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div className="rounded-2xl bg-surface-base/72 p-3">
+                        <div className="mb-2 flex items-center justify-between gap-3">
+                            <p className="text-xs font-black uppercase tracking-[0.16em] text-text-muted">Question types</p>
+                            <p className="text-xs font-semibold text-primary">Tap for detail</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {snapshot.categoryCoverage.map((category) => {
+                                const styles = getPreparednessStateStyles(category.state);
+
+                                return (
+                                    <button
+                                        key={category.categoryId}
+                                        type="button"
+                                        data-evidence-state={category.state}
+                                        aria-label={`Open ${category.label} details`}
+                                        onMouseEnter={() => setActiveSelection({ type: "category", id: category.categoryId })}
+                                        onFocus={() => setActiveSelection({ type: "category", id: category.categoryId })}
+                                        onClick={() => onCategoryClick(category.categoryId)}
+                                        className="flex min-w-[9.25rem] items-center gap-2 rounded-full bg-white px-3 py-2 text-left shadow-flat transition-all duration-base ease-standard hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 active:scale-[0.98]"
+                                    >
+                                        <span className={cn("h-3 w-3 rounded-full", styles.dot)} aria-hidden="true" />
+                                        <span className="min-w-0">
+                                            <span className="block max-w-[8rem] truncate text-xs font-bold text-text-primary">{category.label}</span>
+                                            <span className="block text-[0.68rem] font-semibold text-text-muted">
+                                                {category.practicedCount} of {category.plannedCount} practiced
+                                            </span>
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    );
+}
+
+function getInstantReadFocusRead(snapshot: InstantReadPreparednessModel, selection: InstantReadSelection): InstantReadFocusRead {
+    if (selection?.type === "lane") {
+        const lane = snapshot.lanes.find((item) => item.id === selection.id);
+        if (lane) {
+            return {
+                kicker: formatPreparednessState(lane.state),
+                label: formatMatrixLaneLabel(lane.label),
+                state: lane.state,
+                summary: instantReadLaneSummary(lane),
+            };
+        }
+    }
+
+    if (selection?.type === "category") {
+        const category = snapshot.categoryCoverage.find((item) => item.categoryId === selection.id);
+        if (category) {
+            return {
+                kicker: "Question type",
+                label: category.label,
+                state: category.state,
+                summary: instantReadCategorySummary(category),
+            };
+        }
+    }
+
+    return {
+        kicker: formatPreparednessState(snapshot.overallRead.state),
+        label: snapshot.overallRead.label,
+        state: snapshot.overallRead.state,
+        summary: snapshot.overallRead.summary,
+    };
+}
+
+function getInstantReadSelectionActionLabel(snapshot: InstantReadPreparednessModel, selection: InstantReadSelection): string {
+    if (selection?.type === "lane") {
+        const lane = snapshot.lanes.find((item) => item.id === selection.id);
+        return `Open ${formatMatrixLaneLabel(lane?.label || "area")} details`;
+    }
+    if (selection?.type === "category") {
+        const category = snapshot.categoryCoverage.find((item) => item.categoryId === selection.id);
+        return `Open ${category?.label || "question type"} details`;
+    }
+    return "Open details";
+}
+
+function instantReadLaneSummary(lane: InstantReadPreparednessModel["lanes"][number]): string {
+    const laneLabel = formatMatrixLaneLabel(lane.label);
+    switch (lane.state) {
+        case "strong":
+            return `${laneLabel} is carrying strong practice evidence. Open it to see which answers created that read and how to keep it sharp.`;
+        case "clear":
+            return `${laneLabel} is in a usable place. Open it to see what is already working and where a small lift could make it stronger.`;
+        case "emerging":
+            return `${laneLabel} is starting to show up, but the coach still needs clearer proof. Open it to see what to make more specific next time.`;
+        case "not_practiced":
+        default:
+            return `${laneLabel} has not had enough practice yet. Open it to see what interviewers listen for in this area.`;
+    }
+}
+
+function instantReadCategorySummary(category: InstantReadPreparednessModel["categoryCoverage"][number]): string {
+    const planned = Math.max(category.plannedCount, 0);
+    const practiced = Math.max(category.practicedCount, 0);
+    if (planned === 0) {
+        return `${category.label} is not part of this practice plan right now.`;
+    }
+    if (practiced === 0) {
+        return `${category.label} is planned for this interview, but you have not answered that type yet.`;
+    }
+    if (practiced >= planned) {
+        return `You have practiced all ${planned} ${planned === 1 ? "question" : "questions"} planned for ${category.label}. Open it to review what your answers showed.`;
+    }
+    return `You have practiced ${practiced} of ${planned} planned ${category.label} ${planned === 1 ? "question" : "questions"}. Open it to review the answered items and what is still ahead.`;
+}
+
+const INSTANT_READ_DIMENSIONS_BY_LANE: Record<string, string[]> = {
+    answer_substance: ["Focus", "Specificity", "Outcome", "Rationale"],
+    interview_structure: ["Flow", "Signposting"],
+    communication_delivery: ["Filler control", "Conciseness", "Resilience"],
+};
+
+type InstantReadChartSlice = {
+    id: string;
+    label: string;
+    value: number;
+    fill: string;
+    opacity?: number;
+    categoryId?: PrepQuestionCategoryCard["categoryId"];
+    coverageKind?: "practiced" | "upcoming" | "empty";
+    state?: PreparednessState;
+};
+
+function toInstantReadSkillRing(lanes: InstantReadPreparednessModel["lanes"]): {
+    lanes: InstantReadChartSlice[];
+    dimensions: InstantReadChartSlice[];
+} {
+    const laneSlices = lanes.map((lane) => {
+        const dimensions = INSTANT_READ_DIMENSIONS_BY_LANE[lane.id] ?? [formatMatrixLaneLabel(lane.label)];
+        return {
+            id: lane.id,
+            label: formatMatrixLaneLabel(lane.label),
+            value: dimensions.length,
+            fill: getInstantReadChartColor(lane.state),
+        };
+    });
+    const dimensionSlices = lanes.flatMap((lane) => {
+        const dimensions = lane.dimensionStates?.length
+            ? lane.dimensionStates
+            : (INSTANT_READ_DIMENSIONS_BY_LANE[lane.id] ?? [formatMatrixLaneLabel(lane.label)]).map((label) => ({
+                dimension: label,
+                label,
+                evidenceState: lane.state,
+                scoreCount: 0,
+            }));
+        return dimensions.map((dimension) => ({
+            id: `${lane.id}:${dimension.dimension}`,
+            label: dimension.label,
+            value: 1,
+            fill: getInstantReadChartColor(dimension.evidenceState, 0.72),
+        }));
+    });
+
+    return {
+        lanes: laneSlices.length > 0 ? laneSlices : [{ id: "empty", label: "Practice", value: 1, fill: getInstantReadChartColor("not_practiced") }],
+        dimensions: dimensionSlices.length > 0 ? dimensionSlices : [{ id: "empty:dimension", label: "Practice", value: 1, fill: getInstantReadChartColor("not_practiced", 0.72) }],
+    };
+}
+
+export function toInstantReadCategoryMix(categories: InstantReadPreparednessModel["categoryCoverage"]): InstantReadChartSlice[] {
+    if (categories.length === 0) {
+        return [{
+            id: "empty",
+            label: "Practice",
+            value: 1,
+            fill: getInstantReadChartColor("not_practiced", 0.5),
+            categoryId: undefined,
+            coverageKind: "empty",
+            state: "not_practiced",
+        }];
+    }
+
+    return categories.flatMap((category) => {
+        const plannedCount = Math.max(category.plannedCount, category.practicedCount, 1);
+        const practicedCount = Math.min(Math.max(category.practicedCount, 0), plannedCount);
+        const upcomingCount = Math.max(category.upcomingCount, plannedCount - practicedCount, 0);
+        const slices: InstantReadChartSlice[] = [];
+
+        if (practicedCount > 0) {
+            slices.push({
+                id: `${category.categoryId}:practiced`,
+                categoryId: category.categoryId,
+                label: `${category.label} practiced`,
+                value: practicedCount,
+                fill: getInstantReadChartColor(category.state, 0.88),
+                coverageKind: "practiced",
+                state: category.state,
+            });
+        }
+
+        if (upcomingCount > 0) {
+            slices.push({
+                id: `${category.categoryId}:upcoming`,
+                categoryId: category.categoryId,
+                label: `${category.label} upcoming`,
+                value: upcomingCount,
+                fill: getInstantReadChartColor("not_practiced", 0.58),
+                coverageKind: "upcoming",
+                state: "not_practiced",
+            });
+        }
+
+        return slices;
+    });
+}
+
+function getInstantReadChartColor(state: PreparednessState, opacity = 0.86): string {
+    switch (state) {
+        case "strong":
+            return `rgb(var(--candidate-success) / ${opacity})`;
+        case "clear":
+            return `rgb(var(--candidate-primary) / ${opacity})`;
+        case "emerging":
+            return `rgb(var(--candidate-secondary-brand) / ${opacity})`;
+        case "not_practiced":
+        default:
+            return `rgb(var(--candidate-border) / ${opacity})`;
+    }
+}
+
+export function PreparednessMatrix({
+    matrix,
+    onLaneClick,
+    onCategoryClick,
+    onCellClick,
+    showHeader = true,
+}: {
+    matrix: PreparednessMatrixModel;
+    onLaneClick: (skillId: string) => void;
+    onCategoryClick: (categoryId: string) => void;
+    onCellClick: (cellId: string) => void;
+    showHeader?: boolean;
+}) {
+    const [activeLaneId, setActiveLaneId] = useState<string | null>(null);
+    const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
+
+    if (matrix.categories.length === 0) {
+        return <PreparednessMap skills={matrix.rows.map((row) => row.skill)} onSkillClick={onLaneClick} />;
+    }
+
+    const matrixColumns = matrix.rows;
+    const dataColumnWidth = "calc((100% - var(--matrix-label-width) - var(--matrix-gap) - var(--matrix-gap) - var(--matrix-gap)) / 3)";
+    const activeLaneIndex = matrixColumns.findIndex((column) => column.skill.id === activeLaneId);
+    const activeCategoryIndex = matrix.categories.findIndex((category) => category.categoryId === activeCategoryId);
+    const desktopGridStyle = {
+        "--matrix-gap": "0.35rem",
+        "--matrix-label-width": "34%",
+        "--matrix-header-height": "3rem",
+        "--matrix-row-height": "5rem",
+        gridTemplateColumns: `var(--matrix-label-width) repeat(${matrixColumns.length}, ${dataColumnWidth})`,
+    } as CSSProperties;
+
+    return (
+        <section aria-label="Preparedness map" className="space-y-4">
+            {showHeader ? (
+                <div>
+                    <h2 className="font-display text-2xl font-bold tracking-tight text-text-primary">Preparedness map</h2>
+                    <p className="mt-1 text-sm leading-6 text-text-secondary">
+                        See how your answer skills show up across the kinds of interview questions you have practiced.
+                    </p>
+                </div>
+            ) : null}
+
+            <div className="rounded-[1.35rem] border border-[rgb(var(--candidate-border)/0.78)] bg-white p-2.5 shadow-flat sm:p-3">
+                <div className="relative grid w-full min-w-0 gap-[var(--matrix-gap)] overflow-visible" style={desktopGridStyle}>
+                    {activeLaneIndex >= 0 ? (
+                        <div
+                            aria-hidden="true"
+                            className="pointer-events-none absolute bottom-0 top-0 z-0 rounded-2xl bg-violet-100/55 transition-colors duration-base ease-standard"
+                            style={{
+                                left: matrixColumnLeft(activeLaneIndex, dataColumnWidth),
+                                width: dataColumnWidth,
+                            }}
+                        />
+                    ) : null}
+                    {activeCategoryIndex >= 0 ? (
+                        <div
+                            aria-hidden="true"
+                            className="pointer-events-none absolute left-0 right-0 z-0 rounded-2xl bg-violet-100/55 transition-colors duration-base ease-standard"
+                            style={{
+                                top: matrixRowTop(activeCategoryIndex),
+                                height: "var(--matrix-row-height)",
+                            }}
+                        />
+                    ) : null}
+                    <div aria-hidden="true" />
+                    {matrixColumns.map((column) => (
+                        <button
+                            key={column.skill.id}
+                            type="button"
+                            onClick={() => onLaneClick(column.skill.id)}
+                            onMouseEnter={() => setActiveLaneId(column.skill.id)}
+                            onMouseLeave={() => setActiveLaneId(null)}
+                            onFocus={() => setActiveLaneId(column.skill.id)}
+                            onBlur={() => setActiveLaneId(null)}
+                            aria-label={column.skill.label}
+                            className={cn(
+                                "relative z-10 flex h-12 min-w-0 items-center justify-center rounded-2xl px-1.5 py-2 text-center transition-all duration-base ease-standard hover:bg-violet-100 focus-visible:bg-violet-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 sm:px-3",
+                                activeLaneId === column.skill.id
+                                    ? "bg-violet-100"
+                                    : "bg-surface-base",
+                            )}
+                        >
+                            <span className="block max-w-full whitespace-nowrap text-[0.66rem] font-black uppercase leading-4 tracking-[0.04em] text-text-primary sm:text-[0.72rem]">
+                                {formatMatrixLaneLabel(column.skill.label)}
+                            </span>
+                        </button>
+                    ))}
+
+                    {matrix.categories.flatMap((category) => [
+                        <button
+                            key={`${category.categoryId}-header`}
+                            type="button"
+                            onClick={() => onCategoryClick(category.categoryId)}
+                            onMouseEnter={() => setActiveCategoryId(category.categoryId)}
+                            onMouseLeave={() => setActiveCategoryId(null)}
+                            onFocus={() => setActiveCategoryId(category.categoryId)}
+                            onBlur={() => setActiveCategoryId(null)}
+                            className={cn(
+                                "relative z-10 h-20 min-w-0 overflow-hidden rounded-2xl px-2 py-2.5 text-left transition-all duration-base ease-standard hover:bg-violet-100 focus-visible:bg-violet-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 sm:px-3 sm:py-3",
+                                activeCategoryId === category.categoryId
+                                    ? "bg-violet-100"
+                                    : "bg-transparent",
+                            )}
+                        >
+                            <span className="line-clamp-2 text-sm font-bold leading-5 text-text-primary">{category.label}</span>
+                            <span className="mt-0.5 block text-[0.66rem] font-bold leading-4 text-text-muted">
+                                {formatQuestionStatusSummary(category)}
+                            </span>
+                        </button>,
+                        ...matrixColumns.map((column) => {
+                            const cell = cellForCategoryAndLane(matrix, category.categoryId, column.skill.id);
+                            return (
+                                <MatrixCellButton
+                                    key={cell.id}
+                                    cell={cell}
+                                    onClick={() => onCellClick(cell.id)}
+                                />
+                            );
+                        }),
+                    ])}
+                </div>
+            </div>
+        </section>
+    );
+}
+
+function matrixColumnLeft(columnIndex: number, dataColumnWidth: string): string {
+    const priorColumns = Array.from({ length: columnIndex }, () => `${dataColumnWidth} + var(--matrix-gap)`);
+    return `calc(var(--matrix-label-width) + var(--matrix-gap)${priorColumns.length ? ` + ${priorColumns.join(" + ")}` : ""})`;
+}
+
+function matrixRowTop(rowIndex: number): string {
+    const priorRows = Array.from({ length: rowIndex }, () => "var(--matrix-row-height) + var(--matrix-gap)");
+    return `calc(var(--matrix-header-height) + var(--matrix-gap)${priorRows.length ? ` + ${priorRows.join(" + ")}` : ""})`;
+}
+
+function MatrixCellButton({
+    cell,
+    onClick,
+}: {
+    cell: PreparednessMatrixCell;
+    onClick: () => void;
+}) {
+    const styles = getPreparednessStateStyles(cell.state);
+
+    return (
+        <button
+            type="button"
+            data-evidence-state={cell.state}
+            aria-label={`${cell.laneLabel} in ${cell.categoryLabel}: ${formatPreparednessState(cell.state)}`}
+            onClick={onClick}
+            className={cn(
+                "group relative z-10 flex h-20 items-center justify-center rounded-2xl px-2 py-2 transition-all duration-base ease-standard hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 active:scale-[0.99]",
+                styles.wrapper,
+                "!border-0 !border-transparent !shadow-none hover:!border-0 hover:!border-transparent",
+                cell.state === "not_practiced" && "!bg-slate-50 hover:!bg-slate-50",
+            )}
+        >
+            <span className="sr-only">
+                {cell.laneLabel} in {cell.categoryLabel}: {formatPreparednessState(cell.state)}
+            </span>
+            <span
+                aria-hidden="true"
+                className={cn(
+                    "relative flex h-8 w-8 items-center justify-center rounded-full border bg-white/60 transition-transform duration-base ease-standard group-hover:scale-105 sm:h-9 sm:w-9",
+                    styles.iconShell,
+                )}
+            >
+                <span className={cn("h-3 w-3 rounded-full", styles.dot)} />
+            </span>
+        </button>
+    );
+}
+
+function cellForCategoryAndLane(
+    matrix: PreparednessMatrixModel,
+    categoryId: PrepQuestionCategoryCard["categoryId"],
+    laneId: string,
+): PreparednessMatrixCell {
+    return matrix.cells.find((cell) => cell.categoryId === categoryId && cell.laneId === laneId) ?? matrix.cells[0];
+}
+
+function formatMatrixLaneLabel(label: string): string {
+    switch (label) {
+        case "Answer Substance":
+            return "Substance";
+        case "Interview Structure":
+            return "Structure";
+        case "Communication Delivery":
+            return "Delivery";
+        default:
+            return label;
+    }
+}
+
 export function PreparednessMap({
     skills,
     onSkillClick,
@@ -264,11 +1024,13 @@ export function PracticeNextCard({
     body,
     href,
     actionLabel,
+    items = [],
 }: {
     title: string;
     body: string;
     href: string;
     actionLabel: string;
+    items?: PracticeNextListItem[];
 }) {
     return (
         <section aria-label="Practice next" className="surface-sky border border-[rgb(var(--candidate-border)/0.78)] p-5 md:p-6">
@@ -282,6 +1044,29 @@ export function PracticeNextCard({
                 </div>
             </div>
             <p className="mt-4 text-sm leading-7 text-text-secondary">{body}</p>
+            {items.length > 0 ? (
+                <div className="mt-5 rounded-2xl border border-primary/12 bg-white/68 p-3 shadow-flat">
+                    <p className="px-1 text-[0.68rem] font-black uppercase tracking-[0.16em] text-text-muted">
+                        Upcoming practice items
+                    </p>
+                    <ul className="mt-2 space-y-2">
+                        {items.map((item) => {
+                            const styles = getPreparednessStateStyles(item.state);
+                            return (
+                                <li key={item.id} className="rounded-xl bg-white px-3 py-2 shadow-[0_1px_0_rgb(var(--candidate-border)/0.72)]">
+                                    <div className="flex items-start gap-2.5">
+                                        <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", styles.dot)} aria-hidden="true" />
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-bold leading-5 text-text-primary">{item.label}</p>
+                                            <p className="mt-0.5 text-xs font-semibold leading-5 text-text-secondary">{item.detail}</p>
+                                        </div>
+                                    </div>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </div>
+            ) : null}
             <Button asChild emphasis="primary" density="comfortable" shape="app" label="strong" className="mt-5 w-full">
                 <Link href={href}>
                     {actionLabel}
@@ -704,8 +1489,77 @@ function MyReadContent({ evaluation }: { evaluation?: string }) {
 }
 
 export function EmptyPreparednessDashboard({ href = "/practice" }: { href?: string }) {
-    const previewLanes = ["Answer Substance", "Interview Structure", "Communication Delivery"];
-    const previewCategories = ["Behavioral", "Culture / Fit", "Technical / Role-Specific"];
+    const previewSnapshot: InstantReadPreparednessModel = {
+        overallRead: {
+            label: "Your practice map starts here",
+            state: "not_practiced",
+            summary: "After your first round, these charts show how your answer skills and question types are taking shape.",
+        },
+        lanes: [
+            {
+                id: "answer_substance",
+                label: "Answer Substance",
+                state: "not_practiced",
+                evidenceLevel: "none",
+            },
+            {
+                id: "interview_structure",
+                label: "Interview Structure",
+                state: "not_practiced",
+                evidenceLevel: "none",
+            },
+            {
+                id: "communication_delivery",
+                label: "Communication Delivery",
+                state: "not_practiced",
+                evidenceLevel: "none",
+            },
+        ],
+        categoryCoverage: [
+            {
+                categoryId: "behavioral",
+                label: "Behavioral",
+                plannedCount: 1,
+                practicedCount: 0,
+                upcomingCount: 1,
+                state: "not_practiced",
+            },
+            {
+                categoryId: "culture_fit",
+                label: "Culture / Fit",
+                plannedCount: 1,
+                practicedCount: 0,
+                upcomingCount: 1,
+                state: "not_practiced",
+            },
+            {
+                categoryId: "technical_role_specific",
+                label: "Technical / Role-Specific",
+                plannedCount: 1,
+                practicedCount: 0,
+                upcomingCount: 1,
+                state: "not_practiced",
+            },
+            {
+                categoryId: "case_scenario",
+                label: "Case / Scenario",
+                plannedCount: 1,
+                practicedCount: 0,
+                upcomingCount: 1,
+                state: "not_practiced",
+            },
+            {
+                categoryId: "screening",
+                label: "Screening",
+                plannedCount: 1,
+                practicedCount: 0,
+                upcomingCount: 1,
+                state: "not_practiced",
+            },
+        ],
+    };
+    const skillRing = toInstantReadSkillRing(previewSnapshot.lanes);
+    const categoryMix = toInstantReadCategoryMix(previewSnapshot.categoryCoverage);
 
     return (
         <section aria-label="Empty preparedness dashboard" className="mx-auto grid w-full max-w-5xl gap-6 px-5 py-8 md:grid-cols-[minmax(0,1fr)_22rem] md:items-start">
@@ -722,37 +1576,101 @@ export function EmptyPreparednessDashboard({ href = "/practice" }: { href?: stri
                     </p>
                 </div>
 
-                <div className="space-y-3" aria-label="Preview of your preparedness map">
-                    <div>
-                        <h3 className="font-display text-2xl font-bold tracking-tight text-text-primary">Preparedness map</h3>
-                        <p className="mt-1 text-sm leading-6 text-text-secondary">Your practice evidence will appear here after you answer questions.</p>
-                    </div>
-                    {previewLanes.map((label) => (
-                        <div key={label} className="flex items-center gap-4 rounded-[1.25rem] border border-dashed border-[rgb(var(--candidate-border)/0.9)] bg-white/75 px-4 py-4 shadow-flat">
-                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/5 text-text-muted">
-                                <Circle size={18} aria-hidden="true" />
-                            </span>
-                            <span className="min-w-0 flex-1">
-                                <span className="block text-xs font-black uppercase tracking-[0.16em] text-text-muted">Not practiced yet</span>
-                                <span className="mt-1 block font-bold text-text-primary">{label}</span>
-                            </span>
+                <div
+                    aria-label="Preview of your preparedness map"
+                    className="rounded-[1.75rem] border border-[rgb(var(--candidate-border)/0.78)] bg-white p-4 shadow-flat sm:p-5"
+                >
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <h3 className="font-display text-2xl font-bold tracking-tight text-text-primary">Preparedness map preview</h3>
+                            <p className="mt-1 text-sm leading-6 text-text-secondary">
+                                Your first completed round fills in these two views.
+                            </p>
                         </div>
-                    ))}
-                </div>
-
-                <div className="space-y-3" aria-label="Preview of question coverage">
-                    <div>
-                        <h3 className="font-display text-2xl font-bold tracking-tight text-text-primary">Question coverage</h3>
-                        <p className="mt-1 text-sm leading-6 text-text-secondary">You will see which kinds of interview questions you have practiced.</p>
+                        <span className="inline-flex w-fit rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+                            Template view
+                        </span>
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                        {previewCategories.map((label) => (
-                            <div key={label} className="rounded-[1.25rem] border border-dashed border-[rgb(var(--candidate-border)/0.9)] bg-white/70 p-4 shadow-flat">
-                                <span className="inline-flex rounded-full bg-primary/5 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-text-muted">Not started</span>
-                                <p className="mt-3 font-bold text-text-primary">{label}</p>
-                                <p className="mt-1 text-sm font-semibold text-text-secondary">0 questions practiced</p>
+
+                    <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                        <div className="rounded-[1.5rem] border border-dashed border-[rgb(var(--candidate-border)/0.86)] bg-[rgb(var(--candidate-surface-subtle)/0.68)] p-3">
+                            <p className="px-2 text-xs font-black uppercase tracking-[0.16em] text-text-muted">Answer skills</p>
+                            <div className="mx-auto flex justify-center overflow-hidden opacity-85 grayscale-[0.15]">
+                                <PieChart width={260} height={230}>
+                                    <Pie
+                                        data={skillRing.lanes}
+                                        dataKey="value"
+                                        cx="50%"
+                                        cy="50%"
+                                        startAngle={90}
+                                        endAngle={-270}
+                                        innerRadius={38}
+                                        outerRadius={72}
+                                        paddingAngle={3}
+                                        cornerRadius={9}
+                                        stroke="white"
+                                        strokeWidth={4}
+                                        isAnimationActive={false}
+                                    >
+                                        {skillRing.lanes.map((entry) => (
+                                            <Cell key={entry.id} fill={entry.fill} />
+                                        ))}
+                                    </Pie>
+                                    <Pie
+                                        data={skillRing.dimensions}
+                                        dataKey="value"
+                                        cx="50%"
+                                        cy="50%"
+                                        startAngle={90}
+                                        endAngle={-270}
+                                        innerRadius={82}
+                                        outerRadius={106}
+                                        paddingAngle={2}
+                                        cornerRadius={7}
+                                        stroke="white"
+                                        strokeWidth={3}
+                                        isAnimationActive={false}
+                                    >
+                                        {skillRing.dimensions.map((entry) => (
+                                            <Cell key={entry.id} fill={entry.fill} />
+                                        ))}
+                                    </Pie>
+                                </PieChart>
                             </div>
-                        ))}
+                            <p className="px-2 pb-1 text-sm leading-6 text-text-secondary">
+                                Substance, structure, and delivery will fill in from your scored answers.
+                            </p>
+                        </div>
+
+                        <div className="rounded-[1.5rem] border border-dashed border-[rgb(var(--candidate-border)/0.86)] bg-white p-3">
+                            <p className="px-2 text-xs font-black uppercase tracking-[0.16em] text-text-muted">Question mix</p>
+                            <div className="mx-auto flex justify-center overflow-hidden opacity-85 grayscale-[0.15]">
+                                <PieChart width={260} height={230}>
+                                    <Pie
+                                        data={categoryMix}
+                                        dataKey="value"
+                                        cx="50%"
+                                        cy="50%"
+                                        startAngle={90}
+                                        endAngle={-270}
+                                        innerRadius={54}
+                                        outerRadius={100}
+                                        paddingAngle={4}
+                                        cornerRadius={10}
+                                        stroke="white"
+                                        strokeWidth={4}
+                                        isAnimationActive={false}
+                                    >
+                                        {categoryMix.map((entry) => (
+                                            <Cell key={entry.id} fill={entry.fill} opacity={entry.opacity} />
+                                        ))}
+                                    </Pie>
+                                </PieChart>
+                            </div>
+                            <p className="px-2 pb-1 text-sm leading-6 text-text-secondary">
+                                Your plan sets the question types; answered questions add the coach read.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -957,6 +1875,7 @@ export function toQuestionCategoryCards(items: CandidateDashboardItem[]): PrepQu
                 .sort((a, b) => a.questionNumber - b.questionNumber),
             evidenceState,
             averageScore,
+            laneStates: mergeCategoryLaneStates(current.laneStates, card.laneStates),
             sourceRefs: [...current.sourceRefs, ...card.sourceRefs],
         });
     }
@@ -980,6 +1899,232 @@ export function toQuestionCategoryDrilldowns(categories: PrepQuestionCategoryCar
     }));
 }
 
+export function toPreparednessMatrix(
+    skills: PreparednessSkill[],
+    categories: PrepQuestionCategoryCard[],
+): PreparednessMatrixModel {
+    const categoryEvidenceById = new Map<PrepQuestionCategoryCard["categoryId"], PreparednessEvidence[]>();
+    for (const category of categories) {
+        categoryEvidenceById.set(category.categoryId, category.sourceRefs
+            .map(toPreparednessEvidence)
+            .filter((item): item is PreparednessEvidence => Boolean(item)));
+    }
+
+    const rows = skills.map((skill) => {
+        const cells = categories.map((category) => {
+            const categoryEvidence = categoryEvidenceById.get(category.categoryId) ?? [];
+            const categoryEvidenceKeys = new Set(categoryEvidence.map(evidenceIdentity));
+            const cellEvidence = skill.evidence.filter((item) => categoryEvidenceKeys.has(evidenceIdentity(item)));
+            const laneState = category.laneStates?.[skill.id as ReleasePrepSignalLane];
+            const state = laneState?.evidenceState ?? (cellEvidence.length > 0 ? skill.state : "not_practiced");
+
+            return {
+                id: `${skill.id}:${category.categoryId}`,
+                laneId: skill.id,
+                laneLabel: skill.label,
+                categoryId: category.categoryId,
+                categoryLabel: category.label,
+                label: `${category.label} - ${skill.label}`,
+                state,
+                questionCount: category.questionCount,
+                practicedQuestionCount: category.practicedQuestionCount ?? practicedQuestionCountFor(category),
+                upcomingQuestionCount: category.upcomingQuestionCount ?? upcomingQuestionCountFor(category),
+                questionStatuses: category.questionStatuses ?? questionStatusesFor(category),
+                whyItMatters: `${skill.whyItMatters} ${getCategoryWhyItMatters(category.categoryId)}`,
+                evidence: cellEvidence,
+            };
+        });
+
+        return { skill, cells };
+    });
+
+    return {
+        categories,
+        rows,
+        cells: rows.flatMap((row) => row.cells),
+    };
+}
+
+export function toPracticeNextItems({
+    activeItems,
+    completedItems = [],
+    matrix,
+    categories,
+}: {
+    activeItems: CandidateDashboardItem[];
+    completedItems?: CandidateDashboardItem[];
+    matrix: PreparednessMatrixModel;
+    categories: PrepQuestionCategoryCard[];
+}): PracticeNextListItem[] {
+    if (activeItems.length > 0) {
+        const activeItem = activeItems[0];
+        return categories.flatMap((category) => {
+            const statuses = category.questionStatuses ?? questionStatusesFor(category);
+            return statuses
+                .filter((status) => status.status === "upcoming")
+                .map((status) => ({
+                    id: `${activeItem.practiceDraftId}:${category.categoryId}:${status.questionId}`,
+                    label: `Q${status.questionNumber}: ${category.label}`,
+                    detail: `Waiting in your active ${activeItem.title} practice round.`,
+                    state: "not_practiced" as const,
+                }));
+        });
+    }
+
+    const baselineGaps = toPracticeCoverageGapItems(completedItems, categories);
+    if (baselineGaps.length > 0) {
+        return [
+            ...baselineGaps,
+            ...matrix.cells
+                .filter((cell) => cell.state !== "strong")
+                .sort(sortPracticeNextCells)
+                .map((cell) => ({
+                    id: cell.id,
+                    label: `${cell.categoryLabel} - ${formatMatrixLaneLabel(cell.laneLabel)}`,
+                    detail: practiceNextCellDetail(cell),
+                    state: cell.state,
+                })),
+        ];
+    }
+
+    const plannedCells = matrix.cells
+        .filter((cell) => cell.state !== "strong")
+        .sort(sortPracticeNextCells);
+
+    if (plannedCells.length > 0) {
+        return plannedCells.map((cell) => ({
+            id: cell.id,
+            label: `${cell.categoryLabel} - ${formatMatrixLaneLabel(cell.laneLabel)}`,
+            detail: practiceNextCellDetail(cell),
+            state: cell.state,
+        }));
+    }
+
+    return matrix.rows.map((row) => ({
+        id: `keep-sharp:${row.skill.id}`,
+        label: `Keep ${formatMatrixLaneLabel(row.skill.label).toLowerCase()} sharp`,
+        detail: row.skill.nextPracticeAction,
+        state: row.skill.state,
+    }));
+}
+
+function toPracticeCoverageGapItems(
+    completedItems: CandidateDashboardItem[],
+    categories: PrepQuestionCategoryCard[],
+): PracticeNextListItem[] {
+    const categoryById = new Map(categories.map((category) => [category.categoryId, category]));
+    const minimums = mergeCoverageMinimums(completedItems);
+
+    return PRACTICE_COVERAGE_ORDER.flatMap((categoryId) => {
+        const required = minimums[categoryId] ?? 0;
+        if (required <= 0) {
+            return [];
+        }
+        const category = categoryById.get(categoryId);
+        const practiced = category
+            ? category.practicedQuestionCount ?? practicedQuestionCountFor(category)
+            : 0;
+        const remaining = Math.max(required - practiced, 0);
+        if (remaining <= 0) {
+            return [];
+        }
+
+        return [{
+            id: `coverage:${categoryId}`,
+            label: `${formatQuestionCategoryLabel(categoryId)} coverage`,
+            detail: `Practice ${remaining} more ${remaining === 1 ? "question" : "questions"} in this area for the planned interview scope.`,
+            state: "not_practiced" as const,
+        }];
+    });
+}
+
+function mergeCoverageMinimums(
+    items: CandidateDashboardItem[],
+): Partial<Record<PrepQuestionCategoryCard["categoryId"], number>> {
+    return items.reduce<Partial<Record<PrepQuestionCategoryCard["categoryId"], number>>>((minimums, item) => {
+        const categoryMinimums = item.practiceCoverageBaseline?.categoryMinimums;
+        if (!categoryMinimums) {
+            return minimums;
+        }
+
+        for (const categoryId of CATEGORY_CARD_ORDER) {
+            minimums[categoryId] = Math.max(minimums[categoryId] ?? 0, categoryMinimums[categoryId] ?? 0);
+        }
+
+        return minimums;
+    }, {});
+}
+
+export function toInstantReadPreparednessModel(
+    skills: PreparednessSkill[],
+    categories: PrepQuestionCategoryCard[],
+): InstantReadPreparednessModel {
+    const lanes = skills.map((skill) => ({
+        id: skill.id,
+        label: skill.label,
+        state: skill.state,
+        evidenceLevel: evidenceLevelForSkill(skill),
+        fillPercent: getPreparednessFillPercent(skill),
+        dimensionStates: skill.dimensionStates,
+    }));
+    const practicedCategories = categories.filter((category) => (category.practicedQuestionCount ?? practicedQuestionCountFor(category)) > 0);
+    const overallState = deriveOverallInstantReadState(lanes);
+
+    return {
+        overallRead: {
+            label: overallReadLabel(overallState, lanes, practicedCategories.length),
+            state: overallState,
+            summary: overallReadSummary(overallState, lanes, categories),
+        },
+        lanes,
+        categoryCoverage: categories.map((category) => ({
+            categoryId: category.categoryId,
+            label: category.label,
+            plannedCount: category.questionCount,
+            practicedCount: category.practicedQuestionCount ?? practicedQuestionCountFor(category),
+            upcomingCount: category.upcomingQuestionCount ?? Math.max(
+                category.questionCount - (category.practicedQuestionCount ?? practicedQuestionCountFor(category)),
+                0,
+            ),
+            state: category.evidenceState,
+        })),
+    };
+}
+
+function sortPracticeNextCells(a: PreparednessMatrixCell, b: PreparednessMatrixCell): number {
+    const stateRank: Record<PreparednessState, number> = {
+        not_practiced: 0,
+        emerging: 1,
+        clear: 2,
+        strong: 3,
+    };
+    const state = stateRank[a.state] - stateRank[b.state];
+    if (state !== 0) {
+        return state;
+    }
+
+    const category = CATEGORY_CARD_ORDER.indexOf(a.categoryId) - CATEGORY_CARD_ORDER.indexOf(b.categoryId);
+    if (category !== 0) {
+        return category;
+    }
+
+    return a.laneLabel.localeCompare(b.laneLabel);
+}
+
+function practiceNextCellDetail(cell: PreparednessMatrixCell): string {
+    switch (cell.state) {
+        case "not_practiced":
+            return `Practice this question type with ${formatMatrixLaneLabel(cell.laneLabel).toLowerCase()} in mind.`;
+        case "emerging":
+            return `Build clearer evidence for ${formatMatrixLaneLabel(cell.laneLabel).toLowerCase()} in this question type.`;
+        case "clear":
+            return `Turn a clear answer pattern into a stronger one.`;
+        case "strong":
+        default:
+            return `Keep this strength consistent in another round.`;
+    }
+}
+
 const CATEGORY_CARD_ORDER: PrepQuestionCategoryCard["categoryId"][] = [
     "behavioral",
     "culture_fit",
@@ -987,6 +2132,30 @@ const CATEGORY_CARD_ORDER: PrepQuestionCategoryCard["categoryId"][] = [
     "case_scenario",
     "screening",
 ];
+
+const PRACTICE_COVERAGE_ORDER: PrepQuestionCategoryCard["categoryId"][] = [
+    "screening",
+    "behavioral",
+    "culture_fit",
+    "case_scenario",
+    "technical_role_specific",
+];
+
+function formatQuestionCategoryLabel(categoryId: PrepQuestionCategoryCard["categoryId"]): string {
+    switch (categoryId) {
+        case "culture_fit":
+            return "Culture / Fit";
+        case "technical_role_specific":
+            return "Technical / Role-Specific";
+        case "case_scenario":
+            return "Case / Scenario";
+        case "screening":
+            return "Screening";
+        case "behavioral":
+        default:
+            return "Behavioral";
+    }
+}
 
 function sortQuestionCategoryCards(a: PrepQuestionCategoryCard, b: PrepQuestionCategoryCard): number {
     const stateRank: Record<PreparednessState, number> = {
@@ -1020,6 +2189,53 @@ function mergeAverageScore(current: PrepQuestionCategoryCard, next: PrepQuestion
 
     const weighted = ((current.averageScore * currentWeight) + (next.averageScore * nextWeight)) / weightTotal;
     return Math.round(weighted * 100) / 100;
+}
+
+function mergeCategoryLaneStates(
+    current: PrepQuestionCategoryCard["laneStates"],
+    next: PrepQuestionCategoryCard["laneStates"],
+): PrepQuestionCategoryCard["laneStates"] {
+    if (!current) {
+        return next;
+    }
+    if (!next) {
+        return current;
+    }
+
+    const merged: NonNullable<PrepQuestionCategoryCard["laneStates"]> = { ...current };
+    const laneIds: ReleasePrepSignalLane[] = ["answer_substance", "interview_structure", "communication_delivery"];
+    for (const laneId of laneIds) {
+        const currentState = current[laneId];
+        const nextState = next[laneId];
+        if (!currentState) {
+            merged[laneId] = nextState;
+            continue;
+        }
+        if (!nextState) {
+            merged[laneId] = currentState;
+            continue;
+        }
+
+        const totalWeight = currentState.scoreCount + nextState.scoreCount;
+        if (totalWeight === 0 || currentState.averageScore === undefined || nextState.averageScore === undefined) {
+            merged[laneId] = {
+                evidenceState: strongerCategoryState(currentState.evidenceState, nextState.evidenceState),
+                scoreCount: totalWeight,
+            };
+            continue;
+        }
+
+        const averageScore = Math.round(
+            (((currentState.averageScore * currentState.scoreCount) + (nextState.averageScore * nextState.scoreCount)) / totalWeight) * 100,
+        ) / 100;
+        merged[laneId] = {
+            evidenceState: scoreToPreparednessState(averageScore),
+            averageScore,
+            scoreCount: totalWeight,
+        };
+    }
+
+    return merged;
 }
 
 function practicedQuestionCountFor(category: PrepQuestionCategoryCard): number {
@@ -1089,6 +2305,109 @@ function strongerCategoryState(current: PreparednessState, next: PreparednessSta
     return rank[next] > rank[current] ? next : current;
 }
 
+function evidenceLevelForSkill(skill: PreparednessSkill): InstantReadEvidenceLevel {
+    const practiceCount = skill.evidence.filter((item) => item.type === "practice").length;
+    if (practiceCount === 0) {
+        return "none";
+    }
+    if (practiceCount === 1) {
+        return "thin";
+    }
+    if (skill.state === "strong" && practiceCount >= 3) {
+        return "strong";
+    }
+    return "enough";
+}
+
+function deriveOverallInstantReadState(lanes: InstantReadPreparednessModel["lanes"]): PreparednessState {
+    if (lanes.length === 0 || lanes.every((lane) => lane.state === "not_practiced")) {
+        return "not_practiced";
+    }
+    if (lanes.some((lane) => lane.state === "emerging" || lane.state === "not_practiced")) {
+        return "emerging";
+    }
+    if (lanes.every((lane) => lane.state === "strong")) {
+        return "strong";
+    }
+    return "clear";
+}
+
+function overallReadLabel(
+    state: PreparednessState,
+    lanes: InstantReadPreparednessModel["lanes"],
+    practicedCategoryCount: number,
+): string {
+    if (state === "not_practiced") {
+        return "Ready for your first practice read";
+    }
+    const thinnestLane = lanes
+        .filter((lane) => lane.state === "emerging" || lane.state === "not_practiced")
+        .sort((a, b) => evidenceLevelRank(a.evidenceLevel) - evidenceLevelRank(b.evidenceLevel))[0];
+    if (thinnestLane) {
+        return `Next focus: ${formatMatrixLaneLabel(thinnestLane.label)}`;
+    }
+    if (state === "strong" && practicedCategoryCount >= 3) {
+        return "Strong practice across this interview";
+    }
+    return "Solid footing with room to broaden";
+}
+
+function overallReadSummary(
+    state: PreparednessState,
+    lanes: InstantReadPreparednessModel["lanes"],
+    categories: PrepQuestionCategoryCard[],
+): string {
+    const practicedCount = categories.reduce((total, category) => total + (category.practicedQuestionCount ?? practicedQuestionCountFor(category)), 0);
+    const plannedCount = categories.reduce((total, category) => total + category.questionCount, 0);
+    if (state === "not_practiced") {
+        return "Start one round to map your strengths and choose your next focus.";
+    }
+    const strongestLane = [...lanes].sort((a, b) => stateRankForSort(b.state) - stateRankForSort(a.state))[0];
+    return `${formatMatrixLaneLabel(strongestLane?.label || "Practice")} looks strongest right now. You have practiced ${practicedCount} of ${plannedCount || practicedCount} planned questions for this interview.`;
+}
+
+function evidenceLevelRank(level: InstantReadEvidenceLevel): number {
+    switch (level) {
+        case "strong":
+            return 3;
+        case "enough":
+            return 2;
+        case "thin":
+            return 1;
+        case "none":
+        default:
+            return 0;
+    }
+}
+
+function stateRankForSort(state: PreparednessState): number {
+    switch (state) {
+        case "strong":
+            return 3;
+        case "clear":
+            return 2;
+        case "emerging":
+            return 1;
+        case "not_practiced":
+        default:
+            return 0;
+    }
+}
+
+function formatEvidenceLevel(level: InstantReadEvidenceLevel): string {
+    switch (level) {
+        case "strong":
+            return "Consistent strength";
+        case "enough":
+            return "Good coverage";
+        case "thin":
+            return "Early practice";
+        case "none":
+        default:
+            return "Not practiced yet";
+    }
+}
+
 function toPreparednessSkillFromLane({
     lane,
     signals,
@@ -1113,6 +2432,7 @@ function toPreparednessSkillFromLane({
         label: lane.label,
         state,
         evidenceCounts,
+        dimensionStates: mergeDimensionStates(signals),
         fillPercent: averageScore === null
             ? signals.find((signal) => signal.fillPercent !== undefined)?.fillPercent
             : scoreToFillPercent(averageScore),
@@ -1121,6 +2441,64 @@ function toPreparednessSkillFromLane({
         nextPracticeAction: recommendationReason || lane.nextPracticeAction[state],
         href,
     };
+}
+
+function mergeDimensionStates(signals: PrepSignal[]): PreparednessDimensionState[] | undefined {
+    const grouped = new Map<string, {
+        dimension: string;
+        label: string;
+        weightedTotal: number;
+        scoreCount: number;
+        fallbackState: PreparednessState;
+    }>();
+
+    for (const dimensionState of signals.flatMap((signal) => signal.dimensionStates ?? [])) {
+        const scoreCount = typeof dimensionState.scoreCount === "number" && dimensionState.scoreCount > 0
+            ? dimensionState.scoreCount
+            : 0;
+        const averageScore = typeof dimensionState.averageScore === "number"
+            ? dimensionState.averageScore
+            : undefined;
+        const weightedTotal = averageScore === undefined ? 0 : averageScore * Math.max(scoreCount, 1);
+        const existing = grouped.get(dimensionState.dimension);
+
+        if (!existing) {
+            grouped.set(dimensionState.dimension, {
+                dimension: dimensionState.dimension,
+                label: dimensionState.label,
+                weightedTotal,
+                scoreCount,
+                fallbackState: dimensionState.evidenceState,
+            });
+            continue;
+        }
+
+        existing.weightedTotal += weightedTotal;
+        existing.scoreCount += scoreCount;
+        existing.fallbackState = strongerCategoryState(existing.fallbackState, dimensionState.evidenceState);
+    }
+
+    if (grouped.size === 0) {
+        return undefined;
+    }
+
+    return Array.from(grouped.values()).map((dimension) => {
+        const averageScore = dimension.scoreCount > 0
+            ? dimension.weightedTotal / dimension.scoreCount
+            : undefined;
+        const evidenceState = averageScore === undefined
+            ? dimension.fallbackState
+            : scoreToPreparednessState(averageScore);
+
+        return {
+            dimension: dimension.dimension,
+            label: dimension.label,
+            evidenceState,
+            averageScore: averageScore === undefined ? undefined : Math.round(averageScore * 100) / 100,
+            scoreCount: dimension.scoreCount,
+            fillPercent: averageScore === undefined ? undefined : scoreToFillPercent(averageScore),
+        };
+    });
 }
 
 function averageSignalScore(signals: PrepSignal[]): number | null {
@@ -1193,6 +2571,14 @@ function toPreparednessEvidence(ref: PrepEvidenceRef): PreparednessEvidence | nu
         default:
             return null;
     }
+}
+
+function evidenceIdentity(item: PreparednessEvidence): string {
+    return [
+        item.sessionId ?? "session",
+        item.questionText ?? "question",
+        item.answerSubmittedAt ?? "time",
+    ].join("|");
 }
 
 function inferState(item: CandidateDashboardItem | null, keyword: string): PreparednessState {

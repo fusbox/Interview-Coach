@@ -193,6 +193,75 @@ describe("candidate session creation service", () => {
         });
     });
 
+    it("persists the resolved question plan snapshot with the generated candidate session", async () => {
+        const createSession = vi.fn();
+
+        await createCandidateSessionFromDraft(
+            {
+                candidateProfileId: "profile-1",
+                practiceDraftId: "draft-1",
+                generationConfig: {
+                    questionCount: 4,
+                },
+            },
+            {
+                findDraftById: vi.fn().mockResolvedValue(practiceDraft({
+                    status: "generating",
+                    intakeResponses: {
+                        confidenceLevel: null,
+                        interviewType: null,
+                        interviewStage: "initial_screening",
+                        timeline: null,
+                        concerns: null,
+                        practiceFocus: [],
+                    },
+                })),
+                attachGeneratedSession: vi.fn().mockResolvedValue(practiceDraft({
+                    status: "ready",
+                    sessionId: "session-1",
+                    questionSetSnapshotId: "snapshot-1",
+                    resumeTargetScreen: "session_entry",
+                })),
+                sessionRepository: {
+                    create: createSession,
+                    delete: vi.fn(),
+                },
+                generateQuestions: vi.fn().mockResolvedValue([
+                    {
+                        id: "question-1",
+                        text: "Question text",
+                        category: "Screening",
+                        index: 0,
+                    },
+                ]),
+                createSessionId: () => "session-1",
+                createQuestionSetSnapshotId: () => "snapshot-1",
+            },
+        );
+
+        expect(createSession).toHaveBeenCalledWith(expect.objectContaining({
+            intakeData: expect.objectContaining({
+                questionPlanSnapshot: {
+                    interviewStage: "initial_screening",
+                    questionCount: 4,
+                    categoryCounts: {
+                        screening: 1,
+                        behavioral: 1,
+                        culture_fit: 1,
+                        case_scenario: 0,
+                        technical_role_specific: 1,
+                    },
+                    slots: [
+                        { id: "screening-1", index: 0, category: "screening" },
+                        { id: "behavioral-1", index: 1, category: "behavioral" },
+                        { id: "culture_fit-1", index: 2, category: "culture_fit" },
+                        { id: "technical_role_specific-1", index: 3, category: "technical_role_specific" },
+                    ],
+                },
+            }),
+        }));
+    });
+
     it("does not create a session when the draft is not in generation state", async () => {
         const createSession = vi.fn();
 

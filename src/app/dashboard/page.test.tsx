@@ -123,8 +123,8 @@ describe("/dashboard page", () => {
         expect(screen.getByTestId("candidate-shell")).toBeInTheDocument();
         expect(screen.getByRole("heading", { name: /candidate dashboard/i })).toBeInTheDocument();
         expect(screen.queryByRole("heading", { name: /welcome back/i })).not.toBeInTheDocument();
-        expect(screen.getByRole("region", { name: /preparedness map/i })).toHaveTextContent("Interview Structure");
-        expect(screen.getByRole("button", { name: /interview structure/i })).toHaveTextContent("Emerging");
+        expect(screen.getByRole("region", { name: /preparedness map/i })).toHaveTextContent("Structure");
+        expect(screen.getByRole("button", { name: /open structure details/i })).toHaveTextContent("Emerging");
         expect(screen.getByRole("region", { name: /practice next/i })).toHaveTextContent("Resume QA Analyst");
         expect(screen.queryByRole("region", { name: /resume-to-role bridge/i })).not.toBeInTheDocument();
     });

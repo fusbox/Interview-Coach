@@ -5,13 +5,20 @@ import { describe, expect, it } from "vitest";
 import {
     EmptyPreparednessDashboard,
     PracticeNextCard,
+    PreparednessInstantRead,
+    PreparednessMapExperience,
+    PreparednessMatrix,
     PreparednessMap,
     QuestionCategoryCoverage,
     QuestionCategoryDrilldown,
     RecentActivityList,
     SkillDrilldown,
+    toInstantReadCategoryMix,
+    toInstantReadPreparednessModel,
     toQuestionCategoryCards,
+    toPreparednessMatrix,
     toPreparednessSkills,
+    toPracticeNextItems,
     type PreparednessSkill,
 } from "./CandidateDashboardComponents";
 import type { CandidateDashboardItem } from "@/lib/server/candidate";
@@ -324,21 +331,400 @@ describe("candidate dashboard component set", () => {
                 body="Pick up the active practice round."
                 href="/session/session-1"
                 actionLabel="Resume practice"
+                items={[
+                    {
+                        id: "q2",
+                        label: "Q2: Behavioral",
+                        detail: "Waiting in your active QA Analyst practice round.",
+                        state: "not_practiced",
+                    },
+                ]}
             />,
         );
 
         expect(screen.getByRole("region", { name: /practice next/i })).toHaveTextContent("Resume QA Analyst");
+        expect(screen.getByRole("region", { name: /practice next/i })).toHaveTextContent("Upcoming practice items");
+        expect(screen.getByRole("region", { name: /practice next/i })).toHaveTextContent("Q2: Behavioral");
         expect(screen.getByRole("link", { name: /resume practice/i })).toHaveAttribute("href", "/session/session-1");
         expect(screen.getByRole("link", { name: /resume practice/i })).toHaveClass("bg-primary");
         expect(screen.getByRole("link", { name: /resume practice/i })).toHaveClass("rounded-2xl");
+    });
+
+    it("derives pending question items before matrix improvement items for an active round", () => {
+        const activeItem = {
+            practiceDraftId: "draft-1",
+            roleProfileId: "role-1",
+            roleContextLabel: "Role context saved",
+            title: "QA Analyst",
+            statusLabel: "In progress",
+            progressLabel: "1 of 3 answered",
+            href: "/session/session-1",
+            lastActivityLabel: "May 12, 2026",
+            lastActivityAt: Date.UTC(2026, 4, 12),
+        } satisfies CandidateDashboardItem;
+        const categories = toQuestionCategoryCards([{
+            ...activeItem,
+            prepProfile: {
+                prepProfileId: "role-1",
+                primarySignal: null,
+                signals: [],
+                signalCounts: { not_practiced: 0, emerging: 0, clear: 0, strong: 0 },
+                recommendation: {
+                    label: "Resume QA Analyst",
+                    reason: "Resume your current practice.",
+                    source: "unfinished_session",
+                    href: "/session/session-1",
+                },
+                categoryCards: [{
+                    categoryId: "behavioral",
+                    label: "Behavioral",
+                    questionCount: 2,
+                    practicedQuestionCount: 1,
+                    upcomingQuestionCount: 1,
+                    questionStatuses: [
+                        { questionId: "q1", questionNumber: 1, status: "practiced" },
+                        { questionId: "q2", questionNumber: 2, status: "upcoming" },
+                    ],
+                    evidenceState: "strong",
+                    sourceRefs: [],
+                }],
+            },
+        }]);
+        const matrix = toPreparednessMatrix([skill], categories);
+
+        expect(toPracticeNextItems({
+            activeItems: [activeItem],
+            matrix,
+            categories,
+        })).toEqual([{
+            id: "draft-1:behavioral:q2",
+            label: "Q2: Behavioral",
+            detail: "Waiting in your active QA Analyst practice round.",
+            state: "not_practiced",
+        }]);
+    });
+
+    it("derives planned coverage gaps before score-improvement items for completed rounds", () => {
+        const completedItem = {
+            practiceDraftId: "draft-1",
+            roleProfileId: "role-1",
+            roleContextLabel: "Role context saved",
+            title: "QA Analyst",
+            statusLabel: "Completed",
+            progressLabel: "1 of 1 answered",
+            href: "/summary/session-1",
+            lastActivityLabel: "May 12, 2026",
+            lastActivityAt: Date.UTC(2026, 4, 12),
+            practiceCoverageBaseline: {
+                interviewStage: "initial_screening",
+                minimumQuestionCount: 3,
+                categoryMinimums: {
+                    screening: 2,
+                    behavioral: 1,
+                    culture_fit: 0,
+                    case_scenario: 0,
+                    technical_role_specific: 0,
+                },
+            },
+            prepProfile: {
+                prepProfileId: "role-1",
+                primarySignal: null,
+                signals: [],
+                signalCounts: { not_practiced: 0, emerging: 0, clear: 0, strong: 0 },
+                recommendation: {
+                    label: "Practice one focused improvement",
+                    reason: "Practice another screening question.",
+                    source: "session_summary",
+                    href: "/practice",
+                },
+                categoryCards: [{
+                    categoryId: "screening",
+                    label: "Screening",
+                    questionCount: 1,
+                    practicedQuestionCount: 1,
+                    upcomingQuestionCount: 0,
+                    questionStatuses: [
+                        { questionId: "q1", questionNumber: 1, status: "practiced" },
+                    ],
+                    evidenceState: "clear",
+                    sourceRefs: [],
+                }],
+            },
+        } satisfies CandidateDashboardItem;
+        const categories = toQuestionCategoryCards([completedItem]);
+        const matrix = toPreparednessMatrix([skill], categories);
+
+        const items = toPracticeNextItems({
+            activeItems: [],
+            completedItems: [completedItem],
+            matrix,
+            categories,
+        });
+
+        expect(items[0]).toMatchObject({
+            id: "coverage:screening",
+            label: "Screening coverage",
+            detail: "Practice 1 more question in this area for the planned interview scope.",
+            state: "not_practiced",
+        });
+    });
+
+    it("renders an instant-read snapshot with lane and category tap targets", async () => {
+        const user = userEvent.setup();
+        const laneClicks: string[] = [];
+        const categoryClicks: string[] = [];
+        const snapshot = toInstantReadPreparednessModel(
+            [{
+                ...skill,
+                id: "answer_substance",
+                label: "Answer Substance",
+                state: "strong",
+                evidenceCounts: { not_practiced: 0, emerging: 0, clear: 0, strong: 2 },
+                evidence: [
+                    { type: "practice", content: "Strong answer content." },
+                    { type: "practice", content: "Another answer with strong content." },
+                    { type: "practice", content: "Repeated answer content." },
+                ],
+            }, {
+                ...skill,
+                id: "interview_structure",
+                label: "Interview Structure",
+                state: "clear",
+                evidenceCounts: { not_practiced: 0, emerging: 0, clear: 1, strong: 0 },
+            }, {
+                ...skill,
+                id: "communication_delivery",
+                label: "Communication Delivery",
+                state: "not_practiced",
+                evidenceCounts: { not_practiced: 1, emerging: 0, clear: 0, strong: 0 },
+                evidence: [],
+            }],
+            [{
+                categoryId: "behavioral",
+                label: "Behavioral",
+                questionCount: 2,
+                practicedQuestionCount: 1,
+                upcomingQuestionCount: 1,
+                evidenceState: "strong",
+                sourceRefs: [],
+            }],
+        );
+
+        render(
+            <PreparednessInstantRead
+                snapshot={snapshot}
+                onLaneClick={(id) => laneClicks.push(id)}
+                onCategoryClick={(id) => categoryClicks.push(id)}
+            />,
+        );
+
+        expect(screen.getByRole("region", { name: /preparedness snapshot/i })).toHaveTextContent("How your answers are shaping up");
+        expect(screen.getByRole("img", { name: /skill ring/i })).toBeInTheDocument();
+        expect(screen.getByRole("img", { name: /question mix/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /open substance details/i })).toHaveAttribute("data-evidence-state", "strong");
+        expect(screen.getByRole("button", { name: /open behavioral details/i })).toHaveTextContent("1 of 2 practiced");
+
+        await user.hover(screen.getByRole("button", { name: /open substance details/i }));
+
+        expect(screen.getByRole("region", { name: /preparedness snapshot/i })).toHaveTextContent("Substance");
+        expect(screen.getByRole("region", { name: /preparedness snapshot/i })).toHaveTextContent("carrying strong practice evidence");
+        expect(laneClicks).toEqual([]);
+
+        await user.click(screen.getByRole("button", { name: /open substance details/i }));
+
+        expect(laneClicks).toEqual(["answer_substance"]);
+
+        await user.hover(screen.getByRole("button", { name: /open behavioral details/i }));
+
+        expect(screen.getByRole("region", { name: /preparedness snapshot/i })).toHaveTextContent("Behavioral");
+        expect(screen.getByRole("region", { name: /preparedness snapshot/i })).toHaveTextContent("1 of 2 planned Behavioral");
+        expect(categoryClicks).toEqual([]);
+
+        await user.click(screen.getByRole("button", { name: /open behavioral details/i }));
+
+        expect(categoryClicks).toEqual(["behavioral"]);
+    });
+
+    it("keeps child answer-skill ring states distinct from the parent lane state", () => {
+        const snapshot = toInstantReadPreparednessModel(
+            [{
+                ...skill,
+                id: "answer_substance",
+                label: "Answer Substance",
+                state: "strong",
+                evidenceCounts: { not_practiced: 0, emerging: 0, clear: 0, strong: 1 },
+                dimensionStates: [
+                    {
+                        dimension: "focus_relevance",
+                        label: "Focus",
+                        evidenceState: "strong",
+                        scoreCount: 1,
+                    },
+                    {
+                        dimension: "specificity_concreteness",
+                        label: "Specific detail",
+                        evidenceState: "emerging",
+                        scoreCount: 1,
+                    },
+                ],
+            } as PreparednessSkill],
+            [],
+        );
+
+        expect(snapshot.lanes[0]).toMatchObject({
+            id: "answer_substance",
+            state: "strong",
+            dimensionStates: [
+                {
+                    dimension: "focus_relevance",
+                    label: "Focus",
+                    evidenceState: "strong",
+                },
+                {
+                    dimension: "specificity_concreteness",
+                    label: "Specific detail",
+                    evidenceState: "emerging",
+                },
+            ],
+        });
+    });
+
+    it("models question mix as planned category distribution with practiced and upcoming arcs", () => {
+        const snapshot = toInstantReadPreparednessModel(
+            [],
+            [{
+                categoryId: "behavioral",
+                label: "Behavioral",
+                questionCount: 3,
+                practicedQuestionCount: 1,
+                upcomingQuestionCount: 2,
+                evidenceState: "strong",
+                sourceRefs: [],
+            }, {
+                categoryId: "culture_fit",
+                label: "Culture / Fit",
+                questionCount: 2,
+                practicedQuestionCount: 0,
+                upcomingQuestionCount: 2,
+                evidenceState: "not_practiced",
+                sourceRefs: [],
+            }],
+        );
+
+        expect(snapshot.categoryCoverage).toEqual([
+            expect.objectContaining({
+                categoryId: "behavioral",
+                plannedCount: 3,
+                practicedCount: 1,
+                upcomingCount: 2,
+                state: "strong",
+            }),
+            expect.objectContaining({
+                categoryId: "culture_fit",
+                plannedCount: 2,
+                practicedCount: 0,
+                upcomingCount: 2,
+                state: "not_practiced",
+            }),
+        ]);
+        expect(toInstantReadCategoryMix(snapshot.categoryCoverage)).toEqual([
+            expect.objectContaining({
+                id: "behavioral:practiced",
+                categoryId: "behavioral",
+                label: "Behavioral practiced",
+                value: 1,
+                coverageKind: "practiced",
+                state: "strong",
+            }),
+            expect.objectContaining({
+                id: "behavioral:upcoming",
+                categoryId: "behavioral",
+                label: "Behavioral upcoming",
+                value: 2,
+                coverageKind: "upcoming",
+                state: "not_practiced",
+            }),
+            expect.objectContaining({
+                id: "culture_fit:upcoming",
+                categoryId: "culture_fit",
+                label: "Culture / Fit upcoming",
+                value: 2,
+                coverageKind: "upcoming",
+                state: "not_practiced",
+            }),
+        ]);
+    });
+
+    it("defaults the preparedness map experience to quick view and toggles to details", async () => {
+        const user = userEvent.setup();
+        const cellClicks: string[] = [];
+        const skills = [
+            {
+                ...skill,
+                id: "answer_substance",
+                label: "Answer Substance",
+                state: "strong" as const,
+                evidenceCounts: { not_practiced: 0, emerging: 0, clear: 0, strong: 2 },
+                evidence: [{ type: "practice" as const, content: "Strong answer content." }],
+            },
+            {
+                ...skill,
+                id: "interview_structure",
+                label: "Interview Structure",
+                state: "clear" as const,
+                evidenceCounts: { not_practiced: 0, emerging: 0, clear: 1, strong: 0 },
+            },
+            {
+                ...skill,
+                id: "communication_delivery",
+                label: "Communication Delivery",
+                state: "not_practiced" as const,
+                evidenceCounts: { not_practiced: 1, emerging: 0, clear: 0, strong: 0 },
+                evidence: [],
+            },
+        ];
+        const categories = [{
+            categoryId: "behavioral" as const,
+            label: "Behavioral",
+            questionCount: 1,
+            practicedQuestionCount: 1,
+            upcomingQuestionCount: 0,
+            evidenceState: "strong" as const,
+            sourceRefs: [],
+        }];
+
+        render(
+            <PreparednessMapExperience
+                snapshot={toInstantReadPreparednessModel(skills, categories)}
+                matrix={toPreparednessMatrix(skills, categories)}
+                onLaneClick={() => undefined}
+                onCategoryClick={() => undefined}
+                onCellClick={(cellId) => cellClicks.push(cellId)}
+            />,
+        );
+
+        expect(screen.getByRole("region", { name: /^preparedness map$/i })).toHaveTextContent("Quick View");
+        expect(screen.getByRole("tabpanel", { name: /quick preparedness view/i })).toHaveTextContent("Answer skills");
+        expect(screen.getByRole("button", { name: /open substance details/i })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /answer substance in behavioral: strong/i })).not.toBeInTheDocument();
+
+        await user.click(screen.getByRole("tab", { name: /details/i }));
+
+        expect(screen.getByRole("tab", { name: /details/i })).toHaveAttribute("aria-selected", "true");
+        expect(screen.getByRole("button", { name: /answer substance in behavioral: to practice/i })).toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: /answer substance in behavioral: to practice/i }));
+
+        expect(cellClicks).toEqual(["answer_substance:behavioral"]);
     });
 
     it("renders the empty preview state without blank analytics cards", () => {
         render(<EmptyPreparednessDashboard />);
 
         expect(screen.getByRole("region", { name: /empty preparedness dashboard/i })).toHaveTextContent("Start with the interview you want to prepare for.");
-        expect(screen.getByLabelText("Preview of your preparedness map")).toHaveTextContent("Answer Substance");
-        expect(screen.getByLabelText("Preview of question coverage")).toHaveTextContent("Behavioral");
+        expect(screen.getByLabelText("Preview of your preparedness map")).toHaveTextContent("Preparedness map preview");
+        expect(screen.getByLabelText("Preview of your preparedness map")).toHaveTextContent("Answer skills");
+        expect(screen.getByLabelText("Preview of your preparedness map")).toHaveTextContent("Question mix");
         expect(screen.getByRole("link", { name: /create practice/i })).toHaveAttribute("href", "/practice");
     });
 
@@ -531,6 +917,158 @@ describe("candidate dashboard component set", () => {
         expect(screen.getByRole("region", { name: /question coverage/i })).toHaveTextContent("Screening");
         expect(screen.getByRole("button", { name: /behavioral/i })).toHaveAttribute("data-evidence-state", "clear");
         expect(screen.getByRole("button", { name: /screening/i })).toHaveAttribute("data-evidence-state", "emerging");
+    });
+
+    it("builds and renders a preparedness matrix from lane and category score evidence", async () => {
+        const user = userEvent.setup();
+        const clickedCells: string[] = [];
+        const item: CandidateDashboardItem = {
+            practiceDraftId: "draft-1",
+            roleProfileId: "role-profile-1",
+            roleContextLabel: "Role context saved",
+            title: "QA Analyst",
+            statusLabel: "Completed",
+            progressLabel: "1 of 1 answered",
+            href: "/summary/session-1",
+            lastActivityLabel: "May 12, 2026",
+            lastActivityAt: Date.parse("2026-05-12T00:00:00.000Z"),
+            prepProfile: {
+                prepProfileId: "role-profile-1",
+                primarySignal: null,
+                signals: [
+                    {
+                        prepProfileId: "role-profile-1",
+                        signalId: "lane:answer_substance",
+                        label: "Answer Substance",
+                        lane: "answer_substance",
+                        evidenceState: "strong",
+                        evidenceCounts: { not_practiced: 0, emerging: 0, clear: 0, strong: 1 },
+                        averageScore: 4.25,
+                        scoreCount: 4,
+                        priority: "supporting",
+                        sourceRefs: [{
+                            type: "answer",
+                            id: "question-1",
+                            label: "Practice",
+                            questionText: "Tell me about a customer issue you resolved.",
+                            answerTranscript: "I helped the customer understand the next step.",
+                            answerModality: "text",
+                            answerSubmittedAt: Date.UTC(2026, 4, 20, 16, 45),
+                            evaluation: "You gave a specific answer. Coach signals: Focus relevance: Directly answered the question.",
+                        }],
+                    },
+                    {
+                        prepProfileId: "role-profile-1",
+                        signalId: "lane:interview_structure",
+                        label: "Interview Structure",
+                        lane: "interview_structure",
+                        evidenceState: "clear",
+                        evidenceCounts: { not_practiced: 0, emerging: 0, clear: 1, strong: 0 },
+                        averageScore: 3.5,
+                        scoreCount: 2,
+                        priority: "supporting",
+                        sourceRefs: [{
+                            type: "answer",
+                            id: "question-1",
+                            label: "Practice",
+                            questionText: "Tell me about a customer issue you resolved.",
+                            answerTranscript: "I helped the customer understand the next step.",
+                            answerModality: "text",
+                            answerSubmittedAt: Date.UTC(2026, 4, 20, 16, 45),
+                            evaluation: "You organized the answer clearly. Coach signals: Structural clarity: Clear flow.",
+                        }],
+                    },
+                    {
+                        prepProfileId: "role-profile-1",
+                        signalId: "lane:communication_delivery",
+                        label: "Communication Delivery",
+                        lane: "communication_delivery",
+                        evidenceState: "emerging",
+                        evidenceCounts: { not_practiced: 0, emerging: 1, clear: 0, strong: 0 },
+                        averageScore: 2.5,
+                        scoreCount: 3,
+                        priority: "supporting",
+                        sourceRefs: [{
+                            type: "answer",
+                            id: "question-1",
+                            label: "Practice",
+                            questionText: "Tell me about a customer issue you resolved.",
+                            answerTranscript: "I helped the customer understand the next step.",
+                            answerModality: "text",
+                            answerSubmittedAt: Date.UTC(2026, 4, 20, 16, 45),
+                            evaluation: "You can tighten the delivery. Coach signals: Conciseness: Could be shorter.",
+                        }],
+                    },
+                ],
+                categoryCards: [{
+                    categoryId: "behavioral",
+                    label: "Behavioral",
+                    questionCount: 1,
+                    practicedQuestionCount: 1,
+                    upcomingQuestionCount: 0,
+                    questionStatuses: [
+                        { questionId: "question-1", questionNumber: 1, status: "practiced" },
+                    ],
+                    evidenceState: "clear",
+                    averageScore: 3.4,
+                    laneStates: {
+                        answer_substance: { evidenceState: "strong", averageScore: 4.25, scoreCount: 4 },
+                        interview_structure: { evidenceState: "clear", averageScore: 3.5, scoreCount: 2 },
+                        communication_delivery: { evidenceState: "emerging", averageScore: 2.5, scoreCount: 3 },
+                    },
+                    sourceRefs: [{
+                        type: "answer",
+                        id: "question-1",
+                        label: "Behavioral",
+                        questionText: "Tell me about a customer issue you resolved.",
+                        answerTranscript: "I helped the customer understand the next step.",
+                        answerModality: "text",
+                        answerSubmittedAt: Date.UTC(2026, 4, 20, 16, 45),
+                        evaluation: "Behavioral feedback: You gave a relevant example.",
+                    }],
+                }],
+                signalCounts: { not_practiced: 0, emerging: 1, clear: 1, strong: 1 },
+                recommendation: {
+                    label: "Practice the biggest lift",
+                    reason: "Use the latest feedback as the focus for your next round.",
+                    source: "answer_feedback",
+                    href: "/practice",
+                },
+            },
+        };
+        const skills = toPreparednessSkills({ latestItem: item, fallbackHref: "/practice" });
+        const categories = toQuestionCategoryCards([item]);
+        const matrix = toPreparednessMatrix(skills, categories);
+
+        expect(matrix.cells.find((cell) => cell.id === "answer_substance:behavioral")).toMatchObject({
+            state: "strong",
+            label: "Behavioral - Answer Substance",
+            evidence: [expect.objectContaining({ questionText: "Tell me about a customer issue you resolved." })],
+        });
+        expect(matrix.cells.find((cell) => cell.id === "communication_delivery:behavioral")).toMatchObject({
+            state: "emerging",
+        });
+
+        render(
+            <PreparednessMatrix
+                matrix={matrix}
+                onLaneClick={() => undefined}
+                onCategoryClick={() => undefined}
+                onCellClick={(cellId) => clickedCells.push(cellId)}
+            />,
+        );
+
+        expect(screen.getByRole("region", { name: /preparedness map/i })).toHaveTextContent("Behavioral");
+        expect(screen.getByRole("button", { name: /^answer substance$/i })).toHaveTextContent("Substance");
+        expect(screen.getByRole("button", { name: /^interview structure$/i })).toHaveTextContent("Structure");
+        expect(screen.getByRole("button", { name: /^communication delivery$/i })).toHaveTextContent("Delivery");
+        expect(screen.getByRole("button", { name: /answer substance in behavioral: strong/i })).toHaveAttribute("data-evidence-state", "strong");
+        expect(screen.getByRole("button", { name: /communication delivery in behavioral: emerging/i })).toHaveAttribute("data-evidence-state", "emerging");
+        expect(screen.getByRole("button", { name: /answer substance in behavioral: strong/i })).not.toHaveTextContent(/practiced/i);
+
+        await user.click(screen.getByRole("button", { name: /answer substance in behavioral: strong/i }));
+
+        expect(clickedCells).toEqual(["answer_substance:behavioral"]);
     });
 
     it("rolls up category cards from weighted score and orders categories by practice need", () => {

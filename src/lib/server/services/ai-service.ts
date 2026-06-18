@@ -1,5 +1,5 @@
 import { Part } from "@google/genai";
-import { Question, Blueprint, AnalysisResult, InterviewSession, Answer, Dimension, DimensionScore } from "@/lib/domain/types";
+import { Question, Blueprint, AnalysisResult, InterviewSession, Answer } from "@/lib/domain/types";
 import { AnalysisResultSchema } from "@/lib/domain/schemas";
 import { buildAnalysisContext, getReadingLevelContext } from "@/lib/ai/prompts";
 import { Logger } from "@/lib/logger";
@@ -74,24 +74,6 @@ export class AIService {
             },
             oneBigUpgrade: undefined,
         };
-    }
-
-    /**
-     * Internal readiness calibration remains available for downstream/internal tooling.
-     * This is intentionally hidden from the candidate-facing experience.
-     */
-    private static calculateReadiness(scores: Record<string, number>): "RL1" | "RL2" | "RL3" | "RL4" {
-        const foundational = ["focus_relevance", "structural_clarity", "confidence"];
-        const middle = ["specificity_concreteness", "outcome_explicitness", "pace", "clarity"];
-
-        const hasFoundationalFail = foundational.some((d) => scores[d] <= 2);
-        const avgFoundational = foundational.reduce((acc, d) => acc + (scores[d] || 3), 0) / foundational.length;
-        const avgMiddle = middle.reduce((acc, d) => acc + (scores[d] || 3), 0) / middle.length;
-
-        if (avgFoundational <= 2) return "RL4";
-        if (hasFoundationalFail || avgFoundational < 3.5) return "RL3";
-        if (avgMiddle < 3.8) return "RL2";
-        return "RL1";
     }
 
     static async analyzeAnswer(
@@ -288,7 +270,7 @@ Generate feedback as strict JSON matching this schema:
             await new Promise(r => setTimeout(r, 800));
             const mockResult: AnalysisResult = {
                 ack: "I noted your answer. (No API Key)",
-                meta: { tier: 1, modality: audioData ? "voice" : "text", confidence: "medium", readinessLevel: "RL4" },
+                meta: { tier: 1, modality: audioData ? "voice" : "text", confidence: "medium" },
                 transcript: answerText || "Audio Answer (Mock)",
                 contentPulse: { dimension: "focus_relevance", headline: "Setup Needed", body: "Please add your Gemini API key to evaluate your response.", quote: "" }
             };
@@ -351,15 +333,6 @@ Generate feedback as strict JSON matching this schema:
             }), captureContext.appName);
             Logger.info("AI Parsed Result", { hasScores: !!result.scores, hasAck: !!result.ack });
 
-            const scoreValues: Record<string, number> = {};
-            if (result.scores) {
-                Object.entries(result.scores as Record<Dimension, DimensionScore>).forEach(([dim, data]) => {
-                    scoreValues[dim] = data.score;
-                });
-            }
-
-            const calculatedRL = AIService.calculateReadiness(scoreValues);
-
             // Ensure transcript exists even when the provider omits it.
             const finalTranscript = result.transcript || answerText || "Audio Answer";
 
@@ -370,7 +343,6 @@ Generate feedback as strict JSON matching this schema:
                     tier: result.meta?.tier ?? 1,
                     modality: result.meta?.modality ?? (audioData ? "voice" : "text"),
                     ...result.meta,
-                    readinessLevel: calculatedRL,
                     confidence: result.meta?.confidence ?? AIService.mapDetectabilityToConfidence(result.feedbackPlan?.signal.detectability)
                 },
                 __debugPrompt: combinedPrompt
@@ -445,7 +417,7 @@ Generate feedback as strict JSON matching this schema:
             observeMetric("ai_request_duration_ms", Date.now() - startedAt, { operation: "analysis", outcome });
             return {
                 ack: "I noted your answer.",
-                meta: { tier: 1, modality: audioData ? "voice" : "text", confidence: "medium", readinessLevel: "RL4" },
+                meta: { tier: 1, modality: audioData ? "voice" : "text", confidence: "medium" },
                 transcript: answerText || "Audio Answer",
                 contentPulse: {
                     dimension: "focus_relevance",

@@ -14,6 +14,7 @@ import { CandidateSessionDebugOverlay } from "./CandidateSessionDebugOverlay";
 import { CandidateSessionEntryScreen } from "./CandidateSessionEntryScreen";
 import { FeedbackDrawer } from "@/features/session/components/FeedbackDrawer";
 import { getQuestionCategoryPresentation } from "@/features/session/components/question-category-presentation";
+import { normalizeInterviewStage, QUESTION_PLAN_CATEGORY_ORDER, type QuestionPlan } from "@/lib/server/services/question-plan-service";
 import {
     advanceCandidateSessionAction,
     analyzeCandidateAnswerAction,
@@ -27,8 +28,44 @@ type CandidateSessionPageProps = {
     loadedSession: LoadedCandidateSession;
 };
 
+function getQuestionPlanSnapshot(intakeData: Record<string, unknown> | undefined): QuestionPlan | null {
+    const snapshot = intakeData?.questionPlanSnapshot;
+    if (!snapshot || typeof snapshot !== "object") {
+        return null;
+    }
+
+    const candidate = snapshot as Partial<QuestionPlan>;
+    if (!candidate.categoryCounts || typeof candidate.categoryCounts !== "object") {
+        return null;
+    }
+
+    const questionCount = typeof candidate.questionCount === "number" && Number.isFinite(candidate.questionCount)
+        ? candidate.questionCount
+        : QUESTION_PLAN_CATEGORY_ORDER.reduce((total, category) => {
+            const count = candidate.categoryCounts?.[category];
+            return total + (typeof count === "number" && Number.isFinite(count) ? count : 0);
+        }, 0);
+
+    if (questionCount <= 0) {
+        return null;
+    }
+
+    return {
+        interviewStage: normalizeInterviewStage(candidate.interviewStage),
+        questionCount,
+        categoryCounts: QUESTION_PLAN_CATEGORY_ORDER.reduce((counts, category) => ({
+            ...counts,
+            [category]: typeof candidate.categoryCounts?.[category] === "number"
+                ? candidate.categoryCounts[category]
+                : 0,
+        }), {} as QuestionPlan["categoryCounts"]),
+        slots: Array.isArray(candidate.slots) ? candidate.slots : [],
+    };
+}
+
 export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProps) {
     const { session } = loadedSession;
+    const questionPlanSnapshot = getQuestionPlanSnapshot(session.intakeData);
     const totalQuestions = session.questions.length;
     const displayQuestionIndex = totalQuestions > 0 ? Math.min(Math.max(session.currentQuestionIndex, 0), totalQuestions - 1) : 0;
     const currentQuestion = session.questions[displayQuestionIndex] ?? null;
@@ -100,6 +137,7 @@ export function CandidateSessionPage({ loadedSession }: CandidateSessionPageProp
                     role={session.role}
                     sessionId={session.id}
                     firstQuestion={currentQuestion}
+                    questionPlanSnapshot={questionPlanSnapshot}
                     startAction={startAction}
                 />
             ) : (

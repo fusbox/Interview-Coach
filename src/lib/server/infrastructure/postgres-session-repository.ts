@@ -527,14 +527,19 @@ export class PostgresSessionRepository implements SessionRepository {
     async update(session: InterviewSession): Promise<void> {
         await this.withTransaction(async (client) => {
             const currentIntake = await this.fetchIntake(session.id, client);
-            const nextIntake = {
+            const sessionIntake = this.asObject(session.intakeData);
+            const baseIntake = {
                 ...currentIntake,
-                candidate: { ...currentIntake.candidate, ...session.candidate },
-                entered_initials: session.enteredInitials || currentIntake.entered_initials,
-                engaged_time_seconds: session.engagedTimeSeconds ?? currentIntake.engaged_time_seconds,
+                ...sessionIntake
+            };
+            const nextIntake = {
+                ...baseIntake,
+                candidate: { ...this.asObject(baseIntake.candidate), ...session.candidate },
+                entered_initials: session.enteredInitials || baseIntake.entered_initials,
+                engaged_time_seconds: session.engagedTimeSeconds ?? baseIntake.engaged_time_seconds,
                 invite_token: session.inviteToken
                     ? encrypt(session.inviteToken)
-                    : currentIntake.invite_token
+                    : baseIntake.invite_token
             };
 
             await client.query(

@@ -15,6 +15,11 @@ const CATEGORY_DEFINITIONS: Record<string, QuestionCategoryPresentation> = {
         title: "Behavioral",
         description: "Questions about past experiences, choices, actions, and results.",
     },
+    CULTURE_FIT: {
+        label: "Culture Fit",
+        title: "Culture Fit",
+        description: "Questions about motivation, work style, values, and how you show up with a team.",
+    },
     PERMA: {
         label: "Culture Fit",
         title: "Culture Fit",
@@ -30,10 +35,20 @@ const CATEGORY_DEFINITIONS: Record<string, QuestionCategoryPresentation> = {
         title: "Technical",
         description: "Questions about role-specific skills, tools, processes, or domain knowledge.",
     },
+    TECHNICAL_ROLE_SPECIFIC: {
+        label: "Technical",
+        title: "Technical",
+        description: "Questions about role-specific skills, tools, processes, or domain knowledge.",
+    },
     TECH: {
         label: "Technical",
         title: "Technical",
         description: "Questions about role-specific skills, tools, processes, or domain knowledge.",
+    },
+    CASE_SCENARIO: {
+        label: "Scenario",
+        title: "Scenario",
+        description: "Questions about how you would handle a realistic workplace situation.",
     },
     SITUATIONAL: {
         label: "Scenario",
@@ -63,7 +78,7 @@ const CATEGORY_DEFINITIONS: Record<string, QuestionCategoryPresentation> = {
 };
 
 export function getQuestionCategoryPresentation(category: string): QuestionCategoryPresentation {
-    const upperCategory = category.trim().toUpperCase();
+    const upperCategory = category.trim().toUpperCase().replace(/[\s/-]+/g, "_");
 
     return CATEGORY_DEFINITIONS[upperCategory] || CATEGORY_DEFINITIONS.OTHER;
 }

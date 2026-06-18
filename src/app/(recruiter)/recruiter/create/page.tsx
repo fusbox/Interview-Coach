@@ -23,6 +23,7 @@ import {
     RECRUITER_CREATE_INVITE_TOUR_ID,
     TOUR_RESET_SEARCH_PARAM,
 } from "@/features/tours/recruiter-tour-provider";
+import { mapGeneratedQuestionSetToQuestionInputs } from "./question-generation-mapper";
 
 function createIdempotencyKey() {
     if (typeof globalThis !== "undefined" && globalThis.crypto?.randomUUID) {
@@ -68,6 +69,7 @@ export default function CreateInviteWizard() {
     const [star, setStar] = useState<QuestionInput[]>(STAR_TEMPLATE);
     const [perma, setPerma] = useState<QuestionInput[]>(PERMA_TEMPLATE);
     const [technical, setTechnical] = useState<QuestionInput[]>([{ id: 'tech-1', text: '', category: 'Technical', label: 'Technical Q1' }]);
+    const [initialQuestionSetupSource, setInitialQuestionSetupSource] = useState<"template" | null>(null);
 
     const [isLoading, setIsLoading] = useState(false);
     const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
@@ -157,6 +159,7 @@ export default function CreateInviteWizard() {
                 setStar(template.questions.star);
                 setPerma(template.questions.perma);
                 setTechnical(template.questions.technical);
+                setInitialQuestionSetupSource("template");
             }
         }
     }, [templateIdFromUrl, templates]);
@@ -408,33 +411,10 @@ export default function CreateInviteWizard() {
             if (!res.ok) throw new Error("Generation failed");
             const data = await res.json();
 
-            const screeningQuestions = data.screening
-                ? Object.entries(data.screening).map(([label, text], index) => ({
-                    id: `screening-${index + 1}`,
-                    text: typeof text === "string" ? text : "",
-                    category: "Screening",
-                    label,
-                }))
-                : [];
-
-            if (data.behavioral || screeningQuestions.length > 0) {
-                const behavioralQuestions = STAR_TEMPLATE.map(t => ({
-                    ...t,
-                    text: data.behavioral?.[t.label] || ""
-                }));
-                setStar([...screeningQuestions, ...behavioralQuestions]);
-            }
-            if (data.culture) {
-                setPerma(PERMA_TEMPLATE.map(t => ({
-                    ...t,
-                    text: data.culture[t.label] || ""
-                })));
-            }
-            if (data.technical) {
-                setTechnical(data.technical.map((q: { text: string }, i: number) => ({
-                    id: `tech-${i + 1}`, text: q.text, category: 'Technical', label: `Technical Q${i + 1}`
-                })));
-            }
+            const generatedQuestions = mapGeneratedQuestionSetToQuestionInputs(data);
+            setStar(generatedQuestions.star);
+            setPerma(generatedQuestions.perma);
+            setTechnical(generatedQuestions.technical);
             setStatusMessage("AI-generated questions are ready.");
         } catch (e) {
             console.error("AI question generation failed:", e);
@@ -664,6 +644,7 @@ export default function CreateInviteWizard() {
                     StepFooter={StepFooter}
                     templates={templates}
                     onSaveTemplate={handleSaveTemplate}
+                    initialQuestionSetupSource={initialQuestionSetupSource}
                     isTourLocked={isCreateTourLocked}
                 />
             )}

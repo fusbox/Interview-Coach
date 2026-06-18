@@ -27,8 +27,7 @@ describe("PracticeSetupForm", () => {
         vi.clearAllMocks();
     });
 
-    it("prefills values from a restored draft", async () => {
-        const user = userEvent.setup();
+    it("prefills values from a restored draft", () => {
         render(
             <PracticeSetupForm
                 initialValues={{
@@ -44,8 +43,6 @@ describe("PracticeSetupForm", () => {
         expect(screen.getByLabelText(/job description/i)).toHaveValue("Test regulated workflows.");
         expect(screen.getByLabelText(/resume content/i)).toHaveValue("Validated releases.");
 
-        await user.click(screen.getByRole("button", { name: /advanced setup/i }));
-
         expect(screen.getByRole("radio", { name: /First conversation or screening/i })).toBeChecked();
         expect(screen.getByRole("radio", { name: "5 questions" })).toBeChecked();
     });
@@ -56,40 +53,30 @@ describe("PracticeSetupForm", () => {
         expect(screen.getByRole("form", { name: /practice setup form/i })).toHaveClass("shadow-raised-1");
     });
 
-    it("keeps interview stage and question count in advanced setup", async () => {
-        const user = userEvent.setup();
+    it("keeps interview stage and question count visible as first-class setup controls", () => {
         render(<PracticeSetupForm />);
 
-        expect(screen.getByRole("button", { name: /advanced setup/i })).toHaveAttribute("aria-expanded", "false");
-        expect(screen.queryByLabelText(/what are you preparing for/i)).not.toBeInTheDocument();
-        expect(screen.queryByLabelText(/question count/i)).not.toBeInTheDocument();
-
-        await user.click(screen.getByRole("button", { name: /advanced setup/i }));
-
-        expect(screen.getByRole("button", { name: /advanced setup/i })).toHaveAttribute("aria-expanded", "true");
-        expect(screen.getByRole("group", { name: /what are you preparing for/i })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /advanced setup/i })).not.toBeInTheDocument();
+        expect(screen.getByText("Interview Details")).toBeInTheDocument();
+        expect(screen.getByRole("group", { name: /interview stage/i })).toBeInTheDocument();
         expect(screen.getByRole("group", { name: /question count/i })).toBeInTheDocument();
     });
 
-    it("uses not sure yet as the plain-language default interview stage", async () => {
-        const user = userEvent.setup();
+    it("uses a merged balanced-practice default interview stage", () => {
         render(<PracticeSetupForm />);
 
-        await user.click(screen.getByRole("button", { name: /advanced setup/i }));
-
-        expect(screen.getByRole("radio", { name: /Not sure yet/i })).toHaveAttribute("value", "not_sure");
-        expect(screen.getByRole("radio", { name: /Not sure yet/i })).toBeChecked();
+        expect(screen.getByRole("radio", { name: /I'm not sure \/ No interview scheduled yet/i })).toHaveAttribute("value", "practice_only");
+        expect(screen.getByRole("radio", { name: /I'm not sure \/ No interview scheduled yet/i })).toBeChecked();
+        expect(screen.queryByRole("radio", { name: /^Not sure yet$/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole("radio", { name: /^No interview scheduled$/i })).not.toBeInTheDocument();
         expect(screen.queryByRole("radio", { name: /Balanced practice/i })).not.toBeInTheDocument();
     });
 
-    it("frames interview stage with candidate-facing option labels", async () => {
-        const user = userEvent.setup();
+    it("frames interview stage with candidate-facing option labels", () => {
         render(<PracticeSetupForm />);
 
-        await user.click(screen.getByRole("button", { name: /advanced setup/i }));
-
-        expect(screen.getByRole("group", { name: /what are you preparing for/i })).toHaveAccessibleDescription(
-            "If you know where you are in the interview process, choose the closest match. If not, Not sure yet keeps the round balanced.",
+        expect(screen.getByRole("group", { name: /interview stage/i })).toHaveAccessibleDescription(
+            "Choose the closest match for the interview you want to practice.",
         );
         expect(screen.getByRole("radio", { name: /First conversation or screening/i })).toHaveAttribute("value", "initial_screening");
         expect(screen.getByRole("radio", { name: /Follow-up or final interview/i })).toHaveAttribute("value", "follow_up_final");
@@ -97,8 +84,7 @@ describe("PracticeSetupForm", () => {
         expect(screen.getByText(/Go deeper on role scenarios/i)).toBeInTheDocument();
     });
 
-    it("treats missing restored interview stage values as not sure yet", async () => {
-        const user = userEvent.setup();
+    it("treats missing restored interview stage values as balanced practice", () => {
         render(
             <PracticeSetupForm
                 initialValues={{
@@ -108,24 +94,15 @@ describe("PracticeSetupForm", () => {
             />,
         );
 
-        await user.click(screen.getByRole("button", { name: /advanced setup/i }));
-
-        expect(screen.getByRole("radio", { name: /Not sure yet/i })).toBeChecked();
+        expect(screen.getByRole("radio", { name: /I'm not sure \/ No interview scheduled yet/i })).toBeChecked();
     });
 
-    it("keeps advanced setup selections when the accordion is closed and reopened", async () => {
+    it("keeps interview detail selections in visible controls", async () => {
         const user = userEvent.setup();
         render(<PracticeSetupForm />);
 
-        await user.click(screen.getByRole("button", { name: /advanced setup/i }));
         await user.click(screen.getByRole("radio", { name: /First interview/i }));
         await user.click(screen.getByRole("radio", { name: "7 questions" }));
-        await user.click(screen.getByRole("button", { name: /advanced setup/i }));
-
-        expect(screen.getByRole("button", { name: /advanced setup/i })).toHaveAttribute("aria-expanded", "false");
-        expect(screen.queryByRole("group", { name: /what are you preparing for/i })).not.toBeInTheDocument();
-
-        await user.click(screen.getByRole("button", { name: /advanced setup/i }));
 
         expect(screen.getByRole("radio", { name: /First interview/i })).toBeChecked();
         expect(screen.getByRole("radio", { name: "7 questions" })).toBeChecked();
@@ -199,7 +176,7 @@ describe("PracticeSetupForm", () => {
             intakeResponses: {
                 confidenceLevel: null,
                 interviewType: null,
-                interviewStage: "not_sure",
+                interviewStage: "practice_only",
                 timeline: null,
                 concerns: null,
                 practiceFocus: [],
@@ -253,7 +230,6 @@ describe("PracticeSetupForm", () => {
             />,
         );
 
-        await user.click(screen.getByRole("button", { name: /advanced setup/i }));
         await user.click(screen.getByRole("radio", { name: "7 questions" }));
         await user.click(screen.getByLabelText(/i understand interview coach uses ai/i));
         await user.click(screen.getByRole("button", { name: /start generating questions/i }));

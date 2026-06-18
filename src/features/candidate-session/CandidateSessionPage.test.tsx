@@ -117,6 +117,20 @@ const loadedSession: LoadedCandidateSession = {
         jobDescription: "Test regulated workflows.",
         currentQuestionIndex: 0,
         initialsRequired: false,
+        intakeData: {
+            questionPlanSnapshot: {
+                interviewStage: "initial_screening",
+                questionCount: 5,
+                categoryCounts: {
+                    screening: 2,
+                    behavioral: 1,
+                    culture_fit: 1,
+                    case_scenario: 0,
+                    technical_role_specific: 1,
+                },
+                slots: [],
+            },
+        },
         questions: [
             { id: "question-1", text: "Tell me about a release you improved.", category: "Behavioral", index: 0 },
         ],
@@ -175,6 +189,13 @@ describe("CandidateSessionPage", () => {
         );
 
         expect(screen.getByRole("heading", { name: /let's get you ready for your interview/i })).toBeInTheDocument();
+        expect(screen.getByText("Your practice plan")).toBeInTheDocument();
+        expect(screen.getByText("5 questions - First conversation or screening")).toBeInTheDocument();
+        expect(screen.getByText("Screening: 2")).toBeInTheDocument();
+        expect(screen.getByText("Behavioral: 1")).toBeInTheDocument();
+        expect(screen.getByText("Culture / Fit: 1")).toBeInTheDocument();
+        expect(screen.getByText("Technical / Role-Specific: 1")).toBeInTheDocument();
+        expect(screen.queryByText(/Case \/ Scenario:/)).not.toBeInTheDocument();
         expect(screen.getByText(/your answers are used to provide coaching/i)).toBeInTheDocument();
         expect(screen.getByText(/protected by access controls/i)).toBeInTheDocument();
         expect(screen.getByText(/not shared with recruiters or employers for hiring decisions/i)).toBeInTheDocument();

@@ -14,12 +14,13 @@ import {
     buildQuestionPlan,
     getInterviewStageLabel,
     normalizeInterviewStage,
+    QUESTION_PLAN_CATEGORY_ORDER,
     type InterviewStage,
     type QuestionPlan,
     type QuestionPlanCategory,
 } from "@/lib/server/services/question-plan-service";
 
-export const QUESTION_GENERATION_PROMPT_VERSION = "question-generation-v1";
+export const QUESTION_GENERATION_PROMPT_VERSION = "question-generation-v2";
 
 type GeneratedInterviewQuestions = z.infer<typeof GeneratedInterviewQuestionsSchema>;
 
@@ -74,7 +75,8 @@ export async function generateInterviewQuestionSet(
 
     if (!ai) {
         const mockQuestions = getMockQuestions(normalizedInput.role);
-        const redactedMockQuestions = redactPii(mockQuestions);
+        const repairedMockQuestions = repairQuestionSetForPlan(mockQuestions, normalizedInput);
+        const redactedMockQuestions = redactPii(repairedMockQuestions);
         const actorCaptureFields = getActorCaptureFields(context);
         await captureAiGeneration({
             appName: context.appName,
@@ -101,7 +103,7 @@ export async function generateInterviewQuestionSet(
             retentionClass: "eval_redacted",
         });
         context.onProviderOutcome?.("mock_fallback");
-        return mockQuestions;
+        return repairedMockQuestions;
     }
 
     const prompt = buildQuestionGenerationPrompt(normalizedInput);
@@ -120,10 +122,11 @@ export async function generateInterviewQuestionSet(
         });
         rawProviderOutput = response.text;
 
-        const result = parseProviderJson(rawProviderOutput, GeneratedInterviewQuestionsSchema, {
+        const parsedResult = parseProviderJson(rawProviderOutput, GeneratedInterviewQuestionsSchema, {
             provider: "gemini",
             operation: "generateQuestions",
         });
+        const result = repairQuestionSetForPlan(parsedResult, normalizedInput);
         await captureAiGeneration({
             appName: context.appName,
             surface: "question_generation",
@@ -226,6 +229,148 @@ function normalizeQuestionGenerationInput(input: QuestionGenerationInput): Norma
     };
 }
 
+function repairQuestionSetForPlan(
+    questionSet: GeneratedInterviewQuestions,
+    input: NormalizedQuestionGenerationInput,
+): GeneratedInterviewQuestions {
+    if (!input.interviewStage) {
+        return questionSet;
+    }
+
+    const questionPlan = buildQuestionPlan({
+        interviewStage: input.interviewStage,
+        questionCount: input.questionCount,
+    });
+    const behavioral = { ...questionSet.behavioral };
+    const culture = { ...questionSet.culture };
+    const screening = { ...questionSet.screening };
+    const technical = [...questionSet.technical];
+
+    ensureObjectCategoryCount({
+        object: behavioral,
+        desiredCount: questionPlan.categoryCounts.behavioral,
+        existingKeyFilter: (key) => !isCaseScenarioQuestionKey(key),
+        keyPrefix: "Behavioral",
+        createKey: (index) => `Behavioral Follow-Up ${index}`,
+        createQuestion: () => createFallbackQuestionText("behavioral", input.role),
+    });
+    ensureObjectCategoryCount({
+        object: behavioral,
+        desiredCount: questionPlan.categoryCounts.case_scenario,
+        existingKeyFilter: isCaseScenarioQuestionKey,
+        keyPrefix: "Role-Specific Scenario",
+        createKey: (index) => `Role-Specific Scenario ${index}`,
+        createQuestion: () => createFallbackQuestionText("case_scenario", input.role),
+    });
+    ensureObjectCategoryCount({
+        object: culture,
+        desiredCount: questionPlan.categoryCounts.culture_fit,
+        existingKeyFilter: () => true,
+        keyPrefix: "Culture / Fit",
+        createKey: (index) => `Culture / Fit Follow-Up ${index}`,
+        createQuestion: () => createFallbackQuestionText("culture_fit", input.role),
+    });
+    ensureObjectCategoryCount({
+        object: screening,
+        desiredCount: questionPlan.categoryCounts.screening,
+        existingKeyFilter: () => true,
+        keyPrefix: "Screening",
+        createKey: (index) => `Screening Follow-Up ${index}`,
+        createQuestion: () => createFallbackQuestionText("screening", input.role),
+    });
+    ensureTechnicalCategoryCount(technical, questionPlan.categoryCounts.technical_role_specific, input.role);
+
+    return {
+        ...questionSet,
+        behavioral,
+        culture,
+        technical,
+        screening,
+    };
+}
+
+function ensureObjectCategoryCount({
+    object,
+    desiredCount,
+    existingKeyFilter,
+    keyPrefix,
+    createKey,
+    createQuestion,
+}: {
+    object: Record<string, string>;
+    desiredCount: number;
+    existingKeyFilter: (key: string) => boolean;
+    keyPrefix: string;
+    createKey: (index: number) => string;
+    createQuestion: (index: number) => string;
+}) {
+    let matchingCount = Object.keys(object).filter(existingKeyFilter).length;
+    let nextIndex = matchingCount + 1;
+
+    while (matchingCount < desiredCount) {
+        const key = findAvailableQuestionKey(object, createKey(nextIndex), keyPrefix, nextIndex);
+        object[key] = createQuestion(nextIndex);
+        matchingCount += 1;
+        nextIndex += 1;
+    }
+}
+
+function ensureTechnicalCategoryCount(
+    technical: Array<{ text: string }>,
+    desiredCount: number,
+    role: string,
+) {
+    while (technical.length < desiredCount) {
+        technical.push({
+            text: createFallbackQuestionText("technical_role_specific", role),
+        });
+    }
+}
+
+function findAvailableQuestionKey(
+    object: Record<string, string>,
+    preferredKey: string,
+    fallbackPrefix: string,
+    startIndex: number,
+) {
+    if (!object[preferredKey]) {
+        return preferredKey;
+    }
+
+    let index = startIndex;
+    let key = `${fallbackPrefix} ${index}`;
+    while (object[key]) {
+        index += 1;
+        key = `${fallbackPrefix} ${index}`;
+    }
+    return key;
+}
+
+function isCaseScenarioQuestionKey(key: string) {
+    const normalizedKey = key.toLowerCase();
+    return normalizedKey.includes("scenario") || normalizedKey.includes("role-specific") || normalizedKey.includes("case");
+}
+
+function createFallbackQuestionText(category: QuestionPlanCategory, role: string) {
+    if (category === "screening") {
+        return `What should the interviewer know about your interest, background, or availability for this ${role} role?`;
+    }
+
+    if (category === "culture_fit") {
+        return `What kind of team environment helps you do your best work as a ${role}, and how do you contribute to that environment?`;
+    }
+
+    if (category === "case_scenario") {
+        return `Imagine a realistic ${role} situation where priorities change and a customer, teammate, or process needs attention. What would you do first, and why?`;
+    }
+
+    if (category === "technical_role_specific") {
+        return `Walk me through a tool, process, or technique you would use to do high-quality work as a ${role}.`;
+    }
+
+    return `Tell me about a time you handled an important ${role} responsibility well. What did you do, and what changed because of your actions?`;
+}
+
 function normalizeQuestionCount(questionCount: number | null | undefined) {
     if (!questionCount || !Number.isInteger(questionCount)) {
         return 5;
@@ -237,11 +382,48 @@ function normalizeQuestionCount(questionCount: number | null | undefined) {
 function buildQuestionGenerationPrompt(input: QuestionGenerationInput) {
     const readingLevelContext = getReadingLevelContext(input.role);
     const interviewStage = normalizeInterviewStage(input.interviewStage);
+    const questionPlan = input.interviewStage
+        ? buildQuestionPlan({
+            interviewStage,
+            questionCount: input.questionCount,
+        })
+        : null;
     const practiceConfiguration = [
         input.interviewStage ? `- Interview stage: ${getInterviewStageLabel(interviewStage)}` : null,
         input.interviewType ? `- Practice emphasis: ${input.interviewType}` : null,
         input.questionCount ? `- Desired session length: ${input.questionCount} questions` : null,
+        questionPlan ? `- Planned category mix: ${formatQuestionPlanCategoryMix(questionPlan)}` : null,
     ].filter(Boolean).join("\n");
+    const contextGuide = [
+        `- Target role: Use "${input.role}" as the specific job the practice is preparing for.`,
+        input.jobDescription
+            ? "- Job description: Treat this as the primary source for duties, work setting, tools, constraints, and role-specific signals."
+            : "- Job description: None was provided, so rely on common expectations for the target role without inventing employer-specific facts.",
+        input.resume
+            ? "- Resume content: Use it to personalize questions around the candidate's background and transferable experience; do not quote private details unnecessarily."
+            : "- Resume content: None was provided, so keep questions role/JD-centered and do not invent candidate background.",
+        questionPlan
+            ? `- Stage and count: Generate exactly ${questionPlan.questionCount} total questions distributed as ${formatQuestionPlanCategoryMix(questionPlan)}.`
+            : "- Stage and count: No deterministic question plan was provided; generate a balanced compatibility pool for older callers.",
+    ].join("\n");
+    const questionPlanInstructions = questionPlan
+        ? `Generate exactly the planned category counts. Do not add unused extra questions beyond the planned mix.
+
+Planned output counts:
+${formatQuestionPlanOutputCounts(questionPlan)}
+
+Category-to-JSON mapping:
+- Screening questions go in "screening" as a keyed object.
+- Behavioral questions go in "behavioral" as keyed object entries whose keys do not include "Case" or "Scenario".
+- Culture/Fit questions go in "culture" as a keyed object.
+- Case/Scenario questions go in "behavioral" as keyed object entries whose keys include "Case" or "Scenario" so downstream category mapping can identify them.
+- Technical/Role-Specific questions go in "technical" as array objects with a "text" field.
+- Categories with a planned count of 0 must be empty: {} for keyed objects or [] for technical.`
+        : `Generate a balanced compatibility pool for older callers:
+- 4 behavioral questions in "behavioral".
+- 5 culture/fit questions in "culture".
+- 1-2 technical/role-specific questions in "technical".
+- 3 screening questions in "screening".`;
 
     return `
 SYSTEM:
@@ -252,6 +434,9 @@ ${input.jobDescription ? `JOB DESCRIPTION:\n${input.jobDescription}\n` : ""}
 ${input.resume ? `CANDIDATE RESUME:\n${input.resume}\n` : ""}
 ${practiceConfiguration ? `PRACTICE CONFIGURATION:\n${practiceConfiguration}\n` : ""}
 
+CONTEXT GUIDE:
+${contextGuide}
+
 PHASE 1: SIGNAL ANALYSIS (Internal Reasoning)
 1. Extract 3-4 core "Unspoken" requirements from the JD (e.g., physical stamina for warehouse, empathy for healthcare, or strategic influence for leaders).
 2. If a RESUME is provided, identify 2-3 specific background markers to anchor questions (e.g., previous experience in a similar industry).
@@ -261,57 +446,76 @@ ${readingLevelContext}
 - BEHAVIORAL STYLE: Use "Concrete Situational Scenarios" (e.g., "What would you do if...") instead of abstract "Tell me about a time..." questions for entry-level roles.
 
 PHASE 3: QUESTION GENERATION
-Generate interview questions in these categories:
+${questionPlanInstructions}
 
-1. Behavioral Questions - Generate exactly 4 distinct behavioral questions as a keyed object.
-   - Each question must be a complete, cohesive scenario (e.g., "Tell me about a time when...").
-   - DO NOT fragmented them into S/T/A/R segments.
-   - KEYS: "Conflict/Resolution", "Adaptability", "Initiative/Growth", "Role-Specific Scenario".
-
-2. Culture/Fit Questions - Generate exactly 5 questions as a keyed object based on PERMA dimensions:
-   - KEYS: "Positive Emotion", "Engagement", "Relationships", "Meaning", "Accomplishment".
-   - Anchor these to the specific company environment implied in the JD.
-
-3. Technical/Hard Skill Questions - Generate 1-2 questions.
-   - Anchor these to the actual tools or tasks mentioned in the JD.
-   - If a Resume is provided, tie the technical question to their stated tools/experience.
-
-4. Screening Questions - Generate exactly 3 questions as a keyed object.
-   - KEYS: "Interest", "Background", "Availability".
-   - Interest asks why the candidate is interested in this role or workplace.
-   - Background asks for a brief, role-relevant overview of experience without duplicating technical depth.
-   - Availability asks about schedule, shift, start date, travel, or other availability constraints only when the JD mentions them; otherwise ask a general readiness or logistics question.
+Question-category guidance:
+- Screening: Ask about interest, background, role logistics, schedule, shift, start date, travel, or availability when the JD supports it. If the JD does not mention availability constraints, ask a general readiness or interview-logistics question.
+- Behavioral: Ask for past examples or concrete situational responses tied to work habits, judgment, ownership, adaptability, or collaboration. Do not fragment questions into S/T/A/R parts.
+- Culture/Fit: Ask about team environment, motivation, service orientation, communication norms, values alignment, and the work setting implied by the JD. Do not mention PERMA.
+- Case/Scenario: Ask realistic "what would you do" or "walk me through" scenarios based on a role-specific situation, customer/client need, operational tradeoff, or prioritization moment.
+- Technical/Role-Specific: Ask about tools, processes, compliance, quality checks, domain tasks, or role-specific methods named or implied in the JD. If resume content is provided, you may connect the question to stated tools or experience.
 
 OUTPUT FORMAT (strict JSON, no other text):
 {
   "behavioral": {
-    "Conflict/Resolution": "complete question text",
-    "Adaptability": "complete question text",
-    "Initiative/Growth": "complete question text",
-    "Role-Specific Scenario": "complete question text"
+    "Behavioral 1": "complete question text",
+    "Case/Scenario 1": "complete question text"
   },
   "culture": {
-    "Positive Emotion": "complete question text",
-    "Engagement": "complete question text",
-    "Relationships": "complete question text",
-    "Meaning": "complete question text",
-    "Accomplishment": "complete question text"
+    "Culture / Fit 1": "complete question text"
   },
   "technical": [
     { "text": "question text" }
   ],
   "screening": {
-    "Interest": "complete question text",
-    "Background": "complete question text",
-    "Availability": "complete question text"
+    "Interest": "complete question text"
   }
 }
 
 RULES:
-- Questions must be relevant to the specific role and candidates.
+- Questions must be relevant to the specific role, job description, and candidate context when available.
 - Use plain, supportive language for entry-level roles.
 - Do not mention the word "STAR" or "PERMA" in the question text.
+- Do not include internal category names, scoring language, or implementation terms in the question text.
+- Output the exact JSON shape above. Empty planned categories must still be present as empty objects or arrays.
 - Output ONLY valid JSON.`;
+}
+
+function formatQuestionPlanCategoryMix(questionPlan: QuestionPlan) {
+    return QUESTION_PLAN_CATEGORY_ORDER
+        .map((category) => ({
+            label: getQuestionPlanCategoryPromptLabel(category),
+            count: questionPlan.categoryCounts[category],
+        }))
+        .filter((item) => item.count > 0)
+        .map((item) => `${item.count} ${item.label}`)
+        .join(", ");
+}
+
+function formatQuestionPlanOutputCounts(questionPlan: QuestionPlan) {
+    return QUESTION_PLAN_CATEGORY_ORDER
+        .map((category) => `- ${getQuestionPlanCategoryPromptLabel(category)}: ${questionPlan.categoryCounts[category]}`)
+        .join("\n");
+}
+
+function getQuestionPlanCategoryPromptLabel(category: QuestionPlanCategory) {
+    if (category === "screening") {
+        return "Screening";
+    }
+
+    if (category === "behavioral") {
+        return "Behavioral";
+    }
+
+    if (category === "culture_fit") {
+        return "Culture/Fit";
+    }
+
+    if (category === "case_scenario") {
+        return "Case/Scenario";
+    }
+
+    return "Technical/Role-Specific";
 }
 
 function flattenCandidateQuestionSet(questionSet: GeneratedInterviewQuestions, interviewType: PracticeInterviewType | null): CandidateQuestionTemplate[] {
@@ -332,9 +536,9 @@ function flattenCandidateQuestionSet(questionSet: GeneratedInterviewQuestions, i
 
     if (interviewType === "case") {
         return [
-            ...behavioralQuestions.filter((question) => question.framework === "Role-Specific Scenario"),
+            ...behavioralQuestions.filter((question) => isCaseScenarioQuestionKey(question.framework ?? "")),
             ...technicalQuestions,
-            ...behavioralQuestions.filter((question) => question.framework !== "Role-Specific Scenario"),
+            ...behavioralQuestions.filter((question) => !isCaseScenarioQuestionKey(question.framework ?? "")),
             ...cultureQuestions,
             ...screeningQuestions,
         ];
@@ -368,9 +572,9 @@ function flattenCandidateQuestionSetByPlan(
     const buckets = buildCandidateQuestionBuckets(questionSet);
     const byPlanCategory: Record<QuestionPlanCategory, CandidateQuestionTemplate[]> = {
         screening: buckets.screeningQuestions,
-        behavioral: buckets.behavioralQuestions.filter((question) => question.framework !== "Role-Specific Scenario"),
+        behavioral: buckets.behavioralQuestions.filter((question) => !isCaseScenarioQuestionKey(question.framework ?? "")),
         culture_fit: buckets.cultureQuestions,
-        case_scenario: buckets.behavioralQuestions.filter((question) => question.framework === "Role-Specific Scenario"),
+        case_scenario: buckets.behavioralQuestions.filter((question) => isCaseScenarioQuestionKey(question.framework ?? "")),
         technical_role_specific: buckets.technicalQuestions,
     };
     const fallbackQuestions = flattenCandidateQuestionSet(questionSet, legacyInterviewType);
@@ -423,7 +627,7 @@ function buildCandidateQuestionBuckets(questionSet: GeneratedInterviewQuestions)
         framework: "Technical",
         index: 0,
     }));
-    const screeningQuestions = Object.entries(questionSet.screening ?? {}).map(([framework, text]) => ({
+    const screeningQuestions = Object.entries(questionSet.screening).map(([framework, text]) => ({
         id: "",
         text,
         category: "Screening",

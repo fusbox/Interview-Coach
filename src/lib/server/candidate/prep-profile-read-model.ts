@@ -49,8 +49,18 @@ export type PrepSignal = {
     averageScore?: number;
     scoreCount?: number;
     fillPercent?: number;
+    dimensionStates?: PrepSignalDimensionState[];
     priority: "primary" | "supporting" | "background";
     sourceRefs: PrepEvidenceRef[];
+};
+
+export type PrepSignalDimensionState = {
+    dimension: Dimension;
+    label: string;
+    evidenceState: PrepEvidenceState;
+    averageScore?: number;
+    scoreCount: number;
+    fillPercent?: number;
 };
 
 export type PrepQuestionCategoryCard = {
@@ -66,8 +76,15 @@ export type PrepQuestionCategoryCard = {
     }>;
     evidenceState: PrepEvidenceState;
     averageScore?: number;
+    laneStates?: Partial<Record<ReleasePrepSignalLane, {
+        evidenceState: PrepEvidenceState;
+        averageScore?: number;
+        scoreCount: number;
+    }>>;
     sourceRefs: PrepEvidenceRef[];
 };
+
+export type ReleasePrepSignalLane = Extract<PrepSignalLane, "answer_substance" | "interview_structure" | "communication_delivery">;
 
 export type PrepObservation = {
     observationId: string;
@@ -150,7 +167,7 @@ const EMPTY_EVIDENCE_COUNTS: Record<PrepEvidenceState, number> = {
 };
 
 const RELEASE_LANE_DIMENSIONS: Array<{
-    id: Extract<PrepSignalLane, "answer_substance" | "interview_structure" | "communication_delivery">;
+    id: ReleasePrepSignalLane;
     label: string;
     dimensions: Dimension[];
 }> = [
@@ -171,14 +188,26 @@ const RELEASE_LANE_DIMENSIONS: Array<{
     },
 ];
 
+const RELEASE_DIMENSION_LABELS: Partial<Record<Dimension, string>> = {
+    focus_relevance: "Focus",
+    specificity_concreteness: "Specific detail",
+    outcome_explicitness: "Outcome clarity",
+    decision_rationale: "Decision logic",
+    structural_clarity: "Clear flow",
+    signposting: "Signposting",
+    filler_words: "Filler control",
+    conciseness: "Conciseness",
+    resilience: "Resilience",
+};
+
 export function buildPrepProfileReadModel(input: PrepProfileReadModelInput): PrepProfileReadModel {
     const questions = input.questions ?? [];
     const answers = input.answers ?? [];
+    const answerByQuestionId = new Map(answers.map((answer) => [answer.questionId, answer]));
     if (answers.some((answer) => answer.analysis?.scores)) {
         return buildScoreDrivenReadModel(input, questions, answers);
     }
 
-    const answerByQuestionId = new Map(answers.map((answer) => [answer.questionId, answer]));
     const signals = new Map<string, SignalDraft>();
     const observations: PrepObservation[] = [];
 
@@ -215,7 +244,7 @@ export function buildPrepProfileReadModel(input: PrepProfileReadModelInput): Pre
     return {
         prepProfileId: input.prepProfileId,
         signals: finalizedSignals,
-        categoryCards: [],
+        categoryCards: buildScoreDrivenCategoryCards(input, questions, answerByQuestionId),
         observations,
         recommendation: buildPrepRecommendation(input, finalizedSignals),
     };
@@ -267,9 +296,29 @@ function buildScoreDrivenLaneSignal(
         averageScore: averageScore === null ? undefined : roundScore(averageScore),
         scoreCount: scores.length,
         fillPercent: scoreToFillPercent(averageScore),
+        dimensionStates: buildScoreDrivenDimensionStates(answers, lane.dimensions),
         priority: evidenceState === "emerging" ? "primary" : "supporting",
         sourceRefs: buildScoreLaneRefs(questions, answerByQuestionId, lane.dimensions),
     };
+}
+
+function buildScoreDrivenDimensionStates(
+    answers: Answer[],
+    dimensions: Dimension[],
+): PrepSignalDimensionState[] {
+    return dimensions.map((dimension) => {
+        const scores = answers.flatMap((answer) => collectScores(answer.analysis, [dimension]));
+        const averageScore = average(scores);
+
+        return {
+            dimension,
+            label: RELEASE_DIMENSION_LABELS[dimension] ?? titleCaseDimension(dimension),
+            evidenceState: scoreToEvidenceState(averageScore),
+            averageScore: averageScore === null ? undefined : roundScore(averageScore),
+            scoreCount: scores.length,
+            fillPercent: scoreToFillPercent(averageScore),
+        };
+    });
 }
 
 function buildScoreDrivenCategoryCards(
@@ -314,6 +363,7 @@ function buildScoreDrivenCategoryCards(
             "resilience",
         ]));
         const averageScore = average(scores);
+        const laneStates = buildCategoryLaneStates(group.answers);
         return {
             categoryId,
             label: group.label,
@@ -329,6 +379,7 @@ function buildScoreDrivenCategoryCards(
                 .sort((a, b) => a.questionNumber - b.questionNumber),
             evidenceState: scoreToEvidenceState(averageScore),
             averageScore: averageScore === null ? undefined : roundScore(averageScore),
+            laneStates,
             sourceRefs: group.questions.flatMap((question) => {
                 const answer = answerByQuestionId.get(question.id);
                 return buildQuestionAnswerRefs({
@@ -340,6 +391,19 @@ function buildScoreDrivenCategoryCards(
             }),
         };
     });
+}
+
+function buildCategoryLaneStates(answers: Answer[]): PrepQuestionCategoryCard["laneStates"] {
+    return RELEASE_LANE_DIMENSIONS.reduce<NonNullable<PrepQuestionCategoryCard["laneStates"]>>((states, lane) => {
+        const scores = answers.flatMap((answer) => collectScores(answer.analysis, lane.dimensions));
+        const averageScore = average(scores);
+        states[lane.id] = {
+            evidenceState: scoreToEvidenceState(averageScore),
+            averageScore: averageScore === null ? undefined : roundScore(averageScore),
+            scoreCount: scores.length,
+        };
+        return states;
+    }, {});
 }
 
 function buildInterviewContextSignal(input: PrepProfileReadModelInput): SignalDraft {

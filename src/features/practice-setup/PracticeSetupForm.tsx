@@ -2,12 +2,11 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Briefcase, ChevronDown, ClipboardList, FileText, SlidersHorizontal } from "lucide-react";
+import { ArrowRight, Briefcase, ClipboardList, FileText, ListChecks } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { FieldLabel, textFieldClassName, textareaFieldClassName } from "@/components/ui/FormField";
 import {
-    INTERVIEW_STAGE_OPTIONS,
     normalizeInterviewStage,
     type InterviewStage,
 } from "@/lib/domain/interview-stage";
@@ -42,13 +41,44 @@ const fieldErrorIds: Record<PracticeSetupField, string> = {
 
 const questionCountOptions = [3, 5, 7, 10] as const;
 
+const candidateInterviewStageOptions: ReadonlyArray<{
+    value: InterviewStage;
+    label: string;
+    description: string;
+}> = [
+    {
+        value: "practice_only",
+        label: "I'm not sure / No interview scheduled yet",
+        description: "Use a balanced round when you want practice or are not sure what kind of interview is coming.",
+    },
+    {
+        value: "initial_screening",
+        label: "First conversation or screening",
+        description: "Prepare for interest, background, availability, fit, and a few role basics.",
+    },
+    {
+        value: "initial_interview",
+        label: "First interview",
+        description: "Practice the main role questions you are likely to hear after screening.",
+    },
+    {
+        value: "follow_up_final",
+        label: "Follow-up or final interview",
+        description: "Go deeper on role scenarios, decision-making, and examples from your experience.",
+    },
+];
+
+function normalizeCandidateInterviewStage(value: unknown): InterviewStage {
+    const normalized = normalizeInterviewStage(value);
+    return normalized === "not_sure" ? "practice_only" : normalized;
+}
+
 export function PracticeSetupForm({ initialValues = null, practiceDraftId = null, submissionError = null }: PracticeSetupFormProps) {
     const router = useRouter();
     const [fieldErrors, setFieldErrors] = useState<PracticeSetupErrors>({});
     const [actionError, setActionError] = useState<string | null>(null);
     const [acknowledgementError, setAcknowledgementError] = useState<string | null>(null);
-    const [advancedSetupOpen, setAdvancedSetupOpen] = useState(false);
-    const initialInterviewStage = normalizeInterviewStage(initialValues?.interviewStage);
+    const initialInterviewStage = normalizeCandidateInterviewStage(initialValues?.interviewStage);
     const initialQuestionCount = String(initialValues?.questionCount ?? PRACTICE_SETUP_LIMITS.questionCountDefault);
     const [selectedInterviewStage, setSelectedInterviewStage] = useState(initialInterviewStage);
     const [selectedQuestionCount, setSelectedQuestionCount] = useState(initialQuestionCount);
@@ -225,101 +255,69 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
                 </div>
             </div>
 
-            {!advancedSetupOpen ? (
-                <>
-                    <input type="hidden" name="interviewStage" value={selectedInterviewStage} aria-label="Default interview stage value" />
-                    <input type="hidden" name="questionCount" value={selectedQuestionCount} aria-label="Default question amount value" />
-                </>
-            ) : null}
-
-            <div className="rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-white/80 p-4 shadow-flat">
-                <button
-                    type="button"
-                    aria-expanded={advancedSetupOpen ? "true" : "false"}
-                    aria-controls="advanced-setup-panel"
-                    onClick={() => setAdvancedSetupOpen((isOpen) => !isOpen)}
-                    className="flex w-full items-center justify-between gap-4 text-left"
-                >
-                    <span className="flex items-center gap-3">
-                        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                            <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
-                        </span>
-                        <span>
-                            <span className="block text-sm font-bold text-text-primary">Advanced setup</span>
-                            <span className="mt-1 block text-sm leading-6 text-text-secondary">
-                                Choose the interview moment and number of questions when you want a more specific round.
-                            </span>
-                        </span>
+            <section className="space-y-3" aria-labelledby="interview-details-heading">
+                <div className="ml-1 flex items-center gap-2">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <ListChecks className="h-4 w-4" aria-hidden="true" />
                     </span>
-                    <ChevronDown
-                        className={`h-5 w-5 shrink-0 text-text-secondary transition-transform ${advancedSetupOpen ? "rotate-180" : ""}`}
-                        aria-hidden="true"
-                    />
-                </button>
-
-                {advancedSetupOpen ? (
-                    <div
-                        id="advanced-setup-panel"
-                        aria-label="Advanced setup controls"
-                        className="mt-5 rounded-2xl bg-[rgb(var(--candidate-surface-subtle))] p-4 shadow-flat sm:p-5"
+                    <h2
+                        id="interview-details-heading"
+                        className="text-[0.625rem] font-bold uppercase tracking-wider text-[rgb(var(--candidate-muted))]"
                     >
-                        <div className="grid gap-5 sm:grid-cols-2">
-                            <fieldset
-                                className="space-y-3"
-                                aria-describedby="interview-stage-help"
-                            >
-                                <legend className="ml-1 text-[0.625rem] font-bold uppercase tracking-wider text-[rgb(var(--candidate-muted))]">
-                                    What are you preparing for?
-                                </legend>
-                                <p id="interview-stage-help" className="text-sm leading-6 text-text-secondary sm:min-h-12">
-                                    If you know where you are in the interview process, choose the closest match. If not, Not sure yet keeps the round balanced.
-                                </p>
-                                <div className="space-y-2">
-                                    {INTERVIEW_STAGE_OPTIONS.map((option) => (
-                                        <AdvancedSetupOption
-                                            key={option.value}
-                                            name="interviewStage"
-                                            value={option.value}
-                                            label={option.label}
-                                            description={option.description}
-                                            checked={selectedInterviewStage === option.value}
-                                            onChange={(value) => setSelectedInterviewStage(normalizeInterviewStage(value))}
+                        Interview Details
+                    </h2>
+                </div>
+                <div className="rounded-xl border border-[rgb(var(--candidate-border))] bg-white p-4 shadow-[var(--candidate-shadow-soft)] sm:p-5">
+                    <div className="space-y-6">
+                        <fieldset className="space-y-3" aria-describedby="interview-stage-help">
+                            <legend className="text-micro font-bold uppercase tracking-widest text-primary">
+                                Interview Stage
+                            </legend>
+                            <p id="interview-stage-help" className="text-sm leading-6 text-text-secondary">
+                                Choose the closest match for the interview you want to practice.
+                            </p>
+                            <div className="grid gap-3 md:grid-cols-2">
+                                {candidateInterviewStageOptions.map((option) => (
+                                    <PracticeSetupOption
+                                        key={option.value}
+                                        name="interviewStage"
+                                        value={option.value}
+                                        label={option.label}
+                                        description={option.description}
+                                        checked={selectedInterviewStage === option.value}
+                                        onChange={(value) => setSelectedInterviewStage(normalizeCandidateInterviewStage(value))}
+                                    />
+                                ))}
+                            </div>
+                        </fieldset>
+
+                        <fieldset className="space-y-3" aria-describedby="question-count-help">
+                            <legend className="text-micro font-bold uppercase tracking-widest text-primary">
+                                Question Count
+                            </legend>
+                            <p id="question-count-help" className="text-sm leading-6 text-text-secondary">
+                                Select how many questions to include in this practice round.
+                            </p>
+                            <div className="flex flex-wrap gap-3">
+                                {questionCountOptions.map((option) => {
+                                    const value = String(option);
+
+                                    return (
+                                        <QuestionCountOption
+                                            key={option}
+                                            name="questionCount"
+                                            value={value}
+                                            label={`${option} questions`}
+                                            checked={selectedQuestionCount === value}
+                                            onChange={setSelectedQuestionCount}
                                         />
-                                    ))}
-                                </div>
-                            </fieldset>
-
-                            <fieldset
-                                className="space-y-3"
-                                aria-describedby="question-count-help"
-                            >
-                                <legend className="ml-1 text-[0.625rem] font-bold uppercase tracking-wider text-[rgb(var(--candidate-muted))]">
-                                    Question count
-                                </legend>
-                                <p id="question-count-help" className="text-sm leading-6 text-text-secondary sm:min-h-12">
-                                    Choose how many prompts you want in this practice round.
-                                </p>
-                                <div className="space-y-2">
-                                    {questionCountOptions.map((option) => {
-                                        const value = String(option);
-
-                                        return (
-                                            <AdvancedSetupOption
-                                                key={option}
-                                                name="questionCount"
-                                                value={value}
-                                                label={`${option} questions`}
-                                                checked={selectedQuestionCount === value}
-                                                onChange={setSelectedQuestionCount}
-                                            />
-                                        );
-                                    })}
-                                </div>
-                            </fieldset>
-                        </div>
+                                    );
+                                })}
+                            </div>
+                        </fieldset>
                     </div>
-                ) : null}
-            </div>
+                </div>
+            </section>
 
             <div className="space-y-4 rounded-2xl border border-primary/15 bg-primary/5 p-4 text-sm leading-6 text-text-secondary">
                 <p>
@@ -352,7 +350,7 @@ export function PracticeSetupForm({ initialValues = null, practiceDraftId = null
     );
 }
 
-function AdvancedSetupOption({
+function PracticeSetupOption({
     name,
     value,
     label,
@@ -369,12 +367,11 @@ function AdvancedSetupOption({
 }) {
     return (
         <label
-            className={[
-                "flex min-h-12 cursor-pointer flex-col items-start rounded-2xl border px-4 py-3 text-sm font-bold transition-all",
+            className={`flex cursor-pointer gap-3 rounded-2xl border px-4 py-3 transition-all ${
                 checked
-                    ? "border-primary/45 bg-primary/5 text-text-primary"
-                    : "border-[rgb(var(--candidate-border)/0.78)] bg-white text-text-primary hover:border-primary/45 hover:bg-primary/5",
-            ].join(" ")}
+                    ? "border-primary/40 bg-primary/5 text-text-primary"
+                    : "border-[rgb(var(--candidate-border))] bg-white text-text-secondary hover:border-primary/30 hover:bg-primary/5"
+            }`}
         >
             <input
                 type="radio"
@@ -382,12 +379,48 @@ function AdvancedSetupOption({
                 value={value}
                 checked={checked}
                 onChange={() => onChange(value)}
-                className="sr-only"
+                className="mt-1 h-4 w-4 border-border text-primary accent-primary focus:ring-primary/20"
             />
-            <span>{label}</span>
-            {description ? (
-                <span className="mt-1 text-sm font-normal leading-6 text-text-secondary">{description}</span>
-            ) : null}
+            <span>
+                <span className="block text-sm font-bold text-text-primary">{label}</span>
+                {description ? (
+                    <span className="mt-1 block text-sm font-normal leading-6 text-text-secondary">{description}</span>
+                ) : null}
+            </span>
+        </label>
+    );
+}
+
+function QuestionCountOption({
+    name,
+    value,
+    label,
+    checked,
+    onChange,
+}: {
+    name: string;
+    value: string;
+    label: string;
+    checked: boolean;
+    onChange: (value: string) => void;
+}) {
+    return (
+        <label
+            className={`inline-flex cursor-pointer items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-bold transition-all ${
+                checked
+                    ? "border-primary/40 bg-primary/5 text-primary"
+                    : "border-[rgb(var(--candidate-border))] bg-white text-text-secondary hover:border-primary/30 hover:bg-primary/5"
+            }`}
+        >
+            <input
+                type="radio"
+                name={name}
+                value={value}
+                checked={checked}
+                onChange={() => onChange(value)}
+                className="h-4 w-4 border-border text-primary accent-primary focus:ring-primary/20"
+            />
+            {label}
         </label>
     );
 }
