@@ -1,7 +1,7 @@
 # Candidate App Handoff
 
 Status: Active execution state
-Last updated: 2026-06-18
+Last updated: 2026-06-22
 
 ## Completed
 
@@ -38,7 +38,7 @@ Last updated: 2026-06-18
 - Dashboard Quick View now has a first Recharts-backed instant-read surface: a two-level Answer Skills ring for Substance, Structure, and Delivery plus their child dimensions, and a rounded Question Mix pie sized from planned question counts with practiced coverage reflected visually. It stays candidate-facing, non-score, and derived from the same selected-target-interview evidence as the matrix.
 - Dashboard Quick View Answer Skills child slices now use dimension-level preparedness state from the score-driven read model when available instead of inheriting the parent lane color. Dimension states are weighted by score count across scoped selected-target sessions and fall back to parent-lane state only for legacy/scoreless rows.
 - Dashboard Quick View Question Mix now has a clearer release contract: planned category counts determine the total pie distribution, each category can split into practiced and upcoming arcs, practiced arcs use the scored preparedness state, and upcoming arcs stay muted so unsubmitted planned questions do not read as weak performance.
-- Dashboard Quick View lane and question-type controls still route to the existing drilldown evidence modals. Hover/focus updates the concise coach read in place, while click/tap opens the same lane/category evidence surfaces used by Details.
+- Dashboard Quick View Answer Skills and Question Mix pie slices now own the lane/category interaction model. Hover/focus updates the concise coach read in place, click/tap opens the same lane/category evidence surfaces used by Details, and the former lower lane/category cards are deprecated.
 - Dashboard read model now preserves planned/generated question category coverage before any answer has been submitted or scored. Fresh active sessions can show a segmented Question Mix pie from generated question categories while keeping all category states `to practice` until scored practice evidence exists.
 - Dashboard Practice Next now exposes a visible Upcoming practice items list. Active sessions show every unanswered planned question from the selected target interview first; completed-only contexts fall back to the non-strong Preparedness Map cells so the recommendation surface can prove what it understands instead of hiding all but one next action.
 - Dashboard Practice Next now also has a release-basic coverage baseline: `PracticeCoverageBaseline` is derived from the same shared `QuestionPlan`, dashboard rows parse persisted `questionPlanSnapshot`, and completed-only contexts show missing planned category coverage before lower-scoring Preparedness Map cells.
@@ -74,6 +74,12 @@ Last updated: 2026-06-18
 - Candidate session landing now reads `session.intakeData.questionPlanSnapshot` when available and shows a compact practice-plan summary with resolved stage/count and nonzero category counts before the first question starts. If this UI is absent on a new session, check whether the session is still `NOT_STARTED` and whether the persisted `intakeData.questionPlanSnapshot` is present.
 - Candidate session landing practice-plan persistence bug is fixed at the Postgres repository boundary: `PostgresSessionRepository.update()` now preserves arbitrary `session.intakeData` while overlaying repository-managed candidate/token/engagement fields, so newly created candidate sessions keep `questionPlanSnapshot` through the database round trip.
 - Shared answer analysis no longer produces legacy `meta.readinessLevel` values. Historical stored analysis payloads may still contain that optional field, but new normal, mock, and fallback analysis outputs no longer write it.
+- Practice Next browser validation is cleared for active and completed target-interview contexts: active sessions list all unanswered planned questions first, and completed-only contexts list missing planned category coverage before non-strong matrix improvement items.
+- Dashboard Quick View spacing now uses one visual grammar across empty and populated states: the empty dashboard preview reuses the same instant-read surface structure, chart spacing, and dashboard column rhythm as the populated Preparedness Map, while keeping preview controls non-opening.
+- Dashboard Quick View card-to-chart migration is resolved as Azure item 810: the Answer Skills ring and Question Mix pie now carry the previous lane/category card hover and open-detail behavior, while the lower duplicate card groups have been removed from the populated and empty Quick View surfaces.
+- Dashboard Practice Next planned-coverage baseline is resolved as Azure item 809: active sessions list unanswered planned questions first, and completed-only contexts list missing planned category coverage before score-derived improvement cells.
+- Dashboard Quick View focus-state refinement keeps parent lane slices on their own preparedness-state color when focused, applies lifted/glowing treatment without forcing green segments to blue, and restores the overall read when the segment is no longer hovered/focused or Escape is pressed.
+- Dashboard Quick View modal opening now belongs to the chart segments instead of the deprecated selected-read action button: parent lane slices, outer dimension slices, and question mix slices open the existing lane/category drilldown modals directly, with outer dimensions still opening their parent lane modal.
 
 ## Current State And Context
 
@@ -90,8 +96,9 @@ Known current behavior:
 - Dashboard My Read detail copy is now structurally formatted from existing candidate-safe evaluation text; no additional model call is made for the formatting pass.
 - Practice Next prefers `coachSignal` and uses "biggest lift" language. Older rows with `oneBigUpgrade` still map through a compatibility fallback. The visible list now differentiates literal active-session upcoming questions, completed-session planned coverage gaps, and score-derived improvement cells.
 - Previous sessions are filtered to the selected target interview role, but same-title/different-JD switching still needs a real profile manager later.
-- Drilldowns now show session-grouped, capped Q/A evidence cards instead of raw source-ref preview rows. Browser validation item #1 is cleared; category-card state/order now follows the score-driven release contract.
+- Drilldowns now show session-grouped, capped Q/A evidence cards instead of raw source-ref preview rows. Browser validation item #1 is cleared; category chart state/order now follows the score-driven release contract.
 - Empty dashboard state is now a visual preview of the eventual dashboard rather than a sparse placeholder checklist, and it uses the same two-chart vocabulary as populated Quick View.
+- Quick View pie slices now open lane/category details directly, the lower guidance card is the selected-read surface, and overall read is the persistent default whenever no segment is hovered, focused, tapped, or armed. Full-page tests cover parent lane, outer dimension, and category-slice modal opening; the next pass should continue validating this on real mobile and desktop browser surfaces before resolving DASH-S24.
 - Confidence measurement has not landed.
 - Runtime PII/sensitive-data scrubbing and QA masking are still open hardening items.
 - Host launch token/auth details are not finalized, so platform launch schema changes are documented but not implemented.
@@ -119,8 +126,8 @@ Resolve the dashboard preparedness presentation contract before adding more visu
 
 Recommended next implementation slice:
 
-1. Browser-validate the Practice Next list against active and completed target-interview contexts: active sessions should list all unanswered planned questions; completed-only contexts should list missing planned category coverage first, then non-strong matrix improvement items in priority order.
-2. Define when, where, and how snapshot versus current-state UI appears. This is the last large unspec'd dashboard behavior before the current release scope can settle.
+1. Browser-validate DASH-S24 / Azure 811 on desktop and mobile-sized viewports: green parent lane slices should stay green on hover/focus, chart segment activation should open the matching modal, the guidance card should return to overall read on mouseout/blur/Escape/tapaway, and mobile should keep first-tap reveal plus second-tap modal open.
+2. Define when, where, and how snapshot versus current-state UI appears. This remains the last large unspec'd dashboard behavior before the current release scope can settle.
 3. Continue product tuning of matrix cell state and category-scoped My Read copy against more realistic sessions.
 4. Add dev-only dashboard seed scenarios once the UI is mature enough to validate quickly: multiple fake candidates, active/paused/resumed sessions, partially answered plans, completed multi-round histories, and changing session-over-session evidence.
 5. Continue recruiter `/recruiter/create` browser validation: confirm generated and manual planned-section question behavior persists invites/templates correctly, including read-only AI/template fields, editable manual fields, the five-category Configuration preview, back-navigation restoration behavior, and 7/10/Other question counts that allocate multiple case/scenario or technical slots.

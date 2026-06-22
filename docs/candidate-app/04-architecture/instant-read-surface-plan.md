@@ -1,7 +1,7 @@
 # Instant Read Surface Plan
 
 Status: Working plan
-Last updated: 2026-06-17
+Last updated: 2026-06-21
 
 ## Purpose
 
@@ -32,7 +32,7 @@ The preferred release trajectory is:
 - front: qualitative preparedness snapshot;
 - back/detail: matrix of question category by answer lane;
 - drilldowns: existing row, column, cell, lane, category, and Q/A modals;
-- guidance card: static between-round coach read unless a distinct selected-state use case is later approved.
+- guidance card: overall read by default, then selected-segment guidance on hover/focus or mobile tap.
 
 The current implementation is a foothold, not the final shape: it renders a Recharts-backed Quick View beside the matrix-backed Details view. That is useful for validation, but the exact snapshot/current-state semantics and final visual polish are still open.
 
@@ -98,13 +98,33 @@ Status: Direction set for current release.
 
 Current direction: the instant-read coach read acts as the guidance surface. It starts with the overall read, then updates when the candidate focuses a lane or question type. This gives the front side a reason to be interactive without creating a parallel evidence system.
 
+Next interaction target: move the selected read into a full-width guidance card that occupies the lower half of the instant-read surface. The card should show the overall read by default, then swap to segment-specific copy when a candidate hovers, focuses, or taps a pie segment. This card remains the interpretation layer; evidence stays in the existing drilldown modals.
+
 The selected read should stay lightweight:
 
 - explain what the selected lane or question type means in plain candidate-facing language;
+- support Answer Skills outer dimension segments as first-class guidance targets, not only the three parent lanes;
 - avoid raw scores, hidden scoring terms, and diagnostic language;
-- tell the candidate why opening the detail matters;
+- tell the candidate why opening the detail matters, without requiring a separate "Open details" button group once direct segment open is validated;
 - leave actual Q/A evidence and My Read detail in the existing drilldown modals.
 - preserve keyboard access with focus-triggered selected reads.
+
+Mobile parity rule:
+
+- on hover-capable pointers, hover or focus updates the guidance card and click opens the matching modal;
+- on coarse pointers, the first tap on a segment reveals that segment's guidance in the card, and a second tap on the same segment opens the matching modal;
+- outer Answer Skills dimensions open the same parent-lane modal as their lane segment while showing dimension-specific guidance in the card;
+- tapping a different segment switches the guidance card to that segment instead of opening the previous modal;
+- tapping away from segments on mobile returns the card to the overall read;
+- mouseout, blur away from the surface, or Escape returns the card to the overall read so the default state is persistent whenever no segment is actively hovered, focused, tapped, or armed;
+- keyboard users should not need a double activation: focus reveals guidance, and Enter/Space opens the modal.
+
+Focus-state rule:
+
+- idle segments keep the current muted/base state color;
+- the hovered, focused, or tapped segment gets primary focus treatment: a slight x/y lift, shadow elevation, and a brighter state-color glow;
+- parent or child/sibling counterparts get secondary focus treatment: base state color, normal position, and no blue border;
+- unrelated segments can dim while the focused family remains readable.
 
 ### 6. Responsive And Accessible Motion
 
@@ -166,9 +186,11 @@ The next instant-read pass should validate Slice 2 and prepare Slice 5 decisions
 
 1. Browser-validate Quick View and Details on mobile and desktop.
 2. Keep Quick View as the default and keep Details as the matrix breakdown.
-3. Tune the Answer Skills ring and Question Mix pie for readability against real candidate data, including active sessions with generated questions and 0 answered responses.
-4. Refine selected-read copy and spatial composition so it feels like a coach interpretation, not a tooltip or duplicate modal.
-5. Continue validating dimension-level child slices against real sessions so the ring reads as answer-skill evidence, not a duplicate of the parent lane.
-6. Do not add trajectory, animation-heavy visualization, or new persistence until snapshot/current-state semantics are settled.
+3. Move selected-read copy into a full-width lower guidance card that works when the pies are side-by-side or stacked.
+4. Tune pie-segment interaction parity: desktop hover/focus reveals guidance and click opens the modal; mobile first tap reveals guidance and second tap opens the same modal.
+5. Add hardcoded user-facing guidance and lane-modal behavior for Answer Skills outer dimension segments, preserving parent-lane fallback where score-driven child state is unavailable.
+6. Tune the Answer Skills ring and Question Mix pie for readability against real candidate data, including active sessions with generated questions and 0 answered responses.
+7. Continue validating dimension-level child slices against real sessions so the ring reads as answer-skill evidence, not a duplicate of the parent lane.
+8. Do not add trajectory, animation-heavy visualization, or new persistence until snapshot/current-state semantics are settled.
 
 Rationale: the explicit toggle is now the stable view contract. The next value is making the Quick View readable and trustworthy before adding motion or deeper progression semantics.
