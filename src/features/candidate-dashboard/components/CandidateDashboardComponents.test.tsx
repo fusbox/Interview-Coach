@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
@@ -519,30 +519,98 @@ describe("candidate dashboard component set", () => {
         );
 
         expect(screen.getByRole("region", { name: /preparedness snapshot/i })).toHaveTextContent("How your answers are shaping up");
-        expect(screen.getByRole("img", { name: /skill ring/i })).toBeInTheDocument();
-        expect(screen.getByRole("img", { name: /question mix/i })).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: /open substance details/i })).toHaveAttribute("data-evidence-state", "strong");
-        expect(screen.getByRole("button", { name: /open behavioral details/i })).toHaveTextContent("1 of 2 practiced");
+        expect(screen.getByLabelText("Answer skills chart")).toBeInTheDocument();
+        expect(screen.getByLabelText("Question mix chart")).toBeInTheDocument();
+        expect(screen.queryByText("Skill areas")).not.toBeInTheDocument();
+        expect(screen.queryByText("Question types")).not.toBeInTheDocument();
 
-        await user.hover(screen.getByRole("button", { name: /open substance details/i }));
-
-        expect(screen.getByRole("region", { name: /preparedness snapshot/i })).toHaveTextContent("Substance");
-        expect(screen.getByRole("region", { name: /preparedness snapshot/i })).toHaveTextContent("carrying strong practice evidence");
-        expect(laneClicks).toEqual([]);
-
-        await user.click(screen.getByRole("button", { name: /open substance details/i }));
+        fireEvent.click(screen.getByRole("button", { name: /open substance details/i }));
 
         expect(laneClicks).toEqual(["answer_substance"]);
 
-        await user.hover(screen.getByRole("button", { name: /open behavioral details/i }));
+        const substanceSlice = screen.getByRole("button", { name: /open substance details/i });
+        await user.hover(substanceSlice);
+
+        expect(screen.getByRole("region", { name: /preparedness snapshot/i })).toHaveTextContent("Substance");
+        expect(screen.getByRole("region", { name: /preparedness snapshot/i })).toHaveTextContent("carrying strong practice evidence");
+        expect(screen.getByRole("button", { name: /open substance details/i })).toHaveClass("drop-shadow-[0_5px_8px_rgb(var(--candidate-success)/0.28)]");
+        expect(laneClicks).toEqual(["answer_substance"]);
+
+        fireEvent.mouseOut(screen.getByRole("button", { name: /open substance details/i }));
+
+        expect(screen.getByRole("region", { name: /preparedness snapshot/i })).toHaveTextContent(snapshot.overallRead.label);
+        expect(screen.getByRole("region", { name: /preparedness snapshot/i })).toHaveTextContent(snapshot.overallRead.summary);
+
+        fireEvent.click(screen.getByRole("button", { name: /open behavioral practiced details/i }));
+
+        expect(categoryClicks).toEqual(["behavioral"]);
+
+        const behavioralSlice = screen.getByRole("button", { name: /open behavioral practiced details/i });
+        await user.hover(behavioralSlice);
 
         expect(screen.getByRole("region", { name: /preparedness snapshot/i })).toHaveTextContent("Behavioral");
         expect(screen.getByRole("region", { name: /preparedness snapshot/i })).toHaveTextContent("1 of 2 planned Behavioral");
-        expect(categoryClicks).toEqual([]);
-
-        await user.click(screen.getByRole("button", { name: /open behavioral details/i }));
-
         expect(categoryClicks).toEqual(["behavioral"]);
+
+        fireEvent.keyDown(screen.getByRole("button", { name: /open behavioral practiced details/i }), { key: "Escape" });
+
+        expect(screen.getByRole("region", { name: /preparedness snapshot/i })).toHaveTextContent(snapshot.overallRead.label);
+    });
+
+    it("uses mobile first-tap guidance, tapaway reset, and second-tap open for pie segments", () => {
+        const laneClicks: string[] = [];
+        const snapshot = toInstantReadPreparednessModel(
+            [{
+                ...skill,
+                id: "answer_substance",
+                label: "Answer Substance",
+                state: "strong",
+                evidenceCounts: { not_practiced: 0, emerging: 0, clear: 0, strong: 1 },
+                dimensionStates: [
+                    {
+                        dimension: "focus_relevance",
+                        label: "Focus",
+                        evidenceState: "strong",
+                        scoreCount: 1,
+                    },
+                    {
+                        dimension: "specificity_concreteness",
+                        label: "Specific detail",
+                        evidenceState: "clear",
+                        scoreCount: 1,
+                    },
+                ],
+            } as PreparednessSkill],
+            [],
+        );
+
+        render(<PreparednessInstantRead snapshot={snapshot} onLaneClick={(id) => laneClicks.push(id)} />);
+
+        const region = screen.getByRole("region", { name: /preparedness snapshot/i });
+        const focusSlice = screen.getByRole("button", { name: /open focus details/i });
+
+        fireEvent.pointerDown(focusSlice, { pointerType: "touch" });
+
+        expect(laneClicks).toEqual([]);
+        expect(region).toHaveTextContent("Focus");
+        expect(region).toHaveTextContent("stays tied to the question");
+        const focusedFocusSlice = screen.getByRole("button", { name: /open focus details/i });
+        const secondarySiblingSlice = screen.getByRole("button", { name: /open specific detail details/i });
+        expect(focusedFocusSlice).toHaveClass("-translate-x-px");
+        expect(focusedFocusSlice).toHaveClass("drop-shadow-[0_5px_8px_rgb(var(--candidate-success)/0.28)]");
+        expect(focusedFocusSlice).toHaveAttribute("stroke", "white");
+        expect(secondarySiblingSlice).toHaveAttribute("stroke", "white");
+        expect(secondarySiblingSlice).not.toHaveClass("-translate-x-px");
+
+        fireEvent.pointerDown(screen.getByText(/stays tied to the question/i), { pointerType: "touch" });
+
+        expect(region).toHaveTextContent(snapshot.overallRead.label);
+        expect(laneClicks).toEqual([]);
+
+        fireEvent.pointerDown(screen.getByRole("button", { name: /open focus details/i }), { pointerType: "touch" });
+        fireEvent.pointerDown(screen.getByRole("button", { name: /open focus details/i }), { pointerType: "touch" });
+
+        expect(laneClicks).toEqual(["answer_substance"]);
     });
 
     it("keeps child answer-skill ring states distinct from the parent lane state", () => {

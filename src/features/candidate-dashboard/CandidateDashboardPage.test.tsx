@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
@@ -173,7 +173,22 @@ describe("CandidateDashboardPage", () => {
         expect(screen.getByRole("link", { name: /support lead/i })).toHaveAttribute("href", "/dashboard?targetRole=support%20lead");
         expect(screen.getByRole("region", { name: /preparedness map/i })).toHaveTextContent("How your answers are shaping up");
         expect(screen.getByRole("tab", { name: /quick view/i })).toHaveAttribute("aria-selected", "true");
-        expect(screen.getByRole("button", { name: /open structure details/i })).toHaveTextContent("Structure");
+        expect(screen.getByRole("button", { name: /open structure details/i })).toBeInTheDocument();
+
+        fireEvent.mouseDown(screen.getByRole("button", { name: /open structure details/i }));
+
+        expect(screen.getByRole("dialog", { name: /interview structure/i })).toHaveTextContent("Why this matters");
+        await user.click(screen.getByRole("button", { name: /close/i }));
+
+        fireEvent.mouseDown(screen.getByRole("button", { name: /open flow details/i }));
+
+        expect(screen.getByRole("dialog", { name: /interview structure/i })).toHaveTextContent("Why this matters");
+        await user.click(screen.getByRole("button", { name: /close/i }));
+
+        fireEvent.mouseDown(screen.getByRole("button", { name: /open behavioral.*details/i }));
+
+        expect(screen.getByRole("dialog", { name: /behavioral/i })).toHaveTextContent("Interviewers look for a clear situation");
+        await user.click(screen.getByRole("button", { name: /close/i }));
 
         await user.click(screen.getByRole("tab", { name: /details/i }));
 

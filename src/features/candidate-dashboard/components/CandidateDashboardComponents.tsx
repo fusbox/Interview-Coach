@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type CSSProperties } from "react";
+import { useRef, useState, type CSSProperties, type FocusEvent, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
 import { ArrowRight, Briefcase, CheckCircle2, ChevronDown, ChevronRight, Circle, FileText, MessageSquare, Mic, Sparkles, X } from "lucide-react";
 import { Cell, Pie, PieChart } from "recharts";
 
@@ -118,6 +118,7 @@ export type PracticeNextListItem = {
 
 type InstantReadSelection =
     | { type: "lane"; id: string }
+    | { type: "dimension"; id: string; laneId: string }
     | { type: "category"; id: string }
     | null;
 
@@ -345,17 +346,132 @@ export function PreparednessInstantRead({
     onLaneClick,
     onCategoryClick,
     showHeader = true,
+    preview = false,
 }: {
     snapshot: InstantReadPreparednessModel;
-    onLaneClick: (skillId: string) => void;
-    onCategoryClick: (categoryId: string) => void;
+    onLaneClick?: (skillId: string) => void;
+    onCategoryClick?: (categoryId: string) => void;
     showHeader?: boolean;
+    preview?: boolean;
 }) {
     const [activeSelection, setActiveSelection] = useState<InstantReadSelection>(null);
+    const handledTouchSelectionRef = useRef<InstantReadSelection>(null);
+    const instantReadSurfaceRef = useRef<HTMLDivElement>(null);
     const activeRead = getInstantReadFocusRead(snapshot, activeSelection);
     const activeStyles = getPreparednessStateStyles(activeRead.state);
     const skillRing = toInstantReadSkillRing(snapshot.lanes);
     const categoryMix = toInstantReadCategoryMix(snapshot.categoryCoverage);
+    const canOpenLanes = Boolean(onLaneClick);
+    const canOpenCategories = Boolean(onCategoryClick);
+
+    const selectLane = (laneId?: string) => {
+        if (laneId) {
+            setActiveSelection({ type: "lane", id: laneId });
+        }
+    };
+    const selectDimension = (dimension?: InstantReadChartSlice) => {
+        if (dimension?.id && dimension.laneId) {
+            setActiveSelection({ type: "dimension", id: dimension.id, laneId: dimension.laneId });
+        }
+    };
+    const openLane = (laneId?: string) => {
+        if (laneId && canOpenLanes) {
+            onLaneClick?.(laneId);
+        }
+    };
+    const selectCategory = (categoryId?: string) => {
+        if (categoryId) {
+            setActiveSelection({ type: "category", id: categoryId });
+        }
+    };
+    const openCategory = (categoryId?: string) => {
+        if (categoryId && canOpenCategories) {
+            onCategoryClick?.(categoryId);
+        }
+    };
+    const resetInstantReadSelection = () => {
+        setActiveSelection(null);
+        handledTouchSelectionRef.current = null;
+    };
+    const handleInstantReadMouseLeave = () => {
+        const focusedElement = document.activeElement;
+        if (focusedElement instanceof Element && instantReadSurfaceRef.current?.contains(focusedElement)) {
+            return;
+        }
+        resetInstantReadSelection();
+    };
+    const handleInstantReadBlur = (event: FocusEvent<HTMLDivElement>) => {
+        const nextFocusedElement = event.relatedTarget;
+        if (nextFocusedElement instanceof Node && event.currentTarget.contains(nextFocusedElement)) {
+            return;
+        }
+        resetInstantReadSelection();
+    };
+    const handleInstantReadKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+        if (event.key === "Escape") {
+            event.preventDefault();
+            resetInstantReadSelection();
+        }
+    };
+    const handleInstantReadPointerDown = (event: PointerEvent<HTMLElement>) => {
+        if (event.pointerType === "mouse") {
+            return;
+        }
+        const target = event.target;
+        if (target instanceof Element && target.closest("[data-instant-read-slice='true']")) {
+            return;
+        }
+        resetInstantReadSelection();
+    };
+    const handleSlicePointerDown = (
+        event: PointerEvent<SVGElement>,
+        selection: Exclude<InstantReadSelection, null>,
+        open: () => void,
+    ) => {
+        if (event.pointerType !== "touch") {
+            handledTouchSelectionRef.current = selection;
+            open();
+            return;
+        }
+        event.preventDefault();
+        if (isInstantReadSameSelection(activeSelection, selection)) {
+            handledTouchSelectionRef.current = selection;
+            open();
+            return;
+        }
+        handledTouchSelectionRef.current = selection;
+        setActiveSelection(selection);
+    };
+    const handleSliceClick = (
+        event: MouseEvent<SVGElement>,
+        selection: Exclude<InstantReadSelection, null>,
+        open: () => void,
+    ) => {
+        if (isInstantReadSameSelection(handledTouchSelectionRef.current, selection)) {
+            handledTouchSelectionRef.current = null;
+            return;
+        }
+        open();
+    };
+    const handleSliceMouseDown = (
+        selection: Exclude<InstantReadSelection, null>,
+        open: () => void,
+    ) => {
+        handledTouchSelectionRef.current = selection;
+        open();
+    };
+    const handleSliceMouseLeave = (event: MouseEvent<SVGElement>) => {
+        if (event.currentTarget === document.activeElement) {
+            return;
+        }
+        resetInstantReadSelection();
+    };
+    const handleSliceKeyDown = (event: KeyboardEvent<SVGElement>, open: () => void) => {
+        if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            open();
+        }
+    };
 
     return (
         <section aria-label="Preparedness snapshot" className="space-y-4">
@@ -369,40 +485,21 @@ export function PreparednessInstantRead({
             ) : null}
 
             <div
+                ref={instantReadSurfaceRef}
                 className="relative overflow-hidden rounded-[1.75rem] border border-[rgb(var(--candidate-border)/0.78)] bg-white p-4 shadow-flat sm:p-5 lg:p-6"
+                onBlur={handleInstantReadBlur}
+                onKeyDown={handleInstantReadKeyDown}
+                onMouseLeave={handleInstantReadMouseLeave}
+                onPointerDown={handleInstantReadPointerDown}
             >
-                <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,0.9fr)] lg:items-center">
-                    <div className="space-y-4 text-center lg:text-left">
-                        <span className={cn("inline-flex rounded-full px-3 py-1 text-xs font-bold shadow-flat", activeStyles.badge)}>
-                            {activeRead.kicker}
-                        </span>
-                        <div aria-live="polite" className="space-y-2">
-                            <h3 className="font-display text-3xl font-bold leading-tight text-text-primary sm:text-4xl">
-                                {activeRead.label}
-                            </h3>
-                            <p className="mx-auto max-w-xl text-sm leading-6 text-text-secondary lg:mx-0">
-                                {activeRead.summary}
-                            </p>
-                        </div>
-                        {activeSelection ? (
-                            <button
-                                type="button"
-                                onClick={() => setActiveSelection(null)}
-                                className="inline-flex rounded-full px-3 py-1.5 text-xs font-bold text-primary transition-colors duration-base ease-standard hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                            >
-                                Overall read
-                            </button>
-                        ) : null}
-                    </div>
-
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+                <div className="grid gap-5">
+                    <div className={cn("grid gap-4 sm:grid-cols-2", preview ? "opacity-90 grayscale-[0.12]" : "")}>
                         <div
-                            role="img"
-                            aria-label="Skill ring"
-                            className="rounded-[1.5rem] border border-[rgb(var(--candidate-border)/0.64)] bg-[rgb(var(--candidate-surface-subtle)/0.7)] p-3"
+                            aria-label="Answer skills chart"
+                            className="rounded-[1.5rem] border border-[rgb(var(--candidate-border)/0.64)] bg-[rgb(var(--candidate-surface-subtle)/0.7)] p-3 transition-shadow duration-base ease-standard focus-within:ring-2 focus-within:ring-primary/30"
                         >
                             <p className="px-2 text-xs font-black uppercase tracking-[0.16em] text-text-muted">Answer skills</p>
-                            <div className="mx-auto flex justify-center overflow-hidden">
+                            <div className="mx-auto flex justify-center overflow-visible">
                                 <PieChart width={260} height={230}>
                                     <Pie
                                         data={skillRing.lanes}
@@ -418,10 +515,36 @@ export function PreparednessInstantRead({
                                         stroke="white"
                                         strokeWidth={4}
                                         isAnimationActive={false}
+                                        onMouseEnter={(entry: unknown) => selectLane((entry as InstantReadChartSlice).id)}
+                                        onMouseDown={(entry: unknown) => openLane((entry as InstantReadChartSlice).id)}
                                     >
-                                        {skillRing.lanes.map((entry) => (
-                                            <Cell key={entry.id} fill={entry.fill} />
-                                        ))}
+                                        {skillRing.lanes.map((entry) => {
+                                            const selection: Exclude<InstantReadSelection, null> = { type: "lane", id: entry.id };
+                                            const focusState = getInstantReadSliceFocusState(activeSelection, "lane", entry);
+                                            const sliceStyle = getInstantReadSliceVisualStyle(entry, focusState);
+                                            return (
+                                                <Cell
+                                                    key={entry.id}
+                                                    fill={sliceStyle.fill}
+                                                    opacity={sliceStyle.opacity}
+                                                    stroke={sliceStyle.stroke}
+                                                    strokeWidth={sliceStyle.strokeWidth}
+                                                    role={canOpenLanes ? "button" : undefined}
+                                                    tabIndex={canOpenLanes ? 0 : undefined}
+                                                    aria-label={`Open ${entry.label} details`}
+                                                    data-instant-read-slice="true"
+                                                    className={getInstantReadSliceClassName(canOpenLanes, focusState, entry.state)}
+                                                    onMouseEnter={() => selectLane(entry.id)}
+                                                    onMouseLeave={handleSliceMouseLeave}
+                                                    onMouseOut={handleSliceMouseLeave}
+                                                    onFocus={() => selectLane(entry.id)}
+                                                    onPointerDown={(event) => handleSlicePointerDown(event, selection, () => openLane(entry.id))}
+                                                    onMouseDown={() => handleSliceMouseDown(selection, () => openLane(entry.id))}
+                                                    onClick={(event) => handleSliceClick(event, selection, () => openLane(entry.id))}
+                                                    onKeyDown={(event) => handleSliceKeyDown(event, () => openLane(entry.id))}
+                                                />
+                                            );
+                                        })}
                                     </Pie>
                                     <Pie
                                         data={skillRing.dimensions}
@@ -437,22 +560,47 @@ export function PreparednessInstantRead({
                                         stroke="white"
                                         strokeWidth={3}
                                         isAnimationActive={false}
+                                        onMouseEnter={(entry: unknown) => selectDimension(entry as InstantReadChartSlice)}
+                                        onMouseDown={(entry: unknown) => openLane((entry as InstantReadChartSlice).laneId)}
                                     >
-                                        {skillRing.dimensions.map((entry) => (
-                                            <Cell key={entry.id} fill={entry.fill} />
-                                        ))}
+                                        {skillRing.dimensions.map((entry) => {
+                                            const selection: Exclude<InstantReadSelection, null> = { type: "dimension", id: entry.id, laneId: entry.laneId || "" };
+                                            const focusState = getInstantReadSliceFocusState(activeSelection, "dimension", entry);
+                                            const sliceStyle = getInstantReadSliceVisualStyle(entry, focusState);
+                                            return (
+                                                <Cell
+                                                    key={entry.id}
+                                                    fill={sliceStyle.fill}
+                                                    opacity={sliceStyle.opacity}
+                                                    stroke={sliceStyle.stroke}
+                                                    strokeWidth={sliceStyle.strokeWidth}
+                                                    role={canOpenLanes ? "button" : undefined}
+                                                    tabIndex={canOpenLanes ? 0 : undefined}
+                                                    aria-label={`Open ${entry.label} details`}
+                                                    data-instant-read-slice="true"
+                                                    className={getInstantReadSliceClassName(canOpenLanes, focusState, entry.state)}
+                                                    onMouseEnter={() => selectDimension(entry)}
+                                                    onMouseLeave={handleSliceMouseLeave}
+                                                    onMouseOut={handleSliceMouseLeave}
+                                                    onFocus={() => selectDimension(entry)}
+                                                    onPointerDown={(event) => handleSlicePointerDown(event, selection, () => openLane(entry.laneId))}
+                                                    onMouseDown={() => handleSliceMouseDown(selection, () => openLane(entry.laneId))}
+                                                    onClick={(event) => handleSliceClick(event, selection, () => openLane(entry.laneId))}
+                                                    onKeyDown={(event) => handleSliceKeyDown(event, () => openLane(entry.laneId))}
+                                                />
+                                            );
+                                        })}
                                     </Pie>
                                 </PieChart>
                             </div>
                         </div>
 
                         <div
-                            role="img"
-                            aria-label="Question mix"
-                            className="rounded-[1.5rem] border border-[rgb(var(--candidate-border)/0.64)] bg-white p-3"
+                            aria-label="Question mix chart"
+                            className="rounded-[1.5rem] border border-[rgb(var(--candidate-border)/0.64)] bg-white p-3 transition-shadow duration-base ease-standard focus-within:ring-2 focus-within:ring-primary/30"
                         >
                             <p className="px-2 text-xs font-black uppercase tracking-[0.16em] text-text-muted">Question mix</p>
-                            <div className="mx-auto flex justify-center overflow-hidden">
+                            <div className="mx-auto flex justify-center overflow-visible">
                                 <PieChart width={260} height={230}>
                                     <Pie
                                         data={categoryMix}
@@ -468,82 +616,53 @@ export function PreparednessInstantRead({
                                         stroke="white"
                                         strokeWidth={4}
                                         isAnimationActive={false}
+                                        onMouseEnter={(entry: unknown) => selectCategory((entry as InstantReadChartSlice).categoryId)}
+                                        onMouseDown={(entry: unknown) => openCategory((entry as InstantReadChartSlice).categoryId)}
                                     >
-                                        {categoryMix.map((entry) => (
-                                            <Cell key={entry.id} fill={entry.fill} opacity={entry.opacity} />
-                                        ))}
+                                        {categoryMix.map((entry) => {
+                                            const selection: Exclude<InstantReadSelection, null> = { type: "category", id: entry.categoryId || "" };
+                                            const focusState = getInstantReadSliceFocusState(activeSelection, "category", entry);
+                                            const sliceStyle = getInstantReadSliceVisualStyle(entry, focusState);
+                                            return (
+                                                <Cell
+                                                    key={entry.id}
+                                                    fill={sliceStyle.fill}
+                                                    opacity={sliceStyle.opacity}
+                                                    stroke={sliceStyle.stroke}
+                                                    strokeWidth={sliceStyle.strokeWidth}
+                                                    role={entry.categoryId && canOpenCategories ? "button" : undefined}
+                                                    tabIndex={entry.categoryId && canOpenCategories ? 0 : undefined}
+                                                    aria-label={entry.categoryId ? `Open ${entry.label} details` : entry.label}
+                                                    data-instant-read-slice={entry.categoryId ? "true" : undefined}
+                                                    className={getInstantReadSliceClassName(Boolean(entry.categoryId && canOpenCategories), focusState, entry.state)}
+                                                    onMouseEnter={() => selectCategory(entry.categoryId)}
+                                                    onMouseLeave={handleSliceMouseLeave}
+                                                    onMouseOut={handleSliceMouseLeave}
+                                                    onFocus={() => selectCategory(entry.categoryId)}
+                                                    onPointerDown={(event) => handleSlicePointerDown(event, selection, () => openCategory(entry.categoryId))}
+                                                    onMouseDown={() => handleSliceMouseDown(selection, () => openCategory(entry.categoryId))}
+                                                    onClick={(event) => handleSliceClick(event, selection, () => openCategory(entry.categoryId))}
+                                                    onKeyDown={(event) => handleSliceKeyDown(event, () => openCategory(entry.categoryId))}
+                                                />
+                                            );
+                                        })}
                                     </Pie>
                                 </PieChart>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-                    <div className="rounded-2xl bg-surface-base/72 p-3">
-                        <div className="mb-2 flex items-center justify-between gap-3">
-                            <p className="text-xs font-black uppercase tracking-[0.16em] text-text-muted">Skill areas</p>
-                            <p className="text-xs font-semibold text-primary">Tap for detail</p>
-                        </div>
-                        <div className="grid gap-2 sm:grid-cols-3 md:grid-cols-1 xl:grid-cols-3">
-                            {snapshot.lanes.map((lane) => {
-                                const styles = getPreparednessStateStyles(lane.state);
-
-                                return (
-                                    <button
-                                        key={lane.id}
-                                        type="button"
-                                        data-evidence-state={lane.state}
-                                        aria-label={`Open ${formatMatrixLaneLabel(lane.label)} details`}
-                                        onMouseEnter={() => setActiveSelection({ type: "lane", id: lane.id })}
-                                        onFocus={() => setActiveSelection({ type: "lane", id: lane.id })}
-                                        onClick={() => onLaneClick(lane.id)}
-                                        className={cn(
-                                            "rounded-2xl border px-3 py-3 text-left shadow-flat transition-all duration-base ease-standard hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-[0.99]",
-                                            styles.wrapper,
-                                        )}
-                                    >
-                                        <span className="text-[0.68rem] font-black uppercase tracking-[0.14em] text-text-muted">
-                                            {formatPreparednessState(lane.state)}
-                                        </span>
-                                        <span className="mt-1 block text-sm font-bold text-text-primary">{formatMatrixLaneLabel(lane.label)}</span>
-                                        <span className="mt-1 block text-xs font-semibold text-text-muted">{formatEvidenceLevel(lane.evidenceLevel)}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    <div className="rounded-2xl bg-surface-base/72 p-3">
-                        <div className="mb-2 flex items-center justify-between gap-3">
-                            <p className="text-xs font-black uppercase tracking-[0.16em] text-text-muted">Question types</p>
-                            <p className="text-xs font-semibold text-primary">Tap for detail</p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                            {snapshot.categoryCoverage.map((category) => {
-                                const styles = getPreparednessStateStyles(category.state);
-
-                                return (
-                                    <button
-                                        key={category.categoryId}
-                                        type="button"
-                                        data-evidence-state={category.state}
-                                        aria-label={`Open ${category.label} details`}
-                                        onMouseEnter={() => setActiveSelection({ type: "category", id: category.categoryId })}
-                                        onFocus={() => setActiveSelection({ type: "category", id: category.categoryId })}
-                                        onClick={() => onCategoryClick(category.categoryId)}
-                                        className="flex min-w-[9.25rem] items-center gap-2 rounded-full bg-white px-3 py-2 text-left shadow-flat transition-all duration-base ease-standard hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 active:scale-[0.98]"
-                                    >
-                                        <span className={cn("h-3 w-3 rounded-full", styles.dot)} aria-hidden="true" />
-                                        <span className="min-w-0">
-                                            <span className="block max-w-[8rem] truncate text-xs font-bold text-text-primary">{category.label}</span>
-                                            <span className="block text-[0.68rem] font-semibold text-text-muted">
-                                                {category.practicedCount} of {category.plannedCount} practiced
-                                            </span>
-                                        </span>
-                                    </button>
-                                );
-                            })}
+                    <div className="rounded-[1.35rem] border border-[rgb(var(--candidate-border)/0.64)] bg-[rgb(var(--candidate-surface-subtle)/0.76)] p-4 text-center shadow-flat lg:text-left">
+                        <span className={cn("inline-flex rounded-full px-3 py-1 text-xs font-bold shadow-flat", activeStyles.badge)}>
+                            {activeRead.kicker}
+                        </span>
+                        <div aria-live="polite" className="space-y-2">
+                            <h3 className="font-display text-3xl font-bold leading-tight text-text-primary sm:text-4xl">
+                                {activeRead.label}
+                            </h3>
+                            <p className="mx-auto max-w-xl text-sm leading-6 text-text-secondary lg:mx-0">
+                                {activeRead.summary}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -553,6 +672,18 @@ export function PreparednessInstantRead({
 }
 
 function getInstantReadFocusRead(snapshot: InstantReadPreparednessModel, selection: InstantReadSelection): InstantReadFocusRead {
+    if (selection?.type === "dimension") {
+        const dimension = toInstantReadSkillRing(snapshot.lanes).dimensions.find((item) => item.id === selection.id);
+        if (dimension) {
+            return {
+                kicker: "Answer skill component",
+                label: dimension.label,
+                state: dimension.state || "clear",
+                summary: instantReadDimensionSummary(snapshot, dimension),
+            };
+        }
+    }
+
     if (selection?.type === "lane") {
         const lane = snapshot.lanes.find((item) => item.id === selection.id);
         if (lane) {
@@ -585,18 +716,6 @@ function getInstantReadFocusRead(snapshot: InstantReadPreparednessModel, selecti
     };
 }
 
-function getInstantReadSelectionActionLabel(snapshot: InstantReadPreparednessModel, selection: InstantReadSelection): string {
-    if (selection?.type === "lane") {
-        const lane = snapshot.lanes.find((item) => item.id === selection.id);
-        return `Open ${formatMatrixLaneLabel(lane?.label || "area")} details`;
-    }
-    if (selection?.type === "category") {
-        const category = snapshot.categoryCoverage.find((item) => item.categoryId === selection.id);
-        return `Open ${category?.label || "question type"} details`;
-    }
-    return "Open details";
-}
-
 function instantReadLaneSummary(lane: InstantReadPreparednessModel["lanes"][number]): string {
     const laneLabel = formatMatrixLaneLabel(lane.label);
     switch (lane.state) {
@@ -610,6 +729,34 @@ function instantReadLaneSummary(lane: InstantReadPreparednessModel["lanes"][numb
         default:
             return `${laneLabel} has not had enough practice yet. Open it to see what interviewers listen for in this area.`;
     }
+}
+
+function instantReadDimensionSummary(snapshot: InstantReadPreparednessModel, dimension: InstantReadChartSlice): string {
+    const lane = snapshot.lanes.find((item) => item.id === dimension.laneId);
+    const laneLabel = formatMatrixLaneLabel(lane?.label || "this answer skill");
+    const siblingLabels = getInstantReadSiblingDimensions(snapshot, dimension)
+        .map((item) => item.label)
+        .filter((label) => label !== dimension.label);
+    const siblingCopy = siblingLabels.length > 1
+        ? `${siblingLabels.slice(0, -1).join(", ")}, and ${siblingLabels.at(-1)}`
+        : siblingLabels[0];
+    const definition = INSTANT_READ_DIMENSION_DEFINITIONS[getInstantReadDimensionKey(dimension)] ?? `${dimension.label} is one component of how this answer skill comes through in practice.`;
+    if (!siblingCopy) {
+        return `${definition} It is part of ${laneLabel}, and the lane detail shows the practice evidence behind this read.`;
+    }
+    return `${definition} It works with ${siblingCopy} to make up ${laneLabel}. Open the lane detail to see the practice evidence behind this read.`;
+}
+
+function getInstantReadSiblingDimensions(snapshot: InstantReadPreparednessModel, dimension: InstantReadChartSlice): Array<{ label: string }> {
+    const lane = snapshot.lanes.find((item) => item.id === dimension.laneId);
+    if (lane?.dimensionStates?.length) {
+        return lane.dimensionStates.map((item) => ({ label: item.label }));
+    }
+    return (INSTANT_READ_DIMENSIONS_BY_LANE[dimension.laneId || ""] ?? [dimension.label]).map((label) => ({ label }));
+}
+
+function getInstantReadDimensionKey(dimension: InstantReadChartSlice): string {
+    return dimension.dimensionId || dimension.label.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
 }
 
 function instantReadCategorySummary(category: InstantReadPreparednessModel["categoryCoverage"][number]): string {
@@ -633,16 +780,148 @@ const INSTANT_READ_DIMENSIONS_BY_LANE: Record<string, string[]> = {
     communication_delivery: ["Filler control", "Conciseness", "Resilience"],
 };
 
+const INSTANT_READ_DIMENSION_DEFINITIONS: Record<string, string> = {
+    focus_relevance: "Focus means your answer stays tied to the question and the role instead of drifting into extra background.",
+    specificity_concreteness: "Specific detail means your answer gives concrete examples, actions, or facts the interviewer can picture.",
+    outcome_impact: "Outcome means your answer makes the result or effect of your work clear.",
+    rationale_judgment: "Rationale means your answer explains why you chose that action, not only what you did.",
+    flow_sequence: "Flow means your answer is easy to follow from setup to action to result.",
+    signposting_clarity: "Signposting means you give the interviewer clear verbal markers for where the answer is going.",
+    filler_control: "Filler control means your delivery stays steady without extra phrases crowding the answer.",
+    conciseness_pacing: "Conciseness means your answer gives enough context without burying the strongest point.",
+    resilience_ownership: "Resilience means your answer shows ownership, learning, and steadiness when the situation is difficult.",
+    focus: "Focus means your answer stays tied to the question and the role instead of drifting into extra background.",
+    specificity: "Specificity means your answer gives concrete examples, actions, or facts the interviewer can picture.",
+    outcome: "Outcome means your answer makes the result or effect of your work clear.",
+    rationale: "Rationale means your answer explains why you chose that action, not only what you did.",
+    flow: "Flow means your answer is easy to follow from setup to action to result.",
+    signposting: "Signposting means you give the interviewer clear verbal markers for where the answer is going.",
+    conciseness: "Conciseness means your answer gives enough context without burying the strongest point.",
+    resilience: "Resilience means your answer shows ownership, learning, and steadiness when the situation is difficult.",
+};
+
 type InstantReadChartSlice = {
     id: string;
     label: string;
     value: number;
     fill: string;
     opacity?: number;
+    laneId?: string;
+    dimensionId?: string;
     categoryId?: PrepQuestionCategoryCard["categoryId"];
     coverageKind?: "practiced" | "upcoming" | "empty";
     state?: PreparednessState;
 };
+
+type InstantReadSliceFocusState = "idle" | "primary" | "secondary" | "dimmed";
+
+function isInstantReadSameSelection(a: InstantReadSelection, b: InstantReadSelection): boolean {
+    if (!a || !b || a.type !== b.type) {
+        return false;
+    }
+    if (a.type === "dimension" && b.type === "dimension") {
+        return a.id === b.id && a.laneId === b.laneId;
+    }
+    return a.id === b.id;
+}
+
+function getInstantReadSliceFocusState(
+    selection: InstantReadSelection,
+    sliceType: "lane" | "dimension" | "category",
+    slice: InstantReadChartSlice,
+): InstantReadSliceFocusState {
+    if (!selection) {
+        return "idle";
+    }
+    if (selection.type === "category") {
+        if (sliceType !== "category" || !slice.categoryId) {
+            return "idle";
+        }
+        return selection.id === slice.categoryId ? "primary" : "dimmed";
+    }
+    if (sliceType === "category") {
+        return "idle";
+    }
+    if (selection.type === "lane") {
+        if (sliceType === "lane") {
+            return selection.id === slice.id ? "primary" : "dimmed";
+        }
+        return selection.id === slice.laneId ? "secondary" : "dimmed";
+    }
+    if (sliceType === "lane") {
+        return selection.laneId === slice.id ? "secondary" : "dimmed";
+    }
+    if (selection.laneId !== slice.laneId) {
+        return "dimmed";
+    }
+    return selection.id === slice.id ? "primary" : "secondary";
+}
+
+function getInstantReadSliceVisualStyle(
+    slice: InstantReadChartSlice,
+    focusState: InstantReadSliceFocusState,
+): {
+    fill: string;
+    opacity: number;
+    stroke: string;
+    strokeWidth: number;
+} {
+    const baseOpacity = slice.opacity ?? 1;
+    if (focusState === "primary") {
+        return {
+            fill: getInstantReadChartColor(slice.state || "clear", 1),
+            opacity: 1,
+            stroke: "white",
+            strokeWidth: 4,
+        };
+    }
+    if (focusState === "secondary") {
+        return {
+            fill: slice.fill,
+            opacity: Math.min(1, Math.max(baseOpacity, 0.86)),
+            stroke: "white",
+            strokeWidth: 3,
+        };
+    }
+    if (focusState === "dimmed") {
+        return {
+            fill: slice.fill,
+            opacity: Math.min(baseOpacity, 0.32),
+            stroke: "white",
+            strokeWidth: 2,
+        };
+    }
+    return {
+        fill: slice.fill,
+        opacity: baseOpacity,
+        stroke: "white",
+        strokeWidth: 3,
+    };
+}
+
+function getInstantReadSliceClassName(canOpen: boolean, focusState: InstantReadSliceFocusState, state?: PreparednessState): string | undefined {
+    if (!canOpen) {
+        return undefined;
+    }
+    return cn(
+        "cursor-pointer outline-none transition-[filter,opacity,transform] duration-base ease-standard",
+        focusState === "primary" ? cn("-translate-x-px -translate-y-0.5 brightness-[1.08] saturate-[1.08]", getInstantReadGlowClassName(state)) : "",
+    );
+}
+
+function getInstantReadGlowClassName(state: PreparednessState = "clear"): string {
+    switch (state) {
+        case "strong":
+            return "drop-shadow-[0_5px_8px_rgb(var(--candidate-success)/0.28)]";
+        case "emerging":
+            return "drop-shadow-[0_5px_8px_rgb(var(--candidate-secondary-brand)/0.3)]";
+        case "not_practiced":
+            return "drop-shadow-[0_5px_8px_rgb(var(--candidate-border)/0.36)]";
+        case "clear":
+        default:
+            return "drop-shadow-[0_5px_8px_rgb(var(--candidate-primary)/0.28)]";
+    }
+}
 
 function toInstantReadSkillRing(lanes: InstantReadPreparednessModel["lanes"]): {
     lanes: InstantReadChartSlice[];
@@ -655,6 +934,7 @@ function toInstantReadSkillRing(lanes: InstantReadPreparednessModel["lanes"]): {
             label: formatMatrixLaneLabel(lane.label),
             value: dimensions.length,
             fill: getInstantReadChartColor(lane.state),
+            state: lane.state,
         };
     });
     const dimensionSlices = lanes.flatMap((lane) => {
@@ -671,12 +951,15 @@ function toInstantReadSkillRing(lanes: InstantReadPreparednessModel["lanes"]): {
             label: dimension.label,
             value: 1,
             fill: getInstantReadChartColor(dimension.evidenceState, 0.72),
+            laneId: lane.id,
+            dimensionId: dimension.dimension,
+            state: dimension.evidenceState,
         }));
     });
 
     return {
-        lanes: laneSlices.length > 0 ? laneSlices : [{ id: "empty", label: "Practice", value: 1, fill: getInstantReadChartColor("not_practiced") }],
-        dimensions: dimensionSlices.length > 0 ? dimensionSlices : [{ id: "empty:dimension", label: "Practice", value: 1, fill: getInstantReadChartColor("not_practiced", 0.72) }],
+        lanes: laneSlices.length > 0 ? laneSlices : [{ id: "empty", label: "Practice", value: 1, fill: getInstantReadChartColor("not_practiced"), state: "not_practiced" }],
+        dimensions: dimensionSlices.length > 0 ? dimensionSlices : [{ id: "empty:dimension", label: "Practice", value: 1, fill: getInstantReadChartColor("not_practiced", 0.72), laneId: "empty", dimensionId: "practice", state: "not_practiced" }],
     };
 }
 
@@ -1558,12 +1841,10 @@ export function EmptyPreparednessDashboard({ href = "/practice" }: { href?: stri
             },
         ],
     };
-    const skillRing = toInstantReadSkillRing(previewSnapshot.lanes);
-    const categoryMix = toInstantReadCategoryMix(previewSnapshot.categoryCoverage);
 
     return (
-        <section aria-label="Empty preparedness dashboard" className="mx-auto grid w-full max-w-5xl gap-6 px-5 py-8 md:grid-cols-[minmax(0,1fr)_22rem] md:items-start">
-            <div className="space-y-6">
+        <section aria-label="Empty preparedness dashboard" className="mx-auto grid w-full max-w-6xl gap-8 px-5 py-8 md:px-8 md:py-10 xl:grid-cols-[minmax(0,1fr)_24rem] xl:gap-10 xl:items-start">
+            <div className="space-y-8">
                 <div className="max-w-2xl">
                     <div className="flex h-14 w-14 items-center justify-center rounded-[1.25rem] bg-primary/10 text-primary shadow-flat">
                         <Sparkles size={28} aria-hidden="true" />
@@ -1578,7 +1859,7 @@ export function EmptyPreparednessDashboard({ href = "/practice" }: { href?: stri
 
                 <div
                     aria-label="Preview of your preparedness map"
-                    className="rounded-[1.75rem] border border-[rgb(var(--candidate-border)/0.78)] bg-white p-4 shadow-flat sm:p-5"
+                    className="space-y-4"
                 >
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                         <div>
@@ -1592,90 +1873,11 @@ export function EmptyPreparednessDashboard({ href = "/practice" }: { href?: stri
                         </span>
                     </div>
 
-                    <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                        <div className="rounded-[1.5rem] border border-dashed border-[rgb(var(--candidate-border)/0.86)] bg-[rgb(var(--candidate-surface-subtle)/0.68)] p-3">
-                            <p className="px-2 text-xs font-black uppercase tracking-[0.16em] text-text-muted">Answer skills</p>
-                            <div className="mx-auto flex justify-center overflow-hidden opacity-85 grayscale-[0.15]">
-                                <PieChart width={260} height={230}>
-                                    <Pie
-                                        data={skillRing.lanes}
-                                        dataKey="value"
-                                        cx="50%"
-                                        cy="50%"
-                                        startAngle={90}
-                                        endAngle={-270}
-                                        innerRadius={38}
-                                        outerRadius={72}
-                                        paddingAngle={3}
-                                        cornerRadius={9}
-                                        stroke="white"
-                                        strokeWidth={4}
-                                        isAnimationActive={false}
-                                    >
-                                        {skillRing.lanes.map((entry) => (
-                                            <Cell key={entry.id} fill={entry.fill} />
-                                        ))}
-                                    </Pie>
-                                    <Pie
-                                        data={skillRing.dimensions}
-                                        dataKey="value"
-                                        cx="50%"
-                                        cy="50%"
-                                        startAngle={90}
-                                        endAngle={-270}
-                                        innerRadius={82}
-                                        outerRadius={106}
-                                        paddingAngle={2}
-                                        cornerRadius={7}
-                                        stroke="white"
-                                        strokeWidth={3}
-                                        isAnimationActive={false}
-                                    >
-                                        {skillRing.dimensions.map((entry) => (
-                                            <Cell key={entry.id} fill={entry.fill} />
-                                        ))}
-                                    </Pie>
-                                </PieChart>
-                            </div>
-                            <p className="px-2 pb-1 text-sm leading-6 text-text-secondary">
-                                Substance, structure, and delivery will fill in from your scored answers.
-                            </p>
-                        </div>
-
-                        <div className="rounded-[1.5rem] border border-dashed border-[rgb(var(--candidate-border)/0.86)] bg-white p-3">
-                            <p className="px-2 text-xs font-black uppercase tracking-[0.16em] text-text-muted">Question mix</p>
-                            <div className="mx-auto flex justify-center overflow-hidden opacity-85 grayscale-[0.15]">
-                                <PieChart width={260} height={230}>
-                                    <Pie
-                                        data={categoryMix}
-                                        dataKey="value"
-                                        cx="50%"
-                                        cy="50%"
-                                        startAngle={90}
-                                        endAngle={-270}
-                                        innerRadius={54}
-                                        outerRadius={100}
-                                        paddingAngle={4}
-                                        cornerRadius={10}
-                                        stroke="white"
-                                        strokeWidth={4}
-                                        isAnimationActive={false}
-                                    >
-                                        {categoryMix.map((entry) => (
-                                            <Cell key={entry.id} fill={entry.fill} opacity={entry.opacity} />
-                                        ))}
-                                    </Pie>
-                                </PieChart>
-                            </div>
-                            <p className="px-2 pb-1 text-sm leading-6 text-text-secondary">
-                                Your plan sets the question types; answered questions add the coach read.
-                            </p>
-                        </div>
-                    </div>
+                    <PreparednessInstantRead snapshot={previewSnapshot} showHeader={false} preview />
                 </div>
             </div>
 
-            <div className="rounded-[1.5rem] border border-[rgb(var(--candidate-border)/0.82)] bg-gradient-to-br from-surface-subtle to-surface-base p-5 shadow-[var(--candidate-shadow-card)] md:sticky md:top-6">
+            <div className="rounded-[1.5rem] border border-[rgb(var(--candidate-border)/0.82)] bg-gradient-to-br from-surface-subtle to-surface-base p-5 shadow-[var(--candidate-shadow-card)] xl:sticky xl:top-8">
                 <div className="flex items-start gap-4">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-white shadow-flat">
                         <Sparkles size={22} aria-hidden="true" />
@@ -2391,20 +2593,6 @@ function stateRankForSort(state: PreparednessState): number {
         case "not_practiced":
         default:
             return 0;
-    }
-}
-
-function formatEvidenceLevel(level: InstantReadEvidenceLevel): string {
-    switch (level) {
-        case "strong":
-            return "Consistent strength";
-        case "enough":
-            return "Good coverage";
-        case "thin":
-            return "Early practice";
-        case "none":
-        default:
-            return "Not practiced yet";
     }
 }
 
