@@ -12,7 +12,11 @@ describe("candidate dev seed", () => {
 
         expect(packageJson.scripts["db:seed-candidate-dev"]).toContain("db/seeds/001_candidate_dev_seed.sql");
         expect(packageJson.scripts["db:seed-candidate-dev"]).toContain("--smoke-defaults");
+        expect(packageJson.scripts["db:seed-candidate-preview"]).toContain("db/seeds/002_candidate_preview_irma_seed.sql");
+        expect(packageJson.scripts["db:seed-candidate-preview"]).not.toContain("--smoke-defaults");
         expect(packageJson.scripts["db:smoke-candidate-dev-seed"]).toContain("db/validation/004_candidate_dev_seed_smoke.sql");
+        expect(packageJson.scripts["db:smoke-candidate-preview-seed"]).toContain("db/validation/007_candidate_preview_irma_seed_smoke.sql");
+        expect(packageJson.scripts["db:smoke-candidate-preview-seed"]).not.toContain("--smoke-defaults");
         expect(packageJson.scripts["db:smoke-candidate-setup-summary"]).toContain("db/validation/005_candidate_setup_to_summary_smoke.sql");
         expect(packageJson.scripts["db:smoke-candidate-setup-summary"]).toContain("--smoke-defaults");
         expect(packageJson.scripts["db:seed"]).toBe("npm run db:seed-candidate-dev");
@@ -62,6 +66,33 @@ describe("candidate dev seed", () => {
         expect(sql).toContain("expected in-session fixture");
         expect(sql).toContain("expected completed summary fixture");
         expect(sql).toContain("expected completed answer feedback fixture");
+        expect(sql).toContain("rollback");
+    });
+
+    it("seeds an Irma Castillo preview candidate for deployed Vercel testing", async () => {
+        const sql = await readFile(path.join(process.cwd(), "db", "seeds", "002_candidate_preview_irma_seed.sql"), "utf8");
+
+        expect(sql).toContain("irma.castillo@talentarbor.local");
+        expect(sql).toContain("Irma Castillo");
+        expect(sql).toContain("interview-coach-preview");
+        expect(sql).toContain("dev_mock:interview-coach-preview:irma.castillo@talentarbor.local");
+        expect(sql).toContain("Client Services Specialist");
+        expect(sql).toContain("Client Services Executive - WWT");
+        expect(sql).toContain("questionPlanSnapshot");
+        expect(sql).toContain("coachSignal");
+        expect(sql).toContain("candidate_role_preparation_profiles");
+    });
+
+    it("defines a rollback-only smoke validation for the Irma preview seed", async () => {
+        const sql = await readFile(
+            path.join(process.cwd(), "db", "validation", "007_candidate_preview_irma_seed_smoke.sql"),
+            "utf8"
+        );
+
+        expect(sql).toContain("expected Irma Castillo preview candidate profile");
+        expect(sql).toContain("expected one Irma preview identity");
+        expect(sql).toContain("expected Irma active and completed preview drafts");
+        expect(sql).toContain("expected Irma sessions with question plan snapshots");
         expect(sql).toContain("rollback");
     });
 });

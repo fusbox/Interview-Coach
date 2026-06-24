@@ -1,7 +1,7 @@
 # Candidate App Handoff
 
 Status: Active execution state
-Last updated: 2026-06-22
+Last updated: 2026-06-24
 
 ## Completed
 
@@ -74,6 +74,7 @@ Last updated: 2026-06-22
 - Candidate session landing now reads `session.intakeData.questionPlanSnapshot` when available and shows a compact practice-plan summary with resolved stage/count and nonzero category counts before the first question starts. If this UI is absent on a new session, check whether the session is still `NOT_STARTED` and whether the persisted `intakeData.questionPlanSnapshot` is present.
 - Candidate session landing practice-plan persistence bug is fixed at the Postgres repository boundary: `PostgresSessionRepository.update()` now preserves arbitrary `session.intakeData` while overlaying repository-managed candidate/token/engagement fields, so newly created candidate sessions keep `questionPlanSnapshot` through the database round trip.
 - Shared answer analysis no longer produces legacy `meta.readinessLevel` values. Historical stored analysis payloads may still contain that optional field, but new normal, mock, and fallback analysis outputs no longer write it.
+- Deployed preview access now has a temporary Irma-only candidate auth mode for Vercel mobile testing before TalentArbor launch/API integration is finalized. `CANDIDATE_AUTH_MODE=preview_test` is allowed only with `VERCEL_ENV=preview` and `ALLOW_CANDIDATE_PREVIEW_AUTH=true`; it resolves Irma Castillo (`irma.castillo@talentarbor.local`) through the normal candidate-owned loaders. Apply `npm run db:seed-candidate-preview` after migrations to seed the matching Supabase/Postgres test data.
 - Practice Next browser validation is cleared for active and completed target-interview contexts: active sessions list all unanswered planned questions first, and completed-only contexts list missing planned category coverage before non-strong matrix improvement items.
 - Dashboard Quick View spacing now uses one visual grammar across empty and populated states: the empty dashboard preview reuses the same instant-read surface structure, chart spacing, and dashboard column rhythm as the populated Preparedness Map, while keeping preview controls non-opening.
 - Dashboard Quick View card-to-chart migration is resolved as Azure item 810: the Answer Skills ring and Question Mix pie now carry the previous lane/category card hover and open-detail behavior, while the lower duplicate card groups have been removed from the populated and empty Quick View surfaces.
@@ -101,7 +102,7 @@ Known current behavior:
 - Quick View pie slices now open lane/category details directly, the lower guidance card is the selected-read surface, and overall read is the persistent default whenever no segment is hovered, focused, tapped, or armed. Full-page tests cover parent lane, outer dimension, and category-slice modal opening; the next pass should continue validating this on real mobile and desktop browser surfaces before resolving DASH-S24.
 - Confidence measurement has not landed.
 - Runtime PII/sensitive-data scrubbing and QA masking are still open hardening items.
-- Host launch token/auth details are not finalized, so platform launch schema changes are documented but not implemented.
+- Host launch token/auth details are not finalized, so platform launch schema changes are documented but not implemented. The Irma preview auth path is a deployed-test bridge only and should be removed or disabled once signed host launch/API access exists.
 - Recruiter create now exposes interview-stage/question-count planning, category distribution confirmation, and five-section question editing as a first pass. The recruiter stage list omits the candidate-facing "Not sure yet" option and labels the balanced `practice_only` plan as "General practice." The accepted editor now follows the confirmed plan for both AI and manual entry, accepted setup survives navigation back from later create steps, template-loaded editors show only populated template categories, AI/template question text is locked, manual-entry question text remains editable, and Start over clears only question setup/question text while leaving job details intact.
 - Question generation has a server-side plan repair guard: if the model returns a valid but under-filled planned response, the service adds deterministic fallback questions and the recruiter create page preserves extra keyed generated questions instead of remapping through fixed legacy templates.
 - `interviewStage` plus `questionCount` is the new setup contract for planned generation. Legacy `interviewType` is still present for older candidate setup/read fallback and should not be deleted until older-row behavior is reviewed.
@@ -127,15 +128,16 @@ Resolve the dashboard preparedness presentation contract before adding more visu
 Recommended next implementation slice:
 
 1. Browser-validate DASH-S24 / Azure 811 on desktop and mobile-sized viewports: green parent lane slices should stay green on hover/focus, chart segment activation should open the matching modal, the guidance card should return to overall read on mouseout/blur/Escape/tapaway, and mobile should keep first-tap reveal plus second-tap modal open.
-2. Define when, where, and how snapshot versus current-state UI appears. This remains the last large unspec'd dashboard behavior before the current release scope can settle.
-3. Continue product tuning of matrix cell state and category-scoped My Read copy against more realistic sessions.
-4. Add dev-only dashboard seed scenarios once the UI is mature enough to validate quickly: multiple fake candidates, active/paused/resumed sessions, partially answered plans, completed multi-round histories, and changing session-over-session evidence.
-5. Continue recruiter `/recruiter/create` browser validation: confirm generated and manual planned-section question behavior persists invites/templates correctly, including read-only AI/template fields, editable manual fields, the five-category Configuration preview, back-navigation restoration behavior, and 7/10/Other question counts that allocate multiple case/scenario or technical slots.
-6. Keep recruiter-invited answer feedback behavior stable while shared generation/planning changes continue.
-7. Browser-validate candidate `/practice` Interview Details parity: stage/count should be visible without Advanced setup, the merged balanced-practice card should post `practice_only`, and generated candidate sessions should still receive a deterministic question plan.
-8. Keep recruiter resume-aware question generation parked until batch-invite UX and candidate-specific resume context are deliberately scoped.
-9. Keep completed-session route recovery queued as lower priority until dashboard release behavior is otherwise stable.
-10. Queue the new candidate experience extensions: generation-to-session coaching carousel, optional target interview date, and bite-sized practice paths.
+2. Configure Supabase/Vercel preview testing for Irma: create Supabase Postgres, run `npm run db:migrate`, run `npm run db:seed-candidate-preview`, configure Vercel preview env vars, enable Vercel Authentication, and validate `/dashboard` plus `/practice` from desktop and mobile.
+3. Define when, where, and how snapshot versus current-state UI appears. This remains the last large unspec'd dashboard behavior before the current release scope can settle.
+4. Continue product tuning of matrix cell state and category-scoped My Read copy against more realistic sessions.
+5. Add dev-only dashboard seed scenarios once the UI is mature enough to validate quickly: multiple fake candidates, active/paused/resumed sessions, partially answered plans, completed multi-round histories, and changing session-over-session evidence.
+6. Continue recruiter `/recruiter/create` browser validation: confirm generated and manual planned-section question behavior persists invites/templates correctly, including read-only AI/template fields, editable manual fields, the five-category Configuration preview, back-navigation restoration behavior, and 7/10/Other question counts that allocate multiple case/scenario or technical slots.
+7. Keep recruiter-invited answer feedback behavior stable while shared generation/planning changes continue.
+8. Browser-validate candidate `/practice` Interview Details parity: stage/count should be visible without Advanced setup, the merged balanced-practice card should post `practice_only`, and generated candidate sessions should still receive a deterministic question plan.
+9. Keep recruiter resume-aware question generation parked until batch-invite UX and candidate-specific resume context are deliberately scoped.
+10. Keep completed-session route recovery queued as lower priority until dashboard release behavior is otherwise stable.
+11. Queue the new candidate experience extensions: generation-to-session coaching carousel, optional target interview date, and bite-sized practice paths.
 
 ## Current Risks
 

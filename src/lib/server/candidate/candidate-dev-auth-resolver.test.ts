@@ -78,6 +78,49 @@ describe("candidate dev auth resolver", () => {
         });
     });
 
+    it("resolves the Irma preview-test candidate only when preview auth is explicitly enabled", async () => {
+        process.env = {
+            NODE_ENV: "production",
+            CANDIDATE_AUTH_MODE: "preview_test",
+            VERCEL_ENV: "preview",
+            ALLOW_CANDIDATE_PREVIEW_AUTH: "true",
+        };
+
+        const { resolveLocalCandidateAuthHandoff } = await import("./candidate-dev-auth-resolver");
+
+        await expect(resolveLocalCandidateAuthHandoff()).resolves.toEqual({
+            provider: "dev_mock",
+            issuer: "interview-coach-preview",
+            subject: "irma.castillo@talentarbor.local",
+            email: "irma.castillo@talentarbor.local",
+            displayName: "Irma Castillo",
+            workspace: "local_dev",
+        });
+    });
+
+    it("allows preview-test candidate identity overrides for branch-specific validation", async () => {
+        process.env = {
+            NODE_ENV: "production",
+            CANDIDATE_AUTH_MODE: "preview_test",
+            VERCEL_ENV: "preview",
+            ALLOW_CANDIDATE_PREVIEW_AUTH: "true",
+            CANDIDATE_PREVIEW_EMAIL: " Irma.Castillo+mobile@TalentArbor.Local ",
+            CANDIDATE_PREVIEW_DISPLAY_NAME: " Irma Mobile ",
+            CANDIDATE_PREVIEW_SUBJECT: " irma-preview-mobile ",
+        };
+
+        const { resolveLocalCandidateAuthHandoff } = await import("./candidate-dev-auth-resolver");
+
+        await expect(resolveLocalCandidateAuthHandoff()).resolves.toEqual({
+            provider: "dev_mock",
+            issuer: "interview-coach-preview",
+            subject: "irma-preview-mobile",
+            email: "irma.castillo+mobile@talentarbor.local",
+            displayName: "Irma Mobile",
+            workspace: "local_dev",
+        });
+    });
+
     it("requires a dev email for password-backed dev auth", async () => {
         process.env = {
             NODE_ENV: "development",
@@ -106,6 +149,11 @@ describe("candidate dev auth resolver", () => {
         process.env.CANDIDATE_AUTH_MODE = "mock";
         await expect(resolveLocalCandidateAuthHandoff()).rejects.toThrow(
             "CANDIDATE_AUTH_MODE=mock is not allowed in production."
+        );
+
+        process.env.CANDIDATE_AUTH_MODE = "preview_test";
+        await expect(resolveLocalCandidateAuthHandoff()).rejects.toThrow(
+            "CANDIDATE_AUTH_MODE=preview_test requires VERCEL_ENV=preview and ALLOW_CANDIDATE_PREVIEW_AUTH=true."
         );
     });
 });

@@ -4,6 +4,9 @@ import { toCandidateProfileResolutionInput, type CandidateAuthHandoff } from "./
 import { getCandidateRuntimeConfig } from "./candidate-runtime-config";
 
 const LOCAL_ISSUER = "interview-coach-local";
+const PREVIEW_ISSUER = "interview-coach-preview";
+const DEFAULT_PREVIEW_EMAIL = "irma.castillo@talentarbor.local";
+const DEFAULT_PREVIEW_DISPLAY_NAME = "Irma Castillo";
 const SEEDED_DEV_EMAIL = "candidate-dev-primary@talentarbor.local";
 const SEEDED_DEV_DISPLAY_NAME = "Dev Candidate Primary";
 const DEFAULT_MOCK_EMAIL = "dev-candidate@example.invalid";
@@ -18,6 +21,10 @@ export async function resolveLocalCandidateAuthHandoff(): Promise<CandidateAuthH
 
     if (authMode === "mock") {
         return resolveMockCandidateAuthHandoff();
+    }
+
+    if (authMode === "preview_test") {
+        return resolvePreviewTestCandidateAuthHandoff();
     }
 
     if (authMode === "dev") {
@@ -47,6 +54,21 @@ function resolveMockCandidateAuthHandoff(): CandidateAuthHandoff {
         provider: "dev_mock",
         issuer: LOCAL_ISSUER,
         subject: normalizedEmail,
+        email: normalizedEmail,
+        displayName,
+        workspace: "local_dev",
+    });
+}
+
+function resolvePreviewTestCandidateAuthHandoff(): CandidateAuthHandoff {
+    const email = getOptionalServerEnv("CANDIDATE_PREVIEW_EMAIL") ?? DEFAULT_PREVIEW_EMAIL;
+    const normalizedEmail = email.trim().toLowerCase();
+    const displayName = getOptionalServerEnv("CANDIDATE_PREVIEW_DISPLAY_NAME") ?? DEFAULT_PREVIEW_DISPLAY_NAME;
+
+    return toCandidateProfileResolutionInput({
+        provider: "dev_mock",
+        issuer: getOptionalServerEnv("CANDIDATE_PREVIEW_ISSUER") ?? PREVIEW_ISSUER,
+        subject: getOptionalServerEnv("CANDIDATE_PREVIEW_SUBJECT") ?? normalizedEmail,
         email: normalizedEmail,
         displayName,
         workspace: "local_dev",

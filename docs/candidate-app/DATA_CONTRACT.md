@@ -1,7 +1,7 @@
 # Candidate App Data Contract
 
 Status: Canonical system truth
-Last updated: 2026-06-09
+Last updated: 2026-06-22
 
 ## Purpose
 
@@ -34,6 +34,14 @@ Important fields:
 - auth subject.
 
 Local development can use dev candidate identities, but production behavior must depend on the host-platform identity contract.
+
+Temporary deployed preview rule:
+
+- `CANDIDATE_AUTH_MODE=preview_test` exists only for branch/Vercel preview validation before the TalentArbor launch-token/API contract is available.
+- It is allowed only when `VERCEL_ENV=preview` and `ALLOW_CANDIDATE_PREVIEW_AUTH=true`.
+- The default preview candidate is Irma Castillo at `irma.castillo@talentarbor.local`, resolved through the existing candidate profile identity path with issuer `interview-coach-preview`.
+- Preview test auth must not be enabled for production deployments or treated as the future TalentArbor integration pattern.
+- Preview seed data is applied with `npm run db:seed-candidate-preview` after the normal Postgres migrations.
 
 ### PrepProfile
 
@@ -311,6 +319,31 @@ qualitative pulse/anchor inference. Signposting belongs to Structure only.
 
 The old analysis route should not be used for active behavior. Current candidate/recruiter feedback should use the question-scoped analysis flow.
 
+### Per-Question Preparedness Evidence
+
+Current release behavior derives preparedness evidence from completed answer analyses and their hidden numeric scores. The durable direction is a more explicit per-question evidence contract where each answered question records what the evaluator actually observed, what could not be observed, and how confident the evaluator was in that judgment.
+
+Future evaluator records should preserve these facts separately:
+
+- evaluator version;
+- question category and difficulty band;
+- transcript/input quality;
+- one entry per expected signal dimension;
+- signal applicability: observed, not elicited, or insufficient data;
+- raw score only when the signal was observed;
+- evaluator confidence for the individual judgment;
+- short candidate-safe evidence excerpt or rubric anchor.
+
+Contract invariants:
+
+- never emit a numeric score for a signal that was not observed;
+- never treat too-short, off-topic, no-response, or otherwise unusable input as low performance;
+- make non-observation explicit instead of relying on a missing signal entry;
+- derive lane/category/overall dashboard state from the evidence stream, not directly from evaluator prose;
+- preserve evaluator version on every persisted evaluation used for trend or comparison reads.
+
+Three release lanes contain dimensions with different observability profiles. Focus, specificity, structure, signposting, filler control, and conciseness are broadly observable in most answers. Outcome/impact, rationale/judgment, and resilience/ownership are more elicitation-dependent and require the question or follow-up to create the right evidence opportunity. A future follow-up coach should deliberately create those opportunities instead of letting the dashboard silently mark the candidate weak for evidence the session never elicited.
+
 ### AI Capture AppName
 
 Shared AI calls must record the correct app ownership:
@@ -509,6 +542,13 @@ Rules:
 
 Evidence states are qualitative. They are not scores.
 
+Current state vocabulary intentionally remains `not_practiced | emerging | clear | strong`. The future contract should consider splitting `not_practiced` into two internal facts:
+
+- `to_practice`: no usable practice evidence exists yet because the planned category or signal has not been attempted.
+- `awaiting_evidence`: the candidate practiced, but the relevant signal was not elicited or the input was insufficient.
+
+That distinction is durable product logic, but adopting it as runtime state vocabulary is a separate implementation slice. Until then, UI and read models must avoid wording that implies failure when the system merely lacks valid evidence.
+
 ### Progression Rules
 
 - Latest strong evidence immediately elevates the current signal to `strong`.
@@ -517,6 +557,21 @@ Evidence states are qualitative. They are not scores.
 - Repeated weak evidence after strong evidence can pull a signal down.
 - Weak and strong evidence must both remain available in source history.
 - Lane fill is a quiet visual cue only; do not expose percentages or numeric readiness.
+- Future confidence and trajectory indicators must be evidence-gated. A single answer can move the displayed latest read, but durable confidence should require repeated observations and reasonable consistency.
+- Future trend arrows must compare like with like: do not trend silently across evaluator-version changes, and do not treat normal evaluator noise as candidate movement.
+- Raw scores from different question difficulties should not be averaged directly if difficulty bands become first-class in the evaluator record. Difficulty normalization must be calibrated before cross-difficulty trends are used.
+
+### Future Reliability Controls
+
+The following controls are not release-complete runtime behavior, but they are durable requirements for any stronger longitudinal preparedness model:
+
+- pin or record evaluator version per evaluation and avoid silent cross-version trend claims;
+- periodically re-score a gold-standard answer set to estimate evaluator noise by signal;
+- set movement thresholds above the measured noise floor before showing trajectory;
+- use robust aggregates rather than simple means so one unusually good or poor answer cannot define a lane;
+- require minimum evidence before marking a state as durable or confirmed;
+- keep high-water history available internally so one weak answer does not erase previously strong evidence;
+- audit Delivery-lane signals for fairness risk, especially filler control and conciseness, so accent, dialect, ESL status, disability, or neurodivergent communication patterns do not proxy into an invalid readiness claim.
 
 ### Recommendation Priority
 

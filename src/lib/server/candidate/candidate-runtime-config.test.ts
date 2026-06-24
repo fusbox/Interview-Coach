@@ -19,7 +19,7 @@ describe("candidate runtime config", () => {
         });
     });
 
-    it("allows dev, password, and mock auth outside production", async () => {
+    it("allows dev, password, mock, and preview test auth outside production", async () => {
         process.env = {
             NODE_ENV: "development",
             CANDIDATE_AUTH_MODE: "dev",
@@ -38,6 +38,25 @@ describe("candidate runtime config", () => {
 
         process.env.CANDIDATE_AUTH_MODE = "mock";
         expect(getCandidateRuntimeConfig().authMode).toBe("mock");
+
+        process.env.CANDIDATE_AUTH_MODE = "preview_test";
+        expect(getCandidateRuntimeConfig().authMode).toBe("preview_test");
+    });
+
+    it("allows preview test auth only for explicitly enabled Vercel preview deployments", async () => {
+        process.env = {
+            NODE_ENV: "production",
+            CANDIDATE_AUTH_MODE: "preview_test",
+            VERCEL_ENV: "preview",
+            ALLOW_CANDIDATE_PREVIEW_AUTH: "true",
+        };
+
+        const { getCandidateRuntimeConfig } = await import("./candidate-runtime-config");
+
+        expect(getCandidateRuntimeConfig()).toEqual({
+            authMode: "preview_test",
+            dataBackend: "postgres",
+        });
     });
 
     it("rejects Supabase or unknown candidate data backends", async () => {
@@ -56,7 +75,7 @@ describe("candidate runtime config", () => {
         const { getCandidateRuntimeConfig } = await import("./candidate-runtime-config");
 
         expect(() => getCandidateRuntimeConfig()).toThrow(
-            'Unsupported CANDIDATE_AUTH_MODE value "magic". Expected "external", "dev", "password", or "mock".'
+            'Unsupported CANDIDATE_AUTH_MODE value "magic". Expected "external", "dev", "password", "mock", or "preview_test".'
         );
     });
 
@@ -75,5 +94,26 @@ describe("candidate runtime config", () => {
 
         process.env.CANDIDATE_AUTH_MODE = "password";
         expect(() => getCandidateRuntimeConfig()).toThrow("CANDIDATE_AUTH_MODE=password is not allowed in production.");
+    });
+
+    it("fails closed for preview test auth outside explicitly enabled preview deployments", async () => {
+        process.env = {
+            NODE_ENV: "production",
+            CANDIDATE_AUTH_MODE: "preview_test",
+            VERCEL_ENV: "production",
+            ALLOW_CANDIDATE_PREVIEW_AUTH: "true",
+        };
+
+        const { getCandidateRuntimeConfig } = await import("./candidate-runtime-config");
+
+        expect(() => getCandidateRuntimeConfig()).toThrow(
+            "CANDIDATE_AUTH_MODE=preview_test requires VERCEL_ENV=preview and ALLOW_CANDIDATE_PREVIEW_AUTH=true."
+        );
+
+        process.env.VERCEL_ENV = "preview";
+        process.env.ALLOW_CANDIDATE_PREVIEW_AUTH = "false";
+        expect(() => getCandidateRuntimeConfig()).toThrow(
+            "CANDIDATE_AUTH_MODE=preview_test requires VERCEL_ENV=preview and ALLOW_CANDIDATE_PREVIEW_AUTH=true."
+        );
     });
 });
