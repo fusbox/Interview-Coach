@@ -279,7 +279,7 @@ values
     '94000000-0000-4000-8000-000000000004',
     1,
     'COMPLETE',
-    '{"recommendation":"Name the result of the escalation more directly.","coachSignal":{"focus":"Make the client impact visible","rationale":"Your process is clear; the answer gets stronger when the outcome is explicit.","trySayingThis":"That helped the client understand the next step and reduced repeat follow-up while we resolved the billing issue."},"scores":{"answer_substance":0.82,"interview_structure":0.76,"communication_delivery":0.84}}'::jsonb,
+    '{"recommendation":"Name the result of the escalation more directly.","coachSignal":{"focus":"Make the client impact visible","rationale":"Your process is clear; the answer gets stronger when the outcome is explicit.","trySayingThis":"That helped the client understand the next step and reduced repeat follow-up while we resolved the billing issue."},"scores":{"focus_relevance":{"score":4.4,"label":"Stayed tied to the client escalation."},"specificity_concreteness":{"score":4.1,"label":"Named concrete account and billing steps."},"outcome_explicitness":{"score":3.2,"label":"Outcome is present but could be sharper."},"decision_rationale":{"score":3.6,"label":"Shows why follow-up cadence mattered."},"structural_clarity":{"score":4.0,"label":"Clear listen-confirm-act sequence."},"signposting":{"score":3.5,"label":"Sequence is understandable without heavy signposting."},"filler_words":{"score":4.2,"label":"Clean typed delivery."},"conciseness":{"score":4.0,"label":"Answer is focused and efficient."},"resilience":{"score":4.1,"label":"Shows calm ownership under client pressure."}}}'::jsonb,
     '{"provider":"seed","surface":"preview_irma"}'::jsonb
   ),
   (
@@ -288,7 +288,7 @@ values
     '94000000-0000-4000-8000-000000000005',
     1,
     'COMPLETE',
-    '{"recommendation":"Explain the decision rule behind your communication order.","coachSignal":{"focus":"Show your prioritization logic","rationale":"The answer is practical; naming the rule makes your judgment easier to trust.","trySayingThis":"I prioritize the person whose work is blocked, then send a concise update to everyone else so no one is guessing."},"scores":{"answer_substance":0.7,"interview_structure":0.78,"communication_delivery":0.8}}'::jsonb,
+    '{"recommendation":"Explain the decision rule behind your communication order.","coachSignal":{"focus":"Show your prioritization logic","rationale":"The answer is practical; naming the rule makes your judgment easier to trust.","trySayingThis":"I prioritize the person whose work is blocked, then send a concise update to everyone else so no one is guessing."},"scores":{"focus_relevance":{"score":3.8,"label":"Directly answers the prioritization question."},"specificity_concreteness":{"score":3.1,"label":"Useful but could include a concrete example."},"outcome_explicitness":{"score":2.8,"label":"Result is implied more than stated."},"decision_rationale":{"score":4.0,"label":"Clear decision rule for who hears first."},"structural_clarity":{"score":3.9,"label":"Answer has a clean order."},"signposting":{"score":3.6,"label":"Update sequence is easy to follow."},"filler_words":{"score":4.0,"label":"Clean typed delivery."},"conciseness":{"score":4.1,"label":"Concise and not over-explained."},"resilience":{"score":3.5,"label":"Shows steady communication under pressure."}}}'::jsonb,
     '{"provider":"seed","surface":"preview_irma"}'::jsonb
   ),
   (
@@ -297,7 +297,7 @@ values
     '94000000-0000-4000-8000-000000000006',
     1,
     'COMPLETE',
-    '{"recommendation":"Add one concrete example of a handoff or team behavior.","coachSignal":{"focus":"Give one example","rationale":"The values are clear; a specific example will make the answer feel grounded.","trySayingThis":"For example, I like confirming the owner and next update time in writing after a client call."},"scores":{"answer_substance":0.62,"interview_structure":0.68,"communication_delivery":0.78}}'::jsonb,
+    '{"recommendation":"Add one concrete example of a handoff or team behavior.","coachSignal":{"focus":"Give one example","rationale":"The values are clear; a specific example will make the answer feel grounded.","trySayingThis":"For example, I like confirming the owner and next update time in writing after a client call."},"scores":{"focus_relevance":{"score":3.4,"label":"Mostly relevant to team environment."},"specificity_concreteness":{"score":2.6,"label":"Needs one concrete example."},"outcome_explicitness":{"score":2.4,"label":"Outcome is not yet visible."},"decision_rationale":{"score":3.0,"label":"Some rationale for team preferences."},"structural_clarity":{"score":3.3,"label":"Simple and understandable."},"signposting":{"score":3.0,"label":"Could guide the listener more clearly."},"filler_words":{"score":4.0,"label":"Clean typed delivery."},"conciseness":{"score":3.9,"label":"Tight answer."},"resilience":{"score":3.6,"label":"Shows calm follow-through preference."}}}'::jsonb,
     '{"provider":"seed","surface":"preview_irma"}'::jsonb
   )
 on conflict (question_id, attempt_number)

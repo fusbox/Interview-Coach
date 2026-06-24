@@ -80,6 +80,10 @@ describe("candidate dev seed", () => {
         expect(sql).toContain("Client Services Executive - WWT");
         expect(sql).toContain("questionPlanSnapshot");
         expect(sql).toContain("coachSignal");
+        expect(sql).toContain('"focus_relevance":{"score":4.4');
+        expect(sql).toContain('"decision_rationale":{"score":4.0');
+        expect(sql).toContain('"resilience":{"score":3.6');
+        expect(sql).not.toContain('"answer_substance":0.');
         expect(sql).toContain("candidate_role_preparation_profiles");
     });
 
