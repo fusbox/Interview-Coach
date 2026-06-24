@@ -37,6 +37,14 @@ export type PracticeCoverageBaseline = {
 const QUESTION_COUNT_MIN = 1;
 const QUESTION_COUNT_MAX = 20;
 
+const RIGOR_BASELINE_QUESTION_COUNTS: Record<InterviewStage, number> = {
+    not_sure: 5,
+    initial_screening: 5,
+    initial_interview: 7,
+    follow_up_final: 10,
+    practice_only: 5,
+};
+
 const STAGE_WEIGHTS: Record<InterviewStage, Record<QuestionPlanCategory, number>> = {
     not_sure: {
         screening: 1,
@@ -109,8 +117,20 @@ export function normalizeQuestionPlanCount(questionCount: number | null | undefi
 }
 
 export function buildPracticeCoverageBaseline(input: QuestionPlanInput = {}): PracticeCoverageBaseline {
-    const plan = buildQuestionPlan(input);
+    const plan = buildRigorBaselineQuestionPlan(input);
     return buildPracticeCoverageBaselineFromQuestionPlan(plan);
+}
+
+export function buildRigorBaselineQuestionPlan(input: Pick<QuestionPlanInput, "interviewStage"> = {}): QuestionPlan {
+    const interviewStage = normalizeInterviewStage(input.interviewStage);
+    return buildQuestionPlan({
+        interviewStage,
+        questionCount: getRigorBaselineQuestionCount(interviewStage),
+    });
+}
+
+export function getRigorBaselineQuestionCount(value: InterviewStage | null | undefined): number {
+    return RIGOR_BASELINE_QUESTION_COUNTS[normalizeInterviewStage(value)];
 }
 
 export function buildPracticeCoverageBaselineFromQuestionPlan(plan: QuestionPlan): PracticeCoverageBaseline {

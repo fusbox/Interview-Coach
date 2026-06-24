@@ -1,7 +1,7 @@
 import type { SessionRepository } from "@/lib/domain/repository";
 import type { InterviewSession, Question } from "@/lib/domain/types";
 import { createSessionRepository } from "@/lib/server/infrastructure/session-repository";
-import { buildQuestionPlan } from "@/lib/server/services/question-plan-service";
+import { buildQuestionPlan, buildRigorBaselineQuestionPlan } from "@/lib/server/services/question-plan-service";
 import { generateCandidateQuestionSnapshot, type QuestionGenerationInput } from "@/lib/server/services/question-generation-service";
 import { uuidv7 } from "uuidv7";
 
@@ -79,6 +79,9 @@ export async function createCandidateSessionFromDraft(
                 interviewStage: draft.intakeResponses.interviewStage,
                 questionCount: input.generationConfig?.questionCount,
             });
+            const rigorBaselineSnapshot = buildRigorBaselineQuestionPlan({
+                interviewStage: draft.intakeResponses.interviewStage,
+            });
             const questionCount = questionPlanSnapshot.questionCount;
             const questionGenerationInput: QuestionGenerationInput = {
                 role: draft.targetRole,
@@ -123,8 +126,10 @@ export async function createCandidateSessionFromDraft(
                         interviewType: draft.intakeResponses.interviewType,
                         interviewStage: draft.intakeResponses.interviewStage,
                         questionCount,
+                        baselineQuestionCount: rigorBaselineSnapshot.questionCount,
                     },
                     questionPlanSnapshot,
+                    rigorBaselineSnapshot,
                     resumeContext: {
                         captureMode: draft.resumeContext.captureMode,
                         extractedText: draft.resumeContext.extractedText,

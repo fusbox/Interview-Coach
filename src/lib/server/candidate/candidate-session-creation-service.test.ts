@@ -103,6 +103,11 @@ describe("candidate session creation service", () => {
                     interviewType: null,
                     interviewStage: "not_sure",
                     questionCount: 5,
+                    baselineQuestionCount: 5,
+                },
+                rigorBaselineSnapshot: {
+                    interviewStage: "not_sure",
+                    questionCount: 5,
                 },
                 resumeContext: {
                     captureMode: "pasted_text",
@@ -193,7 +198,7 @@ describe("candidate session creation service", () => {
         });
     });
 
-    it("persists the resolved question plan snapshot with the generated candidate session", async () => {
+    it("persists the selected round plan and rigor baseline snapshots with the generated candidate session", async () => {
         const createSession = vi.fn();
 
         await createCandidateSessionFromDraft(
@@ -256,6 +261,24 @@ describe("candidate session creation service", () => {
                         { id: "behavioral-1", index: 1, category: "behavioral" },
                         { id: "culture_fit-1", index: 2, category: "culture_fit" },
                         { id: "technical_role_specific-1", index: 3, category: "technical_role_specific" },
+                    ],
+                },
+                rigorBaselineSnapshot: {
+                    interviewStage: "initial_screening",
+                    questionCount: 5,
+                    categoryCounts: {
+                        screening: 2,
+                        behavioral: 1,
+                        culture_fit: 1,
+                        case_scenario: 0,
+                        technical_role_specific: 1,
+                    },
+                    slots: [
+                        { id: "screening-1", index: 0, category: "screening" },
+                        { id: "screening-2", index: 1, category: "screening" },
+                        { id: "behavioral-1", index: 2, category: "behavioral" },
+                        { id: "culture_fit-1", index: 3, category: "culture_fit" },
+                        { id: "technical_role_specific-1", index: 4, category: "technical_role_specific" },
                     ],
                 },
             }),

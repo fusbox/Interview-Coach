@@ -63,6 +63,17 @@ begin
   select count(*)
   into v_count
   from public.candidate_practice_drafts d
+  join public.sessions s on s.session_id = d.session_id
+  where d.candidate_profile_id = v_profile_id
+    and s.intake_json ? 'rigorBaselineSnapshot';
+
+  if v_count <> 2 then
+    raise exception 'expected Irma sessions with rigor baseline snapshots, found %', v_count;
+  end if;
+
+  select count(*)
+  into v_count
+  from public.candidate_practice_drafts d
   join public.answers a on a.session_id = d.session_id
   join public.eval_results er on er.question_id = a.question_id
   where d.candidate_profile_id = v_profile_id

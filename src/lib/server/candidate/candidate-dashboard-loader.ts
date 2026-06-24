@@ -94,6 +94,7 @@ type DashboardDraftRow = QueryResultRow & {
     session_status: string | null;
     current_question_index: number | null;
     question_plan_snapshot: unknown;
+    rigor_baseline_snapshot: unknown;
     question_count: number | string | null;
     submitted_count: number | string | null;
     summary_narrative: string | null;
@@ -150,6 +151,7 @@ export async function loadCandidateDashboardForCurrentCandidate(input: {
                         s.status as session_status,
                         s.current_question_index,
                         s.intake_json -> 'questionPlanSnapshot' as question_plan_snapshot,
+                        s.intake_json -> 'rigorBaselineSnapshot' as rigor_baseline_snapshot,
                         s.summary_narrative,
                         f.latest_recommendation,
                             f.latest_coach_signal,
@@ -481,7 +483,7 @@ function mapDashboardItem(
     const summaryHref = row.session_id ? `/summary/${row.session_id}` : sessionHref;
     const coachSignal = parseCoachSignal(row.latest_coach_signal);
     const prepProfile = buildDashboardPrepProfileSummary(row, evidenceRows, isCompleted ? null : sessionHref);
-    const practiceCoverageBaseline = buildDashboardPracticeCoverageBaseline(row.question_plan_snapshot);
+    const practiceCoverageBaseline = buildDashboardPracticeCoverageBaseline(row.rigor_baseline_snapshot, row.question_plan_snapshot);
 
     return {
         kind: isCompleted ? "completed" : "active",
@@ -505,8 +507,11 @@ function mapDashboardItem(
     };
 }
 
-function buildDashboardPracticeCoverageBaseline(value: unknown): CandidateDashboardPracticeCoverageBaseline | undefined {
-    const snapshot = parseQuestionPlanSnapshot(value);
+function buildDashboardPracticeCoverageBaseline(
+    rigorBaselineSnapshot: unknown,
+    questionPlanSnapshot: unknown,
+): CandidateDashboardPracticeCoverageBaseline | undefined {
+    const snapshot = parseQuestionPlanSnapshot(rigorBaselineSnapshot) ?? parseQuestionPlanSnapshot(questionPlanSnapshot);
     if (!snapshot) {
         return undefined;
     }

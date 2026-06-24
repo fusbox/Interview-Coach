@@ -144,6 +144,8 @@ For the release matrix view, question categories should render as rows and the f
 
 What varies by target interview is the question mix, evidence, drilldown content, and next practice recommendation, based on the target role, job description, resume context, interview stage, generated questions, answers, coaching feedback, and summaries.
 
+The app distinguishes the selected practice round from the coach's baseline coverage expectation for the interview moment. The selected round may contain fewer questions than the baseline. In that case, the generated round should use an appropriate sample of the baseline mix, while the dashboard can still show remaining planned coverage as upcoming/to-practice areas. The current release baseline is deterministic by interview stage; future revisions may adjust that baseline using structured role/JD signals such as industry, role family, level, compliance risk, or client-facing intensity.
+
 Resume and job description context are source evidence. They are not standalone dashboard lanes.
 
 Role Fit is out of current-release dashboard scope unless a specific future extraction/evaluation contract supports candidate-facing claims.

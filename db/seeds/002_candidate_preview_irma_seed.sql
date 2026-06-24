@@ -124,7 +124,7 @@ values
     1,
     'Client Services Specialist',
     'Support client service teams with billing questions, account documentation, customer follow-up, and operational handoffs.',
-    '{"candidate":{"fullName":"Irma Castillo","email":"irma.castillo@talentarbor.local","resumeText":"Detail-oriented administrative and customer-facing professional with billing, records, and service coordination experience."},"questionPlanSnapshot":{"interviewStage":"follow_up_final","questionCount":10,"categoryCounts":{"screening":0,"behavioral":3,"culture_fit":3,"case_scenario":2,"technical_role_specific":2},"slots":[{"id":"slot-1","index":0,"category":"behavioral"},{"id":"slot-2","index":1,"category":"behavioral"},{"id":"slot-3","index":2,"category":"behavioral"},{"id":"slot-4","index":3,"category":"culture_fit"},{"id":"slot-5","index":4,"category":"culture_fit"},{"id":"slot-6","index":5,"category":"culture_fit"},{"id":"slot-7","index":6,"category":"case_scenario"},{"id":"slot-8","index":7,"category":"case_scenario"},{"id":"slot-9","index":8,"category":"technical_role_specific"},{"id":"slot-10","index":9,"category":"technical_role_specific"}]}}'::jsonb,
+    '{"candidate":{"fullName":"Irma Castillo","email":"irma.castillo@talentarbor.local","resumeText":"Detail-oriented administrative and customer-facing professional with billing, records, and service coordination experience."},"questionPlanSnapshot":{"interviewStage":"follow_up_final","questionCount":3,"categoryCounts":{"screening":0,"behavioral":1,"culture_fit":1,"case_scenario":1,"technical_role_specific":0},"slots":[{"id":"slot-1","index":0,"category":"behavioral"},{"id":"slot-2","index":1,"category":"case_scenario"},{"id":"slot-3","index":2,"category":"culture_fit"}]},"rigorBaselineSnapshot":{"interviewStage":"follow_up_final","questionCount":10,"categoryCounts":{"screening":0,"behavioral":3,"culture_fit":3,"case_scenario":2,"technical_role_specific":2},"slots":[{"id":"baseline-1","index":0,"category":"behavioral"},{"id":"baseline-2","index":1,"category":"behavioral"},{"id":"baseline-3","index":2,"category":"behavioral"},{"id":"baseline-4","index":3,"category":"culture_fit"},{"id":"baseline-5","index":4,"category":"culture_fit"},{"id":"baseline-6","index":5,"category":"culture_fit"},{"id":"baseline-7","index":6,"category":"case_scenario"},{"id":"baseline-8","index":7,"category":"case_scenario"},{"id":"baseline-9","index":8,"category":"technical_role_specific"},{"id":"baseline-10","index":9,"category":"technical_role_specific"}]}}'::jsonb,
     'Irma Castillo',
     null
   ),
@@ -135,7 +135,7 @@ values
     3,
     'Client Services Executive - WWT',
     'Own client service delivery, coordinate escalations, build trust with stakeholders, and translate account needs into clear internal action.',
-    '{"candidate":{"fullName":"Irma Castillo","email":"irma.castillo@talentarbor.local","resumeText":"Client service professional with account coordination, documentation, and customer issue-resolution experience."},"questionPlanSnapshot":{"interviewStage":"follow_up_final","questionCount":5,"categoryCounts":{"screening":0,"behavioral":2,"culture_fit":1,"case_scenario":1,"technical_role_specific":1},"slots":[{"id":"slot-1","index":0,"category":"behavioral"},{"id":"slot-2","index":1,"category":"behavioral"},{"id":"slot-3","index":2,"category":"culture_fit"},{"id":"slot-4","index":3,"category":"case_scenario"},{"id":"slot-5","index":4,"category":"technical_role_specific"}]}}'::jsonb,
+    '{"candidate":{"fullName":"Irma Castillo","email":"irma.castillo@talentarbor.local","resumeText":"Client service professional with account coordination, documentation, and customer issue-resolution experience."},"questionPlanSnapshot":{"interviewStage":"follow_up_final","questionCount":3,"categoryCounts":{"screening":0,"behavioral":1,"culture_fit":1,"case_scenario":0,"technical_role_specific":1},"slots":[{"id":"slot-1","index":0,"category":"behavioral"},{"id":"slot-2","index":1,"category":"technical_role_specific"},{"id":"slot-3","index":2,"category":"culture_fit"}]},"rigorBaselineSnapshot":{"interviewStage":"follow_up_final","questionCount":5,"categoryCounts":{"screening":0,"behavioral":2,"culture_fit":1,"case_scenario":1,"technical_role_specific":1},"slots":[{"id":"baseline-1","index":0,"category":"behavioral"},{"id":"baseline-2","index":1,"category":"behavioral"},{"id":"baseline-3","index":2,"category":"culture_fit"},{"id":"baseline-4","index":3,"category":"case_scenario"},{"id":"baseline-5","index":4,"category":"technical_role_specific"}]}}'::jsonb,
     'Irma Castillo',
     'You showed steady client-service judgment and can make the strongest answers sharper by naming the result and the decision rule behind your action.'
   )
@@ -181,10 +181,10 @@ values
     '94000000-0000-4000-8000-000000000003',
     '93000000-0000-4000-8000-000000000001',
     2,
-    'How do you organize account documentation so handoffs stay clear for the next person?',
-    '["documentation","handoff_quality"]'::jsonb,
-    '["rationale_judgment","flow_sequence","specificity_concreteness"]'::jsonb,
-    'Technical'
+    'What kind of team environment helps you deliver reliable client follow-up?',
+    '["culture_fit","client_service"]'::jsonb,
+    '["focus_relevance","specificity_concreteness","conciseness_pacing"]'::jsonb,
+    'Culture Fit'
   ),
   (
     '94000000-0000-4000-8000-000000000004',

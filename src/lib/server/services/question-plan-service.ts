@@ -10,6 +10,8 @@ export {
     buildPracticeCoverageBaseline,
     buildPracticeCoverageBaselineFromQuestionPlan,
     buildQuestionPlan,
+    buildRigorBaselineQuestionPlan,
+    getRigorBaselineQuestionCount,
     normalizeQuestionPlanCount,
     parseQuestionPlanSnapshot,
     type PracticeCoverageBaseline,

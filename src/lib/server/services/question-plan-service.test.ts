@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
     buildPracticeCoverageBaseline,
     buildQuestionPlan,
+    buildRigorBaselineQuestionPlan,
+    getRigorBaselineQuestionCount,
     getInterviewStageLabel,
     INTERVIEW_STAGE_OPTIONS,
     normalizeInterviewStage,
@@ -70,10 +72,10 @@ describe("question-plan-service", () => {
         expect(normalizeInterviewStage("follow_up_final")).toBe("follow_up_final");
     });
 
-    it("derives practice coverage baseline from the same stage-aware question plan", () => {
+    it("derives practice coverage baseline from the stage rigor baseline, not the selected round count", () => {
         const baseline = buildPracticeCoverageBaseline({
             interviewStage: "initial_screening",
-            questionCount: 5,
+            questionCount: 3,
         });
 
         expect(baseline).toEqual({
@@ -86,6 +88,24 @@ describe("question-plan-service", () => {
                 technical_role_specific: 1,
                 case_scenario: 0,
             }),
+        });
+    });
+
+    it("defines stage-based rigor baseline plans separately from selected round size", () => {
+        expect(getRigorBaselineQuestionCount("initial_interview")).toBe(7);
+        expect(getRigorBaselineQuestionCount("follow_up_final")).toBe(10);
+
+        const baselinePlan = buildRigorBaselineQuestionPlan({
+            interviewStage: "follow_up_final",
+        });
+
+        expect(baselinePlan.questionCount).toBe(10);
+        expect(baselinePlan.categoryCounts).toEqual({
+            screening: 0,
+            behavioral: 3,
+            culture_fit: 3,
+            case_scenario: 2,
+            technical_role_specific: 2,
         });
     });
 

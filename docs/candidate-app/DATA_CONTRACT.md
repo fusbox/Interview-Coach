@@ -198,7 +198,9 @@ Rules:
 
 Rules:
 
-- derive it from the same `buildQuestionPlan` allocation used for question generation;
+- derive it from `rigorBaselineSnapshot` when present, falling back to `questionPlanSnapshot` only for older rows;
+- keep `questionPlanSnapshot` scoped to the selected/generated practice round;
+- keep `rigorBaselineSnapshot` scoped to the coach's baseline coverage expectation for the interview stage;
 - treat `categoryMinimums` as the minimum category coverage for the planned interview scope;
 - let dashboard visual models include planned-but-not-yet-practiced categories so Question Mix and the matrix show intended coverage before all categories have scored evidence;
 - compare the baseline against practiced category counts before recommending lower-scoring matrix improvement cells;
@@ -215,7 +217,12 @@ type PracticeCoverageBaseline = {
 };
 ```
 
-Current limitation: `questionPlanSnapshot` is still the immutable plan for the generated round. The preview seed intentionally exercises a larger coach-planned baseline than the number of seeded current-round questions, but the durable v2 contract should split this more explicitly into a coach baseline question set and a selected-round question set so the app can stash unasked baseline questions and avoid recommending questions too similar to those already practiced.
+Current persisted snapshots:
+
+- `questionPlanSnapshot`: immutable generated-round plan, sized to the candidate-selected question count.
+- `rigorBaselineSnapshot`: immutable stage-defined baseline plan, currently sized by deterministic stage defaults: 5 for not-sure, screening, and practice-only; 7 for first interview; 10 for follow-up/final.
+
+Current limitation: the baseline uses deterministic stage weighting only. The durable v2 contract should add a structured role/JD adjustment layer and, eventually, a coach baseline question set so the app can stash unasked baseline questions and avoid recommending questions too similar to those already practiced.
 
 ### PracticeDraft
 
