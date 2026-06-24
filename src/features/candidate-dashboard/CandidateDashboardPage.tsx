@@ -17,6 +17,7 @@ import {
     toPreparednessMatrix,
     toPreparednessSkills,
     toPracticeNextItems,
+    withPracticeCoverageBaselineCategories,
 } from "./components/CandidateDashboardComponents";
 
 type CandidateDashboardPageProps = {
@@ -35,7 +36,7 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
         items: scopedItems,
         fallbackHref: dashboard.nextBestAction.href || "/practice",
     });
-    const categoryCards = toQuestionCategoryCards(scopedItems);
+    const categoryCards = withPracticeCoverageBaselineCategories(toQuestionCategoryCards(scopedItems), scopedItems);
     const categoryDrilldowns = toQuestionCategoryDrilldowns(categoryCards);
     const preparednessMatrix = toPreparednessMatrix(skills, categoryCards);
     const preparednessSnapshot = toInstantReadPreparednessModel(skills, categoryCards);

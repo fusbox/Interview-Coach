@@ -2085,6 +2085,50 @@ export function toQuestionCategoryCards(items: CandidateDashboardItem[]): PrepQu
     return Array.from(merged.values()).sort(sortQuestionCategoryCards);
 }
 
+export function withPracticeCoverageBaselineCategories(
+    categories: PrepQuestionCategoryCard[],
+    items: CandidateDashboardItem[],
+): PrepQuestionCategoryCard[] {
+    const minimums = mergeCoverageMinimums(items);
+    const merged = new Map<PrepQuestionCategoryCard["categoryId"], PrepQuestionCategoryCard>(
+        categories.map((category) => [category.categoryId, { ...category }]),
+    );
+
+    for (const categoryId of CATEGORY_CARD_ORDER) {
+        const required = minimums[categoryId] ?? 0;
+        if (required <= 0) {
+            continue;
+        }
+
+        const current = merged.get(categoryId);
+        if (!current) {
+            merged.set(categoryId, {
+                categoryId,
+                label: formatQuestionCategoryLabel(categoryId),
+                questionCount: required,
+                practicedQuestionCount: 0,
+                upcomingQuestionCount: required,
+                questionStatuses: [],
+                evidenceState: "not_practiced",
+                laneStates: createNotPracticedLaneStates(),
+                sourceRefs: [],
+            });
+            continue;
+        }
+
+        const practicedQuestionCount = current.practicedQuestionCount ?? practicedQuestionCountFor(current);
+        const plannedQuestionCount = Math.max(current.questionCount, required);
+        merged.set(categoryId, {
+            ...current,
+            questionCount: plannedQuestionCount,
+            practicedQuestionCount,
+            upcomingQuestionCount: Math.max(current.upcomingQuestionCount ?? upcomingQuestionCountFor(current), plannedQuestionCount - practicedQuestionCount),
+        });
+    }
+
+    return Array.from(merged.values()).sort(sortQuestionCategoryCards);
+}
+
 export function toQuestionCategoryDrilldowns(categories: PrepQuestionCategoryCard[]): QuestionCategoryDrilldownModel[] {
     return categories.map((category) => ({
         id: category.categoryId,
@@ -2161,7 +2205,7 @@ export function toPracticeNextItems({
     if (activeItems.length > 0) {
         const activeItem = activeItems[0];
         return categories.flatMap((category) => {
-            const statuses = category.questionStatuses ?? questionStatusesFor(category);
+            const statuses = category.questionStatuses ?? [];
             return statuses
                 .filter((status) => status.status === "upcoming")
                 .map((status) => ({
@@ -2255,6 +2299,14 @@ function mergeCoverageMinimums(
 
         return minimums;
     }, {});
+}
+
+function createNotPracticedLaneStates(): NonNullable<PrepQuestionCategoryCard["laneStates"]> {
+    return {
+        answer_substance: { evidenceState: "not_practiced", scoreCount: 0 },
+        interview_structure: { evidenceState: "not_practiced", scoreCount: 0 },
+        communication_delivery: { evidenceState: "not_practiced", scoreCount: 0 },
+    };
 }
 
 export function toInstantReadPreparednessModel(

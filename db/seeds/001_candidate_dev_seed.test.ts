@@ -79,6 +79,9 @@ describe("candidate dev seed", () => {
         expect(sql).toContain("Client Services Specialist");
         expect(sql).toContain("Client Services Executive - WWT");
         expect(sql).toContain("questionPlanSnapshot");
+        expect(sql).toContain('"questionPlanSnapshot":{"interviewStage":"follow_up_final","questionCount":10');
+        expect(sql).toContain('"categoryCounts":{"screening":0,"behavioral":3,"culture_fit":3,"case_scenario":2,"technical_role_specific":2}');
+        expect(sql).toContain('"questionCount":3');
         expect(sql).toContain("coachSignal");
         expect(sql).toContain('"focus_relevance":{"score":4.4');
         expect(sql).toContain('"decision_rationale":{"score":4.0');

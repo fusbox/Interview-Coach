@@ -200,6 +200,7 @@ Rules:
 
 - derive it from the same `buildQuestionPlan` allocation used for question generation;
 - treat `categoryMinimums` as the minimum category coverage for the planned interview scope;
+- let dashboard visual models include planned-but-not-yet-practiced categories so Question Mix and the matrix show intended coverage before all categories have scored evidence;
 - compare the baseline against practiced category counts before recommending lower-scoring matrix improvement cells;
 - do not expose mastery, numeric scores, or hidden rigor terms to candidates;
 - do not use it to change recruiter-invited feedback behavior.
@@ -213,6 +214,8 @@ type PracticeCoverageBaseline = {
   categoryMinimums: Record<QuestionPlanCategory, number>;
 };
 ```
+
+Current limitation: `questionPlanSnapshot` is still the immutable plan for the generated round. The preview seed intentionally exercises a larger coach-planned baseline than the number of seeded current-round questions, but the durable v2 contract should split this more explicitly into a coach baseline question set and a selected-round question set so the app can stash unasked baseline questions and avoid recommending questions too similar to those already practiced.
 
 ### PracticeDraft
 

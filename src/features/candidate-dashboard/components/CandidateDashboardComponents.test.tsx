@@ -19,6 +19,7 @@ import {
     toPreparednessMatrix,
     toPreparednessSkills,
     toPracticeNextItems,
+    withPracticeCoverageBaselineCategories,
     type PreparednessSkill,
 } from "./CandidateDashboardComponents";
 import type { CandidateDashboardItem } from "@/lib/server/candidate";
@@ -467,6 +468,98 @@ describe("candidate dashboard component set", () => {
             detail: "Practice 1 more question in this area for the planned interview scope.",
             state: "not_practiced",
         });
+    });
+
+    it("adds planned-only baseline categories to the visual preparedness model", () => {
+        const completedItem = {
+            practiceDraftId: "draft-1",
+            roleProfileId: "role-1",
+            roleContextLabel: "Role context saved",
+            title: "QA Analyst",
+            statusLabel: "Completed",
+            progressLabel: "1 of 1 answered",
+            href: "/summary/session-1",
+            lastActivityLabel: "May 12, 2026",
+            lastActivityAt: Date.UTC(2026, 4, 12),
+            practiceCoverageBaseline: {
+                interviewStage: "follow_up_final",
+                minimumQuestionCount: 5,
+                categoryMinimums: {
+                    screening: 0,
+                    behavioral: 2,
+                    culture_fit: 1,
+                    case_scenario: 1,
+                    technical_role_specific: 1,
+                },
+            },
+            prepProfile: {
+                prepProfileId: "role-1",
+                primarySignal: null,
+                signals: [],
+                signalCounts: { not_practiced: 0, emerging: 0, clear: 1, strong: 0 },
+                recommendation: {
+                    label: "Practice one focused improvement",
+                    reason: "Practice another client scenario.",
+                    source: "session_summary",
+                    href: "/practice",
+                },
+                categoryCards: [{
+                    categoryId: "behavioral",
+                    label: "Behavioral",
+                    questionCount: 1,
+                    practicedQuestionCount: 1,
+                    upcomingQuestionCount: 0,
+                    questionStatuses: [
+                        { questionId: "q1", questionNumber: 1, status: "practiced" },
+                    ],
+                    evidenceState: "clear",
+                    sourceRefs: [],
+                }],
+            },
+        } satisfies CandidateDashboardItem;
+
+        const categories = withPracticeCoverageBaselineCategories(toQuestionCategoryCards([completedItem]), [completedItem]);
+        const caseScenario = categories.find((category) => category.categoryId === "case_scenario");
+        const behavioral = categories.find((category) => category.categoryId === "behavioral");
+        const matrix = toPreparednessMatrix([{
+            ...skill,
+            id: "answer_substance",
+            label: "Answer Substance",
+        }], categories);
+        const snapshot = toInstantReadPreparednessModel([{
+            ...skill,
+            id: "answer_substance",
+            label: "Answer Substance",
+        }], categories);
+
+        expect(caseScenario).toMatchObject({
+            categoryId: "case_scenario",
+            label: "Case / Scenario",
+            questionCount: 1,
+            practicedQuestionCount: 0,
+            upcomingQuestionCount: 1,
+            evidenceState: "not_practiced",
+        });
+        expect(behavioral).toMatchObject({
+            questionCount: 2,
+            practicedQuestionCount: 1,
+            upcomingQuestionCount: 1,
+        });
+        expect(matrix.cells.find((cell) => cell.categoryId === "case_scenario")).toMatchObject({
+            state: "not_practiced",
+            questionCount: 1,
+            practicedQuestionCount: 0,
+            upcomingQuestionCount: 1,
+        });
+        expect(snapshot.categoryCoverage).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                categoryId: "technical_role_specific",
+                plannedCount: 1,
+                practicedCount: 0,
+                upcomingCount: 1,
+                state: "not_practiced",
+            }),
+        ]));
     });
 
     it("renders an instant-read snapshot with lane and category tap targets", async () => {

@@ -124,7 +124,7 @@ values
     1,
     'Client Services Specialist',
     'Support client service teams with billing questions, account documentation, customer follow-up, and operational handoffs.',
-    '{"candidate":{"fullName":"Irma Castillo","email":"irma.castillo@talentarbor.local","resumeText":"Detail-oriented administrative and customer-facing professional with billing, records, and service coordination experience."},"questionPlanSnapshot":{"interviewStage":"initial_interview","questionCount":5,"categoryCounts":{"screening":1,"behavioral":2,"culture_fit":1,"case_scenario":1,"technical_role_specific":0},"slots":[{"id":"slot-1","index":0,"category":"screening"},{"id":"slot-2","index":1,"category":"behavioral"},{"id":"slot-3","index":2,"category":"behavioral"},{"id":"slot-4","index":3,"category":"culture_fit"},{"id":"slot-5","index":4,"category":"case_scenario"}]}}'::jsonb,
+    '{"candidate":{"fullName":"Irma Castillo","email":"irma.castillo@talentarbor.local","resumeText":"Detail-oriented administrative and customer-facing professional with billing, records, and service coordination experience."},"questionPlanSnapshot":{"interviewStage":"follow_up_final","questionCount":10,"categoryCounts":{"screening":0,"behavioral":3,"culture_fit":3,"case_scenario":2,"technical_role_specific":2},"slots":[{"id":"slot-1","index":0,"category":"behavioral"},{"id":"slot-2","index":1,"category":"behavioral"},{"id":"slot-3","index":2,"category":"behavioral"},{"id":"slot-4","index":3,"category":"culture_fit"},{"id":"slot-5","index":4,"category":"culture_fit"},{"id":"slot-6","index":5,"category":"culture_fit"},{"id":"slot-7","index":6,"category":"case_scenario"},{"id":"slot-8","index":7,"category":"case_scenario"},{"id":"slot-9","index":8,"category":"technical_role_specific"},{"id":"slot-10","index":9,"category":"technical_role_specific"}]}}'::jsonb,
     'Irma Castillo',
     null
   ),
@@ -163,28 +163,28 @@ values
     '94000000-0000-4000-8000-000000000001',
     '93000000-0000-4000-8000-000000000001',
     0,
-    'What interests you about this client services specialist role?',
-    '["motivation","role_fit"]'::jsonb,
-    '["focus_relevance","specificity_concreteness"]'::jsonb,
-    'Screening'
-  ),
-  (
-    '94000000-0000-4000-8000-000000000002',
-    '93000000-0000-4000-8000-000000000001',
-    1,
     'Tell me about a time you helped resolve a billing or account documentation issue.',
     '["customer_service","documentation"]'::jsonb,
     '["focus_relevance","specificity_concreteness","outcome_impact"]'::jsonb,
     'Behavioral'
   ),
   (
-    '94000000-0000-4000-8000-000000000003',
+    '94000000-0000-4000-8000-000000000002',
     '93000000-0000-4000-8000-000000000001',
-    2,
+    1,
     'How would you handle a client who needs an update before you have the final answer?',
     '["communication","follow_up"]'::jsonb,
     '["flow_sequence","signposting_clarity","resilience_ownership"]'::jsonb,
     'Scenario'
+  ),
+  (
+    '94000000-0000-4000-8000-000000000003',
+    '93000000-0000-4000-8000-000000000001',
+    2,
+    'How do you organize account documentation so handoffs stay clear for the next person?',
+    '["documentation","handoff_quality"]'::jsonb,
+    '["rationale_judgment","flow_sequence","specificity_concreteness"]'::jsonb,
+    'Technical'
   ),
   (
     '94000000-0000-4000-8000-000000000004',
@@ -333,7 +333,7 @@ values
     'Support client service teams with billing questions, account documentation, customer follow-up, and operational handoffs.',
     '{"sourceAssets":[],"pastedText":"Detail-oriented administrative and customer-facing professional with billing, records, and service coordination experience.","extractedText":"Detail-oriented administrative and customer-facing professional with billing, records, and service coordination experience.","captureMode":"pasted_text","processedArtifact":{"text":"Detail-oriented administrative and customer-facing professional with billing, records, and service coordination experience.","source":"pasted_text","originalRetained":false}}'::jsonb,
     '[]'::jsonb,
-    '{"confidenceLevel":"medium","interviewType":null,"interviewStage":"initial_interview","timeline":null,"concerns":null,"practiceFocus":["client communication","specific examples"],"questionCount":5}'::jsonb,
+    '{"confidenceLevel":"medium","interviewType":null,"interviewStage":"follow_up_final","timeline":null,"concerns":null,"practiceFocus":["client communication","specific examples"],"questionCount":3}'::jsonb,
     '98000000-0000-4000-8000-000000000001',
     '93000000-0000-4000-8000-000000000001',
     'session_in_progress',
