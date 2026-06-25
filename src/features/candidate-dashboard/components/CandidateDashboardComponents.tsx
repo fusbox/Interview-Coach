@@ -493,7 +493,7 @@ export function PreparednessInstantRead({
                     <div className={cn("grid gap-4 sm:grid-cols-2", preview ? "opacity-90 grayscale-[0.12]" : "")}>
                         <div
                             aria-label="Answer skills chart"
-                            className="rounded-[1.5rem] border border-[rgb(var(--candidate-border)/0.64)] bg-[rgb(var(--candidate-surface-subtle)/0.7)] p-3 transition-shadow duration-base ease-standard focus-within:ring-2 focus-within:ring-primary/30"
+                            className="rounded-[1.5rem] border border-[rgb(var(--candidate-border)/0.64)] bg-[rgb(var(--candidate-surface-subtle)/0.7)] p-3 transition-shadow duration-base ease-standard [&_.recharts-surface]:outline-none [&_.recharts-surface]:focus:outline-none [&_.recharts-surface]:focus-visible:outline-none [&_.recharts-wrapper]:outline-none [&_.recharts-wrapper]:focus:outline-none [&_.recharts-wrapper]:focus-visible:outline-none"
                         >
                             <p className="px-2 text-xs font-black uppercase tracking-[0.16em] text-text-muted">Answer skills</p>
                             <div className="mx-auto flex justify-center overflow-visible">
@@ -594,7 +594,7 @@ export function PreparednessInstantRead({
 
                         <div
                             aria-label="Question mix chart"
-                            className="rounded-[1.5rem] border border-[rgb(var(--candidate-border)/0.64)] bg-white p-3 transition-shadow duration-base ease-standard focus-within:ring-2 focus-within:ring-primary/30"
+                            className="rounded-[1.5rem] border border-[rgb(var(--candidate-border)/0.64)] bg-white p-3 transition-shadow duration-base ease-standard [&_.recharts-surface]:outline-none [&_.recharts-surface]:focus:outline-none [&_.recharts-surface]:focus-visible:outline-none [&_.recharts-wrapper]:outline-none [&_.recharts-wrapper]:focus:outline-none [&_.recharts-wrapper]:focus-visible:outline-none"
                         >
                             <p className="px-2 text-xs font-black uppercase tracking-[0.16em] text-text-muted">Question mix</p>
                             <div className="mx-auto flex justify-center overflow-visible">
