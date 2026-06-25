@@ -83,6 +83,7 @@ Last updated: 2026-06-24
 - Dashboard Practice Next planned-coverage baseline is resolved as Azure item 809: active sessions list unanswered planned questions first, and completed-only contexts list missing planned category coverage before score-derived improvement cells.
 - Dashboard Quick View focus-state refinement keeps parent lane slices on their own preparedness-state color when focused, applies lifted/glowing treatment without forcing green segments to blue, and restores the overall read when the segment is no longer hovered/focused or Escape is pressed.
 - Dashboard Quick View modal opening now belongs to the chart segments instead of the deprecated selected-read action button: parent lane slices, outer dimension slices, and question mix slices open the existing lane/category drilldown modals directly, with outer dimensions still opening their parent lane modal.
+- Dashboard mobile header pass now uses a static `Practice Coach` page title, leaves selected prep context to the target-interview switcher, removes active/completed count text from those context pills, and constrains the switcher so long role names scroll inside the strip instead of widening the mobile viewport.
 
 ## Current State And Context
 

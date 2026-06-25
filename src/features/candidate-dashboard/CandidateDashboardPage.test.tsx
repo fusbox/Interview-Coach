@@ -167,9 +167,12 @@ describe("CandidateDashboardPage", () => {
         expect(screen.queryByRole("region", { name: /resume-to-role bridge/i })).not.toBeInTheDocument();
         expect(screen.queryByRole("region", { name: /recommended practice path/i })).not.toBeInTheDocument();
 
-        expect(screen.getByRole("heading", { name: "QA Analyst", level: 2 })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Practice Coach", level: 1 })).toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: "QA Analyst", level: 2 })).not.toBeInTheDocument();
         expect(screen.queryByText("Target interview")).not.toBeInTheDocument();
         expect(screen.getByRole("navigation", { name: /target interviews/i })).toHaveTextContent("QA Analyst");
+        expect(screen.getByRole("navigation", { name: /target interviews/i })).not.toHaveTextContent("1 active");
+        expect(screen.getByRole("navigation", { name: /target interviews/i })).not.toHaveTextContent("1 completed");
         expect(screen.getByRole("link", { name: /support lead/i })).toHaveAttribute("href", "/dashboard?targetRole=support%20lead");
         expect(screen.getByRole("region", { name: /preparedness map/i })).toHaveTextContent("How your answers are shaping up");
         expect(screen.getByRole("tab", { name: /quick view/i })).toHaveAttribute("aria-selected", "true");

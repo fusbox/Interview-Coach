@@ -148,13 +148,13 @@ export function PreparednessMapExperience({
     const isSnapshot = view === "snapshot";
 
     return (
-        <section aria-label="Preparedness map" className="space-y-4">
+        <section aria-label="Preparedness map" className="min-w-0 space-y-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                <div>
+                <div className="min-w-0">
                     <h2 className="font-display text-2xl font-bold tracking-tight text-text-primary">Preparedness map</h2>
-                <p className="mt-1 max-w-2xl text-sm leading-6 text-text-secondary">
-                    How your answers are shaping up. Switch to Details when you want to dig into your answers.
-                </p>
+                    <p className="mt-1 max-w-2xl text-sm leading-6 text-text-secondary">
+                        How your answers are shaping up. Switch to Details when you want to dig into your answers.
+                    </p>
                 </div>
                 <div
                     role="tablist"
@@ -267,24 +267,21 @@ export function TargetInterviewSwitcher({ targetInterviews }: { targetInterviews
     }
 
     return (
-        <nav aria-label="Target interviews" className="-mx-1 overflow-x-auto pb-1">
-            <div className="flex min-w-max gap-2 px-1">
+        <nav aria-label="Target interviews" className="-mx-1 w-full max-w-full overflow-x-auto pb-1">
+            <div className="flex w-max max-w-none gap-2 px-1">
                 {targetInterviews.map((targetInterview) => (
                     <Link
                         key={targetInterview.id}
                         href={targetInterview.href}
                         aria-current={targetInterview.isSelected ? "page" : undefined}
                         className={cn(
-                            "group rounded-2xl border px-4 py-3 text-left shadow-flat transition-colors",
+                            "group w-[min(18rem,calc(100vw-3.5rem))] shrink-0 rounded-2xl border px-4 py-3 text-left shadow-flat transition-colors sm:w-64",
                             targetInterview.isSelected
                                 ? "border-primary/25 bg-primary/10 text-text-primary"
                                 : "border-[rgb(var(--candidate-border)/0.78)] bg-white text-text-secondary hover:border-primary/20 hover:bg-surface-base hover:text-text-primary",
                         )}
                     >
-                        <span className="block text-sm font-bold leading-5">{targetInterview.label}</span>
-                        <span className="mt-1 block text-xs font-semibold text-text-muted">
-                            {formatTargetInterviewMeta(targetInterview)}
-                        </span>
+                        <span className="block truncate text-sm font-bold leading-5">{targetInterview.label}</span>
                     </Link>
                 ))}
             </div>
@@ -1290,16 +1287,6 @@ export function PreparednessMap({
             </div>
         </section>
     );
-}
-
-function formatTargetInterviewMeta(targetInterview: CandidateDashboardTargetInterview): string {
-    if (targetInterview.activeCount > 0) {
-        return `${targetInterview.activeCount} active`;
-    }
-    if (targetInterview.completedCount === 1) {
-        return "1 completed";
-    }
-    return `${targetInterview.completedCount} completed`;
 }
 
 export function PracticeNextCard({
