@@ -1,7 +1,7 @@
 # Candidate App Data Contract
 
 Status: Canonical system truth
-Last updated: 2026-06-22
+Last updated: 2026-06-27
 
 ## Purpose
 
@@ -191,6 +191,7 @@ Rules:
 - after provider parsing, the service repairs schema-valid output that under-fills a planned category by adding deterministic role-specific fallback questions. The UI may trim a larger pool down to the confirmed plan, but it should not silently accept fewer usable questions than `QuestionPlan.questionCount`.
 - legacy `interviewType` remains compatibility-only for older candidate inputs and fallback ordering when no `interviewStage`/`QuestionPlan` is available. New recruiter and candidate setup work should use `interviewStage` plus `questionCount`; retiring `interviewType` is blocked until older-row read behavior is reviewed.
 - candidate-created sessions persist the resolved `QuestionPlan` as `sessions.intakeData.questionPlanSnapshot` at session creation time. This is the immutable planned sampling contract for that practice round and should be used for later dashboard coverage/recovery reads instead of rebuilding from mutable setup state.
+- current question generation still maps Case/Scenario through the behavioral JSON bucket and then detects it by key name. This is a compatibility bridge, not the durable contract. The durable contract should make Case/Scenario first-class in provider output and downstream mapping.
 
 ### PracticeCoverageBaseline
 
@@ -223,6 +224,262 @@ Current persisted snapshots:
 - `rigorBaselineSnapshot`: immutable stage-defined baseline plan, currently sized by deterministic stage defaults: 5 for not-sure, screening, and practice-only; 7 for first interview; 10 for follow-up/final.
 
 Current limitation: the baseline uses deterministic stage weighting only. The durable v2 contract should add a structured role/JD adjustment layer and, eventually, a coach baseline question set so the app can stash unasked baseline questions and avoid recommending questions too similar to those already practiced.
+
+### CoachPlan
+
+`CoachPlan` is the dashboard home-base read model for a selected `prepProfile`.
+
+It is derived from persisted setup, session, question, answer, and analysis evidence. It is not a new persistence requirement for the first implementation slice.
+
+Current release shape:
+
+```ts
+type CoachPlan = {
+    prepProfileId: string;
+    targetRole: string;
+    interviewStage: InterviewStage;
+    baselineQuestionCount: number;
+    selectedFace: "categories" | "skills" | "question_set";
+    planGoals: string[];
+    rationaleSummary: string[];
+    preparednessTarget: PreparednessTarget;
+    categoryFace: CoachPlanCategoryFace;
+    skillsFace: CoachPlanSkillsFace;
+    questionSetFace: CoachPlanQuestionSetFace;
+    coachUpdate?: CoachUpdate;
+    practiceNext: PracticeNextRecommendation;
+};
+```
+
+Rules:
+
+- source the model from the selected target interview context only;
+- keep fixed framing brief and candidate-facing;
+- never expose hidden numeric averages or raw score dimensions;
+- let the UI remember the last selected face for a prep context, but default to `categories`.
+
+### PreparednessTarget
+
+`PreparednessTarget` is the derived visual read that sits in the Coach Plan fixed framing.
+
+It answers:
+
+- how many baseline questions have at least one usable answer;
+- what the current aggregate prep state is for practiced baseline questions;
+- whether repeat practice produced improvement or watch items.
+
+Current release shape:
+
+```ts
+type PreparednessTarget = {
+    baselineQuestionCount: number;
+    practicedBaselineQuestionCount: number;
+    state: "not_practiced" | "emerging" | "clear" | "strong";
+    coverageRatio: number;
+    coverageSummary: string;
+    coachObservation: string;
+    movement: {
+        improvedCount: number;
+        watchCount: number;
+    };
+    explainer: string;
+};
+```
+
+Aggregation rule:
+
+1. For each practiced baseline question, average the rated dimensions that have valid numeric scores.
+2. Average those per-question averages across practiced baseline questions.
+3. Map the hidden aggregate to the qualitative evidence state.
+
+Release threshold compatibility may use the existing dashboard mapping:
+
+- score >= 4: `strong`;
+- score >= 3: `clear`;
+- score >= 1: `emerging`;
+- no usable practiced evidence: `not_practiced`.
+
+Repeat-practice rules:
+
+- repeat practice does not increase `practicedBaselineQuestionCount`;
+- latest clear or strong evidence can promote the current question read;
+- one weaker repeat becomes a caution or watch item, not an automatic demotion;
+- repeated weaker evidence or regression on a high-priority baseline question can lower the current read;
+- mixed evidence should produce coach copy that explains the tension instead of pretending the state is absolute.
+
+Zero-practiced rule:
+
+- show the plan as ready but without practice evidence;
+- do not imply failure;
+- point to the first recommended practice action.
+
+Rendering rule:
+
+- render one rounded gauge arc whose fill proportion is `practicedBaselineQuestionCount / baselineQuestionCount`;
+- the filled arc uses the current aggregate qualitative prep-state color;
+- the unfilled track remains muted and must not read as weak performance;
+- the center shows the qualitative state chip plus `X/Y practiced`;
+- supporting copy combines practiced/to-practice status into one coach-voice coverage summary;
+- the coach observation uses first person, addresses the candidate directly, starts from "I see...", and frames `clear`/`strong` as affirmation and `emerging` as encouragement;
+- future recommendation CTAs can attach one or two highest-value practice targets once Practice Next exposes that target data to the Coach Plan target surface;
+- hover/focus/tap explainer copy may label practiced vs unpracticed context and summarize the current read without exposing numeric scores.
+
+### CoachPlanCategoryFace
+
+The Category face shows only categories present in the baseline plan.
+
+Current release shape:
+
+```ts
+type CoachPlanCategoryFace = {
+    categories: Array<{
+        categoryId: QuestionPlanCategory;
+        label: string;
+        plannedCount: number;
+        practicedCount: number;
+        state: "not_practiced" | "emerging" | "clear" | "strong";
+        teaching: {
+            whyHere: string;
+            purpose: string;
+            strongAnswerShape: string[];
+            watchOuts: string[];
+        };
+        questions: CoachPlanQuestion[];
+    }>;
+};
+```
+
+Rules:
+
+- chart segment size may reflect planned count, but chart choice can change if count-based segments become hard to read;
+- chart labels may render near segments when space allows;
+- selecting a segment or label opens a teaching-first coaching sheet;
+- non-sheet screen area should remain available for clickaway or tapaway close.
+
+### CoachPlanSkillsFace
+
+The Skills face shows the three release lanes as the only first-pass tap targets.
+
+Current release shape:
+
+```ts
+type CoachPlanSkillsFace = {
+    lanes: Array<{
+        laneId: "answer_substance" | "interview_structure" | "communication_delivery";
+        label: string;
+        state: "not_practiced" | "emerging" | "clear" | "strong";
+        teaching: {
+            whyItMattersHere: string;
+            strongAnswerShape: string[];
+        };
+        dimensions: Array<{
+            dimension: Dimension;
+            label: string;
+            state: "not_practiced" | "emerging" | "clear" | "strong";
+            evidenceStatus: "observed" | "not_elicited" | "insufficient_data" | "unscoreable";
+        }>;
+    }>;
+};
+```
+
+Rules:
+
+- child dimensions are not first-pass chart tap targets;
+- the lane coaching sheet should show all lane dimensions together;
+- current scoring must be hardened before dimension-level claims become prominent.
+
+### CoachPlanQuestionSetFace
+
+The Question Set face shows the planned coach sequence.
+
+Current release shape:
+
+```ts
+type CoachPlanQuestion = {
+    questionId: string;
+    planIndex: number;
+    categoryId: QuestionPlanCategory;
+    questionText: string;
+    visibility: "visible" | "hidden_until_reveal";
+    status: "unanswered" | "answered" | "repeat_practiced";
+    attempts: Array<{
+        answerId: string;
+        submittedAt: number;
+        transcript: string;
+        modality: "text" | "voice";
+        state: "emerging" | "clear" | "strong" | "unscoreable";
+        movement?: "improved" | "steady" | "watch";
+    }>;
+};
+```
+
+Rules:
+
+- answered questions are visible by default;
+- unanswered questions are hidden by default with a reveal option;
+- visibility is based on answered/unanswered state, not current-round membership;
+- opening a question first shows the full question and answer transcript;
+- future annotation can mark transcript phrases, sections, or milestones with progressive feedback.
+
+### CoachUpdate
+
+`CoachUpdate` is the post-practice debrief entry shown on the dashboard when new feedback exists.
+
+Current release shape:
+
+```ts
+type CoachUpdate = {
+    id: string;
+    createdAt: number;
+    sourceAnswerId: string;
+    headline: string;
+    priorityRead: string;
+    chips: Array<{
+        label: string;
+        kind: "improved" | "watch" | "new_coverage" | "next";
+    }>;
+    archivedForDevelopment?: boolean;
+};
+```
+
+Rules:
+
+- new persisted answer feedback is the event that creates a new dashboard coach update;
+- session recovery should patch missing feedback before dashboard reads rely on it;
+- a new coach update replaces the previous visible update;
+- development may preserve archived coach updates for review, but candidate UI does not need an inbox yet;
+- the guided debrief should be sparse, skimmable, and escapable.
+
+### PracticeNextRecommendation
+
+`PracticeNextRecommendation` is the action model for what the coach wants the candidate to do next.
+
+Current release shape:
+
+```ts
+type PracticeNextRecommendation = {
+    primary: Array<{
+        type: "new_coverage" | "improve_prior_answer";
+        questionId?: string;
+        label: string;
+        rationale: string;
+    }>;
+    ordered: boolean;
+    alternatives: Array<{
+        type: "unanswered_question" | "polish_clear_area" | "dimension_lift";
+        label: string;
+        questionId?: string;
+    }>;
+};
+```
+
+Rules:
+
+- remediation has priority over new coverage when all else is equal;
+- if a practiced lane rates below clear or is unscoreable and unanswered baseline questions remain, recommend a primary pair: one improvement task and one new-coverage task;
+- order primary tasks only when there is a clear dependency;
+- alternatives should be secondary and should mainly expose unanswered questions until baseline coverage is complete;
+- once all baseline questions are answered, alternatives may focus on polishing clear areas to strong or lifting a specific dimension.
 
 ### PracticeDraft
 
@@ -492,6 +749,7 @@ type PrepQuestionCategoryCard = {
     questionStatuses?: Array<{
         questionId: string;
         questionNumber: number;
+        questionText?: string;
         status: "practiced" | "upcoming";
     }>;
     evidenceState: "not_practiced" | "emerging" | "clear" | "strong";
@@ -504,6 +762,8 @@ type PrepQuestionCategoryCard = {
     sourceRefs: PrepEvidenceRef[];
 };
 ```
+
+`questionStatuses.questionText` carries generated planned question text when available so dashboard Question Set reveal can show the actual unanswered question instead of only `Q# + category`. It is optional for older rows and fallback coverage rows.
 
 The dashboard preparedness matrix is a derived UI model, not persisted data. Rows are generated/practiced question categories, columns are the fixed release lanes, and each cell is computed from `PrepQuestionCategoryCard.laneStates` when available. If lane-specific category scores are unavailable, the UI may fall back conservatively to the lane state only when matching evidence exists.
 
@@ -582,6 +842,7 @@ The following controls are not release-complete runtime behavior, but they are d
 - require minimum evidence before marking a state as durable or confirmed;
 - keep high-water history available internally so one weak answer does not erase previously strong evidence;
 - audit Delivery-lane signals for fairness risk, especially filler control and conciseness, so accent, dialect, ESL status, disability, or neurodivergent communication patterns do not proxy into an invalid readiness claim.
+- harden score applicability so every dimension-level claim can distinguish observed evidence from not-elicited, insufficient-data, and unscoreable answers.
 
 ### Recommendation Priority
 

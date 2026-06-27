@@ -270,6 +270,357 @@ describe("CandidateDashboardPage", () => {
         expect(screen.getByRole("region", { name: /practice next/i })).toHaveTextContent("Practice the latest coaching signal");
     });
 
+    it("renders Coach Plan framing and a qualitative preparedness target", () => {
+        render(<CandidateDashboardPage dashboard={{
+            ...baseModel,
+            activeItems: [],
+            completedItems: [
+                {
+                    ...baseModel.completedItems[0],
+                    title: "Client Services Executive - WWT",
+                    progressLabel: "3 of 3 answered",
+                    practiceCoverageBaseline: {
+                        interviewStage: "follow_up_final",
+                        minimumQuestionCount: 5,
+                        categoryMinimums: {
+                            screening: 0,
+                            behavioral: 1,
+                            culture_fit: 1,
+                            case_scenario: 1,
+                            technical_role_specific: 2,
+                        },
+                    },
+                    prepProfile: {
+                        prepProfileId: "role-profile-2",
+                        primarySignal: {
+                            label: "Make the client impact visible",
+                            state: "clear",
+                        },
+                        signals: [],
+                        categoryCards: [
+                            {
+                                categoryId: "behavioral",
+                                label: "Behavioral",
+                                questionCount: 1,
+                                practicedQuestionCount: 1,
+                                upcomingQuestionCount: 0,
+                                evidenceState: "clear",
+                                averageScore: 3.2,
+                                sourceRefs: [],
+                            },
+                            {
+                                categoryId: "culture_fit",
+                                label: "Culture / Fit",
+                                questionCount: 1,
+                                practicedQuestionCount: 1,
+                                upcomingQuestionCount: 0,
+                                evidenceState: "emerging",
+                                averageScore: 2.4,
+                                sourceRefs: [],
+                            },
+                            {
+                                categoryId: "technical_role_specific",
+                                label: "Technical / Role-Specific",
+                                questionCount: 1,
+                                practicedQuestionCount: 1,
+                                upcomingQuestionCount: 0,
+                                evidenceState: "strong",
+                                averageScore: 4.2,
+                                sourceRefs: [],
+                            },
+                        ],
+                        signalCounts: {
+                            not_practiced: 0,
+                            emerging: 1,
+                            clear: 1,
+                            strong: 1,
+                        },
+                        recommendation: {
+                            label: "Practice the biggest lift",
+                            reason: "Make the client impact visible.",
+                            source: "session_summary",
+                            href: "/practice",
+                        },
+                    },
+                },
+            ],
+        }} />);
+
+        const coachPlan = screen.getByRole("region", { name: /^coach plan$/i });
+        expect(coachPlan).toHaveTextContent("Coach Plan");
+        expect(coachPlan).toHaveTextContent("Client Services Executive - WWT");
+        expect(coachPlan).toHaveTextContent("Final interview");
+        expect(coachPlan).toHaveTextContent("5-question baseline");
+        expect(coachPlan).toHaveTextContent("3/5 practiced");
+        expect(coachPlan).toHaveTextContent("Current read");
+        expect(coachPlan).toHaveTextContent("Clear");
+        expect(screen.getByRole("img", { name: /preparedness gauge: clear, 3 of 5 practiced, 60% complete/i })).toBeInTheDocument();
+        expect(screen.getByText("3/5")).toBeInTheDocument();
+        expect(coachPlan).toHaveTextContent("You've practiced 3 of the 5 questions I've recommended.");
+        expect(coachPlan).toHaveTextContent("I see clear evidence that you're well on your way to being fully prepared.");
+        expect(coachPlan).toHaveTextContent("This plan covers the question range your coach expects for this interview.");
+    });
+
+    it("opens a teaching-first Coach Plan category sheet from the category face", async () => {
+        const user = userEvent.setup();
+
+        render(<CandidateDashboardPage dashboard={{
+            ...baseModel,
+            activeItems: [],
+            completedItems: [
+                {
+                    ...baseModel.completedItems[0],
+                    practiceCoverageBaseline: {
+                        interviewStage: "follow_up_final",
+                        minimumQuestionCount: 5,
+                        categoryMinimums: {
+                            screening: 0,
+                            behavioral: 1,
+                            culture_fit: 1,
+                            case_scenario: 1,
+                            technical_role_specific: 2,
+                        },
+                    },
+                    prepProfile: {
+                        prepProfileId: "role-profile-2",
+                        primarySignal: {
+                            label: "Make the client impact visible",
+                            state: "clear",
+                        },
+                        signals: [],
+                        categoryCards: [
+                            {
+                                categoryId: "behavioral",
+                                label: "Behavioral",
+                                questionCount: 1,
+                                practicedQuestionCount: 1,
+                                upcomingQuestionCount: 0,
+                                evidenceState: "clear",
+                                averageScore: 3.2,
+                                sourceRefs: [],
+                            },
+                            {
+                                categoryId: "case_scenario",
+                                label: "Case / Scenario",
+                                questionCount: 1,
+                                practicedQuestionCount: 0,
+                                upcomingQuestionCount: 1,
+                                evidenceState: "not_practiced",
+                                sourceRefs: [],
+                            },
+                        ],
+                        signalCounts: {
+                            not_practiced: 1,
+                            emerging: 0,
+                            clear: 1,
+                            strong: 0,
+                        },
+                        recommendation: {
+                            label: "Practice the biggest lift",
+                            reason: "Make the client impact visible.",
+                            source: "session_summary",
+                            href: "/practice",
+                        },
+                    },
+                },
+            ],
+        }} />);
+
+        const categoryFace = screen.getByRole("region", { name: /coach plan categories/i });
+        expect(categoryFace).toHaveTextContent("Question plan");
+        expect(categoryFace).toHaveTextContent("Behavioral");
+        expect(categoryFace).toHaveTextContent("Case / Scenario");
+
+        await user.click(screen.getByRole("button", { name: /open behavioral category guidance/i }));
+
+        const sheet = screen.getByRole("dialog", { name: /behavioral category guidance/i });
+        expect(sheet).toHaveTextContent("Purpose");
+        expect(sheet).toHaveTextContent("Interviewers look for a clear situation");
+        expect(sheet).toHaveTextContent("Answer shape");
+        expect(sheet).toHaveTextContent("Use a real example");
+        expect(sheet).toHaveTextContent("1 planned");
+        expect(sheet).toHaveTextContent("1 practiced");
+    });
+
+    it("opens a teaching-first Coach Plan skill lane sheet from the skills face", async () => {
+        const user = userEvent.setup();
+
+        render(<CandidateDashboardPage dashboard={{
+            ...baseModel,
+            activeItems: [],
+            completedItems: [
+                {
+                    ...baseModel.completedItems[0],
+                    prepProfile: {
+                        prepProfileId: "role-profile-2",
+                        primarySignal: {
+                            label: "Make the client impact visible",
+                            state: "clear",
+                        },
+                        signals: [
+                            {
+                                prepProfileId: "role-profile-2",
+                                signalId: "content:specificity_concreteness",
+                                label: "Use concrete examples",
+                                lane: "answer_substance",
+                                evidenceState: "clear",
+                                averageScore: 3.2,
+                                scoreCount: 1,
+                                evidenceCounts: {
+                                    not_practiced: 0,
+                                    emerging: 0,
+                                    clear: 1,
+                                    strong: 0,
+                                },
+                                dimensionStates: [
+                                    {
+                                        dimension: "specificity_concreteness",
+                                        label: "Specificity",
+                                        evidenceState: "clear",
+                                        averageScore: 3.2,
+                                        scoreCount: 1,
+                                    },
+                                ],
+                                priority: "primary",
+                                sourceRefs: [],
+                            },
+                            {
+                                prepProfileId: "role-profile-2",
+                                signalId: "content:structural_clarity",
+                                label: "Make the answer easy to follow",
+                                lane: "interview_structure",
+                                evidenceState: "emerging",
+                                averageScore: 2.2,
+                                scoreCount: 1,
+                                evidenceCounts: {
+                                    not_practiced: 0,
+                                    emerging: 1,
+                                    clear: 0,
+                                    strong: 0,
+                                },
+                                priority: "supporting",
+                                sourceRefs: [],
+                            },
+                        ],
+                        categoryCards: [],
+                        signalCounts: {
+                            not_practiced: 0,
+                            emerging: 1,
+                            clear: 1,
+                            strong: 0,
+                        },
+                        recommendation: {
+                            label: "Practice the biggest lift",
+                            reason: "Make the client impact visible.",
+                            source: "session_summary",
+                            href: "/practice",
+                        },
+                    },
+                },
+            ],
+        }} />);
+
+        const skillsFace = screen.getByRole("region", { name: /coach plan skills/i });
+        expect(skillsFace).toHaveTextContent("Answer skills");
+        expect(skillsFace).toHaveTextContent("Substance");
+        expect(skillsFace).toHaveTextContent("Structure");
+        expect(skillsFace).toHaveTextContent("Delivery");
+
+        await user.click(screen.getByRole("button", { name: /open substance skill guidance/i }));
+
+        const sheet = screen.getByRole("dialog", { name: /substance skill guidance/i });
+        expect(sheet).toHaveTextContent("Purpose");
+        expect(sheet).toHaveTextContent("Interviewers need answers with relevant examples");
+        expect(sheet).toHaveTextContent("Dimensions");
+        expect(sheet).toHaveTextContent("Focus");
+        expect(sheet).toHaveTextContent("Specificity");
+        expect(sheet).toHaveTextContent("Outcome");
+        expect(sheet).toHaveTextContent("Rationale");
+        expect(sheet).toHaveTextContent("Answer shape");
+        expect(sheet).toHaveTextContent("Make the client impact visible");
+    });
+
+    it("shows answered questions by default and revealable unanswered questions in the Coach Plan question set", async () => {
+        const user = userEvent.setup();
+
+        render(<CandidateDashboardPage dashboard={{
+            ...baseModel,
+            activeItems: [],
+            completedItems: [
+                {
+                    ...baseModel.completedItems[0],
+                    prepProfile: {
+                        prepProfileId: "role-profile-2",
+                        primarySignal: {
+                            label: "Make the client impact visible",
+                            state: "clear",
+                        },
+                        signals: [],
+                        categoryCards: [
+                            {
+                                categoryId: "behavioral",
+                                label: "Behavioral",
+                                questionCount: 2,
+                                practicedQuestionCount: 1,
+                                upcomingQuestionCount: 1,
+                                questionStatuses: [
+                                    { questionId: "question-1", questionNumber: 1, status: "practiced" },
+                                    {
+                                        questionId: "question-2",
+                                        questionNumber: 2,
+                                        questionText: "How would you rebuild trust with a client after a missed deadline?",
+                                        status: "upcoming",
+                                    },
+                                ],
+                                evidenceState: "clear",
+                                sourceRefs: [
+                                    {
+                                        type: "answer",
+                                        id: "question-1",
+                                        label: "Behavioral",
+                                        questionText: "Tell me about a customer issue you resolved.",
+                                        answerTranscript: "I helped the customer understand the next step and reduced follow-up.",
+                                        excerpt: "I helped the customer understand the next step.",
+                                    },
+                                ],
+                            },
+                        ],
+                        signalCounts: {
+                            not_practiced: 1,
+                            emerging: 0,
+                            clear: 1,
+                            strong: 0,
+                        },
+                        recommendation: {
+                            label: "Practice the biggest lift",
+                            reason: "Make the client impact visible.",
+                            source: "session_summary",
+                            href: "/practice",
+                        },
+                    },
+                },
+            ],
+        }} />);
+
+        const questionSet = screen.getByRole("region", { name: /coach plan question set/i });
+        expect(questionSet).toHaveTextContent("Question set");
+        expect(questionSet).toHaveTextContent("Tell me about a customer issue you resolved.");
+        expect(questionSet).toHaveTextContent("Answered");
+        expect(questionSet).not.toHaveTextContent("Q2: Behavioral");
+
+        await user.click(screen.getByRole("button", { name: /reveal unanswered questions/i }));
+
+        expect(questionSet).toHaveTextContent("Q2: Behavioral");
+        expect(questionSet).toHaveTextContent("How would you rebuild trust with a client after a missed deadline?");
+        expect(questionSet).not.toHaveTextContent("Hidden until you choose to reveal unanswered questions.");
+
+        await user.click(screen.getByRole("button", { name: /open q1 question detail/i }));
+
+        const sheet = screen.getByRole("dialog", { name: /q1 question detail/i });
+        expect(sheet).toHaveTextContent("Tell me about a customer issue you resolved.");
+        expect(sheet).toHaveTextContent("I helped the customer understand the next step and reduced follow-up.");
+    });
+
     it("lists the upcoming questions from an active practice plan in Practice Next", () => {
         render(<CandidateDashboardPage dashboard={{
             ...baseModel,

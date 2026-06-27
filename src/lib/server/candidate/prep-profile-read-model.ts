@@ -72,6 +72,7 @@ export type PrepQuestionCategoryCard = {
     questionStatuses?: Array<{
         questionId: string;
         questionNumber: number;
+        questionText?: string;
         status: "practiced" | "upcoming";
     }>;
     evidenceState: PrepEvidenceState;
@@ -374,6 +375,7 @@ function buildScoreDrivenCategoryCards(
                 .map((question) => ({
                     questionId: question.id,
                     questionNumber: question.index + 1,
+                    questionText: question.text,
                     status: answerByQuestionId.get(question.id)?.submittedAt ? "practiced" as const : "upcoming" as const,
                 }))
                 .sort((a, b) => a.questionNumber - b.questionNumber),

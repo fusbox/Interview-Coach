@@ -7,6 +7,7 @@ import { Cell, Pie, PieChart } from "recharts";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import type { InterviewStage } from "@/lib/domain/interview-stage";
 import type { CandidateDashboardItem, CandidateDashboardTargetInterview } from "@/lib/server/candidate";
 import type { PrepEvidenceRef, PrepQuestionCategoryCard, PrepSignal, PrepSignalLane, ReleasePrepSignalLane } from "@/lib/server/candidate/prep-profile-read-model";
 
@@ -37,6 +38,7 @@ export type PreparednessDimensionState = {
 export type PreparednessEvidence = {
     type: "practice" | "resume" | "job-description";
     content: string;
+    questionId?: string;
     questionText?: string;
     answerTranscript?: string;
     answerModality?: "text" | "voice";
@@ -59,6 +61,7 @@ export type QuestionCategoryDrilldownModel = {
     questionStatuses?: Array<{
         questionId: string;
         questionNumber: number;
+        questionText?: string;
         status: "practiced" | "upcoming";
     }>;
     whyItMatters: string;
@@ -114,6 +117,16 @@ export type PracticeNextListItem = {
     label: string;
     detail: string;
     state: PreparednessState;
+};
+
+export type CoachPlanOverviewModel = {
+    targetRole: string;
+    stageLabel: string;
+    baselineQuestionCount: number;
+    practicedQuestionCount: number;
+    remainingQuestionCount: number;
+    currentRead: PreparednessState;
+    summary: string;
 };
 
 type InstantReadSelection =
@@ -215,6 +228,601 @@ export function PreparednessMapExperience({
                 </div>
             )}
         </section>
+    );
+}
+
+export function CoachPlanOverview({ overview }: { overview: CoachPlanOverviewModel }) {
+    const practicedLabel = `${overview.practicedQuestionCount}/${overview.baselineQuestionCount} practiced`;
+
+    return (
+        <section aria-label="Coach Plan" className="rounded-[1.75rem] border border-[rgb(var(--candidate-border)/0.78)] bg-white p-4 shadow-flat sm:p-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="min-w-0">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">Coach Plan</p>
+                    <h3 className="mt-2 font-display text-2xl font-bold tracking-tight text-text-primary">
+                        {overview.targetRole}
+                    </h3>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                        <span className="rounded-full bg-surface-base px-3 py-1 text-xs font-bold text-text-secondary">
+                            {overview.stageLabel}
+                        </span>
+                        <span className="rounded-full bg-surface-base px-3 py-1 text-xs font-bold text-text-secondary">
+                            {overview.baselineQuestionCount}-question baseline
+                        </span>
+                        <span className="rounded-full bg-surface-base px-3 py-1 text-xs font-bold text-text-secondary">
+                            {practicedLabel}
+                        </span>
+                    </div>
+                    <p className="mt-3 max-w-2xl text-sm leading-6 text-text-secondary">
+                        {overview.summary}
+                    </p>
+                </div>
+
+                <PreparednessTargetVisual overview={overview} />
+            </div>
+        </section>
+    );
+}
+
+function PreparednessTargetVisual({ overview }: { overview: CoachPlanOverviewModel }) {
+    const styles = getPreparednessStateStyles(overview.currentRead);
+    const baselineCount = Math.max(overview.baselineQuestionCount, 0);
+    const practicedCount = Math.min(Math.max(overview.practicedQuestionCount, 0), baselineCount);
+    const stateLabel = formatPreparednessState(overview.currentRead);
+    const stateColor = getPreparednessTargetColor(overview.currentRead);
+    const progressPercent = baselineCount > 0 ? Math.round((practicedCount / baselineCount) * 100) : 0;
+    const radius = 62;
+    const circumference = 2 * Math.PI * radius;
+    const progressLength = circumference * (progressPercent / 100);
+    const coverageSummary = baselineCount > 0 && practicedCount >= baselineCount
+        ? `You've practiced all of the questions I've recommended.`
+        : `You've practiced ${practicedCount} of the ${baselineCount} questions I've recommended.`;
+    const coachMessage = getPreparednessTargetCoachMessage(overview.currentRead);
+
+    return (
+        <div className="shrink-0 rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-surface-base p-4 lg:w-64">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-text-muted">Current read</p>
+            <div className="relative mx-auto mt-3 h-44 w-44">
+                <svg
+                    role="img"
+                    aria-label={`Preparedness gauge: ${stateLabel}, ${practicedCount} of ${baselineCount} practiced, ${progressPercent}% complete`}
+                    viewBox="0 0 160 160"
+                    className="h-full w-full overflow-visible"
+                >
+                    <title>Preparedness gauge</title>
+                    <desc>
+                        {coverageSummary} I see {stateLabel.toLowerCase()} evidence in the questions you have practiced.
+                    </desc>
+                    <circle
+                        cx="80"
+                        cy="80"
+                        r={radius}
+                        fill="none"
+                        stroke="rgb(var(--candidate-border) / 0.78)"
+                        strokeWidth="18"
+                    />
+                    <circle
+                        cx="80"
+                        cy="80"
+                        r={radius}
+                        fill="none"
+                        stroke={stateColor}
+                        strokeWidth="18"
+                        strokeLinecap="round"
+                        strokeDasharray={`${progressLength} ${circumference - progressLength}`}
+                        transform="rotate(-90 80 80)"
+                    />
+                </svg>
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <div className="rounded-full border border-[rgb(var(--candidate-border)/0.62)] bg-white/95 px-3 py-2 text-center shadow-flat">
+                        <span className={cn("mx-auto mb-1 block h-2.5 w-2.5 rounded-full border", styles.dot)} aria-hidden="true" />
+                        <p className="text-[0.62rem] font-black uppercase tracking-[0.12em] text-text-muted">{stateLabel}</p>
+                        <p className="font-display text-xl font-bold leading-none text-text-primary">
+                            {practicedCount}/{baselineCount}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <p className="mt-3 text-sm font-bold leading-6 text-text-primary">
+                {coverageSummary}
+            </p>
+            <p className="mt-2 text-sm font-semibold leading-6 text-text-secondary">
+                {coachMessage}
+            </p>
+        </div>
+    );
+}
+
+export function CoachPlanCategoryFace({
+    categories,
+    onCategorySelect,
+}: {
+    categories: QuestionCategoryDrilldownModel[];
+    onCategorySelect: (categoryId: string) => void;
+}) {
+    const plannedCategories = categories.filter((category) => category.questionCount > 0);
+    if (plannedCategories.length === 0) {
+        return null;
+    }
+
+    return (
+        <section aria-label="Coach Plan categories" className="rounded-[1.75rem] border border-[rgb(var(--candidate-border)/0.78)] bg-white p-4 shadow-flat sm:p-5">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
+                <div className="min-w-0 flex-1">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">Question plan</p>
+                    <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-text-primary">
+                        Categories this interview is likely to cover
+                    </h2>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
+                        Pick a category to see what it is testing and how to shape a strong answer.
+                    </p>
+                    <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                        {plannedCategories.map((category) => {
+                            const styles = getPreparednessStateStyles(category.state);
+                            return (
+                                <button
+                                    key={category.id}
+                                    type="button"
+                                    onClick={() => onCategorySelect(category.id)}
+                                    className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-surface-base px-4 py-3 text-left transition-colors hover:border-primary/30 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                                    aria-label={`Open ${category.label} category guidance`}
+                                >
+                                    <span className="min-w-0">
+                                        <span className="block truncate text-sm font-bold text-text-primary">{category.label}</span>
+                                        <span className="mt-1 block text-xs font-semibold text-text-secondary">
+                                            {category.questionCount} planned · {category.practicedQuestionCount ?? 0} practiced
+                                        </span>
+                                    </span>
+                                    <span className={cn("h-3 w-3 shrink-0 rounded-full", styles.dot)} aria-hidden="true" />
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+                <div aria-label="Coach Plan category chart" className="mx-auto h-56 w-56 shrink-0">
+                    <PieChart width={224} height={224}>
+                        <Pie
+                            data={plannedCategories}
+                            dataKey="questionCount"
+                            nameKey="label"
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={56}
+                            outerRadius={96}
+                            paddingAngle={4}
+                            cornerRadius={10}
+                            stroke="white"
+                            strokeWidth={3}
+                        >
+                            {plannedCategories.map((category) => (
+                                <Cell
+                                    key={category.id}
+                                    fill={getInstantReadChartColor(category.state, category.practicedQuestionCount ? 0.88 : 0.58)}
+                                    className="cursor-pointer outline-none transition-[filter,opacity] duration-base ease-standard hover:brightness-105 focus:outline-none"
+                                    onClick={() => onCategorySelect(category.id)}
+                                    role="button"
+                                    aria-label={`Open ${category.label} category guidance`}
+                                    tabIndex={0}
+                                />
+                            ))}
+                        </Pie>
+                    </PieChart>
+                </div>
+            </div>
+        </section>
+    );
+}
+
+export function CoachPlanCategorySheet({
+    category,
+    onClose,
+}: {
+    category: QuestionCategoryDrilldownModel;
+    onClose: () => void;
+}) {
+    const styles = getPreparednessStateStyles(category.state);
+
+    return (
+        <div
+            data-testid="coach-plan-category-sheet-backdrop"
+            className="fixed inset-0 z-50 flex items-start bg-slate-950/55 backdrop-blur-sm md:items-center md:justify-center"
+            onPointerDown={(event) => {
+                if (event.target === event.currentTarget) {
+                    onClose();
+                }
+            }}
+        >
+            <section
+                role="dialog"
+                aria-modal="true"
+                aria-label={`${category.label} category guidance`}
+                className="flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-b-[1.75rem] border border-[rgb(var(--candidate-border)/0.92)] bg-white shadow-[var(--candidate-shadow-panel)] md:w-[42rem] md:max-w-[calc(100vw-2rem)] md:rounded-[1.75rem]"
+            >
+                <div className="sticky top-0 z-10 border-b border-[rgb(var(--candidate-border)/0.7)] bg-white p-5 md:p-6">
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                            <span className={cn("inline-flex rounded-full px-3 py-1 text-xs font-bold", styles.badge)}>
+                                {formatPreparednessState(category.state)}
+                            </span>
+                            <h2 className="mt-3 text-2xl font-bold leading-tight text-text-primary">{category.label}</h2>
+                            <p className="mt-2 text-sm font-semibold text-text-secondary">
+                                {category.questionCount} planned · {category.practicedQuestionCount ?? 0} practiced
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-text-muted transition-colors hover:bg-surface-subtle hover:text-text-primary"
+                            aria-label="Close"
+                        >
+                            <X size={20} aria-hidden="true" />
+                        </button>
+                    </div>
+                </div>
+                <div className="custom-scrollbar flex-1 space-y-4 overflow-y-auto p-5 md:p-6">
+                    <section className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3">
+                        <h3 className="text-xs font-black uppercase tracking-[0.18em] text-primary">Purpose</h3>
+                        <p className="mt-3 text-sm leading-6 text-text-secondary">{category.whyItMatters}</p>
+                    </section>
+                    <section className="rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-surface-base px-4 py-3">
+                        <h3 className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">Answer shape</h3>
+                        <ul className="mt-3 space-y-2 text-sm leading-6 text-text-secondary">
+                            {getCategoryAnswerShape(category.id).map((item) => (
+                                <li key={item} className="flex gap-2">
+                                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+                                    <span>{item}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
+                    <section className="rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-white px-4 py-3">
+                        <h3 className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">Plan progress</h3>
+                        <p className="mt-3 text-sm leading-6 text-text-secondary">
+                            You have practiced {category.practicedQuestionCount ?? 0} of {category.questionCount} planned {category.label} {category.questionCount === 1 ? "question" : "questions"}.
+                        </p>
+                    </section>
+                </div>
+            </section>
+        </div>
+    );
+}
+
+export function CoachPlanSkillsFace({
+    skills,
+    onSkillSelect,
+}: {
+    skills: PreparednessSkill[];
+    onSkillSelect: (skillId: string) => void;
+}) {
+    const laneSkills = PREPAREDNESS_LANES.map((lane) => skills.find((skill) => skill.id === lane.id))
+        .filter((skill): skill is PreparednessSkill => Boolean(skill));
+    if (laneSkills.length === 0) {
+        return null;
+    }
+
+    const chartData = laneSkills.map((skill) => ({
+        ...skill,
+        label: formatMatrixLaneLabel(skill.label),
+        value: 1,
+    }));
+
+    return (
+        <section aria-label="Coach Plan skills" className="rounded-[1.75rem] border border-[rgb(var(--candidate-border)/0.78)] bg-white p-4 shadow-flat sm:p-5">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
+                <div className="min-w-0 flex-1">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">Answer skills</p>
+                    <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-text-primary">
+                        How the coach reads your answer quality
+                    </h2>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
+                        Pick a skill lane to see what it means, how its dimensions work together, and what the coach is watching for.
+                    </p>
+                    <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                        {chartData.map((skill) => {
+                            const styles = getPreparednessStateStyles(skill.state);
+                            const dimensions = getCoachPlanSkillDimensions(skill);
+                            return (
+                                <button
+                                    key={skill.id}
+                                    type="button"
+                                    onClick={() => onSkillSelect(skill.id)}
+                                    className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-surface-base px-4 py-3 text-left transition-colors hover:border-primary/30 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                                    aria-label={`Open ${skill.label} skill guidance`}
+                                >
+                                    <span className="min-w-0">
+                                        <span className="block truncate text-sm font-bold text-text-primary">{skill.label}</span>
+                                        <span className="mt-1 block text-xs font-semibold text-text-secondary">
+                                            {dimensions.length} dimensions
+                                        </span>
+                                    </span>
+                                    <span className={cn("h-3 w-3 shrink-0 rounded-full", styles.dot)} aria-hidden="true" />
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+                <div aria-label="Coach Plan skill chart" className="mx-auto h-56 w-56 shrink-0">
+                    <PieChart width={224} height={224}>
+                        <Pie
+                            data={chartData}
+                            dataKey="value"
+                            nameKey="label"
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={54}
+                            outerRadius={98}
+                            paddingAngle={5}
+                            cornerRadius={12}
+                            stroke="white"
+                            strokeWidth={3}
+                        >
+                            {chartData.map((skill) => (
+                                <Cell
+                                    key={skill.id}
+                                    fill={getInstantReadChartColor(skill.state)}
+                                    className="cursor-pointer outline-none transition-[filter,opacity] duration-base ease-standard hover:brightness-105 focus:outline-none"
+                                    onClick={() => onSkillSelect(skill.id)}
+                                    role="button"
+                                    aria-label={`Open ${skill.label} skill guidance`}
+                                    tabIndex={0}
+                                />
+                            ))}
+                        </Pie>
+                    </PieChart>
+                </div>
+            </div>
+        </section>
+    );
+}
+
+export function CoachPlanSkillSheet({
+    skill,
+    onClose,
+}: {
+    skill: PreparednessSkill;
+    onClose: () => void;
+}) {
+    const styles = getPreparednessStateStyles(skill.state);
+    const shortLabel = formatMatrixLaneLabel(skill.label);
+    const dimensions = getCoachPlanSkillDimensions(skill);
+
+    return (
+        <div
+            data-testid="coach-plan-skill-sheet-backdrop"
+            className="fixed inset-0 z-50 flex items-start bg-slate-950/55 backdrop-blur-sm md:items-center md:justify-center"
+            onPointerDown={(event) => {
+                if (event.target === event.currentTarget) {
+                    onClose();
+                }
+            }}
+        >
+            <section
+                role="dialog"
+                aria-modal="true"
+                aria-label={`${shortLabel} skill guidance`}
+                className="flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-b-[1.75rem] border border-[rgb(var(--candidate-border)/0.92)] bg-white shadow-[var(--candidate-shadow-panel)] md:w-[42rem] md:max-w-[calc(100vw-2rem)] md:rounded-[1.75rem]"
+            >
+                <div className="sticky top-0 z-10 border-b border-[rgb(var(--candidate-border)/0.7)] bg-white p-5 md:p-6">
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                            <span className={cn("inline-flex rounded-full px-3 py-1 text-xs font-bold", styles.badge)}>
+                                {formatPreparednessState(skill.state)}
+                            </span>
+                            <h2 className="mt-3 text-2xl font-bold leading-tight text-text-primary">{shortLabel}</h2>
+                            <p className="mt-2 text-sm font-semibold text-text-secondary">
+                                {dimensions.length} skill {dimensions.length === 1 ? "dimension" : "dimensions"}
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-text-muted transition-colors hover:bg-surface-subtle hover:text-text-primary"
+                            aria-label="Close"
+                        >
+                            <X size={20} aria-hidden="true" />
+                        </button>
+                    </div>
+                </div>
+                <div className="custom-scrollbar flex-1 space-y-4 overflow-y-auto p-5 md:p-6">
+                    <section className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3">
+                        <h3 className="text-xs font-black uppercase tracking-[0.18em] text-primary">Purpose</h3>
+                        <p className="mt-3 text-sm leading-6 text-text-secondary">{skill.whyItMatters}</p>
+                    </section>
+                    <section className="rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-surface-base px-4 py-3">
+                        <h3 className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">Dimensions</h3>
+                        <div className="mt-3 grid gap-2">
+                            {dimensions.map((dimension) => {
+                                const dimensionStyles = getPreparednessStateStyles(dimension.evidenceState);
+                                return (
+                                    <article
+                                        key={dimension.dimension}
+                                        className="rounded-2xl border border-[rgb(var(--candidate-border)/0.64)] bg-white px-3 py-3"
+                                    >
+                                        <div className="flex items-center justify-between gap-3">
+                                            <h4 className="text-sm font-bold text-text-primary">{dimension.label}</h4>
+                                            <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", dimensionStyles.dot)} aria-hidden="true" />
+                                        </div>
+                                        <p className="mt-2 text-sm leading-6 text-text-secondary">
+                                            {getSkillDimensionTeachingCopy(dimension.dimension, dimension.label)}
+                                        </p>
+                                    </article>
+                                );
+                            })}
+                        </div>
+                    </section>
+                    <section className="rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-white px-4 py-3">
+                        <h3 className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">Answer shape</h3>
+                        <ul className="mt-3 space-y-2 text-sm leading-6 text-text-secondary">
+                            {getSkillAnswerShape(skill.id).map((item) => (
+                                <li key={item} className="flex gap-2">
+                                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+                                    <span>{item}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
+                </div>
+            </section>
+        </div>
+    );
+}
+
+type CoachPlanQuestionSetItem = {
+    id: string;
+    questionNumber: number;
+    categoryLabel: string;
+    status: "answered" | "unanswered";
+    state: PreparednessState;
+    questionText?: string;
+    answerTranscript?: string;
+    answerModality?: PreparednessEvidence["answerModality"];
+    evaluation?: string;
+};
+
+export function CoachPlanQuestionSetFace({ categories }: { categories: QuestionCategoryDrilldownModel[] }) {
+    const [showUnanswered, setShowUnanswered] = useState(false);
+    const [selectedQuestion, setSelectedQuestion] = useState<CoachPlanQuestionSetItem | null>(null);
+    const questions = toCoachPlanQuestionSet(categories);
+    const answeredQuestions = questions.filter((question) => question.status === "answered");
+    const unansweredQuestions = questions.filter((question) => question.status === "unanswered");
+    const visibleQuestions = showUnanswered ? questions : answeredQuestions;
+
+    if (questions.length === 0) {
+        return null;
+    }
+
+    return (
+        <>
+            <section aria-label="Coach Plan question set" className="rounded-[1.75rem] border border-[rgb(var(--candidate-border)/0.78)] bg-white p-4 shadow-flat sm:p-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                        <p className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">Question set</p>
+                        <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-text-primary">
+                            Planned coach sequence
+                        </h2>
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
+                            Answered questions stay visible for recall. Unanswered questions stay tucked away until you choose to reveal the rest of the plan.
+                        </p>
+                    </div>
+                    {unansweredQuestions.length > 0 ? (
+                        <button
+                            type="button"
+                            onClick={() => setShowUnanswered((current) => !current)}
+                            className="rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-surface-base px-4 py-2 text-sm font-bold text-text-secondary transition-colors hover:border-primary/30 hover:bg-white hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                            aria-label={showUnanswered ? "Hide unanswered questions" : "Reveal unanswered questions"}
+                        >
+                            {showUnanswered ? "Hide unanswered" : "Reveal unanswered"}
+                        </button>
+                    ) : null}
+                </div>
+                <div className="mt-4 grid gap-2">
+                    {visibleQuestions.length > 0 ? visibleQuestions.map((question) => {
+                        const styles = getPreparednessStateStyles(question.state);
+                        const isAnswered = question.status === "answered";
+                        return (
+                            <button
+                                key={question.id}
+                                type="button"
+                                onClick={() => isAnswered ? setSelectedQuestion(question) : undefined}
+                                disabled={!isAnswered}
+                                className={cn(
+                                    "rounded-2xl border px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                                    isAnswered
+                                        ? "border-[rgb(var(--candidate-border)/0.72)] bg-surface-base hover:border-primary/30 hover:bg-white"
+                                        : "cursor-default border-[rgb(var(--candidate-border)/0.52)] bg-surface-subtle text-text-secondary",
+                                )}
+                                aria-label={isAnswered ? `Open Q${question.questionNumber} question detail` : undefined}
+                            >
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <p className="text-xs font-black uppercase tracking-[0.16em] text-text-muted">
+                                            Q{question.questionNumber}: {question.categoryLabel}
+                                        </p>
+                                        <p className="mt-1 text-sm font-bold leading-6 text-text-primary">
+                                            {question.questionText || "Hidden until you choose to reveal unanswered questions."}
+                                        </p>
+                                        <p className="mt-1 text-xs font-bold text-text-secondary">
+                                            {isAnswered ? "Answered" : "Unanswered"}
+                                        </p>
+                                    </div>
+                                    <span className={cn("mt-1 h-3 w-3 shrink-0 rounded-full", styles.dot)} aria-hidden="true" />
+                                </div>
+                            </button>
+                        );
+                    }) : (
+                        <p className="rounded-2xl bg-surface-base p-4 text-sm leading-6 text-text-secondary">
+                            Answer one planned question to start building this view.
+                        </p>
+                    )}
+                </div>
+            </section>
+            {selectedQuestion ? (
+                <CoachPlanQuestionSheet
+                    question={selectedQuestion}
+                    onClose={() => setSelectedQuestion(null)}
+                />
+            ) : null}
+        </>
+    );
+}
+
+function CoachPlanQuestionSheet({
+    question,
+    onClose,
+}: {
+    question: CoachPlanQuestionSetItem;
+    onClose: () => void;
+}) {
+    return (
+        <div
+            data-testid="coach-plan-question-sheet-backdrop"
+            className="fixed inset-0 z-50 flex items-start bg-slate-950/55 backdrop-blur-sm md:items-center md:justify-center"
+            onPointerDown={(event) => {
+                if (event.target === event.currentTarget) {
+                    onClose();
+                }
+            }}
+        >
+            <section
+                role="dialog"
+                aria-modal="true"
+                aria-label={`Q${question.questionNumber} question detail`}
+                className="flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-b-[1.75rem] border border-[rgb(var(--candidate-border)/0.92)] bg-white shadow-[var(--candidate-shadow-panel)] md:w-[42rem] md:max-w-[calc(100vw-2rem)] md:rounded-[1.75rem]"
+            >
+                <div className="sticky top-0 z-10 border-b border-[rgb(var(--candidate-border)/0.7)] bg-white p-5 md:p-6">
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                            <p className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">
+                                Q{question.questionNumber}: {question.categoryLabel}
+                            </p>
+                            <h2 className="mt-3 text-2xl font-bold leading-tight text-text-primary">{question.questionText}</h2>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-text-muted transition-colors hover:bg-surface-subtle hover:text-text-primary"
+                            aria-label="Close"
+                        >
+                            <X size={20} aria-hidden="true" />
+                        </button>
+                    </div>
+                </div>
+                <div className="custom-scrollbar flex-1 space-y-4 overflow-y-auto p-5 md:p-6">
+                    <section className="rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-surface-base px-4 py-3">
+                        <h3 className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">Your answer</h3>
+                        <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-text-secondary">
+                            {question.answerTranscript || "No answer transcript captured."}
+                        </p>
+                    </section>
+                    {question.evaluation ? (
+                        <section className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3">
+                            <h3 className="text-xs font-black uppercase tracking-[0.18em] text-primary">Coach read</h3>
+                            <p className="mt-3 text-sm leading-6 text-text-secondary">{question.evaluation}</p>
+                        </section>
+                    ) : null}
+                </div>
+            </section>
+        </div>
     );
 }
 
@@ -796,6 +1404,117 @@ const INSTANT_READ_DIMENSION_DEFINITIONS: Record<string, string> = {
     conciseness: "Conciseness means your answer gives enough context without burying the strongest point.",
     resilience: "Resilience means your answer shows ownership, learning, and steadiness when the situation is difficult.",
 };
+
+function getCoachPlanSkillDimensions(skill: PreparednessSkill): PreparednessDimensionState[] {
+    const expectedDimensions = INSTANT_READ_DIMENSIONS_BY_LANE[skill.id] ?? [formatMatrixLaneLabel(skill.label)];
+    const observedByKey = new Map(
+        (skill.dimensionStates ?? []).flatMap((dimension) => [
+            [dimension.dimension, dimension],
+            [dimension.label.toLowerCase(), dimension],
+        ]),
+    );
+
+    return expectedDimensions.map((label) => {
+        const observed = observedByKey.get(label) ?? observedByKey.get(label.toLowerCase());
+        return observed ?? {
+            dimension: label,
+            label,
+            evidenceState: skill.state,
+            scoreCount: 0,
+        };
+    });
+}
+
+function getSkillDimensionTeachingCopy(dimension: string, label: string): string {
+    const key = dimension.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+    return SKILL_DIMENSION_TEACHING_COPY[key] ??
+        INSTANT_READ_DIMENSION_DEFINITIONS[key] ??
+        `${label} is one part of how the coach reads this answer skill.`;
+}
+
+const SKILL_DIMENSION_TEACHING_COPY: Record<string, string> = {
+    focus_relevance: "Keep the answer tied to what the question and role require.",
+    specificity_concreteness: "Use concrete details instead of broad claims.",
+    outcome_impact: "Show what changed because of your action.",
+    rationale_judgment: "Explain why you chose the action you took.",
+    flow_sequence: "Give the answer a beginning, middle, and end.",
+    signposting_clarity: "Use transitions so the interviewer can follow the path.",
+    filler_control: "Reduce verbal clutter so the answer sounds intentional.",
+    conciseness_pacing: "Keep the answer complete without wandering.",
+    resilience_ownership: "Recover clearly when the question is difficult or unexpected.",
+    focus: "Keep the answer tied to what the question and role require.",
+    specificity: "Use concrete details instead of broad claims.",
+    outcome: "Show what changed because of your action.",
+    rationale: "Explain why you chose the action you took.",
+    flow: "Give the answer a beginning, middle, and end.",
+    signposting: "Use transitions so the interviewer can follow the path.",
+    conciseness: "Keep the answer complete without wandering.",
+    resilience: "Recover clearly when the question is difficult or unexpected.",
+};
+
+function getSkillAnswerShape(skillId: string): string[] {
+    switch (skillId) {
+        case "answer_substance":
+            return [
+                "Make the client impact visible with a concrete example, action, and result.",
+                "Add enough role-specific detail that the interviewer can see why the story matters.",
+            ];
+        case "interview_structure":
+            return [
+                "Set up the situation quickly, then move through action and result in order.",
+                "Use light signposting so the interviewer knows where the answer is going.",
+            ];
+        case "communication_delivery":
+            return [
+                "Keep the answer steady, complete, and easy to follow.",
+                "Trim extra setup when the strongest point is already clear.",
+            ];
+        default:
+            return [
+                "Answer with a clear point, enough evidence, and a direct connection to the role.",
+            ];
+    }
+}
+
+function toCoachPlanQuestionSet(categories: QuestionCategoryDrilldownModel[]): CoachPlanQuestionSetItem[] {
+    return categories
+        .flatMap((category) => {
+            const evidenceByQuestionId = new Map(
+                category.evidence
+                    .filter((evidence) => evidence.questionId || evidence.questionText)
+                    .map((evidence) => [evidence.questionId || evidence.questionText || "", evidence]),
+            );
+            const orderedStatuses = [...(category.questionStatuses?.length
+                ? category.questionStatuses
+                : questionStatusesFor({
+                    categoryId: category.id as PrepQuestionCategoryCard["categoryId"],
+                    label: category.label,
+                    questionCount: category.questionCount,
+                    practicedQuestionCount: category.practicedQuestionCount,
+                    upcomingQuestionCount: category.upcomingQuestionCount,
+                    evidenceState: category.state,
+                    sourceRefs: [],
+                }))].sort((a, b) => a.questionNumber - b.questionNumber);
+
+            return orderedStatuses.map((status) => {
+                const evidence = evidenceByQuestionId.get(status.questionId) ??
+                    category.evidence.find((item) => item.questionText && status.status === "practiced");
+                const isAnswered = status.status === "practiced";
+                return {
+                    id: `${category.id}:${status.questionId}`,
+                    questionNumber: status.questionNumber,
+                    categoryLabel: category.label,
+                    status: isAnswered ? "answered" as const : "unanswered" as const,
+                    state: isAnswered ? category.state : "not_practiced",
+                    questionText: evidence?.questionText || status.questionText,
+                    answerTranscript: evidence?.answerTranscript,
+                    answerModality: evidence?.answerModality,
+                    evaluation: evidence?.evaluation,
+                };
+            });
+        })
+        .sort((a, b) => a.questionNumber - b.questionNumber);
+}
 
 type InstantReadChartSlice = {
     id: string;
@@ -2241,6 +2960,46 @@ export function toPracticeNextItems({
     }));
 }
 
+export function toCoachPlanOverviewModel({
+    latestItem,
+    categories,
+}: {
+    latestItem: CandidateDashboardItem | null;
+    categories: PrepQuestionCategoryCard[];
+}): CoachPlanOverviewModel | null {
+    if (!latestItem) {
+        return null;
+    }
+
+    const baselineQuestionCount = latestItem.practiceCoverageBaseline?.minimumQuestionCount ??
+        categories.reduce((sum, category) => sum + category.questionCount, 0);
+    if (baselineQuestionCount <= 0) {
+        return null;
+    }
+
+    const practicedQuestionCount = Math.min(
+        baselineQuestionCount,
+        categories.reduce((sum, category) => sum + (category.practicedQuestionCount ?? practicedQuestionCountFor(category)), 0),
+    );
+    const scoredCategories = categories.filter((category) => typeof category.averageScore === "number");
+    const averageScore = scoredCategories.length > 0
+        ? scoredCategories.reduce((sum, category) => sum + (category.averageScore ?? 0), 0) / scoredCategories.length
+        : undefined;
+    const currentRead = averageScore === undefined
+        ? practicedQuestionCount > 0 ? "emerging" : "not_practiced"
+        : scoreToPreparednessState(averageScore);
+
+    return {
+        targetRole: latestItem.title,
+        stageLabel: formatCoachPlanStage(latestItem.practiceCoverageBaseline?.interviewStage),
+        baselineQuestionCount,
+        practicedQuestionCount,
+        remainingQuestionCount: Math.max(baselineQuestionCount - practicedQuestionCount, 0),
+        currentRead,
+        summary: "This plan covers the question range your coach expects for this interview. Use it as the reference point for what you have practiced, what is still open, and where the next coaching focus comes from.",
+    };
+}
+
 function toPracticeCoverageGapItems(
     completedItems: CandidateDashboardItem[],
     categories: PrepQuestionCategoryCard[],
@@ -2269,6 +3028,22 @@ function toPracticeCoverageGapItems(
             state: "not_practiced" as const,
         }];
     });
+}
+
+function formatCoachPlanStage(stage: InterviewStage | undefined): string {
+    switch (stage) {
+        case "initial_screening":
+            return "Screening";
+        case "initial_interview":
+            return "First interview";
+        case "follow_up_final":
+            return "Final interview";
+        case "practice_only":
+            return "Practice plan";
+        case "not_sure":
+        default:
+            return "Balanced practice";
+    }
 }
 
 function mergeCoverageMinimums(
@@ -2784,6 +3559,7 @@ function toPreparednessEvidence(ref: PrepEvidenceRef): PreparednessEvidence | nu
             return {
                 type: "practice",
                 content,
+                questionId: ref.id,
                 questionText: ref.questionText,
                 answerTranscript: ref.answerTranscript,
                 answerModality: ref.answerModality,
@@ -2909,6 +3685,34 @@ function getPreparednessStateStyles(state: PreparednessState) {
                 dot: "border border-text-muted/40 bg-transparent",
                 badge: "bg-surface-base text-text-muted",
             };
+    }
+}
+
+function getPreparednessTargetColor(state: PreparednessState): string {
+    switch (state) {
+        case "strong":
+            return "rgb(var(--candidate-success))";
+        case "clear":
+            return "rgb(var(--candidate-primary))";
+        case "emerging":
+            return "rgb(var(--candidate-secondary-brand))";
+        case "not_practiced":
+        default:
+            return "rgb(var(--candidate-border))";
+    }
+}
+
+function getPreparednessTargetCoachMessage(state: PreparednessState): string {
+    switch (state) {
+        case "strong":
+            return "I see strong evidence that your answers are landing. I think you are ready, and the next best work is polish if you want to make the response even sharper.";
+        case "clear":
+            return "I see clear evidence that you're well on your way to being fully prepared. The next best work is the highest-value practice target I point you to next.";
+        case "emerging":
+            return "I see a useful start, and you're building the shape of stronger answers. The next best work is to practice the highest-value emerging signal, then reinforce one clearer area if it helps you keep momentum.";
+        case "not_practiced":
+        default:
+            return "I need one practice answer before I can give you a real read. Start with the first recommended question and I will show you what to strengthen next.";
     }
 }
 
@@ -3158,5 +3962,41 @@ function getCategoryWhyItMatters(categoryId: PrepQuestionCategoryCard["categoryI
             return "Interviewers look for how you reason through a situation, choose next steps, and explain tradeoffs.";
         case "screening":
             return "Interviewers look for basic fit, interest, availability, and a clear reason this role makes sense.";
+    }
+}
+
+function getCategoryAnswerShape(categoryId: string): string[] {
+    switch (categoryId) {
+        case "behavioral":
+            return [
+                "Use a real example from your experience.",
+                "Set up the situation quickly, then spend more time on what you personally did.",
+                "End with the outcome, lesson, or client impact so the story has a point.",
+            ];
+        case "culture_fit":
+            return [
+                "Name the work value, motivation, or collaboration pattern the question is testing.",
+                "Use a concise example that shows how you behave with a team, client, or manager.",
+                "Connect the example back to the role so it does not sound generic.",
+            ];
+        case "technical_role_specific":
+            return [
+                "Start with the practical judgment or role skill the question is testing.",
+                "Explain the steps, tools, or tradeoffs clearly enough for the interviewer to follow your thinking.",
+                "Close with the result or decision standard you would use on the job.",
+            ];
+        case "case_scenario":
+            return [
+                "Clarify the goal, constraint, or stakeholder need before jumping to action.",
+                "Walk through the next steps you would take and why they are in that order.",
+                "Name the tradeoff or risk you would watch so the answer shows judgment.",
+            ];
+        case "screening":
+        default:
+            return [
+                "Answer directly first so the interviewer can quickly place your background.",
+                "Add one concrete detail that connects your experience to the role.",
+                "Keep the answer brief and ready for a follow-up question.",
+            ];
     }
 }

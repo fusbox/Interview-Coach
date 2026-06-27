@@ -1,7 +1,7 @@
 # Candidate App Handoff
 
 Status: Active execution state
-Last updated: 2026-06-24
+Last updated: 2026-06-27
 
 ## Completed
 
@@ -84,6 +84,20 @@ Last updated: 2026-06-24
 - Dashboard Quick View focus-state refinement keeps parent lane slices on their own preparedness-state color when focused, applies lifted/glowing treatment without forcing green segments to blue, and restores the overall read when the segment is no longer hovered/focused or Escape is pressed.
 - Dashboard Quick View modal opening now belongs to the chart segments instead of the deprecated selected-read action button: parent lane slices, outer dimension slices, and question mix slices open the existing lane/category drilldown modals directly, with outer dimensions still opening their parent lane modal.
 - Dashboard mobile header pass now uses a static `Practice Coach` page title, leaves selected prep context to the target-interview switcher, removes active/completed count text from those context pills, and constrains the switcher so long role names scroll inside the strip instead of widening the mobile viewport.
+- Dashboard Quick View pie whitespace no longer shows a visible browser focus outline when candidates tap or click outside a chart segment.
+- Dashboard product direction now has an accepted Coach Plan home-base decision: fixed framing plus Categories, Skills, and Question Set faces; a qualitative preparedness target; teaching-first coaching sheets; and a sparse Coach Update guided debrief. See [ADR-0008](./08-decisions/ADR-0008-coach-plan-dashboard-home-base.md).
+- The old [Working Backlog](./00-working-backlog.md) is now retired and preserved as a project artifact. Current execution state should flow through HANDOFF, SPEC, DATA_CONTRACT, ADRs, Azure exports, and gitignored `work-items-*.csv` imports.
+- Dashboard now has a first Coach Plan home-base anchor above the transition Quick View/Details surfaces. It shows the selected target role, compact stage label, baseline size, `X/Y practiced`, qualitative current read, and remaining baseline questions without exposing numeric scores.
+- DASH-S27 / Azure 814 is validated and resolved.
+- Dashboard Coach Plan now has a first Category face for DASH-S28 / Azure 815: the category plan appears as a compact chart-plus-label selector, and category activation opens a teaching-first sheet with purpose, answer-shape guidance, and planned/practiced context.
+- DASH-S28 / Azure 815 is validated and resolved.
+- Dashboard Coach Plan now has a first Skills face for DASH-S29 / Azure 816: the parent lanes appear as equal-weight chart and label selectors, and lane activation opens a teaching-first sheet with purpose, all child dimensions, and answer-shape guidance.
+- DASH-S29 / Azure 816 is validated and resolved.
+- Dashboard Coach Plan now has a first Question Set face for DASH-S30 / Azure 817: answered questions are visible by default, unanswered planned questions stay hidden until reveal, and answered-question activation opens a transcript-focused question detail sheet.
+- Dashboard Question Set reveal now shows actual unanswered question text when the dashboard read model has generated planned question text in `questionStatuses.questionText`; older/fallback rows still degrade to the safe `Q# + category` placeholder.
+- DASH-S33 / Azure 823 is validated and resolved.
+- Dashboard Coach Plan preparedness target now renders a simpler rounded gauge for DASH-S34 / Azure 824: the filled arc shows practiced baseline coverage, the arc color uses the aggregate qualitative prep-state color, the center shows the qualitative state plus `X/Y practiced`, and the supporting copy combines coverage plus first-person coach observation.
+- DASH-S34 / Azure 824 gauge revision is implemented locally and ready for validation.
 
 ## Current State And Context
 
@@ -92,6 +106,10 @@ The current dashboard is useful as a visual shell and read-model proof, but it i
 Known current behavior:
 
 - Dashboard target-interview scoping is a first pass based on unfinished-session priority, explicit target-role selection, and target role title.
+- Coach Plan fixed framing is present as a compact orientation card above the current Preparedness Map transition surface. It includes the rounded gauge preparedness target derived from already-loaded selected-target items and `PracticeCoverageBaseline`; no new persistence was added in this slice.
+- Coach Plan Category face is present as a compact category selector below fixed framing. It reuses the selected target interview category model and opens a separate teaching-first sheet, leaving the older evidence-first category drilldown available from Quick View/Details during transition.
+- Coach Plan Skills face is present as a compact three-lane selector below the Category face. It uses only the parent lanes as tap/click targets and opens a separate teaching-first lane sheet with all child dimensions visible at once. The older evidence-first `SkillDrilldown` remains available from Quick View/Details during transition.
+- Coach Plan Question Set face is present as a compact planned-sequence list below the Skills face. It derives answered question text/transcripts from existing answer evidence and planned unanswered slots from category question statuses. Generated planned question text now flows through `questionStatuses.questionText` when available so reveal can show the actual unanswered prompt.
 - Preparedness Map UI now consumes the score-driven release read model when answer score payloads are available, while older scoreless rows retain the legacy fallback path.
 - Matrix row headers, lane column headers, and matrix cells now open first-pass modals using the same Q/A card and coach-read interaction as lane drilldowns.
 - Matrix axis affordances are now explicit: row and column headers are actionable controls, and the grid uses continuous row/column hover/focus underlays instead of tiny transparent pills or per-cell axis highlighting.
@@ -111,6 +129,21 @@ Known current behavior:
 - `interviewStage` plus `questionCount` is the new setup contract for planned generation. Legacy `interviewType` is still present for older candidate setup/read fallback and should not be deleted until older-row behavior is reviewed.
 - Legacy answer-analysis `meta.readinessLevel` remains tolerated by the domain schema for older rows but is no longer produced by the active AI service. Dashboard preparedness should continue to use score-driven lane/category state, not readiness-level metadata.
 
+Accepted next dashboard direction:
+
+- `/dashboard` should become a familiar Coach Plan home base with very visible post-practice Coach Update UI when applicable.
+- Coach Plan fixed framing carries target role, stage, baseline count, brief role/JD/stage rationale, preparedness target, and compact movement/progress microcopy.
+- The preparedness target shows baseline coverage (`X/Y practiced`), aggregate current prep state from practiced baseline questions, and repeat-practice movement indicators such as improved/watch counts. Repeat practice does not increase coverage.
+- The intended preparedness target visual is a simple rounded gauge: filled proportion reflects recommended baseline questions practiced at least once, fill color uses the aggregate qualitative prep-state color, and center copy shows the qualitative state plus `X/Y practiced`.
+- Coach Plan faces are Categories, Skills, and Question Set. First visit defaults to Categories; later visits may remember the selected face for the prep context.
+- Category face: chart is the main selector, labels may sit near segments, and segment/label activation opens a teaching-first coaching sheet.
+- Skills face: only the three parent lanes are chart tap targets. Child dimensions move into the lane coaching sheet.
+- Question Set face: planned coach sequence is default; answered questions are visible; unanswered questions are hidden until reveal.
+- Coach Update is created by new persisted answer feedback, and the latest visible update supersedes the previous one. Development may preserve archived updates for review.
+- Coach Update opens a sparse guided debrief with close and skip-to-recommendation escape paths.
+- Practice Next may present a primary pair when both remediation and new coverage matter. Remediation has priority over new coverage when all else is equal.
+- The current matrix survives as redundant transition/detail UI until the Coach Plan surfaces are ready to retire it. Do not spend additional matrix polish unless it supports migration or validation.
+
 Active docs now use this lighter stack:
 
 - [SPEC](./SPEC.md) for product intent and scope.
@@ -121,37 +154,40 @@ Active docs now use this lighter stack:
 - [Preparedness Signal Map](./04-architecture/preparedness-signal-map.md) for low-level signal and lane evidence tracing.
 - [Question Category Contract](./04-architecture/question-category-contract.md) for interview-demand category definitions, resume/JD usage, and category indicator semantics.
 - [Instant Read Surface Plan](./04-architecture/instant-read-surface-plan.md) for the nine-slice dashboard snapshot trajectory.
+- [ADR-0008 Coach Plan Dashboard Home Base](./08-decisions/ADR-0008-coach-plan-dashboard-home-base.md) for the accepted dashboard UX direction that supersedes the Quick View/Details trajectory as the release target.
 
 Older detailed docs remain available as reference and should not be deleted before a release milestone.
 
 ## Immediate Next Step
 
-Resolve the dashboard preparedness presentation contract before adding more visual polish.
+Implement the Coach Plan dashboard direction in small, validated slices.
 
 Recommended next implementation slice:
 
-1. Browser-validate DASH-S24 / Azure 811 on desktop and mobile-sized viewports: green parent lane slices should stay green on hover/focus, chart segment activation should open the matching modal, the guidance card should return to overall read on mouseout/blur/Escape/tapaway, and mobile should keep first-tap reveal plus second-tap modal open.
-2. Configure Supabase/Vercel preview testing for Irma: create Supabase Postgres, run `npm run db:migrate`, run `npm run db:seed-candidate-preview`, configure Vercel preview env vars, enable Vercel Authentication, and validate `/dashboard` plus `/practice` from desktop and mobile.
-3. Define when, where, and how snapshot versus current-state UI appears. This remains the last large unspec'd dashboard behavior before the current release scope can settle.
-4. Continue product tuning of matrix cell state and category-scoped My Read copy against more realistic sessions.
-5. Add dev-only dashboard seed scenarios once the UI is mature enough to validate quickly: multiple fake candidates, active/paused/resumed sessions, partially answered plans, completed multi-round histories, and changing session-over-session evidence.
-6. Continue recruiter `/recruiter/create` browser validation: confirm generated and manual planned-section question behavior persists invites/templates correctly, including read-only AI/template fields, editable manual fields, the five-category Configuration preview, back-navigation restoration behavior, and 7/10/Other question counts that allocate multiple case/scenario or technical slots.
-7. Keep recruiter-invited answer feedback behavior stable while shared generation/planning changes continue.
-8. Browser-validate candidate `/practice` Interview Details parity: stage/count should be visible without Advanced setup, the merged balanced-practice card should post `practice_only`, and generated candidate sessions should still receive a deterministic question plan.
-9. Keep recruiter resume-aware question generation parked until batch-invite UX and candidate-specific resume context are deliberately scoped.
-10. Keep completed-session route recovery queued as lower priority until dashboard release behavior is otherwise stable.
-11. Queue the new candidate experience extensions: generation-to-session coaching carousel, optional target interview date, and bite-sized practice paths.
+1. Add Coach Update guided debrief from newly persisted answer feedback, with sparse walkthrough and skip-to-recommendation paths.
+2. Harden Practice Next paired recommendation rules: remediation plus new coverage when both matter, ordered only when dependency is clear.
+3. Harden question generation so Case/Scenario is first-class in provider output and downstream mapping instead of relying on behavioral key-name detection.
+4. Harden scoring applicability before dimension-heavy UX: distinguish observed, not elicited, insufficient data, and unscoreable answers.
+5. Add or refresh dev-only dashboard seed scenarios once the Coach Plan face structure lands: zero practiced, partial baseline, completed baseline, repeat improvement, repeat watch, unscoreable answer, active paused session, and multi-role contexts.
+
+Deprecation check for each dashboard refactor slice:
+
+- Name the old surface or helper being superseded.
+- Search call sites before removing or replacing behavior.
+- Classify the old code as `keep as transition`, `remove now`, or `mark for retirement`.
+- Keep tests aligned with that classification.
+- Record transition/retirement status in this handoff.
 
 ## Current Risks
 
 - Same-title/different-JD prep profiles are not distinguishable in the dashboard until a profile switcher or stricter profile selector lands.
-- Practice Next now exposes active-session pending questions, completed-session planned category gaps, and non-strong matrix cells, but the completed-session coach-configured next round still needs product tuning before it can confidently generate a planned follow-up session from cross-session patterns.
-- Dashboard matrix cell state is derived from currently available lane-specific category score states; browser validation against real sessions should confirm whether the state feels interpretable before adding more visual polish.
-- The matrix is likely too analytical as the first dashboard read; the next design decision is how to give candidates an encouraging instant-read surface while keeping the matrix available as the evidence-backed detail view.
-- The instant-read plan must be reloaded before dashboard snapshot work: [Instant Read Surface Plan](./04-architecture/instant-read-surface-plan.md). The current snapshot is a low-risk Recharts implementation with qualitative labels, lane/category tap targets, no new persistence, and no hidden scoring exposed. The Answer Skills ring now uses dimension-level state when score-driven analysis is available, while legacy/scoreless rows still fall back to parent-lane state. The Question Mix pie now carries planned distribution plus practiced/upcoming coverage; future polish should not collapse those meanings back into a single category-color segment.
-- The current design prototype explores a front/back card: front snapshot, back matrix. Its category labels were removed from the constellation front so the snapshot stays fast; category distribution can still be represented by quieter dots or later interaction.
-- Matrix axis orientation is still a product/design decision, not a settled rule. Categories-as-rows fits portrait mobile, while lanes-as-rows may foreground the coaching domains more clearly.
-- The prototype's inline guidance card competes with the current nested modal drilldown model. Decide whether it becomes a lightweight selected-cell preview, replaces first-level modals, or coexists as an overview affordance while modals keep deeper Q/A evidence.
+- Practice Next now exposes active-session pending questions, completed-session planned category gaps, and non-strong matrix cells, but the Coach Plan direction needs paired recommendation rules before it can confidently drive follow-up practice from coverage plus remediation.
+- Dashboard matrix cell state is derived from currently available lane-specific category score states. It remains useful as a transition/detail surface, but the normal candidate experience should migrate toward Coach Plan faces and coaching sheets.
+- The current Quick View pie interactions are functional but no longer the release target. The Coach Plan direction should replace the Quick View/Details trajectory instead of adding more polish to the current two-pie surface.
+- The accepted preparedness target is now rendered as a first-pass rounded gauge. It should not imply a candidate-facing score; future refinement can add the richer hover/tap explainer, repeat-practice movement markers, and one-or-two recommendation CTAs once Practice Next target data is wired into the Coach Plan target surface.
+- Category and Skills chart implementations may need custom SVG rather than standard chart components if labels, tap targets, or animation become constrained.
+- The current answer scoring prompt asks for all 9 dimensions, but dimension-level UX needs stronger applicability handling for typed answers, non-elicited signals, thin evidence, and unscoreable responses.
+- Question generation includes Case/Scenario guidance but still routes it through the behavioral JSON bucket and key-name detection. This is a compatibility bridge and should be hardened before the Question Set face relies on clean category semantics.
 - `QuestionPlan` now informs both candidate `/practice` and recruiter `/recruiter/create` generation context, recruiter create shows a distribution confirmation, and the editor renders only the planned plain-language category sections. Server-side generation repair and recruiter mapping preserve planned category counts, but high-count browser/product validation should still sample 7/10/Other cases.
 - Candidate session `questionPlanSnapshot` is now available for future comprehensive To Practice logic. The next implementation should decide whether dashboard gaps compare current scored evidence against the persisted session plan, an evolving prep profile plan, or both.
 - Candidate `/practice` now makes stage/count first-class controls, but browser validation should still confirm the promoted section works with candidate draft restore, question generation, and local/dev auth identities.

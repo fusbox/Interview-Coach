@@ -4,6 +4,12 @@ import { useState } from "react";
 
 import type { CandidateDashboardModel } from "@/lib/server/candidate";
 import {
+    CoachPlanCategoryFace,
+    CoachPlanCategorySheet,
+    CoachPlanOverview,
+    CoachPlanQuestionSetFace,
+    CoachPlanSkillSheet,
+    CoachPlanSkillsFace,
     EmptyPreparednessDashboard,
     PracticeNextCard,
     PreparednessMapExperience,
@@ -11,6 +17,7 @@ import {
     RecentActivityList,
     SkillDrilldown,
     toInstantReadPreparednessModel,
+    toCoachPlanOverviewModel,
     TargetInterviewSwitcher,
     toQuestionCategoryCards,
     toQuestionCategoryDrilldowns,
@@ -29,6 +36,8 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
     const latestItem = dashboard.activeItems[0] || dashboard.completedItems[0] || null;
     const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+    const [selectedCoachPlanCategoryId, setSelectedCoachPlanCategoryId] = useState<string | null>(null);
+    const [selectedCoachPlanSkillId, setSelectedCoachPlanSkillId] = useState<string | null>(null);
     const [selectedMatrixCellId, setSelectedMatrixCellId] = useState<string | null>(null);
     const scopedItems = [...dashboard.activeItems, ...dashboard.completedItems];
     const skills = toPreparednessSkills({
@@ -40,6 +49,10 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
     const categoryDrilldowns = toQuestionCategoryDrilldowns(categoryCards);
     const preparednessMatrix = toPreparednessMatrix(skills, categoryCards);
     const preparednessSnapshot = toInstantReadPreparednessModel(skills, categoryCards);
+    const coachPlanOverview = toCoachPlanOverviewModel({
+        latestItem,
+        categories: categoryCards,
+    });
     const practiceNextItems = toPracticeNextItems({
         activeItems: dashboard.activeItems,
         completedItems: dashboard.completedItems,
@@ -47,7 +60,9 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
         categories: categoryCards,
     });
     const selectedSkill = skills.find((skill) => skill.id === selectedSkillId) || null;
+    const selectedCoachPlanSkill = skills.find((skill) => skill.id === selectedCoachPlanSkillId) || null;
     const selectedCategory = categoryDrilldowns.find((category) => category.id === selectedCategoryId) || null;
+    const selectedCoachPlanCategory = categoryDrilldowns.find((category) => category.id === selectedCoachPlanCategoryId) || null;
     const selectedMatrixCell = preparednessMatrix.cells.find((cell) => cell.id === selectedMatrixCellId) || null;
     const recentItems = scopedItems.slice(0, 4);
 
@@ -64,6 +79,16 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
                     <div className="grid min-w-0 gap-8 xl:grid-cols-[minmax(0,1fr)_24rem] xl:gap-10">
                         <section className="min-w-0 space-y-8">
                             <TargetInterviewSwitcher targetInterviews={dashboard.targetInterviews} />
+                            {coachPlanOverview ? <CoachPlanOverview overview={coachPlanOverview} /> : null}
+                            <CoachPlanCategoryFace
+                                categories={categoryDrilldowns}
+                                onCategorySelect={setSelectedCoachPlanCategoryId}
+                            />
+                            <CoachPlanSkillsFace
+                                skills={skills}
+                                onSkillSelect={setSelectedCoachPlanSkillId}
+                            />
+                            <CoachPlanQuestionSetFace categories={categoryDrilldowns} />
                             <PreparednessMapExperience
                                 snapshot={preparednessSnapshot}
                                 matrix={preparednessMatrix}
@@ -96,6 +121,18 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
             ) : null}
             {selectedCategory ? (
                 <QuestionCategoryDrilldown category={selectedCategory} onClose={() => setSelectedCategoryId(null)} />
+            ) : null}
+            {selectedCoachPlanCategory ? (
+                <CoachPlanCategorySheet
+                    category={selectedCoachPlanCategory}
+                    onClose={() => setSelectedCoachPlanCategoryId(null)}
+                />
+            ) : null}
+            {selectedCoachPlanSkill ? (
+                <CoachPlanSkillSheet
+                    skill={selectedCoachPlanSkill}
+                    onClose={() => setSelectedCoachPlanSkillId(null)}
+                />
             ) : null}
             {selectedMatrixCell ? (
                 <QuestionCategoryDrilldown category={selectedMatrixCell} onClose={() => setSelectedMatrixCellId(null)} />

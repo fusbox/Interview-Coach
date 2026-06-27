@@ -149,8 +149,18 @@ describe("prep profile read model", () => {
                 practicedQuestionCount: 1,
                 upcomingQuestionCount: 1,
                 questionStatuses: [
-                    { questionId: "question-1", questionNumber: 1, status: "practiced" },
-                    { questionId: "question-3", questionNumber: 3, status: "upcoming" },
+                    {
+                        questionId: "question-1",
+                        questionNumber: 1,
+                        questionText: "Tell me about a time you helped a customer through a difficult issue.",
+                        status: "practiced",
+                    },
+                    {
+                        questionId: "question-3",
+                        questionNumber: 3,
+                        questionText: "Tell me about a time you changed your approach for a customer.",
+                        status: "upcoming",
+                    },
                 ],
                 evidenceState: "clear",
                 laneStates: {
@@ -271,7 +281,12 @@ describe("prep profile read model", () => {
                 practicedQuestionCount: 0,
                 upcomingQuestionCount: 1,
                 evidenceState: "not_practiced",
-                questionStatuses: [{ questionId: "question-1", questionNumber: 1, status: "upcoming" }],
+                questionStatuses: [{
+                    questionId: "question-1",
+                    questionNumber: 1,
+                    questionText: "Why are you interested in this client services role?",
+                    status: "upcoming",
+                }],
             }),
             expect.objectContaining({
                 categoryId: "behavioral",
@@ -280,7 +295,12 @@ describe("prep profile read model", () => {
                 practicedQuestionCount: 0,
                 upcomingQuestionCount: 1,
                 evidenceState: "not_practiced",
-                questionStatuses: [{ questionId: "question-2", questionNumber: 2, status: "upcoming" }],
+                questionStatuses: [{
+                    questionId: "question-2",
+                    questionNumber: 2,
+                    questionText: "Tell me about a time you helped an upset client.",
+                    status: "upcoming",
+                }],
             }),
             expect.objectContaining({
                 categoryId: "technical_role_specific",
@@ -289,7 +309,12 @@ describe("prep profile read model", () => {
                 practicedQuestionCount: 0,
                 upcomingQuestionCount: 1,
                 evidenceState: "not_practiced",
-                questionStatuses: [{ questionId: "question-3", questionNumber: 3, status: "upcoming" }],
+                questionStatuses: [{
+                    questionId: "question-3",
+                    questionNumber: 3,
+                    questionText: "How would you help someone who cannot log in?",
+                    status: "upcoming",
+                }],
             }),
         ]);
     });
