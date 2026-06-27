@@ -97,7 +97,9 @@ Last updated: 2026-06-27
 - Dashboard Question Set reveal now shows actual unanswered question text when the dashboard read model has generated planned question text in `questionStatuses.questionText`; older/fallback rows still degrade to the safe `Q# + category` placeholder.
 - DASH-S33 / Azure 823 is validated and resolved.
 - Dashboard Coach Plan preparedness target now renders a simpler rounded gauge for DASH-S34 / Azure 824: the filled arc shows practiced baseline coverage, the arc color uses the aggregate qualitative prep-state color, the center shows the qualitative state plus `X/Y practiced`, and the supporting copy combines coverage plus first-person coach observation.
-- DASH-S34 / Azure 824 gauge revision is implemented locally and ready for validation.
+- DASH-S34 / Azure 824 is validated, committed, and pushed to `azure/feature/candidate-module` and `fusbox/feature/candidate-module` in commit `d5032ed`.
+- Dashboard now has a first Coach Update guided-debrief slice for DASH-S31 / Azure 818: the latest scoped persisted coaching snippet creates a visible Coach Update card, opens a sparse debrief dialog, supports clickaway/close, and includes a skip-to-recommendation path anchored to Practice Next.
+- DASH-S31 / Azure 818 is implemented locally and ready for validation.
 
 ## Current State And Context
 
@@ -110,6 +112,7 @@ Known current behavior:
 - Coach Plan Category face is present as a compact category selector below fixed framing. It reuses the selected target interview category model and opens a separate teaching-first sheet, leaving the older evidence-first category drilldown available from Quick View/Details during transition.
 - Coach Plan Skills face is present as a compact three-lane selector below the Category face. It uses only the parent lanes as tap/click targets and opens a separate teaching-first lane sheet with all child dimensions visible at once. The older evidence-first `SkillDrilldown` remains available from Quick View/Details during transition.
 - Coach Plan Question Set face is present as a compact planned-sequence list below the Skills face. It derives answered question text/transcripts from existing answer evidence and planned unanswered slots from category question statuses. Generated planned question text now flows through `questionStatuses.questionText` when available so reveal can show the actual unanswered prompt.
+- Coach Update is present as a first-pass derived surface. It currently uses existing `CandidateDashboardItem.coachingSnippet` / `coachingSnippetLabel` from latest persisted eval feedback and does not add a new table, inbox, or archive UI.
 - Preparedness Map UI now consumes the score-driven release read model when answer score payloads are available, while older scoreless rows retain the legacy fallback path.
 - Matrix row headers, lane column headers, and matrix cells now open first-pass modals using the same Q/A card and coach-read interaction as lane drilldowns.
 - Matrix axis affordances are now explicit: row and column headers are actionable controls, and the grid uses continuous row/column hover/focus underlays instead of tiny transparent pills or per-cell axis highlighting.
@@ -164,11 +167,10 @@ Implement the Coach Plan dashboard direction in small, validated slices.
 
 Recommended next implementation slice:
 
-1. Add Coach Update guided debrief from newly persisted answer feedback, with sparse walkthrough and skip-to-recommendation paths.
-2. Harden Practice Next paired recommendation rules: remediation plus new coverage when both matter, ordered only when dependency is clear.
-3. Harden question generation so Case/Scenario is first-class in provider output and downstream mapping instead of relying on behavioral key-name detection.
-4. Harden scoring applicability before dimension-heavy UX: distinguish observed, not elicited, insufficient data, and unscoreable answers.
-5. Add or refresh dev-only dashboard seed scenarios once the Coach Plan face structure lands: zero practiced, partial baseline, completed baseline, repeat improvement, repeat watch, unscoreable answer, active paused session, and multi-role contexts.
+1. Harden Practice Next paired recommendation rules: remediation plus new coverage when both matter, ordered only when dependency is clear.
+2. Harden question generation so Case/Scenario is first-class in provider output and downstream mapping instead of relying on behavioral key-name detection.
+3. Harden scoring applicability before dimension-heavy UX: distinguish observed, not elicited, insufficient data, and unscoreable answers.
+4. Add or refresh dev-only dashboard seed scenarios once the Coach Plan face structure lands: zero practiced, partial baseline, completed baseline, repeat improvement, repeat watch, unscoreable answer, active paused session, and multi-role contexts.
 
 Deprecation check for each dashboard refactor slice:
 
@@ -185,6 +187,7 @@ Deprecation check for each dashboard refactor slice:
 - Dashboard matrix cell state is derived from currently available lane-specific category score states. It remains useful as a transition/detail surface, but the normal candidate experience should migrate toward Coach Plan faces and coaching sheets.
 - The current Quick View pie interactions are functional but no longer the release target. The Coach Plan direction should replace the Quick View/Details trajectory instead of adding more polish to the current two-pie surface.
 - The accepted preparedness target is now rendered as a first-pass rounded gauge. It should not imply a candidate-facing score; future refinement can add the richer hover/tap explainer, repeat-practice movement markers, and one-or-two recommendation CTAs once Practice Next target data is wired into the Coach Plan target surface.
+- Coach Update is derived from latest visible coaching snippet for now. A future persistence pass may store archived updates for development review, but candidate UI still intentionally avoids an inbox.
 - Category and Skills chart implementations may need custom SVG rather than standard chart components if labels, tap targets, or animation become constrained.
 - The current answer scoring prompt asks for all 9 dimensions, but dimension-level UX needs stronger applicability handling for typed answers, non-elicited signals, thin evidence, and unscoreable responses.
 - Question generation includes Case/Scenario guidance but still routes it through the behavioral JSON bucket and key-name detection. This is a compatibility bridge and should be hardened before the Question Set face relies on clean category semantics.

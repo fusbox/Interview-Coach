@@ -119,6 +119,17 @@ export type PracticeNextListItem = {
     state: PreparednessState;
 };
 
+export type CoachUpdateModel = {
+    id: string;
+    createdAt: number;
+    headline: string;
+    priorityRead: string;
+    chips: Array<{
+        label: string;
+        kind: "improved" | "watch" | "new_coverage" | "next";
+    }>;
+};
+
 export type CoachPlanOverviewModel = {
     targetRole: string;
     stageLabel: string;
@@ -261,6 +272,134 @@ export function CoachPlanOverview({ overview }: { overview: CoachPlanOverviewMod
                 <PreparednessTargetVisual overview={overview} />
             </div>
         </section>
+    );
+}
+
+export function CoachUpdateCard({
+    update,
+    onOpen,
+}: {
+    update: CoachUpdateModel;
+    onOpen: () => void;
+}) {
+    return (
+        <section aria-label="Coach Update" className="rounded-[1.75rem] border border-primary/20 bg-[rgb(var(--candidate-primary-soft)/0.72)] p-4 shadow-flat sm:p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                    <div className="flex items-center gap-3">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-white shadow-flat">
+                            <MessageSquare size={19} aria-hidden="true" />
+                        </span>
+                        <div className="min-w-0">
+                            <p className="text-xs font-black uppercase tracking-[0.18em] text-primary">Coach Update</p>
+                            <h2 className="mt-1 text-xl font-bold leading-tight text-text-primary">{update.headline}</h2>
+                        </div>
+                    </div>
+                    <p className="mt-3 line-clamp-2 text-sm font-semibold leading-6 text-text-secondary">{update.priorityRead}</p>
+                    {update.chips.length > 0 ? (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                            {update.chips.slice(0, 3).map((chip) => (
+                                <span
+                                    key={`${chip.kind}:${chip.label}`}
+                                    className="rounded-full bg-white/80 px-3 py-1 text-xs font-bold text-text-secondary"
+                                >
+                                    {chip.label}
+                                </span>
+                            ))}
+                        </div>
+                    ) : null}
+                </div>
+                <button
+                    type="button"
+                    onClick={onOpen}
+                    className="inline-flex shrink-0 items-center justify-center rounded-2xl bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-flat transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45"
+                    aria-label="Open Coach Update"
+                >
+                    Review update
+                    <ArrowRight size={16} className="ml-2" aria-hidden="true" />
+                </button>
+            </div>
+        </section>
+    );
+}
+
+export function CoachUpdateDialog({
+    update,
+    onClose,
+}: {
+    update: CoachUpdateModel;
+    onClose: () => void;
+}) {
+    return (
+        <div
+            data-testid="coach-update-backdrop"
+            className="fixed inset-0 z-50 flex items-start bg-slate-950/55 backdrop-blur-sm md:items-center md:justify-center"
+            onPointerDown={(event) => {
+                if (event.target === event.currentTarget) {
+                    onClose();
+                }
+            }}
+        >
+            <section
+                role="dialog"
+                aria-modal="true"
+                aria-label="Coach Update"
+                className="flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-b-[1.75rem] border border-[rgb(var(--candidate-border)/0.92)] bg-white shadow-[var(--candidate-shadow-panel)] md:w-[42rem] md:max-w-[calc(100vw-2rem)] md:rounded-[1.75rem]"
+            >
+                <div className="sticky top-0 z-10 border-b border-[rgb(var(--candidate-border)/0.7)] bg-white p-5 md:p-6">
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                            <p className="text-xs font-black uppercase tracking-[0.18em] text-primary">Coach Update</p>
+                            <h2 className="mt-3 text-2xl font-bold leading-tight text-text-primary">Here is the quick debrief.</h2>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-text-muted transition-colors hover:bg-surface-subtle hover:text-text-primary"
+                            aria-label="Close"
+                        >
+                            <X size={20} aria-hidden="true" />
+                        </button>
+                    </div>
+                </div>
+                <div className="custom-scrollbar flex-1 space-y-4 overflow-y-auto p-5 md:p-6">
+                    <section className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3">
+                        <h3 className="text-xs font-black uppercase tracking-[0.18em] text-primary">What I noticed</h3>
+                        <p className="mt-3 text-sm font-semibold leading-6 text-text-secondary">{update.priorityRead}</p>
+                    </section>
+                    {update.chips.length > 0 ? (
+                        <section className="rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-surface-base px-4 py-3">
+                            <h3 className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">Quick markers</h3>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                {update.chips.map((chip) => (
+                                    <span
+                                        key={`${chip.kind}:${chip.label}`}
+                                        className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-text-secondary shadow-[0_1px_0_rgb(var(--candidate-border)/0.72)]"
+                                    >
+                                        {chip.label}
+                                    </span>
+                                ))}
+                            </div>
+                        </section>
+                    ) : null}
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                        <Button asChild emphasis="primary" density="comfortable" shape="app" label="strong" className="sm:flex-1">
+                            <a href="#practice-next" onClick={onClose}>
+                                Skip to recommendation
+                                <ArrowRight size={17} className="ml-2" aria-hidden="true" />
+                            </a>
+                        </Button>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-[rgb(var(--candidate-border)/0.78)] bg-white px-4 text-sm font-bold text-text-secondary transition-colors hover:bg-surface-base hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:flex-1"
+                        >
+                            Not now
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </div>
     );
 }
 
@@ -2022,7 +2161,7 @@ export function PracticeNextCard({
     items?: PracticeNextListItem[];
 }) {
     return (
-        <section aria-label="Practice next" className="surface-sky border border-[rgb(var(--candidate-border)/0.78)] p-5 md:p-6">
+        <section id="practice-next" aria-label="Practice next" className="surface-sky border border-[rgb(var(--candidate-border)/0.78)] p-5 md:p-6">
             <div className="flex items-start gap-3">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-flat">
                     <Sparkles size={20} aria-hidden="true" />
@@ -2958,6 +3097,38 @@ export function toPracticeNextItems({
         detail: row.skill.nextPracticeAction,
         state: row.skill.state,
     }));
+}
+
+export function toCoachUpdateModel({
+    items,
+    practiceNextItems,
+}: {
+    items: CandidateDashboardItem[];
+    practiceNextItems: PracticeNextListItem[];
+}): CoachUpdateModel | null {
+    const latestItem = items
+        .filter((item) => item.coachingSnippet)
+        .sort((a, b) => b.lastActivityAt - a.lastActivityAt)[0];
+
+    if (!latestItem?.coachingSnippet) {
+        return null;
+    }
+
+    const chips: CoachUpdateModel["chips"] = [];
+    if (latestItem.coachingSnippetLabel) {
+        chips.push({ label: latestItem.coachingSnippetLabel, kind: "watch" });
+    }
+    if (practiceNextItems[0]) {
+        chips.push({ label: `Next: ${practiceNextItems[0].label}`, kind: "next" });
+    }
+
+    return {
+        id: `${latestItem.practiceDraftId}:${latestItem.lastActivityAt}:coach-update`,
+        createdAt: latestItem.lastActivityAt,
+        headline: "I have a new read from your latest practice.",
+        priorityRead: latestItem.coachingSnippet,
+        chips,
+    };
 }
 
 export function toCoachPlanOverviewModel({

@@ -10,6 +10,8 @@ import {
     CoachPlanQuestionSetFace,
     CoachPlanSkillSheet,
     CoachPlanSkillsFace,
+    CoachUpdateCard,
+    CoachUpdateDialog,
     EmptyPreparednessDashboard,
     PracticeNextCard,
     PreparednessMapExperience,
@@ -18,6 +20,7 @@ import {
     SkillDrilldown,
     toInstantReadPreparednessModel,
     toCoachPlanOverviewModel,
+    toCoachUpdateModel,
     TargetInterviewSwitcher,
     toQuestionCategoryCards,
     toQuestionCategoryDrilldowns,
@@ -38,6 +41,7 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
     const [selectedCoachPlanCategoryId, setSelectedCoachPlanCategoryId] = useState<string | null>(null);
     const [selectedCoachPlanSkillId, setSelectedCoachPlanSkillId] = useState<string | null>(null);
+    const [isCoachUpdateOpen, setIsCoachUpdateOpen] = useState(false);
     const [selectedMatrixCellId, setSelectedMatrixCellId] = useState<string | null>(null);
     const scopedItems = [...dashboard.activeItems, ...dashboard.completedItems];
     const skills = toPreparednessSkills({
@@ -59,6 +63,10 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
         matrix: preparednessMatrix,
         categories: categoryCards,
     });
+    const coachUpdate = toCoachUpdateModel({
+        items: scopedItems,
+        practiceNextItems,
+    });
     const selectedSkill = skills.find((skill) => skill.id === selectedSkillId) || null;
     const selectedCoachPlanSkill = skills.find((skill) => skill.id === selectedCoachPlanSkillId) || null;
     const selectedCategory = categoryDrilldowns.find((category) => category.id === selectedCategoryId) || null;
@@ -79,6 +87,12 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
                     <div className="grid min-w-0 gap-8 xl:grid-cols-[minmax(0,1fr)_24rem] xl:gap-10">
                         <section className="min-w-0 space-y-8">
                             <TargetInterviewSwitcher targetInterviews={dashboard.targetInterviews} />
+                            {coachUpdate ? (
+                                <CoachUpdateCard
+                                    update={coachUpdate}
+                                    onOpen={() => setIsCoachUpdateOpen(true)}
+                                />
+                            ) : null}
                             {coachPlanOverview ? <CoachPlanOverview overview={coachPlanOverview} /> : null}
                             <CoachPlanCategoryFace
                                 categories={categoryDrilldowns}
@@ -136,6 +150,12 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
             ) : null}
             {selectedMatrixCell ? (
                 <QuestionCategoryDrilldown category={selectedMatrixCell} onClose={() => setSelectedMatrixCellId(null)} />
+            ) : null}
+            {coachUpdate && isCoachUpdateOpen ? (
+                <CoachUpdateDialog
+                    update={coachUpdate}
+                    onClose={() => setIsCoachUpdateOpen(false)}
+                />
             ) : null}
         </main>
     );

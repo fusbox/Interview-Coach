@@ -361,6 +361,61 @@ describe("CandidateDashboardPage", () => {
         expect(coachPlan).toHaveTextContent("This plan covers the question range your coach expects for this interview.");
     });
 
+    it("opens a sparse Coach Update debrief from latest feedback", async () => {
+        const user = userEvent.setup();
+
+        render(<CandidateDashboardPage dashboard={{
+            ...baseModel,
+            activeItems: [],
+            completedItems: [{
+                ...baseModel.completedItems[0],
+                title: "Client Services Executive - WWT",
+                coachingSnippetLabel: "For the biggest lift",
+                coachingSnippet: "Make the client impact visible: That helped the client understand the next step and reduced repeat follow-up.",
+                lastActivityAt: Date.parse("2026-06-26T15:30:00.000Z"),
+                prepProfile: {
+                    prepProfileId: "role-profile-2",
+                    primarySignal: {
+                        label: "Make the client impact visible",
+                        state: "clear",
+                    },
+                    signals: [],
+                    signalCounts: {
+                        not_practiced: 0,
+                        emerging: 1,
+                        clear: 1,
+                        strong: 1,
+                    },
+                    recommendation: {
+                        label: "Practice delivery clarity",
+                        reason: "Make the client impact easier to hear.",
+                        source: "answer_feedback",
+                        href: "/practice",
+                    },
+                },
+            }],
+            nextBestAction: {
+                title: "Practice delivery clarity",
+                body: "Make the client impact easier to hear.",
+                href: "/practice",
+                actionLabel: "Practice again",
+            },
+        }} />);
+
+        const coachUpdate = screen.getByRole("region", { name: /coach update/i });
+        expect(coachUpdate).toHaveTextContent("I have a new read from your latest practice.");
+        expect(coachUpdate).toHaveTextContent("Make the client impact visible");
+
+        await user.click(screen.getByRole("button", { name: /open coach update/i }));
+
+        const dialog = screen.getByRole("dialog", { name: /coach update/i });
+        expect(dialog).toHaveTextContent("Here is the quick debrief.");
+        expect(dialog).toHaveTextContent("For the biggest lift");
+        expect(dialog).toHaveTextContent("Make the client impact visible");
+        expect(screen.getByRole("link", { name: /skip to recommendation/i })).toHaveAttribute("href", "#practice-next");
+        expect(screen.getByRole("button", { name: /not now/i })).toBeInTheDocument();
+    });
+
     it("opens a teaching-first Coach Plan category sheet from the category face", async () => {
         const user = userEvent.setup();
 

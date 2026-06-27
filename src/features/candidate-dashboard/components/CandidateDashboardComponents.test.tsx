@@ -16,6 +16,7 @@ import {
     toInstantReadCategoryMix,
     toInstantReadPreparednessModel,
     toQuestionCategoryCards,
+    toCoachUpdateModel,
     toPreparednessMatrix,
     toPreparednessSkills,
     toPracticeNextItems,
@@ -467,6 +468,46 @@ describe("candidate dashboard component set", () => {
             label: "Screening coverage",
             detail: "Practice 1 more question in this area for the planned interview scope.",
             state: "not_practiced",
+        });
+    });
+
+    it("derives a Coach Update from the latest item with persisted coaching copy", () => {
+        const olderItem = {
+            practiceDraftId: "draft-1",
+            roleProfileId: "role-1",
+            roleContextLabel: "Role context saved",
+            title: "QA Analyst",
+            statusLabel: "Completed",
+            progressLabel: "1 of 1 answered",
+            href: "/summary/session-1",
+            lastActivityLabel: "May 12, 2026",
+            lastActivityAt: Date.UTC(2026, 4, 12),
+            coachingSnippet: "Older feedback.",
+        } satisfies CandidateDashboardItem;
+        const latestItem = {
+            ...olderItem,
+            practiceDraftId: "draft-2",
+            lastActivityAt: Date.UTC(2026, 4, 13),
+            coachingSnippetLabel: "For the biggest lift",
+            coachingSnippet: "Make the client impact visible: add a measurable result.",
+        } satisfies CandidateDashboardItem;
+
+        expect(toCoachUpdateModel({
+            items: [olderItem, latestItem],
+            practiceNextItems: [{
+                id: "next-1",
+                label: "Behavioral - Substance",
+                detail: "Build clearer evidence.",
+                state: "emerging",
+            }],
+        })).toMatchObject({
+            id: "draft-2:1778630400000:coach-update",
+            headline: "I have a new read from your latest practice.",
+            priorityRead: "Make the client impact visible: add a measurable result.",
+            chips: [
+                { label: "For the biggest lift", kind: "watch" },
+                { label: "Next: Behavioral - Substance", kind: "next" },
+            ],
         });
     });
 
