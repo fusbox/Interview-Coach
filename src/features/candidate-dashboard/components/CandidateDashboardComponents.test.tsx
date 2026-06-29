@@ -1,10 +1,13 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
+    CoachUpdateCard,
+    CoachUpdateDialog,
     EmptyPreparednessDashboard,
     PracticeNextCard,
+    NextPracticeRoundSurface,
     PreparednessInstantRead,
     PreparednessMapExperience,
     PreparednessMatrix,
@@ -471,6 +474,86 @@ describe("candidate dashboard component set", () => {
         });
     });
 
+    it("pairs remediation with new baseline coverage when both matter", () => {
+        const completedItem = {
+            practiceDraftId: "draft-1",
+            roleProfileId: "role-1",
+            roleContextLabel: "Role context saved",
+            title: "Client Services Specialist",
+            statusLabel: "Completed",
+            progressLabel: "1 of 1 answered",
+            href: "/summary/session-1",
+            lastActivityLabel: "May 12, 2026",
+            lastActivityAt: Date.UTC(2026, 4, 12),
+            practiceCoverageBaseline: {
+                interviewStage: "follow_up_final",
+                minimumQuestionCount: 2,
+                categoryMinimums: {
+                    screening: 0,
+                    behavioral: 1,
+                    culture_fit: 0,
+                    case_scenario: 1,
+                    technical_role_specific: 0,
+                },
+            },
+            prepProfile: {
+                prepProfileId: "role-1",
+                primarySignal: null,
+                signals: [],
+                signalCounts: { not_practiced: 0, emerging: 1, clear: 0, strong: 0 },
+                recommendation: {
+                    label: "Practice one focused improvement",
+                    reason: "Build clearer client impact.",
+                    source: "session_summary",
+                    href: "/practice",
+                },
+                categoryCards: [{
+                    categoryId: "behavioral",
+                    label: "Behavioral",
+                    questionCount: 1,
+                    practicedQuestionCount: 1,
+                    upcomingQuestionCount: 0,
+                    questionStatuses: [
+                        { questionId: "q1", questionNumber: 1, status: "practiced" },
+                    ],
+                    evidenceState: "emerging",
+                    laneStates: {
+                        answer_substance: { evidenceState: "emerging", scoreCount: 1 },
+                        interview_structure: { evidenceState: "clear", scoreCount: 1 },
+                        communication_delivery: { evidenceState: "strong", scoreCount: 1 },
+                    },
+                    sourceRefs: [],
+                }],
+            },
+        } satisfies CandidateDashboardItem;
+        const categories = withPracticeCoverageBaselineCategories(toQuestionCategoryCards([completedItem]), [completedItem]);
+        const matrix = toPreparednessMatrix([{
+            ...skill,
+            id: "answer_substance",
+            label: "Answer Substance",
+        }], categories);
+
+        expect(toPracticeNextItems({
+            activeItems: [],
+            completedItems: [completedItem],
+            matrix,
+            categories,
+        }).slice(0, 2)).toEqual([
+            {
+                id: "answer_substance:behavioral",
+                label: "Behavioral - Substance",
+                detail: "Build clearer evidence for substance in this question type.",
+                state: "emerging",
+            },
+            {
+                id: "coverage:case_scenario",
+                label: "Case / Scenario coverage",
+                detail: "Practice 1 more question in this area for the planned interview scope.",
+                state: "not_practiced",
+            },
+        ]);
+    });
+
     it("derives a Coach Update from the latest item with persisted coaching copy", () => {
         const olderItem = {
             practiceDraftId: "draft-1",
@@ -509,6 +592,141 @@ describe("candidate dashboard component set", () => {
                 { label: "Next: Behavioral - Substance", kind: "next" },
             ],
         });
+    });
+
+    it("renders Coach Update as a no-detail gateway into question feedback", async () => {
+        const user = userEvent.setup();
+        const update = {
+            id: "update-1",
+            createdAt: Date.UTC(2026, 5, 29),
+            headline: "I have a new read from your latest practice.",
+            priorityRead: "Make the client impact visible: add a measurable result.",
+            chips: [
+                { label: "For the biggest lift", kind: "watch" as const },
+                { label: "Next: Behavioral - Substance", kind: "next" as const },
+            ],
+        };
+
+        const onOpen = vi.fn();
+        render(<CoachUpdateCard update={update} onOpen={onOpen} />);
+
+        const card = screen.getByRole("button", { name: /open coach update/i });
+        expect(card).toHaveTextContent("I reviewed your latest practice.");
+        expect(card).not.toHaveTextContent("Make the client impact visible");
+        expect(card).not.toHaveTextContent("For the biggest lift");
+        expect(screen.queryByRole("button", { name: /review update/i })).not.toBeInTheDocument();
+        await user.click(card);
+        expect(onOpen).toHaveBeenCalledTimes(1);
+
+        render(
+            <CoachUpdateDialog
+                update={update}
+                questions={[{
+                    id: "behavioral:question-1",
+                    questionNumber: 2,
+                    categoryLabel: "Behavioral",
+                    status: "answered",
+                    state: "emerging",
+                    questionText: "Tell me about a time you helped a customer get unstuck.",
+                    answerTranscript: "I checked what information was missing and followed up.",
+                    answerModality: "voice",
+                    evaluation: "Behavioral feedback: The answer shows helpful intent. For the biggest lift: Name the action and client impact. Try: I confirmed the missing information and gave the client a same-day update window. Next step: Practice this as a complete story.",
+                }, {
+                    id: "case_scenario:question-2",
+                    questionNumber: 3,
+                    categoryLabel: "Case / Scenario",
+                    status: "answered",
+                    state: "clear",
+                    questionText: "How would you respond if a client pushed back on the timeline?",
+                    answerTranscript: "I would acknowledge the concern and explain the next step.",
+                    answerModality: "voice",
+                    evaluation: "Case feedback: The answer gives a calm plan.",
+                }]}
+                onClose={() => undefined}
+            />,
+        );
+
+        const dialog = screen.getByRole("dialog", { name: /coach update/i });
+        expect(dialog).not.toHaveTextContent("Quick markers");
+        const header = dialog.querySelector("[data-coach-update-header]");
+        expect(header).not.toBeNull();
+        expect(header).toHaveTextContent("Q2: Behavioral");
+        expect(header).toHaveTextContent("Q3: Case / Scenario");
+        expect(dialog).toHaveTextContent("Question");
+        expect(dialog).toHaveTextContent("Your answer");
+        expect(dialog).toHaveTextContent("Coach callout");
+        expect(dialog).toHaveTextContent("How to strengthen it");
+        expect(dialog).toHaveTextContent("Tell me about a time you helped a customer get unstuck.");
+        expect(dialog).toHaveTextContent("I checked what information was missing and followed up.");
+        expect(screen.getByRole("button", { name: /practice this now/i })).toBeInTheDocument();
+
+        const content = dialog.querySelector("[data-coach-update-content]");
+        expect(content).not.toBeNull();
+        const scrollTo = vi.fn();
+        Object.defineProperty(content, "scrollTo", {
+            configurable: true,
+            value: scrollTo,
+        });
+        await user.click(screen.getByRole("button", { name: /q3: case \/ scenario/i }));
+        expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" });
+
+        const addToRound = screen.getByRole("button", { name: /add this to my next round/i });
+        await user.click(addToRound);
+
+        expect(screen.getByRole("button", { name: /added/i })).toHaveAttribute("aria-pressed", "true");
+        expect(screen.queryByRole("link", { name: /skip to recommendation/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /not now/i })).not.toBeInTheDocument();
+    });
+
+    it("confirms clear-all while single item removal stays immediate in Next practice round", async () => {
+        const user = userEvent.setup();
+        const onRemoveQuestion = vi.fn();
+        const onClearAll = vi.fn();
+
+        render(
+            <NextPracticeRoundSurface
+                questions={[{
+                    id: "behavioral:question-1",
+                    questionNumber: 1,
+                    categoryLabel: "Behavioral",
+                    status: "answered",
+                    state: "clear",
+                    questionText: "Tell me about a client issue you resolved.",
+                }]}
+                onRemoveQuestion={onRemoveQuestion}
+                onClearAll={onClearAll}
+                onClose={() => undefined}
+                anchorRect={{ top: 96, left: 24, width: 552, height: 72 }}
+            />,
+        );
+
+        const surface = screen.getByRole("dialog", { name: /^next practice round$/i });
+        expect(surface).toHaveStyle({ top: "96px", left: "24px", width: "552px" });
+        expect(surface).toHaveClass("transition-[height,box-shadow,transform,width]");
+        const surfaceTitle = screen.getByTestId("next-practice-round-surface-title");
+        expect(surfaceTitle).toHaveClass("absolute");
+        expect(surfaceTitle).toHaveClass("inset-x-0");
+        expect(surfaceTitle).toHaveClass("min-h-11");
+        expect(surfaceTitle).toHaveClass("text-sm");
+        expect(surfaceTitle).toHaveClass("justify-center");
+        expect(surfaceTitle).toHaveClass("text-[rgb(var(--candidate-foreground)/0.72)]");
+        expect(surfaceTitle).toHaveTextContent("Next practice round");
+        expect(surfaceTitle).toHaveTextContent("1");
+
+        const remove = screen.getByRole("button", { name: /remove q1 from next practice round/i });
+        expect(remove).toHaveClass("text-red-600");
+        await user.click(remove);
+        expect(onRemoveQuestion).toHaveBeenCalledWith("behavioral:question-1");
+
+        const clearAll = screen.getByRole("button", { name: /clear all/i });
+        expect(clearAll).toHaveClass("border-transparent");
+        expect(clearAll).toHaveClass("justify-end");
+        await user.click(clearAll);
+        expect(onClearAll).not.toHaveBeenCalled();
+        expect(screen.getByRole("dialog", { name: /clear next practice round/i })).toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: /clear queued questions/i }));
+        expect(onClearAll).toHaveBeenCalledTimes(1);
     });
 
     it("adds planned-only baseline categories to the visual preparedness model", () => {

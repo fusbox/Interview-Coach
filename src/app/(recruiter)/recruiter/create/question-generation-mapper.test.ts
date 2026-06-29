@@ -9,8 +9,10 @@ describe("mapGeneratedQuestionSetToQuestionInputs", () => {
                 "Conflict/Resolution": "Tell me about a time you calmed down an upset client.",
                 "Adaptability": "Tell me about a time priorities changed quickly.",
                 "Initiative/Growth": "Tell me about a time you improved a client support process.",
-                "Role-Specific Scenario": "A client needs help while another task is urgent. What do you do first?",
-                "Role-Specific Scenario 2": "Imagine a Client Service Coordinator has two urgent client requests at once. What do you do first?",
+            },
+            caseScenario: {
+                "Case / Scenario 1": "A client needs help while another task is urgent. What do you do first?",
+                "Case / Scenario 2": "Imagine a Client Service Coordinator has two urgent client requests at once. What do you do first?",
             },
             culture: {
                 "Positive Emotion": "What helps you stay positive during client-facing work?",
@@ -25,11 +27,11 @@ describe("mapGeneratedQuestionSetToQuestionInputs", () => {
 
         expect(result.star.filter((question) => question.category === "Case / Scenario")).toEqual([
             expect.objectContaining({
-                label: "Role-Specific Scenario",
+                label: "Case / Scenario 1",
                 text: "A client needs help while another task is urgent. What do you do first?",
             }),
             expect.objectContaining({
-                label: "Role-Specific Scenario 2",
+                label: "Case / Scenario 2",
                 text: "Imagine a Client Service Coordinator has two urgent client requests at once. What do you do first?",
             }),
         ]);
@@ -45,5 +47,25 @@ describe("mapGeneratedQuestionSetToQuestionInputs", () => {
         ]));
         expect(result.perma).toHaveLength(1);
         expect(result.technical).toHaveLength(1);
+    });
+
+    it("keeps legacy behavioral case-scenario labels as a fallback", () => {
+        const result = mapGeneratedQuestionSetToQuestionInputs({
+            behavioral: {
+                "Behavioral 1": "Tell me about a time you helped a client.",
+                "Role-Specific Scenario": "A client needs help while another task is urgent. What do you do first?",
+            },
+        });
+
+        expect(result.star).toEqual([
+            expect.objectContaining({
+                category: "Behavioral",
+                label: "Behavioral 1",
+            }),
+            expect.objectContaining({
+                category: "Case / Scenario",
+                label: "Role-Specific Scenario",
+            }),
+        ]);
     });
 });

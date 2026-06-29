@@ -2,6 +2,7 @@ import type { QuestionInput } from "./constants";
 
 type GeneratedQuestionSet = {
     behavioral?: Record<string, unknown>;
+    caseScenario?: Record<string, unknown>;
     culture?: Record<string, unknown>;
     screening?: Record<string, unknown>;
     technical?: Array<{ text?: unknown }>;
@@ -29,6 +30,14 @@ export function mapGeneratedQuestionSetToQuestionInputs(data: GeneratedQuestionS
             label,
         }))
         : [];
+    const caseScenarioQuestions = data.caseScenario
+        ? Object.entries(data.caseScenario).map(([label, text], index) => ({
+            id: `case-scenario-${index + 1}`,
+            text: typeof text === "string" ? text : "",
+            category: "Case / Scenario",
+            label,
+        }))
+        : [];
 
     const perma = data.culture
         ? Object.entries(data.culture).map(([label, text], index) => ({
@@ -49,7 +58,7 @@ export function mapGeneratedQuestionSetToQuestionInputs(data: GeneratedQuestionS
         : [];
 
     return {
-        star: [...screeningQuestions, ...behavioralQuestions],
+        star: [...screeningQuestions, ...behavioralQuestions, ...caseScenarioQuestions],
         perma,
         technical,
     };

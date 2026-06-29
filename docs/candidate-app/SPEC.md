@@ -185,12 +185,12 @@ When new answer feedback is created, the dashboard should show a Coach Update en
 
 The Coach Update opens a sparse guided debrief sequence, not a trapping wizard. Each step should be skimmable and offer escape routes:
 
-- close or not now;
-- skip to recommended practice;
+- close or click away;
+- use the question-level practice actions;
 - open the relevant Coach Plan face;
 - open detail only on demand.
 
-The first debrief read should lead with coach priority rather than an analytic axis. For example, it should explain the most important change in plain language, then support that read with chips such as **Structure** improved, **Case / Scenario** still unpracticed, or **Next:** client-impact question.
+The first debrief read should lead with the latest practiced questions rather than an analytic axis. The opened Coach Update should use the same question-feedback surface as Question Set: full question, candidate answer/transcript, coach callout, and one focused way to strengthen or keep using the answer pattern. The Coach Update card itself should stay sparse and should not preview tactical guidance before the candidate opens it. The card is itself the action target; it should not carry a separate `Review update` button. When multiple questions are present, question chips belong in the opened surface header so they stay visible as floating navigation while the candidate reviews feedback. Choosing a different question should reset the feedback content scroll to the top.
 
 The guided sequence should end with Practice Next.
 
@@ -206,6 +206,21 @@ The coach may recommend one primary task or a pair of primary tasks. If a practi
 When order matters, the coach should recommend an order and explain why. When there is no clear dependency, both primary tasks may be presented as useful next options.
 
 Alternatives should be secondary. They should mainly let candidates keep momentum by browsing unanswered questions. After all baseline questions have at least one answer, alternatives may shift toward polishing clear areas to strong or improving specific dimensions.
+
+Question-level feedback surfaces may expose two practice actions before full queue persistence lands:
+
+- **Practice this now** as the immediate one-question practice affordance;
+- **Add this to my next round** / **Added** as the candidate-visible queue affordance.
+
+The first implementation may keep the add/added state local to the current dashboard surface. Durable queue persistence, the expanded next-round surface, and actual one-question session launch behavior should be implemented as follow-on slices.
+
+When the local queue state exists in a dashboard visit, shared question-feedback surfaces should reflect it consistently. If a candidate adds a question from Coach Update, the same question opened from Question Set should show **Added** during that visit.
+
+The first `Next practice round` surface is dashboard-local. When the queue has at least one question, opening the surface shows the queued questions with Q number, question text, category, and current prep-state chip. Removing the last queued question closes the surface and returns the source question feedback action to **Add this to my next round**. Until the session-launch contract lands, the surface may keep `Start practice` as a provisional route to `/practice`.
+
+The dashboard header should be persistent while the candidate scrolls, using sticky or fixed positioning as needed by the shell. It should keep the `Next practice round` action available in the viewport. The header fade should be soft, with no hard bottom border or backdrop-filter boundary. Opening should visually connect the button to the expanded surface: the surface should use the same radius, open from the measured button position, slide downward as it expands, and leave the button label and count badge in the same size, font, and center alignment as the button. The page title should use a lighter value of the primary neutral, and the opened next-round label should be lighter still so it reads as a carried-over control label rather than a competing page title. The opened surface should use a single full-width centered title row rather than a separate inline label, so the title cannot drift from the trigger's positioning model. The reference package in `docs/candidate-app/morphing-button-to-modal` shows the intended reserved-footprint/morph pattern; implementation may land in stages as long as the persistent header and same-radius opening direction remain intact.
+
+Per-question removal is immediate and uses a red clear affordance. `Clear all` is a borderless, red ghost-style secondary action placed to the right of `Cancel`; it requires confirmation before removing every queued question. `Cancel` should occupy the remaining span, with clear spacing between it and `Clear all`.
 
 ## Interview Preparedness Product Rules
 

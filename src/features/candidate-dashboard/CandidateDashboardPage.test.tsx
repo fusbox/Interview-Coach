@@ -167,7 +167,14 @@ describe("CandidateDashboardPage", () => {
         expect(screen.queryByRole("region", { name: /resume-to-role bridge/i })).not.toBeInTheDocument();
         expect(screen.queryByRole("region", { name: /recommended practice path/i })).not.toBeInTheDocument();
 
-        expect(screen.getByRole("heading", { name: "Practice Coach", level: 1 })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Interview Coach", level: 1 })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Interview Coach", level: 1 })).toHaveClass("text-[rgb(var(--candidate-foreground)/0.84)]");
+        const header = screen.getByRole("banner", { name: /dashboard header/i });
+        expect(header).toHaveClass("fixed");
+        expect(header).not.toHaveClass("border-b");
+        expect(header).not.toHaveClass("backdrop-blur-xl");
+        expect(header).toHaveClass("bg-gradient-to-b");
+        expect(screen.getByRole("button", { name: /next practice round/i })).toHaveClass("w-full");
         expect(screen.queryByRole("heading", { name: "QA Analyst", level: 2 })).not.toBeInTheDocument();
         expect(screen.queryByText("Target interview")).not.toBeInTheDocument();
         expect(screen.getByRole("navigation", { name: /target interviews/i })).toHaveTextContent("QA Analyst");
@@ -361,7 +368,7 @@ describe("CandidateDashboardPage", () => {
         expect(coachPlan).toHaveTextContent("This plan covers the question range your coach expects for this interview.");
     });
 
-    it("opens a sparse Coach Update debrief from latest feedback", async () => {
+    it("opens question-by-question Coach Update feedback from latest practice", async () => {
         const user = userEvent.setup();
 
         render(<CandidateDashboardPage dashboard={{
@@ -380,6 +387,36 @@ describe("CandidateDashboardPage", () => {
                         state: "clear",
                     },
                     signals: [],
+                    categoryCards: [
+                        {
+                            categoryId: "behavioral",
+                            label: "Behavioral",
+                            questionCount: 1,
+                            practicedQuestionCount: 1,
+                            upcomingQuestionCount: 0,
+                            evidenceState: "clear",
+                            averageScore: 3.2,
+                            questionStatuses: [
+                                { questionId: "question-1", questionNumber: 1, status: "practiced" },
+                            ],
+                            sourceRefs: [
+                                {
+                                    type: "answer",
+                                    id: "question-1",
+                                    label: "Behavioral",
+                                    questionText: "Tell me about a client issue you resolved.",
+                                    answerTranscript: "I helped the client understand the next step and reduced repeat follow-up.",
+                                    answerModality: "voice",
+                                    answerSubmittedAt: Date.parse("2026-06-26T15:30:00.000Z"),
+                                    sessionId: "session-2",
+                                    sessionTitle: "Client Services Executive - WWT",
+                                    sessionSortAt: Date.parse("2026-06-26T15:30:00.000Z"),
+                                    excerpt: "I helped the client understand the next step.",
+                                    evaluation: "Behavioral feedback: You gave a relevant client example. For the biggest lift: Make the client impact visible. Try: I reduced repeat follow-up while we resolved the billing issue. Next step: Keep the story tied to what changed for the client.",
+                                },
+                            ],
+                        },
+                    ],
                     signalCounts: {
                         not_practiced: 0,
                         emerging: 1,
@@ -402,18 +439,47 @@ describe("CandidateDashboardPage", () => {
             },
         }} />);
 
-        const coachUpdate = screen.getByRole("region", { name: /coach update/i });
+        const coachUpdate = screen.getByRole("button", { name: /open coach update/i });
         expect(coachUpdate).toHaveTextContent("I have a new read from your latest practice.");
-        expect(coachUpdate).toHaveTextContent("Make the client impact visible");
+        expect(coachUpdate).toHaveTextContent("I reviewed your latest practice.");
+        expect(coachUpdate).not.toHaveTextContent("Make the client impact visible");
 
-        await user.click(screen.getByRole("button", { name: /open coach update/i }));
+        await user.click(coachUpdate);
 
         const dialog = screen.getByRole("dialog", { name: /coach update/i });
         expect(dialog).toHaveTextContent("Here is the quick debrief.");
-        expect(dialog).toHaveTextContent("For the biggest lift");
+        expect(dialog).not.toHaveTextContent("Quick markers");
+        expect(dialog).toHaveTextContent("Question");
+        expect(dialog).toHaveTextContent("Tell me about a client issue you resolved.");
+        expect(dialog).toHaveTextContent("Your answer");
+        expect(dialog).toHaveTextContent("I helped the client understand the next step and reduced repeat follow-up.");
+        expect(dialog).toHaveTextContent("Coach callout");
+        expect(dialog).toHaveTextContent("How to strengthen it");
         expect(dialog).toHaveTextContent("Make the client impact visible");
-        expect(screen.getByRole("link", { name: /skip to recommendation/i })).toHaveAttribute("href", "#practice-next");
-        expect(screen.getByRole("button", { name: /not now/i })).toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: /add this to my next round/i }));
+        expect(screen.getByRole("button", { name: /added/i })).toHaveAttribute("aria-pressed", "true");
+        expect(screen.queryByRole("link", { name: /skip to recommendation/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /not now/i })).not.toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: /close/i }));
+        await user.click(screen.getByRole("button", { name: /open q1 question detail/i }));
+
+        const questionDialog = screen.getByRole("dialog", { name: /q1 question detail/i });
+        expect(questionDialog).toHaveTextContent("Tell me about a client issue you resolved.");
+        expect(screen.getByRole("button", { name: /added/i })).toHaveAttribute("aria-pressed", "true");
+
+        await user.click(screen.getByRole("button", { name: /close/i }));
+        await user.click(screen.getByRole("button", { name: /next practice round/i }));
+
+        const nextRound = screen.getByRole("dialog", { name: /next practice round/i });
+        expect(nextRound).toHaveTextContent("Tell me about a client issue you resolved.");
+        expect(nextRound).toHaveTextContent("Behavioral");
+
+        await user.click(screen.getByRole("button", { name: /remove q1 from next practice round/i }));
+
+        expect(screen.queryByRole("dialog", { name: /next practice round/i })).not.toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: /open q1 question detail/i }));
+        expect(screen.getByRole("button", { name: /add this to my next round/i })).toHaveAttribute("aria-pressed", "false");
     });
 
     it("opens a teaching-first Coach Plan category sheet from the category face", async () => {
@@ -749,9 +815,10 @@ describe("CandidateDashboardPage", () => {
     it("extends its background surface to the candidate content frame edges", () => {
         const { container } = render(<CandidateDashboardPage dashboard={baseModel} />);
 
-        expect(container.firstElementChild).toHaveClass("-mx-4");
+        expect(container.firstElementChild).toHaveClass("w-screen");
+        expect(container.firstElementChild).toHaveClass("-ml-[50vw]");
+        expect(container.firstElementChild).toHaveClass("-mr-[50vw]");
         expect(container.firstElementChild).toHaveClass("-mt-4");
-        expect(container.firstElementChild).toHaveClass("lg:-mx-10");
         expect(container.firstElementChild).toHaveClass("lg:-mt-10");
     });
 

@@ -42,7 +42,9 @@ flowchart TD
 For this release, the dashboard should not derive preparedness from qualitative
 `contentPulse`, `deliveryPulse`, or `feedbackPlan.primaryAnchor` inference.
 Those fields can explain evidence in modals, but visible lane state and fill
-come from the hidden numeric scores on completed-session feedback.
+come from the hidden numeric scores on completed-session feedback. Scores only
+contribute to release lane/category averages when their dimension applicability
+is `observed` or legacy-unspecified with a valid numeric score.
 
 ### Performance Lanes
 
@@ -139,6 +141,11 @@ flowchart LR
 
 Fill is a visual cue only. Do not show percentages or numeric readiness in
 normal candidate UI.
+
+Non-observed dimension entries (`not_elicited`, `insufficient_data`, or
+`unscoreable`) are excluded from the average and should not be treated as weak
+performance. They are internal evaluator facts until a later UX slice decides
+how to explain them safely.
 
 ## Current Known Gaps
 

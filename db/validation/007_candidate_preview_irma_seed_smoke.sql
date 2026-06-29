@@ -35,8 +35,8 @@ begin
   where candidate_profile_id = v_profile_id
     and source = 'dev_seed';
 
-  if v_count <> 2 then
-    raise exception 'expected 2 Irma preview role profiles, found %', v_count;
+  if v_count <> 3 then
+    raise exception 'expected 3 Irma preview role profiles, found %', v_count;
   end if;
 
   select count(*)
@@ -45,7 +45,7 @@ begin
   where candidate_profile_id = v_profile_id
     and status in ('in_session', 'completed');
 
-  if v_count <> 2 then
+  if v_count <> 3 then
     raise exception 'expected Irma active and completed preview drafts, found %', v_count;
   end if;
 
@@ -56,7 +56,7 @@ begin
   where d.candidate_profile_id = v_profile_id
     and s.intake_json ? 'questionPlanSnapshot';
 
-  if v_count <> 2 then
+  if v_count <> 3 then
     raise exception 'expected Irma sessions with question plan snapshots, found %', v_count;
   end if;
 
@@ -67,7 +67,7 @@ begin
   where d.candidate_profile_id = v_profile_id
     and s.intake_json ? 'rigorBaselineSnapshot';
 
-  if v_count <> 2 then
+  if v_count <> 3 then
     raise exception 'expected Irma sessions with rigor baseline snapshots, found %', v_count;
   end if;
 
@@ -80,8 +80,49 @@ begin
     and d.status = 'completed'
     and er.feedback_json ? 'coachSignal';
 
+  if v_count <> 6 then
+    raise exception 'expected 6 Irma completed answers with coach signals, found %', v_count;
+  end if;
+
+  select count(*)
+  into v_count
+  from public.candidate_practice_drafts d
+  join public.sessions s on s.session_id = d.session_id
+  join public.questions q on q.session_id = s.session_id
+  where d.candidate_profile_id = v_profile_id
+    and d.target_role = 'Client Services Representative'
+    and d.status = 'completed'
+    and s.status = 'COMPLETED'
+    and s.intake_json #>> '{questionPlanSnapshot,interviewStage}' = 'initial_interview'
+    and s.intake_json #>> '{questionPlanSnapshot,questionCount}' = '3'
+    and s.intake_json #>> '{rigorBaselineSnapshot,questionCount}' = '7';
+
+  if v_count <> 7 then
+    raise exception 'expected Representative first-interview baseline questions, found %', v_count;
+  end if;
+
+  select count(*)
+  into v_count
+  from public.candidate_practice_drafts d
+  join public.answers a on a.session_id = d.session_id
+  where d.candidate_profile_id = v_profile_id
+    and d.target_role = 'Client Services Representative'
+    and a.modality = 'voice';
+
   if v_count <> 3 then
-    raise exception 'expected 3 Irma completed answers with coach signals, found %', v_count;
+    raise exception 'expected 3 Representative voice answers, found %', v_count;
+  end if;
+
+  select count(*)
+  into v_count
+  from public.candidate_practice_drafts d
+  join public.eval_results er on er.session_id = d.session_id
+  where d.candidate_profile_id = v_profile_id
+    and d.target_role = 'Client Services Representative'
+    and er.model_metadata @> '{"expectedQuestionRead":"emerging"}'::jsonb;
+
+  if v_count <> 1 then
+    raise exception 'expected Representative emerging practiced answer, found %', v_count;
   end if;
 end $$;
 

@@ -618,8 +618,21 @@ function collectScores(analysis: AnalysisResult | undefined, dimensions: Dimensi
     }
 
     return dimensions
-        .map((dimension) => analysis.scores?.[dimension]?.score)
+        .map((dimension) => getObservedDimensionScore(analysis, dimension))
         .filter((score): score is number => typeof score === "number" && Number.isFinite(score));
+}
+
+function getObservedDimensionScore(analysis: AnalysisResult | undefined, dimension: Dimension): number | null {
+    const score = analysis?.scores?.[dimension];
+    if (!score) {
+        return null;
+    }
+
+    if (score.applicability && score.applicability !== "observed") {
+        return null;
+    }
+
+    return typeof score.score === "number" && Number.isFinite(score.score) ? score.score : null;
 }
 
 function average(scores: number[]): number | null {
@@ -672,7 +685,9 @@ function buildScoreLaneRefs(
         }
 
         const scoredDimensions = dimensions
-            .map((dimension) => analysis.scores?.[dimension] ? `${titleCaseDimension(dimension)}: ${analysis.scores[dimension].label}` : null)
+            .map((dimension) => getObservedDimensionScore(analysis, dimension) !== null && analysis.scores?.[dimension]
+                ? `${titleCaseDimension(dimension)}: ${analysis.scores[dimension].label}`
+                : null)
             .filter((value): value is string => Boolean(value));
 
         return buildQuestionAnswerRefs({
@@ -698,7 +713,7 @@ function buildQuestionAnswerRefs({
     label: string;
     evaluation?: string;
 }): PrepEvidenceRef[] {
-    if (!answer?.analysis) {
+    if (!answer) {
         return [];
     }
 

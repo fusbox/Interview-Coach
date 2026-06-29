@@ -26,6 +26,7 @@ const GeneratedQuestionObjectSchema = z.record(z.string().min(1), z.string().min
 
 export const GeneratedInterviewQuestionsSchema = z.object({
     behavioral: GeneratedQuestionObjectSchema.default({}),
+    caseScenario: GeneratedQuestionObjectSchema.default({}),
     culture: GeneratedQuestionObjectSchema.default({}),
     technical: z.array(
         z.object({
@@ -35,6 +36,7 @@ export const GeneratedInterviewQuestionsSchema = z.object({
     screening: GeneratedQuestionObjectSchema.default({}),
 }).superRefine((value, ctx) => {
     const questionCount = Object.keys(value.behavioral).length
+        + Object.keys(value.caseScenario).length
         + Object.keys(value.culture).length
         + value.technical.length
         + Object.keys(value.screening).length;
@@ -69,9 +71,25 @@ export const QuestionSchema = z.object({
 
 export const DimensionSchema = z.enum(FEEDBACK_DIMENSIONS);
 
+export const DimensionScoreApplicabilitySchema = z.enum([
+    'observed',
+    'not_elicited',
+    'insufficient_data',
+    'unscoreable',
+]);
+
 export const DimensionScoreSchema = z.object({
-    score: z.number().min(1).max(5),
+    applicability: DimensionScoreApplicabilitySchema.optional(),
+    score: z.number().min(1).max(5).optional(),
     label: z.string()
+}).superRefine((value, ctx) => {
+    if ((value.applicability === undefined || value.applicability === 'observed') && value.score === undefined) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Observed dimension scores require a numeric score",
+            path: ["score"],
+        });
+    }
 });
 
 export const TaggedObservationSchema = z.object({

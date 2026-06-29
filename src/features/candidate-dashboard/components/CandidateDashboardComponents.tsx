@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState, type CSSProperties, type FocusEvent, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
-import { ArrowRight, Briefcase, CheckCircle2, ChevronDown, ChevronRight, Circle, FileText, MessageSquare, Mic, Sparkles, X } from "lucide-react";
+import { useLayoutEffect, useRef, useState, type CSSProperties, type FocusEvent, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
+import { ArrowRight, Briefcase, CheckCircle2, ChevronDown, ChevronRight, Circle, FileText, MessageSquare, Mic, Sparkles, Trash2, X } from "lucide-react";
 import { Cell, Pie, PieChart } from "recharts";
 
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,13 @@ import type { CandidateDashboardItem, CandidateDashboardTargetInterview } from "
 import type { PrepEvidenceRef, PrepQuestionCategoryCard, PrepSignal, PrepSignalLane, ReleasePrepSignalLane } from "@/lib/server/candidate/prep-profile-read-model";
 
 export type PreparednessState = "not_practiced" | "emerging" | "clear" | "strong";
+
+export type NextPracticeRoundAnchorRect = {
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+};
 
 export type PreparednessSkill = {
     id: string;
@@ -128,6 +135,27 @@ export type CoachUpdateModel = {
         label: string;
         kind: "improved" | "watch" | "new_coverage" | "next";
     }>;
+};
+
+export type QuestionFeedbackItem = {
+    id: string;
+    questionNumber: number;
+    categoryLabel: string;
+    status: "answered" | "unanswered";
+    state: PreparednessState;
+    questionText?: string;
+    answerTranscript?: string;
+    answerModality?: PreparednessEvidence["answerModality"];
+    answerSubmittedAt?: number;
+    sessionId?: string;
+    sessionTitle?: string;
+    sessionSortAt?: number;
+    evaluation?: string;
+};
+
+type QuestionFeedbackQueueProps = {
+    queuedQuestionIds?: string[];
+    onAddQuestionToNextRound?: (question: QuestionFeedbackItem) => void;
 };
 
 export type CoachPlanOverviewModel = {
@@ -283,7 +311,19 @@ export function CoachUpdateCard({
     onOpen: () => void;
 }) {
     return (
-        <section aria-label="Coach Update" className="rounded-[1.75rem] border border-primary/20 bg-[rgb(var(--candidate-primary-soft)/0.72)] p-4 shadow-flat sm:p-5">
+        <section
+            role="button"
+            tabIndex={0}
+            aria-label="Open Coach Update"
+            onClick={onOpen}
+            onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onOpen();
+                }
+            }}
+            className="cursor-pointer rounded-[1.75rem] border border-primary/20 bg-[rgb(var(--candidate-primary-soft)/0.72)] p-4 shadow-flat transition-all duration-base ease-standard hover:-translate-y-0.5 hover:border-primary/35 hover:bg-[rgb(var(--candidate-primary-soft)/0.88)] hover:shadow-raised-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 sm:p-5"
+        >
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                     <div className="flex items-center gap-3">
@@ -295,41 +335,250 @@ export function CoachUpdateCard({
                             <h2 className="mt-1 text-xl font-bold leading-tight text-text-primary">{update.headline}</h2>
                         </div>
                     </div>
-                    <p className="mt-3 line-clamp-2 text-sm font-semibold leading-6 text-text-secondary">{update.priorityRead}</p>
-                    {update.chips.length > 0 ? (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                            {update.chips.slice(0, 3).map((chip) => (
-                                <span
-                                    key={`${chip.kind}:${chip.label}`}
-                                    className="rounded-full bg-white/80 px-3 py-1 text-xs font-bold text-text-secondary"
-                                >
-                                    {chip.label}
-                                </span>
-                            ))}
-                        </div>
-                    ) : null}
+                    <p className="mt-3 line-clamp-2 text-sm font-semibold leading-6 text-text-secondary">
+                        I reviewed your latest practice. Open this for question-by-question feedback and the next step I recommend.
+                    </p>
                 </div>
-                <button
-                    type="button"
-                    onClick={onOpen}
-                    className="inline-flex shrink-0 items-center justify-center rounded-2xl bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-flat transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45"
-                    aria-label="Open Coach Update"
-                >
-                    Review update
-                    <ArrowRight size={16} className="ml-2" aria-hidden="true" />
-                </button>
+                <ArrowRight size={18} className="hidden shrink-0 text-primary sm:block" aria-hidden="true" />
             </div>
         </section>
     );
 }
 
+export function NextPracticeRoundButton({
+    queuedCount,
+    onOpen,
+}: {
+    queuedCount: number;
+    onOpen: () => void;
+}) {
+    const hasQueuedItems = queuedCount > 0;
+
+    return (
+        <button
+            type="button"
+            onClick={onOpen}
+            className={cn(
+                "relative inline-flex min-h-11 w-full items-center justify-center rounded-2xl border px-4 text-sm font-bold shadow-[0_18px_44px_rgb(15_23_42/0.14)] backdrop-blur-xl transition-all duration-300 ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                hasQueuedItems
+                    ? "border-primary/30 bg-primary text-white hover:bg-primary/90"
+                    : "border-[rgb(var(--candidate-border)/0.78)] bg-white/82 text-text-secondary hover:bg-white hover:text-text-primary",
+            )}
+            aria-label={hasQueuedItems ? `Next practice round, ${queuedCount} queued` : "Next practice round"}
+        >
+            Next practice round
+            {hasQueuedItems ? (
+                <span className="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-xs">{queuedCount}</span>
+            ) : null}
+        </button>
+    );
+}
+
+export function NextPracticeRoundSurface({
+    questions,
+    onRemoveQuestion,
+    onClearAll,
+    onClose,
+    anchorRect,
+}: {
+    questions: QuestionFeedbackItem[];
+    onRemoveQuestion: (questionId: string) => void;
+    onClearAll: () => void;
+    onClose: () => void;
+    anchorRect?: NextPracticeRoundAnchorRect | null;
+}) {
+    const [isClearAllConfirmOpen, setIsClearAllConfirmOpen] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
+    const hasAnchor = Boolean(anchorRect);
+
+    useLayoutEffect(() => {
+        const frame = window.requestAnimationFrame(() => setIsExpanded(true));
+        return () => window.cancelAnimationFrame(frame);
+    }, []);
+
+    const anchoredSurfaceStyle: CSSProperties | undefined = anchorRect ? {
+        top: anchorRect.top,
+        left: anchorRect.left,
+        width: isExpanded ? Math.min(640, Math.max(anchorRect.width, 320)) : anchorRect.width,
+        minHeight: isExpanded ? undefined : anchorRect.height,
+        transform: isExpanded ? "translateY(0)" : "translateY(0) scale(0.98)",
+    } : undefined;
+
+    return (
+        <div
+            data-testid="next-practice-round-backdrop"
+            className={cn(
+                "fixed inset-0 z-50 bg-slate-950/45 backdrop-blur-sm",
+                hasAnchor ? "" : "flex items-start justify-end p-4 pt-20 sm:p-6 sm:pt-24 md:pt-28",
+            )}
+            onPointerDown={(event) => {
+                if (event.target === event.currentTarget) {
+                    onClose();
+                }
+            }}
+        >
+            <section
+                role="dialog"
+                aria-modal="true"
+                aria-label="Next practice round"
+                style={anchoredSurfaceStyle}
+                className={cn(
+                    "relative flex max-h-[calc(100dvh-6rem)] w-full origin-top flex-col overflow-hidden rounded-[1.75rem] border border-[rgb(var(--candidate-border)/0.92)] bg-white shadow-[var(--candidate-shadow-panel)] transition-[height,box-shadow,transform,width] duration-[460ms] ease-[cubic-bezier(0.32,0.72,0,1)]",
+                    hasAnchor
+                        ? "fixed max-w-[calc(100vw-2rem)]"
+                        : "origin-top-right animate-in md:w-[40rem] md:max-w-[calc(100vw-2rem)]",
+                )}
+            >
+                <div className="sticky top-0 z-10 border-b border-[rgb(var(--candidate-border)/0.7)] bg-white">
+                    <div className="relative min-h-11">
+                        <div
+                            data-testid="next-practice-round-surface-title"
+                            className="pointer-events-none absolute inset-x-0 top-0 z-10 flex min-h-11 items-center justify-center rounded-2xl px-4 text-sm font-bold text-[rgb(var(--candidate-foreground)/0.72)]"
+                        >
+                            Next practice round
+                            <span className="ml-2 rounded-full bg-surface-base px-2 py-0.5 text-xs text-text-secondary">
+                                {questions.length}
+                            </span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="absolute right-5 top-0 z-20 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-text-muted transition-colors hover:bg-surface-subtle hover:text-text-primary md:right-6"
+                            aria-label="Close"
+                        >
+                            <X size={20} aria-hidden="true" />
+                        </button>
+                    </div>
+                    <div className="min-w-0 px-5 pb-5 pt-5 md:px-6 md:pb-6">
+                        <h2 className="text-2xl font-bold leading-tight text-text-primary">Ready when you are</h2>
+                        <p className="mt-2 text-sm leading-6 text-text-secondary">
+                            Review what you added before starting another focused round.
+                        </p>
+                    </div>
+                </div>
+                <div className="custom-scrollbar flex-1 space-y-3 overflow-y-auto p-5 md:p-6">
+                    {questions.map((question) => {
+                        const styles = getPreparednessStateStyles(question.state);
+                        return (
+                            <article
+                                key={question.id}
+                                className="rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-surface-base p-4"
+                            >
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-text-secondary shadow-[0_1px_0_rgb(var(--candidate-border)/0.72)]">
+                                                Q{question.questionNumber}
+                                            </span>
+                                            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+                                                {question.categoryLabel}
+                                            </span>
+                                            <span className={cn("rounded-full px-3 py-1 text-xs font-bold", styles.badge)}>
+                                                {formatPreparednessState(question.state)}
+                                            </span>
+                                        </div>
+                                        <p className="mt-3 text-sm font-bold leading-6 text-text-primary">{question.questionText}</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => onRemoveQuestion(question.id)}
+                                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
+                                        aria-label={`Remove Q${question.questionNumber} from next practice round`}
+                                    >
+                                        <X size={17} aria-hidden="true" />
+                                    </button>
+                                </div>
+                            </article>
+                        );
+                    })}
+                </div>
+                <div className="border-t border-[rgb(var(--candidate-border)/0.7)] bg-white p-5 md:p-6">
+                    <div className="grid gap-2 sm:grid-cols-2">
+                        <Button asChild emphasis="primary" density="comfortable" shape="app" label="strong">
+                            <Link href="/practice">
+                                Start practice
+                                <ArrowRight size={17} className="ml-2" aria-hidden="true" />
+                            </Link>
+                        </Button>
+                        <div className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="inline-flex min-h-11 flex-1 items-center justify-center rounded-2xl border border-[rgb(var(--candidate-border)/0.78)] bg-white px-4 text-sm font-bold text-text-secondary transition-colors hover:bg-surface-base hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setIsClearAllConfirmOpen(true)}
+                                className="inline-flex min-h-11 shrink-0 items-center justify-end rounded-2xl border border-transparent bg-transparent px-3 text-sm font-bold text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
+                            >
+                                Clear all
+                                <Trash2 size={16} className="ml-2" aria-hidden="true" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {isClearAllConfirmOpen ? (
+                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/78 p-5 backdrop-blur-sm">
+                        <section
+                            role="dialog"
+                            aria-modal="true"
+                            aria-label="Clear next practice round"
+                            className="w-full max-w-sm rounded-[1.5rem] border border-red-100 bg-white p-5 shadow-[var(--candidate-shadow-panel)]"
+                        >
+                            <h3 className="text-lg font-bold text-text-primary">Clear next practice round?</h3>
+                            <p className="mt-2 text-sm leading-6 text-text-secondary">
+                                This removes every queued question from this round. You can add them again from the coach plan.
+                            </p>
+                            <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsClearAllConfirmOpen(false)}
+                                    className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-[rgb(var(--candidate-border)/0.78)] bg-white px-4 text-sm font-bold text-text-secondary transition-colors hover:bg-surface-base hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                                >
+                                    Keep queued items
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsClearAllConfirmOpen(false);
+                                        onClearAll();
+                                    }}
+                                    className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-red-600 px-4 text-sm font-bold text-white transition-colors hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
+                                >
+                                    Clear queued questions
+                                </button>
+                            </div>
+                        </section>
+                    </div>
+                ) : null}
+            </section>
+        </div>
+    );
+}
+
 export function CoachUpdateDialog({
     update,
+    questions = [],
+    queuedQuestionIds,
+    onAddQuestionToNextRound,
     onClose,
 }: {
     update: CoachUpdateModel;
+    questions?: QuestionFeedbackItem[];
+    queuedQuestionIds?: string[];
+    onAddQuestionToNextRound?: (question: QuestionFeedbackItem) => void;
     onClose: () => void;
 }) {
+    const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(questions[0]?.id ?? null);
+    const contentRef = useRef<HTMLDivElement | null>(null);
+    const selectedQuestion = questions.find((question) => question.id === selectedQuestionId) ?? questions[0] ?? null;
+    const selectQuestion = (questionId: string) => {
+        setSelectedQuestionId(questionId);
+        contentRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
     return (
         <div
             data-testid="coach-update-backdrop"
@@ -346,7 +595,7 @@ export function CoachUpdateDialog({
                 aria-label="Coach Update"
                 className="flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-b-[1.75rem] border border-[rgb(var(--candidate-border)/0.92)] bg-white shadow-[var(--candidate-shadow-panel)] md:w-[42rem] md:max-w-[calc(100vw-2rem)] md:rounded-[1.75rem]"
             >
-                <div className="sticky top-0 z-10 border-b border-[rgb(var(--candidate-border)/0.7)] bg-white p-5 md:p-6">
+                <div data-coach-update-header className="sticky top-0 z-10 border-b border-[rgb(var(--candidate-border)/0.7)] bg-white p-5 md:p-6">
                     <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0">
                             <p className="text-xs font-black uppercase tracking-[0.18em] text-primary">Coach Update</p>
@@ -361,42 +610,39 @@ export function CoachUpdateDialog({
                             <X size={20} aria-hidden="true" />
                         </button>
                     </div>
-                </div>
-                <div className="custom-scrollbar flex-1 space-y-4 overflow-y-auto p-5 md:p-6">
-                    <section className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3">
-                        <h3 className="text-xs font-black uppercase tracking-[0.18em] text-primary">What I noticed</h3>
-                        <p className="mt-3 text-sm font-semibold leading-6 text-text-secondary">{update.priorityRead}</p>
-                    </section>
-                    {update.chips.length > 0 ? (
-                        <section className="rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-surface-base px-4 py-3">
-                            <h3 className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">Quick markers</h3>
-                            <div className="mt-3 flex flex-wrap gap-2">
-                                {update.chips.map((chip) => (
-                                    <span
-                                        key={`${chip.kind}:${chip.label}`}
-                                        className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-text-secondary shadow-[0_1px_0_rgb(var(--candidate-border)/0.72)]"
-                                    >
-                                        {chip.label}
-                                    </span>
-                                ))}
-                            </div>
-                        </section>
+                    {questions.length > 1 ? (
+                        <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                            {questions.map((question) => (
+                                <button
+                                    key={question.id}
+                                    type="button"
+                                    onClick={() => selectQuestion(question.id)}
+                                    className={cn(
+                                        "shrink-0 rounded-2xl border px-3 py-2 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                                        question.id === selectedQuestion?.id
+                                            ? "border-primary/45 bg-primary text-white"
+                                            : "border-[rgb(var(--candidate-border)/0.72)] bg-surface-base text-text-secondary hover:border-primary/30 hover:bg-white hover:text-text-primary",
+                                    )}
+                                >
+                                    Q{question.questionNumber}: {question.categoryLabel}
+                                </button>
+                            ))}
+                        </div>
                     ) : null}
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                        <Button asChild emphasis="primary" density="comfortable" shape="app" label="strong" className="sm:flex-1">
-                            <a href="#practice-next" onClick={onClose}>
-                                Skip to recommendation
-                                <ArrowRight size={17} className="ml-2" aria-hidden="true" />
-                            </a>
-                        </Button>
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-[rgb(var(--candidate-border)/0.78)] bg-white px-4 text-sm font-bold text-text-secondary transition-colors hover:bg-surface-base hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:flex-1"
-                        >
-                            Not now
-                        </button>
-                    </div>
+                </div>
+                <div ref={contentRef} data-coach-update-content className="custom-scrollbar flex-1 space-y-4 overflow-y-auto p-5 md:p-6">
+                    {selectedQuestion ? (
+                        <QuestionFeedbackPanel
+                            question={selectedQuestion}
+                            queuedQuestionIds={queuedQuestionIds}
+                            onAddQuestionToNextRound={onAddQuestionToNextRound}
+                        />
+                    ) : (
+                        <section className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3">
+                            <h3 className="text-xs font-black uppercase tracking-[0.18em] text-primary">What I noticed</h3>
+                            <p className="mt-3 text-sm font-semibold leading-6 text-text-secondary">{update.priorityRead}</p>
+                        </section>
+                    )}
                 </div>
             </section>
         </div>
@@ -806,21 +1052,15 @@ export function CoachPlanSkillSheet({
     );
 }
 
-type CoachPlanQuestionSetItem = {
-    id: string;
-    questionNumber: number;
-    categoryLabel: string;
-    status: "answered" | "unanswered";
-    state: PreparednessState;
-    questionText?: string;
-    answerTranscript?: string;
-    answerModality?: PreparednessEvidence["answerModality"];
-    evaluation?: string;
-};
-
-export function CoachPlanQuestionSetFace({ categories }: { categories: QuestionCategoryDrilldownModel[] }) {
+export function CoachPlanQuestionSetFace({
+    categories,
+    queuedQuestionIds,
+    onAddQuestionToNextRound,
+}: {
+    categories: QuestionCategoryDrilldownModel[];
+} & QuestionFeedbackQueueProps) {
     const [showUnanswered, setShowUnanswered] = useState(false);
-    const [selectedQuestion, setSelectedQuestion] = useState<CoachPlanQuestionSetItem | null>(null);
+    const [selectedQuestion, setSelectedQuestion] = useState<QuestionFeedbackItem | null>(null);
     const questions = toCoachPlanQuestionSet(categories);
     const answeredQuestions = questions.filter((question) => question.status === "answered");
     const unansweredQuestions = questions.filter((question) => question.status === "unanswered");
@@ -832,7 +1072,7 @@ export function CoachPlanQuestionSetFace({ categories }: { categories: QuestionC
 
     return (
         <>
-            <section aria-label="Coach Plan question set" className="rounded-[1.75rem] border border-[rgb(var(--candidate-border)/0.78)] bg-white p-4 shadow-flat sm:p-5">
+            <section id="coach-plan-question-set" aria-label="Coach Plan question set" className="rounded-[1.75rem] border border-[rgb(var(--candidate-border)/0.78)] bg-white p-4 shadow-flat sm:p-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
                         <p className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">Question set</p>
@@ -898,6 +1138,8 @@ export function CoachPlanQuestionSetFace({ categories }: { categories: QuestionC
             {selectedQuestion ? (
                 <CoachPlanQuestionSheet
                     question={selectedQuestion}
+                    queuedQuestionIds={queuedQuestionIds}
+                    onAddQuestionToNextRound={onAddQuestionToNextRound}
                     onClose={() => setSelectedQuestion(null)}
                 />
             ) : null}
@@ -907,11 +1149,13 @@ export function CoachPlanQuestionSetFace({ categories }: { categories: QuestionC
 
 function CoachPlanQuestionSheet({
     question,
+    queuedQuestionIds,
+    onAddQuestionToNextRound,
     onClose,
 }: {
-    question: CoachPlanQuestionSetItem;
+    question: QuestionFeedbackItem;
     onClose: () => void;
-}) {
+} & QuestionFeedbackQueueProps) {
     return (
         <div
             data-testid="coach-plan-question-sheet-backdrop"
@@ -946,19 +1190,110 @@ function CoachPlanQuestionSheet({
                         </button>
                     </div>
                 </div>
-                <div className="custom-scrollbar flex-1 space-y-4 overflow-y-auto p-5 md:p-6">
-                    <section className="rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-surface-base px-4 py-3">
-                        <h3 className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">Your answer</h3>
-                        <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-text-secondary">
-                            {question.answerTranscript || "No answer transcript captured."}
-                        </p>
-                    </section>
-                    {question.evaluation ? (
-                        <section className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3">
-                            <h3 className="text-xs font-black uppercase tracking-[0.18em] text-primary">Coach read</h3>
-                            <p className="mt-3 text-sm leading-6 text-text-secondary">{question.evaluation}</p>
-                        </section>
+                <div className="custom-scrollbar flex-1 overflow-y-auto p-5 md:p-6">
+                    <QuestionFeedbackPanel
+                        question={question}
+                        queuedQuestionIds={queuedQuestionIds}
+                        onAddQuestionToNextRound={onAddQuestionToNextRound}
+                    />
+                </div>
+            </section>
+        </div>
+    );
+}
+
+function QuestionFeedbackPanel({
+    question,
+    queuedQuestionIds,
+    onAddQuestionToNextRound,
+}: {
+    question: QuestionFeedbackItem;
+} & QuestionFeedbackQueueProps) {
+    const [isAddedToRound, setIsAddedToRound] = useState(false);
+    const hasSharedQueueState = Array.isArray(queuedQuestionIds);
+    const isQueuedInSharedState = queuedQuestionIds?.includes(question.id) ?? false;
+    const isAdded = hasSharedQueueState ? isQueuedInSharedState : isAddedToRound;
+    const read = parseMyRead(question.evaluation);
+    const strengthenCopy = [read.biggestLift, read.trySayingThis, read.nextStep].filter(Boolean).join(" ");
+    const coachCallout = read.summary || read.fallback || "I have enough from this answer to guide your next practice step.";
+
+    return (
+        <div className="space-y-4">
+            <section className="rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-white px-4 py-3">
+                <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-surface-base px-3 py-1 text-xs font-bold text-text-secondary">Question</span>
+                    <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">{question.categoryLabel}</span>
+                </div>
+                <p className="mt-3 text-base font-bold leading-7 text-text-primary">{question.questionText}</p>
+            </section>
+            <section className="rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-surface-base px-4 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">Your answer</h3>
+                    {question.answerModality ? (
+                        <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-text-secondary shadow-[0_1px_0_rgb(var(--candidate-border)/0.72)]">
+                            {titleCase(question.answerModality)} response
+                        </span>
                     ) : null}
+                </div>
+                <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-text-secondary">
+                    {question.answerTranscript || "No answer transcript captured."}
+                </p>
+            </section>
+            <section className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3">
+                <h3 className="text-xs font-black uppercase tracking-[0.18em] text-primary">Coach callout</h3>
+                <p className="mt-3 text-sm font-semibold leading-6 text-text-secondary">{coachCallout}</p>
+                {read.stoodOut.length > 0 ? (
+                    <ul className="mt-3 grid gap-2">
+                        {read.stoodOut.slice(0, 2).map((item) => (
+                            <li key={`${item.label}-${item.body}`} className="rounded-2xl bg-white/80 px-3 py-2">
+                                <p className="text-xs font-black uppercase tracking-[0.12em] text-primary">{item.label}</p>
+                                <p className="mt-1 text-sm leading-6 text-text-secondary">{item.body}</p>
+                            </li>
+                        ))}
+                    </ul>
+                ) : null}
+            </section>
+            <section className="rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-white px-4 py-3">
+                <h3 className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">How to strengthen it</h3>
+                <p className="mt-3 text-sm leading-6 text-text-secondary">
+                    {strengthenCopy || "Keep this answer connected to the question, your action, and the result the interviewer should remember."}
+                </p>
+            </section>
+            <section className="rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-surface-base px-4 py-3">
+                <h3 className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">Practice action</h3>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <button
+                        type="button"
+                        className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-primary px-4 text-sm font-bold text-white shadow-flat transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45"
+                    >
+                        Practice this now
+                        <ArrowRight size={16} className="ml-2" aria-hidden="true" />
+                    </button>
+                    <button
+                        type="button"
+                        aria-pressed={isAdded}
+                        onClick={() => {
+                            if (onAddQuestionToNextRound) {
+                                onAddQuestionToNextRound(question);
+                            }
+                            setIsAddedToRound(true);
+                        }}
+                        className={cn(
+                            "inline-flex min-h-11 items-center justify-center rounded-2xl border px-4 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                            isAdded
+                                ? "border-primary/30 bg-primary/10 text-primary"
+                                : "border-[rgb(var(--candidate-border)/0.78)] bg-white text-text-secondary hover:bg-white hover:text-text-primary",
+                        )}
+                    >
+                        {isAdded ? (
+                            <>
+                                <CheckCircle2 size={16} className="mr-2" aria-hidden="true" />
+                                Added
+                            </>
+                        ) : (
+                            "Add this to my next round"
+                        )}
+                    </button>
                 </div>
             </section>
         </div>
@@ -1615,7 +1950,7 @@ function getSkillAnswerShape(skillId: string): string[] {
     }
 }
 
-function toCoachPlanQuestionSet(categories: QuestionCategoryDrilldownModel[]): CoachPlanQuestionSetItem[] {
+export function toCoachPlanQuestionSet(categories: QuestionCategoryDrilldownModel[]): QuestionFeedbackItem[] {
     return categories
         .flatMap((category) => {
             const evidenceByQuestionId = new Map(
@@ -1648,10 +1983,36 @@ function toCoachPlanQuestionSet(categories: QuestionCategoryDrilldownModel[]): C
                     questionText: evidence?.questionText || status.questionText,
                     answerTranscript: evidence?.answerTranscript,
                     answerModality: evidence?.answerModality,
+                    answerSubmittedAt: evidence?.answerSubmittedAt,
+                    sessionId: evidence?.sessionId,
+                    sessionTitle: evidence?.sessionTitle,
+                    sessionSortAt: evidence?.sessionSortAt,
                     evaluation: evidence?.evaluation,
                 };
             });
         })
+        .sort((a, b) => a.questionNumber - b.questionNumber);
+}
+
+export function toCoachUpdateQuestionFeedbackItems(categories: QuestionCategoryDrilldownModel[]): QuestionFeedbackItem[] {
+    const answered = toCoachPlanQuestionSet(categories)
+        .filter((question) => question.status === "answered")
+        .sort((a, b) => (b.answerSubmittedAt ?? 0) - (a.answerSubmittedAt ?? 0));
+
+    const latest = answered[0];
+    if (!latest) {
+        return [];
+    }
+
+    if (latest.sessionId) {
+        return answered
+            .filter((question) => question.sessionId === latest.sessionId)
+            .sort((a, b) => a.questionNumber - b.questionNumber);
+    }
+
+    const latestSortAt = latest.sessionSortAt ?? latest.answerSubmittedAt;
+    return answered
+        .filter((question) => (question.sessionSortAt ?? question.answerSubmittedAt) === latestSortAt)
         .sort((a, b) => a.questionNumber - b.questionNumber);
 }
 
@@ -3064,17 +3425,22 @@ export function toPracticeNextItems({
 
     const baselineGaps = toPracticeCoverageGapItems(completedItems, categories);
     if (baselineGaps.length > 0) {
+        const remediationCell = matrix.cells
+            .filter(isPracticeRemediationCell)
+            .sort(sortPracticeNextCells)[0];
+        if (remediationCell) {
+            return [
+                toPracticeNextCellItem(remediationCell),
+                baselineGaps[0],
+            ];
+        }
+
         return [
             ...baselineGaps,
             ...matrix.cells
                 .filter((cell) => cell.state !== "strong")
                 .sort(sortPracticeNextCells)
-                .map((cell) => ({
-                    id: cell.id,
-                    label: `${cell.categoryLabel} - ${formatMatrixLaneLabel(cell.laneLabel)}`,
-                    detail: practiceNextCellDetail(cell),
-                    state: cell.state,
-                })),
+                .map(toPracticeNextCellItem),
         ];
     }
 
@@ -3083,12 +3449,7 @@ export function toPracticeNextItems({
         .sort(sortPracticeNextCells);
 
     if (plannedCells.length > 0) {
-        return plannedCells.map((cell) => ({
-            id: cell.id,
-            label: `${cell.categoryLabel} - ${formatMatrixLaneLabel(cell.laneLabel)}`,
-            detail: practiceNextCellDetail(cell),
-            state: cell.state,
-        }));
+        return plannedCells.map(toPracticeNextCellItem);
     }
 
     return matrix.rows.map((row) => ({
@@ -3097,6 +3458,15 @@ export function toPracticeNextItems({
         detail: row.skill.nextPracticeAction,
         state: row.skill.state,
     }));
+}
+
+function toPracticeNextCellItem(cell: PreparednessMatrixCell): PracticeNextListItem {
+    return {
+        id: cell.id,
+        label: `${cell.categoryLabel} - ${formatMatrixLaneLabel(cell.laneLabel)}`,
+        detail: practiceNextCellDetail(cell),
+        state: cell.state,
+    };
 }
 
 export function toCoachUpdateModel({
@@ -3296,6 +3666,11 @@ function sortPracticeNextCells(a: PreparednessMatrixCell, b: PreparednessMatrixC
     }
 
     return a.laneLabel.localeCompare(b.laneLabel);
+}
+
+function isPracticeRemediationCell(cell: PreparednessMatrixCell): boolean {
+    const practicedCount = cell.practicedQuestionCount ?? 0;
+    return practicedCount > 0 && cell.state === "emerging";
 }
 
 function practiceNextCellDetail(cell: PreparednessMatrixCell): string {

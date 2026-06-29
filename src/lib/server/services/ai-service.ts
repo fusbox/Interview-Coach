@@ -169,6 +169,14 @@ ${coachSignalRules}
 EVIDENCE RULES & PULSE GENERATION:
 You must generate at least 1, but no more than 2, High-Impact "Pulses" highlighting the most critical feedback.
 
+SCORE APPLICABILITY:
+For each hidden scoring dimension, first decide whether the answer gives usable evidence for that dimension.
+- observed: The answer contains enough usable evidence to rate this dimension. Include a numeric score from 1-5.
+- not_elicited: The question or modality did not reasonably ask for this dimension. Do not include a score.
+- insufficient_data: The candidate attempted an answer, but there is not enough evidence to rate this dimension. Do not include a score.
+- unscoreable: The answer is blank, off-topic, corrupted, or otherwise cannot be evaluated. Do not include a score.
+Do not assign low scores just because a dimension was not elicited, not applicable to the modality, or unscoreable. Non-observed dimensions are excluded from preparedness averages.
+
 1. **Content Pulse (ALWAYS REQUIRED)**: Focus on 'structural_clarity', 'outcome_explicitness', 'specificity_concreteness', 'decision_rationale', or 'focus_relevance'. You MUST include a direct, exact 'quote' extracted from the user's transcript to anchor your feedback. 
 
 2. **Delivery / Mechanics Pulse (EXCEPTION-BASED ONLY)**: Focus on objective mechanics: 'filler_words', 'signposting', 'conciseness', or 'resilience'. 
@@ -206,7 +214,7 @@ Generate feedback as strict JSON matching this schema:
   "ack": "string",
   "transcript": "string (The highly accurate transcription of the audio, including full punctuation and correct sentence structure. Required if audio is provided.)",
   "scores": {
-    ${FEEDBACK_DIMENSIONS.map(d => `"${d}": { "score": 1-5, "label": "string" }`).join(',\n    ')}
+    ${FEEDBACK_DIMENSIONS.map(d => `"${d}": { "applicability": "observed | not_elicited | insufficient_data | unscoreable", "score": "number 1-5, required only when applicability is observed", "label": "string" }`).join(',\n    ')}
   },
   "contentPulse": {
     "dimension": "structural_clarity | outcome_explicitness | specificity_concreteness | decision_rationale | focus_relevance",

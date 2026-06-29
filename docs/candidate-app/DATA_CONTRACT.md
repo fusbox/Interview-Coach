@@ -42,6 +42,7 @@ Temporary deployed preview rule:
 - The default preview candidate is Irma Castillo at `irma.castillo@talentarbor.local`, resolved through the existing candidate profile identity path with issuer `interview-coach-preview`.
 - Preview test auth must not be enabled for production deployments or treated as the future TalentArbor integration pattern.
 - Preview seed data is applied with `npm run db:seed-candidate-preview` after the normal Postgres migrations.
+- The preview seed intentionally carries multiple Irma prep contexts for dashboard QA. Current durable contexts include an active follow-up/final Client Services Specialist round, a completed follow-up/final Client Services Executive - WWT round, and a completed first-interview Client Services Representative round with 3 practiced voice answers against a 7-question baseline. The Representative context is the partial-baseline fixture for remediation plus unpracticed coverage behavior.
 
 ### PrepProfile
 
@@ -188,10 +189,10 @@ Rules:
 - recruiter `/recruiter/create` sends `interviewStage` and `questionCount` through the same shared question generation boundary so generated questions reflect the intended interview moment and count without changing recruiter-invited answer feedback behavior.
 - shared question generation is now `QuestionPlan`-first for planned requests. The prompt tells the model how to use target role, JD, optional resume content, interview stage, and question count, then asks for exactly the planned category counts.
 - generated-question provider payloads are flexible keyed category containers, not fixed legacy pools. Valid output may contain only the categories needed by the plan, including empty objects/arrays for zero-count categories.
+- planned provider output uses `caseScenario` as the first-class keyed Case/Scenario container. Legacy provider payloads that still put case/scenario-like keys inside `behavioral` are normalized into `caseScenario` after parsing for compatibility.
 - after provider parsing, the service repairs schema-valid output that under-fills a planned category by adding deterministic role-specific fallback questions. The UI may trim a larger pool down to the confirmed plan, but it should not silently accept fewer usable questions than `QuestionPlan.questionCount`.
 - legacy `interviewType` remains compatibility-only for older candidate inputs and fallback ordering when no `interviewStage`/`QuestionPlan` is available. New recruiter and candidate setup work should use `interviewStage` plus `questionCount`; retiring `interviewType` is blocked until older-row read behavior is reviewed.
 - candidate-created sessions persist the resolved `QuestionPlan` as `sessions.intakeData.questionPlanSnapshot` at session creation time. This is the immutable planned sampling contract for that practice round and should be used for later dashboard coverage/recovery reads instead of rebuilding from mutable setup state.
-- current question generation still maps Case/Scenario through the behavioral JSON bucket and then detects it by key name. This is a compatibility bridge, not the durable contract. The durable contract should make Case/Scenario first-class in provider output and downstream mapping.
 
 ### PracticeCoverageBaseline
 
@@ -588,7 +589,33 @@ The old analysis route should not be used for active behavior. Current candidate
 
 ### Per-Question Preparedness Evidence
 
-Current release behavior derives preparedness evidence from completed answer analyses and their hidden numeric scores. The durable direction is a more explicit per-question evidence contract where each answered question records what the evaluator actually observed, what could not be observed, and how confident the evaluator was in that judgment.
+Current release behavior derives preparedness evidence from completed answer analyses and their hidden numeric scores. Dimension scores now carry an applicability guard so the dashboard can distinguish observed evidence from dimensions that were not validly scoreable.
+
+```ts
+type DimensionScoreApplicability =
+    | "observed"
+    | "not_elicited"
+    | "insufficient_data"
+    | "unscoreable";
+
+type DimensionScore = {
+    applicability?: DimensionScoreApplicability;
+    score?: number;
+    label: string;
+};
+```
+
+Rules:
+
+- `observed` means the answer gave usable evidence for that dimension and should include `score` from 1-5;
+- omitted `applicability` is legacy-compatible and is treated as `observed` only when a valid numeric `score` exists;
+- `not_elicited` means the question or modality did not reasonably ask for that signal;
+- `insufficient_data` means the candidate attempted an answer but did not provide enough evidence to rate that dimension;
+- `unscoreable` means the answer is blank, off-topic, corrupted, or otherwise cannot be evaluated;
+- dashboard lane/category averages must include only observed or legacy-unspecified numeric scores;
+- non-observed dimensions must not be converted into low scores or candidate-facing failure states.
+
+The durable direction remains a more explicit per-question evidence contract where each answered question records what the evaluator actually observed, what could not be observed, and how confident the evaluator was in that judgment.
 
 Future evaluator records should preserve these facts separately:
 
@@ -596,7 +623,7 @@ Future evaluator records should preserve these facts separately:
 - question category and difficulty band;
 - transcript/input quality;
 - one entry per expected signal dimension;
-- signal applicability: observed, not elicited, or insufficient data;
+- signal applicability: observed, not elicited, insufficient data, or unscoreable;
 - raw score only when the signal was observed;
 - evaluator confidence for the individual judgment;
 - short candidate-safe evidence excerpt or rubric anchor.

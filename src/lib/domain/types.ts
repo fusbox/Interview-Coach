@@ -66,7 +66,8 @@ import { Dimension } from '../constants';
 export type { Dimension };
 
 export interface DimensionScore {
-    score: number;
+    applicability?: 'observed' | 'not_elicited' | 'insufficient_data' | 'unscoreable';
+    score?: number;
     label: string;
 }
 

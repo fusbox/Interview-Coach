@@ -125,4 +125,47 @@ describe("question generation service", () => {
             framework: "Conflict/Resolution",
         });
     });
+
+    it("uses first-class case-scenario provider output for planned candidate snapshots", async () => {
+        const { generateCandidateQuestionSnapshot } = await import("./question-generation-service");
+
+        const questions = await generateCandidateQuestionSnapshot(
+            {
+                role: "Client Service Coordinator",
+                jobDescription: "Support clients, document follow-up, and handle changing priorities.",
+                interviewStage: "follow_up_final",
+                questionCount: 7,
+            },
+            {
+                appName: "candidate_app",
+                actorType: "candidate",
+                actorId: "profile-1",
+                correlationId: "correlation-case-scenario",
+                sourceRefs: [{ type: "service", name: "candidate_session_generation" }],
+            },
+            {
+                createQuestionId: (index) => `planned-question-${index + 1}`,
+            },
+        );
+
+        expect(questions.map((question) => question.category)).toEqual([
+            "Behavioral",
+            "Behavioral",
+            "Culture",
+            "Culture",
+            "Case / Scenario",
+            "Case / Scenario",
+            "Technical",
+        ]);
+        expect(questions.filter((question) => question.category === "Case / Scenario")).toEqual([
+            expect.objectContaining({
+                framework: "Case / Scenario 1",
+                text: expect.stringContaining("Client Service Coordinator"),
+            }),
+            expect.objectContaining({
+                framework: "Case / Scenario 2",
+                text: expect.stringContaining("Client Service Coordinator"),
+            }),
+        ]);
+    });
 });

@@ -44,8 +44,10 @@ describe("provider response parsing", () => {
             behavioral: {
                 "Conflict/Resolution": "Q1",
                 "Adaptability": "Q2",
-                "Initiative/Growth": "Q3",
-                "Role-Specific Scenario": "Q4"
+                "Initiative/Growth": "Q3"
+            },
+            caseScenario: {
+                "Case / Scenario 1": "Q4"
             },
             culture: {
                 "Positive Emotion": "Q5",
@@ -61,6 +63,7 @@ describe("provider response parsing", () => {
         });
 
         expect(result.technical).toHaveLength(1);
+        expect(result.caseScenario["Case / Scenario 1"]).toBe("Q4");
     });
 
     it("throws a typed provider error for invalid SMTP payloads", () => {

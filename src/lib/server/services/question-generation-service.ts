@@ -242,9 +242,11 @@ function repairQuestionSetForPlan(
         questionCount: input.questionCount,
     });
     const behavioral = { ...questionSet.behavioral };
+    const caseScenario = { ...questionSet.caseScenario };
     const culture = { ...questionSet.culture };
     const screening = { ...questionSet.screening };
     const technical = [...questionSet.technical];
+    moveLegacyCaseScenarioQuestions(behavioral, caseScenario);
 
     ensureObjectCategoryCount({
         object: behavioral,
@@ -255,11 +257,11 @@ function repairQuestionSetForPlan(
         createQuestion: () => createFallbackQuestionText("behavioral", input.role),
     });
     ensureObjectCategoryCount({
-        object: behavioral,
+        object: caseScenario,
         desiredCount: questionPlan.categoryCounts.case_scenario,
-        existingKeyFilter: isCaseScenarioQuestionKey,
-        keyPrefix: "Role-Specific Scenario",
-        createKey: (index) => `Role-Specific Scenario ${index}`,
+        existingKeyFilter: () => true,
+        keyPrefix: "Case / Scenario",
+        createKey: (index) => `Case / Scenario ${index}`,
         createQuestion: () => createFallbackQuestionText("case_scenario", input.role),
     });
     ensureObjectCategoryCount({
@@ -283,6 +285,7 @@ function repairQuestionSetForPlan(
     return {
         ...questionSet,
         behavioral,
+        caseScenario,
         culture,
         technical,
         screening,
@@ -312,6 +315,21 @@ function ensureObjectCategoryCount({
         object[key] = createQuestion(nextIndex);
         matchingCount += 1;
         nextIndex += 1;
+    }
+}
+
+function moveLegacyCaseScenarioQuestions(
+    behavioral: Record<string, string>,
+    caseScenario: Record<string, string>,
+) {
+    for (const [key, text] of Object.entries(behavioral)) {
+        if (!isCaseScenarioQuestionKey(key)) {
+            continue;
+        }
+
+        const targetKey = findAvailableQuestionKey(caseScenario, key, "Case / Scenario", Object.keys(caseScenario).length + 1);
+        caseScenario[targetKey] = text;
+        delete behavioral[key];
     }
 }
 
@@ -416,7 +434,7 @@ Category-to-JSON mapping:
 - Screening questions go in "screening" as a keyed object.
 - Behavioral questions go in "behavioral" as keyed object entries whose keys do not include "Case" or "Scenario".
 - Culture/Fit questions go in "culture" as a keyed object.
-- Case/Scenario questions go in "behavioral" as keyed object entries whose keys include "Case" or "Scenario" so downstream category mapping can identify them.
+- Case/Scenario questions go in "caseScenario" as a keyed object.
 - Technical/Role-Specific questions go in "technical" as array objects with a "text" field.
 - Categories with a planned count of 0 must be empty: {} for keyed objects or [] for technical.`
         : `Generate a balanced compatibility pool for older callers:
@@ -458,8 +476,10 @@ Question-category guidance:
 OUTPUT FORMAT (strict JSON, no other text):
 {
   "behavioral": {
-    "Behavioral 1": "complete question text",
-    "Case/Scenario 1": "complete question text"
+    "Behavioral 1": "complete question text"
+  },
+  "caseScenario": {
+    "Case / Scenario 1": "complete question text"
   },
   "culture": {
     "Culture / Fit 1": "complete question text"
@@ -521,22 +541,23 @@ function getQuestionPlanCategoryPromptLabel(category: QuestionPlanCategory) {
 function flattenCandidateQuestionSet(questionSet: GeneratedInterviewQuestions, interviewType: PracticeInterviewType | null): CandidateQuestionTemplate[] {
     const {
         behavioralQuestions,
+        caseScenarioQuestions,
         cultureQuestions,
         technicalQuestions,
         screeningQuestions,
     } = buildCandidateQuestionBuckets(questionSet);
 
     if (interviewType === "technical") {
-        return [...technicalQuestions, ...behavioralQuestions, ...cultureQuestions, ...screeningQuestions];
+        return [...technicalQuestions, ...caseScenarioQuestions, ...behavioralQuestions, ...cultureQuestions, ...screeningQuestions];
     }
 
     if (interviewType === "behavioral") {
-        return [...behavioralQuestions, ...cultureQuestions, ...technicalQuestions, ...screeningQuestions];
+        return [...behavioralQuestions, ...caseScenarioQuestions, ...cultureQuestions, ...technicalQuestions, ...screeningQuestions];
     }
 
     if (interviewType === "case") {
         return [
-            ...behavioralQuestions.filter((question) => isCaseScenarioQuestionKey(question.framework ?? "")),
+            ...caseScenarioQuestions,
             ...technicalQuestions,
             ...behavioralQuestions.filter((question) => !isCaseScenarioQuestionKey(question.framework ?? "")),
             ...cultureQuestions,
@@ -549,12 +570,14 @@ function flattenCandidateQuestionSet(questionSet: GeneratedInterviewQuestions, i
             ...cultureQuestions,
             ...screeningQuestions,
             ...behavioralQuestions,
+            ...caseScenarioQuestions,
             ...technicalQuestions,
         ];
     }
 
     return [
         ...behavioralQuestions.slice(0, 2),
+        ...caseScenarioQuestions,
         ...technicalQuestions,
         ...screeningQuestions.slice(0, 1),
         ...cultureQuestions.slice(0, 2),
@@ -574,7 +597,7 @@ function flattenCandidateQuestionSetByPlan(
         screening: buckets.screeningQuestions,
         behavioral: buckets.behavioralQuestions.filter((question) => !isCaseScenarioQuestionKey(question.framework ?? "")),
         culture_fit: buckets.cultureQuestions,
-        case_scenario: buckets.behavioralQuestions.filter((question) => isCaseScenarioQuestionKey(question.framework ?? "")),
+        case_scenario: buckets.caseScenarioQuestions,
         technical_role_specific: buckets.technicalQuestions,
     };
     const fallbackQuestions = flattenCandidateQuestionSet(questionSet, legacyInterviewType);
@@ -613,6 +636,22 @@ function buildCandidateQuestionBuckets(questionSet: GeneratedInterviewQuestions)
         framework,
         index: 0,
     }));
+    const legacyCaseScenarioQuestions = behavioralQuestions
+        .filter((question) => isCaseScenarioQuestionKey(question.framework ?? ""))
+        .map((question) => ({
+            ...question,
+            category: "Case / Scenario",
+        }));
+    const caseScenarioQuestions = [
+        ...Object.entries(questionSet.caseScenario).map(([framework, text]) => ({
+            id: "",
+            text,
+            category: "Case / Scenario",
+            framework,
+            index: 0,
+        })),
+        ...legacyCaseScenarioQuestions,
+    ];
     const cultureQuestions = Object.entries(questionSet.culture).map(([framework, text]) => ({
         id: "",
         text,
@@ -637,6 +676,7 @@ function buildCandidateQuestionBuckets(questionSet: GeneratedInterviewQuestions)
 
     return {
         behavioralQuestions,
+        caseScenarioQuestions,
         cultureQuestions,
         technicalQuestions,
         screeningQuestions,
@@ -649,7 +689,9 @@ function getMockQuestions(role: string): GeneratedInterviewQuestions {
             "Conflict/Resolution": `Tell me about a time you had to resolve a conflict with a teammate or patient while working as a ${role}.`,
             "Adaptability": "Describe a situation where you had to adapt quickly to a major change in your shift or responsibilities.",
             "Initiative/Growth": "Tell me about a time you took the initiative to improve a process or help a colleague without being asked.",
-            "Role-Specific Scenario": `Walk me through a specific role-specific challenge you faced as a ${role} and how you handled it.`,
+        },
+        caseScenario: {
+            "Case / Scenario 1": `Walk me through a specific role-specific challenge you faced as a ${role} and how you handled it.`,
         },
         culture: {
             "Positive Emotion": `How do you maintain enthusiasm in your role as a ${role}?`,

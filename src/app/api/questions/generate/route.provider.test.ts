@@ -155,17 +155,17 @@ describe("POST /api/questions/generate provider validation", () => {
 
         const res = await POST(req as never);
         const body = await res.json();
-        const caseScenarioLabels = Object.keys(body.behavioral).filter((label) => (
-            label.toLowerCase().includes("scenario") || label.toLowerCase().includes("role-specific")
-        ));
 
         expect(res.status).toBe(200);
-        expect(caseScenarioLabels).toHaveLength(2);
-        expect(body.behavioral["Role-Specific Scenario 2"]).toContain("Client Service Coordinator");
+        expect(Object.keys(body.behavioral)).not.toContain("Role-Specific Scenario");
+        expect(body.caseScenario).toEqual(expect.objectContaining({
+            "Role-Specific Scenario": "A client needs help while another task is urgent. What do you do first?",
+            "Case / Scenario 2": expect.stringContaining("Client Service Coordinator"),
+        }));
         expect(captureAiGenerationMock).toHaveBeenCalledWith(expect.objectContaining({
             parsedOutput: expect.objectContaining({
-                behavioral: expect.objectContaining({
-                    "Role-Specific Scenario 2": expect.stringContaining("Client Service Coordinator")
+                caseScenario: expect.objectContaining({
+                    "Case / Scenario 2": expect.stringContaining("Client Service Coordinator")
                 })
             })
         }));
@@ -218,8 +218,10 @@ describe("POST /api/questions/generate provider validation", () => {
             behavioral: {
                 "Behavioral 1": "Tell me about a time you resolved a difficult client concern.",
                 "Behavioral 2": "Tell me about a time you adapted to a sudden client need.",
-                "Case/Scenario 1": "A client needs urgent help while another task is overdue. What do you do first?",
-                "Case/Scenario 2": "A teammate misses a handoff and a client is waiting. How would you handle it?"
+            },
+            caseScenario: {
+                "Case / Scenario 1": "A client needs urgent help while another task is overdue. What do you do first?",
+                "Case / Scenario 2": "A teammate misses a handoff and a client is waiting. How would you handle it?"
             },
             culture: {
                 "Culture / Fit 1": "What kind of client-service team helps you do your best work?",
@@ -250,9 +252,8 @@ describe("POST /api/questions/generate provider validation", () => {
         expect(Object.keys(body.behavioral)).toEqual([
             "Behavioral 1",
             "Behavioral 2",
-            "Case/Scenario 1",
-            "Case/Scenario 2"
         ]);
+        expect(Object.keys(body.caseScenario)).toEqual(["Case / Scenario 1", "Case / Scenario 2"]);
         expect(Object.keys(body.culture)).toEqual(["Culture / Fit 1", "Culture / Fit 2"]);
         expect(body.technical).toHaveLength(1);
         expect(Object.keys(body.screening)).toEqual([]);

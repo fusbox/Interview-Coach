@@ -12,6 +12,39 @@ const baseQuestion: Question = {
 };
 
 describe("prep profile read model", () => {
+    it("preserves answer transcripts for practiced questions even when analysis is unavailable", () => {
+        const model = buildPrepProfileReadModel({
+            prepProfileId: "profile-1",
+            targetRole: "Client Services Representative",
+            jobDescription: "Support clients and account follow-up.",
+            sessionId: "session-1",
+            questions: [baseQuestion],
+            answers: [{
+                questionId: "question-1",
+                transcript: "I gathered the account details, confirmed the next step, and followed up with the client.",
+                modality: "voice",
+                submittedAt: 1000,
+            }],
+        });
+
+        expect(model.categoryCards).toEqual([
+            expect.objectContaining({
+                categoryId: "behavioral",
+                practicedQuestionCount: 1,
+                questionStatuses: [expect.objectContaining({
+                    questionId: "question-1",
+                    status: "practiced",
+                })],
+                sourceRefs: [expect.objectContaining({
+                    questionText: baseQuestion.text,
+                    answerTranscript: "I gathered the account details, confirmed the next step, and followed up with the client.",
+                    answerModality: "voice",
+                    evaluation: undefined,
+                })],
+            }),
+        ]);
+    });
+
     it("derives release dashboard lanes from hidden numeric scores and keeps categories separate", () => {
         const model = buildPrepProfileReadModel({
             prepProfileId: "profile-1",
@@ -317,6 +350,82 @@ describe("prep profile read model", () => {
                 }],
             }),
         ]);
+    });
+
+    it("ignores non-observed dimension scores so missing applicability does not read as weak evidence", () => {
+        const analysis: AnalysisResult = {
+            ...analysisResult({
+                valence: "mixed",
+                detectability: "clear",
+                interventionType: "polish_response",
+            }),
+            scores: {
+                focus_relevance: { applicability: "observed", score: 3, label: "Relevant answer." },
+                specificity_concreteness: { applicability: "observed", score: 3, label: "Specific enough." },
+                outcome_explicitness: { applicability: "insufficient_data", score: 1, label: "The answer did not include enough outcome detail to rate." },
+                decision_rationale: { applicability: "not_elicited", score: 1, label: "The question did not ask for a decision rationale." },
+                structural_clarity: { applicability: "observed", score: 3, label: "Understandable structure." },
+                signposting: { applicability: "observed", score: 3, label: "Some transitions." },
+                filler_words: { applicability: "not_elicited", score: 1, label: "Typed answer; spoken filler words were not elicited." },
+                conciseness: { applicability: "observed", score: 4, label: "Concise response." },
+                resilience: { applicability: "observed", score: 4, label: "Composed ownership." },
+            },
+        };
+
+        const model = buildPrepProfileReadModel({
+            prepProfileId: "profile-1",
+            targetRole: "Client Services Representative",
+            jobDescription: "Help clients resolve account issues and explain next steps clearly.",
+            sessionId: "session-1",
+            questions: [baseQuestion],
+            answers: [{ questionId: "question-1", transcript: "I helped the client and followed up.", submittedAt: 1000, analysis }],
+        });
+
+        expect(model.signals.find((signal) => signal.signalId === "lane:answer_substance")).toMatchObject({
+            evidenceState: "clear",
+            averageScore: 3,
+            scoreCount: 2,
+            dimensionStates: expect.arrayContaining([
+                expect.objectContaining({
+                    dimension: "outcome_explicitness",
+                    evidenceState: "not_practiced",
+                    scoreCount: 0,
+                }),
+                expect.objectContaining({
+                    dimension: "decision_rationale",
+                    evidenceState: "not_practiced",
+                    scoreCount: 0,
+                }),
+            ]),
+        });
+        expect(model.signals.find((signal) => signal.signalId === "lane:communication_delivery")).toMatchObject({
+            evidenceState: "strong",
+            averageScore: 4,
+            scoreCount: 2,
+            dimensionStates: expect.arrayContaining([
+                expect.objectContaining({
+                    dimension: "filler_words",
+                    evidenceState: "not_practiced",
+                    scoreCount: 0,
+                }),
+            ]),
+        });
+        expect(model.categoryCards[0]).toMatchObject({
+            evidenceState: "clear",
+            averageScore: 3.33,
+            laneStates: {
+                answer_substance: {
+                    evidenceState: "clear",
+                    averageScore: 3,
+                    scoreCount: 2,
+                },
+                communication_delivery: {
+                    evidenceState: "strong",
+                    averageScore: 4,
+                    scoreCount: 2,
+                },
+            },
+        });
     });
 
     it("elevates a signal immediately when the latest evidence is strong while preserving prior weak evidence", () => {

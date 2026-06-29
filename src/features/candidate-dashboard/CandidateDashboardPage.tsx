@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import type { CandidateDashboardModel } from "@/lib/server/candidate";
 import {
@@ -13,6 +13,8 @@ import {
     CoachUpdateCard,
     CoachUpdateDialog,
     EmptyPreparednessDashboard,
+    NextPracticeRoundButton,
+    NextPracticeRoundSurface,
     PracticeNextCard,
     PreparednessMapExperience,
     QuestionCategoryDrilldown,
@@ -20,7 +22,10 @@ import {
     SkillDrilldown,
     toInstantReadPreparednessModel,
     toCoachPlanOverviewModel,
+    toCoachPlanQuestionSet,
     toCoachUpdateModel,
+    toCoachUpdateQuestionFeedbackItems,
+    type NextPracticeRoundAnchorRect,
     TargetInterviewSwitcher,
     toQuestionCategoryCards,
     toQuestionCategoryDrilldowns,
@@ -43,6 +48,10 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
     const [selectedCoachPlanSkillId, setSelectedCoachPlanSkillId] = useState<string | null>(null);
     const [isCoachUpdateOpen, setIsCoachUpdateOpen] = useState(false);
     const [selectedMatrixCellId, setSelectedMatrixCellId] = useState<string | null>(null);
+    const [queuedQuestions, setQueuedQuestions] = useState<Array<{ id: string }>>([]);
+    const [isNextPracticeRoundOpen, setIsNextPracticeRoundOpen] = useState(false);
+    const [nextPracticeRoundAnchorRect, setNextPracticeRoundAnchorRect] = useState<NextPracticeRoundAnchorRect | null>(null);
+    const nextPracticeRoundAnchorRef = useRef<HTMLDivElement | null>(null);
     const scopedItems = [...dashboard.activeItems, ...dashboard.completedItems];
     const skills = toPreparednessSkills({
         latestItem,
@@ -67,24 +76,74 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
         items: scopedItems,
         practiceNextItems,
     });
+    const coachUpdateQuestions = toCoachUpdateQuestionFeedbackItems(categoryDrilldowns);
+    const coachPlanQuestions = toCoachPlanQuestionSet(categoryDrilldowns);
     const selectedSkill = skills.find((skill) => skill.id === selectedSkillId) || null;
     const selectedCoachPlanSkill = skills.find((skill) => skill.id === selectedCoachPlanSkillId) || null;
     const selectedCategory = categoryDrilldowns.find((category) => category.id === selectedCategoryId) || null;
     const selectedCoachPlanCategory = categoryDrilldowns.find((category) => category.id === selectedCoachPlanCategoryId) || null;
     const selectedMatrixCell = preparednessMatrix.cells.find((cell) => cell.id === selectedMatrixCellId) || null;
     const recentItems = scopedItems.slice(0, 4);
+    const queuedQuestionItems = queuedQuestions
+        .map((queuedQuestion) => coachPlanQuestions.find((question) => question.id === queuedQuestion.id) || null)
+        .filter((question): question is NonNullable<typeof question> => Boolean(question));
+    const queuedQuestionIds = queuedQuestions.map((question) => question.id);
+    const handleAddQuestionToNextRound = (question: { id: string }) => {
+        setQueuedQuestions((current) => current.some((queuedQuestion) => queuedQuestion.id === question.id)
+            ? current
+            : [...current, { id: question.id }]);
+    };
+    const handleRemoveQuestionFromNextRound = (questionId: string) => {
+        setQueuedQuestions((current) => {
+            const next = current.filter((question) => question.id !== questionId);
+            if (next.length === 0) {
+                setIsNextPracticeRoundOpen(false);
+            }
+            return next;
+        });
+    };
+    const handleClearNextPracticeRound = () => {
+        setQueuedQuestions([]);
+        setIsNextPracticeRoundOpen(false);
+    };
+    const handleOpenNextPracticeRound = () => {
+        if (queuedQuestions.length === 0) {
+            document.getElementById("coach-plan-question-set")?.scrollIntoView({ block: "start", behavior: "smooth" });
+            return;
+        }
+        const rect = nextPracticeRoundAnchorRef.current?.getBoundingClientRect();
+        setNextPracticeRoundAnchorRect(rect ? {
+            top: rect.top,
+            left: rect.left,
+            width: rect.width,
+            height: rect.height,
+        } : null);
+        setIsNextPracticeRoundOpen(true);
+    };
 
     return (
-        <main className="candidate-design-system -mx-4 -mt-4 min-h-screen w-full overflow-x-hidden bg-surface-base text-text-primary sm:-mx-6 sm:-mt-6 lg:-mx-10 lg:-mt-10">
+        <main className="candidate-design-system relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] -mt-4 min-h-screen w-screen overflow-x-hidden bg-surface-base text-text-primary sm:-mt-6 lg:-mt-10">
             {hasPractice ? (
-                <div className="mx-auto w-full max-w-6xl px-5 py-8 md:px-8 md:py-10">
-                    <div className="mb-8">
-                        <h1 className="font-display text-3xl font-bold tracking-tight text-text-primary md:text-4xl">
-                            Practice Coach
-                        </h1>
-                    </div>
+                <div className="mx-auto w-full max-w-[88rem] px-4 pb-6 pt-36 sm:px-5 sm:pt-32 md:px-6 md:pb-8 lg:px-8">
+                    <header
+                        role="banner"
+                        aria-label="Dashboard header"
+                        className="fixed left-0 right-0 top-0 z-50 bg-gradient-to-b from-surface-base/95 via-surface-base/90 to-surface-base/0 px-4 pb-8 pt-3 sm:px-5 md:px-6 lg:px-8"
+                    >
+                        <div className="mx-auto flex w-full max-w-[88rem] flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <h1 className="font-display text-3xl font-bold tracking-tight text-[rgb(var(--candidate-foreground)/0.84)] md:text-4xl">
+                                Interview Coach
+                            </h1>
+                            <div ref={nextPracticeRoundAnchorRef} className="w-full rounded-[1.75rem] bg-white/40 p-1 backdrop-blur-xl sm:w-80">
+                                <NextPracticeRoundButton
+                                    queuedCount={queuedQuestions.length}
+                                    onOpen={handleOpenNextPracticeRound}
+                                />
+                            </div>
+                        </div>
+                    </header>
 
-                    <div className="grid min-w-0 gap-8 xl:grid-cols-[minmax(0,1fr)_24rem] xl:gap-10">
+                    <div className="grid min-w-0 gap-8 xl:grid-cols-[minmax(0,1fr)_23rem] xl:gap-8">
                         <section className="min-w-0 space-y-8">
                             <TargetInterviewSwitcher targetInterviews={dashboard.targetInterviews} />
                             {coachUpdate ? (
@@ -102,7 +161,11 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
                                 skills={skills}
                                 onSkillSelect={setSelectedCoachPlanSkillId}
                             />
-                            <CoachPlanQuestionSetFace categories={categoryDrilldowns} />
+                            <CoachPlanQuestionSetFace
+                                categories={categoryDrilldowns}
+                                queuedQuestionIds={queuedQuestionIds}
+                                onAddQuestionToNextRound={handleAddQuestionToNextRound}
+                            />
                             <PreparednessMapExperience
                                 snapshot={preparednessSnapshot}
                                 matrix={preparednessMatrix}
@@ -154,7 +217,19 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
             {coachUpdate && isCoachUpdateOpen ? (
                 <CoachUpdateDialog
                     update={coachUpdate}
+                    questions={coachUpdateQuestions}
+                    queuedQuestionIds={queuedQuestionIds}
+                    onAddQuestionToNextRound={handleAddQuestionToNextRound}
                     onClose={() => setIsCoachUpdateOpen(false)}
+                />
+            ) : null}
+            {isNextPracticeRoundOpen && queuedQuestionItems.length > 0 ? (
+                <NextPracticeRoundSurface
+                    questions={queuedQuestionItems}
+                    onRemoveQuestion={handleRemoveQuestionFromNextRound}
+                    onClearAll={handleClearNextPracticeRound}
+                    anchorRect={nextPracticeRoundAnchorRect}
+                    onClose={() => setIsNextPracticeRoundOpen(false)}
                 />
             ) : null}
         </main>
