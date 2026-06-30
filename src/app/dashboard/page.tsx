@@ -22,7 +22,7 @@ export default async function DashboardRoute({ searchParams }: DashboardRoutePro
     }
 
     return (
-        <CandidateShell>
+        <CandidateShell showNavigation={false}>
             <CandidateDashboardPage dashboard={dashboard} />
         </CandidateShell>
     );

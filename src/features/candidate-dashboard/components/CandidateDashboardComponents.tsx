@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useLayoutEffect, useRef, useState, type CSSProperties, type FocusEvent, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
-import { ArrowRight, Briefcase, CheckCircle2, ChevronDown, ChevronRight, Circle, FileText, MessageSquare, Mic, Sparkles, Trash2, X } from "lucide-react";
+import { ArrowRight, Briefcase, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Circle, CircleUser, FileText, Keyboard, MessageCircleQuestion, MessageSquare, Mic, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { Cell, Pie, PieChart } from "recharts";
 
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/cn";
 import type { InterviewStage } from "@/lib/domain/interview-stage";
 import type { CandidateDashboardItem, CandidateDashboardTargetInterview } from "@/lib/server/candidate";
@@ -573,16 +574,28 @@ export function CoachUpdateDialog({
 }) {
     const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(questions[0]?.id ?? null);
     const contentRef = useRef<HTMLDivElement | null>(null);
+    const touchStartXRef = useRef<number | null>(null);
     const selectedQuestion = questions.find((question) => question.id === selectedQuestionId) ?? questions[0] ?? null;
+    const selectedQuestionIndex = selectedQuestion ? questions.findIndex((question) => question.id === selectedQuestion.id) : -1;
     const selectQuestion = (questionId: string) => {
         setSelectedQuestionId(questionId);
         contentRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    };
+    const selectRelativeQuestion = (direction: -1 | 1) => {
+        if (selectedQuestionIndex < 0 || questions.length < 2) {
+            return;
+        }
+        const nextIndex = Math.min(Math.max(selectedQuestionIndex + direction, 0), questions.length - 1);
+        const nextQuestion = questions[nextIndex];
+        if (nextQuestion && nextQuestion.id !== selectedQuestion?.id) {
+            selectQuestion(nextQuestion.id);
+        }
     };
 
     return (
         <div
             data-testid="coach-update-backdrop"
-            className="fixed inset-0 z-50 flex items-start bg-slate-950/55 backdrop-blur-sm md:items-center md:justify-center"
+            className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/55 px-3 py-3 backdrop-blur-sm md:items-center md:px-6"
             onPointerDown={(event) => {
                 if (event.target === event.currentTarget) {
                     onClose();
@@ -593,13 +606,22 @@ export function CoachUpdateDialog({
                 role="dialog"
                 aria-modal="true"
                 aria-label="Coach Update"
-                className="flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-b-[1.75rem] border border-[rgb(var(--candidate-border)/0.92)] bg-white shadow-[var(--candidate-shadow-panel)] md:w-[42rem] md:max-w-[calc(100vw-2rem)] md:rounded-[1.75rem]"
+                className="flex max-h-[calc(100dvh-1.5rem)] w-full flex-col overflow-hidden rounded-[1.75rem] border border-[rgb(var(--candidate-border)/0.92)] bg-white shadow-[var(--candidate-shadow-panel)] md:w-[min(54rem,calc(100vw-2rem))] md:max-h-[90dvh]"
             >
-                <div data-coach-update-header className="sticky top-0 z-10 border-b border-[rgb(var(--candidate-border)/0.7)] bg-white p-5 md:p-6">
+                <div data-coach-update-header className="sticky top-0 z-10 border-b border-[rgb(var(--candidate-border)/0.7)] bg-white px-4 py-4 sm:px-5 md:px-6">
                     <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0">
-                            <p className="text-xs font-black uppercase tracking-[0.18em] text-primary">Coach Update</p>
-                            <h2 className="mt-3 text-2xl font-bold leading-tight text-text-primary">Here is the quick debrief.</h2>
+                        <div className="flex min-w-0 items-start gap-3">
+                            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-white shadow-flat" aria-hidden="true">
+                                <MessageSquare size={22} />
+                            </span>
+                            <div className="min-w-0">
+                                <h2 className="text-xl font-bold leading-tight text-text-primary md:text-2xl">
+                                    I reviewed your latest practice. Here&apos;s what stood out.
+                                </h2>
+                                <p className="mt-2 text-sm leading-6 text-text-secondary">
+                                    Move through each question for the answer, my read, and the next practice step.
+                                </p>
+                            </div>
                         </div>
                         <button
                             type="button"
@@ -611,26 +633,74 @@ export function CoachUpdateDialog({
                         </button>
                     </div>
                     {questions.length > 1 ? (
-                        <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
-                            {questions.map((question) => (
-                                <button
-                                    key={question.id}
-                                    type="button"
-                                    onClick={() => selectQuestion(question.id)}
-                                    className={cn(
-                                        "shrink-0 rounded-2xl border px-3 py-2 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                                        question.id === selectedQuestion?.id
-                                            ? "border-primary/45 bg-primary text-white"
-                                            : "border-[rgb(var(--candidate-border)/0.72)] bg-surface-base text-text-secondary hover:border-primary/30 hover:bg-white hover:text-text-primary",
-                                    )}
-                                >
-                                    Q{question.questionNumber}: {question.categoryLabel}
-                                </button>
-                            ))}
+                        <div className="mt-5 flex items-center justify-center gap-3" aria-label="Coach update question navigation">
+                            <button
+                                type="button"
+                                onClick={() => selectRelativeQuestion(-1)}
+                                disabled={selectedQuestionIndex <= 0}
+                                aria-label="Previous question feedback"
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-[rgb(var(--candidate-border)/0.78)] bg-white text-text-secondary transition-colors hover:border-primary/25 hover:bg-surface-base hover:text-text-primary disabled:pointer-events-none disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                            >
+                                <ChevronLeft size={18} aria-hidden="true" />
+                            </button>
+                            <div className="flex min-w-0 items-center justify-center gap-2 overflow-x-auto pb-1">
+                                {questions.map((question) => {
+                                    const isCurrent = question.id === selectedQuestion?.id;
+                                    return (
+                                        <button
+                                            key={question.id}
+                                            type="button"
+                                            onClick={() => selectQuestion(question.id)}
+                                            aria-current={isCurrent ? "true" : undefined}
+                                            aria-label={
+                                                isCurrent
+                                                    ? `Current feedback Q${question.questionNumber} ${question.categoryLabel}`
+                                                    : `Go to Q${question.questionNumber} ${question.categoryLabel} feedback`
+                                            }
+                                            className={cn(
+                                                "shrink-0 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                                                isCurrent
+                                                    ? "rounded-2xl border border-primary/45 bg-primary px-3.5 py-2 text-xs font-bold text-white shadow-flat"
+                                                    : "h-2.5 w-2.5 rounded-full bg-[rgb(var(--candidate-border)/0.9)] hover:bg-primary/45",
+                                            )}
+                                        >
+                                            {isCurrent ? `Q${question.questionNumber}: ${question.categoryLabel}` : <span className="sr-only">Q{question.questionNumber}</span>}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => selectRelativeQuestion(1)}
+                                disabled={selectedQuestionIndex >= questions.length - 1}
+                                aria-label="Next question feedback"
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-[rgb(var(--candidate-border)/0.78)] bg-white text-text-secondary transition-colors hover:border-primary/25 hover:bg-surface-base hover:text-text-primary disabled:pointer-events-none disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                            >
+                                <ChevronRight size={18} aria-hidden="true" />
+                            </button>
                         </div>
                     ) : null}
                 </div>
-                <div ref={contentRef} data-coach-update-content className="custom-scrollbar flex-1 space-y-4 overflow-y-auto p-5 md:p-6">
+                <div
+                    ref={contentRef}
+                    data-coach-update-content
+                    className="custom-scrollbar flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-5 md:px-6"
+                    onTouchStart={(event) => {
+                        touchStartXRef.current = event.touches[0]?.clientX ?? null;
+                    }}
+                    onTouchEnd={(event) => {
+                        const touchStartX = touchStartXRef.current;
+                        touchStartXRef.current = null;
+                        if (touchStartX === null) {
+                            return;
+                        }
+                        const deltaX = event.changedTouches[0]?.clientX ? event.changedTouches[0].clientX - touchStartX : 0;
+                        if (Math.abs(deltaX) < 48) {
+                            return;
+                        }
+                        selectRelativeQuestion(deltaX < 0 ? 1 : -1);
+                    }}
+                >
                     {selectedQuestion ? (
                         <QuestionFeedbackPanel
                             question={selectedQuestion}
@@ -1216,52 +1286,61 @@ function QuestionFeedbackPanel({
     const read = parseMyRead(question.evaluation);
     const strengthenCopy = [read.biggestLift, read.trySayingThis, read.nextStep].filter(Boolean).join(" ");
     const coachCallout = read.summary || read.fallback || "I have enough from this answer to guide your next practice step.";
+    const responseModeLabel = question.answerModality ? `${titleCase(question.answerModality)} response` : "Answer transcript";
+    const ResponseModeIcon = question.answerModality === "voice" ? Mic : Keyboard;
 
     return (
         <div className="space-y-4">
-            <section className="rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-white px-4 py-3">
-                <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-surface-base px-3 py-1 text-xs font-bold text-text-secondary">Question</span>
-                    <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">{question.categoryLabel}</span>
+            <section className="rounded-3xl border border-[rgb(var(--candidate-border)/0.72)] bg-white p-4">
+                <div className="flex items-start gap-3">
+                    <span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary" aria-label="Question prompt">
+                        <MessageCircleQuestion size={19} aria-hidden="true" />
+                    </span>
+                    <p className="text-sm font-bold leading-6 text-text-primary">{question.questionText}</p>
                 </div>
-                <p className="mt-3 text-base font-bold leading-7 text-text-primary">{question.questionText}</p>
             </section>
-            <section className="rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-surface-base px-4 py-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">Your answer</h3>
-                    {question.answerModality ? (
-                        <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-text-secondary shadow-[0_1px_0_rgb(var(--candidate-border)/0.72)]">
-                            {titleCase(question.answerModality)} response
+            <section className="rounded-3xl border border-[rgb(var(--candidate-border)/0.72)] bg-surface-base p-4">
+                <div className="flex items-start gap-3">
+                    <span className="mt-1 flex shrink-0 flex-col items-center gap-1">
+                        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary" aria-label="Candidate answer">
+                            <CircleUser size={19} aria-hidden="true" />
                         </span>
-                    ) : null}
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full border border-primary/45 bg-white text-primary" aria-label={`${responseModeLabel} mode`}>
+                            <ResponseModeIcon size={14} aria-hidden="true" />
+                        </span>
+                    </span>
+                    <div className="min-w-0 flex-1">
+                        <p className="whitespace-pre-wrap text-sm leading-6 text-text-secondary">
+                            {question.answerTranscript || "No answer transcript captured."}
+                        </p>
+                    </div>
                 </div>
-                <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-text-secondary">
-                    {question.answerTranscript || "No answer transcript captured."}
-                </p>
             </section>
-            <section className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3">
-                <h3 className="text-xs font-black uppercase tracking-[0.18em] text-primary">Coach callout</h3>
-                <p className="mt-3 text-sm font-semibold leading-6 text-text-secondary">{coachCallout}</p>
-                {read.stoodOut.length > 0 ? (
-                    <ul className="mt-3 grid gap-2">
-                        {read.stoodOut.slice(0, 2).map((item) => (
-                            <li key={`${item.label}-${item.body}`} className="rounded-2xl bg-white/80 px-3 py-2">
-                                <p className="text-xs font-black uppercase tracking-[0.12em] text-primary">{item.label}</p>
-                                <p className="mt-1 text-sm leading-6 text-text-secondary">{item.body}</p>
-                            </li>
-                        ))}
-                    </ul>
-                ) : null}
+            <section aria-label="Coach observation" className="rounded-3xl border border-primary/15 bg-primary/5 p-4">
+                <div className="flex items-start gap-3">
+                    <span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-primary shadow-[0_1px_0_rgb(var(--candidate-border)/0.72)]" aria-hidden="true">
+                        <Sparkles size={18} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold leading-6 text-text-primary">{coachCallout}</p>
+                        <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-text-secondary">
+                            {strengthenCopy || "Keep this answer connected to the question, your action, and the result the interviewer should remember."}
+                        </p>
+                        {read.stoodOut.length > 0 ? (
+                            <ul className="mt-3 grid gap-2">
+                                {read.stoodOut.slice(0, 2).map((item) => (
+                                    <li key={`${item.label}-${item.body}`} className="rounded-2xl bg-white/85 px-3 py-2">
+                                        <p className="text-xs font-black uppercase tracking-[0.12em] text-primary">{item.label}</p>
+                                        <p className="mt-1 text-sm leading-6 text-text-secondary">{item.body}</p>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : null}
+                    </div>
+                </div>
             </section>
-            <section className="rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-white px-4 py-3">
-                <h3 className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">How to strengthen it</h3>
-                <p className="mt-3 text-sm leading-6 text-text-secondary">
-                    {strengthenCopy || "Keep this answer connected to the question, your action, and the result the interviewer should remember."}
-                </p>
-            </section>
-            <section className="rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-surface-base px-4 py-3">
-                <h3 className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">Practice action</h3>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <section className="rounded-3xl border border-[rgb(var(--candidate-border)/0.72)] bg-surface-base p-4">
+                <div className="grid gap-2 sm:grid-cols-2">
                     <button
                         type="button"
                         className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-primary px-4 text-sm font-bold text-white shadow-flat transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45"
@@ -1344,31 +1423,147 @@ const PREPAREDNESS_LANES: PreparednessLaneConfig[] = [
 ];
 
 export function TargetInterviewSwitcher({ targetInterviews }: { targetInterviews: CandidateDashboardTargetInterview[] }) {
+    const [open, setOpen] = useState(false);
     if (targetInterviews.length <= 1) {
         return null;
     }
+    const selectedTargetInterview = targetInterviews.find((targetInterview) => targetInterview.isSelected) ?? targetInterviews[0];
 
     return (
-        <nav aria-label="Target interviews" className="-mx-1 w-full max-w-full overflow-x-auto pb-1">
-            <div className="flex w-max max-w-none gap-2 px-1">
-                {targetInterviews.map((targetInterview) => (
-                    <Link
-                        key={targetInterview.id}
-                        href={targetInterview.href}
-                        aria-current={targetInterview.isSelected ? "page" : undefined}
-                        className={cn(
-                            "group w-[min(18rem,calc(100vw-3.5rem))] shrink-0 rounded-2xl border px-4 py-3 text-left shadow-flat transition-colors sm:w-64",
-                            targetInterview.isSelected
-                                ? "border-primary/25 bg-primary/10 text-text-primary"
-                                : "border-[rgb(var(--candidate-border)/0.78)] bg-white text-text-secondary hover:border-primary/20 hover:bg-surface-base hover:text-text-primary",
-                        )}
+        <Popover open={open} onOpenChange={setOpen}>
+            <nav aria-label="Interview prep context" className="max-w-xl space-y-2">
+                <p className="px-1 text-xs font-semibold normal-case tracking-normal text-text-muted">
+                    Current role - tap/click to switch or set up a new role
+                </p>
+                <PopoverTrigger asChild>
+                    <button
+                        type="button"
+                        aria-label="Switch interview prep context"
+                        className="group flex min-h-16 w-full items-center gap-3 rounded-2xl border border-[rgb(var(--candidate-border)/0.78)] bg-white px-3 py-3 text-left shadow-flat transition-colors duration-base ease-standard hover:border-primary/25 hover:bg-surface-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
-                        <span className="block truncate text-sm font-bold leading-5">{targetInterview.label}</span>
-                    </Link>
-                ))}
-            </div>
-        </nav>
+                        <TargetInterviewGauge targetInterview={selectedTargetInterview} />
+                        <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-bold leading-5 text-text-primary">{selectedTargetInterview.label}</span>
+                            <span className="mt-0.5 block truncate text-xs font-semibold text-text-muted">{formatTargetInterviewCaption(selectedTargetInterview)}</span>
+                        </span>
+                        <ChevronsUpDown className="h-4 w-4 shrink-0 text-text-muted transition-colors group-hover:text-text-secondary" aria-hidden="true" />
+                    </button>
+                </PopoverTrigger>
+                <PopoverContent
+                    align="start"
+                    sideOffset={8}
+                    aria-label="Interview prep contexts"
+                    className="w-[min(calc(100vw-2rem),28rem)] rounded-2xl border-[rgb(var(--candidate-border)/0.78)] bg-white p-1 shadow-floating"
+                    onOpenAutoFocus={(event) => event.preventDefault()}
+                >
+                    <div className="max-h-[min(26rem,calc(100vh-12rem))] overflow-y-auto p-1">
+                        {targetInterviews.map((targetInterview) => (
+                            <Link
+                                key={targetInterview.id}
+                                href={targetInterview.href}
+                                onClick={() => setOpen(false)}
+                                aria-current={targetInterview.isSelected ? "page" : undefined}
+                                className={cn(
+                                    "group flex min-h-14 items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors duration-base ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                                    targetInterview.isSelected
+                                        ? "bg-primary/10 text-text-primary"
+                                        : "text-text-secondary hover:bg-surface-base hover:text-text-primary",
+                                )}
+                            >
+                                <TargetInterviewGauge targetInterview={targetInterview} compact />
+                                <span className="min-w-0 flex-1">
+                                    <span className="block truncate text-sm font-bold leading-5">{targetInterview.label}</span>
+                                    <span className="mt-0.5 block truncate text-xs font-semibold text-text-muted">{formatTargetInterviewCaption(targetInterview)}</span>
+                                </span>
+                                {targetInterview.isSelected ? <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" /> : null}
+                            </Link>
+                        ))}
+                    </div>
+                    <div className="border-t border-[rgb(var(--candidate-border)/0.7)] p-1">
+                        <Link
+                            href="/practice"
+                            className="flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm font-bold text-text-primary transition-colors duration-base ease-standard hover:bg-surface-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        >
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-dashed border-[rgb(var(--candidate-border)/0.9)] bg-white text-primary">
+                                <Plus className="h-4 w-4" aria-hidden="true" />
+                            </span>
+                            <span>Prep for a new role</span>
+                        </Link>
+                    </div>
+                </PopoverContent>
+            </nav>
+        </Popover>
     );
+}
+
+function TargetInterviewGauge({
+    targetInterview,
+    compact = false,
+}: {
+    targetInterview: CandidateDashboardTargetInterview;
+    compact?: boolean;
+}) {
+    const planned = Math.max(targetInterview.plannedQuestionCount || 0, targetInterview.practicedQuestionCount || 0, 1);
+    const practiced = Math.min(targetInterview.practicedQuestionCount || 0, planned);
+    const percentage = Math.max(0, Math.min(100, (practiced / planned) * 100));
+    const fillColor = getInstantReadChartColor(targetInterview.prepState ?? "not_practiced", 0.94);
+    const size = compact ? 36 : 44;
+    const strokeWidth = compact ? 6 : 7;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const dashOffset = circumference * (1 - percentage / 100);
+
+    return (
+        <span
+            data-prep-state={targetInterview.prepState ?? "not_practiced"}
+            className={cn(
+                "relative flex shrink-0 items-center justify-center rounded-full",
+                compact ? "h-9 w-9" : "h-11 w-11",
+            )}
+            aria-label={`${practiced} of ${planned} questions practiced`}
+        >
+            <svg
+                viewBox={`0 0 ${size} ${size}`}
+                className="h-full w-full -rotate-90"
+                aria-hidden="true"
+            >
+                <circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    fill="none"
+                    stroke="rgb(var(--candidate-border) / 0.5)"
+                    strokeWidth={strokeWidth}
+                />
+                <circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    fill="none"
+                    stroke={fillColor}
+                    strokeWidth={strokeWidth}
+                    strokeLinecap="round"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={dashOffset}
+                />
+            </svg>
+            <span className="absolute inset-[0.42rem] rounded-full bg-white" />
+        </span>
+    );
+}
+
+function formatTargetInterviewCaption(targetInterview: CandidateDashboardTargetInterview): string {
+    if (!targetInterview.lastPracticedAt) {
+        return "Not practiced yet";
+    }
+
+    return `Last practiced ${new Intl.DateTimeFormat(undefined, {
+        month: "2-digit",
+        day: "2-digit",
+        year: "2-digit",
+        hour: "numeric",
+        minute: "2-digit",
+    }).format(new Date(targetInterview.lastPracticedAt))}`;
 }
 
 export function QuestionCategoryCoverage({

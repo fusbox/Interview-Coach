@@ -61,6 +61,10 @@ export type CandidateDashboardTargetInterview = {
     isSelected: boolean;
     activeCount: number;
     completedCount: number;
+    practicedQuestionCount: number;
+    plannedQuestionCount: number;
+    lastPracticedAt: number | null;
+    prepState: PrepEvidenceState;
 };
 
 export type CandidateDashboardModel = {
@@ -189,10 +193,10 @@ export async function loadCandidateDashboardForCurrentCandidate(input: {
             );
 
             const selectedTargetInterviewId = selectTargetInterviewId(result.rows, input.targetRole);
-            const targetInterviews = buildTargetInterviewOptions(result.rows, selectedTargetInterviewId);
+            const allSessionEvidenceBySessionId = await loadSessionEvidenceBySessionId(result.rows);
+            const targetInterviews = buildTargetInterviewOptions(result.rows, selectedTargetInterviewId, allSessionEvidenceBySessionId);
             const scopedRows = selectCurrentTargetInterviewRows(result.rows, selectedTargetInterviewId);
-            const sessionEvidenceBySessionId = await loadSessionEvidenceBySessionId(scopedRows);
-            const items = scopedRows.map((row) => mapDashboardItem(row, sessionEvidenceBySessionId.get(row.session_id ?? "")));
+            const items = scopedRows.map((row) => mapDashboardItem(row, allSessionEvidenceBySessionId.get(row.session_id ?? "")));
             const completedItems = items
                 .filter((item) => item.kind === "completed")
                 .map((item) => toDashboardItem(item));
@@ -266,6 +270,7 @@ function selectCurrentTargetInterviewRows(rows: DashboardDraftRow[], selectedTar
 function buildTargetInterviewOptions(
     rows: DashboardDraftRow[],
     selectedTargetInterviewId: string | null,
+    sessionEvidenceBySessionId: Map<string, DashboardSessionEvidenceRow[]> = new Map(),
 ): CandidateDashboardTargetInterview[] {
     const options = new Map<string, CandidateDashboardTargetInterview>();
     for (const row of rows) {
@@ -277,12 +282,23 @@ function buildTargetInterviewOptions(
             isSelected: id === selectedTargetInterviewId,
             activeCount: 0,
             completedCount: 0,
+            practicedQuestionCount: 0,
+            plannedQuestionCount: 0,
+            lastPracticedAt: null,
+            prepState: "not_practiced",
         };
 
         if (isCompletedRow(row)) {
             current.completedCount += 1;
         } else {
             current.activeCount += 1;
+        }
+        current.practicedQuestionCount += Number(row.submitted_count ?? 0);
+        current.plannedQuestionCount += Number(row.question_count ?? 0);
+        const lastActivityAt = toTimestamp(row.last_activity_at);
+        if (lastActivityAt && (!current.lastPracticedAt || lastActivityAt > current.lastPracticedAt)) {
+            current.lastPracticedAt = lastActivityAt;
+            current.prepState = buildDashboardPrepProfileSummary(row, sessionEvidenceBySessionId.get(row.session_id ?? "") ?? [], null).primarySignal?.state ?? "not_practiced";
         }
 
         options.set(id, current);

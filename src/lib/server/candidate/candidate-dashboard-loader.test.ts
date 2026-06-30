@@ -338,7 +338,7 @@ describe("candidate dashboard loader", () => {
             ],
         });
 
-        expect(queryPostgresMock.mock.calls[1][1]).toEqual([["client-service-session"]]);
+        expect(queryPostgresMock.mock.calls[1][1]).toEqual([["client-service-session", "technical-support-session"]]);
     });
 
     it("uses the requested target role when it matches a candidate interview context", async () => {
@@ -396,10 +396,18 @@ describe("candidate dashboard loader", () => {
                 expect.objectContaining({
                     label: "Client Service Coordinator",
                     isSelected: false,
+                    practicedQuestionCount: 3,
+                    plannedQuestionCount: 3,
+                    lastPracticedAt: Date.parse("2026-05-13T14:00:00.000Z"),
+                    prepState: expect.any(String),
                 }),
                 expect.objectContaining({
                     label: "Technical Support Specialist",
                     isSelected: true,
+                    practicedQuestionCount: 3,
+                    plannedQuestionCount: 3,
+                    lastPracticedAt: Date.parse("2026-05-12T14:00:00.000Z"),
+                    prepState: expect.any(String),
                 }),
             ]),
             completedItems: [
@@ -410,7 +418,7 @@ describe("candidate dashboard loader", () => {
             ],
         });
 
-        expect(queryPostgresMock.mock.calls[1][1]).toEqual([["technical-support-session"]]);
+        expect(queryPostgresMock.mock.calls[1][1]).toEqual([["client-service-session", "technical-support-session"]]);
     });
 
     it("keeps older dashboard rows readable when no role profile link exists", async () => {

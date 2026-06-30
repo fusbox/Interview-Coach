@@ -105,7 +105,7 @@ Current dashboard scoping rule:
 3. Otherwise use the latest practice activity as the selected target interview context.
 4. Keep dashboard stats, Practice Next, Previous Sessions, and Preparedness Map evidence scoped to that selected target interview title until the multi-profile manager is implemented.
 
-This is a first guard against mixed-role dashboard pollution. A later profile manager can tighten the selector to `prepProfileId` plus job-description snapshot when the UI supports switching between multiple active target interviews with the same role title.
+This is a first guard against mixed-role dashboard pollution. The current prep-context switcher exposes the selected target interview, practiced/planned question coverage, qualitative prep state, and latest practice timestamp for each target role. A later profile manager can tighten the selector to `prepProfileId` plus job-description snapshot when the UI supports switching between multiple active target interviews with the same role title.
 
 ### InterviewContext
 

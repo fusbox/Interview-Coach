@@ -15,8 +15,8 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/components/shell/CandidateShell", () => ({
-    CandidateShell: ({ children }: { children: ReactNode }) => (
-        <div data-testid="candidate-shell">{children}</div>
+    CandidateShell: ({ children, showNavigation = true }: { children: ReactNode; showNavigation?: boolean }) => (
+        <div data-testid="candidate-shell" data-show-navigation={String(showNavigation)}>{children}</div>
     ),
 }));
 
@@ -50,6 +50,10 @@ describe("/dashboard page", () => {
                     isSelected: true,
                     activeCount: 1,
                     completedCount: 0,
+                    practicedQuestionCount: 1,
+                    plannedQuestionCount: 3,
+                    lastPracticedAt: Date.parse("2026-05-12T14:00:00.000Z"),
+                    prepState: "emerging",
                 },
             ],
             activeItems: [
@@ -121,10 +125,11 @@ describe("/dashboard page", () => {
 
         expect(loadCandidateDashboardForCurrentCandidateMock).toHaveBeenCalledWith({ targetRole: "QA Analyst" });
         expect(screen.getByTestId("candidate-shell")).toBeInTheDocument();
-        expect(screen.getByRole("heading", { name: /candidate dashboard/i })).toBeInTheDocument();
+        expect(screen.getByTestId("candidate-shell")).toHaveAttribute("data-show-navigation", "false");
+        expect(screen.getByRole("heading", { name: /interview coach/i })).toBeInTheDocument();
         expect(screen.queryByRole("heading", { name: /welcome back/i })).not.toBeInTheDocument();
         expect(screen.getByRole("region", { name: /preparedness map/i })).toHaveTextContent("Structure");
-        expect(screen.getByRole("button", { name: /open structure details/i })).toHaveTextContent("Emerging");
+        expect(screen.getByRole("button", { name: /open structure details/i })).toBeInTheDocument();
         expect(screen.getByRole("region", { name: /practice next/i })).toHaveTextContent("Resume QA Analyst");
         expect(screen.queryByRole("region", { name: /resume-to-role bridge/i })).not.toBeInTheDocument();
     });

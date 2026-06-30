@@ -26,6 +26,10 @@ const baseModel: CandidateDashboardModel = {
             isSelected: true,
             activeCount: 1,
             completedCount: 0,
+            practicedQuestionCount: 1,
+            plannedQuestionCount: 3,
+            lastPracticedAt: Date.parse("2026-05-12T14:00:00.000Z"),
+            prepState: "emerging",
         },
         {
             id: "support lead",
@@ -34,6 +38,10 @@ const baseModel: CandidateDashboardModel = {
             isSelected: false,
             activeCount: 0,
             completedCount: 1,
+            practicedQuestionCount: 2,
+            plannedQuestionCount: 2,
+            lastPracticedAt: Date.parse("2026-05-11T14:00:00.000Z"),
+            prepState: "clear",
         },
     ],
     activeItems: [
@@ -177,10 +185,15 @@ describe("CandidateDashboardPage", () => {
         expect(screen.getByRole("button", { name: /next practice round/i })).toHaveClass("w-full");
         expect(screen.queryByRole("heading", { name: "QA Analyst", level: 2 })).not.toBeInTheDocument();
         expect(screen.queryByText("Target interview")).not.toBeInTheDocument();
-        expect(screen.getByRole("navigation", { name: /target interviews/i })).toHaveTextContent("QA Analyst");
-        expect(screen.getByRole("navigation", { name: /target interviews/i })).not.toHaveTextContent("1 active");
-        expect(screen.getByRole("navigation", { name: /target interviews/i })).not.toHaveTextContent("1 completed");
+        expect(screen.getByRole("button", { name: /switch interview prep context/i })).toHaveTextContent("QA Analyst");
+        expect(screen.getByLabelText("1 of 3 questions practiced")).toHaveAttribute("data-prep-state", "emerging");
+        expect(screen.getByRole("button", { name: /switch interview prep context/i })).not.toHaveTextContent("1/3");
+        expect(screen.queryByText("1 active")).not.toBeInTheDocument();
+        expect(screen.queryByText("1 completed")).not.toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: /switch interview prep context/i }));
+        expect(screen.getByRole("dialog", { name: /interview prep contexts/i })).toHaveTextContent("Support Lead");
         expect(screen.getByRole("link", { name: /support lead/i })).toHaveAttribute("href", "/dashboard?targetRole=support%20lead");
+        expect(screen.getByRole("link", { name: /prep for a new role/i })).toHaveAttribute("href", "/practice");
         expect(screen.getByRole("region", { name: /preparedness map/i })).toHaveTextContent("How your answers are shaping up");
         expect(screen.getByRole("tab", { name: /quick view/i })).toHaveAttribute("aria-selected", "true");
         expect(screen.getByRole("button", { name: /open structure details/i })).toBeInTheDocument();
@@ -447,14 +460,19 @@ describe("CandidateDashboardPage", () => {
         await user.click(coachUpdate);
 
         const dialog = screen.getByRole("dialog", { name: /coach update/i });
-        expect(dialog).toHaveTextContent("Here is the quick debrief.");
+        expect(dialog).toHaveTextContent("I reviewed your latest practice. Here's what stood out.");
         expect(dialog).not.toHaveTextContent("Quick markers");
-        expect(dialog).toHaveTextContent("Question");
+        expect(screen.queryByText(/^Question$/i)).not.toBeInTheDocument();
         expect(dialog).toHaveTextContent("Tell me about a client issue you resolved.");
-        expect(dialog).toHaveTextContent("Your answer");
+        expect(screen.queryByText(/^Your answer$/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/^Voice response$/i)).not.toBeInTheDocument();
         expect(dialog).toHaveTextContent("I helped the client understand the next step and reduced repeat follow-up.");
-        expect(dialog).toHaveTextContent("Coach callout");
-        expect(dialog).toHaveTextContent("How to strengthen it");
+        expect(screen.getByLabelText(/question prompt/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/candidate answer/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/voice response mode/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/coach observation/i)).toHaveTextContent("You gave a relevant client example.");
+        expect(screen.getByLabelText(/coach observation/i)).toHaveTextContent("Make the client impact visible");
+        expect(screen.queryByLabelText(/coach guidance/i)).not.toBeInTheDocument();
         expect(dialog).toHaveTextContent("Make the client impact visible");
         await user.click(screen.getByRole("button", { name: /add this to my next round/i }));
         expect(screen.getByRole("button", { name: /added/i })).toHaveAttribute("aria-pressed", "true");

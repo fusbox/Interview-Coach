@@ -8,8 +8,8 @@ const { loadPracticeSetupDraftForCurrentCandidateMock } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/components/shell/CandidateShell", () => ({
-    CandidateShell: ({ children }: { children: ReactNode }) => (
-        <div data-testid="candidate-shell">{children}</div>
+    CandidateShell: ({ children, showNavigation = true }: { children: ReactNode; showNavigation?: boolean }) => (
+        <div data-testid="candidate-shell" data-show-navigation={String(showNavigation)}>{children}</div>
     ),
 }));
 
@@ -35,6 +35,7 @@ describe("/practice page", () => {
         render(await PracticePage({}));
 
         expect(screen.getByTestId("candidate-shell")).toBeInTheDocument();
+        expect(screen.getByTestId("candidate-shell")).toHaveAttribute("data-show-navigation", "true");
         expect(screen.getByText(/Practice setup feature boundary empty/)).toBeInTheDocument();
     });
 

@@ -37,5 +37,19 @@ describe("CandidateShell", () => {
         expect(screen.getByText(/interview coach uses ai for practice coaching/i)).toBeInTheDocument();
         expect(screen.getByText(/protected by app security and access controls/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/company footer placeholder/i)).toBeInTheDocument();
+        expect(screen.getByRole("navigation", { name: /candidate navigation/i })).toBeInTheDocument();
+    });
+
+    it("can render focused dashboard content without candidate navigation", () => {
+        render(
+            <CandidateShell showNavigation={false}>
+                <section>Focused dashboard content</section>
+            </CandidateShell>,
+        );
+
+        expect(screen.getByText("Focused dashboard content")).toBeInTheDocument();
+        expect(screen.queryByRole("navigation", { name: /candidate navigation/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole("link", { name: /create practice/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole("link", { name: /dashboard/i })).not.toBeInTheDocument();
     });
 });

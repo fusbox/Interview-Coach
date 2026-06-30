@@ -16,6 +16,7 @@ import {
     QuestionCategoryDrilldown,
     RecentActivityList,
     SkillDrilldown,
+    TargetInterviewSwitcher,
     toInstantReadCategoryMix,
     toInstantReadPreparednessModel,
     toQuestionCategoryCards,
@@ -50,6 +51,63 @@ const skill: PreparednessSkill = {
 };
 
 describe("candidate dashboard component set", () => {
+    it("renders target interviews as a prep context switcher with a mini progress gauge and create action", async () => {
+        const user = userEvent.setup();
+
+        render(
+            <TargetInterviewSwitcher
+                targetInterviews={[
+                    {
+                        id: "client services representative",
+                        label: "Client Services Representative",
+                        href: "/dashboard?targetRole=client%20services%20representative",
+                        isSelected: true,
+                        activeCount: 0,
+                        completedCount: 1,
+                        practicedQuestionCount: 3,
+                        plannedQuestionCount: 7,
+                        lastPracticedAt: Date.parse("2026-06-29T20:15:00.000Z"),
+                        prepState: "emerging",
+                    },
+                    {
+                        id: "client services specialist",
+                        label: "Client Services Specialist",
+                        href: "/dashboard?targetRole=client%20services%20specialist",
+                        isSelected: false,
+                        activeCount: 1,
+                        completedCount: 0,
+                        practicedQuestionCount: 0,
+                        plannedQuestionCount: 5,
+                        lastPracticedAt: null,
+                        prepState: "not_practiced",
+                    },
+                ]}
+            />,
+        );
+
+        expect(screen.getByText(/current role - tap\/click to switch or set up a new role/i)).toBeInTheDocument();
+        const trigger = screen.getByRole("button", { name: /switch interview prep context/i });
+        expect(trigger).toHaveTextContent("Client Services Representative");
+        expect(trigger).toHaveTextContent(/\d{2}\/\d{2}\/\d{2}/);
+        const gauge = screen.getByLabelText("3 of 7 questions practiced");
+        expect(gauge).toHaveAttribute("data-prep-state", "emerging");
+        expect(gauge.querySelector("circle[stroke-linecap='round']")).toHaveAttribute("stroke-width", "7");
+        expect(gauge).not.toHaveTextContent("3/7");
+        expect(trigger).not.toHaveTextContent("1 completed");
+
+        await user.click(trigger);
+
+        const dialog = screen.getByRole("dialog", { name: /interview prep contexts/i });
+        expect(dialog).toHaveClass("data-[state=open]:animate-in");
+        expect(dialog).toHaveClass("data-[state=open]:fade-in-0");
+        expect(dialog).toHaveTextContent("Client Services Specialist");
+        expect(dialog).toHaveTextContent("Not practiced yet");
+        expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
+        expect(screen.getByRole("link", { name: /prep for a new role/i })).toHaveAttribute("href", "/practice");
+        await user.click(screen.getByRole("link", { name: /client services specialist/i }));
+        expect(screen.queryByRole("dialog", { name: /interview prep contexts/i })).not.toBeInTheDocument();
+    });
+
     it("renders the preparedness map with qualitative state labels", async () => {
         const user = userEvent.setup();
         const clicked: string[] = [];
@@ -647,15 +705,25 @@ describe("candidate dashboard component set", () => {
         );
 
         const dialog = screen.getByRole("dialog", { name: /coach update/i });
+        expect(dialog).toHaveClass("md:w-[min(54rem,calc(100vw-2rem))]");
         expect(dialog).not.toHaveTextContent("Quick markers");
         const header = dialog.querySelector("[data-coach-update-header]");
         expect(header).not.toBeNull();
-        expect(header).toHaveTextContent("Q2: Behavioral");
-        expect(header).toHaveTextContent("Q3: Case / Scenario");
-        expect(dialog).toHaveTextContent("Question");
-        expect(dialog).toHaveTextContent("Your answer");
-        expect(dialog).toHaveTextContent("Coach callout");
-        expect(dialog).toHaveTextContent("How to strengthen it");
+        expect(header).toHaveTextContent("I reviewed your latest practice. Here's what stood out.");
+        expect(screen.getByRole("button", { name: /current feedback q2 behavioral/i })).toHaveAttribute("aria-current", "true");
+        expect(screen.getByRole("button", { name: /go to q3 case \/ scenario feedback/i })).toBeInTheDocument();
+        expect(screen.queryByText(/^Question$/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/^Your answer$/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/^Voice response$/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/^Coach callout$/i)).not.toBeInTheDocument();
+        expect(screen.getByLabelText(/question prompt/i)).toHaveClass("bg-primary/10", "text-primary");
+        expect(screen.getByLabelText(/candidate answer/i)).toHaveClass("bg-primary/10", "text-primary");
+        expect(screen.getByLabelText(/voice response mode/i)).toHaveClass("border-primary/45", "text-primary");
+        expect(screen.getByLabelText(/coach observation/i)).toHaveTextContent("Your answer shows helpful intent.");
+        expect(screen.getByLabelText(/coach observation/i)).toHaveTextContent("Name the action and client impact.");
+        expect(screen.queryByLabelText(/coach guidance/i)).not.toBeInTheDocument();
+        expect(screen.getByText("Tell me about a time you helped a customer get unstuck.")).toHaveClass("text-sm", "font-bold", "leading-6");
+        expect(screen.getByText("Your answer shows helpful intent.")).toHaveClass("text-sm", "font-semibold", "leading-6");
         expect(dialog).toHaveTextContent("Tell me about a time you helped a customer get unstuck.");
         expect(dialog).toHaveTextContent("I checked what information was missing and followed up.");
         expect(screen.getByRole("button", { name: /practice this now/i })).toBeInTheDocument();
@@ -667,8 +735,12 @@ describe("candidate dashboard component set", () => {
             configurable: true,
             value: scrollTo,
         });
-        await user.click(screen.getByRole("button", { name: /q3: case \/ scenario/i }));
+        expect(screen.getByRole("button", { name: /previous question feedback/i })).toBeDisabled();
+        await user.click(screen.getByRole("button", { name: /next question feedback/i }));
         expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" });
+        expect(screen.getByRole("button", { name: /previous question feedback/i })).toBeEnabled();
+        expect(screen.getByRole("button", { name: /next question feedback/i })).toBeDisabled();
+        expect(screen.getByRole("button", { name: /current feedback q3 case \/ scenario/i })).toHaveAttribute("aria-current", "true");
 
         const addToRound = screen.getByRole("button", { name: /add this to my next round/i });
         await user.click(addToRound);
