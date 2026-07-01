@@ -48,7 +48,7 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
     const [selectedCoachPlanSkillId, setSelectedCoachPlanSkillId] = useState<string | null>(null);
     const [isCoachUpdateOpen, setIsCoachUpdateOpen] = useState(false);
     const [selectedMatrixCellId, setSelectedMatrixCellId] = useState<string | null>(null);
-    const [queuedQuestions, setQueuedQuestions] = useState<Array<{ id: string }>>([]);
+    const [queuedQuestionsByContextId, setQueuedQuestionsByContextId] = useState<Record<string, Array<{ id: string }>>>({});
     const [isNextPracticeRoundOpen, setIsNextPracticeRoundOpen] = useState(false);
     const [nextPracticeRoundAnchorRect, setNextPracticeRoundAnchorRect] = useState<NextPracticeRoundAnchorRect | null>(null);
     const nextPracticeRoundAnchorRef = useRef<HTMLDivElement | null>(null);
@@ -85,26 +85,49 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
     const selectedCoachPlanCategory = categoryDrilldowns.find((category) => category.id === selectedCoachPlanCategoryId) || null;
     const selectedMatrixCell = preparednessMatrix.cells.find((cell) => cell.id === selectedMatrixCellId) || null;
     const recentItems = scopedItems.slice(0, 4);
+    const queuedQuestions = queuedQuestionsByContextId[selectedQueueContextId] ?? [];
     const queuedQuestionItems = queuedQuestions
         .map((queuedQuestion) => coachPlanQuestions.find((question) => question.id === queuedQuestion.id) || null)
         .filter((question): question is NonNullable<typeof question> => Boolean(question));
     const queuedQuestionIds = queuedQuestions.map((question) => question.id);
     const handleAddQuestionToNextRound = (question: { id: string }) => {
-        setQueuedQuestions((current) => current.some((queuedQuestion) => queuedQuestion.id === question.id)
-            ? current
-            : [...current, { id: question.id }]);
+        setQueuedQuestionsByContextId((currentByContextId) => {
+            const current = currentByContextId[selectedQueueContextId] ?? [];
+            if (current.some((queuedQuestion) => queuedQuestion.id === question.id)) {
+                return currentByContextId;
+            }
+
+            return {
+                ...currentByContextId,
+                [selectedQueueContextId]: [...current, { id: question.id }],
+            };
+        });
     };
     const handleRemoveQuestionFromNextRound = (questionId: string) => {
-        setQueuedQuestions((current) => {
+        setQueuedQuestionsByContextId((currentByContextId) => {
+            const current = currentByContextId[selectedQueueContextId] ?? [];
             const next = current.filter((question) => question.id !== questionId);
             if (next.length === 0) {
                 setIsNextPracticeRoundOpen(false);
             }
-            return next;
+            if (next.length === 0) {
+                const remainingByContextId = { ...currentByContextId };
+                delete remainingByContextId[selectedQueueContextId];
+                return remainingByContextId;
+            }
+
+            return {
+                ...currentByContextId,
+                [selectedQueueContextId]: next,
+            };
         });
     };
     const handleClearNextPracticeRound = () => {
-        setQueuedQuestions([]);
+        setQueuedQuestionsByContextId((currentByContextId) => {
+            const remainingByContextId = { ...currentByContextId };
+            delete remainingByContextId[selectedQueueContextId];
+            return remainingByContextId;
+        });
         setIsNextPracticeRoundOpen(false);
     };
     const handleOpenNextPracticeRound = () => {
@@ -123,8 +146,8 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
     };
 
     useEffect(() => {
-        setQueuedQuestions([]);
         setIsNextPracticeRoundOpen(false);
+        setNextPracticeRoundAnchorRect(null);
     }, [selectedQueueContextId]);
 
     return (

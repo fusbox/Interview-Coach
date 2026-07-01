@@ -500,7 +500,7 @@ describe("CandidateDashboardPage", () => {
         expect(screen.getByRole("button", { name: /add this to my next round/i })).toHaveAttribute("aria-pressed", "false");
     });
 
-    it("resets the local next-round queue when the selected prep context changes", async () => {
+    it("keeps next-round queue buckets independent for each selected prep context", async () => {
         const user = userEvent.setup();
         const { rerender } = render(<CandidateDashboardPage dashboard={baseModel} />);
 
@@ -508,8 +508,9 @@ describe("CandidateDashboardPage", () => {
         await user.click(screen.getByRole("button", { name: /add this to my next round/i }));
 
         expect(screen.getByRole("button", { name: /next practice round/i })).toHaveTextContent("1");
+        await user.click(screen.getByRole("button", { name: /close/i }));
 
-        rerender(<CandidateDashboardPage dashboard={{
+        const supportLeadDashboard: CandidateDashboardModel = {
             ...baseModel,
             selectedTargetInterviewId: "support lead",
             targetInterviews: baseModel.targetInterviews.map((targetInterview) => ({
@@ -520,6 +521,9 @@ describe("CandidateDashboardPage", () => {
             completedItems: [
                 {
                     ...baseModel.completedItems[0],
+                    coachingSnippetLabel: "For the biggest lift",
+                    coachingSnippet: "Keep the customer impact visible.",
+                    lastActivityAt: Date.parse("2026-06-27T15:30:00.000Z"),
                     prepProfile: {
                         prepProfileId: "role-profile-2",
                         primarySignal: {
@@ -548,6 +552,7 @@ describe("CandidateDashboardPage", () => {
                                         answerTranscript: "I aligned the team and kept the customer informed.",
                                         answerModality: "voice",
                                         excerpt: "I aligned the team and kept the customer informed.",
+                                        evaluation: "Behavioral feedback: Your escalation story is clear. For the biggest lift: Keep the customer impact visible. Try: I kept the customer informed until the escalation was resolved. Next step: Keep the story tied to what changed for the customer.",
                                     },
                                 ],
                             },
@@ -567,10 +572,39 @@ describe("CandidateDashboardPage", () => {
                     },
                 },
             ],
-        }} />);
+        };
+
+        rerender(<CandidateDashboardPage dashboard={supportLeadDashboard} />);
 
         expect(screen.getByRole("button", { name: /switch interview prep context/i })).toHaveTextContent("Support Lead");
         expect(screen.getByRole("button", { name: /next practice round/i })).not.toHaveTextContent("1");
+
+        await user.click(screen.getByRole("button", { name: /open coach update/i }));
+        await user.click(screen.getByRole("button", { name: /add this to my next round/i }));
+        expect(screen.getByRole("button", { name: /added/i })).toHaveAttribute("aria-pressed", "true");
+        await user.click(screen.getByRole("button", { name: /close/i }));
+
+        await user.click(screen.getByRole("button", { name: /open q1 question detail/i }));
+        expect(screen.getByRole("button", { name: /added/i })).toHaveAttribute("aria-pressed", "true");
+        await user.click(screen.getByRole("button", { name: /close/i }));
+
+        expect(screen.getByRole("button", { name: /next practice round/i })).toHaveTextContent("1");
+        await user.click(screen.getByRole("button", { name: /next practice round/i }));
+        expect(screen.getByRole("dialog", { name: /next practice round/i })).toHaveTextContent("Tell me about coaching an escalated account.");
+        await user.click(screen.getByRole("button", { name: /remove q1 from next practice round/i }));
+        expect(screen.queryByRole("dialog", { name: /next practice round/i })).not.toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /next practice round/i })).not.toHaveTextContent("1");
+
+        await user.click(screen.getByRole("button", { name: /open q1 question detail/i }));
+        expect(screen.getByRole("button", { name: /add this to my next round/i })).toHaveAttribute("aria-pressed", "false");
+        await user.click(screen.getByRole("button", { name: /close/i }));
+
+        rerender(<CandidateDashboardPage dashboard={baseModel} />);
+
+        expect(screen.getByRole("button", { name: /switch interview prep context/i })).toHaveTextContent("QA Analyst");
+        expect(screen.getByRole("button", { name: /next practice round/i })).toHaveTextContent("1");
+        await user.click(screen.getAllByRole("button", { name: /open q1 question detail/i })[1]);
+        expect(screen.getByRole("button", { name: /added/i })).toHaveAttribute("aria-pressed", "true");
     });
 
     it("opens a teaching-first Coach Plan category sheet from the category face", async () => {
