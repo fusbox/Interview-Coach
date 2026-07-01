@@ -484,6 +484,9 @@ describe("CandidateDashboardPage", () => {
 
         const questionDialog = screen.getByRole("dialog", { name: /q1 question detail/i });
         expect(questionDialog).toHaveTextContent("Tell me about a client issue you resolved.");
+        const questionDialogHeader = questionDialog.querySelector("[data-coach-plan-question-sheet-header]");
+        expect(questionDialogHeader).not.toBeNull();
+        expect(questionDialogHeader).not.toHaveTextContent("Tell me about a client issue you resolved.");
         expect(screen.getByRole("button", { name: /added/i })).toHaveAttribute("aria-pressed", "true");
 
         await user.click(screen.getByRole("button", { name: /close/i }));
@@ -676,6 +679,12 @@ describe("CandidateDashboardPage", () => {
         expect(categoryFace).toHaveTextContent("Question plan");
         expect(categoryFace).toHaveTextContent("Behavioral");
         expect(categoryFace).toHaveTextContent("Case / Scenario");
+        const behavioralChip = Array.from(categoryFace.querySelectorAll("[data-question-category-chip]"))
+            .find((chip) => chip.textContent === "Behavioral");
+        const caseScenarioChip = Array.from(categoryFace.querySelectorAll("[data-question-category-chip]"))
+            .find((chip) => chip.textContent === "Case / Scenario");
+        expect(behavioralChip).toHaveClass("bg-[#eef0ff]", "text-[#4d5bc7]", "border-[#ccd2ff]");
+        expect(caseScenarioChip).toHaveClass("bg-[#e9f7f5]", "text-[#0f766e]", "border-[#b7e4dd]");
 
         await user.click(screen.getByRole("button", { name: /open behavioral category guidance/i }));
 
@@ -853,10 +862,14 @@ describe("CandidateDashboardPage", () => {
         expect(questionSet).toHaveTextContent("Tell me about a customer issue you resolved.");
         expect(questionSet).toHaveTextContent("Answered");
         expect(questionSet).not.toHaveTextContent("Q2: Behavioral");
+        const answeredQuestion = screen.getByRole("button", { name: /open q1 question detail/i });
+        expect(answeredQuestion.querySelector("[data-question-category-chip]")).toHaveClass("bg-[#eef0ff]", "text-[#4d5bc7]", "border-[#ccd2ff]");
+        expect(answeredQuestion.querySelector("[data-question-state-chip]")).toHaveTextContent("Clear");
 
         await user.click(screen.getByRole("button", { name: /reveal unanswered questions/i }));
 
-        expect(questionSet).toHaveTextContent("Q2: Behavioral");
+        expect(questionSet).toHaveTextContent("Q2:");
+        expect(questionSet).toHaveTextContent("Behavioral");
         expect(questionSet).toHaveTextContent("How would you rebuild trust with a client after a missed deadline?");
         expect(questionSet).not.toHaveTextContent("Hidden until you choose to reveal unanswered questions.");
 

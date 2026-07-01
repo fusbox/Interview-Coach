@@ -720,7 +720,11 @@ describe("candidate dashboard component set", () => {
         expect(screen.queryByText(/^Coach callout$/i)).not.toBeInTheDocument();
         expect(screen.getByLabelText(/question prompt/i)).toHaveClass("bg-primary/10", "text-primary");
         expect(screen.getByLabelText(/candidate answer/i)).toHaveClass("bg-primary/10", "text-primary");
-        expect(screen.getByLabelText(/voice response mode/i)).toHaveClass("border-primary/45", "text-primary");
+        expect(screen.getByLabelText(/voice response mode/i)).toHaveClass("bg-primary/10", "text-primary");
+        expect(screen.getByLabelText(/voice response mode/i)).not.toHaveClass("border");
+        expect(screen.getAllByTestId("coach-update-feedback-slide")[0]).toHaveClass("flex", "min-h-full");
+        expect(screen.getAllByTestId("question-feedback-panel")[0]).toHaveClass("flex", "min-h-full", "flex-col");
+        expect(screen.getAllByTestId("question-feedback-actions")[0]).toHaveClass("mt-auto");
         expect(screen.getByLabelText(/coach observation/i)).toHaveTextContent("Your answer shows helpful intent.");
         expect(screen.getByLabelText(/coach observation/i)).toHaveTextContent("Name the action and client impact.");
         expect(screen.queryByLabelText(/coach guidance/i)).not.toBeInTheDocument();
@@ -776,26 +780,48 @@ describe("candidate dashboard component set", () => {
         );
 
         const surface = screen.getByRole("dialog", { name: /^next practice round$/i });
-        expect(surface).toHaveStyle({ top: "96px", left: "24px", width: "552px" });
+        expect(surface).toHaveStyle({ top: "76px", left: "24px", width: "552px" });
         expect(surface).toHaveClass("transition-[height,box-shadow,transform,width]");
         const surfaceTitle = screen.getByTestId("next-practice-round-surface-title");
         expect(surfaceTitle).toHaveClass("absolute");
         expect(surfaceTitle).toHaveClass("inset-x-0");
-        expect(surfaceTitle).toHaveClass("min-h-11");
+        expect(surfaceTitle).toHaveStyle({ top: "20px", height: "72px" });
         expect(surfaceTitle).toHaveClass("text-sm");
         expect(surfaceTitle).toHaveClass("justify-center");
         expect(surfaceTitle).toHaveClass("text-[rgb(var(--candidate-foreground)/0.72)]");
         expect(surfaceTitle).toHaveTextContent("Next practice round");
         expect(surfaceTitle).toHaveTextContent("1");
+        expect(screen.queryByText("Ready when you are")).not.toBeInTheDocument();
+        expect(screen.queryByText("Review what you added before starting another focused round.")).not.toBeInTheDocument();
+        const startPracticeLinks = screen.getAllByRole("link", { name: /start practice/i });
+        expect(startPracticeLinks[0]).toHaveAttribute("href", "/practice");
+        expect(surface.querySelector("[data-next-practice-round-header-cta]")).not.toBeNull();
+        expect(surface.querySelector("[data-next-practice-round-footer-cta]")).toBeNull();
+
+        const queuedItem = screen.getByTestId("next-practice-round-question");
+        expect(queuedItem).toHaveTextContent("Q1");
+        expect(queuedItem.querySelector("[data-next-practice-round-question-number]")).toHaveClass("text-xs", "font-black", "uppercase", "tracking-[0.16em]", "text-text-muted");
+        expect(queuedItem.querySelector("[data-next-practice-round-question-number]")).toHaveTextContent("Q1:");
+        expect(screen.queryByText("Q1:")?.closest(".rounded-full")).toBeNull();
+        expect(queuedItem.querySelector("[data-question-category-chip]")).toHaveClass("bg-[#eef0ff]", "text-[#4d5bc7]", "border-[#ccd2ff]");
+        expect(queuedItem.querySelector("[data-question-state-chip]")).toHaveTextContent("Clear");
+        expect(queuedItem.querySelector("[data-next-practice-round-question-text]")).toHaveClass("mt-2", "text-sm", "font-bold", "leading-6", "text-text-primary");
 
         const remove = screen.getByRole("button", { name: /remove q1 from next practice round/i });
-        expect(remove).toHaveClass("text-red-600");
+        expect(remove).toHaveClass("h-6", "w-6");
+        expect(remove).toHaveClass("self-start");
+        expect(remove).toHaveClass("text-red-400");
         await user.click(remove);
         expect(onRemoveQuestion).toHaveBeenCalledWith("behavioral:question-1");
 
+        const secondaryActions = screen.getByTestId("next-practice-round-secondary-actions");
+        expect(secondaryActions).toHaveClass("grid-cols-2");
+        expect(screen.getByRole("button", { name: /^cancel$/i })).toHaveClass("w-full");
         const clearAll = screen.getByRole("button", { name: /clear all/i });
+        expect(clearAll).toHaveClass("w-full");
+        expect(clearAll).toHaveClass("font-medium");
+        expect(clearAll).not.toHaveClass("font-bold");
         expect(clearAll).toHaveClass("border-transparent");
-        expect(clearAll).toHaveClass("justify-end");
         await user.click(clearAll);
         expect(onClearAll).not.toHaveBeenCalled();
         expect(screen.getByRole("dialog", { name: /clear next practice round/i })).toBeInTheDocument();

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type FocusEvent, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type FocusEvent, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { ArrowRight, Briefcase, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Circle, CircleUser, FileText, Keyboard, MessageCircleQuestion, MessageSquare, Mic, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { Cell, Pie, PieChart } from "recharts";
@@ -159,6 +159,97 @@ type QuestionFeedbackQueueProps = {
     queuedQuestionIds?: string[];
     onAddQuestionToNextRound?: (question: QuestionFeedbackItem) => void;
 };
+
+type QuestionCategoryId = PrepQuestionCategoryCard["categoryId"];
+
+type QuestionCategoryPresentationStyle = {
+    chip: string;
+};
+
+const QUESTION_CATEGORY_STYLES: Record<QuestionCategoryId, QuestionCategoryPresentationStyle> = {
+    screening: {
+        chip: "border-[#cbd5e1] bg-[#f1f5f9] text-[#475569]",
+    },
+    behavioral: {
+        chip: "border-[#ccd2ff] bg-[#eef0ff] text-[#4d5bc7]",
+    },
+    culture_fit: {
+        chip: "border-[#e9d5ff] bg-[#f6edff] text-[#8a3fd1]",
+    },
+    case_scenario: {
+        chip: "border-[#b7e4dd] bg-[#e9f7f5] text-[#0f766e]",
+    },
+    technical_role_specific: {
+        chip: "border-[#ead6a2] bg-[#fbf4df] text-[#9a6417]",
+    },
+};
+
+const FALLBACK_QUESTION_CATEGORY_STYLE: QuestionCategoryPresentationStyle = {
+    chip: "border-[rgb(var(--candidate-border)/0.72)] bg-surface-base text-text-secondary",
+};
+
+function getQuestionCategoryStyles(category: string | null | undefined): QuestionCategoryPresentationStyle {
+    const categoryId = normalizeQuestionCategoryId(category);
+    return categoryId ? QUESTION_CATEGORY_STYLES[categoryId] : FALLBACK_QUESTION_CATEGORY_STYLE;
+}
+
+function normalizeQuestionCategoryId(category: string | null | undefined): QuestionCategoryId | null {
+    const normalized = category?.trim().toLowerCase().replace(/&/g, "and").replace(/[\s/-]+/g, "_");
+    switch (normalized) {
+        case "screening":
+            return "screening";
+        case "behavioral":
+        case "star":
+            return "behavioral";
+        case "culture_fit":
+        case "culture":
+        case "perma":
+        case "culture_and_fit":
+            return "culture_fit";
+        case "case_scenario":
+        case "case":
+        case "scenario":
+        case "situational":
+            return "case_scenario";
+        case "technical":
+        case "technical_role_specific":
+        case "tech":
+            return "technical_role_specific";
+        default:
+            return null;
+    }
+}
+
+function QuestionCategoryChip({
+    category,
+    children,
+}: {
+    category: string;
+    children: ReactNode;
+}) {
+    const styles = getQuestionCategoryStyles(category);
+    return (
+        <span
+            data-question-category-chip
+            className={cn("inline-flex rounded-full border px-3 py-1 text-xs font-bold", styles.chip)}
+        >
+            {children}
+        </span>
+    );
+}
+
+function QuestionStateChip({
+    state,
+}: {
+    state: PreparednessState;
+}) {
+    const styles = getPreparednessStateStyles(state);
+    return (
+        <span data-question-state-chip className={cn("inline-flex rounded-full px-3 py-1 text-xs font-bold", styles.badge)}>
+            {formatPreparednessState(state)}
+        </span>
+    );
+}
 
 export type CoachPlanOverviewModel = {
     targetRole: string;
@@ -392,6 +483,9 @@ export function NextPracticeRoundSurface({
     const [isClearAllConfirmOpen, setIsClearAllConfirmOpen] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
     const hasAnchor = Boolean(anchorRect);
+    const surfaceTopPadding = 20;
+    const surfaceTitleHeight = anchorRect?.height ?? 44;
+    const surfaceTop = anchorRect ? anchorRect.top - surfaceTopPadding : undefined;
 
     useLayoutEffect(() => {
         const frame = window.requestAnimationFrame(() => setIsExpanded(true));
@@ -399,12 +493,17 @@ export function NextPracticeRoundSurface({
     }, []);
 
     const anchoredSurfaceStyle: CSSProperties | undefined = anchorRect ? {
-        top: anchorRect.top,
+        top: surfaceTop,
         left: anchorRect.left,
         width: isExpanded ? Math.min(640, Math.max(anchorRect.width, 320)) : anchorRect.width,
         minHeight: isExpanded ? undefined : anchorRect.height,
+        maxHeight: surfaceTop !== undefined ? `calc(100dvh - ${Math.max(surfaceTop, 0)}px - 1rem)` : undefined,
         transform: isExpanded ? "translateY(0)" : "translateY(0) scale(0.98)",
     } : undefined;
+    const titleRowStyle: CSSProperties = {
+        top: hasAnchor ? surfaceTopPadding : 0,
+        height: hasAnchor ? surfaceTitleHeight : undefined,
+    };
 
     return (
         <div
@@ -432,10 +531,16 @@ export function NextPracticeRoundSurface({
                 )}
             >
                 <div className="sticky top-0 z-10 border-b border-[rgb(var(--candidate-border)/0.7)] bg-white">
-                    <div className="relative min-h-11">
+                    <div
+                        className="relative"
+                        style={{
+                            minHeight: hasAnchor ? surfaceTopPadding + surfaceTitleHeight : undefined,
+                        }}
+                    >
                         <div
                             data-testid="next-practice-round-surface-title"
-                            className="pointer-events-none absolute inset-x-0 top-0 z-10 flex min-h-11 items-center justify-center rounded-2xl px-4 text-sm font-bold text-[rgb(var(--candidate-foreground)/0.72)]"
+                            style={titleRowStyle}
+                            className="pointer-events-none absolute inset-x-0 z-10 flex min-h-11 items-center justify-center rounded-2xl px-4 text-sm font-bold text-[rgb(var(--candidate-foreground)/0.72)]"
                         >
                             Next practice round
                             <span className="ml-2 rounded-full bg-surface-base px-2 py-0.5 text-xs text-text-secondary">
@@ -445,49 +550,49 @@ export function NextPracticeRoundSurface({
                         <button
                             type="button"
                             onClick={onClose}
-                            className="absolute right-5 top-0 z-20 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-text-muted transition-colors hover:bg-surface-subtle hover:text-text-primary md:right-6"
+                            className="absolute right-5 top-5 z-20 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-text-muted transition-colors hover:bg-surface-subtle hover:text-text-primary md:right-6"
                             aria-label="Close"
                         >
                             <X size={20} aria-hidden="true" />
                         </button>
                     </div>
-                    <div className="min-w-0 px-5 pb-5 pt-5 md:px-6 md:pb-6">
-                        <h2 className="text-2xl font-bold leading-tight text-text-primary">Ready when you are</h2>
-                        <p className="mt-2 text-sm leading-6 text-text-secondary">
-                            Review what you added before starting another focused round.
-                        </p>
+                    <div className="min-w-0 px-5 pb-5 pt-5 md:px-6 md:pb-6" data-next-practice-round-header-cta>
+                        <Button asChild emphasis="primary" density="comfortable" shape="app" label="strong" className="w-full">
+                            <Link href="/practice">
+                                Start practice
+                                <ArrowRight size={17} className="ml-2" aria-hidden="true" />
+                            </Link>
+                        </Button>
                     </div>
                 </div>
                 <div className="custom-scrollbar flex-1 space-y-3 overflow-y-auto p-5 md:p-6">
                     {questions.map((question) => {
-                        const styles = getPreparednessStateStyles(question.state);
                         return (
                             <article
+                                data-testid="next-practice-round-question"
                                 key={question.id}
                                 className="rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-surface-base p-4"
                             >
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0">
                                         <div className="flex flex-wrap items-center gap-2">
-                                            <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-text-secondary shadow-[0_1px_0_rgb(var(--candidate-border)/0.72)]">
-                                                Q{question.questionNumber}
+                                            <span data-next-practice-round-question-number className="text-xs font-black uppercase tracking-[0.16em] text-text-muted">
+                                                Q{question.questionNumber}:
                                             </span>
-                                            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+                                            <QuestionCategoryChip category={question.categoryLabel}>
                                                 {question.categoryLabel}
-                                            </span>
-                                            <span className={cn("rounded-full px-3 py-1 text-xs font-bold", styles.badge)}>
-                                                {formatPreparednessState(question.state)}
-                                            </span>
+                                            </QuestionCategoryChip>
+                                            <QuestionStateChip state={question.state} />
                                         </div>
-                                        <p className="mt-3 text-sm font-bold leading-6 text-text-primary">{question.questionText}</p>
+                                        <p data-next-practice-round-question-text className="mt-2 text-sm font-bold leading-6 text-text-primary">{question.questionText}</p>
                                     </div>
                                     <button
                                         type="button"
                                         onClick={() => onRemoveQuestion(question.id)}
-                                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
+                                        className="flex h-6 w-6 shrink-0 self-start items-center justify-center rounded-lg text-red-400 transition-colors hover:bg-red-50 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
                                         aria-label={`Remove Q${question.questionNumber} from next practice round`}
                                     >
-                                        <X size={17} aria-hidden="true" />
+                                        <X size={15} strokeWidth={1.65} aria-hidden="true" />
                                     </button>
                                 </div>
                             </article>
@@ -495,30 +600,22 @@ export function NextPracticeRoundSurface({
                     })}
                 </div>
                 <div className="border-t border-[rgb(var(--candidate-border)/0.7)] bg-white p-5 md:p-6">
-                    <div className="grid gap-2 sm:grid-cols-2">
-                        <Button asChild emphasis="primary" density="comfortable" shape="app" label="strong">
-                            <Link href="/practice">
-                                Start practice
-                                <ArrowRight size={17} className="ml-2" aria-hidden="true" />
-                            </Link>
-                        </Button>
-                        <div className="flex items-center gap-3">
+                    <div className="grid grid-cols-2 gap-3" data-testid="next-practice-round-secondary-actions">
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="inline-flex min-h-11 flex-1 items-center justify-center rounded-2xl border border-[rgb(var(--candidate-border)/0.78)] bg-white px-4 text-sm font-bold text-text-secondary transition-colors hover:bg-surface-base hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                                className="inline-flex min-h-11 w-full items-center justify-center rounded-2xl border border-[rgb(var(--candidate-border)/0.78)] bg-white px-4 text-sm font-bold text-text-secondary transition-colors hover:bg-surface-base hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                             >
                                 Cancel
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setIsClearAllConfirmOpen(true)}
-                                className="inline-flex min-h-11 shrink-0 items-center justify-end rounded-2xl border border-transparent bg-transparent px-3 text-sm font-bold text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
+                                className="inline-flex min-h-11 w-full items-center justify-center rounded-2xl border border-transparent bg-transparent px-4 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
                             >
                                 Clear all
                                 <Trash2 size={16} className="ml-2" aria-hidden="true" />
                             </button>
-                        </div>
                     </div>
                 </div>
                 {isClearAllConfirmOpen ? (
@@ -696,7 +793,7 @@ export function CoachUpdateDialog({
                             >
                                 <ChevronLeft size={18} aria-hidden="true" />
                             </button>
-                            <div className="flex min-w-0 items-center justify-center gap-2 overflow-x-auto pb-1">
+                            <div className="flex min-w-0 items-center justify-center gap-2 pb-1">
                                 {questions.map((question) => {
                                     const isCurrent = question.id === selectedQuestion?.id;
                                     return (
@@ -713,7 +810,7 @@ export function CoachUpdateDialog({
                                             className={cn(
                                                 "shrink-0 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                                                 isCurrent
-                                                    ? "rounded-2xl border border-primary/45 bg-primary px-3.5 py-2 text-xs font-bold text-white shadow-flat"
+                                                    ? "max-w-[min(15rem,52vw)] truncate rounded-2xl border border-primary/45 bg-primary px-3.5 py-2 text-xs font-bold text-white shadow-flat"
                                                     : "h-2.5 w-2.5 rounded-full bg-[rgb(var(--candidate-border)/0.9)] hover:bg-primary/45",
                                             )}
                                         >
@@ -737,7 +834,7 @@ export function CoachUpdateDialog({
                 <div
                     ref={contentRef}
                     data-coach-update-content
-                    className="custom-scrollbar flex-1 overflow-y-auto px-4 py-4 sm:px-5 md:px-6"
+                    className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5 md:px-6"
                 >
                     {questions.length > 0 ? (
                         <>
@@ -749,19 +846,20 @@ export function CoachUpdateDialog({
                                 role="region"
                                 aria-label="Coach update question feedback carousel"
                                 aria-roledescription="carousel"
-                                className="overflow-hidden"
+                                className="h-full overflow-hidden"
                             >
-                                <div className="flex touch-pan-y">
+                                <div className="flex h-full touch-pan-y">
                                     {questions.map((question, index) => {
                                         const isCurrent = question.id === selectedQuestion?.id;
                                         return (
                                             <div
+                                                data-testid="coach-update-feedback-slide"
                                                 key={question.id}
                                                 role="group"
                                                 aria-roledescription="slide"
                                                 aria-label={`Question feedback ${index + 1} of ${questions.length}: Q${question.questionNumber} ${question.categoryLabel}`}
                                                 aria-hidden={isCurrent ? undefined : true}
-                                                className="min-w-0 flex-[0_0_100%]"
+                                                className="flex min-h-full min-w-0 flex-[0_0_100%]"
                                             >
                                                 <QuestionFeedbackPanel
                                                     question={question}
@@ -890,11 +988,13 @@ export function CoachPlanCategoryFace({
                                     className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-surface-base px-4 py-3 text-left transition-colors hover:border-primary/30 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                                     aria-label={`Open ${category.label} category guidance`}
                                 >
-                                    <span className="min-w-0">
-                                        <span className="block truncate text-sm font-bold text-text-primary">{category.label}</span>
-                                        <span className="mt-1 block text-xs font-semibold text-text-secondary">
-                                            {category.questionCount} planned · {category.practicedQuestionCount ?? 0} practiced
-                                        </span>
+                                        <span className="min-w-0">
+                                            <QuestionCategoryChip category={category.id}>
+                                                {category.label}
+                                            </QuestionCategoryChip>
+                                            <span className="mt-1 block text-xs font-semibold text-text-secondary">
+                                                {category.questionCount} planned · {category.practicedQuestionCount ?? 0} practiced
+                                            </span>
                                     </span>
                                     <span className={cn("h-3 w-3 shrink-0 rounded-full", styles.dot)} aria-hidden="true" />
                                 </button>
@@ -1234,7 +1334,6 @@ export function CoachPlanQuestionSetFace({
                 </div>
                 <div className="mt-4 grid gap-2">
                     {visibleQuestions.length > 0 ? visibleQuestions.map((question) => {
-                        const styles = getPreparednessStateStyles(question.state);
                         const isAnswered = question.status === "answered";
                         return (
                             <button
@@ -1252,9 +1351,15 @@ export function CoachPlanQuestionSetFace({
                             >
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0">
-                                        <p className="text-xs font-black uppercase tracking-[0.16em] text-text-muted">
-                                            Q{question.questionNumber}: {question.categoryLabel}
-                                        </p>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span className="text-xs font-black uppercase tracking-[0.16em] text-text-muted">
+                                                Q{question.questionNumber}:
+                                            </span>
+                                            <QuestionCategoryChip category={question.categoryLabel}>
+                                                {question.categoryLabel}
+                                            </QuestionCategoryChip>
+                                            <QuestionStateChip state={question.state} />
+                                        </div>
                                         <p className="mt-1 text-sm font-bold leading-6 text-text-primary">
                                             {question.questionText || "Hidden until you choose to reveal unanswered questions."}
                                         </p>
@@ -1262,7 +1367,6 @@ export function CoachPlanQuestionSetFace({
                                             {isAnswered ? "Answered" : "Unanswered"}
                                         </p>
                                     </div>
-                                    <span className={cn("mt-1 h-3 w-3 shrink-0 rounded-full", styles.dot)} aria-hidden="true" />
                                 </div>
                             </button>
                         );
@@ -1310,13 +1414,19 @@ function CoachPlanQuestionSheet({
                 aria-label={`Q${question.questionNumber} question detail`}
                 className="flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-b-[1.75rem] border border-[rgb(var(--candidate-border)/0.92)] bg-white shadow-[var(--candidate-shadow-panel)] md:w-[42rem] md:max-w-[calc(100vw-2rem)] md:rounded-[1.75rem]"
             >
-                <div className="sticky top-0 z-10 border-b border-[rgb(var(--candidate-border)/0.7)] bg-white p-5 md:p-6">
+                <div data-coach-plan-question-sheet-header className="sticky top-0 z-10 border-b border-[rgb(var(--candidate-border)/0.7)] bg-white p-5 md:p-6">
                     <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0">
-                            <p className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">
-                                Q{question.questionNumber}: {question.categoryLabel}
-                            </p>
-                            <h2 className="mt-3 text-2xl font-bold leading-tight text-text-primary">{question.questionText}</h2>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">
+                                    Q{question.questionNumber}:
+                                </span>
+                                <QuestionCategoryChip category={question.categoryLabel}>
+                                    {question.categoryLabel}
+                                </QuestionCategoryChip>
+                                <QuestionStateChip state={question.state} />
+                            </div>
+                            <h2 className="mt-3 text-2xl font-bold leading-tight text-text-primary">Question feedback</h2>
                         </div>
                         <button
                             type="button"
@@ -1328,7 +1438,7 @@ function CoachPlanQuestionSheet({
                         </button>
                     </div>
                 </div>
-                <div className="custom-scrollbar flex-1 overflow-y-auto p-5 md:p-6">
+                <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-5 md:p-6">
                     <QuestionFeedbackPanel
                         question={question}
                         queuedQuestionIds={queuedQuestionIds}
@@ -1360,7 +1470,7 @@ function QuestionFeedbackPanel({
     const ResponseModeIcon = question.answerModality === "voice" ? Mic : Keyboard;
 
     return (
-        <div className="space-y-4">
+        <div data-testid="question-feedback-panel" className="flex min-h-full flex-col gap-4">
             <section className="rounded-3xl border border-[rgb(var(--candidate-border)/0.72)] bg-white p-4">
                 <div className="flex items-start gap-3">
                     <span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary" aria-label={isCurrent ? "Question prompt" : undefined}>
@@ -1375,7 +1485,7 @@ function QuestionFeedbackPanel({
                         <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary" aria-label={isCurrent ? "Candidate answer" : undefined}>
                             <CircleUser size={19} aria-hidden="true" />
                         </span>
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full border border-primary/45 bg-white text-primary" aria-label={isCurrent ? `${responseModeLabel} mode` : undefined}>
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary" aria-label={isCurrent ? `${responseModeLabel} mode` : undefined}>
                             <ResponseModeIcon size={14} aria-hidden="true" />
                         </span>
                     </span>
@@ -1409,7 +1519,7 @@ function QuestionFeedbackPanel({
                     </div>
                 </div>
             </section>
-            <section className="rounded-3xl border border-[rgb(var(--candidate-border)/0.72)] bg-surface-base p-4">
+            <section data-testid="question-feedback-actions" className="mt-auto rounded-3xl border border-[rgb(var(--candidate-border)/0.72)] bg-surface-base p-4">
                 <div className="grid gap-2 sm:grid-cols-2">
                     <button
                         type="button"
