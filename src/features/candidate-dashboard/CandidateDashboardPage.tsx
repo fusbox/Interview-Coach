@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { CandidateDashboardModel } from "@/lib/server/candidate";
 import {
@@ -52,6 +52,7 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
     const [isNextPracticeRoundOpen, setIsNextPracticeRoundOpen] = useState(false);
     const [nextPracticeRoundAnchorRect, setNextPracticeRoundAnchorRect] = useState<NextPracticeRoundAnchorRect | null>(null);
     const nextPracticeRoundAnchorRef = useRef<HTMLDivElement | null>(null);
+    const selectedQueueContextId = dashboard.selectedTargetInterviewId ?? "unscoped";
     const scopedItems = [...dashboard.activeItems, ...dashboard.completedItems];
     const skills = toPreparednessSkills({
         latestItem,
@@ -120,6 +121,11 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
         } : null);
         setIsNextPracticeRoundOpen(true);
     };
+
+    useEffect(() => {
+        setQueuedQuestions([]);
+        setIsNextPracticeRoundOpen(false);
+    }, [selectedQueueContextId]);
 
     return (
         <main className="candidate-design-system relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] -mt-4 min-h-screen w-screen overflow-x-hidden bg-surface-base text-text-primary sm:-mt-6 lg:-mt-10">

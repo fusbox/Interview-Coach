@@ -500,6 +500,79 @@ describe("CandidateDashboardPage", () => {
         expect(screen.getByRole("button", { name: /add this to my next round/i })).toHaveAttribute("aria-pressed", "false");
     });
 
+    it("resets the local next-round queue when the selected prep context changes", async () => {
+        const user = userEvent.setup();
+        const { rerender } = render(<CandidateDashboardPage dashboard={baseModel} />);
+
+        await user.click(screen.getAllByRole("button", { name: /open q1 question detail/i })[1]);
+        await user.click(screen.getByRole("button", { name: /add this to my next round/i }));
+
+        expect(screen.getByRole("button", { name: /next practice round/i })).toHaveTextContent("1");
+
+        rerender(<CandidateDashboardPage dashboard={{
+            ...baseModel,
+            selectedTargetInterviewId: "support lead",
+            targetInterviews: baseModel.targetInterviews.map((targetInterview) => ({
+                ...targetInterview,
+                isSelected: targetInterview.id === "support lead",
+            })),
+            activeItems: [],
+            completedItems: [
+                {
+                    ...baseModel.completedItems[0],
+                    prepProfile: {
+                        prepProfileId: "role-profile-2",
+                        primarySignal: {
+                            label: "Make the client impact visible",
+                            state: "clear",
+                        },
+                        signals: [],
+                        categoryCards: [
+                            {
+                                categoryId: "behavioral",
+                                label: "Behavioral",
+                                questionCount: 1,
+                                practicedQuestionCount: 1,
+                                upcomingQuestionCount: 0,
+                                evidenceState: "clear",
+                                averageScore: 3.2,
+                                questionStatuses: [
+                                    { questionId: "support-question-1", questionNumber: 1, status: "practiced" },
+                                ],
+                                sourceRefs: [
+                                    {
+                                        type: "answer",
+                                        id: "support-question-1",
+                                        label: "Behavioral",
+                                        questionText: "Tell me about coaching an escalated account.",
+                                        answerTranscript: "I aligned the team and kept the customer informed.",
+                                        answerModality: "voice",
+                                        excerpt: "I aligned the team and kept the customer informed.",
+                                    },
+                                ],
+                            },
+                        ],
+                        signalCounts: {
+                            not_practiced: 0,
+                            emerging: 0,
+                            clear: 1,
+                            strong: 0,
+                        },
+                        recommendation: {
+                            label: "Practice the next account story",
+                            reason: "Keep the customer impact visible.",
+                            source: "answer_feedback",
+                            href: "/practice",
+                        },
+                    },
+                },
+            ],
+        }} />);
+
+        expect(screen.getByRole("button", { name: /switch interview prep context/i })).toHaveTextContent("Support Lead");
+        expect(screen.getByRole("button", { name: /next practice round/i })).not.toHaveTextContent("1");
+    });
+
     it("opens a teaching-first Coach Plan category sheet from the category face", async () => {
         const user = userEvent.setup();
 
