@@ -710,6 +710,8 @@ describe("candidate dashboard component set", () => {
         const header = dialog.querySelector("[data-coach-update-header]");
         expect(header).not.toBeNull();
         expect(header).toHaveTextContent("I reviewed your latest practice. Here's what stood out.");
+        expect(screen.getByRole("region", { name: /coach update question feedback carousel/i })).toBeInTheDocument();
+        expect(screen.getByRole("group", { name: /question feedback 1 of 2: q2 behavioral/i })).toHaveAttribute("aria-roledescription", "slide");
         expect(screen.getByRole("button", { name: /current feedback q2 behavioral/i })).toHaveAttribute("aria-current", "true");
         expect(screen.getByRole("button", { name: /go to q3 case \/ scenario feedback/i })).toBeInTheDocument();
         expect(screen.queryByText(/^Question$/i)).not.toBeInTheDocument();
@@ -741,6 +743,7 @@ describe("candidate dashboard component set", () => {
         expect(screen.getByRole("button", { name: /previous question feedback/i })).toBeEnabled();
         expect(screen.getByRole("button", { name: /next question feedback/i })).toBeDisabled();
         expect(screen.getByRole("button", { name: /current feedback q3 case \/ scenario/i })).toHaveAttribute("aria-current", "true");
+        expect(screen.getByRole("status")).toHaveTextContent("Showing question feedback 2 of 2");
 
         const addToRound = screen.getByRole("button", { name: /add this to my next round/i });
         await user.click(addToRound);
