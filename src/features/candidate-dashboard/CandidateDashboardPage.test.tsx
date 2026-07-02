@@ -460,21 +460,21 @@ describe("CandidateDashboardPage", () => {
         await user.click(coachUpdate);
 
         const dialog = screen.getByRole("dialog", { name: /coach update/i });
-        expect(dialog).toHaveTextContent("I reviewed your latest practice. Here's what stood out.");
+        expect(dialog).toHaveTextContent("Let's review your latest practice.");
+        expect(dialog).not.toHaveTextContent("Move through each question for the answer, my read, and the next practice step.");
         expect(dialog).not.toHaveTextContent("Quick markers");
         expect(screen.queryByText(/^Question$/i)).not.toBeInTheDocument();
         expect(dialog).toHaveTextContent("Tell me about a client issue you resolved.");
         expect(screen.queryByText(/^Your answer$/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/^Voice response$/i)).not.toBeInTheDocument();
         expect(dialog).toHaveTextContent("I helped the client understand the next step and reduced repeat follow-up.");
-        expect(screen.getByLabelText(/question prompt/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/candidate answer/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/voice response mode/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/coach observation/i)).toHaveTextContent("You gave a relevant client example.");
-        expect(screen.getByLabelText(/coach observation/i)).toHaveTextContent("Make the client impact visible");
+        expect(screen.queryByLabelText(/^question prompt$/i)).not.toBeInTheDocument();
+        expect(screen.queryByLabelText(/^candidate answer$/i)).not.toBeInTheDocument();
+        expect(screen.queryByLabelText(/^voice response mode$/i)).not.toBeInTheDocument();
+        expect(screen.getByLabelText(/candidate answer transcript/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/coach observation/i)).toHaveTextContent("When you practice this question next time");
         expect(screen.queryByLabelText(/coach guidance/i)).not.toBeInTheDocument();
-        expect(dialog).toHaveTextContent("Make the client impact visible");
-        await user.click(screen.getByRole("button", { name: /add this to my next round/i }));
+        await user.click(screen.getByRole("button", { name: /add this question to the next round/i }));
         expect(screen.getByRole("button", { name: /added/i })).toHaveAttribute("aria-pressed", "true");
         expect(screen.queryByRole("link", { name: /skip to recommendation/i })).not.toBeInTheDocument();
         expect(screen.queryByRole("button", { name: /not now/i })).not.toBeInTheDocument();
@@ -583,7 +583,7 @@ describe("CandidateDashboardPage", () => {
         expect(screen.getByRole("button", { name: /next practice round/i })).not.toHaveTextContent("1");
 
         await user.click(screen.getByRole("button", { name: /open coach update/i }));
-        await user.click(screen.getByRole("button", { name: /add this to my next round/i }));
+        await user.click(screen.getByRole("button", { name: /add this question to the next round/i }));
         expect(screen.getByRole("button", { name: /added/i })).toHaveAttribute("aria-pressed", "true");
         await user.click(screen.getByRole("button", { name: /close/i }));
 
@@ -683,8 +683,8 @@ describe("CandidateDashboardPage", () => {
             .find((chip) => chip.textContent === "Behavioral");
         const caseScenarioChip = Array.from(categoryFace.querySelectorAll("[data-question-category-chip]"))
             .find((chip) => chip.textContent === "Case / Scenario");
-        expect(behavioralChip).toHaveClass("bg-[#eef0ff]", "text-[#4d5bc7]", "border-[#ccd2ff]");
-        expect(caseScenarioChip).toHaveClass("bg-[#e9f7f5]", "text-[#0f766e]", "border-[#b7e4dd]");
+        expect(behavioralChip).toHaveClass("bg-white", "text-[#4d5bc7]", "border-[#9aa5f2]", "font-semibold");
+        expect(caseScenarioChip).toHaveClass("bg-white", "text-[#0f766e]", "border-[#5fc2b5]", "font-semibold");
 
         await user.click(screen.getByRole("button", { name: /open behavioral category guidance/i }));
 
@@ -863,7 +863,7 @@ describe("CandidateDashboardPage", () => {
         expect(questionSet).toHaveTextContent("Answered");
         expect(questionSet).not.toHaveTextContent("Q2: Behavioral");
         const answeredQuestion = screen.getByRole("button", { name: /open q1 question detail/i });
-        expect(answeredQuestion.querySelector("[data-question-category-chip]")).toHaveClass("bg-[#eef0ff]", "text-[#4d5bc7]", "border-[#ccd2ff]");
+        expect(answeredQuestion.querySelector("[data-question-category-chip]")).toHaveClass("bg-white", "text-[#4d5bc7]", "border-[#9aa5f2]", "font-semibold");
         expect(answeredQuestion.querySelector("[data-question-state-chip]")).toHaveTextContent("Clear");
 
         await user.click(screen.getByRole("button", { name: /reveal unanswered questions/i }));

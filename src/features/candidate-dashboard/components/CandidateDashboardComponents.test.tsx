@@ -664,6 +664,7 @@ describe("candidate dashboard component set", () => {
                 { label: "Next: Behavioral - Substance", kind: "next" as const },
             ],
         };
+        const onAddQuestionToNextRound = vi.fn();
 
         const onOpen = vi.fn();
         render(<CoachUpdateCard update={update} onOpen={onOpen} />);
@@ -701,6 +702,7 @@ describe("candidate dashboard component set", () => {
                     evaluation: "Case feedback: The answer gives a calm plan.",
                 }]}
                 onClose={() => undefined}
+                onAddQuestionToNextRound={onAddQuestionToNextRound}
             />,
         );
 
@@ -709,27 +711,35 @@ describe("candidate dashboard component set", () => {
         expect(dialog).not.toHaveTextContent("Quick markers");
         const header = dialog.querySelector("[data-coach-update-header]");
         expect(header).not.toBeNull();
-        expect(header).toHaveTextContent("I reviewed your latest practice. Here's what stood out.");
+        expect(header).toHaveTextContent("Let's review your latest practice.");
+        expect(header).not.toHaveTextContent("Move through each question for the answer, my read, and the next practice step.");
         expect(screen.getByRole("region", { name: /coach update question feedback carousel/i })).toBeInTheDocument();
         expect(screen.getByRole("group", { name: /question feedback 1 of 2: q2 behavioral/i })).toHaveAttribute("aria-roledescription", "slide");
-        expect(screen.getByRole("button", { name: /current feedback q2 behavioral/i })).toHaveAttribute("aria-current", "true");
-        expect(screen.getByRole("button", { name: /go to q3 case \/ scenario feedback/i })).toBeInTheDocument();
+        expect(screen.getByRole("tab", { name: /current feedback slide 1: q2 behavioral/i })).toHaveAttribute("aria-current", "true");
+        expect(screen.getByRole("tab", { name: /current feedback slide 1: q2 behavioral/i })).toHaveAttribute("aria-selected", "true");
+        expect(screen.getByRole("tab", { name: /go to q3 case \/ scenario feedback/i })).toBeInTheDocument();
         expect(screen.queryByText(/^Question$/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/^Your answer$/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/^Voice response$/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/^Coach callout$/i)).not.toBeInTheDocument();
-        expect(screen.getByLabelText(/question prompt/i)).toHaveClass("bg-primary/10", "text-primary");
-        expect(screen.getByLabelText(/candidate answer/i)).toHaveClass("bg-primary/10", "text-primary");
-        expect(screen.getByLabelText(/voice response mode/i)).toHaveClass("bg-primary/10", "text-primary");
-        expect(screen.getByLabelText(/voice response mode/i)).not.toHaveClass("border");
+        expect(screen.queryByLabelText(/^question prompt$/i)).not.toBeInTheDocument();
+        expect(screen.queryByLabelText(/^candidate answer$/i)).not.toBeInTheDocument();
+        expect(screen.queryByLabelText(/^voice response mode$/i)).not.toBeInTheDocument();
+        const feedbackCard = screen.getAllByTestId("coach-update-feedback-card")[0];
+        expect(feedbackCard).toHaveClass("rounded-[1.35rem]", "bg-gradient-to-br", "shadow-[0_18px_38px_rgba(12,97,233,0.13)]");
+        const compactHeader = screen.getAllByTestId("coach-update-feedback-card-header")[0];
+        expect(compactHeader).toHaveClass("rounded-2xl", "bg-surface-base", "p-3");
+        expect(compactHeader.querySelector("[data-question-category-chip]")).toHaveTextContent("Behavioral");
+        expect(compactHeader.querySelector("[data-question-state-chip]")).toHaveTextContent("Emerging");
         expect(screen.getAllByTestId("coach-update-feedback-slide")[0]).toHaveClass("flex", "min-h-full");
+        expect(screen.getAllByTestId("coach-update-feedback-slide")[0]).toHaveClass("scale-100", "opacity-100");
+        expect(screen.getAllByTestId("coach-update-feedback-slide")[1]).toHaveClass("scale-[0.94]", "opacity-65");
         expect(screen.getAllByTestId("question-feedback-panel")[0]).toHaveClass("flex", "min-h-full", "flex-col");
         expect(screen.getAllByTestId("question-feedback-actions")[0]).toHaveClass("mt-auto");
-        expect(screen.getByLabelText(/coach observation/i)).toHaveTextContent("Your answer shows helpful intent.");
-        expect(screen.getByLabelText(/coach observation/i)).toHaveTextContent("Name the action and client impact.");
+        expect(screen.getAllByTestId("coach-update-answer-transcript-text")[0]).toHaveClass("text-sm", "leading-6", "text-text-secondary");
+        expect(screen.getByLabelText(/coach observation/i)).toHaveTextContent("When you practice this question next time");
         expect(screen.queryByLabelText(/coach guidance/i)).not.toBeInTheDocument();
-        expect(screen.getByText("Tell me about a time you helped a customer get unstuck.")).toHaveClass("text-sm", "font-bold", "leading-6");
-        expect(screen.getByText("Your answer shows helpful intent.")).toHaveClass("text-sm", "font-semibold", "leading-6");
+        expect(screen.getByText("Tell me about a time you helped a customer get unstuck.")).toHaveClass("text-[0.82rem]", "font-bold", "leading-5");
         expect(dialog).toHaveTextContent("Tell me about a time you helped a customer get unstuck.");
         expect(dialog).toHaveTextContent("I checked what information was missing and followed up.");
         expect(screen.getByRole("button", { name: /practice this now/i })).toBeInTheDocument();
@@ -746,12 +756,16 @@ describe("candidate dashboard component set", () => {
         expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" });
         expect(screen.getByRole("button", { name: /previous question feedback/i })).toBeEnabled();
         expect(screen.getByRole("button", { name: /next question feedback/i })).toBeDisabled();
-        expect(screen.getByRole("button", { name: /current feedback q3 case \/ scenario/i })).toHaveAttribute("aria-current", "true");
+        expect(screen.getByRole("tab", { name: /current feedback slide 2: q3 case \/ scenario/i })).toHaveAttribute("aria-current", "true");
         expect(screen.getByRole("status")).toHaveTextContent("Showing question feedback 2 of 2");
 
-        const addToRound = screen.getByRole("button", { name: /add this to my next round/i });
+        const addToRound = screen.getByRole("button", { name: /add this question to the next round/i });
+        expect(addToRound).toHaveClass("justify-center", "text-center");
         await user.click(addToRound);
 
+        expect(onAddQuestionToNextRound).toHaveBeenCalledWith(expect.objectContaining({
+            id: "case_scenario:question-2",
+        }));
         expect(screen.getByRole("button", { name: /added/i })).toHaveAttribute("aria-pressed", "true");
         expect(screen.queryByRole("link", { name: /skip to recommendation/i })).not.toBeInTheDocument();
         expect(screen.queryByRole("button", { name: /not now/i })).not.toBeInTheDocument();
@@ -803,7 +817,7 @@ describe("candidate dashboard component set", () => {
         expect(queuedItem.querySelector("[data-next-practice-round-question-number]")).toHaveClass("text-xs", "font-black", "uppercase", "tracking-[0.16em]", "text-text-muted");
         expect(queuedItem.querySelector("[data-next-practice-round-question-number]")).toHaveTextContent("Q1:");
         expect(screen.queryByText("Q1:")?.closest(".rounded-full")).toBeNull();
-        expect(queuedItem.querySelector("[data-question-category-chip]")).toHaveClass("bg-[#eef0ff]", "text-[#4d5bc7]", "border-[#ccd2ff]");
+        expect(queuedItem.querySelector("[data-question-category-chip]")).toHaveClass("bg-white", "text-[#4d5bc7]", "border-[#9aa5f2]", "font-semibold");
         expect(queuedItem.querySelector("[data-question-state-chip]")).toHaveTextContent("Clear");
         expect(queuedItem.querySelector("[data-next-practice-round-question-text]")).toHaveClass("mt-2", "text-sm", "font-bold", "leading-6", "text-text-primary");
 

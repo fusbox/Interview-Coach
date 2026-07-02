@@ -168,24 +168,24 @@ type QuestionCategoryPresentationStyle = {
 
 const QUESTION_CATEGORY_STYLES: Record<QuestionCategoryId, QuestionCategoryPresentationStyle> = {
     screening: {
-        chip: "border-[#cbd5e1] bg-[#f1f5f9] text-[#475569]",
+        chip: "border-[#94a3b8] bg-white text-[#475569]",
     },
     behavioral: {
-        chip: "border-[#ccd2ff] bg-[#eef0ff] text-[#4d5bc7]",
+        chip: "border-[#9aa5f2] bg-white text-[#4d5bc7]",
     },
     culture_fit: {
-        chip: "border-[#e9d5ff] bg-[#f6edff] text-[#8a3fd1]",
+        chip: "border-[#c99af0] bg-white text-[#8a3fd1]",
     },
     case_scenario: {
-        chip: "border-[#b7e4dd] bg-[#e9f7f5] text-[#0f766e]",
+        chip: "border-[#5fc2b5] bg-white text-[#0f766e]",
     },
     technical_role_specific: {
-        chip: "border-[#ead6a2] bg-[#fbf4df] text-[#9a6417]",
+        chip: "border-[#d7a94a] bg-white text-[#9a6417]",
     },
 };
 
 const FALLBACK_QUESTION_CATEGORY_STYLE: QuestionCategoryPresentationStyle = {
-    chip: "border-[rgb(var(--candidate-border)/0.72)] bg-surface-base text-text-secondary",
+    chip: "border-[rgb(var(--candidate-border)/0.86)] bg-white text-text-secondary",
 };
 
 function getQuestionCategoryStyles(category: string | null | undefined): QuestionCategoryPresentationStyle {
@@ -231,7 +231,7 @@ function QuestionCategoryChip({
     return (
         <span
             data-question-category-chip
-            className={cn("inline-flex rounded-full border px-3 py-1 text-xs font-bold", styles.chip)}
+            className={cn("inline-flex rounded-full border px-3 py-1 text-xs font-semibold", styles.chip)}
         >
             {children}
         </span>
@@ -672,8 +672,9 @@ export function CoachUpdateDialog({
 }) {
     const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(questions[0]?.id ?? null);
     const [liveRegionMessage, setLiveRegionMessage] = useState(questions.length ? `Showing question feedback 1 of ${questions.length}` : "");
+    const [scrollSnaps, setScrollSnaps] = useState<number[]>([]);
     const contentRef = useRef<HTMLDivElement | null>(null);
-    const [emblaRef, emblaApi] = useEmblaCarousel({ align: "start", containScroll: false, loop: false, slidesToScroll: 1 });
+    const [emblaRef, emblaApi] = useEmblaCarousel({ align: "center", containScroll: false, loop: false, slidesToScroll: 1 });
     const selectedQuestion = questions.find((question) => question.id === selectedQuestionId) ?? questions[0] ?? null;
     const selectedQuestionIndex = selectedQuestion ? questions.findIndex((question) => question.id === selectedQuestion.id) : -1;
     const scrollContentToTop = useCallback(() => {
@@ -706,10 +707,6 @@ export function CoachUpdateDialog({
         }
         scrollContentToTop();
     }, [emblaApi, questions, scrollContentToTop]);
-    const selectQuestion = useCallback((questionId: string) => {
-        const nextIndex = questions.findIndex((question) => question.id === questionId);
-        updateSelectedQuestion(nextIndex >= 0 ? nextIndex : 0);
-    }, [questions, updateSelectedQuestion]);
     const selectRelativeQuestion = useCallback((direction: -1 | 1) => {
         if (selectedQuestionIndex < 0 || questions.length < 2) {
             return;
@@ -725,14 +722,18 @@ export function CoachUpdateDialog({
         const syncSelectedQuestionFromCarousel = () => {
             updateSelectedQuestion(emblaApi.selectedSnap(), false);
         };
+        const syncScrollSnaps = () => {
+            setScrollSnaps(emblaApi.snapList());
+            syncSelectedQuestionFromCarousel();
+        };
 
         emblaApi.on("select", syncSelectedQuestionFromCarousel);
-        emblaApi.on("reinit", syncSelectedQuestionFromCarousel);
-        syncSelectedQuestionFromCarousel();
+        emblaApi.on("reinit", syncScrollSnaps);
+        syncScrollSnaps();
 
         return () => {
             emblaApi.off("select", syncSelectedQuestionFromCarousel);
-            emblaApi.off("reinit", syncSelectedQuestionFromCarousel);
+            emblaApi.off("reinit", syncScrollSnaps);
         };
     }, [emblaApi, updateSelectedQuestion]);
 
@@ -766,11 +767,8 @@ export function CoachUpdateDialog({
                             </span>
                             <div className="min-w-0">
                                 <h2 className="text-xl font-bold leading-tight text-text-primary md:text-2xl">
-                                    I reviewed your latest practice. Here&apos;s what stood out.
+                                    Let&apos;s review your latest practice.
                                 </h2>
-                                <p className="mt-2 text-sm leading-6 text-text-secondary">
-                                    Move through each question for the answer, my read, and the next practice step.
-                                </p>
                             </div>
                         </div>
                         <button
@@ -793,29 +791,34 @@ export function CoachUpdateDialog({
                             >
                                 <ChevronLeft size={18} aria-hidden="true" />
                             </button>
-                            <div className="flex min-w-0 items-center justify-center gap-2 pb-1">
-                                {questions.map((question) => {
-                                    const isCurrent = question.id === selectedQuestion?.id;
+                            <div className="flex min-w-0 items-center justify-center gap-2" role="tablist" aria-label="Question feedback slides">
+                                {(scrollSnaps.length > 0 ? scrollSnaps : questions.map((_, index) => index)).map((_, index) => {
+                                    const question = questions[index];
+                                    const isCurrent = index === selectedQuestionIndex;
+                                    if (!question) {
+                                        return null;
+                                    }
                                     return (
                                         <button
                                             key={question.id}
                                             type="button"
-                                            onClick={() => selectQuestion(question.id)}
+                                            onClick={() => updateSelectedQuestion(index)}
+                                            role="tab"
+                                            aria-selected={isCurrent}
+                                            aria-controls={`coach-update-feedback-slide-${question.id}`}
                                             aria-current={isCurrent ? "true" : undefined}
                                             aria-label={
                                                 isCurrent
-                                                    ? `Current feedback Q${question.questionNumber} ${question.categoryLabel}`
+                                                    ? `Current feedback slide ${index + 1}: Q${question.questionNumber} ${question.categoryLabel}`
                                                     : `Go to Q${question.questionNumber} ${question.categoryLabel} feedback`
                                             }
                                             className={cn(
-                                                "shrink-0 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                                                "h-3 w-3 shrink-0 rounded-full border transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                                                 isCurrent
-                                                    ? "max-w-[min(15rem,52vw)] truncate rounded-2xl border border-primary/45 bg-primary px-3.5 py-2 text-xs font-bold text-white shadow-flat"
-                                                    : "h-2.5 w-2.5 rounded-full bg-[rgb(var(--candidate-border)/0.9)] hover:bg-primary/45",
+                                                    ? "border-primary bg-primary shadow-[0_0_0_4px_rgb(var(--candidate-primary)/0.12)]"
+                                                    : "border-primary/35 bg-white hover:border-primary/65 hover:bg-primary/10",
                                             )}
-                                        >
-                                            {isCurrent ? `Q${question.questionNumber}: ${question.categoryLabel}` : <span className="sr-only">Q{question.questionNumber}</span>}
-                                        </button>
+                                        />
                                     );
                                 })}
                             </div>
@@ -846,7 +849,7 @@ export function CoachUpdateDialog({
                                 role="region"
                                 aria-label="Coach update question feedback carousel"
                                 aria-roledescription="carousel"
-                                className="h-full overflow-hidden"
+                                className="relative h-full overflow-hidden before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:z-10 before:w-8 before:bg-gradient-to-r before:from-white before:to-transparent after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:z-10 after:w-8 after:bg-gradient-to-l after:from-white after:to-transparent"
                             >
                                 <div className="flex h-full touch-pan-y">
                                     {questions.map((question, index) => {
@@ -854,16 +857,23 @@ export function CoachUpdateDialog({
                                         return (
                                             <div
                                                 data-testid="coach-update-feedback-slide"
+                                                id={`coach-update-feedback-slide-${question.id}`}
                                                 key={question.id}
                                                 role="group"
                                                 aria-roledescription="slide"
                                                 aria-label={`Question feedback ${index + 1} of ${questions.length}: Q${question.questionNumber} ${question.categoryLabel}`}
                                                 aria-hidden={isCurrent ? undefined : true}
-                                                className="flex min-h-full min-w-0 flex-[0_0_100%]"
+                                                className={cn(
+                                                    "flex min-h-full min-w-0 flex-[0_0_84%] transform-gpu px-2 transition-[opacity,transform] duration-300 ease-out sm:flex-[0_0_78%] md:flex-[0_0_72%]",
+                                                    isCurrent
+                                                        ? "z-10 scale-100 opacity-100"
+                                                        : "scale-[0.94] opacity-65",
+                                                )}
                                             >
                                                 <QuestionFeedbackPanel
                                                     question={question}
                                                     isCurrent={isCurrent}
+                                                    presentation="coach-update"
                                                     queuedQuestionIds={queuedQuestionIds}
                                                     onAddQuestionToNextRound={onAddQuestionToNextRound}
                                                 />
@@ -1453,11 +1463,13 @@ function CoachPlanQuestionSheet({
 function QuestionFeedbackPanel({
     question,
     isCurrent = true,
+    presentation = "default",
     queuedQuestionIds,
     onAddQuestionToNextRound,
 }: {
     question: QuestionFeedbackItem;
     isCurrent?: boolean;
+    presentation?: "default" | "coach-update";
 } & QuestionFeedbackQueueProps) {
     const [isAddedToRound, setIsAddedToRound] = useState(false);
     const hasSharedQueueState = Array.isArray(queuedQuestionIds);
@@ -1468,6 +1480,89 @@ function QuestionFeedbackPanel({
     const coachCallout = read.summary || read.fallback || "I have enough from this answer to guide your next practice step.";
     const responseModeLabel = question.answerModality ? `${titleCase(question.answerModality)} response` : "Answer transcript";
     const ResponseModeIcon = question.answerModality === "voice" ? Mic : Keyboard;
+
+    if (presentation === "coach-update") {
+        return (
+            <article data-testid="question-feedback-panel" className="flex min-h-full flex-col">
+                <div
+                    data-testid="coach-update-feedback-card"
+                    className={cn(
+                        "flex min-h-full transform-gpu flex-col gap-3 rounded-[1.35rem] border p-3 transition-[background,border-color,box-shadow,transform] duration-300 ease-out sm:p-4",
+                        isCurrent
+                            ? "border-primary/20 bg-gradient-to-br from-white via-white to-primary/5 shadow-[0_18px_38px_rgba(12,97,233,0.13)] ring-1 ring-primary/10"
+                            : "border-[rgb(var(--candidate-border)/0.6)] bg-white/78 shadow-flat",
+                    )}
+                >
+                    <header data-testid="coach-update-feedback-card-header" className="rounded-2xl bg-surface-base p-3">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-[0.62rem] font-black uppercase leading-4 tracking-[0.14em] text-text-muted">
+                                Q{question.questionNumber}:
+                            </span>
+                            <QuestionCategoryChip category={question.categoryLabel}>
+                                {question.categoryLabel}
+                            </QuestionCategoryChip>
+                            <QuestionStateChip state={question.state} />
+                        </div>
+                        <p className="mt-2 text-[0.82rem] font-bold leading-5 text-text-primary">
+                            {question.questionText}
+                        </p>
+                    </header>
+
+                    <section className="min-h-0 flex-1 rounded-2xl bg-white px-1 py-1" aria-label={isCurrent ? "Candidate answer transcript" : undefined}>
+                        <p data-testid="coach-update-answer-transcript-text" className="whitespace-pre-wrap text-sm leading-6 text-text-secondary">
+                            {question.answerTranscript || "No answer transcript captured."}
+                        </p>
+                    </section>
+
+                    <section aria-label={isCurrent ? "Coach observation" : undefined} className="rounded-2xl bg-primary/5 px-3 py-3">
+                        <p className="text-sm font-semibold leading-6 text-text-primary">{coachCallout}</p>
+                        <p className="mt-2 text-sm leading-6 text-text-secondary">
+                            When you practice this question next time, use the annotated guidance here as the points to keep in mind.
+                        </p>
+                    </section>
+
+                    <section data-testid="question-feedback-actions" className="mt-auto">
+                        <div className="grid gap-2 sm:grid-cols-2">
+                            <button
+                                type="button"
+                                tabIndex={isCurrent ? undefined : -1}
+                                className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-primary px-4 text-center text-sm font-bold text-white shadow-flat transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45"
+                            >
+                                Practice this now
+                                <ArrowRight size={16} className="ml-2" aria-hidden="true" />
+                            </button>
+                            <button
+                                type="button"
+                                tabIndex={isCurrent ? undefined : -1}
+                                aria-pressed={isAdded}
+                                onClick={() => {
+                                    if (onAddQuestionToNextRound) {
+                                        onAddQuestionToNextRound(question);
+                                    }
+                                    setIsAddedToRound(true);
+                                }}
+                                className={cn(
+                                    "inline-flex min-h-11 items-center justify-center rounded-2xl border px-4 text-center text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                                    isAdded
+                                        ? "border-primary/30 bg-primary/10 text-primary"
+                                        : "border-[rgb(var(--candidate-border)/0.78)] bg-white text-text-secondary hover:bg-white hover:text-text-primary",
+                                )}
+                            >
+                                {isAdded ? (
+                                    <>
+                                        <CheckCircle2 size={16} className="mr-2" aria-hidden="true" />
+                                        Added
+                                    </>
+                                ) : (
+                                    "Add this question to the next round."
+                                )}
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            </article>
+        );
+    }
 
     return (
         <div data-testid="question-feedback-panel" className="flex min-h-full flex-col gap-4">
