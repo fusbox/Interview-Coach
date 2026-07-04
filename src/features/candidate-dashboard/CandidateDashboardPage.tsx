@@ -194,6 +194,7 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
                                 categories={categoryDrilldowns}
                                 queuedQuestionIds={queuedQuestionIds}
                                 onAddQuestionToNextRound={handleAddQuestionToNextRound}
+                                onRemoveQuestionFromNextRound={handleRemoveQuestionFromNextRound}
                             />
                             <PreparednessMapExperience
                                 snapshot={preparednessSnapshot}
@@ -249,6 +250,7 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
                     questions={coachUpdateQuestions}
                     queuedQuestionIds={queuedQuestionIds}
                     onAddQuestionToNextRound={handleAddQuestionToNextRound}
+                    onRemoveQuestionFromNextRound={handleRemoveQuestionFromNextRound}
                     onClose={() => setIsCoachUpdateOpen(false)}
                 />
             ) : null}

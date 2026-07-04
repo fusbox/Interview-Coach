@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type FocusEvent, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from "react";
 import useEmblaCarousel from "embla-carousel-react";
-import { ArrowRight, Briefcase, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Circle, CircleUser, FileText, Keyboard, MessageCircleQuestion, MessageSquare, Mic, Plus, Sparkles, Trash2, X } from "lucide-react";
+import { ArrowRight, Briefcase, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Circle, CircleUser, FileText, Keyboard, MessageCircleQuestion, MessageSquare, MessageSquareQuote, Mic, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { Cell, Pie, PieChart } from "recharts";
 
 import { Button } from "@/components/ui/button";
@@ -158,6 +158,7 @@ export type QuestionFeedbackItem = {
 type QuestionFeedbackQueueProps = {
     queuedQuestionIds?: string[];
     onAddQuestionToNextRound?: (question: QuestionFeedbackItem) => void;
+    onRemoveQuestionFromNextRound?: (questionId: string) => void;
 };
 
 type QuestionCategoryId = PrepQuestionCategoryCard["categoryId"];
@@ -662,12 +663,14 @@ export function CoachUpdateDialog({
     questions = [],
     queuedQuestionIds,
     onAddQuestionToNextRound,
+    onRemoveQuestionFromNextRound,
     onClose,
 }: {
     update: CoachUpdateModel;
     questions?: QuestionFeedbackItem[];
     queuedQuestionIds?: string[];
     onAddQuestionToNextRound?: (question: QuestionFeedbackItem) => void;
+    onRemoveQuestionFromNextRound?: (questionId: string) => void;
     onClose: () => void;
 }) {
     const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(questions[0]?.id ?? null);
@@ -746,7 +749,7 @@ export function CoachUpdateDialog({
     return (
         <div
             data-testid="coach-update-backdrop"
-            className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/55 px-3 py-3 backdrop-blur-sm md:items-center md:px-6"
+            className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/55 pb-5 backdrop-blur-sm md:items-center md:px-6 md:py-3"
             onPointerDown={(event) => {
                 if (event.target === event.currentTarget) {
                     onClose();
@@ -757,16 +760,16 @@ export function CoachUpdateDialog({
                 role="dialog"
                 aria-modal="true"
                 aria-label="Coach Update"
-                className="flex max-h-[calc(100dvh-1.5rem)] w-full flex-col overflow-hidden rounded-[1.75rem] border border-[rgb(var(--candidate-border)/0.92)] bg-white shadow-[var(--candidate-shadow-panel)] md:w-[min(54rem,calc(100vw-2rem))] md:max-h-[90dvh]"
+                className="flex h-[calc(100dvh-1.25rem)] w-full flex-col overflow-hidden rounded-b-[1.75rem] border-x-0 border-b border-t-0 border-[rgb(var(--candidate-border)/0.92)] bg-gradient-to-br from-brand-glass-start to-brand-glass-end shadow-[0_22px_48px_rgba(45,61,82,0.22)] md:h-auto md:max-h-[90dvh] md:w-[min(54rem,calc(100vw-2rem))] md:rounded-[1.75rem] md:border"
             >
-                <div data-coach-update-header className="sticky top-0 z-10 border-b border-[rgb(var(--candidate-border)/0.7)] bg-white px-4 py-4 sm:px-5 md:px-6">
-                    <div className="flex items-start justify-between gap-4">
-                        <div className="flex min-w-0 items-start gap-3">
-                            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-white shadow-flat" aria-hidden="true">
-                                <MessageSquare size={22} />
+                <div data-coach-update-header className="sticky top-0 z-10 border-b border-[rgb(var(--candidate-border)/0.7)] bg-transparent px-4 py-5 sm:px-5 md:px-6">
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex min-w-0 items-center gap-2.5">
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center text-primary" aria-hidden="true">
+                                <MessageSquareQuote size={20} strokeWidth={2.2} />
                             </span>
-                            <div className="min-w-0">
-                                <h2 className="text-xl font-bold leading-tight text-text-primary md:text-2xl">
+                            <div className="min-w-0 max-w-[18rem] md:max-w-md">
+                                <h2 className="text-lg font-semibold leading-snug text-text-primary md:text-xl">
                                     Let&apos;s review your latest practice.
                                 </h2>
                             </div>
@@ -774,84 +777,84 @@ export function CoachUpdateDialog({
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-text-muted transition-colors hover:bg-surface-subtle hover:text-text-primary"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-text-muted transition-colors hover:bg-surface-subtle hover:text-text-primary"
                             aria-label="Close"
                         >
-                            <X size={20} aria-hidden="true" />
+                            <X size={19} aria-hidden="true" />
                         </button>
                     </div>
-                    {questions.length > 1 ? (
-                        <div className="mt-5 flex items-center justify-center gap-3" aria-label="Coach update question navigation">
-                            <button
-                                type="button"
-                                onClick={() => selectRelativeQuestion(-1)}
-                                disabled={selectedQuestionIndex <= 0}
-                                aria-label="Previous question feedback"
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-[rgb(var(--candidate-border)/0.78)] bg-white text-text-secondary transition-colors hover:border-primary/25 hover:bg-surface-base hover:text-text-primary disabled:pointer-events-none disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                            >
-                                <ChevronLeft size={18} aria-hidden="true" />
-                            </button>
-                            <div className="flex min-w-0 items-center justify-center gap-2" role="tablist" aria-label="Question feedback slides">
-                                {(scrollSnaps.length > 0 ? scrollSnaps : questions.map((_, index) => index)).map((_, index) => {
-                                    const question = questions[index];
-                                    const isCurrent = index === selectedQuestionIndex;
-                                    if (!question) {
-                                        return null;
-                                    }
-                                    return (
-                                        <button
-                                            key={question.id}
-                                            type="button"
-                                            onClick={() => updateSelectedQuestion(index)}
-                                            role="tab"
-                                            aria-selected={isCurrent}
-                                            aria-controls={`coach-update-feedback-slide-${question.id}`}
-                                            aria-current={isCurrent ? "true" : undefined}
-                                            aria-label={
-                                                isCurrent
-                                                    ? `Current feedback slide ${index + 1}: Q${question.questionNumber} ${question.categoryLabel}`
-                                                    : `Go to Q${question.questionNumber} ${question.categoryLabel} feedback`
-                                            }
-                                            className={cn(
-                                                "h-3 w-3 shrink-0 rounded-full border transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                                                isCurrent
-                                                    ? "border-primary bg-primary shadow-[0_0_0_4px_rgb(var(--candidate-primary)/0.12)]"
-                                                    : "border-primary/35 bg-white hover:border-primary/65 hover:bg-primary/10",
-                                            )}
-                                        />
-                                    );
-                                })}
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => selectRelativeQuestion(1)}
-                                disabled={selectedQuestionIndex >= questions.length - 1}
-                                aria-label="Next question feedback"
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-[rgb(var(--candidate-border)/0.78)] bg-white text-text-secondary transition-colors hover:border-primary/25 hover:bg-surface-base hover:text-text-primary disabled:pointer-events-none disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                            >
-                                <ChevronRight size={18} aria-hidden="true" />
-                            </button>
-                        </div>
-                    ) : null}
                 </div>
                 <div
                     ref={contentRef}
                     data-coach-update-content
-                    className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5 md:px-6"
+                    className="custom-scrollbar min-h-0 flex-1 overflow-y-auto bg-transparent px-4 py-2.5 sm:px-5 md:px-6"
                 >
                     {questions.length > 0 ? (
                         <>
                             <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
                                 {liveRegionMessage}
                             </div>
+                            {questions.length > 1 ? (
+                                <div className="mb-2 flex items-center justify-center gap-2.5" aria-label="Coach update question navigation">
+                                    <button
+                                        type="button"
+                                        onClick={() => selectRelativeQuestion(-1)}
+                                        disabled={selectedQuestionIndex <= 0}
+                                        aria-label="Previous question feedback"
+                                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-primary/35 transition-colors hover:text-primary/55 disabled:pointer-events-none disabled:text-primary/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                                    >
+                                        <ChevronLeft size={16} aria-hidden="true" />
+                                    </button>
+                                    <div className="flex min-w-0 items-center justify-center gap-1.5" role="tablist" aria-label="Question feedback slides">
+                                        {(scrollSnaps.length > 0 ? scrollSnaps : questions.map((_, index) => index)).map((_, index) => {
+                                            const question = questions[index];
+                                            const isCurrent = index === selectedQuestionIndex;
+                                            if (!question) {
+                                                return null;
+                                            }
+                                            return (
+                                                <button
+                                                    key={question.id}
+                                                    type="button"
+                                                    onClick={() => updateSelectedQuestion(index)}
+                                                    role="tab"
+                                                    aria-selected={isCurrent}
+                                                    aria-controls={`coach-update-feedback-slide-${question.id}`}
+                                                    aria-current={isCurrent ? "true" : undefined}
+                                                    aria-label={
+                                                        isCurrent
+                                                            ? `Current feedback slide ${index + 1}: Q${question.questionNumber} ${question.categoryLabel}`
+                                                            : `Go to Q${question.questionNumber} ${question.categoryLabel} feedback`
+                                                    }
+                                                    className={cn(
+                                                        "h-2.5 w-2.5 shrink-0 rounded-full border transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                                                        isCurrent
+                                                            ? "border-primary/35 bg-primary/35"
+                                                            : "border-primary/35 bg-white hover:border-primary/65 hover:bg-primary/10",
+                                                    )}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => selectRelativeQuestion(1)}
+                                        disabled={selectedQuestionIndex >= questions.length - 1}
+                                        aria-label="Next question feedback"
+                                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-primary/35 transition-colors hover:text-primary/55 disabled:pointer-events-none disabled:text-primary/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                                    >
+                                        <ChevronRight size={16} aria-hidden="true" />
+                                    </button>
+                                </div>
+                            ) : null}
                             <div
                                 ref={emblaRef}
                                 role="region"
                                 aria-label="Coach update question feedback carousel"
                                 aria-roledescription="carousel"
-                                className="relative h-full overflow-hidden before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:z-10 before:w-8 before:bg-gradient-to-r before:from-white before:to-transparent after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:z-10 after:w-8 after:bg-gradient-to-l after:from-white after:to-transparent"
+                                className="relative overflow-x-hidden overflow-y-visible before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:z-10 before:w-8 before:bg-gradient-to-r before:from-brand-glass-start before:to-transparent after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:z-10 after:w-8 after:bg-gradient-to-l after:from-brand-glass-end after:to-transparent"
                             >
-                                <div className="flex h-full touch-pan-y">
+                                <div className="flex touch-pan-y">
                                     {questions.map((question, index) => {
                                         const isCurrent = question.id === selectedQuestion?.id;
                                         return (
@@ -864,10 +867,10 @@ export function CoachUpdateDialog({
                                                 aria-label={`Question feedback ${index + 1} of ${questions.length}: Q${question.questionNumber} ${question.categoryLabel}`}
                                                 aria-hidden={isCurrent ? undefined : true}
                                                 className={cn(
-                                                    "flex min-h-full min-w-0 flex-[0_0_84%] transform-gpu px-2 transition-[opacity,transform] duration-300 ease-out sm:flex-[0_0_78%] md:flex-[0_0_72%]",
+                                                    "flex min-w-0 flex-[0_0_84%] px-2 transition-opacity duration-300 ease-out sm:flex-[0_0_78%] md:flex-[0_0_72%]",
                                                     isCurrent
-                                                        ? "z-10 scale-100 opacity-100"
-                                                        : "scale-[0.94] opacity-65",
+                                                        ? "z-10 opacity-100"
+                                                        : "opacity-75",
                                                 )}
                                             >
                                                 <QuestionFeedbackPanel
@@ -876,6 +879,7 @@ export function CoachUpdateDialog({
                                                     presentation="coach-update"
                                                     queuedQuestionIds={queuedQuestionIds}
                                                     onAddQuestionToNextRound={onAddQuestionToNextRound}
+                                                    onRemoveQuestionFromNextRound={onRemoveQuestionFromNextRound}
                                                 />
                                             </div>
                                         );
@@ -1304,6 +1308,7 @@ export function CoachPlanQuestionSetFace({
     categories,
     queuedQuestionIds,
     onAddQuestionToNextRound,
+    onRemoveQuestionFromNextRound,
 }: {
     categories: QuestionCategoryDrilldownModel[];
 } & QuestionFeedbackQueueProps) {
@@ -1392,6 +1397,7 @@ export function CoachPlanQuestionSetFace({
                     question={selectedQuestion}
                     queuedQuestionIds={queuedQuestionIds}
                     onAddQuestionToNextRound={onAddQuestionToNextRound}
+                    onRemoveQuestionFromNextRound={onRemoveQuestionFromNextRound}
                     onClose={() => setSelectedQuestion(null)}
                 />
             ) : null}
@@ -1403,6 +1409,7 @@ function CoachPlanQuestionSheet({
     question,
     queuedQuestionIds,
     onAddQuestionToNextRound,
+    onRemoveQuestionFromNextRound,
     onClose,
 }: {
     question: QuestionFeedbackItem;
@@ -1448,15 +1455,76 @@ function CoachPlanQuestionSheet({
                         </button>
                     </div>
                 </div>
-                <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-5 md:p-6">
+                <div data-coach-plan-question-sheet-content className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-5 md:p-6">
                     <QuestionFeedbackPanel
                         question={question}
                         queuedQuestionIds={queuedQuestionIds}
                         onAddQuestionToNextRound={onAddQuestionToNextRound}
+                        onRemoveQuestionFromNextRound={onRemoveQuestionFromNextRound}
                     />
                 </div>
             </section>
         </div>
+    );
+}
+
+function NextRoundQueueSwitch({
+    question,
+    isCurrent,
+    isAdded,
+    onToggle,
+}: {
+    question: QuestionFeedbackItem;
+    isCurrent: boolean;
+    isAdded: boolean;
+    onToggle: () => void;
+}) {
+    const label = `Add Q${question.questionNumber} to my next round.`;
+    const handleToggle = (event: MouseEvent<HTMLButtonElement>) => {
+        const scrollContainer = event.currentTarget.closest("[data-coach-update-content], [data-coach-plan-question-sheet-content]") as HTMLElement | null;
+        const scrollTop = scrollContainer?.scrollTop;
+
+        onToggle();
+
+        if (scrollContainer && typeof scrollTop === "number") {
+            scrollContainer.scrollTop = scrollTop;
+            window.requestAnimationFrame(() => {
+                scrollContainer.scrollTop = scrollTop;
+            });
+        }
+    };
+
+    return (
+        <button
+            type="button"
+            role="switch"
+            aria-checked={isAdded}
+            aria-label={label}
+            tabIndex={isCurrent ? undefined : -1}
+            onClick={handleToggle}
+            className={cn(
+                "mx-auto inline-flex min-h-9 items-center justify-center gap-3 rounded-xl bg-transparent px-1 py-1 text-center text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                isAdded && "text-primary hover:text-primary",
+            )}
+        >
+            <span className="min-w-0">{label}</span>
+            <span
+                data-next-round-switch-track
+                aria-hidden="true"
+                className={cn(
+                    "relative flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors",
+                    isAdded ? "bg-primary" : "bg-surface-subtle ring-1 ring-[rgb(var(--candidate-border)/0.82)]",
+                )}
+            >
+                <span
+                    data-next-round-switch-thumb
+                    className={cn(
+                        "h-5 w-5 rounded-full bg-white shadow-flat transition-transform",
+                        isAdded && "translate-x-5",
+                    )}
+                />
+            </span>
+        </button>
     );
 }
 
@@ -1466,6 +1534,7 @@ function QuestionFeedbackPanel({
     presentation = "default",
     queuedQuestionIds,
     onAddQuestionToNextRound,
+    onRemoveQuestionFromNextRound,
 }: {
     question: QuestionFeedbackItem;
     isCurrent?: boolean;
@@ -1480,20 +1549,34 @@ function QuestionFeedbackPanel({
     const coachCallout = read.summary || read.fallback || "I have enough from this answer to guide your next practice step.";
     const responseModeLabel = question.answerModality ? `${titleCase(question.answerModality)} response` : "Answer transcript";
     const ResponseModeIcon = question.answerModality === "voice" ? Mic : Keyboard;
+    const toggleNextRoundQueue = () => {
+        if (isAdded) {
+            if (onRemoveQuestionFromNextRound) {
+                onRemoveQuestionFromNextRound(question.id);
+            }
+            setIsAddedToRound(false);
+            return;
+        }
+
+        if (onAddQuestionToNextRound) {
+            onAddQuestionToNextRound(question);
+        }
+        setIsAddedToRound(true);
+    };
 
     if (presentation === "coach-update") {
         return (
-            <article data-testid="question-feedback-panel" className="flex min-h-full flex-col">
+            <article data-testid="question-feedback-panel" className="flex flex-col">
                 <div
                     data-testid="coach-update-feedback-card"
                     className={cn(
-                        "flex min-h-full transform-gpu flex-col gap-3 rounded-[1.35rem] border p-3 transition-[background,border-color,box-shadow,transform] duration-300 ease-out sm:p-4",
+                        "flex origin-center transform-gpu flex-col gap-3 rounded-[1.35rem] border bg-white p-3 transition-[background,border-color,box-shadow,transform] duration-300 ease-out sm:p-4",
                         isCurrent
-                            ? "border-primary/20 bg-gradient-to-br from-white via-white to-primary/5 shadow-[0_18px_38px_rgba(12,97,233,0.13)] ring-1 ring-primary/10"
-                            : "border-[rgb(var(--candidate-border)/0.6)] bg-white/78 shadow-flat",
+                            ? "scale-100 border-white/80 shadow-[0_18px_42px_rgba(45,61,82,0.18)] ring-1 ring-white/80"
+                            : "scale-[0.88] border-white/75 shadow-[0_8px_22px_rgba(45,61,82,0.1)]",
                     )}
                 >
-                    <header data-testid="coach-update-feedback-card-header" className="rounded-2xl bg-surface-base p-3">
+                    <header data-testid="coach-update-feedback-card-header" className="p-3">
                         <div className="flex flex-wrap items-center gap-1.5">
                             <span className="text-[0.62rem] font-black uppercase leading-4 tracking-[0.14em] text-text-muted">
                                 Q{question.questionNumber}:
@@ -1503,18 +1586,18 @@ function QuestionFeedbackPanel({
                             </QuestionCategoryChip>
                             <QuestionStateChip state={question.state} />
                         </div>
-                        <p className="mt-2 text-[0.82rem] font-bold leading-5 text-text-primary">
+                        <p className="mt-2 text-[0.82rem] font-medium leading-5 text-text-secondary">
                             {question.questionText}
                         </p>
                     </header>
 
-                    <section className="min-h-0 flex-1 rounded-2xl bg-white px-1 py-1" aria-label={isCurrent ? "Candidate answer transcript" : undefined}>
+                    <section className="rounded-2xl bg-white px-1 py-1" aria-label={isCurrent ? "Candidate answer transcript" : undefined}>
                         <p data-testid="coach-update-answer-transcript-text" className="whitespace-pre-wrap text-sm leading-6 text-text-secondary">
                             {question.answerTranscript || "No answer transcript captured."}
                         </p>
                     </section>
 
-                    <section aria-label={isCurrent ? "Coach observation" : undefined} className="rounded-2xl bg-primary/5 px-3 py-3">
+                    <section aria-label={isCurrent ? "Coach observation" : undefined} className="rounded-r-2xl border-l-[3px] border-primary/35 bg-white/60 px-3 py-3">
                         <p className="text-sm font-semibold leading-6 text-text-primary">{coachCallout}</p>
                         <p className="mt-2 text-sm leading-6 text-text-secondary">
                             When you practice this question next time, use the annotated guidance here as the points to keep in mind.
@@ -1531,32 +1614,12 @@ function QuestionFeedbackPanel({
                                 Practice this now
                                 <ArrowRight size={16} className="ml-2" aria-hidden="true" />
                             </button>
-                            <button
-                                type="button"
-                                tabIndex={isCurrent ? undefined : -1}
-                                aria-pressed={isAdded}
-                                onClick={() => {
-                                    if (onAddQuestionToNextRound) {
-                                        onAddQuestionToNextRound(question);
-                                    }
-                                    setIsAddedToRound(true);
-                                }}
-                                className={cn(
-                                    "inline-flex min-h-11 items-center justify-center rounded-2xl border px-4 text-center text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                                    isAdded
-                                        ? "border-primary/30 bg-primary/10 text-primary"
-                                        : "border-[rgb(var(--candidate-border)/0.78)] bg-white text-text-secondary hover:bg-white hover:text-text-primary",
-                                )}
-                            >
-                                {isAdded ? (
-                                    <>
-                                        <CheckCircle2 size={16} className="mr-2" aria-hidden="true" />
-                                        Added
-                                    </>
-                                ) : (
-                                    "Add this question to the next round."
-                                )}
-                            </button>
+                            <NextRoundQueueSwitch
+                                question={question}
+                                isCurrent={isCurrent}
+                                isAdded={isAdded}
+                                onToggle={toggleNextRoundQueue}
+                            />
                         </div>
                     </section>
                 </div>
@@ -1624,32 +1687,12 @@ function QuestionFeedbackPanel({
                         Practice this now
                         <ArrowRight size={16} className="ml-2" aria-hidden="true" />
                     </button>
-                    <button
-                        type="button"
-                        tabIndex={isCurrent ? undefined : -1}
-                        aria-pressed={isAdded}
-                        onClick={() => {
-                            if (onAddQuestionToNextRound) {
-                                onAddQuestionToNextRound(question);
-                            }
-                            setIsAddedToRound(true);
-                        }}
-                        className={cn(
-                            "inline-flex min-h-11 items-center justify-center rounded-2xl border px-4 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                            isAdded
-                                ? "border-primary/30 bg-primary/10 text-primary"
-                                : "border-[rgb(var(--candidate-border)/0.78)] bg-white text-text-secondary hover:bg-white hover:text-text-primary",
-                        )}
-                    >
-                        {isAdded ? (
-                            <>
-                                <CheckCircle2 size={16} className="mr-2" aria-hidden="true" />
-                                Added
-                            </>
-                        ) : (
-                            "Add this to my next round"
-                        )}
-                    </button>
+                    <NextRoundQueueSwitch
+                        question={question}
+                        isCurrent={isCurrent}
+                        isAdded={isAdded}
+                        onToggle={toggleNextRoundQueue}
+                    />
                 </div>
             </section>
         </div>

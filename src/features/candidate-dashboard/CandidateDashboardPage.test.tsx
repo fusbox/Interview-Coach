@@ -474,8 +474,8 @@ describe("CandidateDashboardPage", () => {
         expect(screen.getByLabelText(/candidate answer transcript/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/coach observation/i)).toHaveTextContent("When you practice this question next time");
         expect(screen.queryByLabelText(/coach guidance/i)).not.toBeInTheDocument();
-        await user.click(screen.getByRole("button", { name: /add this question to the next round/i }));
-        expect(screen.getByRole("button", { name: /added/i })).toHaveAttribute("aria-pressed", "true");
+        await user.click(screen.getByRole("switch", { name: /add q1 to my next round/i }));
+        expect(screen.getByRole("switch", { name: /add q1 to my next round/i })).toHaveAttribute("aria-checked", "true");
         expect(screen.queryByRole("link", { name: /skip to recommendation/i })).not.toBeInTheDocument();
         expect(screen.queryByRole("button", { name: /not now/i })).not.toBeInTheDocument();
 
@@ -487,7 +487,7 @@ describe("CandidateDashboardPage", () => {
         const questionDialogHeader = questionDialog.querySelector("[data-coach-plan-question-sheet-header]");
         expect(questionDialogHeader).not.toBeNull();
         expect(questionDialogHeader).not.toHaveTextContent("Tell me about a client issue you resolved.");
-        expect(screen.getByRole("button", { name: /added/i })).toHaveAttribute("aria-pressed", "true");
+        expect(screen.getByRole("switch", { name: /add q1 to my next round/i })).toHaveAttribute("aria-checked", "true");
 
         await user.click(screen.getByRole("button", { name: /close/i }));
         await user.click(screen.getByRole("button", { name: /next practice round/i }));
@@ -500,7 +500,7 @@ describe("CandidateDashboardPage", () => {
 
         expect(screen.queryByRole("dialog", { name: /next practice round/i })).not.toBeInTheDocument();
         await user.click(screen.getByRole("button", { name: /open q1 question detail/i }));
-        expect(screen.getByRole("button", { name: /add this to my next round/i })).toHaveAttribute("aria-pressed", "false");
+        expect(screen.getByRole("switch", { name: /add q1 to my next round/i })).toHaveAttribute("aria-checked", "false");
     });
 
     it("keeps next-round queue buckets independent for each selected prep context", async () => {
@@ -508,7 +508,7 @@ describe("CandidateDashboardPage", () => {
         const { rerender } = render(<CandidateDashboardPage dashboard={baseModel} />);
 
         await user.click(screen.getAllByRole("button", { name: /open q1 question detail/i })[1]);
-        await user.click(screen.getByRole("button", { name: /add this to my next round/i }));
+        await user.click(screen.getByRole("switch", { name: /add q1 to my next round/i }));
 
         expect(screen.getByRole("button", { name: /next practice round/i })).toHaveTextContent("1");
         await user.click(screen.getByRole("button", { name: /close/i }));
@@ -583,12 +583,15 @@ describe("CandidateDashboardPage", () => {
         expect(screen.getByRole("button", { name: /next practice round/i })).not.toHaveTextContent("1");
 
         await user.click(screen.getByRole("button", { name: /open coach update/i }));
-        await user.click(screen.getByRole("button", { name: /add this question to the next round/i }));
-        expect(screen.getByRole("button", { name: /added/i })).toHaveAttribute("aria-pressed", "true");
+        await user.click(screen.getByRole("switch", { name: /add q1 to my next round/i }));
+        expect(screen.getByRole("switch", { name: /add q1 to my next round/i })).toHaveAttribute("aria-checked", "true");
+        await user.click(screen.getByRole("switch", { name: /add q1 to my next round/i }));
+        expect(screen.getByRole("switch", { name: /add q1 to my next round/i })).toHaveAttribute("aria-checked", "false");
+        await user.click(screen.getByRole("switch", { name: /add q1 to my next round/i }));
         await user.click(screen.getByRole("button", { name: /close/i }));
 
         await user.click(screen.getByRole("button", { name: /open q1 question detail/i }));
-        expect(screen.getByRole("button", { name: /added/i })).toHaveAttribute("aria-pressed", "true");
+        expect(screen.getByRole("switch", { name: /add q1 to my next round/i })).toHaveAttribute("aria-checked", "true");
         await user.click(screen.getByRole("button", { name: /close/i }));
 
         expect(screen.getByRole("button", { name: /next practice round/i })).toHaveTextContent("1");
@@ -599,7 +602,7 @@ describe("CandidateDashboardPage", () => {
         expect(screen.getByRole("button", { name: /next practice round/i })).not.toHaveTextContent("1");
 
         await user.click(screen.getByRole("button", { name: /open q1 question detail/i }));
-        expect(screen.getByRole("button", { name: /add this to my next round/i })).toHaveAttribute("aria-pressed", "false");
+        expect(screen.getByRole("switch", { name: /add q1 to my next round/i })).toHaveAttribute("aria-checked", "false");
         await user.click(screen.getByRole("button", { name: /close/i }));
 
         rerender(<CandidateDashboardPage dashboard={baseModel} />);
@@ -607,7 +610,7 @@ describe("CandidateDashboardPage", () => {
         expect(screen.getByRole("button", { name: /switch interview prep context/i })).toHaveTextContent("QA Analyst");
         expect(screen.getByRole("button", { name: /next practice round/i })).toHaveTextContent("1");
         await user.click(screen.getAllByRole("button", { name: /open q1 question detail/i })[1]);
-        expect(screen.getByRole("button", { name: /added/i })).toHaveAttribute("aria-pressed", "true");
+        expect(screen.getByRole("switch", { name: /add q1 to my next round/i })).toHaveAttribute("aria-checked", "true");
     });
 
     it("opens a teaching-first Coach Plan category sheet from the category face", async () => {
