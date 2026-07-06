@@ -13,7 +13,7 @@
     "test": "vitest",
     "typecheck": "tsc --noEmit",
     "test:run": "vitest run",
-    "test:candidate": "vitest run src/app/shared-host-routes.test.ts src/app/page.test.tsx src/app/practice src/app/dashboard src/app/session src/app/summary src/features/practice-setup src/features/candidate-session src/features/candidate-summary src/features/candidate-dashboard src/lib/candidate src/lib/server/candidate db/seeds/001_candidate_dev_seed.test.ts",
+    "test:candidate": "vitest run src/test/smoke.test.tsx",
     "test:coverage": "vitest run --coverage",
     "test:stability": "node scripts/run-stability-suite.mjs",
     "test:e2e": "playwright test",

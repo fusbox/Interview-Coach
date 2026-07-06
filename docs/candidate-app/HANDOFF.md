@@ -127,6 +127,7 @@ The current dashboard is useful as a visual shell and read-model proof, but it i
 The active direction is now a parallel V2 rebuild rather than further in-place dashboard polishing. Existing candidate dashboard work remains valuable as product evidence and regression reference, but the next durable candidate implementation should prove the clean V2 vertical on twin routes before cutover.
 
 - Candidate V2 may use `.untracked/design-system` as a reference pack during early implementation, but any production dependency on tokens, assets, or component behavior must be promoted into tracked source before V2 routes are release candidates. The first tracked V2 bridge now lives at `src/features/candidate-v2/design-system` and centralizes the shell classes, candidate tokens, and preparedness-state vocabulary used by the `/practice2`, `/session2/[sessionId]`, and `/dashboard2` placeholders.
+- The V2 branch is now cleanroom-first: tracked `src` app implementation code has been reduced to a minimal Next scaffold, and prior app behavior should be reintroduced only when the active numbered slice requires it.
 
 Known current behavior:
 
@@ -202,11 +203,20 @@ Implement the parallel V2 rebuild in small, validated slices.
 
 Recommended next implementation slice:
 
+4. Add the shared V2 completion behavior contract and route candidate-led `/session2/[sessionId]` through it.
+5. Add evidence-first evaluation domain contracts behind a feature flag before dashboard V2 claims depend on criteria bands.
+
+
+Completed slices:
+
+Protocol reset: completed as an explicit scaffold-reset commit before continuing numbered V2 rebuild slices.
 1. Completed for the V2 shell base: promote the minimal design-system pieces that V2 route shells need from `.untracked/design-system` into tracked source before production V2 surfaces depend on them.
 2. Completed for the V2 shell base: add route shells for `/practice2`, `/session2/[sessionId]`, and `/dashboard2` with candidate-design-system styling and tests.
 3. Completed: repair the session GET/PATCH authorization blocker so shared session runtime access works for both invite-token and authenticated candidate-owned sessions.
-4. Add the shared V2 completion behavior contract and route candidate-led `/session2/[sessionId]` through it.
-5. Add evidence-first evaluation domain contracts behind a feature flag before dashboard V2 claims depend on criteria bands.
+4.
+5.
+
+---
 
 Deprecation check for each dashboard refactor slice:
 
@@ -219,7 +229,7 @@ Deprecation check for each dashboard refactor slice:
 ## Current Risks
 
 - Same-title/different-JD prep profiles are not distinguishable in the dashboard until a profile switcher or stricter profile selector lands.
-- `npm run test:candidate` currently reports existing UI expectation failures in `src/features/practice-setup/PracticeSetupPage.test.tsx` for the removed/changed Advanced setup affordance and `src/app/dashboard/page.test.tsx` for the retired visible Interview Coach heading. The session API authorization slice is covered by `src/app/api/session/[session_id]/route.test.ts`.
+- Historical candidate implementation tests are not available on the cleanroom V2 branch until their owning code is intentionally restored. `npm run test:candidate` is temporarily scoped to the scaffold smoke test.
 - Practice Next now exposes active-session pending questions, completed-session planned category gaps, and non-strong matrix cells, but the Coach Plan direction needs paired recommendation rules before it can confidently drive follow-up practice from coverage plus remediation.
 - Dashboard matrix cell state is derived from currently available lane-specific category score states. It remains useful as a transition/detail surface, but the normal candidate experience should migrate toward Coach Plan faces and coaching sheets.
 - The current Quick View pie interactions are functional but no longer the release target. The Coach Plan direction should replace the Quick View/Details trajectory instead of adding more polish to the current two-pie surface.

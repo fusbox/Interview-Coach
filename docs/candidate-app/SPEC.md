@@ -25,6 +25,8 @@ The next production-quality candidate implementation may be built in parallel on
 
 Production V2 candidate surfaces should depend on tracked design-system wrappers and tokens, not directly on `.untracked/design-system` files. The untracked design-system pack may remain a reference while components are promoted slice by slice.
 
+The V2 rebuild branch intentionally starts from a minimal app scaffold. Existing app code should be brought back only when a numbered slice requires it, with the source/reference named in the commit and handoff.
+
 Recruiter, admin, and QA routes share the deployable app, but candidate practice data is candidate-owned. Recruiters and hiring-decision users should not see candidate-led practice content. Admin and QA access may exist only for support, quality, and operational review with appropriate privacy controls.
 
 Recruiter-created invite flows may share question planning services with the candidate app. When recruiter question setup changes, invited-session answer feedback, retry/continue behavior, and summary behavior should remain stable unless a recruiter-facing product change is explicitly specified.
