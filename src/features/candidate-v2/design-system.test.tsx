@@ -30,10 +30,12 @@ describe("candidate V2 design system primitives", () => {
 
     it("exposes the route-shell class recipes without relying on untracked files", () => {
         expect(candidateV2Classes.page).toContain("candidate-design-system");
-        expect(candidateV2Classes.surfaceCard).toBe("candidate-v2-surface-card");
+        expect(candidateV2Classes.page).toContain("page-center-frame");
+        expect(candidateV2Classes.surfaceCard).toBe("surface-card");
         expect(candidateV2Classes.eyebrow).toBe("type-eyebrow");
         expect(candidateV2Classes.title).toBe("type-display-md");
         expect(candidateV2Classes.body).toContain("type-body-md");
+        expect(candidateV2Classes.body).toContain("muted-copy");
     });
 
     it("exposes layout primitives for page-frame composition", () => {

@@ -21,11 +21,11 @@ export default async function Session2Page({ params }: { params: Promise<{ sessi
             title="Practice session V2"
             description={`This route will host the rebuilt shared session runtime for session ${sessionId}.`}
         >
-            <div className="candidate-v2-action-stack">
-                <p className="type-body-sm candidate-v2-muted-copy">
+            <div className="action-stack">
+                <p className="type-body-sm muted-copy">
                     When this round is finished, the dashboard is the next stop.
                 </p>
-                <a className="candidate-v2-primary-action" href={completionTarget.href}>
+                <a className="primary-action" href={completionTarget.href}>
                     {completionTarget.label}
                 </a>
             </div>

@@ -24,11 +24,11 @@ export const candidateV2Tokens = {
 } as const;
 
 export const candidateV2Classes = {
-    page: "candidate-design-system candidate-v2-page",
-    surfaceCard: "candidate-v2-surface-card",
+    page: "candidate-design-system page-center-frame",
+    surfaceCard: "surface-card",
     eyebrow: "type-eyebrow",
     title: "type-display-md",
-    body: "type-body-md candidate-v2-muted-copy",
+    body: "type-body-md muted-copy",
     appGrid: "app-grid",
     grid12: "grid-12",
     mainRail: "layout-main-rail",
