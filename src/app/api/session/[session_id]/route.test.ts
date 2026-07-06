@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const getMock = vi.fn();
 const markViewedMock = vi.fn();
 const requireCandidateTokenMock = vi.fn();
+const authorizeCandidateSessionRequestMock = vi.fn();
 const updateSessionCommandMock = vi.fn();
 const getSessionCommandMock = vi.fn();
 
@@ -15,6 +16,10 @@ vi.mock("@/lib/server/infrastructure/postgres-session-repository", () => ({
 
 vi.mock("@/lib/server/auth/candidate-token", () => ({
     requireCandidateToken: requireCandidateTokenMock
+}));
+
+vi.mock("@/lib/server/candidate-route-auth", () => ({
+    authorizeCandidateSessionRequest: authorizeCandidateSessionRequestMock
 }));
 
 vi.mock("@/lib/server/application/session/update-session", () => ({
@@ -37,12 +42,13 @@ describe("/api/session/[session_id]", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         requireCandidateTokenMock.mockResolvedValue({ ok: true, status: 200 });
+        authorizeCandidateSessionRequestMock.mockResolvedValue(null);
         updateSessionCommandMock.mockResolvedValue({ id: "session-1", status: "PAUSED" });
         getSessionCommandMock.mockResolvedValue({ id: "session-1", status: "IN_SESSION" });
     });
 
     it("GET returns 401 when candidate auth fails", async () => {
-        requireCandidateTokenMock.mockResolvedValue({ ok: false, status: 401, error: "Missing candidate token" });
+        authorizeCandidateSessionRequestMock.mockResolvedValue(new Response("Missing candidate token", { status: 401 }));
         const { GET } = await import("./route");
 
         const response = await GET(
@@ -54,6 +60,26 @@ describe("/api/session/[session_id]", () => {
 
         expect(response.status).toBe(401);
         expect(getSessionCommandMock).not.toHaveBeenCalled();
+    });
+
+    it("GET allows shared candidate-owned authorization without direct token auth", async () => {
+        const { GET } = await import("./route");
+
+        const response = await GET(
+            new Request("http://localhost/api/session/session-1", {
+                method: "GET"
+            }),
+            { params: Promise.resolve({ session_id: "session-1" }) }
+        );
+
+        expect(response.status).toBe(200);
+        expect(requireCandidateTokenMock).not.toHaveBeenCalled();
+        expect(authorizeCandidateSessionRequestMock).toHaveBeenCalledWith(
+            expect.any(Request),
+            "session-1",
+            expect.any(String)
+        );
+        expect(getSessionCommandMock).toHaveBeenCalledWith("session-1");
     });
 
     it("GET maps not found domain errors to 404", async () => {
@@ -87,7 +113,7 @@ describe("/api/session/[session_id]", () => {
     });
 
     it("PATCH returns 401 when candidate auth fails", async () => {
-        requireCandidateTokenMock.mockResolvedValue({ ok: false, status: 401, error: "Missing candidate token" });
+        authorizeCandidateSessionRequestMock.mockResolvedValue(new Response("Missing candidate token", { status: 401 }));
         const { PATCH } = await import("./route");
 
         const response = await PATCH(
@@ -100,6 +126,27 @@ describe("/api/session/[session_id]", () => {
 
         expect(response.status).toBe(401);
         expect(updateSessionCommandMock).not.toHaveBeenCalled();
+    });
+
+    it("PATCH allows shared candidate-owned authorization without direct token auth", async () => {
+        const { PATCH } = await import("./route");
+
+        const response = await PATCH(
+            new Request("http://localhost/api/session/session-1", {
+                method: "PATCH",
+                body: JSON.stringify({ status: "PAUSED" })
+            }),
+            { params: Promise.resolve({ session_id: "session-1" }) }
+        );
+
+        expect(response.status).toBe(200);
+        expect(requireCandidateTokenMock).not.toHaveBeenCalled();
+        expect(authorizeCandidateSessionRequestMock).toHaveBeenCalledWith(
+            expect.any(Request),
+            "session-1",
+            expect.any(String)
+        );
+        expect(updateSessionCommandMock).toHaveBeenCalledWith("session-1", { status: "PAUSED" });
     });
 
     it("PATCH returns 422 when the request body is invalid", async () => {

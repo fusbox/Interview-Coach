@@ -118,6 +118,7 @@ Last updated: 2026-07-06
 - Preview Irma seed data now includes a durable Client Services Representative first-interview fixture: 3 practiced voice answers against a 7-question rigor baseline, an aggregate emerging read, one remediation target, and remaining unpracticed coverage questions. This promotes the locally validated scenario into `db/seeds/002_candidate_preview_irma_seed.sql` and `db/validation/007_candidate_preview_irma_seed_smoke.sql`.
 - QSO-S24 import file is ready for the preview seed scenario slice.
 - ADR-0009 now accepts a parallel V2 rebuild strategy: candidate V2 should prove `/practice2`, `/session2/[sessionId]`, and `/dashboard2` as a clean vertical while old routes remain available. The rebuild may use `.untracked/design-system` as a reference pack, but production tokens/assets/components must be promoted into tracked source before V2 routes become release candidates. See [Parallel V2 Rebuild Implementation Plan](../superpowers/plans/2026-07-06-parallel-v2-rebuild.md).
+- Session GET/PATCH now delegates to the shared `authorizeCandidateSessionRequest` guard, so invite-token access and authenticated candidate-owned access share the same session authorization boundary before session read/update commands run.
 
 ## Current State And Context
 
@@ -203,7 +204,7 @@ Recommended next implementation slice:
 
 1. Completed for the V2 shell base: promote the minimal design-system pieces that V2 route shells need from `.untracked/design-system` into tracked source before production V2 surfaces depend on them.
 2. Completed for the V2 shell base: add route shells for `/practice2`, `/session2/[sessionId]`, and `/dashboard2` with candidate-design-system styling and tests.
-3. Repair the session GET/PATCH authorization blocker so shared session runtime access works for both invite-token and authenticated candidate-owned sessions.
+3. Completed: repair the session GET/PATCH authorization blocker so shared session runtime access works for both invite-token and authenticated candidate-owned sessions.
 4. Add the shared V2 completion behavior contract and route candidate-led `/session2/[sessionId]` through it.
 5. Add evidence-first evaluation domain contracts behind a feature flag before dashboard V2 claims depend on criteria bands.
 
@@ -218,6 +219,7 @@ Deprecation check for each dashboard refactor slice:
 ## Current Risks
 
 - Same-title/different-JD prep profiles are not distinguishable in the dashboard until a profile switcher or stricter profile selector lands.
+- `npm run test:candidate` currently reports existing UI expectation failures in `src/features/practice-setup/PracticeSetupPage.test.tsx` for the removed/changed Advanced setup affordance and `src/app/dashboard/page.test.tsx` for the retired visible Interview Coach heading. The session API authorization slice is covered by `src/app/api/session/[session_id]/route.test.ts`.
 - Practice Next now exposes active-session pending questions, completed-session planned category gaps, and non-strong matrix cells, but the Coach Plan direction needs paired recommendation rules before it can confidently drive follow-up practice from coverage plus remediation.
 - Dashboard matrix cell state is derived from currently available lane-specific category score states. It remains useful as a transition/detail surface, but the normal candidate experience should migrate toward Coach Plan faces and coaching sheets.
 - The current Quick View pie interactions are functional but no longer the release target. The Coach Plan direction should replace the Quick View/Details trajectory instead of adding more polish to the current two-pie surface.

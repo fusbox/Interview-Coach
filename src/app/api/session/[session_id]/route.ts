@@ -1,18 +1,16 @@
 import { NextResponse } from "next/server";
-import { requireCandidateToken } from "@/lib/server/auth/candidate-token";
 import { UpdateSessionSchema } from "@/lib/domain/schemas";
 import {
     createCorrelationId,
-    forbiddenResponse,
     internalErrorResponse,
     notFoundResponse,
-    unauthorizedResponse,
     validationErrorResponse
 } from "@/lib/server/api-errors";
 import { createServerLogger } from "@/lib/server/server-logger";
 import { updateSessionCommand } from "@/lib/server/application/session/update-session";
 import { SessionUpdateNotFoundError, SessionUpdateValidationError } from "@/lib/server/application/session/errors";
 import { getSessionCommand } from "@/lib/server/application/session/get-session";
+import { authorizeCandidateSessionRequest } from "@/lib/server/candidate-route-auth";
 
 export async function GET(
     request: Request,
@@ -27,13 +25,9 @@ export async function GET(
         sessionId: session_id,
         method: request.method
     });
-    const auth = await requireCandidateToken(request, session_id);
-    if (!auth.ok) {
-        if (auth.status === 401) {
-            return unauthorizedResponse(correlationId, auth.error);
-        }
-
-        return forbiddenResponse(correlationId, auth.error);
+    const authResponse = await authorizeCandidateSessionRequest(request, session_id, correlationId);
+    if (authResponse) {
+        return authResponse;
     }
 
     try {
@@ -65,13 +59,9 @@ export async function PATCH(
         sessionId: session_id,
         method: request.method
     });
-    const auth = await requireCandidateToken(request, session_id);
-    if (!auth.ok) {
-        if (auth.status === 401) {
-            return unauthorizedResponse(correlationId, auth.error);
-        }
-
-        return forbiddenResponse(correlationId, auth.error);
+    const authResponse = await authorizeCandidateSessionRequest(request, session_id, correlationId);
+    if (authResponse) {
+        return authResponse;
     }
 
     try {
