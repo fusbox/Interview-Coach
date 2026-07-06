@@ -205,7 +205,6 @@ Implement the parallel V2 rebuild in small, validated slices.
 
 Recommended next implementation slice:
 
-5. Promote the first tracked candidate design-system primitives needed by the cleanroom `/practice2`, `/session2/[sessionId]`, and `/dashboard2` route shells.
 6. Bring in only the session-domain types/contracts needed to express completion behavior.
 7. Add the shared V2 completion behavior contract and route candidate-led `/session2/[sessionId]` through it.
 8. Add evidence-first evaluation domain contracts behind a feature flag before dashboard V2 claims depend on criteria bands.
@@ -220,7 +219,7 @@ Completed slices:
 > Protocol reset: completed an explicit scaffold-reset commit before continuing numbered V2 rebuild slices.
 
 4. Completed after cleanroom reset: re-establish the V2 route scaffold for `/practice2`, `/session2/[sessionId]`, and `/dashboard2` from the minimal app shell.
-5.
+5. Completed after cleanroom reset: promote the first tracked candidate design-system primitives needed by the cleanroom route shells.
 
 ---
 

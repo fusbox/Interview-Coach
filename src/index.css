@@ -10,11 +10,28 @@
     --ring: 221 83% 53%;
     --primary: 221 83% 53%;
     --primary-foreground: 210 40% 98%;
-    --font-sans: Arial, Helvetica, sans-serif;
+    --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+    --font-display: Manrope, ui-sans-serif, system-ui, sans-serif;
+    --font-weight-normal: 400;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    --type-display-md-size: 1.625rem;
+    --type-display-md-line: 1.12;
+    --type-display-md-weight: 700;
+    --type-body-md-size: 0.875rem;
+    --type-body-md-line: 1.65;
+    --type-eyebrow-size: 0.75rem;
+    --type-eyebrow-line: 1rem;
+    --type-eyebrow-weight: 700;
+    --type-eyebrow-tracking: 0.24em;
     --candidate-background: 248 250 252;
+    --candidate-surface: 255 255 255;
     --candidate-foreground: 15 33 57;
     --candidate-border: 211 221 232;
     --candidate-muted: 86 106 131;
+    --candidate-primary: 11 87 206;
+    --candidate-primary-soft: 227 241 255;
+    --candidate-shadow-card: 0 18px 42px rgba(15, 33, 57, 0.09);
 }
 
 * {
@@ -38,10 +55,51 @@ body {
     color: rgb(var(--candidate-foreground));
 }
 
-.eyebrow {
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
+.candidate-v2-page {
+    display: flex;
+    min-height: 100vh;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+}
+
+.candidate-v2-surface-card {
+    width: min(100%, 42rem);
+    border: 1px solid rgb(var(--candidate-border) / 0.8);
+    border-radius: 1.5rem;
+    background: rgb(var(--candidate-surface) / 0.95);
+    padding: 2rem;
+    box-shadow: var(--candidate-shadow-card);
+}
+
+.type-display-md {
+    margin: 0.75rem 0 0;
+    font-family: var(--font-display);
+    font-size: var(--type-display-md-size);
+    font-weight: var(--type-display-md-weight);
+    line-height: var(--type-display-md-line);
+    letter-spacing: 0;
+}
+
+.type-body-md {
+    margin: 1rem 0 0;
+    font-family: var(--font-sans);
+    font-size: var(--type-body-md-size);
+    font-weight: var(--font-weight-normal);
+    line-height: var(--type-body-md-line);
+}
+
+.type-eyebrow {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: var(--type-eyebrow-size);
+    font-weight: var(--type-eyebrow-weight);
+    line-height: var(--type-eyebrow-line);
+    letter-spacing: var(--type-eyebrow-tracking);
     text-transform: uppercase;
+    color: rgb(var(--candidate-muted));
+}
+
+.candidate-v2-muted-copy {
     color: rgb(var(--candidate-muted));
 }
