@@ -10,11 +10,40 @@
     --ring: 221 83% 53%;
     --primary: 221 83% 53%;
     --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+    --brand-deep: 217 90% 32%;
+    --brand-orange: 20 100% 49%;
+    --brand-glass-start: 214 80% 95%;
+    --brand-glass-end: 214 80% 90%;
+    --surface-base: 0 0% 100%;
+    --surface-subtle: 210 40% 98%;
+    --surface-platinum: 215 25% 50%;
+    --surface-raised: 0 0% 100%;
+    --surface-overlay: 0 0% 100%;
+    --text-primary: 222 47% 11%;
+    --text-secondary: 215 16% 47%;
+    --text-muted: 215 16% 47%;
+    --text-inverse: 0 0% 100%;
+    --state-success: 160 60% 36%;
+    --state-warning: 38 92% 50%;
+    --state-critical: 0 84% 60%;
+    --state-info: 217 90% 48%;
+    --success: 160 60% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 222 47% 11%;
     --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
     --font-display: Manrope, ui-sans-serif, system-ui, sans-serif;
     --font-weight-normal: 400;
+    --font-weight-medium: 500;
     --font-weight-semibold: 600;
     --font-weight-bold: 700;
+    --font-weight-black: 900;
     --type-display-md-size: 1.625rem;
     --type-display-md-line: 1.12;
     --type-display-md-weight: 700;
@@ -24,6 +53,22 @@
     --type-eyebrow-line: 1rem;
     --type-eyebrow-weight: 700;
     --type-eyebrow-tracking: 0.24em;
+    --radius-sm: 0.25rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-2xl: 1.5rem;
+    --radius-3xl: 2.5rem;
+    --radius: var(--radius-md);
+    --shadow-flat: 0 0 0 1px hsl(var(--border));
+    --shadow-raised-1: 0 2px 10px hsl(222 47% 11% / 0.05);
+    --shadow-raised-2: 0 8px 24px hsl(222 47% 11% / 0.08);
+    --shadow-floating: 0 20px 48px hsl(222 47% 11% / 0.12);
+    --duration-fast: 120ms;
+    --duration-base: 180ms;
+    --duration-slow: 260ms;
+    --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
     --candidate-background: 248 250 252;
     --candidate-surface: 255 255 255;
     --candidate-foreground: 15 33 57;
@@ -110,6 +155,12 @@ body {
 
 .candidate-v2-muted-copy {
     color: rgb(var(--candidate-muted));
+}
+
+.surface-sky {
+    background: linear-gradient(135deg, rgba(246, 250, 255, 0.98), rgba(232, 241, 255, 0.92));
+    box-shadow: 0 5px 14px rgba(12, 97, 233, 0.07);
+    border-radius: 1.35rem;
 }
 
 .candidate-v2-action-stack {

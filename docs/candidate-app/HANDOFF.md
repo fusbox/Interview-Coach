@@ -206,7 +206,7 @@ Implement the parallel V2 rebuild in small, validated slices.
 
 Recommended next implementation slice:
 
-9. Test the tracked V2 design system by using it to refactor the current app root page.
+10. Apply user-guided design-system refactor changes to the restored root page after local dev-server review.
 
 
 Completed slices:
@@ -222,6 +222,7 @@ Completed slices:
 6. Completed after cleanroom reset: bring in only the session-domain types/contracts needed to express completion behavior.
 7. Completed after cleanroom reset: add the shared V2 completion behavior contract and route candidate-led `/session2/[sessionId]` through it. Candidate-owned completion resolves to `/dashboard2`; invited-session completion remains summary-oriented in the shared contract.
 8. Completed after cleanroom reset: add direct V2 evidence-first evaluation domain contracts before dashboard V2 claims depend on criteria bands. No feature flag/gate is needed because the branch reset is already the isolation boundary.
+9. Completed after cleanroom reset: bring in the v1 app root page as-is for design-system review, including the minimal button, disclosure footer, class merge helper, root-page tests, and CSS tokens/utilities needed to render it.
 
 ---
 
