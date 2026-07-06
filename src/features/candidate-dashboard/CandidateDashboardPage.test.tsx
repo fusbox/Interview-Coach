@@ -175,13 +175,16 @@ describe("CandidateDashboardPage", () => {
         expect(screen.queryByRole("region", { name: /resume-to-role bridge/i })).not.toBeInTheDocument();
         expect(screen.queryByRole("region", { name: /recommended practice path/i })).not.toBeInTheDocument();
 
-        expect(screen.getByRole("heading", { name: "Interview Coach", level: 1 })).toBeInTheDocument();
-        expect(screen.getByRole("heading", { name: "Interview Coach", level: 1 })).toHaveClass("text-[rgb(var(--candidate-foreground)/0.84)]");
         const header = screen.getByRole("banner", { name: /dashboard header/i });
         expect(header).toHaveClass("fixed");
         expect(header).not.toHaveClass("border-b");
         expect(header).not.toHaveClass("backdrop-blur-xl");
         expect(header).toHaveClass("bg-gradient-to-b");
+        expect(screen.queryByRole("heading", { name: "Interview Coach", level: 1 })).not.toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: "Practice Coach", level: 1 })).not.toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Candidate dashboard", level: 1 })).toHaveClass("sr-only");
+        expect(screen.getByRole("img", { name: /signed in as candidate one/i })).toHaveTextContent("CO");
+        expect(screen.getByRole("img", { name: /signed in as candidate one/i })).toHaveClass("border-[rgb(var(--candidate-border)/0.72)]", "bg-white", "text-text-secondary");
         expect(screen.getByRole("button", { name: /next practice round/i })).toHaveClass("w-full");
         expect(screen.queryByRole("heading", { name: "QA Analyst", level: 2 })).not.toBeInTheDocument();
         expect(screen.queryByText("Target interview")).not.toBeInTheDocument();

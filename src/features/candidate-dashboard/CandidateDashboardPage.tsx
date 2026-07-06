@@ -39,9 +39,25 @@ type CandidateDashboardPageProps = {
     dashboard: CandidateDashboardModel;
 };
 
+function getCandidateInitials(displayName?: string | null, email?: string | null) {
+    const source = displayName?.trim() || email?.trim() || "Candidate";
+    const nameParts = source
+        .replace(/@.*/, "")
+        .split(/\s+/)
+        .map((part) => part.replace(/[^a-zA-Z0-9]/g, ""))
+        .filter(Boolean);
+
+    if (nameParts.length >= 2) {
+        return `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase();
+    }
+
+    return (nameParts[0] || "C").slice(0, 2).toUpperCase();
+}
+
 export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProps) {
     const hasPractice = dashboard.stats.totalPracticeCount > 0;
     const latestItem = dashboard.activeItems[0] || dashboard.completedItems[0] || null;
+    const candidateInitials = getCandidateInitials(dashboard.candidate.displayName, dashboard.candidate.email);
     const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
     const [selectedCoachPlanCategoryId, setSelectedCoachPlanCategoryId] = useState<string | null>(null);
@@ -152,6 +168,7 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
 
     return (
         <main className="candidate-design-system relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] -mt-4 min-h-screen w-screen overflow-x-hidden bg-surface-base text-text-primary sm:-mt-6 lg:-mt-10">
+            <h1 className="sr-only">Candidate dashboard</h1>
             {hasPractice ? (
                 <div className="mx-auto w-full max-w-[88rem] px-4 pb-6 pt-36 sm:px-5 sm:pt-32 md:px-6 md:pb-8 lg:px-8">
                     <header
@@ -160,9 +177,13 @@ export function CandidateDashboardPage({ dashboard }: CandidateDashboardPageProp
                         className="fixed left-0 right-0 top-0 z-50 bg-gradient-to-b from-surface-base/95 via-surface-base/90 to-surface-base/0 px-4 pb-8 pt-3 sm:px-5 md:px-6 lg:px-8"
                     >
                         <div className="mx-auto flex w-full max-w-[88rem] flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <h1 className="font-display text-3xl font-bold tracking-tight text-[rgb(var(--candidate-foreground)/0.84)] md:text-4xl">
-                                Interview Coach
-                            </h1>
+                            <div
+                                role="img"
+                                aria-label={`Signed in as ${dashboard.candidate.displayName || dashboard.candidate.email || "candidate"}`}
+                                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[rgb(var(--candidate-border)/0.72)] bg-white text-sm font-bold uppercase tracking-[0.08em] text-text-secondary shadow-flat"
+                            >
+                                {candidateInitials}
+                            </div>
                             <div ref={nextPracticeRoundAnchorRef} className="w-full rounded-[1.75rem] bg-white/40 p-1 backdrop-blur-xl sm:w-80">
                                 <NextPracticeRoundButton
                                     queuedCount={queuedQuestions.length}
