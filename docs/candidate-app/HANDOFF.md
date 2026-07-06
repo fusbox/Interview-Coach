@@ -128,6 +128,7 @@ The active direction is now a parallel V2 rebuild rather than further in-place d
 
 - Candidate V2 may use `.untracked/design-system` as a reference pack during early implementation, but any production dependency on tokens, assets, or component behavior must be promoted into tracked source before V2 routes are release candidates. The first tracked V2 bridge now lives at `src/features/candidate-v2/design-system` and centralizes the shell classes, candidate tokens, and preparedness-state vocabulary used by the `/practice2`, `/session2/[sessionId]`, and `/dashboard2` placeholders.
 - The V2 branch is now cleanroom-first: tracked `src` app implementation code has been reduced to a minimal Next scaffold, and prior app behavior should be reintroduced only when the active numbered slice requires it.
+- New host-platform access context exists for later candidate work: already logged-in host-platform candidates are expected to reach Interview Coach through a verified-token redirect identity approach. Nothing is implemented for that access model yet, and it should not affect recruiter routes.
 
 Known current behavior:
 
@@ -189,6 +190,7 @@ Active docs now use this lighter stack:
 - [Decision Records](./08-decisions/README.md) for durable why-decisions.
 - [ADR-0009 Parallel V2 Rebuild](./08-decisions/ADR-0009-parallel-v2-rebuild.md) for the accepted twin-route rebuild strategy.
 - [Parallel V2 Rebuild Implementation Plan](../superpowers/plans/2026-07-06-parallel-v2-rebuild.md) for the first task sequence.
+- [Candidate Host Integration Chat 2026-07-06](./integration-chat-7-6-2026.md) for new context on host-platform verified-token redirect access and identity. This applies to candidate app access only and has no recruiter-app effect.
 - [Platform Launch PrepProfile Migration](./04-architecture/platform-launch-prepprofile-migration.md) for future host-platform schema integration.
 - [Preparedness Signal Map](./04-architecture/preparedness-signal-map.md) for low-level signal and lane evidence tracing.
 - [Question Category Contract](./04-architecture/question-category-contract.md) for interview-demand category definitions, resume/JD usage, and category indicator semantics.
@@ -203,17 +205,21 @@ Implement the parallel V2 rebuild in small, validated slices.
 
 Recommended next implementation slice:
 
-4. Add the shared V2 completion behavior contract and route candidate-led `/session2/[sessionId]` through it.
-5. Add evidence-first evaluation domain contracts behind a feature flag before dashboard V2 claims depend on criteria bands.
+5. Promote the first tracked candidate design-system primitives needed by the cleanroom `/practice2`, `/session2/[sessionId]`, and `/dashboard2` route shells.
+6. Bring in only the session-domain types/contracts needed to express completion behavior.
+7. Add the shared V2 completion behavior contract and route candidate-led `/session2/[sessionId]` through it.
+8. Add evidence-first evaluation domain contracts behind a feature flag before dashboard V2 claims depend on criteria bands.
 
 
 Completed slices:
 
-Protocol reset: completed as an explicit scaffold-reset commit before continuing numbered V2 rebuild slices.
 1. Completed for the V2 shell base: promote the minimal design-system pieces that V2 route shells need from `.untracked/design-system` into tracked source before production V2 surfaces depend on them.
 2. Completed for the V2 shell base: add route shells for `/practice2`, `/session2/[sessionId]`, and `/dashboard2` with candidate-design-system styling and tests.
 3. Completed: repair the session GET/PATCH authorization blocker so shared session runtime access works for both invite-token and authenticated candidate-owned sessions.
-4.
+
+> Protocol reset: completed an explicit scaffold-reset commit before continuing numbered V2 rebuild slices.
+
+4. Completed after cleanroom reset: re-establish the V2 route scaffold for `/practice2`, `/session2/[sessionId]`, and `/dashboard2` from the minimal app shell.
 5.
 
 ---
