@@ -206,7 +206,7 @@ Implement the parallel V2 rebuild in small, validated slices.
 
 Recommended next implementation slice:
 
-10. Apply user-guided design-system refactor changes to the restored root page after local dev-server review.
+11. Refactor the restored root page using tracked design-system primitives. The page is a standard public landing page for visitors who reach `interviewcoach.talentarbor.com`: current/potential job seekers, employer clients, and a small employee-login affordance for recruiters/admins. Primary CTA blocks should point to `https://talentarbor.com/job-seeker` for job seekers and `https://rangam.com/employers` for clients, with brief explanatory copy that sets context.
 
 
 Completed slices:
@@ -223,6 +223,7 @@ Completed slices:
 7. Completed after cleanroom reset: add the shared V2 completion behavior contract and route candidate-led `/session2/[sessionId]` through it. Candidate-owned completion resolves to `/dashboard2`; invited-session completion remains summary-oriented in the shared contract.
 8. Completed after cleanroom reset: add direct V2 evidence-first evaluation domain contracts before dashboard V2 claims depend on criteria bands. No feature flag/gate is needed because the branch reset is already the isolation boundary.
 9. Completed after cleanroom reset: bring in the v1 app root page as-is for design-system review, including the minimal button, disclosure footer, class merge helper, root-page tests, and CSS tokens/utilities needed to render it.
+10. Completed after cleanroom reset: promote layout tokens/primitives from `.untracked/design-system` into tracked CSS and `candidate-v2` design-system exports before refactoring the public root page.
 
 ---
 

@@ -11,6 +11,16 @@ export const candidateV2Tokens = {
     shadowCard: "--candidate-shadow-card",
     fontSans: "--font-sans",
     fontDisplay: "--font-display",
+    gridMax: "--candidate-grid-max",
+    gridGap: "--candidate-grid-gap",
+    publicMax: "--layout-public-max",
+    appMax: "--layout-app-max",
+    readableMax: "--layout-readable-max",
+    formMax: "--layout-form-max",
+    sessionMax: "--layout-session-max",
+    sidebarWidth: "--layout-sidebar-width",
+    railWidth: "--layout-rail-width",
+    headerHeight: "--layout-header-height",
 } as const;
 
 export const candidateV2Classes = {
@@ -19,6 +29,11 @@ export const candidateV2Classes = {
     eyebrow: "type-eyebrow",
     title: "type-display-md",
     body: "type-body-md candidate-v2-muted-copy",
+    appGrid: "app-grid",
+    grid12: "grid-12",
+    mainRail: "layout-main-rail",
+    readable: "layout-readable",
+    sectionSpace: "section-space",
 } as const;
 
 type CandidateV2SurfaceProps = {

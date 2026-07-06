@@ -77,6 +77,16 @@
     --candidate-primary: 11 87 206;
     --candidate-primary-soft: 227 241 255;
     --candidate-shadow-card: 0 18px 42px rgba(15, 33, 57, 0.09);
+    --candidate-grid-max: 76rem;
+    --candidate-grid-gap: 1rem;
+    --layout-public-max: 80rem;
+    --layout-app-max: 88rem;
+    --layout-readable-max: 48rem;
+    --layout-form-max: 56rem;
+    --layout-session-max: 64rem;
+    --layout-sidebar-width: 16rem;
+    --layout-rail-width: 23rem;
+    --layout-header-height: 4.5rem;
 }
 
 * {
@@ -98,6 +108,32 @@ body {
 .candidate-design-system {
     background: rgb(var(--candidate-background));
     color: rgb(var(--candidate-foreground));
+}
+
+.app-grid {
+    width: min(100% - 2rem, var(--candidate-grid-max));
+    margin-inline: auto;
+}
+
+.grid-12 {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--candidate-grid-gap);
+}
+
+.layout-main-rail {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--gap-grid, var(--candidate-grid-gap));
+}
+
+.layout-readable {
+    width: min(100%, var(--layout-readable-max));
+    margin-inline: auto;
+}
+
+.section-space {
+    padding-block: 3rem;
 }
 
 .candidate-v2-page {
@@ -192,4 +228,24 @@ body {
 .candidate-v2-primary-action:focus-visible {
     outline: 3px solid rgb(var(--candidate-primary-soft));
     outline-offset: 3px;
+}
+
+@media (min-width: 768px) {
+    :root {
+        --candidate-grid-gap: 1.25rem;
+    }
+
+    .app-grid {
+        width: min(100% - 3rem, var(--candidate-grid-max));
+    }
+
+    .section-space {
+        padding-block: 4.5rem;
+    }
+}
+
+@media (min-width: 1280px) {
+    .layout-main-rail {
+        grid-template-columns: minmax(0, 1fr) var(--layout-rail-width);
+    }
 }
