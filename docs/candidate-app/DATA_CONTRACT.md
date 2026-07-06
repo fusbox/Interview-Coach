@@ -34,6 +34,40 @@ V2 dashboard and session work should move toward:
 
 If an evidence-first result is adapted into the old `AnalysisResult` shape, that adapter is a bridge for existing rendering or AI-quality review. It is not the durable V2 evaluation contract.
 
+### V2 Evaluation Evidence
+
+The V2 evaluation contract starts from evidence items, not dashboard claims.
+
+Current source module:
+
+- `src/features/evaluation-v2/evaluation-domain.ts`
+
+Core vocabulary:
+
+```ts
+type EvidenceApplicability = "observed" | "not_elicited" | "insufficient_data" | "unscoreable";
+
+type CriteriaBand =
+    | "not_enough_evidence"
+    | "emerging"
+    | "clear"
+    | "strong";
+
+type EvaluationEvidenceItem = {
+    criterionId: string;
+    applicability: EvidenceApplicability;
+    score?: number;
+};
+```
+
+Contract rules:
+
+- only `observed` evidence with a valid numeric score contributes to criteria-band averages;
+- `not_elicited`, `insufficient_data`, and `unscoreable` evidence is excluded from averages and must not be treated as weak performance;
+- an evidence set with no observed scored evidence maps to `not_enough_evidence`;
+- candidate-facing reads expose qualitative bands and coach-language descriptions, not raw numeric scores;
+- dashboard V2 claims should depend on this evidence summary layer before presenting preparedness language.
+
 ## Core Objects
 
 ### Candidate Identity

@@ -206,7 +206,7 @@ Implement the parallel V2 rebuild in small, validated slices.
 
 Recommended next implementation slice:
 
-8. Add evidence-first evaluation domain contracts behind a feature flag before dashboard V2 claims depend on criteria bands.
+9. Test the tracked V2 design system by using it to refactor the current app root page.
 
 
 Completed slices:
@@ -221,6 +221,7 @@ Completed slices:
 5. Completed after cleanroom reset: promote the first tracked candidate design-system primitives needed by the cleanroom route shells.
 6. Completed after cleanroom reset: bring in only the session-domain types/contracts needed to express completion behavior.
 7. Completed after cleanroom reset: add the shared V2 completion behavior contract and route candidate-led `/session2/[sessionId]` through it. Candidate-owned completion resolves to `/dashboard2`; invited-session completion remains summary-oriented in the shared contract.
+8. Completed after cleanroom reset: add direct V2 evidence-first evaluation domain contracts before dashboard V2 claims depend on criteria bands. No feature flag/gate is needed because the branch reset is already the isolation boundary.
 
 ---
 

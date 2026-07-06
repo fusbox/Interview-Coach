@@ -13,7 +13,7 @@
     "test": "vitest",
     "typecheck": "tsc --noEmit",
     "test:run": "vitest run",
-    "test:candidate": "vitest run src/test/smoke.test.tsx src/features/candidate-v2/design-system.test.tsx src/features/session-v2/session-domain.test.ts src/app/practice2/page.test.tsx src/app/session2/[sessionId]/page.test.tsx src/app/dashboard2/page.test.tsx",
+    "test:candidate": "vitest run src/test/smoke.test.tsx src/features/candidate-v2/design-system.test.tsx src/features/session-v2/session-domain.test.ts src/features/evaluation-v2/evaluation-domain.test.ts src/app/practice2/page.test.tsx src/app/session2/[sessionId]/page.test.tsx src/app/dashboard2/page.test.tsx",
     "test:coverage": "vitest run --coverage",
     "test:stability": "node scripts/run-stability-suite.mjs",
     "test:e2e": "playwright test",
