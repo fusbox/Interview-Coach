@@ -89,6 +89,14 @@ body {
     line-height: var(--type-body-md-line);
 }
 
+.type-body-sm {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    font-weight: var(--font-weight-normal);
+    line-height: 1.55;
+}
+
 .type-eyebrow {
     margin: 0;
     font-family: var(--font-sans);
@@ -102,4 +110,35 @@ body {
 
 .candidate-v2-muted-copy {
     color: rgb(var(--candidate-muted));
+}
+
+.candidate-v2-action-stack {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgb(var(--candidate-border) / 0.8);
+}
+
+.candidate-v2-primary-action {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    background: rgb(var(--candidate-primary));
+    padding: 0.75rem 1rem;
+    color: white;
+    font-size: 0.875rem;
+    font-weight: var(--font-weight-semibold);
+    line-height: 1;
+    text-decoration: none;
+}
+
+.candidate-v2-primary-action:focus-visible {
+    outline: 3px solid rgb(var(--candidate-primary-soft));
+    outline-offset: 3px;
 }

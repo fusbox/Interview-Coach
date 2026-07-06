@@ -10,3 +10,12 @@ it("renders the candidate V2 session route shell for the requested session", asy
     expect(screen.getByRole("heading", { name: "Practice session V2" })).toBeInTheDocument();
     expect(screen.getByText(/session-v2-1/i)).toBeInTheDocument();
 });
+
+it("routes candidate-owned session completion back to the dashboard", async () => {
+    const ui = await Session2Page({ params: Promise.resolve({ sessionId: "session-v2-1" }) });
+
+    render(ui);
+
+    expect(screen.getByRole("link", { name: "Finish session" })).toHaveAttribute("href", "/dashboard2");
+    expect(screen.getByText(/dashboard is the next stop/i)).toBeInTheDocument();
+});

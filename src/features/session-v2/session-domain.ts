@@ -19,6 +19,12 @@ export type CandidateSessionCompletionLinks = {
     summaryHref?: string;
 };
 
+export type SessionCompletionTarget = {
+    href: string;
+    label: string;
+    target: "candidate_dashboard" | "session_summary";
+};
+
 export type SharedSessionContext = {
     sessionId: SessionId;
     audience: SharedSessionAudience;
@@ -66,5 +72,24 @@ export function createSharedSessionContext(input: {
         candidateToken: input.candidateToken,
         initialConfig: input.initialConfig,
         candidateCompletionLinks: input.candidateCompletionLinks,
+    };
+}
+
+export function resolveSessionCompletionTarget(context: SharedSessionContext): SessionCompletionTarget {
+    if (context.audience === "candidate_owned") {
+        return {
+            href: context.candidateCompletionLinks?.dashboardHref ?? "/dashboard2",
+            label: "Finish session",
+            target: "candidate_dashboard",
+        };
+    }
+
+    return {
+        href:
+            context.candidateCompletionLinks?.summaryHref ??
+            createCandidateSessionCompletionLinks(context.sessionId).summaryHref ??
+            "/summary2",
+        label: "View summary",
+        target: "session_summary",
     };
 }

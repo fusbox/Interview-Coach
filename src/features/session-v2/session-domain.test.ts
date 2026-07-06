@@ -3,6 +3,7 @@ import {
     createCandidateSessionCompletionLinks,
     createSharedSessionContext,
     parseSessionId,
+    resolveSessionCompletionTarget,
     type SessionId,
 } from "./session-domain";
 
@@ -70,6 +71,34 @@ describe("session V2 domain contracts", () => {
                 dashboardHref: "/dashboard2",
                 summaryHref: "/summary2/candidate-session",
             },
+        });
+    });
+
+    it("routes candidate-owned completion back to the dashboard", () => {
+        const context = createSharedSessionContext({
+            sessionId: "candidate-session",
+            audience: "candidate_owned",
+            candidateCompletionLinks: createCandidateSessionCompletionLinks("candidate-session" as SessionId),
+        });
+
+        expect(resolveSessionCompletionTarget(context)).toEqual({
+            href: "/dashboard2",
+            label: "Finish session",
+            target: "candidate_dashboard",
+        });
+    });
+
+    it("routes invited-session completion to the session summary", () => {
+        const context = createSharedSessionContext({
+            sessionId: "invite-session",
+            audience: "invited_candidate",
+            candidateCompletionLinks: createCandidateSessionCompletionLinks("invite-session" as SessionId),
+        });
+
+        expect(resolveSessionCompletionTarget(context)).toEqual({
+            href: "/summary2/invite-session",
+            label: "View summary",
+            target: "session_summary",
         });
     });
 });

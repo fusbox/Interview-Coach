@@ -80,6 +80,8 @@ Expected behavior:
 - candidate can pause/resume without losing progress;
 - candidate can reach dashboard without weakening session ownership.
 
+For the parallel V2 rebuild, candidate-owned session completion should return the candidate to the dashboard home base so post-practice Coach Update and next-practice guidance are the first follow-up surfaces. Recruiter-invited completion behavior should remain summary-oriented unless a recruiter-facing change is explicitly scoped.
+
 The candidate-led feedback flow may show candidate-only coaching elements such as "For the biggest lift." Recruiter-invited sessions share core answer analysis, but their existing user-facing feedback behavior should remain stable unless a recruiter-app change is explicitly specified.
 
 ### Summary
