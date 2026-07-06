@@ -23,6 +23,8 @@ Candidate-facing routes are expected to include:
 
 The next production-quality candidate implementation may be built in parallel on V2 routes while existing routes remain available for comparison and regression protection. The accepted V2 route names are `/practice2`, `/session2/[sessionId]`, and `/dashboard2`, with `/summary2/[sessionId]` only if the existing summary route cannot safely host the V2 completion contract. V2 routes must keep the same candidate-facing product claims and privacy boundaries described in this spec unless this file is updated first.
 
+Production V2 candidate surfaces should depend on tracked design-system wrappers and tokens, not directly on `.untracked/design-system` files. The untracked design-system pack may remain a reference while components are promoted slice by slice.
+
 Recruiter, admin, and QA routes share the deployable app, but candidate practice data is candidate-owned. Recruiters and hiring-decision users should not see candidate-led practice content. Admin and QA access may exist only for support, quality, and operational review with appropriate privacy controls.
 
 Recruiter-created invite flows may share question planning services with the candidate app. When recruiter question setup changes, invited-session answer feedback, retry/continue behavior, and summary behavior should remain stable unless a recruiter-facing product change is explicitly specified.

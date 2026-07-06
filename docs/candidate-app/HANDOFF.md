@@ -125,7 +125,7 @@ The current dashboard is useful as a visual shell and read-model proof, but it i
 
 The active direction is now a parallel V2 rebuild rather than further in-place dashboard polishing. Existing candidate dashboard work remains valuable as product evidence and regression reference, but the next durable candidate implementation should prove the clean V2 vertical on twin routes before cutover.
 
-- Candidate V2 may use `.untracked/design-system` as a reference pack during early implementation, but any production dependency on tokens, assets, or component behavior must be promoted into tracked source before V2 routes are release candidates.
+- Candidate V2 may use `.untracked/design-system` as a reference pack during early implementation, but any production dependency on tokens, assets, or component behavior must be promoted into tracked source before V2 routes are release candidates. The first tracked V2 bridge now lives at `src/features/candidate-v2/design-system` and centralizes the shell classes, candidate tokens, and preparedness-state vocabulary used by the `/practice2`, `/session2/[sessionId]`, and `/dashboard2` placeholders.
 
 Known current behavior:
 
@@ -201,8 +201,8 @@ Implement the parallel V2 rebuild in small, validated slices.
 
 Recommended next implementation slice:
 
-1. Promote the design-system pieces that V2 needs from `.untracked/design-system` into tracked source before production V2 surfaces depend on them.
-2. Add route shells for `/practice2`, `/session2/[sessionId]`, and `/dashboard2` with candidate-design-system styling and tests.
+1. Completed for the V2 shell base: promote the minimal design-system pieces that V2 route shells need from `.untracked/design-system` into tracked source before production V2 surfaces depend on them.
+2. Completed for the V2 shell base: add route shells for `/practice2`, `/session2/[sessionId]`, and `/dashboard2` with candidate-design-system styling and tests.
 3. Repair the session GET/PATCH authorization blocker so shared session runtime access works for both invite-token and authenticated candidate-owned sessions.
 4. Add the shared V2 completion behavior contract and route candidate-led `/session2/[sessionId]` through it.
 5. Add evidence-first evaluation domain contracts behind a feature flag before dashboard V2 claims depend on criteria bands.
