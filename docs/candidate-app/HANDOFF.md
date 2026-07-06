@@ -133,6 +133,7 @@ The active direction is now a parallel V2 rebuild rather than further in-place d
 Known current behavior:
 
 - Dashboard target-interview scoping is a first pass based on unfinished-session priority, explicit target-role selection, and target role title.
+- The current `feature/candidate-module` app does not yet route candidate-app users who finish a session back to the dashboard. The V2 completion-behavior slice should treat finished-session dashboard return as an explicit candidate-owned requirement, not inherited legacy behavior.
 - Coach Plan fixed framing is present as a compact orientation card above the current Preparedness Map transition surface. It includes the rounded gauge preparedness target derived from already-loaded selected-target items and `PracticeCoverageBaseline`; no new persistence was added in this slice.
 - Coach Plan Category face is present as a compact category selector below fixed framing. It reuses the selected target interview category model and opens a separate teaching-first sheet, leaving the older evidence-first category drilldown available from Quick View/Details during transition.
 - Coach Plan Skills face is present as a compact three-lane selector below the Category face. It uses only the parent lanes as tap/click targets and opens a separate teaching-first lane sheet with all child dimensions visible at once. The older evidence-first `SkillDrilldown` remains available from Quick View/Details during transition.
@@ -205,7 +206,6 @@ Implement the parallel V2 rebuild in small, validated slices.
 
 Recommended next implementation slice:
 
-6. Bring in only the session-domain types/contracts needed to express completion behavior.
 7. Add the shared V2 completion behavior contract and route candidate-led `/session2/[sessionId]` through it.
 8. Add evidence-first evaluation domain contracts behind a feature flag before dashboard V2 claims depend on criteria bands.
 
@@ -220,6 +220,7 @@ Completed slices:
 
 4. Completed after cleanroom reset: re-establish the V2 route scaffold for `/practice2`, `/session2/[sessionId]`, and `/dashboard2` from the minimal app shell.
 5. Completed after cleanroom reset: promote the first tracked candidate design-system primitives needed by the cleanroom route shells.
+6. Completed after cleanroom reset: bring in only the session-domain types/contracts needed to express completion behavior.
 
 ---
 
