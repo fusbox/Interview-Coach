@@ -1,7 +1,7 @@
 # Candidate App Handoff
 
 Status: Active execution state
-Last updated: 2026-06-29
+Last updated: 2026-07-06
 
 ## Completed
 
@@ -83,7 +83,7 @@ Last updated: 2026-06-29
 - Dashboard Practice Next planned-coverage baseline is resolved as Azure item 809: active sessions list unanswered planned questions first, and completed-only contexts list missing planned category coverage before score-derived improvement cells.
 - Dashboard Quick View focus-state refinement keeps parent lane slices on their own preparedness-state color when focused, applies lifted/glowing treatment without forcing green segments to blue, and restores the overall read when the segment is no longer hovered/focused or Escape is pressed.
 - Dashboard Quick View modal opening now belongs to the chart segments instead of the deprecated selected-read action button: parent lane slices, outer dimension slices, and question mix slices open the existing lane/category drilldown modals directly, with outer dimensions still opening their parent lane modal.
-- Dashboard mobile header pass now uses a static `Practice Coach` page title, leaves selected prep context to the target-interview switcher, removes active/completed count text from those context pills, and constrains the switcher so long role names scroll inside the strip instead of widening the mobile viewport.
+- Dashboard mobile header pass moved selected prep context into the target-interview switcher, removes active/completed count text from those context pills, and constrains the switcher so long role names scroll inside the strip instead of widening the mobile viewport. The later persistent header direction removes the visible page title entirely in favor of a compact candidate-initial avatar badge.
 - Dashboard Quick View pie whitespace no longer shows a visible browser focus outline when candidates tap or click outside a chart segment.
 - Dashboard product direction now has an accepted Coach Plan home-base decision: fixed framing plus Categories, Skills, and Question Set faces; a qualitative preparedness target; teaching-first coaching sheets; and a sparse Coach Update guided debrief. See [ADR-0008](./08-decisions/ADR-0008-coach-plan-dashboard-home-base.md).
 - The old [Working Backlog](./00-working-backlog.md) is now retired and preserved as a project artifact. Current execution state should flow through HANDOFF, SPEC, DATA_CONTRACT, ADRs, Azure exports, and gitignored `work-items-*.csv` imports.
@@ -108,7 +108,7 @@ Last updated: 2026-06-29
 - Dashboard question-feedback queue state now lives at the dashboard page level for DASH-S37 / Azure 828: adding a question from Coach Update is reflected when the same question is opened from Question Set during that dashboard visit. This removes the stale isolated per-dialog add state while still deferring durable queue persistence.
 - Dashboard local next-round queue is bucketed by selected interview prep context: switching roles closes any opened next-round surface but preserves each role's queued questions independently, so returning to a role restores its queued items and `Added` states without leaking them into other roles.
 - Dashboard now has a first dashboard-local `Next practice round` surface for DASH-S38 / Azure 829: the header action shows queued count, opens a responsive queued-question dialog, lists queued Q#/category/state/question text, and removing the last queued question closes the surface and reverts the source feedback button from `Added` to `Add this to my next round`.
-- Dashboard next-round and Coach Update gateway polish is implemented for DASH-S39 / Azure 830: the dashboard now uses a persistent fixed `Interview Coach` header with a full-width next-round action and soft gradient fade without a backdrop-filter boundary, the dashboard shell uses a viewport-width frame to avoid inherited right-gutter imbalance, the opened surface anchors to the measured next-round button footprint and keeps the `Next practice round` label/count in the same size, font, and full-width center alignment while recoloring it to a lighter neutral than the page title, per-question remove is an immediate red clear action, borderless right-aligned `Clear all` is a red ghost action with confirmation, Coach Update is an actionable card without a separate review button, and opened Coach Update question chips live in the header and reset the content scroll to the top when changed. The morphing reference package is preserved at `docs/candidate-app/morphing-button-to-modal` for future exact measured button-to-surface animation.
+- Dashboard next-round and Coach Update gateway polish is implemented for DASH-S39 / Azure 830 and later header tuning: the dashboard now uses a persistent fixed header with a compact upper-left candidate-initial avatar badge, no visible page title, a full-width next-round action, and soft gradient fade without a backdrop-filter boundary. The dashboard shell uses a viewport-width frame to avoid inherited right-gutter imbalance, the opened surface anchors to the measured next-round button footprint and keeps the `Next practice round` label/count in the same size, font, and full-width center alignment while using lighter neutral text, per-question remove is an immediate red clear action, borderless right-aligned `Clear all` is a red ghost action with confirmation, Coach Update is an actionable card without a separate review button, and opened Coach Update question chips live in the header and reset the content scroll to the top when changed. The morphing reference package is preserved at `docs/candidate-app/morphing-button-to-modal` for future exact measured button-to-surface animation.
 - Dashboard prep-context navigation now retires the candidate sidebar/mobile dock for `/dashboard` while preserving it for `/practice` for DASH-S40 / Azure 831: the target-interview pills are replaced by a soft popover switcher labeled `Current role - tap/click to switch or set up a new role`, the selected context shows a compact rounded-end SVG gauge with a heavier stroke colored by qualitative prep state plus browser-local last-practiced timestamp, visual `X/Y` text is intentionally removed from the gauge center to avoid over-indexing question coverage, alternate contexts route through existing `?targetRole=` and close the switcher when selected, and the footer action is `Prep for a new role` linking to `/practice`.
 - Dashboard Coach Update modal refinement is implemented for DASH-S41 import and later visual tuning: the opened update now uses the in-session active-question gradient across the sheet/modal shell, keeps the header as a quiet inline `MessageSquareQuote` coach mark plus short title and close action, moves smaller Embla dot/arrow navigation to the top edge of the card area, supports horizontal swipe/drag between question feedback items on touch surfaces and explicit previous/next controls on desktop, uses local ARIA for a named carousel region, named slides, current indicators, disabled nav states, and a polite live status, uses a wider dashboard-aligned responsive sheet with consistent left/right padding, removes redundant visible eyebrows from question/answer/coach/practice-action blocks, presents each feedback item as one white/paper card with compact question metadata, transcript-first content, a left-accent `Coach observation` note strip that combines coach observation plus strengthening guidance, and retires the separate guidance card/arrow in this surface.
 - Shared question generation now treats Case/Scenario as a first-class planned provider bucket for QSO-S22 / Azure 820: schema-valid provider output may use `caseScenario`, planned repair fills that bucket directly, candidate snapshots consume it for `case_scenario` slots, recruiter setup maps it into the Case/Scenario section, and legacy behavioral keys containing case/scenario language are migrated into `caseScenario` for compatibility.
@@ -117,10 +117,15 @@ Last updated: 2026-06-29
 - QSO-S23 / Azure 821 is implemented locally and ready for validation.
 - Preview Irma seed data now includes a durable Client Services Representative first-interview fixture: 3 practiced voice answers against a 7-question rigor baseline, an aggregate emerging read, one remediation target, and remaining unpracticed coverage questions. This promotes the locally validated scenario into `db/seeds/002_candidate_preview_irma_seed.sql` and `db/validation/007_candidate_preview_irma_seed_smoke.sql`.
 - QSO-S24 import file is ready for the preview seed scenario slice.
+- ADR-0009 now accepts a parallel V2 rebuild strategy: candidate V2 should prove `/practice2`, `/session2/[sessionId]`, and `/dashboard2` as a clean vertical while old routes remain available. The rebuild may use `.untracked/design-system` as a reference pack, but production tokens/assets/components must be promoted into tracked source before V2 routes become release candidates. See [Parallel V2 Rebuild Implementation Plan](../superpowers/plans/2026-07-06-parallel-v2-rebuild.md).
 
 ## Current State And Context
 
 The current dashboard is useful as a visual shell and read-model proof, but it is not yet the final interview-preparedness product.
+
+The active direction is now a parallel V2 rebuild rather than further in-place dashboard polishing. Existing candidate dashboard work remains valuable as product evidence and regression reference, but the next durable candidate implementation should prove the clean V2 vertical on twin routes before cutover.
+
+- Candidate V2 may use `.untracked/design-system` as a reference pack during early implementation, but any production dependency on tokens, assets, or component behavior must be promoted into tracked source before V2 routes are release candidates.
 
 Known current behavior:
 
@@ -180,6 +185,8 @@ Active docs now use this lighter stack:
 - [DATA_CONTRACT](./DATA_CONTRACT.md) for system primitives and naming.
 - [HANDOFF](./HANDOFF.md) for this active execution snapshot.
 - [Decision Records](./08-decisions/README.md) for durable why-decisions.
+- [ADR-0009 Parallel V2 Rebuild](./08-decisions/ADR-0009-parallel-v2-rebuild.md) for the accepted twin-route rebuild strategy.
+- [Parallel V2 Rebuild Implementation Plan](../superpowers/plans/2026-07-06-parallel-v2-rebuild.md) for the first task sequence.
 - [Platform Launch PrepProfile Migration](./04-architecture/platform-launch-prepprofile-migration.md) for future host-platform schema integration.
 - [Preparedness Signal Map](./04-architecture/preparedness-signal-map.md) for low-level signal and lane evidence tracing.
 - [Question Category Contract](./04-architecture/question-category-contract.md) for interview-demand category definitions, resume/JD usage, and category indicator semantics.
@@ -190,14 +197,15 @@ Older detailed docs remain available as reference and should not be deleted befo
 
 ## Immediate Next Step
 
-Implement the Coach Plan dashboard direction in small, validated slices.
+Implement the parallel V2 rebuild in small, validated slices.
 
 Recommended next implementation slice:
 
-1. Decide the smallest useful route/server contract for `Practice this now` and queued-question `Start practice`. Do not fake one-question launch semantics before the route/session contract is real.
-2. Extend the shared question-feedback surface into Category and Skills pivot paths only when it replaces redundant evidence surfaces cleanly. Category can filter question feedback by category; Skills can present lane-scoped feedback or answer-shape guidance.
-3. Retire or hide redundant transition surfaces in order: current long visible Practice Next list, Recent Activity, then older Quick View/Details/matrix access once Coach Plan faces own the release path.
-4. Supporting validation: continue dev-only dashboard seed scenarios for zero practiced, completed baseline, repeat improvement, repeat watch, unscoreable answer, and active paused session as needed to exercise the new feedback and queue paths.
+1. Promote the design-system pieces that V2 needs from `.untracked/design-system` into tracked source before production V2 surfaces depend on them.
+2. Add route shells for `/practice2`, `/session2/[sessionId]`, and `/dashboard2` with candidate-design-system styling and tests.
+3. Repair the session GET/PATCH authorization blocker so shared session runtime access works for both invite-token and authenticated candidate-owned sessions.
+4. Add the shared V2 completion behavior contract and route candidate-led `/session2/[sessionId]` through it.
+5. Add evidence-first evaluation domain contracts behind a feature flag before dashboard V2 claims depend on criteria bands.
 
 Deprecation check for each dashboard refactor slice:
 

@@ -62,7 +62,8 @@ http://localhost:3000/recruiter/dashboard
 ### Continuing Implementation
 
 - [Handoff](HANDOFF.md): current execution state and immediate next slice
-- [Working Backlog](00-working-backlog.md): current source of truth for work items and sequence
+- [Parallel V2 Rebuild Implementation Plan](../superpowers/plans/2026-07-06-parallel-v2-rebuild.md): accepted first task sequence for the candidate V2 rebuild
+- [Working Backlog](00-working-backlog.md): retired project artifact with historical work items and sequence
 - [Candidate Integration Work Pass Checklist](START-WORK-PASS.md): repeatable work-pass process
 
 ### Investigating A Specific Concern
@@ -76,6 +77,7 @@ Use the reference map below.
 - [SPEC](SPEC.md)
 - [DATA_CONTRACT](DATA_CONTRACT.md)
 - [HANDOFF](HANDOFF.md)
+- [Parallel V2 Rebuild Implementation Plan](../superpowers/plans/2026-07-06-parallel-v2-rebuild.md)
 - [Candidate Integration Reviewer Handoff](REVIEWER-HANDOFF.md)
 - [Working Backlog](00-working-backlog.md)
 - [Candidate Integration Work Pass Checklist](START-WORK-PASS.md)

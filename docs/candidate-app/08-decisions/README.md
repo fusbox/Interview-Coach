@@ -12,3 +12,4 @@ Current decisions:
 - [ADR-0006: Shared Host And Azure Branch Integration](./ADR-0006-shared-host-and-azure-branch-integration.md)
 - [ADR-0007: Lightweight Candidate Documentation Stack](./ADR-0007-lightweight-candidate-doc-stack.md)
 - [ADR-0008: Coach Plan Dashboard Home Base](./ADR-0008-coach-plan-dashboard-home-base.md)
+- [ADR-0009: Parallel V2 Rebuild](./ADR-0009-parallel-v2-rebuild.md)

@@ -1,7 +1,7 @@
 # Candidate App Data Contract
 
 Status: Canonical system truth
-Last updated: 2026-06-27
+Last updated: 2026-07-06
 
 ## Purpose
 
@@ -18,6 +18,21 @@ This file may include implementation names where they are part of the current co
   - session intake field: `roleProfileId`.
 - Do not introduce a separate "resume bridge" lane. Resume and JD context are evidence and framing sources.
 - Do not use `oneBigUpgrade` as user-facing copy. Treat it as legacy/internal compatibility only; new feedback should use `coachSignal`.
+
+## Parallel V2 Data Direction
+
+Candidate V2 is allowed to rebuild candidate-facing routes and read models without historical legacy data accommodation. Existing old-route behavior may continue to read older payloads, but V2 should not deepen the dependency on legacy `eval_results.feedback_json`, hidden 1-5 score averages, `oneBigUpgrade`, or `meta.readinessLevel`.
+
+V2 dashboard and session work should move toward:
+
+- raw answer/session facts as persisted truth;
+- evidence extraction outputs;
+- criteria bands;
+- category pattern gaps;
+- candidate-safe feedback composition;
+- derived dashboard read models that can explain every visible claim.
+
+If an evidence-first result is adapted into the old `AnalysisResult` shape, that adapter is a bridge for existing rendering or AI-quality review. It is not the durable V2 evaluation contract.
 
 ## Core Objects
 
