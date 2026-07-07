@@ -95,6 +95,7 @@
     --candidate-surface: 255 255 255; /* @kind color */
     --candidate-border: 213 220 232; /* @kind color */
     --candidate-foreground: 18 32 57; /* @kind color */
+    --candidate-display-foreground: 30 46 74; /* @kind color */
     --candidate-muted: 89 105 132; /* @kind color */
     --candidate-placeholder: 149 163 184; /* @kind color */
     --candidate-primary: 11 87 206; /* @kind color */

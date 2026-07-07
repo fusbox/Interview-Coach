@@ -3,7 +3,7 @@ import React from "react";
 const css = `
 .rjs-pageintro{display:flex;flex-direction:column;gap:8px;font-family:var(--font-sans);}
 .rjs-pageintro__eyebrow{font-size:12px;font-weight:var(--font-weight-semibold);text-transform:uppercase;letter-spacing:0.28em;color:rgb(var(--candidate-muted));margin:0;}
-.rjs-pageintro__title{font-family:var(--font-display);font-size:clamp(1.75rem,4vw,2.5rem);line-height:1.02;font-weight:var(--font-weight-bold);color:rgb(var(--candidate-foreground));margin:0;}
+.rjs-pageintro__title{font-family:var(--font-display);font-size:clamp(1.75rem,4vw,2.5rem);line-height:1.02;font-weight:var(--font-weight-bold);color:rgb(var(--candidate-display-foreground));margin:0;}
 .rjs-pageintro__description{max-width:42rem;font-size:1.0625rem;line-height:1.9;color:rgb(var(--candidate-muted));margin:0;}
 `;
 

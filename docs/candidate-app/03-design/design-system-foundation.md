@@ -35,6 +35,7 @@ The candidate system uses RGB triplet tokens with a `--candidate-*` prefix:
 - `--candidate-surface-elevated`
 - `--candidate-border`
 - `--candidate-foreground`
+- `--candidate-display-foreground`
 - `--candidate-muted`
 - `--candidate-placeholder`
 - `--candidate-primary`
@@ -87,6 +88,8 @@ The ported typography utilities are:
 - `.copy-sm`
 - `.feature-title`
 - `.feature-body`
+
+Display-scale typography uses `--candidate-display-foreground`, a lighter ink value for larger text. Smaller foreground text continues to use the darker `--candidate-foreground` for crisp body and component copy.
 
 The shared repo currently uses `Inter` for body text and `Outfit` for display text in [src/app/layout.tsx](../../../src/app/layout.tsx). The earlier standalone candidate repo referenced `Space Grotesk` and `Manrope`; that direction is not currently active in the shared repo.
 

@@ -127,7 +127,7 @@ select {
 .gateway-lede {
     max-width: 38rem;
     margin: 0;
-    color: rgb(var(--candidate-foreground));
+    color: rgb(var(--candidate-display-foreground));
     font-family: var(--font-display);
     font-size: 1.5rem;
     font-weight: var(--font-weight-bold);
@@ -249,7 +249,7 @@ select {
 .closing-cta h2,
 .assurance-band h2 {
     margin: 0;
-    color: rgb(var(--candidate-foreground));
+    color: rgb(var(--candidate-display-foreground));
     font-family: var(--font-display);
     font-size: 2rem;
     font-weight: var(--font-weight-bold);

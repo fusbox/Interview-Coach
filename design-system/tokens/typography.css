@@ -68,6 +68,7 @@ h1, .font-display {
     line-height: var(--type-display-xl-line);
     font-weight: var(--type-display-xl-weight);
     letter-spacing: var(--type-display-xl-tracking);
+    color: rgb(var(--candidate-display-foreground));
 }
 
 .type-display-md {
@@ -76,6 +77,7 @@ h1, .font-display {
     line-height: var(--type-display-md-line);
     font-weight: var(--type-display-md-weight);
     letter-spacing: var(--type-display-md-tracking);
+    color: rgb(var(--candidate-display-foreground));
 }
 
 .type-title {

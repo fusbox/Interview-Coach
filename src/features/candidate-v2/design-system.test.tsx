@@ -9,6 +9,7 @@ describe("candidate V2 design system primitives", () => {
             surface: "--candidate-surface",
             border: "--candidate-border",
             foreground: "--candidate-foreground",
+            displayForeground: "--candidate-display-foreground",
             muted: "--candidate-muted",
             primary: "--candidate-primary",
             primarySoft: "--candidate-primary-soft",
