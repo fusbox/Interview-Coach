@@ -1,0 +1,63 @@
+/* Layout tokens (candidate app grid, source: index.css) */
+:root {
+    --candidate-grid-max: 76rem; /* @kind spacing */
+    --candidate-grid-gap: 1rem; /* @kind spacing */
+    --layout-public-max: 80rem; /* marketing/public content frame @kind spacing */
+    --layout-app-max: 88rem; /* broad protected workspace @kind spacing */
+    --layout-readable-max: 48rem; /* prose, setup and report reading width @kind spacing */
+    --layout-form-max: 56rem; /* multi-step form flow @kind spacing */
+    --layout-session-max: 64rem; /* focused session workspace @kind spacing */
+    --layout-sidebar-width: 16rem; /* desktop app navigation rail @kind spacing */
+    --layout-rail-width: 23rem; /* dashboard/right-context rail @kind spacing */
+    --layout-header-height: 4.5rem; /* persistent app/session header target @kind spacing */
+}
+
+@media (min-width: 768px) {
+    :root {
+        --candidate-grid-gap: 1.25rem;
+    }
+}
+
+.app-grid {
+    width: min(100% - 2rem, var(--candidate-grid-max));
+    margin-inline: auto;
+}
+
+@media (min-width: 768px) {
+    .app-grid {
+        width: min(100% - 3rem, var(--candidate-grid-max));
+    }
+}
+
+.grid-12 {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--candidate-grid-gap);
+}
+
+.layout-main-rail {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--gap-grid, var(--candidate-grid-gap));
+}
+
+@media (min-width: 1280px) {
+    .layout-main-rail {
+        grid-template-columns: minmax(0, 1fr) var(--layout-rail-width);
+    }
+}
+
+.layout-readable {
+    width: min(100%, var(--layout-readable-max));
+    margin-inline: auto;
+}
+
+.section-space {
+    padding-block: 3rem;
+}
+
+@media (min-width: 768px) {
+    .section-space {
+        padding-block: 4.5rem;
+    }
+}

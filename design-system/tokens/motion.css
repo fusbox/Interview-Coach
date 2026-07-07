@@ -1,0 +1,63 @@
+/* Motion primitives and semantic roles */
+:root {
+    --duration-instant: 80ms; /* @kind other */
+    --duration-fast: 120ms; /* @kind other */
+    --duration-base: 180ms; /* @kind other */
+    --duration-slow: 260ms; /* @kind other */
+    --duration-extra-slow: 420ms; /* @kind other */
+
+    --ease-standard: cubic-bezier(0.2, 0, 0, 1); /* @kind other */
+    --ease-productive: cubic-bezier(0.2, 0, 0.38, 0.9); /* @kind other */
+    --ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1); /* @kind other */
+    --ease-linear: linear; /* @kind other */
+
+    --motion-control-duration: var(--duration-fast); /* @kind other */
+    --motion-surface-duration: var(--duration-base); /* @kind other */
+    --motion-feedback-duration: var(--duration-base); /* @kind other */
+    --motion-overlay-duration: var(--duration-slow); /* @kind other */
+    --motion-page-duration: var(--duration-slow); /* @kind other */
+
+    --motion-micro-distance: 2px; /* @kind other */
+    --motion-surface-distance: 4px; /* @kind other */
+    --motion-overlay-distance: 12px; /* @kind other */
+    --motion-page-distance: 16px; /* @kind other */
+    --motion-hover-lift: -2px; /* @kind other */
+    --motion-press-scale: .98; /* @kind other */
+}
+
+.motion-control {
+    transition:
+        color var(--motion-control-duration) var(--ease-standard),
+        background-color var(--motion-control-duration) var(--ease-standard),
+        border-color var(--motion-control-duration) var(--ease-standard),
+        box-shadow var(--motion-control-duration) var(--ease-standard),
+        transform var(--motion-control-duration) var(--ease-standard);
+}
+
+.motion-surface {
+    transition:
+        border-color var(--motion-surface-duration) var(--ease-standard),
+        box-shadow var(--motion-surface-duration) var(--ease-standard),
+        transform var(--motion-surface-duration) var(--ease-standard);
+}
+
+.motion-overlay {
+    transition:
+        opacity var(--motion-overlay-duration) var(--ease-emphasized),
+        transform var(--motion-overlay-duration) var(--ease-emphasized);
+}
+
+.motion-page {
+    transition:
+        opacity var(--motion-page-duration) var(--ease-emphasized),
+        transform var(--motion-page-duration) var(--ease-emphasized);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 1ms !important;
+    }
+}

@@ -1,0 +1,157 @@
+<!-- @dsCard group="Accessibility" viewport="980x1120" name="Accessibility system worksheet" subtitle="Focus, keyboard, target size, contrast, state communication and reduced motion" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body{margin:0;padding:24px;background:#F8FAFC;color:rgb(15 33 57);font-family:var(--font-sans);}
+  h1{font-family:var(--font-display);font-size:26px;line-height:1.08;margin:0 0 8px;}
+  .lede{margin:0 0 18px;color:rgb(86 106 131);font-size:13px;line-height:1.6;max-width:880px;}
+  .section{margin-top:20px;}
+  .eyebrow{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:rgb(86 106 131);margin:0 0 10px;}
+  .map{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .principle{border:1px solid rgb(213 220 232);border-radius:var(--radius-card);background:linear-gradient(135deg,#fff,#F8FBFF);padding:14px;min-height:122px;box-sizing:border-box;}
+  .principle b{display:block;font-family:var(--font-display);font-size:14px;line-height:1.15;margin-bottom:8px;}
+  .principle p{font-size:10.5px;line-height:1.45;color:rgb(86 106 131);margin:0;}
+  .contract{display:grid;grid-template-columns:.85fr 1fr 1.25fr 1.1fr;gap:0;border:1px solid rgb(213 220 232);border-radius:16px;overflow:hidden;background:#fff;}
+  .contract>div{padding:10px 12px;border-left:1px solid rgb(213 220 232);border-top:1px solid rgb(213 220 232);font-size:10.5px;line-height:1.45;}
+  .contract>div:nth-child(-n+4){border-top:0;background:#F8FAFC;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:rgb(86 106 131);}
+  .contract>div:nth-child(4n+1){border-left:0;font-weight:800;color:rgb(15 33 57);}
+  .code{font-family:ui-monospace,Menlo,Consolas,monospace;color:rgb(11 87 206);}
+  .muted{color:rgb(86 106 131);}
+  .specimens{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  .spec{border:1px solid rgb(213 220 232);border-radius:var(--radius-card);background:#fff;padding:14px;box-sizing:border-box;min-height:220px;display:flex;flex-direction:column;gap:12px;justify-content:space-between;}
+  .spec h2{font-family:var(--font-display);font-size:15px;line-height:1.15;margin:0;}
+  .spec p{font-size:11px;line-height:1.45;color:rgb(86 106 131);margin:0;}
+  .meta{font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgb(86 106 131);}
+  .button{height:44px;border-radius:var(--radius-control);background:rgb(11 87 206);color:#fff;display:inline-flex;align-items:center;justify-content:center;padding:0 16px;font-size:12px;font-weight:800;outline:var(--focus-ring-width) solid var(--focus-ring-color);outline-offset:var(--focus-ring-offset);box-shadow:var(--elevation-cta);}
+  .target-demo{display:flex;align-items:center;gap:12px;}
+  .target{width:var(--target-min);height:var(--target-min);border-radius:12px;border:1px dashed rgb(11 87 206);background:rgb(232 241 255);color:rgb(11 87 206);display:flex;align-items:center;justify-content:center;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;font-weight:900;}
+  .target.comfort{width:var(--target-comfort);height:var(--target-comfort);}
+  .field{display:grid;gap:var(--gap-field);}
+  .label{font-size:12px;font-weight:800;}
+  .input{height:44px;border-radius:var(--radius-input);border:1px solid rgb(197 207 222);background:#fff;padding:0 13px;display:flex;align-items:center;font-size:12px;color:rgb(86 106 131);}
+  .hint{font-size:10.5px;line-height:1.4;color:rgb(86 106 131);}
+  .hint.warn{color:rgb(147 111 18);font-weight:700;}
+  .states{display:flex;flex-wrap:wrap;gap:8px;}
+  .pill{height:26px;border-radius:var(--radius-pill);display:inline-flex;align-items:center;gap:6px;padding:0 10px;font-size:10.5px;font-weight:800;border:1px solid transparent;}
+  .dot{width:8px;height:8px;border-radius:50%;}
+  .neutral{background:#F4F7FB;color:rgb(86 106 131);border-color:rgb(213 220 232);}
+  .success{background:rgb(236 247 244);color:rgb(41 134 70);}
+  .warning{background:rgb(255 248 222);color:rgb(147 111 18);}
+  .primary{background:rgb(232 241 255);color:rgb(11 87 206);}
+  .contrast{display:grid;gap:7px;}
+  .swatch{height:34px;border-radius:var(--radius-row);border:1px solid rgb(213 220 232);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:10.5px;font-weight:800;}
+  .pass{color:rgb(41 134 70);}
+  .fail{color:rgb(147 69 21);}
+  .session{border-radius:var(--radius-session);background:linear-gradient(135deg,#0F2139,#17375F);color:#fff;padding:13px;display:grid;gap:9px;}
+  .session p{color:rgb(213 225 241);}
+  .live{height:32px;border-radius:var(--radius-pill);background:rgb(255 255 255 / .12);display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;}
+  .checkgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .check{border:1px solid rgb(213 220 232);border-radius:var(--radius-card-compact);background:#fff;padding:12px;min-height:116px;box-sizing:border-box;}
+  .check b{display:block;font-size:12px;margin-bottom:7px;}
+  .check p{font-size:10.5px;line-height:1.42;color:rgb(86 106 131);margin:0;}
+  .rulebox{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .rule{border:1px solid rgb(213 220 232);border-radius:var(--radius-card);background:#fff;padding:14px;}
+  .rule b{display:block;font-family:var(--font-display);font-size:14px;margin-bottom:7px;}
+  .rule p{font-size:11px;line-height:1.5;color:rgb(86 106 131);margin:0;}
+  .note{margin:16px 0 0;padding:13px 14px;background:#EEF2F6;border-radius:14px;color:rgb(86 106 131);font-size:12px;line-height:1.55;}
+  .note b{color:rgb(15 33 57);}
+</style>
+</head>
+<body>
+  <h1>Accessibility is a system constraint</h1>
+  <p class="lede">Accessibility is not a final audit layer. It defines how every component and pattern behaves for keyboard users, screen-reader users, low-vision users, motion-sensitive users and people working under cognitive load.</p>
+
+  <div class="section">
+    <p class="eyebrow">Accessibility principles</p>
+    <div class="map">
+      <div class="principle"><b>Perceivable</b><p>Text, contrast, state cues, charts and feedback must be understandable without relying on color alone.</p></div>
+      <div class="principle"><b>Operable</b><p>Every interactive path works with keyboard, visible focus and adequate target size.</p></div>
+      <div class="principle"><b>Understandable</b><p>Labels, hints, errors and guidance should explain what happened and what to do next.</p></div>
+      <div class="principle"><b>Robust</b><p>Use semantic HTML first. ARIA enhances meaning only when native elements cannot express it.</p></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="eyebrow">Agent-native accessibility contract</p>
+    <div class="contract">
+      <div>Area</div><div>System rule</div><div>Implementation requirement</div><div>Product emphasis</div>
+      <div>Focus</div><div class="code">--focus-ring-width / --focus-ring-offset</div><div class="muted">Keyboard focus uses a visible 2px ring with 2px offset. Never remove outline without replacing it.</div><div class="muted">Session controls, dashboard launchers, dialogs and invite forms.</div>
+      <div>Keyboard</div><div class="code">tab order, escape, arrow keys</div><div class="muted">Tab order follows visual/task order. Modal traps focus; Escape closes dismissible overlays; roving tab index for tablists when needed.</div><div class="muted">Coach update overlays, nav controls, tables and session shells.</div>
+      <div>Targets</div><div class="code">--target-min / --target-comfort</div><div class="muted">44px minimum target, 48px preferred touch target. Small icons must be padded to the target box.</div><div class="muted">Avatar-style launchers, mobile dock, icon buttons and recording controls.</div>
+      <div>Contrast</div><div class="code">4.5:1 body, 3:1 large/UI</div><div class="muted">Body text meets AA. UI boundaries, chart marks and focus indicators meet 3:1 against adjacent color.</div><div class="muted">Preparedness colors, warning/success pills, dashboard cards and dark session surfaces.</div>
+      <div>State cues</div><div class="code">label + shape + color</div><div class="muted">Color never carries meaning alone. Status needs text, icon/shape or position in addition to hue.</div><div class="muted">Preparedness, QA status, queued, saved, warning and progress states.</div>
+      <div>Forms</div><div class="code">label, hint, aria-describedby</div><div class="muted">Fields have programmatic labels; helper/error text is associated with the control; validation tells users how to recover.</div><div class="muted">Recruiter invite creation and candidate setup.</div>
+      <div>Live updates</div><div class="code">aria-live polite/assertive</div><div class="muted">Use polite for saved/queued/progress changes; assertive only for blocking failures or session-critical events.</div><div class="muted">Recording status, upload progress, generated feedback and coach plan updates.</div>
+      <div>Motion</div><div class="code">prefers-reduced-motion</div><div class="muted">Reduced motion removes translate/scale/looping animation while preserving visible end states.</div><div class="muted">Candidate dashboard polish and session turn-taking states.</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="eyebrow">Representative specimens</p>
+    <div class="specimens">
+      <div class="spec">
+        <div><span class="meta">Focus</span><h2>Canonical focus ring</h2><p>Focus is visible, offset and consistent across buttons, inputs, launchers and links.</p></div>
+        <span class="button">Start practice</span>
+      </div>
+      <div class="spec">
+        <div><span class="meta">Target size</span><h2>Icon controls are padded</h2><p>The glyph may be small, but the interactive target is at least 44px and preferably 48px on touch surfaces.</p></div>
+        <div class="target-demo"><span class="target">44</span><span class="target comfort">48</span><p class="hint">Use 48px for mobile dock, launchers and session controls.</p></div>
+      </div>
+      <div class="spec">
+        <div><span class="meta">Forms</span><h2>Label, hint, recovery</h2><p>Validation should point to the fix, not merely identify failure.</p></div>
+        <div class="field"><span class="label">Candidate email</span><div class="input">name@example</div><span class="hint warn">Enter a complete email address, such as name@example.com.</span></div>
+      </div>
+      <div class="spec">
+        <div><span class="meta">State cues</span><h2>Never color alone</h2><p>Preparedness and workflow states need text and shape in addition to hue.</p></div>
+        <div class="states">
+          <span class="pill neutral"><span class="dot" style="background:#CBD5E1"></span>Not practiced</span>
+          <span class="pill warning"><span class="dot" style="background:#E2B926"></span>Needs detail</span>
+          <span class="pill primary"><span class="dot" style="background:#0B57CE"></span>Ready</span>
+          <span class="pill success"><span class="dot" style="background:#298646"></span>Strong</span>
+        </div>
+      </div>
+      <div class="spec">
+        <div><span class="meta">Contrast</span><h2>Contrast gates</h2><p>Light tints can hold labels and pills, but body copy must stay on high-contrast foreground tokens.</p></div>
+        <div class="contrast">
+          <div class="swatch" style="background:#fff;color:#0F2139"><span>Ink on white</span><span class="pass">AA+</span></div>
+          <div class="swatch" style="background:#FFF8DE;color:#936F12"><span>Warning tint</span><span class="pass">AA</span></div>
+          <div class="swatch" style="background:#E2B926;color:#fff"><span>White on warning</span><span class="fail">Avoid</span></div>
+        </div>
+      </div>
+      <div class="spec">
+        <div><span class="meta">Live region</span><h2>Session status</h2><p>Live updates should announce meaningful state changes without interrupting the answer flow.</p></div>
+        <div class="session"><b>Practice prompt</b><p>Recording is active. Your answer is being captured.</p><div class="live">aria-live="polite"</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="eyebrow">Required accessibility checklist</p>
+    <div class="checkgrid">
+      <div class="check"><b>Keyboard path</b><p>All tasks can be completed with keyboard only; tab order follows task order.</p></div>
+      <div class="check"><b>Focus management</b><p>Focus moves into overlays, returns to opener and never disappears behind hidden content.</p></div>
+      <div class="check"><b>Names and roles</b><p>Interactive elements have accessible names; custom controls expose correct role and state.</p></div>
+      <div class="check"><b>Target size</b><p>44px minimum target; 48px preferred for touch-heavy candidate and session controls.</p></div>
+      <div class="check"><b>Contrast</b><p>4.5:1 for body text, 3:1 for large text, icons, focus rings and UI boundaries.</p></div>
+      <div class="check"><b>State clarity</b><p>Status is communicated with label plus visual cue; no color-only states.</p></div>
+      <div class="check"><b>Motion</b><p>Reduced-motion equivalent exists for every animation or transition pattern.</p></div>
+      <div class="check"><b>Recovery</b><p>Errors explain how to fix the issue and preserve entered work whenever possible.</p></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="eyebrow">Usage rules</p>
+    <div class="rulebox">
+      <div class="rule"><b>Use native elements first</b><p>Prefer button, anchor, input, select, textarea, table and dialog semantics before adding ARIA. ARIA does not repair a non-semantic control.</p></div>
+      <div class="rule"><b>Do not hide meaning in visuals</b><p>Icons, colors, chart marks and progress indicators need labels, legends or text equivalents when they communicate status or instruction.</p></div>
+      <div class="rule"><b>Session accessibility is stricter</b><p>Session controls must remain stable, reachable, labeled and recoverable because the user is under cognitive load.</p></div>
+      <div class="rule"><b>Verify states, not just screens</b><p>Check empty, loading, error, disabled, selected, focus, reduced-motion and long-content states before reusing a component or pattern.</p></div>
+    </div>
+  </div>
+
+  <p class="note"><b>Implementation rule:</b> every reusable component and pattern needs keyboard behavior, focus treatment, accessible name, target size, contrast, non-color state cue, reduced-motion behavior and recovery guidance defined before adoption.</p>
+</body>
+</html>

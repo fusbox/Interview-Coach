@@ -1,0 +1,130 @@
+/* Typography tokens.
+   Sans (body/UI): Inter — var(--font-sans)
+   Display (h1, hero, section titles): Manrope — var(--font-display) */
+
+:root {
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+
+    /* Weights */
+    --font-weight-normal: 400; /* @kind font */
+    --font-weight-medium: 500; /* @kind font */
+    --font-weight-semibold: 600; /* @kind font */
+    --font-weight-bold: 700; /* @kind font */
+
+    /* Role scale */
+    --type-display-xl-size: 3.25rem; /* @kind font */
+    --type-display-xl-line: 0.98; /* @kind font */
+    --type-display-xl-weight: 700; /* @kind font */
+    --type-display-xl-tracking: 0; /* @kind font */
+
+    --type-display-md-size: 1.625rem; /* @kind font */
+    --type-display-md-line: 1.12; /* @kind font */
+    --type-display-md-weight: 700; /* @kind font */
+    --type-display-md-tracking: 0; /* @kind font */
+
+    --type-title-size: 1.0625rem; /* @kind font */
+    --type-title-line: 1.25; /* @kind font */
+    --type-title-weight: 700; /* @kind font */
+
+    --type-body-lg-size: 1.0625rem; /* @kind font */
+    --type-body-lg-line: 1.8; /* @kind font */
+    --type-body-md-size: 0.875rem; /* @kind font */
+    --type-body-md-line: 1.65; /* @kind font */
+    --type-body-sm-size: 0.8125rem; /* @kind font */
+    --type-body-sm-line: 1.55; /* @kind font */
+
+    --type-label-size: 0.75rem; /* @kind font */
+    --type-label-line: 1rem; /* @kind font */
+    --type-label-weight: 600; /* @kind font */
+
+    --type-eyebrow-size: 0.75rem; /* @kind font */
+    --type-eyebrow-line: 1rem; /* @kind font */
+    --type-eyebrow-weight: 700; /* @kind font */
+    --type-eyebrow-tracking: 0.24em; /* @kind font */
+
+    --type-metric-value-size: 1.875rem; /* @kind font */
+    --type-metric-value-line: 1; /* @kind font */
+    --type-metric-value-weight: 700; /* @kind font */
+
+    /* Micro type */
+    --text-micro-size: 0.625rem; /* @kind font */
+    --text-micro-line: 1rem; /* @kind font */
+    --text-micro-tracking: 0.05em; /* @kind font */
+}
+
+body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+}
+
+h1, .font-display {
+    font-family: var(--font-display);
+}
+
+.type-display-xl {
+    font-family: var(--font-display);
+    font-size: var(--type-display-xl-size);
+    line-height: var(--type-display-xl-line);
+    font-weight: var(--type-display-xl-weight);
+    letter-spacing: var(--type-display-xl-tracking);
+}
+
+.type-display-md {
+    font-family: var(--font-display);
+    font-size: var(--type-display-md-size);
+    line-height: var(--type-display-md-line);
+    font-weight: var(--type-display-md-weight);
+    letter-spacing: var(--type-display-md-tracking);
+}
+
+.type-title {
+    font-family: var(--font-display);
+    font-size: var(--type-title-size);
+    line-height: var(--type-title-line);
+    font-weight: var(--type-title-weight);
+}
+
+.type-body-lg {
+    font-family: var(--font-sans);
+    font-size: var(--type-body-lg-size);
+    line-height: var(--type-body-lg-line);
+    font-weight: var(--font-weight-normal);
+}
+
+.type-body-md {
+    font-family: var(--font-sans);
+    font-size: var(--type-body-md-size);
+    line-height: var(--type-body-md-line);
+    font-weight: var(--font-weight-normal);
+}
+
+.type-body-sm {
+    font-family: var(--font-sans);
+    font-size: var(--type-body-sm-size);
+    line-height: var(--type-body-sm-line);
+    font-weight: var(--font-weight-normal);
+}
+
+.type-label {
+    font-family: var(--font-sans);
+    font-size: var(--type-label-size);
+    line-height: var(--type-label-line);
+    font-weight: var(--type-label-weight);
+}
+
+.type-eyebrow {
+    font-family: var(--font-sans);
+    font-size: var(--type-eyebrow-size);
+    line-height: var(--type-eyebrow-line);
+    font-weight: var(--type-eyebrow-weight);
+    letter-spacing: var(--type-eyebrow-tracking);
+    text-transform: uppercase;
+}
+
+.type-metric-value {
+    font-family: var(--font-display);
+    font-size: var(--type-metric-value-size);
+    line-height: var(--type-metric-value-line);
+    font-weight: var(--type-metric-value-weight);
+}

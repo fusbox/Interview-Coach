@@ -1,0 +1,44 @@
+<!-- @dsCard group="Candidate App" viewport="1180x780" name="Candidate flow" subtitle="Dashboard → session entry → practice → feedback" -->
+<!-- @startingPoint section="Candidate App" subtitle="Interactive job-seeker flow" viewport="1180x780" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Candidate — Interview Coach</title>
+<link rel="stylesheet" href="../../styles.css">
+<link rel="icon" href="../../assets/favicon.png">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  html, body { margin: 0; height: 100%; background: rgb(248 250 252); font-family: var(--font-sans); }
+  #root { min-height: 100vh; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="data.js"></script>
+<script type="text/babel" src="SessionEntry.jsx"></script>
+<script type="text/babel" src="PracticeSession.jsx"></script>
+<script type="text/babel" src="Dashboard.jsx"></script>
+<script type="text/babel">
+  function CandidateApp() {
+    const [screen, setScreen] = React.useState("dashboard");
+    if (screen === "entry") return <window.SessionEntry onStart={() => setScreen("session")} onBack={() => setScreen("dashboard")} />;
+    if (screen === "session") return <window.PracticeSession onExit={() => setScreen("dashboard")} />;
+    return <window.Dashboard onStartPractice={() => setScreen("entry")} />;
+  }
+  // Wait for babel-transpiled screen scripts to register on window.
+  function mount() {
+    if (window.Dashboard && window.SessionEntry && window.PracticeSession) {
+      ReactDOM.createRoot(document.getElementById("root")).render(<CandidateApp />);
+    } else {
+      setTimeout(mount, 40);
+    }
+  }
+  mount();
+</script>
+</body>
+</html>

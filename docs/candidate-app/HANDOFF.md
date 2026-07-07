@@ -206,7 +206,7 @@ Implement the parallel V2 rebuild in small, validated slices.
 
 Recommended next implementation slice:
 
-13. Select the next V2 rebuild slice from the candidate app product queue after reviewing the latest root-page design-system result in browser.
+14. Use the tracked design-system source to critique and rebuild the public root page with recursive browser review. Treat copy quality, hero title wrapping, first-viewport hierarchy, section rhythm, audience routing, and footer/legal presentation as acceptance criteria rather than assuming primitives alone can resolve taste-level decisions.
 
 
 Completed slices:
@@ -226,6 +226,7 @@ Completed slices:
 10. Completed after cleanroom reset: promote layout tokens/primitives from `.untracked/design-system` into tracked CSS and `candidate-v2` design-system exports before refactoring the public root page.
 11. Completed after cleanroom reset: neutralize implementation-specific `candidate-v2-*` CSS class names and reorder `src/index.css` into a designer-familiar sequence: design tokens, base, layout primitives, typography primitives, surface primitives, action primitives, and responsive rules.
 12. Completed after cleanroom reset: refactor the public root page into a restrained Interview Coach gateway using tracked public-page, audience-routing, feature, and trust primitives. The page now routes job seekers to `https://talentarbor.com/job-seeker`, employers to `https://rangam.com/employers`, keeps employee login low-prominence, and uses visitor-level product copy grounded in the candidate docs without exposing dashboard internals as marketing content.
+13. Completed after cleanroom reset: bring the full `.untracked/design-system` file set into tracked `design-system/` as the canonical design-system source for the V2 rebuild. This preserves tokens, guidelines, explorations, assets, component references, and candidate UI kit files without creating a second translated copy under `src`.
 
 ---
 

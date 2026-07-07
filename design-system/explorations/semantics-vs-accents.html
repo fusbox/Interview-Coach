@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Semantics vs. the new accents — Rangam Job Seeker</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body{margin:0;background:#EEF1F5;font-family:var(--font-sans);color:#0F2139;padding:40px;}
+  .sheet{max-width:1000px;margin:0 auto;background:#fff;border-radius:24px;box-shadow:0 24px 60px rgba(15,33,57,.10);padding:44px 48px;}
+  .eyebrow{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.22em;color:#566A83;margin:0 0 10px;}
+  h1{font-family:var(--font-display);font-size:32px;font-weight:700;letter-spacing:-.02em;margin:0 0 10px;}
+  .lede{font-size:14.5px;line-height:1.6;color:#566A83;margin:0 0 30px;max-width:680px;}
+  .lab{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.16em;color:#94A3B8;margin:0 0 14px;}
+  .divider{height:1px;background:#E7ECF2;margin:34px 0;}
+
+  .strip{display:flex;gap:10px;flex-wrap:wrap;}
+  .sw{width:132px;border:1px solid #EEF1F5;border-radius:14px;overflow:hidden;}
+  .sw .cc{height:64px;}
+  .sw .m{padding:9px 11px;}
+  .sw .r{font-size:8.5px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#94A3B8;margin:0;}
+  .sw .n{font-size:11.5px;font-weight:700;margin:2px 0 0;}
+  .sw .v{font-size:9px;font-family:monospace;color:#94A3B8;margin:2px 0 0;}
+  .sw.role-sem{outline:2px solid #0F2139;outline-offset:-2px;}
+
+  .callout{display:flex;gap:12px;align-items:flex-start;margin-top:14px;background:#FCF6F4;border:1px solid #F0DCD4;border-radius:12px;padding:14px 16px;}
+  .callout .ic{font-size:14px;line-height:1;margin-top:1px;}
+  .callout p{margin:0;font-size:12.5px;line-height:1.55;color:#566A83;}
+  .callout b{color:#0F2139;font-weight:600;}
+
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:8px;}
+  .card{border:1px solid #E7ECF2;border-radius:16px;padding:20px 22px;}
+  .card.rec{border-color:#2A8F63;box-shadow:0 0 0 3px rgba(42,143,99,.08);}
+  .ctitle{display:flex;align-items:baseline;gap:10px;margin-bottom:4px;}
+  .ctitle .h{font-family:var(--font-display);font-size:17px;font-weight:700;}
+  .tag{font-size:8.5px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;padding:3px 8px;border-radius:99px;}
+  .crat{font-size:12px;line-height:1.5;color:#566A83;margin:0 0 16px;}
+  .crat b{color:#0F2139;font-weight:600;}
+  .beforeafter{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+  .ba{flex:1;}
+  .ba .cap{height:40px;border-radius:10px;}
+  .ba .cl{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#94A3B8;margin:8px 0 0;}
+  .ba .cv{font-size:9.5px;font-family:monospace;color:#566A83;margin:2px 0 0;}
+  .arrow{color:#CBD5E1;font-size:20px;}
+  .pillrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .pill{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;padding:6px 13px;border-radius:99px;}
+  .pill .pd{width:8px;height:8px;border-radius:99px;}
+  .vs{font-size:11px;color:#94A3B8;}
+  .accent-chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#566A83;}
+  .accent-chip .ad{width:14px;height:14px;border-radius:5px;}
+
+  .setrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;}
+  .verdict{margin-top:34px;background:#F1FAF6;border:1px solid #CFEBDF;border-radius:16px;padding:22px 24px;font-size:14px;line-height:1.65;color:#0F2139;}
+  .verdict b{font-weight:700;}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <p class="eyebrow">Foundations · Color · Semantics — working scratch</p>
+  <h1>Semantics against the new accents</h1>
+  <p class="lede">The palette evolved (Viridian + warm orange accents, a green preparedness ramp) but the semantic states are still the extracted-app values. Two of them now collide with brand color. Below: where they clash, and the smallest nudge that separates each while keeping it unmistakably success / warning.</p>
+
+  <!-- COLLISIONS -->
+  <p class="lab">The collisions — current semantics dropped next to the new palette</p>
+  <p class="lab" style="color:#566A83;letter-spacing:.02em;font-weight:600;font-size:11px;margin:-6px 0 12px;">Greens — three roles, one hue neighbourhood</p>
+  <div class="strip">
+    <div class="sw"><div class="cc" style="background:#479C44"></div><div class="m"><p class="r">Prep · ramp</p><p class="n">Clear</p><p class="v">H143</p></div></div>
+    <div class="sw"><div class="cc" style="background:#00774B"></div><div class="m"><p class="r">Prep · ramp</p><p class="n">Strong</p><p class="v">H159</p></div></div>
+    <div class="sw"><div class="cc" style="background:#17A079"></div><div class="m"><p class="r">Brand · accent</p><p class="n">Viridian</p><p class="v">H167</p></div></div>
+    <div class="sw role-sem"><div class="cc" style="background:#25936E"></div><div class="m"><p class="r">Semantic</p><p class="n">Success (now)</p><p class="v">#25936E · H166</p></div></div>
+  </div>
+  <div class="callout"><span class="ic">⚠️</span><p><b>Success #25936E (L.59 C.11 H166) is the same hue as Viridian #17A079 (L.63 C.12 H167)</b>, at nearly the same lightness. Out of context they're indistinguishable — a green chip could mean "success," "brand accent," or "you're ready."</p></div>
+
+  <p class="lab" style="color:#566A83;letter-spacing:.02em;font-weight:600;font-size:11px;margin:26px 0 12px;">Warms — warning meets the warm-orange accent</p>
+  <div class="strip">
+    <div class="sw"><div class="cc" style="background:#E8742E"></div><div class="m"><p class="r">Brand · accent</p><p class="n">Warm orange</p><p class="v">H48</p></div></div>
+    <div class="sw role-sem"><div class="cc" style="background:#F59F0A"></div><div class="m"><p class="r">Semantic</p><p class="n">Warning (now)</p><p class="v">#F59F0A · H71</p></div></div>
+  </div>
+  <div class="callout"><span class="ic">⚠️</span><p><b>Warning #F59F0A (H71) and warm orange #E8742E (H48) are both warm oranges.</b> Adjacent, they read as one family — and you deliberately moved the preparedness "Emerging" off amber for exactly this reason.</p></div>
+
+  <div class="divider"></div>
+
+  <!-- NUDGES -->
+  <p class="lab">Recommended nudges — separate by hue + lightness, keep the meaning</p>
+  <div class="compare">
+
+    <!-- success -->
+    <div class="card rec">
+      <div class="ctitle"><span class="h">Success</span><span class="tag" style="background:#2A8F63;color:#fff">Nudge</span></div>
+      <p class="crat">Shift to a <b>leaf green (H150)</b>, darker and a touch more saturated than Viridian. Off the brand accent's hue, and separated from the prep greens by lightness. Still reads unmistakably as "success."</p>
+      <div class="beforeafter">
+        <div class="ba"><div class="cap" style="background:#25936E"></div><p class="cl">Before</p><p class="cv">#25936E · H166</p></div>
+        <span class="arrow">→</span>
+        <div class="ba"><div class="cap" style="background:#298646"></div><p class="cl">After</p><p class="cv">#298646 · H150</p></div>
+      </div>
+      <div class="pillrow">
+        <span class="pill" style="background:#E0F7E4;color:#115629"><span class="pd" style="background:#298646"></span>Saved</span>
+        <span class="vs">vs</span>
+        <span class="accent-chip"><span class="ad" style="background:#17A079"></span>Viridian</span>
+      </div>
+    </div>
+
+    <!-- warning -->
+    <div class="card rec">
+      <div class="ctitle"><span class="h">Warning</span><span class="tag" style="background:#2A8F63;color:#fff">Nudge</span></div>
+      <p class="crat">Push to a <b>true gold (H92)</b> — more yellow, less orange. Clears the warm-orange accent (H48) decisively, and stays the classic amber that reads as "caution."</p>
+      <div class="beforeafter">
+        <div class="ba"><div class="cap" style="background:#F59F0A"></div><p class="cl">Before</p><p class="cv">#F59F0A · H71</p></div>
+        <span class="arrow">→</span>
+        <div class="ba"><div class="cap" style="background:#E2B926"></div><p class="cl">After</p><p class="cv">#E2B926 · H92</p></div>
+      </div>
+      <div class="pillrow">
+        <span class="pill" style="background:#FAF0D2;color:#6A560A"><span class="pd" style="background:#E2B926"></span>Needs detail</span>
+        <span class="vs">vs</span>
+        <span class="accent-chip"><span class="ad" style="background:#E8742E"></span>Warm orange</span>
+      </div>
+    </div>
+
+    <!-- critical -->
+    <div class="card">
+      <div class="ctitle"><span class="h">Critical</span><span class="tag" style="background:#EEF2F6;color:#566A83">Keep</span></div>
+      <p class="crat"><b>No collision</b> — nothing else in the palette is red (the system is positive-only). Retained as-is; its lightness and chroma already sit comfortably with the new set.</p>
+      <div class="beforeafter">
+        <div class="ba"><div class="cap" style="background:#EF4444"></div><p class="cl">Kept</p><p class="cv">#EF4444 · H25</p></div>
+      </div>
+      <div class="pillrow">
+        <span class="pill" style="background:#FFE9E5;color:#972622"><span class="pd" style="background:#EF4444"></span>Failed to send</span>
+      </div>
+    </div>
+
+    <!-- info -->
+    <div class="card">
+      <div class="ctitle"><span class="h">Info</span><span class="tag" style="background:#EEF2F6;color:#566A83">Repointed</span></div>
+      <p class="crat">Info tracks the action color by convention. <b>Repointed to the new primary</b> so it no longer holds the stale old-blue value.</p>
+      <div class="beforeafter">
+        <div class="ba"><div class="cap" style="background:#0C61E9"></div><p class="cl">Before</p><p class="cv">old blue #0C61E9</p></div>
+        <span class="arrow">→</span>
+        <div class="ba"><div class="cap" style="background:#0B57CE"></div><p class="cl">After</p><p class="cv">#0B57CE · primary</p></div>
+      </div>
+      <div class="pillrow">
+        <span class="pill" style="background:#E3F1FF;color:#0036AC"><span class="pd" style="background:#0B57CE"></span>Heads up</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- FULL SET -->
+  <p class="lab">The nudged set, as status pills</p>
+  <div class="setrow">
+    <span class="pill" style="background:#E0F7E4;color:#115629"><span class="pd" style="background:#298646"></span>Success</span>
+    <span class="pill" style="background:#FAF0D2;color:#6A560A"><span class="pd" style="background:#E2B926"></span>Warning</span>
+    <span class="pill" style="background:#FFE9E5;color:#972622"><span class="pd" style="background:#EF4444"></span>Critical</span>
+    <span class="pill" style="background:#E3F1FF;color:#0036AC"><span class="pd" style="background:#0B57CE"></span>Info</span>
+  </div>
+
+  <div class="verdict">
+    <b>Recommendation.</b> Nudge <b>Success → #298646</b> (leaf green H150) and <b>Warning → #E2B926</b> (gold H92); <b>keep Critical #EF4444</b>; <b>Info</b> repointed to the primary. Each semantic keeps its universal meaning, moves clear of the brand accent it was colliding with, and \u2014 per the accessibility foundation \u2014 still ships with a label + dot so hue is never doing the work alone. If you want maximum distance from the prep ramp, Success can go one step darker still, at the cost of some vibrancy.
+  </div>
+</div>
+</body>
+</html>

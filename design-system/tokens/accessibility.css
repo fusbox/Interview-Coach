@@ -1,0 +1,41 @@
+/* Accessibility foundation - shared across recruiter + candidate surfaces.
+   Establishes canonical focus, target-size and reduced-motion behavior.
+   Source of record for commitments documented in guidelines/accessibility.html. */
+
+:root {
+    --focus-ring-width: 2px; /* @kind other */
+    --focus-ring-offset: 2px; /* @kind other */
+    --focus-ring-color: hsl(var(--ring)); /* @kind other */
+    --target-min: 44px; /* WCAG target minimum @kind size */
+    --target-comfort: 48px; /* preferred touch target @kind size */
+    --target-gap-min: 8px; /* spacing between adjacent targets @kind spacing */
+    --contrast-body-min: 4.5; /* WCAG AA normal text @kind other */
+    --contrast-large-min: 3; /* WCAG AA large text and UI graphics @kind other */
+}
+
+/* Canonical focus: keyboard-only via :focus-visible. */
+:where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+}
+
+.a11y-target {
+    min-width: var(--target-min);
+    min-height: var(--target-min);
+}
+
+.a11y-target-comfort {
+    min-width: var(--target-comfort);
+    min-height: var(--target-comfort);
+}
+
+/* Reduced motion: collapse animation + transition to near-instant for users who
+   request it. Content still reaches its end state; only movement is removed. */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

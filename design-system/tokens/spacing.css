@@ -1,0 +1,64 @@
+/* Spacing tokens.
+   Primitives are the allowed values; semantic roles describe intent. */
+
+:root {
+    /* Primitive scale: 4px base rhythm with small UI exceptions. */
+    --space-0: 0; /* @kind spacing */
+    --space-0-5: 0.125rem; /* 2px @kind spacing */
+    --space-1: 0.25rem; /* 4px @kind spacing */
+    --space-1-5: 0.375rem; /* 6px @kind spacing */
+    --space-2: 0.5rem; /* 8px @kind spacing */
+    --space-3: 0.75rem; /* 12px @kind spacing */
+    --space-4: 1rem; /* 16px @kind spacing */
+    --space-5: 1.25rem; /* 20px @kind spacing */
+    --space-6: 1.5rem; /* 24px @kind spacing */
+    --space-8: 2rem; /* 32px @kind spacing */
+    --space-10: 2.5rem; /* 40px @kind spacing */
+    --space-12: 3rem; /* 48px @kind spacing */
+    --space-16: 4rem; /* 64px @kind spacing */
+
+    /* Gaps: distance between related items. */
+    --gap-inline: var(--space-2); /* icon + label, pill contents @kind spacing */
+    --gap-control: var(--space-2); /* button groups, segmented controls @kind spacing */
+    --gap-field: var(--space-3); /* label, input, hint/error @kind spacing */
+    --gap-cluster: var(--space-4); /* cards/widgets in a local group @kind spacing */
+    --gap-grid: var(--space-5); /* dashboard and page grids @kind spacing */
+    --gap-section: var(--space-8); /* major page subsections @kind spacing */
+
+    /* Padding: distance from container edge to content. */
+    --pad-control-y: var(--space-2); /* @kind spacing */
+    --pad-control-x: var(--space-3); /* @kind spacing */
+    --pad-field-y: var(--space-3); /* @kind spacing */
+    --pad-field-x: var(--space-4); /* @kind spacing */
+    --pad-card: var(--space-5); /* @kind spacing */
+    --pad-panel: var(--space-6); /* @kind spacing */
+    --pad-page: var(--space-8); /* @kind spacing */
+    --pad-session: var(--space-6); /* @kind spacing */
+
+    /* Density aliases: same primitives, different defaults by workflow. */
+    --density-compact-pad: var(--space-4); /* recruiter admin, tables, QA @kind spacing */
+    --density-compact-gap: var(--space-2); /* @kind spacing */
+    --density-compact-row: var(--space-3); /* @kind spacing */
+    --density-comfort-pad: var(--space-6); /* candidate dashboard, debrief, setup @kind spacing */
+    --density-comfort-gap: var(--space-4); /* @kind spacing */
+    --density-comfort-row: var(--space-4); /* @kind spacing */
+    --density-focus-pad: var(--space-5); /* core session surfaces @kind spacing */
+    --density-focus-gap: var(--space-5); /* @kind spacing */
+    --density-focus-row: var(--space-6); /* @kind spacing */
+}
+
+.space-stack-field {
+    display: grid;
+    gap: var(--gap-field);
+}
+
+.space-stack-section {
+    display: grid;
+    gap: var(--gap-section);
+}
+
+.space-cluster {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--gap-cluster);
+}

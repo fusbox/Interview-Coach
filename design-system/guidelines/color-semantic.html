@@ -1,0 +1,32 @@
+<!-- Partial — embedded in interview-coach-design-system.html (Foundations › Color). Not a standalone card. -->
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css">
+<style>
+  body{margin:0;padding:20px;font-family:var(--font-sans);background:#fff;color:#0F2139;}
+  .ramp{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;}
+  .cell{border:1px solid #EEF1F5;border-radius:12px;overflow:hidden;}
+  .cell .top{height:56px;display:flex;align-items:center;justify-content:center;}
+  .cell .dot{width:20px;height:20px;border-radius:99px;box-shadow:0 0 0 4px rgba(255,255,255,.6);}
+  .cell .m{padding:10px 12px;}
+  .cell .n{font-size:12px;font-weight:700;margin:0;}
+  .cell .tok{font-size:9.5px;font-family:monospace;color:#566A83;margin:4px 0 0;}
+  .cell .hex{font-size:9.5px;font-family:monospace;color:#94A3B8;margin:1px 0 0;}
+  .cell .hsl{font-size:9px;font-family:monospace;color:#B4C0CC;margin:1px 0 0;}
+  .pills{display:flex;flex-wrap:wrap;gap:8px;}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:5px 12px;border-radius:99px;}
+  .pill .pd{width:8px;height:8px;border-radius:99px;}
+</style></head>
+<body>
+  <div class="ramp">
+    <div class="cell"><div class="top" style="background:hsl(var(--success-soft))"><span class="dot" style="background:hsl(var(--state-success))"></span></div><div class="m"><p class="n">Success</p><p class="tok">--state-success</p><p class="hex">#298646</p><p class="hsl">139 53% 34%</p></div></div>
+    <div class="cell"><div class="top" style="background:hsl(var(--warning-soft))"><span class="dot" style="background:hsl(var(--state-warning))"></span></div><div class="m"><p class="n">Warning</p><p class="tok">--state-warning</p><p class="hex">#E2B926</p><p class="hsl">47 76% 52%</p></div></div>
+    <div class="cell"><div class="top" style="background:hsl(var(--state-critical) / .08)"><span class="dot" style="background:hsl(var(--state-critical))"></span></div><div class="m"><p class="n">Critical</p><p class="tok">--state-critical</p><p class="hex">#EF4444</p><p class="hsl">0 84.2% 60.2%</p></div></div>
+    <div class="cell"><div class="top" style="background:rgb(var(--candidate-primary-soft))"><span class="dot" style="background:hsl(var(--state-info))"></span></div><div class="m"><p class="n">Info</p><p class="tok">--state-info</p><p class="hex">#0B57CE</p><p class="hsl">217 90% 43%</p></div></div>
+  </div>
+  <div class="pills">
+    <span class="pill" style="background:hsl(var(--success-soft));color:hsl(var(--success-text))"><span class="pd" style="background:hsl(var(--success))"></span>Saved</span>
+    <span class="pill" style="background:hsl(var(--warning-soft));color:hsl(var(--warning-text))"><span class="pd" style="background:hsl(var(--warning))"></span>Needs detail</span>
+    <span class="pill" style="background:hsl(var(--state-critical) / .08);color:#972622"><span class="pd" style="background:hsl(var(--state-critical))"></span>Failed to send</span>
+    <span class="pill" style="background:rgb(var(--candidate-primary-soft));color:#0036AC"><span class="pd" style="background:hsl(var(--state-info))"></span>Heads up</span>
+  </div>
+</body></html>

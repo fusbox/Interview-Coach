@@ -1,14 +1,17 @@
 # Design System Foundation
 
-Date: 2026-05-10
+Date: 2026-07-06
 Status: Current truth
 
 ## Purpose
 
-This document captures the candidate app design system now ported into the shared Postgres-migrated app repo. The recruiter app already has a mature HSL/shadcn token foundation, so the candidate system is implemented as a scoped RGB bridge instead of replacing the shared app tokens.
+This document captures the candidate app design-system source now tracked in the shared Postgres-migrated app repo. The recruiter app already has a mature HSL/shadcn token foundation, so candidate implementation should keep the scoped RGB bridge for job-seeker surfaces while using the tracked design-system files as the broader source of truth.
+
+The full design-system pack has been brought over from `.untracked/design-system` into tracked `design-system/`. That directory is the canonical imported source for V2 rebuild work. Production app code under `src` should consume or promote pieces deliberately from `design-system/` as each UI slice requires them, rather than maintaining a second hand-translated copy of the whole system.
 
 ## Implementation Files
 
+- Full design-system source: [design-system](../../../design-system)
 - Candidate public landing page: [src/app/page.tsx](../../../src/app/page.tsx)
 - Shared app styles and candidate bridge: [src/index.css](../../../src/index.css)
 - Root layout and hydration suppression: [src/app/layout.tsx](../../../src/app/layout.tsx)
@@ -16,6 +19,8 @@ This document captures the candidate app design system now ported into the share
 - Candidate UI primitives: [src/components/ui/ActionButton.tsx](../../../src/components/ui/ActionButton.tsx), [src/components/ui/FormField.tsx](../../../src/components/ui/FormField.tsx), [src/components/ui/PageIntro.tsx](../../../src/components/ui/PageIntro.tsx), [src/components/ui/SurfaceCard.tsx](../../../src/components/ui/SurfaceCard.tsx)
 - Candidate navigation and mock data: [src/lib/navigation.ts](../../../src/lib/navigation.ts), [src/lib/mock-data.ts](../../../src/lib/mock-data.ts)
 - Design-system demo overlay: [src/components/demo/DesignSystemDemoOverlay.tsx](../../../src/components/demo/DesignSystemDemoOverlay.tsx)
+
+The last three bullets describe prior shared-repo integration targets from the pre-reset app. In the V2 cleanroom branch, those app components should be reintroduced only when a numbered slice needs them.
 
 ## Token Strategy
 

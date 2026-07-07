@@ -1,0 +1,57 @@
+<!-- @dsCard group="Components" viewport="700x360" name="Forms" subtitle="Inputs, fields, search, choice buttons" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  body { margin: 0; padding: 24px; background: #fff; font-family: var(--font-sans); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: hsl(var(--text-muted)); margin-bottom: 8px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const { Input, SearchField, FormField, FeedbackChoiceButton, EMOJI_SCALE } = window.RangamJobSeekerDesignSystem_7ff43f;
+  function Demo() {
+    const [rating, setRating] = React.useState(4);
+    return (
+      <div className="grid">
+        <div>
+          <div className="lbl">Input</div>
+          <Input placeholder="you@example.com" />
+        </div>
+        <div>
+          <div className="lbl">SearchField</div>
+          <SearchField placeholder="Search sessions..." />
+        </div>
+        <div>
+          <FormField label="Target role" hint="Shown to your coach" inputProps={{ placeholder: "Product Designer" }} />
+        </div>
+        <div>
+          <FormField label="Focus area" kind="select" inputProps={{ children: [
+            React.createElement('option', {key:1}, 'Behavioral'),
+            React.createElement('option', {key:2}, 'Technical'),
+          ]}} />
+        </div>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <div className="lbl">FeedbackChoiceButton — emoji scale</div>
+          <div className="row">
+            {EMOJI_SCALE.map(({ val, emoji }) => (
+              <FeedbackChoiceButton key={val} kind="emoji" selected={rating === val} onClick={() => setRating(val)}>{emoji}</FeedbackChoiceButton>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Color approaches — Rangam Job Seeker</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body{margin:0;font-family:var(--font-sans);color:#0F2139;}
+  .frame{position:absolute;top:40px;width:480px;background:#fff;border-radius:24px;box-shadow:0 24px 60px rgba(15,33,57,.10);padding:32px;box-sizing:border-box;}
+  .eyebrow{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.2em;color:#566A83;margin:0 0 8px;}
+  h2{font-family:var(--font-display);font-size:26px;font-weight:700;letter-spacing:-.01em;margin:0 0 8px;}
+  .thesis{font-size:13.5px;line-height:1.5;color:#566A83;margin:0 0 24px;min-height:60px;}
+  .lab{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.14em;color:#94A3B8;margin:22px 0 10px;}
+  .swrow{display:flex;gap:8px;}
+  .sw{flex:1;display:flex;flex-direction:column;gap:6px;}
+  .chip{height:40px;border-radius:8px;border:1px solid rgba(15,33,57,.06);}
+  .role{font-size:10.5px;font-weight:600;color:#0F2139;line-height:1.2;}
+  .hex{font-size:9.5px;font-family:monospace;color:#94A3B8;}
+  /* applied preview */
+  .preview{margin-top:26px;border:1px solid #E7ECF2;border-radius:16px;padding:18px;}
+  .peye{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.16em;color:#566A83;margin:0 0 12px;}
+  .states{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;}
+  .st{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:5px 10px;border-radius:99px;}
+  .dot{width:8px;height:8px;border-radius:99px;flex-shrink:0;}
+  .cta{display:block;width:100%;text-align:center;font-size:13px;font-weight:600;color:#fff;padding:12px;border-radius:99px;box-sizing:border-box;}
+  .note{font-size:11.5px;line-height:1.5;color:#566A83;margin:18px 0 0;padding-top:16px;border-top:1px solid #E7ECF2;}
+  .note b{color:#0F2139;font-weight:600;}
+</style>
+</head>
+<body>
+
+  <!-- APPROACH A -->
+  <section class="frame" style="left:40px">
+    <p class="eyebrow">Approach A</p>
+    <h2>Disciplined Blue</h2>
+    <p class="thesis">Blue does the work. Readiness is expressed as <b style="color:#0F2139">depth of blue</b>, not a grade — so the lowest state reads "not filled in yet," never "failed." One warm accent, reserved strictly for brand.</p>
+
+    <p class="lab">Neutrals &amp; ink</p>
+    <div class="swrow">
+      <div class="sw"><div class="chip" style="background:#0F2139"></div><span class="role">Ink</span><span class="hex">#0F2139</span></div>
+      <div class="sw"><div class="chip" style="background:#566A83"></div><span class="role">Muted</span><span class="hex">#566A83</span></div>
+      <div class="sw"><div class="chip" style="background:#F8FAFC"></div><span class="role">Subtle</span><span class="hex">#F8FAFC</span></div>
+      <div class="sw"><div class="chip" style="background:#D3DDE8"></div><span class="role">Border</span><span class="hex">#D3DDE8</span></div>
+    </div>
+
+    <p class="lab">Action &amp; brand</p>
+    <div class="swrow">
+      <div class="sw"><div class="chip" style="background:#0C61E9"></div><span class="role">Primary</span><span class="hex">#0C61E9</span></div>
+      <div class="sw"><div class="chip" style="background:#E8F1FF"></div><span class="role">Primary soft</span><span class="hex">#E8F1FF</span></div>
+      <div class="sw"><div class="chip" style="background:#F95500"></div><span class="role">Brand only</span><span class="hex">#F95500</span></div>
+    </div>
+
+    <p class="lab">Readiness — blue depth ramp</p>
+    <div class="swrow">
+      <div class="sw"><div class="chip" style="background:#CBD5E1"></div><span class="role">Not practiced</span><span class="hex">#CBD5E1</span></div>
+      <div class="sw"><div class="chip" style="background:#A9C7F2"></div><span class="role">Emerging</span><span class="hex">#A9C7F2</span></div>
+      <div class="sw"><div class="chip" style="background:#3E7FE0"></div><span class="role">Clear</span><span class="hex">#3E7FE0</span></div>
+      <div class="sw"><div class="chip" style="background:#0B3E8F"></div><span class="role">Strong</span><span class="hex">#0B3E8F</span></div>
+    </div>
+
+    <p class="lab">Semantic — minimal</p>
+    <div class="swrow">
+      <div class="sw"><div class="chip" style="background:#1BA060"></div><span class="role">Success</span><span class="hex">#1BA060</span></div>
+      <div class="sw"><div class="chip" style="background:#B7791F"></div><span class="role">Warning</span><span class="hex">#B7791F</span></div>
+      <div class="sw"><div class="chip" style="background:#D64535"></div><span class="role">Critical</span><span class="hex">#D64535</span></div>
+    </div>
+
+    <div class="preview">
+      <p class="peye">Preparedness map</p>
+      <div class="states">
+        <span class="st" style="background:#F1F5F9;color:#566A83"><span class="dot" style="background:#CBD5E1"></span>Not practiced</span>
+        <span class="st" style="background:#EEF4FE;color:#2A5F9E"><span class="dot" style="background:#A9C7F2"></span>Emerging</span>
+        <span class="st" style="background:#E8F1FF;color:#0C61E9"><span class="dot" style="background:#3E7FE0"></span>Clear</span>
+        <span class="st" style="background:#E4EDFB;color:#0B3E8F"><span class="dot" style="background:#0B3E8F"></span>Strong</span>
+      </div>
+      <span class="cta" style="background:#0C61E9;box-shadow:0 10px 22px rgba(12,97,233,.22)">Start practice</span>
+    </div>
+    <p class="note"><b>Best when:</b> you want maximum calm and restraint, and trust the "never color alone" labels to carry meaning. <b>Watch:</b> a single-hue ramp is harder to read at a glance — leans on labels.</p>
+  </section>
+
+  <!-- APPROACH B -->
+  <section class="frame" style="left:560px">
+    <p class="eyebrow">Approach B</p>
+    <h2>Growth Spectrum</h2>
+    <p class="thesis">Color <b style="color:#0F2139">encodes the learning journey</b>: neutral → gold → teal → green. Positive-only, never red. Teal owns "progress," green owns "achieved," and each hue has exactly one job.</p>
+
+    <p class="lab">Neutrals &amp; ink</p>
+    <div class="swrow">
+      <div class="sw"><div class="chip" style="background:#0F2139"></div><span class="role">Ink</span><span class="hex">#0F2139</span></div>
+      <div class="sw"><div class="chip" style="background:#566A83"></div><span class="role">Muted</span><span class="hex">#566A83</span></div>
+      <div class="sw"><div class="chip" style="background:#F8FAFC"></div><span class="role">Subtle</span><span class="hex">#F8FAFC</span></div>
+      <div class="sw"><div class="chip" style="background:#D3DDE8"></div><span class="role">Border</span><span class="hex">#D3DDE8</span></div>
+    </div>
+
+    <p class="lab">Action &amp; brand</p>
+    <div class="swrow">
+      <div class="sw"><div class="chip" style="background:#0C61E9"></div><span class="role">Primary</span><span class="hex">#0C61E9</span></div>
+      <div class="sw"><div class="chip" style="background:#0EA894"></div><span class="role">Growth</span><span class="hex">#0EA894</span></div>
+      <div class="sw"><div class="chip" style="background:#F95500"></div><span class="role">Brand only</span><span class="hex">#F95500</span></div>
+    </div>
+
+    <p class="lab">Readiness — growth sequential</p>
+    <div class="swrow">
+      <div class="sw"><div class="chip" style="background:#E2E8F0"></div><span class="role">Not practiced</span><span class="hex">#E2E8F0</span></div>
+      <div class="sw"><div class="chip" style="background:#E0A93B"></div><span class="role">Emerging</span><span class="hex">#E0A93B</span></div>
+      <div class="sw"><div class="chip" style="background:#0EA894"></div><span class="role">Clear</span><span class="hex">#0EA894</span></div>
+      <div class="sw"><div class="chip" style="background:#12805B"></div><span class="role">Strong</span><span class="hex">#12805B</span></div>
+    </div>
+
+    <p class="lab">Semantic — distinct from readiness</p>
+    <div class="swrow">
+      <div class="sw"><div class="chip" style="background:#1BA060"></div><span class="role">Success</span><span class="hex">#1BA060</span></div>
+      <div class="sw"><div class="chip" style="background:#B7791F"></div><span class="role">Warning</span><span class="hex">#B7791F</span></div>
+      <div class="sw"><div class="chip" style="background:#D64535"></div><span class="role">Critical</span><span class="hex">#D64535</span></div>
+    </div>
+
+    <div class="preview">
+      <p class="peye">Preparedness map</p>
+      <div class="states">
+        <span class="st" style="background:#F1F5F9;color:#566A83"><span class="dot" style="background:#CBD5E1"></span>Not practiced</span>
+        <span class="st" style="background:#FBF1DD;color:#8A6410"><span class="dot" style="background:#E0A93B"></span>Emerging</span>
+        <span class="st" style="background:#DDF6F2;color:#0A7D6D"><span class="dot" style="background:#0EA894"></span>Clear</span>
+        <span class="st" style="background:#DBF0E5;color:#12805B"><span class="dot" style="background:#12805B"></span>Strong</span>
+      </div>
+      <span class="cta" style="background:#0C61E9;box-shadow:0 10px 22px rgba(12,97,233,.22)">Start practice</span>
+    </div>
+    <p class="note"><b>Best when:</b> you want the palette to reinforce the pedagogy — the journey is legible at a glance and feels encouraging. <b>Watch:</b> gold (emerging) and orange (brand) must stay clearly apart; tune for AA.</p>
+  </section>
+
+  <!-- APPROACH C -->
+  <section class="frame" style="left:1080px">
+    <p class="eyebrow">Approach C</p>
+    <h2>Warm Professional</h2>
+    <p class="thesis">Trust-blue stays the action color, but <b style="color:#0F2139">warmth differentiates the candidate</b> from the cooler recruiter/QA surfaces — giving the two-audience architecture a color rationale. Slightly warm off-white, coral as a real secondary.</p>
+
+    <p class="lab">Neutrals &amp; ink</p>
+    <div class="swrow">
+      <div class="sw"><div class="chip" style="background:#1C2434"></div><span class="role">Ink warm</span><span class="hex">#1C2434</span></div>
+      <div class="sw"><div class="chip" style="background:#6B6558"></div><span class="role">Muted</span><span class="hex">#6B6558</span></div>
+      <div class="sw"><div class="chip" style="background:#FAF9F7"></div><span class="role">Subtle warm</span><span class="hex">#FAF9F7</span></div>
+      <div class="sw"><div class="chip" style="background:#E6E1D9"></div><span class="role">Border</span><span class="hex">#E6E1D9</span></div>
+    </div>
+
+    <p class="lab">Action &amp; brand</p>
+    <div class="swrow">
+      <div class="sw"><div class="chip" style="background:#0C61E9"></div><span class="role">Primary</span><span class="hex">#0C61E9</span></div>
+      <div class="sw"><div class="chip" style="background:#F26430"></div><span class="role">Secondary</span><span class="hex">#F26430</span></div>
+      <div class="sw"><div class="chip" style="background:#0EA894"></div><span class="role">Growth</span><span class="hex">#0EA894</span></div>
+    </div>
+
+    <p class="lab">Readiness — warm sequential</p>
+    <div class="swrow">
+      <div class="sw"><div class="chip" style="background:#E7E2DA"></div><span class="role">Not practiced</span><span class="hex">#E7E2DA</span></div>
+      <div class="sw"><div class="chip" style="background:#E8A24A"></div><span class="role">Emerging</span><span class="hex">#E8A24A</span></div>
+      <div class="sw"><div class="chip" style="background:#0EA894"></div><span class="role">Clear</span><span class="hex">#0EA894</span></div>
+      <div class="sw"><div class="chip" style="background:#12805B"></div><span class="role">Strong</span><span class="hex">#12805B</span></div>
+    </div>
+
+    <p class="lab">Semantic</p>
+    <div class="swrow">
+      <div class="sw"><div class="chip" style="background:#1BA060"></div><span class="role">Success</span><span class="hex">#1BA060</span></div>
+      <div class="sw"><div class="chip" style="background:#B7791F"></div><span class="role">Warning</span><span class="hex">#B7791F</span></div>
+      <div class="sw"><div class="chip" style="background:#D64535"></div><span class="role">Critical</span><span class="hex">#D64535</span></div>
+    </div>
+
+    <div class="preview" style="border-color:#EFE9E0">
+      <p class="peye">Preparedness map</p>
+      <div class="states">
+        <span class="st" style="background:#F4F1EC;color:#6B6558"><span class="dot" style="background:#CFC7BA"></span>Not practiced</span>
+        <span class="st" style="background:#FBEEDD;color:#93601B"><span class="dot" style="background:#E8A24A"></span>Emerging</span>
+        <span class="st" style="background:#DDF6F2;color:#0A7D6D"><span class="dot" style="background:#0EA894"></span>Clear</span>
+        <span class="st" style="background:#DBF0E5;color:#12805B"><span class="dot" style="background:#12805B"></span>Strong</span>
+      </div>
+      <span class="cta" style="background:#0C61E9;box-shadow:0 10px 22px rgba(12,97,233,.20)">Start practice</span>
+    </div>
+    <p class="note"><b>Best when:</b> you want candidate surfaces to feel human and low-anxiety, visibly distinct from recruiter tooling. <b>Watch:</b> warm off-white shifts the whole mood; orange must be tightly governed or it reads as alarm.</p>
+  </section>
+
+</body>
+</html>

@@ -1,0 +1,463 @@
+﻿<!-- @dsCard group="Explorations" viewport="1100x1420" name="Candidate dashboard wireframes" subtitle="Linked coach update and next-round plan composition" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  :root{
+    --dash-canvas:#F4F7FB;
+    --dash-canvas-2:#EEF4FA;
+    --dash-ink:#0F2139;
+    --dash-muted:#566A83;
+    --dash-line:#D5DCE8;
+    --cat-behavior:#0B57CE;
+    --cat-role:#17A079;
+    --cat-structure:#E8742E;
+    --cat-evidence:#7A64D8;
+  }
+  body{margin:0;padding:24px;background:#F8FAFC;color:var(--dash-ink);font-family:var(--font-sans);}
+  h1{font-family:var(--font-display);font-size:26px;line-height:1.08;margin:0 0 8px;}
+  .lede{margin:0 0 18px;color:var(--dash-muted);font-size:13px;line-height:1.6;max-width:900px;}
+  .section{margin-top:22px;}
+  .eyebrow{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--dash-muted);margin:0 0 10px;}
+  .principles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .principle{border:1px solid var(--dash-line);border-radius:var(--radius-card);background:#fff;padding:14px;min-height:108px;box-sizing:border-box;}
+  .principle b{display:block;font-family:var(--font-display);font-size:14px;line-height:1.15;margin-bottom:7px;}
+  .principle p{font-size:10.5px;line-height:1.45;color:var(--dash-muted);margin:0;}
+  .frames{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start;}
+  .frame{border:1px solid var(--dash-line);border-radius:28px;background:linear-gradient(135deg,var(--dash-canvas),var(--dash-canvas-2));padding:18px;box-sizing:border-box;min-height:690px;box-shadow:var(--elevation-panel);}
+  .frame-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .state-label{display:grid;gap:3px;}
+  .state-label b{font-family:var(--font-display);font-size:15px;}
+  .state-label span{font-size:10.5px;color:var(--dash-muted);}
+  .phone-toggle{height:28px;border-radius:var(--radius-pill);background:#fff;border:1px solid var(--dash-line);display:inline-flex;align-items:center;padding:0 10px;font-size:10px;font-weight:800;color:var(--dash-muted);}
+  .app{border:1px solid rgb(255 255 255 / .7);border-radius:24px;background:linear-gradient(135deg,#FBFCFE,#F1F6FB);padding:16px;min-height:620px;box-sizing:border-box;display:grid;grid-template-rows:auto 1fr auto;gap:12px;}
+  .app-header{height:54px;display:flex;align-items:center;justify-content:space-between;gap:14px;}
+  .identity-group{display:flex;align-items:center;gap:10px;min-width:0;}
+  .hello{display:grid;gap:2px;min-width:0;}
+  .hello b{font-family:var(--font-display);font-size:18px;line-height:1.05;}
+  .hello span{font-size:11px;color:var(--dash-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .header-actions{display:flex;align-items:center;gap:8px;}
+  .avatar-btn{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;position:relative;box-shadow:var(--elevation-card);flex:0 0 auto;}
+  .avatar-btn.user{border:1px solid rgb(11 87 206 / .24);background:#E8F1FF;color:#0B57CE;}
+  .avatar-btn.coach{border:1px solid rgb(232 116 46 / .28);background:#FFF7F0;color:#934515;}
+  .avatar-btn .dot{position:absolute;right:2px;top:2px;width:10px;height:10px;border-radius:50%;background:#E8742E;border:2px solid #fff;}
+  .role-trigger{position:relative;display:flex;align-items:center;gap:10px;min-width:0;border:0;background:transparent;padding:0;text-align:left;color:inherit;}
+  .role-trigger::after{content:"";width:7px;height:7px;border-right:1.5px solid var(--dash-muted);border-bottom:1.5px solid var(--dash-muted);transform:rotate(45deg);margin-left:1px;margin-top:-4px;flex:0 0 auto;}
+  .linked-stack{height:456px;display:grid;gap:12px;}
+  .linked-stack.unread{grid-template-rows:364px 80px;}
+  .linked-stack.read{grid-template-rows:80px 364px;}
+  .linked-stack.plan-only{grid-template-rows:456px;}
+  .linked-stack.plan-only .widget.plan{display:grid;grid-template-rows:auto auto auto minmax(0,1fr) auto;padding:14px;}
+  .linked-stack.plan-only .widget-title{margin-bottom:9px;}
+  .linked-stack.plan-only .plan-context{margin-bottom:8px;}
+  .linked-stack.plan-only .cat-row{margin-bottom:8px;}
+  .linked-stack.plan-only .buckets{min-height:0;overflow-y:auto;padding-right:2px;}
+  .linked-stack.plan-only .bucket{padding:8px;}
+  .linked-stack.plan-only .qcard{height:52px;}
+  .widget{border:1px solid var(--dash-line);border-radius:var(--radius-widget);background:#fff;box-shadow:var(--elevation-widget);padding:16px;box-sizing:border-box;overflow:hidden;}
+  .widget.coach{background:linear-gradient(135deg,#fff,#FFF8F1);border-color:rgb(232 116 46 / .25);}
+  .widget.plan{background:linear-gradient(135deg,#fff,#F8FBFF);}
+  .widget.collapsed{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .widget.hidden{display:none;}
+  .widget-title{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;}
+  .widget-title h2{font-family:var(--font-display);font-size:18px;line-height:1.1;margin:0;}
+  .widget-title p{font-size:11px;color:var(--dash-muted);line-height:1.4;margin:4px 0 0;}
+  .badge{height:26px;border-radius:var(--radius-pill);display:inline-flex;align-items:center;padding:0 10px;font-size:10px;font-weight:900;background:#FFF0E6;color:#934515;white-space:nowrap;}
+  .count-badge{width:42px;height:42px;border-radius:50%;background:#0B57CE;color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:18px;font-weight:800;box-shadow:var(--elevation-cta);flex:0 0 auto;}
+  .coach-preview{display:grid;gap:12px;}
+  .coach-line{border-radius:var(--radius-card);background:rgb(255 255 255 / .76);border:1px solid rgb(232 116 46 / .18);padding:13px;}
+  .coach-line b{display:block;font-size:12px;margin-bottom:4px;}
+  .coach-line p{font-size:11px;line-height:1.45;color:var(--dash-muted);margin:0;}
+  .coach-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:2px;}
+  .btn{height:38px;border-radius:var(--radius-pill);border:1px solid var(--dash-line);background:#fff;color:var(--dash-ink);padding:0 14px;font-size:11px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;}
+  .btn.primary{background:#0B57CE;color:#fff;border-color:#0B57CE;box-shadow:var(--elevation-cta);}
+  .micro{font-size:10px;line-height:1.35;color:var(--dash-muted);}
+  .plan-context{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;margin-bottom:12px;}
+  .role-chip{border-radius:var(--radius-card-compact);background:#F4F7FB;border:1px solid var(--dash-line);padding:9px 10px;}
+  .role-chip b{display:block;font-size:11px;margin-bottom:2px;}
+  .role-chip span{font-size:10px;color:var(--dash-muted);}
+  .stats{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;}
+  .stat{height:28px;border-radius:var(--radius-pill);background:#F4F7FB;border:1px solid var(--dash-line);display:inline-flex;align-items:center;padding:0 9px;font-size:10px;font-weight:800;color:var(--dash-muted);}
+  .stat b{font-family:var(--font-display);font-size:13px;color:var(--dash-ink);margin-right:4px;}
+  .cat-row{display:flex;gap:6px;overflow:hidden;margin-bottom:10px;}
+  .cat{height:24px;border-radius:var(--radius-pill);display:inline-flex;align-items:center;padding:0 8px;font-size:9.5px;font-weight:800;white-space:nowrap;background:#F4F7FB;color:var(--dash-muted);}
+  .cat.behavior{background:rgb(232 241 255);color:#0B57CE;}
+  .cat.role{background:rgb(236 247 244);color:#17805F;}
+  .cat.structure{background:#FFF0E6;color:#934515;}
+  .cat.evidence{background:#F0EEFF;color:#5A48AF;}
+  .buckets{display:grid;gap:8px;}
+  .bucket{border-radius:var(--radius-card);border:1px solid var(--dash-line);background:rgb(255 255 255 / .7);padding:10px;overflow:hidden;}
+  .bucket-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .bucket-head b{font-size:11px;}
+  .bucket-head span{font-size:10px;color:var(--dash-muted);}
+  .strip{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;}
+  .strip::-webkit-scrollbar{display:none;}
+  .qcard{width:160px;min-width:160px;height:58px;border-radius:var(--radius-card-compact);border:1px solid var(--dash-line);background:#fff;display:flex;align-items:center;gap:8px;padding:8px;box-sizing:border-box;}
+  .qbadge{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:900;flex:0 0 auto;}
+  .qbadge.behavior{background:var(--cat-behavior);}
+  .qbadge.role{background:var(--cat-role);}
+  .qbadge.structure{background:var(--cat-structure);}
+  .qbadge.evidence{background:var(--cat-evidence);}
+  .qtext{font-size:10.5px;line-height:1.25;color:var(--dash-ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .plan-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;}
+  .start{height:36px;border-radius:var(--radius-pill);background:#0B57CE;color:#fff;border:0;padding:0 14px;font-size:11px;font-weight:900;box-shadow:var(--elevation-cta);}
+  .support-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:12px;}
+  .support{border:1px solid var(--dash-line);border-radius:var(--radius-card);background:rgb(255 255 255 / .7);padding:12px;min-height:96px;}
+  .support b{display:block;font-family:var(--font-display);font-size:13px;margin-bottom:7px;}
+  .mastery{height:12px;border-radius:999px;background:#E2EAF3;overflow:hidden;margin:10px 0;}
+  .mastery span{display:block;width:68%;height:100%;border-radius:999px;background:linear-gradient(90deg,#17A079,#0B57CE);}
+  .mini-list{display:grid;gap:7px;}
+  .mini-row{height:24px;border-radius:var(--radius-row);background:#F4F7FB;display:flex;align-items:center;justify-content:space-between;padding:0 8px;font-size:9.5px;color:var(--dash-muted);}
+  .mobile-frame{border:1px solid var(--dash-line);border-radius:28px;background:linear-gradient(135deg,var(--dash-canvas),var(--dash-canvas-2));padding:18px;box-shadow:var(--elevation-panel);}
+  .mobile-layout{display:grid;grid-template-columns:360px 300px 1fr;gap:18px;align-items:start;}
+  .plan-only-panel .app{min-height:580px;}
+  .phone{width:300px;border-radius:34px;background:#111827;padding:8px;box-shadow:var(--elevation-overlay);}
+  .phone-inner{border-radius:28px;background:linear-gradient(135deg,#FBFCFE,#F1F6FB);padding:14px;min-height:580px;box-sizing:border-box;}
+  .mobile-stack{display:grid;gap:10px;}
+  .mobile-card{border:1px solid var(--dash-line);border-radius:var(--radius-widget);background:#fff;padding:12px;box-shadow:var(--elevation-card);}
+  .mobile-card h3{font-family:var(--font-display);font-size:14px;margin:0 0 5px;}
+  .mobile-card p{font-size:10px;color:var(--dash-muted);line-height:1.35;margin:0;}
+  .mobile-card.tall{min-height:160px;background:linear-gradient(135deg,#fff,#FFF8F1);}
+  .mobile-card.short{min-height:64px;display:flex;align-items:center;justify-content:space-between;}
+  .mobile-card.plan{min-height:228px;background:linear-gradient(135deg,#fff,#F8FBFF);overflow:hidden;}
+  .mobile-card.plan .bucket{padding:8px;}
+  .mobile-card.plan .qcard{width:132px;min-width:132px;height:50px;}
+  .notes{display:grid;gap:12px;}
+  .note{border:1px solid var(--dash-line);border-radius:var(--radius-card);background:#fff;padding:14px;}
+  .note b{display:block;font-family:var(--font-display);font-size:14px;margin-bottom:7px;}
+  .note p{font-size:11px;line-height:1.5;color:var(--dash-muted);margin:0;}
+  .role-study{display:grid;grid-template-columns:1fr 320px 1fr;gap:18px;align-items:start;}
+  .role-stage{border:1px solid var(--dash-line);border-radius:28px;background:linear-gradient(135deg,#FBFCFE,#EEF4FA);padding:18px;min-height:470px;box-shadow:var(--elevation-panel);box-sizing:border-box;position:relative;overflow:hidden;}
+  .role-stage .app-header{position:relative;z-index:2;}
+  .role-popover{position:absolute;left:30px;top:86px;width:330px;border:1px solid rgb(211 220 232 / .95);border-radius:var(--radius-widget);background:rgb(255 255 255 / .96);box-shadow:var(--elevation-overlay);padding:8px;box-sizing:border-box;z-index:3;}
+  .role-popover::before{content:"";position:absolute;left:26px;top:-7px;width:14px;height:14px;border-left:1px solid rgb(211 220 232 / .95);border-top:1px solid rgb(211 220 232 / .95);background:rgb(255 255 255 / .96);transform:rotate(45deg);}
+  .role-current{display:flex;gap:10px;align-items:center;border-radius:18px;background:linear-gradient(135deg,#F8FBFF,#EEF5FF);border:1px solid rgb(11 87 206 / .12);padding:10px;margin-bottom:6px;position:sticky;top:0;z-index:2;}
+  .role-avatar{width:38px;height:38px;border-radius:50%;background:#E8F1FF;border:1px solid rgb(11 87 206 / .24);color:#0B57CE;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  .role-copy{min-width:0;flex:1;}
+  .role-kicker{display:block;font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--dash-muted);margin-bottom:2px;}
+  .role-name{display:block;font-family:var(--font-display);font-size:13px;font-weight:800;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .role-meta{display:block;margin-top:3px;font-size:10px;line-height:1.3;color:var(--dash-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .role-list{display:grid;gap:3px;padding:4px 0;}
+  .saved-role-list{display:grid;gap:3px;max-height:144px;overflow-y:auto;padding:4px 1px 4px 0;}
+  .saved-role-list::-webkit-scrollbar{width:0;height:0;}
+  .role-row{display:flex;align-items:center;gap:9px;border-radius:16px;padding:8px;color:var(--dash-ink);}
+  .role-row.add{border:1px dashed rgb(211 220 232);background:#fff;margin-top:3px;}
+  .mini-gauge{width:32px;height:32px;border-radius:50%;background:conic-gradient(#17A079 0 58%,#E2EAF3 58% 100%);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  .mini-gauge::after{content:"";width:20px;height:20px;border-radius:50%;background:#fff;}
+  .mini-gauge.orange{background:conic-gradient(#E8742E 0 32%,#E2EAF3 32% 100%);}
+  .mini-gauge.empty{background:#fff;border:1px dashed rgb(211 220 232);}
+  .role-row strong{display:block;font-size:11px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .role-row span{display:block;margin-top:2px;font-size:9.5px;color:var(--dash-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .role-check{margin-left:auto;color:#0B57CE;font-size:13px;font-weight:900;}
+  .role-footer{border-top:1px solid rgb(211 220 232 / .72);padding-top:6px;margin-top:4px;display:grid;gap:2px;}
+  .footer-row{height:34px;border-radius:14px;display:flex;align-items:center;gap:8px;padding:0 8px;font-size:11px;font-weight:800;color:var(--dash-muted);text-decoration:none;}
+  .footer-row.back::before{content:"<-";font-weight:900;color:var(--dash-muted);}
+  .mobile-role-card{border:1px solid var(--dash-line);border-radius:var(--radius-panel);background:linear-gradient(135deg,#fff,#F8FBFF);box-shadow:var(--elevation-overlay);padding:12px;}
+  .mobile-role-card .role-popover{position:static;width:auto;box-shadow:none;border-radius:var(--radius-widget);}
+  .decision-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .decision-panel{border:1px solid var(--dash-line);border-radius:var(--radius-card);background:#fff;padding:14px;}
+  .decision-panel b{display:block;font-family:var(--font-display);font-size:14px;margin-bottom:8px;}
+  .decision-panel ul{margin:0;padding-left:17px;color:var(--dash-muted);font-size:11px;line-height:1.55;}
+  .decision-panel li+li{margin-top:4px;}
+  .code{font-family:ui-monospace,Menlo,Consolas,monospace;color:#0B57CE;font-size:10px;}
+</style>
+</head>
+<body>
+  <h1>Candidate dashboard composition wireframes</h1>
+  <p class="lede">The first viewport is anchored by two linked widgets: Coach Update and Next Round Plan. Their heights trade priority based on whether the latest coach update is unread or reviewed, while the dashboard footprint stays stable.</p>
+
+  <div class="section">
+    <p class="eyebrow">Composition principles</p>
+    <div class="principles">
+      <div class="principle"><b>Linked priority</b><p>The two widgets are visually separate but state-linked. One expands while the other compresses.</p></div>
+      <div class="principle"><b>Plan starts practice</b><p>The candidate can start only from the Added bucket inside the expanded Next Round Plan.</p></div>
+      <div class="principle"><b>Questions stay compact</b><p>Practice items show Q#, category color and question text. No prep state or extra chrome inside the row.</p></div>
+      <div class="principle"><b>Stable footprint</b><p>The dashboard should not jump when items move. Buckets scroll sideways when content exceeds visible width.</p></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="eyebrow">Desktop state composition</p>
+    <div class="frames">
+      <div class="frame">
+        <div class="frame-head">
+          <div class="state-label"><b>State A: unread coach update</b><span>Coach widget max height, plan widget min height.</span></div>
+          <span class="phone-toggle">first viewport</span>
+        </div>
+        <div class="app">
+          <div class="app-header">
+            <button class="role-trigger" type="button" aria-label="Open role context menu"><div class="avatar-btn user">MY</div><div class="hello"><b>Hi, Maya</b><span>Product Manager interview practice</span></div></button>
+            <div class="header-actions"><div class="avatar-btn coach">CO<span class="dot"></span></div></div>
+          </div>
+
+          <div class="linked-stack unread">
+            <section class="widget coach">
+              <div class="widget-title">
+                <div><h2>Coach update</h2><p>Your coach has new notes from the last round.</p></div>
+                <span class="badge">Unread</span>
+              </div>
+              <div class="coach-preview">
+                <div class="coach-line"><b>What I noticed</b><p>Your strongest answers named the situation clearly, but the outcome sometimes arrived too late.</p></div>
+                <div class="coach-line"><b>Practice next</b><p>Use the next round to make the result concrete within the first 30 seconds.</p></div>
+                <div class="coach-actions">
+                  <span class="micro">After review, the next-round plan expands.</span>
+                  <span class="btn primary">Review update</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="widget plan collapsed">
+              <div>
+                <div class="widget-title" style="margin:0"><div><h2>Next round</h2><p>Selected practice items are ready.</p></div></div>
+              </div>
+              <div class="count-badge">3</div>
+            </section>
+          </div>
+
+          <div class="support-grid">
+            <div class="support"><b>Progress to mastery</b><div class="mastery"><span></span></div><p class="micro">Interview-ready in structure and role fit. Specific outcomes are the next lift.</p></div>
+            <div class="support"><b>Recent practice</b><div class="mini-list"><div class="mini-row"><span>Round 3</span><span>Reviewed</span></div><div class="mini-row"><span>Round 2</span><span>Archived</span></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="frame">
+        <div class="frame-head">
+          <div class="state-label"><b>State B: reviewed coach update</b><span>Coach widget min height, plan widget max height.</span></div>
+          <span class="phone-toggle">working state</span>
+        </div>
+        <div class="app">
+          <div class="app-header">
+            <button class="role-trigger" type="button" aria-label="Open role context menu"><div class="avatar-btn user">MY</div><div class="hello"><b>Hi, Maya</b><span>Product Manager interview practice</span></div></button>
+            <div class="header-actions"><div class="avatar-btn coach">CO</div></div>
+          </div>
+
+          <div class="linked-stack read">
+            <section class="widget coach collapsed">
+              <div>
+                <div class="widget-title" style="margin:0"><div><h2>Last coach update</h2><p>Reviewed today. Outcome clarity is the active focus.</p></div></div>
+              </div>
+              <span class="btn">Open</span>
+            </section>
+
+            <section class="widget plan">
+              <div class="widget-title">
+                <div><h2>Next round</h2><p>Practice starts from Added items only.</p></div>
+                <span class="badge" style="background:rgb(232 241 255);color:#0B57CE">3 added</span>
+              </div>
+              <div class="plan-context">
+                <div class="role-chip"><b>Product Manager interview</b><span>10 remaining practice items</span></div>
+                <div class="stats"><span class="stat"><b>7</b> unadded</span><span class="stat"><b>3</b> added</span></div>
+              </div>
+              <div class="cat-row">
+                <span class="cat behavior">Behavioral 4</span><span class="cat role">Role fit 2</span><span class="cat structure">Structure 3</span><span class="cat evidence">Evidence 1</span>
+              </div>
+              <div class="buckets">
+                <div class="bucket">
+                  <div class="bucket-head"><b>Recommended</b><span>side scroll, 7 unadded</span></div>
+                  <div class="strip">
+                    <div class="qcard"><span class="qbadge behavior">Q1</span><span class="qtext">Tell me about a time you changed course after new information.</span></div>
+                    <div class="qcard"><span class="qbadge structure">Q2</span><span class="qtext">Walk me through a decision where timing mattered.</span></div>
+                    <div class="qcard"><span class="qbadge role">Q3</span><span class="qtext">How would you prioritize a roadmap conflict?</span></div>
+                  </div>
+                </div>
+                <div class="bucket">
+                  <div class="bucket-head"><b>Added</b><span>practice queue</span></div>
+                  <div class="strip">
+                    <div class="qcard"><span class="qbadge evidence">Q5</span><span class="qtext">Give an example where your work changed a metric.</span></div>
+                    <div class="qcard"><span class="qbadge behavior">Q7</span><span class="qtext">Describe a time you handled conflicting priorities.</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="plan-footer"><span class="micro">Add or remove items before starting.</span><button class="start">Start next round</button></div>
+            </section>
+          </div>
+
+          <div class="support-grid">
+            <div class="support"><b>Progress to mastery</b><div class="mastery"><span></span></div><p class="micro">Qualitative mastery view, not a score report.</p></div>
+            <div class="support"><b>Focus pivots</b><div class="mini-list"><div class="mini-row"><span>Behavior</span><span>4</span></div><div class="mini-row"><span>Structure</span><span>3</span></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="eyebrow">Plan-only and mobile order</p>
+    <div class="mobile-frame">
+      <div class="mobile-layout">
+        <div class="plan-only-panel">
+          <div class="app">
+            <div class="app-header">
+              <button class="role-trigger" type="button" aria-label="Open role context menu"><div class="avatar-btn user">MY</div><div class="hello"><b>Hi, Maya</b><span>Product Manager interview practice</span></div></button>
+              <div class="header-actions"><div class="avatar-btn coach">CO</div></div>
+            </div>
+            <div class="linked-stack plan-only">
+              <section class="widget plan">
+                <div class="widget-title">
+                  <div><h2>Next round</h2><p>No new coach update. The plan owns the working area.</p></div>
+                  <span class="badge" style="background:rgb(232 241 255);color:#0B57CE">3 added</span>
+                </div>
+                <div class="plan-context">
+                  <div class="role-chip"><b>Product Manager interview</b><span>10 remaining practice items</span></div>
+                  <div class="stats"><span class="stat"><b>7</b> unadded</span><span class="stat"><b>3</b> added</span></div>
+                </div>
+                <div class="cat-row">
+                  <span class="cat behavior">Behavioral 4</span><span class="cat role">Role fit 2</span><span class="cat structure">Structure 3</span>
+                </div>
+                <div class="buckets">
+                  <div class="bucket">
+                    <div class="bucket-head"><b>Recommended</b><span>side scroll, 7 unadded</span></div>
+                    <div class="strip">
+                      <div class="qcard"><span class="qbadge behavior">Q1</span><span class="qtext">Tell me about a time you changed course after new information.</span></div>
+                      <div class="qcard"><span class="qbadge structure">Q2</span><span class="qtext">Walk me through a decision where timing mattered.</span></div>
+                    </div>
+                  </div>
+                  <div class="bucket">
+                    <div class="bucket-head"><b>Added</b><span>practice queue</span></div>
+                    <div class="strip">
+                      <div class="qcard"><span class="qbadge evidence">Q5</span><span class="qtext">Give an example where your work changed a metric.</span></div>
+                      <div class="qcard"><span class="qbadge behavior">Q7</span><span class="qtext">Describe a time you handled conflicting priorities.</span></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="plan-footer"><span class="micro">Add or remove items before starting.</span><button class="start">Start</button></div>
+              </section>
+            </div>
+          </div>
+        </div>
+        <div class="phone">
+          <div class="phone-inner">
+            <div class="app-header">
+              <button class="role-trigger" type="button" aria-label="Open role context menu"><div class="avatar-btn user">MY</div><div class="hello"><b>Hi, Maya</b><span>PM practice</span></div></button>
+              <div class="header-actions"><div class="avatar-btn coach">CO</div></div>
+            </div>
+            <div class="mobile-stack">
+              <div class="mobile-card short"><div><h3>Last coach update</h3><p>Reviewed today</p></div><span class="btn">Open</span></div>
+              <div class="mobile-card plan">
+                <h3>Next round</h3>
+                <p>3 added, 7 unadded</p>
+                <div class="bucket" style="margin-top:10px"><div class="bucket-head"><b>Recommended</b><span>7</span></div><div class="strip"><div class="qcard"><span class="qbadge behavior">Q1</span><span class="qtext">Tell me about a time you changed course.</span></div><div class="qcard"><span class="qbadge role">Q3</span><span class="qtext">Prioritize a roadmap conflict.</span></div></div></div>
+                <div class="bucket" style="margin-top:8px"><div class="bucket-head"><b>Added</b><span>3</span></div><div class="strip"><div class="qcard"><span class="qbadge evidence">Q5</span><span class="qtext">Show measurable impact.</span></div></div></div>
+              </div>
+              <div class="mobile-card"><h3>Progress to mastery</h3><div class="mastery"><span></span></div><p>Outcome clarity is the next lift.</p></div>
+            </div>
+          </div>
+        </div>
+        <div class="notes">
+          <div class="note"><b>Mobile order</b><p>Header, linked coach/plan stack, progress-to-mastery, focus pivots, recent practice. The expanded widget owns the viewport; supporting content follows.</p></div>
+          <div class="note"><b>Plan-only state</b><p>When there is no new coach update, the coach widget stays collapsed as Last coach update and the Next Round Plan remains expanded.</p></div>
+          <div class="note"><b>Interaction model</b><p>Tapping a recommended item moves it into Added. Tapping an Added item returns it to Recommended. Practice begins only from the Added bucket.</p></div>
+          <div class="note"><b>Composition risk</b><p>Horizontal strips must reveal partial next items and counts so hidden questions do not feel lost. The parent widget should keep its height while strips handle overflow.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="eyebrow">Role context popover states</p>
+    <div class="role-study">
+      <div class="role-stage">
+        <div class="frame-head">
+          <div class="state-label"><b>Desktop open state</b><span>Native-hover-card shell anchored to the avatar + role trigger.</span></div>
+          <span class="phone-toggle">context menu</span>
+        </div>
+        <div class="app-header">
+          <button class="role-trigger" type="button" aria-label="Open role context menu"><div class="avatar-btn user">MY</div><div class="hello"><b>Hi, Maya</b><span>Product Manager interview practice</span></div></button>
+          <div class="header-actions"><div class="avatar-btn coach">CO</div></div>
+        </div>
+        <div class="role-popover" role="dialog" aria-label="Role context menu">
+          <div class="role-current">
+            <div class="role-avatar">MY</div>
+            <div class="role-copy">
+              <span class="role-kicker">Current role</span>
+              <span class="role-name">Product Manager interview</span>
+              <span class="role-meta">Last practiced today</span>
+            </div>
+            <span class="role-check">Active</span>
+          </div>
+          <div class="saved-role-list" aria-label="Saved role contexts">
+            <div class="role-row"><span class="mini-gauge"></span><div class="role-copy"><strong>Operations Manager screen</strong><span>Last practiced Jun 28</span></div></div>
+            <div class="role-row"><span class="mini-gauge"></span><div class="role-copy"><strong>Customer Success Lead</strong><span>Last practiced Jun 12</span></div></div>
+            <div class="role-row"><span class="mini-gauge orange"></span><div class="role-copy"><strong>Client Services Specialist</strong><span>Never practiced</span></div></div>
+          </div>
+          <div class="role-list">
+            <div class="role-row add"><span class="mini-gauge empty"></span><div class="role-copy"><strong>Prep for a new role</strong><span>Add target role, JD and resume context</span></div></div>
+          </div>
+          <div class="role-footer">
+            <a class="footer-row back" href="https://rangamworks.com/portal/home">Back to RangamWorks</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="mobile-role-card">
+        <div class="state-label" style="margin-bottom:12px"><b>Mobile open state</b><span>Same content model, rendered as an anchored sheet below the header trigger.</span></div>
+        <div class="role-popover" role="dialog" aria-label="Mobile role context menu">
+          <div class="role-current">
+            <div class="role-avatar">MY</div>
+            <div class="role-copy">
+              <span class="role-kicker">Current role</span>
+              <span class="role-name">Product Manager interview</span>
+              <span class="role-meta">Last practiced today</span>
+            </div>
+          </div>
+          <div class="saved-role-list" aria-label="Saved role contexts">
+            <div class="role-row"><span class="mini-gauge"></span><div class="role-copy"><strong>Operations Manager screen</strong><span>Jun 28</span></div></div>
+            <div class="role-row"><span class="mini-gauge"></span><div class="role-copy"><strong>Customer Success Lead</strong><span>Jun 12</span></div></div>
+            <div class="role-row"><span class="mini-gauge orange"></span><div class="role-copy"><strong>Client Services Specialist</strong><span>Never practiced</span></div></div>
+          </div>
+          <div class="role-list">
+            <div class="role-row add"><span class="mini-gauge empty"></span><div class="role-copy"><strong>Prep for a new role</strong><span>Add target role, JD and resume context</span></div></div>
+          </div>
+          <div class="role-footer"><a class="footer-row back" href="https://rangamworks.com/portal/home">Back to RangamWorks</a></div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <div class="note"><b>Pattern definition</b><p>Role Context Popover combines the native-hover-card surface behavior with the current role switcher content model. It is identity-adjacent, but role-first.</p></div>
+        <div class="note"><b>Interaction contract</b><p>Tap/click opens downward from the avatar + role trigger. Selecting a saved role closes the surface and reloads the dashboard context. Prep for a new role routes to setup.</p></div>
+        <div class="note"><b>Do not treat as profile first</b><p>The footer exits back to RangamWorks. The first information scent must be the active prep role and available role contexts.</p></div>
+        <div class="note"><b>Coach avatar role</b><p>The coach avatar opens reference-based coach plan guidance: category coverage, category definitions, why the category matters in an interview, skill lane explanations, dimensions, and best response patterns.</p></div>
+        <div class="note"><b>Modal dismissal</b><p>Top-level modal surfaces click away or tap away. A second nested surface uses a back arrow in the upper left to close back to the parent modal and does not click away.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="eyebrow">Decision log and open questions</p>
+    <div class="decision-grid">
+      <div class="decision-panel">
+        <b>Decisions captured</b>
+        <ul>
+          <li>Dashboard widgets use the default 24px card radius through <span class="code">--radius-widget</span>.</li>
+          <li>Coach Update and Next Round are separate stacked widgets with linked priority states.</li>
+          <li>The app frame gap is 12px, matching the gap between linked widgets and support cards.</li>
+          <li>The user avatar plus current role text is the header trigger for role context.</li>
+          <li>Role Context Popover uses a native-hover-card shell and the existing role switcher content model.</li>
+          <li>Current active role is sticky above the saved-role list.</li>
+          <li>Show three saved roles before the saved-role list scrolls.</li>
+          <li>Role rows show last practiced date only; prep state is communicated by the visual badge/gauge.</li>
+          <li>Saved roles sort by descending last practiced date; never-practiced roles fall after dated roles.</li>
+          <li>Empty state for no saved roles shows only <span class="code">+ Prep for a new role</span>.</li>
+          <li>Current role block is context only, not a link.</li>
+          <li>Footer action is <span class="code">&lt;- Back to RangamWorks</span> linking to <span class="code">https://rangamworks.com/portal/home</span>.</li>
+          <li>Mobile role context opens as an anchored sheet below the header trigger.</li>
+          <li>Top-level modal surfaces close on clickaway/tapaway.</li>
+          <li>Second nested surfaces use an upper-left back arrow to return to the parent modal and do not close on clickaway/tapaway.</li>
+          <li>Coach avatar remains right-aligned and opens the coach reference layer, not role switching and not the Coach Update action loop.</li>
+          <li>Coach reference layer covers Coach Plan framing, category coverage, category definitions, interview purpose, skill lanes/dimensions, best response patterns, and evidence-safe learning guidance.</li>
+        </ul>
+      </div>
+      <div class="decision-panel">
+        <b>Need from product/design</b>
+        <ul>
+          <li>Define whether role-context popover needs keyboard typeahead once role count grows beyond visible rows.</li>
+          <li>Confirm whether clickaway dismissal needs an undo/saved-state safeguard for any future editable modal.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

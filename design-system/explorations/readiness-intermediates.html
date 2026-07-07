@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Readiness — intermediate options</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body{margin:0;background:#EEF1F5;font-family:var(--font-sans);color:#0F2139;padding:40px;}
+  .sheet{max-width:980px;margin:0 auto;background:#fff;border-radius:24px;box-shadow:0 24px 60px rgba(15,33,57,.10);padding:44px 48px;}
+  .eyebrow{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.22em;color:#566A83;margin:0 0 10px;}
+  h1{font-family:var(--font-display);font-size:32px;font-weight:700;letter-spacing:-.02em;margin:0 0 10px;}
+  .lede{font-size:14.5px;line-height:1.6;color:#566A83;margin:0 0 20px;max-width:660px;}
+  .fixed{display:inline-flex;gap:16px;align-items:center;font-size:11.5px;color:#566A83;background:#F6F8FB;border:1px solid #E7ECF2;border-radius:12px;padding:10px 16px;margin-bottom:8px;}
+  .fixed b{color:#0F2139;font-weight:600;}
+  .mini{display:inline-flex;align-items:center;gap:7px;font-weight:600;}
+  .mini .d{width:12px;height:12px;border-radius:99px;}
+  .opt{border:1px solid #E7ECF2;border-radius:18px;padding:24px 26px;margin-top:22px;}
+  .opt.rec{border-color:#2A8F63;box-shadow:0 0 0 3px rgba(42,143,99,.10);}
+  .ohead{display:flex;align-items:baseline;gap:12px;margin-bottom:4px;}
+  .oname{font-family:var(--font-display);font-size:19px;font-weight:700;}
+  .tag{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;padding:3px 9px;border-radius:99px;}
+  .othesis{font-size:12.5px;line-height:1.5;color:#566A83;margin:0 0 18px;max-width:640px;}
+  .ramp{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .cell{border-radius:12px;overflow:hidden;border:1px solid #EEF1F5;}
+  .cell .sw{height:58px;display:flex;align-items:center;justify-content:center;}
+  .cell .dot{width:20px;height:20px;border-radius:99px;box-shadow:0 0 0 4px rgba(255,255,255,.5);}
+  .cell .m{padding:9px 11px;}
+  .cell .n{font-size:11px;font-weight:700;}
+  .cell .v{font-size:9px;font-family:monospace;color:#94A3B8;margin-top:2px;}
+  .cell.muted{opacity:.5;}
+  .lgap{display:flex;gap:6px;align-items:center;font-size:10.5px;color:#94A3B8;margin-top:12px;font-family:monospace;}
+  .verdict{margin-top:32px;background:#F1FAF6;border:1px solid #CFEBDF;border-radius:16px;padding:22px 24px;font-size:14px;line-height:1.6;color:#0F2139;}
+  .verdict b{font-weight:700;}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <p class="eyebrow">Foundations · Color · Readiness — intermediates</p>
+  <h1>More spread for Emerging &amp; Clear</h1>
+  <p class="lede">Endpoints stay put; only the two middle states change. Each option opens a real lightness gap between Emerging and Clear, and keeps Clear off the viridian accent.</p>
+  <div class="fixed">
+    <span class="mini"><span class="d" style="background:oklch(0.72 0.02 240)"></span>Not practiced · slate</span>
+    <span style="color:#CBD5E1">→ … →</span>
+    <span class="mini"><span class="d" style="background:oklch(0.50 0.12 160)"></span>Strong · deep brand green</span>
+  </div>
+
+  <!-- Option A* — hybrid: A's structure, warmer emerging -->
+  <div class="opt rec">
+    <div class="ohead"><span class="oname">A✳ · Ripening, warm start</span><span class="tag" style="background:#2A8F63;color:#fff">Selected</span></div>
+    <p class="othesis">A's ramp exactly — but Emerging is pulled off green toward a warm‑neutral shoot (H100, chroma dropped to .09) so it no longer reads as "beginner green," while staying clear of warning‑amber. Endpoints and Clear are untouched.</p>
+    <div class="ramp">
+      <div class="cell"><div class="sw" style="background:#F1F5F9"><span class="dot" style="background:oklch(0.72 0.02 240)"></span></div><div class="m"><p class="n">Not practiced</p><p class="v">L .72 · slate</p></div></div>
+      <div class="cell"><div class="sw" style="background:oklch(0.96 0.035 100)"><span class="dot" style="background:oklch(0.82 0.09 100)"></span></div><div class="m"><p class="n">Emerging</p><p class="v">L .82 · 100° · C.09</p></div></div>
+      <div class="cell"><div class="sw" style="background:oklch(0.94 0.07 143)"><span class="dot" style="background:oklch(0.62 0.15 143)"></span></div><div class="m"><p class="n">Clear</p><p class="v">L .62 · 143°</p></div></div>
+      <div class="cell"><div class="sw" style="background:oklch(0.93 0.05 160)"><span class="dot" style="background:oklch(0.50 0.12 160)"></span></div><div class="m"><p class="n">Strong</p><p class="v">L .50 · 160°</p></div></div>
+    </div>
+    <div class="lgap">lightness · .72 → <b style="color:#2A8F63">.82 → .62</b> → .50 &nbsp;·&nbsp; hue drift 100 → 143 → 160 &nbsp;·&nbsp; emerging chroma .09 (muted)</div>
+  </div>
+
+  <!-- Option A -->
+  <div class="opt">
+    <div class="ohead"><span class="oname">A · Ripening</span><span class="tag" style="background:#EAF3EE;color:#2A8F63">Base</span></div>
+    <p class="othesis">New growth is warm and pale, maturing cooler and deeper — a light celadon yellow-green into a vigorous grass green. Widest lightness spread, and both middles sit clear of warning-amber and the accent.</p>
+    <div class="ramp">
+      <div class="cell"><div class="sw" style="background:#F1F5F9"><span class="dot" style="background:oklch(0.72 0.02 240)"></span></div><div class="m"><p class="n">Not practiced</p><p class="v">L .72 · slate</p></div></div>
+      <div class="cell"><div class="sw" style="background:oklch(0.96 0.05 120)"><span class="dot" style="background:oklch(0.82 0.13 120)"></span></div><div class="m"><p class="n">Emerging</p><p class="v">L .82 · 120°</p></div></div>
+      <div class="cell"><div class="sw" style="background:oklch(0.94 0.07 143)"><span class="dot" style="background:oklch(0.62 0.15 143)"></span></div><div class="m"><p class="n">Clear</p><p class="v">L .62 · 143°</p></div></div>
+      <div class="cell"><div class="sw" style="background:oklch(0.93 0.05 160)"><span class="dot" style="background:oklch(0.50 0.12 160)"></span></div><div class="m"><p class="n">Strong</p><p class="v">L .50 · 160°</p></div></div>
+    </div>
+    <div class="lgap">lightness · .72 → <b style="color:#2A8F63">.82 → .62</b> → .50 &nbsp;·&nbsp; hue drift 120 → 143 → 160</div>
+  </div>
+
+  <!-- Option B -->
+  <div class="opt">
+    <div class="ohead"><span class="oname">B · Harvest</span><span class="tag" style="background:#FBEFD5;color:#8A6410">Most spread</span></div>
+    <p class="othesis">Starts on a muted ochre — a seed in soil — then swings all the way to green. The biggest hue jump, so the steps are unmistakable. Trade-off: the ochre lives near warning-amber, so it must stay muted and lean on its label.</p>
+    <div class="ramp">
+      <div class="cell"><div class="sw" style="background:#F1F5F9"><span class="dot" style="background:oklch(0.72 0.02 240)"></span></div><div class="m"><p class="n">Not practiced</p><p class="v">L .72 · slate</p></div></div>
+      <div class="cell"><div class="sw" style="background:oklch(0.95 0.05 88)"><span class="dot" style="background:oklch(0.78 0.11 88)"></span></div><div class="m"><p class="n">Emerging</p><p class="v">L .78 · 88°</p></div></div>
+      <div class="cell"><div class="sw" style="background:oklch(0.94 0.07 150)"><span class="dot" style="background:oklch(0.60 0.15 150)"></span></div><div class="m"><p class="n">Clear</p><p class="v">L .60 · 150°</p></div></div>
+      <div class="cell"><div class="sw" style="background:oklch(0.93 0.05 160)"><span class="dot" style="background:oklch(0.50 0.12 160)"></span></div><div class="m"><p class="n">Strong</p><p class="v">L .50 · 160°</p></div></div>
+    </div>
+    <div class="lgap">lightness · .72 → <b style="color:#8A6410">.78 → .60</b> → .50 &nbsp;·&nbsp; hue drift 88 → 150 → 160</div>
+  </div>
+
+  <!-- Option C -->
+  <div class="opt">
+    <div class="ohead"><span class="oname">C · Chroma bloom</span><span class="tag" style="background:#E4F6EC;color:#1B7A45">Safest</span></div>
+    <p class="othesis">One green family the whole way; spread comes from lightness <em>and</em> saturation. Emerging is a pale, quiet sage; Clear is a saturated, vivid green — distinguished from the softer viridian accent by being more colorful and darker.</p>
+    <div class="ramp">
+      <div class="cell"><div class="sw" style="background:#F1F5F9"><span class="dot" style="background:oklch(0.72 0.02 240)"></span></div><div class="m"><p class="n">Not practiced</p><p class="v">L .72 · slate</p></div></div>
+      <div class="cell"><div class="sw" style="background:oklch(0.95 0.03 158)"><span class="dot" style="background:oklch(0.84 0.06 158)"></span></div><div class="m"><p class="n">Emerging</p><p class="v">L .84 · low chroma</p></div></div>
+      <div class="cell"><div class="sw" style="background:oklch(0.93 0.08 155)"><span class="dot" style="background:oklch(0.60 0.16 155)"></span></div><div class="m"><p class="n">Clear</p><p class="v">L .60 · high chroma</p></div></div>
+      <div class="cell"><div class="sw" style="background:oklch(0.93 0.05 160)"><span class="dot" style="background:oklch(0.50 0.12 160)"></span></div><div class="m"><p class="n">Strong</p><p class="v">L .50 · 160°</p></div></div>
+    </div>
+    <div class="lgap">lightness · .72 → <b style="color:#1B7A45">.84 → .60</b> → .50 &nbsp;·&nbsp; chroma .06 → .16 (hue held ~157)</div>
+  </div>
+
+  <div class="verdict">
+    <b>Recommendation: A · Ripening.</b> It gives the widest, most legible spread (Emerging L.82 vs Clear L.62 — a full gap you can read across a room), keeps every step clear of both warning-amber and the viridian accent, and stays true to the botanical story you liked. <b>B</b> is there if you want maximum separation and can accept an ochre that flirts with warning; <b>C</b> is the most conservative if you'd rather never leave the green family.
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!-- @dsCard group="Motion" viewport="940x900" name="Motion system" subtitle="Durations, easing, state choreography and reduced motion" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body{margin:0;padding:24px;background:#F8FAFC;color:rgb(15 33 57);font-family:var(--font-sans);}
+  h1{font-family:var(--font-display);font-size:24px;line-height:1.1;margin:0 0 8px;}
+  .lede{margin:0 0 18px;color:rgb(86 106 131);font-size:13px;line-height:1.6;max-width:820px;}
+  .section{margin-top:18px;}
+  .eyebrow{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:rgb(86 106 131);margin:0 0 10px;}
+  .ladder{display:grid;grid-template-columns:1.15fr .85fr;gap:14px;}
+  .panel{border:1px solid rgb(213 220 232);border-radius:18px;background:linear-gradient(135deg,#fff,#F8FBFF);padding:16px;}
+  .durations{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
+  .duration{min-height:94px;border:1px solid rgb(213 220 232);border-radius:var(--radius-card-compact);background:#fff;padding:12px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;}
+  .duration b,.ease-card b,.role b{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;color:rgb(15 33 57);}
+  .duration span,.ease-card span,.role span{font-size:10.5px;line-height:1.38;color:rgb(86 106 131);}
+  .track{height:8px;border-radius:999px;background:rgb(226 233 241);overflow:hidden;margin:12px 0;}
+  .fill{height:100%;border-radius:999px;background:rgb(11 87 206);animation:fill var(--d) var(--ease-standard) infinite alternate;}
+  @keyframes fill{from{width:18%;}to{width:94%;}}
+  .eases{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+  .ease-card{border:1px solid rgb(213 220 232);border-radius:var(--radius-card-compact);background:#fff;padding:12px;display:grid;gap:8px;}
+  .curve{height:58px;border-radius:12px;background:linear-gradient(135deg,#F8FAFC,#EEF5FF);position:relative;overflow:hidden;}
+  .curve svg{position:absolute;inset:8px;width:calc(100% - 16px);height:calc(100% - 16px);}
+  .grid{display:grid;grid-template-columns:.9fr .9fr 1.55fr;gap:0;border:1px solid rgb(213 220 232);border-radius:16px;overflow:hidden;background:#fff;}
+  .grid>div{padding:10px 12px;border-left:1px solid rgb(213 220 232);border-top:1px solid rgb(213 220 232);font-size:11px;line-height:1.45;}
+  .grid>div:nth-child(-n+3){border-top:0;background:#F8FAFC;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:rgb(86 106 131);}
+  .grid>div:nth-child(3n+1){border-left:0;font-weight:800;color:rgb(15 33 57);}
+  .code{font-family:ui-monospace,Menlo,Consolas,monospace;color:rgb(11 87 206);}
+  .muted{color:rgb(86 106 131);}
+  .specimens{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  .spec{min-height:160px;border:1px solid rgb(213 220 232);border-radius:var(--radius-card);background:#fff;padding:14px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px;justify-content:space-between;overflow:hidden;}
+  .spec h2{font-family:var(--font-display);font-size:14px;line-height:1.15;margin:0;}
+  .spec p{font-size:11px;line-height:1.45;color:rgb(86 106 131);margin:0;}
+  .meta{font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgb(86 106 131);}
+  .control-row{display:flex;gap:8px;align-items:center;}
+  .chip{height:30px;border-radius:var(--radius-pill);border:1px solid rgb(213 220 232);background:#fff;padding:0 12px;display:inline-flex;align-items:center;font-size:11px;font-weight:800;color:rgb(15 33 57);}
+  .chip.active{background:rgb(11 87 206);border-color:rgb(11 87 206);color:#fff;animation:select var(--motion-feedback-duration) var(--ease-standard) both;}
+  @keyframes select{from{transform:scale(.96);opacity:.72;}to{transform:scale(1);opacity:1;}}
+  .widget{border-radius:var(--radius-widget);background:linear-gradient(135deg,#fff,#FFF7F0);border:1px solid rgb(232 116 46 / .24);box-shadow:var(--elevation-widget);padding:14px;animation:surfaceLift 2200ms var(--ease-emphasized) infinite alternate;}
+  @keyframes surfaceLift{from{transform:translateY(0);box-shadow:var(--elevation-card);}to{transform:translateY(var(--motion-hover-lift));box-shadow:var(--elevation-widget);}}
+  .launcher{width:46px;height:46px;border-radius:var(--radius-launcher);display:flex;align-items:center;justify-content:center;background:rgb(255 247 242);border:1px solid rgb(232 116 46 / .3);color:rgb(147 69 21);font-weight:900;box-shadow:var(--elevation-cta);animation:press 1800ms var(--ease-standard) infinite;}
+  @keyframes press{0%,80%,100%{transform:scale(1);}88%{transform:scale(var(--motion-press-scale));}}
+  .overlay-demo{position:relative;min-height:106px;border-radius:var(--radius-panel);background:linear-gradient(135deg,#EEF5FF,#fff);border:1px solid rgb(213 220 232);overflow:hidden;}
+  .overlay-card{position:absolute;right:12px;bottom:12px;width:176px;border-radius:var(--radius-dialog);background:#fff;border:1px solid rgb(213 220 232);box-shadow:var(--elevation-overlay);padding:12px;animation:overlayIn 2600ms var(--ease-emphasized) infinite alternate;}
+  @keyframes overlayIn{from{opacity:.45;transform:translateY(var(--motion-overlay-distance));}to{opacity:1;transform:translateY(0);}}
+  .session{border-radius:var(--radius-session);background:linear-gradient(135deg,#0F2139,#17375F);color:#fff;padding:16px;min-height:104px;display:flex;flex-direction:column;justify-content:space-between;animation:sessionReveal 3200ms var(--ease-emphasized) infinite alternate;}
+  .session p{color:rgb(213 225 241);}
+  @keyframes sessionReveal{from{opacity:.84;}to{opacity:1;}}
+  .bar{height:7px;border-radius:999px;background:rgb(226 233 241);}
+  .bar.hot{background:linear-gradient(90deg,rgb(11 87 206),rgb(46 134 222));animation:progress 2400ms var(--ease-standard) infinite alternate;}
+  @keyframes progress{from{width:38%;}to{width:76%;}}
+  .dock{height:54px;border-radius:var(--radius-pill);background:rgb(15 33 57);box-shadow:var(--elevation-overlay);display:flex;align-items:center;justify-content:center;gap:12px;animation:dock 2400ms var(--ease-emphasized) infinite alternate;}
+  .dot{width:28px;height:28px;border-radius:50%;background:rgb(255 255 255 / .18);}
+  .dot.active{background:rgb(255 190 31);}
+  @keyframes dock{from{transform:translateY(8px);opacity:.72;}to{transform:translateY(0);opacity:1;}}
+  .states{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .state{border:1px solid rgb(213 220 232);border-radius:var(--radius-card-compact);background:#fff;padding:12px;min-height:92px;box-sizing:border-box;}
+  .state b{display:block;font-size:12px;margin-bottom:6px;}
+  .state p{font-size:10.5px;line-height:1.4;color:rgb(86 106 131);margin:0;}
+  .hover{transform:translateY(var(--motion-hover-lift));box-shadow:var(--elevation-hover);}
+  .pressed{transform:scale(var(--motion-press-scale));box-shadow:var(--elevation-pressed);}
+  .selected{border-color:rgb(11 87 206 / .42);outline:2px solid rgb(11 87 206 / .18);outline-offset:2px;}
+  .reduced{box-shadow:var(--elevation-card);border-style:dashed;}
+  .note{margin:16px 0 0;padding:13px 14px;background:#EEF2F6;border-radius:14px;color:rgb(86 106 131);font-size:12px;line-height:1.55;}
+  .note b{color:rgb(15 33 57);}
+  @media (prefers-reduced-motion: reduce){
+    .fill,.chip.active,.widget,.launcher,.overlay-card,.session,.bar.hot,.dock{animation:none;}
+  }
+</style>
+</head>
+<body>
+  <h1>Motion explains cause and effect</h1>
+  <p class="lede">Motion should make state changes legible: a control acknowledges input, a surface lifts because it is interactive, an overlay enters from the object that opened it, and session content stays calm enough to support focus.</p>
+
+  <div class="section">
+    <p class="eyebrow">Primitive timing and easing</p>
+    <div class="ladder">
+      <div class="panel">
+        <div class="durations">
+          <div class="duration"><b>--duration-instant</b><div class="track"><div class="fill" style="--d:80ms"></div></div><span>80ms<br>press acknowledgement</span></div>
+          <div class="duration"><b>--duration-fast</b><div class="track"><div class="fill" style="--d:120ms"></div></div><span>120ms<br>controls and chips</span></div>
+          <div class="duration"><b>--duration-base</b><div class="track"><div class="fill" style="--d:180ms"></div></div><span>180ms<br>surface state</span></div>
+          <div class="duration"><b>--duration-slow</b><div class="track"><div class="fill" style="--d:260ms"></div></div><span>260ms<br>overlays and reveal</span></div>
+          <div class="duration"><b>--duration-extra-slow</b><div class="track"><div class="fill" style="--d:420ms"></div></div><span>420ms<br>rare page choreography</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="eases">
+          <div class="ease-card"><div class="curve"><svg viewBox="0 0 100 60"><path d="M2 58 C22 58 48 2 98 2" fill="none" stroke="rgb(11 87 206)" stroke-width="3"/></svg></div><b>--ease-standard</b><span>Precise UI response</span></div>
+          <div class="ease-card"><div class="curve"><svg viewBox="0 0 100 60"><path d="M2 58 C18 10 34 2 98 2" fill="none" stroke="rgb(232 116 46)" stroke-width="3"/></svg></div><b>--ease-emphasized</b><span>Natural overlay/reveal settle</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="eyebrow">Semantic motion roles</p>
+    <div class="grid">
+      <div>Role</div><div>Token set</div><div>Use</div>
+      <div>Control</div><div class="code">--motion-control-duration</div><div class="muted">Buttons, chips, tabs, switches and avatar-style launchers. Fast response; no lingering fade.</div>
+      <div>Surface</div><div class="code">--motion-surface-duration</div><div class="muted">Cards and widgets lift, settle or change boundary. Movement is small and paired with elevation.</div>
+      <div>Feedback</div><div class="code">--motion-feedback-duration</div><div class="muted">Selected, queued, saved and validation states. Prefer opacity, border, ring or fill changes.</div>
+      <div>Overlay</div><div class="code">--motion-overlay-duration</div><div class="muted">Dialogs, sheets, popovers and coach-update panels. Opacity plus a short translate; no bounce.</div>
+      <div>Page</div><div class="code">--motion-page-duration</div><div class="muted">Route or section reveal. Use sparingly; layout must remain stable while content appears.</div>
+      <div>Reduced motion</div><div class="code">prefers-reduced-motion</div><div class="muted">Replace movement with instant state, opacity, border, color or focus-ring change.</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="eyebrow">Usage specimens</p>
+    <div class="specimens">
+      <div class="spec">
+        <div><span class="meta">Control feedback</span><h2>QA filter</h2><p>Fast chip selection clarifies the active view without shifting nearby controls.</p></div>
+        <div class="control-row"><span class="chip active motion-control">Needs review</span><span class="chip motion-control">Approved</span></div>
+      </div>
+      <div class="spec">
+        <div><span class="meta">Candidate widget</span><h2>Coach update</h2><p>A dashboard action surface may lift subtly because it is discoverable and personal.</p></div>
+        <div class="widget motion-surface"><b>Next practice round</b><p>Three planned questions are ready.</p></div>
+      </div>
+      <div class="spec">
+        <div><span class="meta">Launcher press</span><h2>Avatar menu</h2><p>Press scale acknowledges tap without implying the object floats away.</p></div>
+        <div class="control-row"><div class="launcher motion-control">CU</div><span class="chip">Coach update</span></div>
+      </div>
+      <div class="spec">
+        <div><span class="meta">Overlay entrance</span><h2>Add to next round?</h2><p>Overlay movement should be short, directional and tied to the opening action.</p></div>
+        <div class="overlay-demo"><div class="overlay-card motion-overlay"><b>Queued</b><p>Behavioral follow-up added.</p></div></div>
+      </div>
+      <div class="spec">
+        <div><span class="meta">Session restraint</span><h2>Prompt focus</h2><p>Core session surfaces avoid decorative movement and prioritize steady attention.</p></div>
+        <div class="session motion-page"><b>Practice prompt</b><p>Tell me about a time you handled conflicting priorities.</p></div>
+      </div>
+      <div class="spec">
+        <div><span class="meta">Mobile dock</span><h2>Primary navigation</h2><p>Dock entrance may settle once; recurring motion should be avoided after first render.</p></div>
+        <div class="dock motion-overlay"><span class="dot"></span><span class="dot active"></span><span class="dot"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="eyebrow">Interaction state contract</p>
+    <div class="states">
+      <div class="state"><b>Default</b><p>Still. No constant motion for ordinary resting UI.</p></div>
+      <div class="state hover"><b>Hover</b><p>Lift at most 2px and raise one depth tier.</p></div>
+      <div class="state pressed"><b>Press</b><p>Scale to .98 or settle downward, then return fast.</p></div>
+      <div class="state selected"><b>Selected</b><p>Use ring, border, fill or label change more than motion.</p></div>
+      <div class="state reduced"><b>Reduced motion</b><p>No translate or scale. State changes remain visible.</p></div>
+      <div class="state"><b>Recruiter/admin</b><p>Motion is productive and compact: controls, rows, filters.</p></div>
+      <div class="state"><b>Candidate dashboard</b><p>Subtle polish is allowed for widgets and launchers.</p></div>
+      <div class="state"><b>Core session</b><p>Only functional motion: recording, turn-taking, reveal.</p></div>
+    </div>
+  </div>
+
+  <p class="note"><b>Implementation rule:</b> choose a semantic motion role before choosing a transition. If the motion cannot be explained as feedback, hierarchy, continuity or focus support, remove it.</p>
+</body>
+</html>

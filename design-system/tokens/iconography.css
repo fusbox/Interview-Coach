@@ -1,0 +1,61 @@
+/* Iconography tokens.
+   Lucide-style stroke icons use a 24x24 viewBox, currentColor stroke,
+   round caps/joins and semantic role sizes aligned to typography roles. */
+
+:root {
+    --icon-viewbox-size: 24; /* @kind size */
+    --icon-stroke-default: 2; /* @kind size */
+    --icon-stroke-emphasis: 2.4; /* @kind size */
+    --icon-stroke-strong: 2.5; /* @kind size */
+
+    --icon-inline-size: 1rem; /* @kind size */
+    --icon-control-size: 1.125rem; /* @kind size */
+    --icon-nav-size: 1.125rem; /* @kind size */
+    --icon-status-size: 0.875rem; /* @kind size */
+    --icon-launcher-size: 1.125rem; /* @kind size */
+    --icon-empty-size: 3rem; /* @kind size */
+
+    --icon-capsule-sm: 2rem; /* @kind size */
+    --icon-capsule-md: 2.5rem; /* @kind size */
+    --icon-capsule-lg: 3rem; /* @kind size */
+}
+
+.icon-inline {
+    width: var(--icon-inline-size);
+    height: var(--icon-inline-size);
+    stroke-width: var(--icon-stroke-default);
+}
+
+.icon-control {
+    width: var(--icon-control-size);
+    height: var(--icon-control-size);
+    stroke-width: var(--icon-stroke-default);
+}
+
+.icon-nav {
+    width: var(--icon-nav-size);
+    height: var(--icon-nav-size);
+    stroke-width: var(--icon-stroke-default);
+}
+
+.icon-nav-active {
+    stroke-width: var(--icon-stroke-emphasis);
+}
+
+.icon-status {
+    width: var(--icon-status-size);
+    height: var(--icon-status-size);
+    stroke-width: var(--icon-stroke-default);
+}
+
+.icon-launcher {
+    width: var(--icon-launcher-size);
+    height: var(--icon-launcher-size);
+    stroke-width: var(--icon-stroke-emphasis);
+}
+
+.icon-empty {
+    width: var(--icon-empty-size);
+    height: var(--icon-empty-size);
+    stroke-width: var(--icon-stroke-default);
+}

@@ -1,0 +1,152 @@
+<!-- @dsCard group="Components" viewport="980x1120" name="Component system worksheet" subtitle="Taxonomy, anatomy, variants, states and implementation contracts" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body{margin:0;padding:24px;background:#F8FAFC;color:rgb(15 33 57);font-family:var(--font-sans);}
+  h1{font-family:var(--font-display);font-size:26px;line-height:1.08;margin:0 0 8px;}
+  .lede{margin:0 0 18px;color:rgb(86 106 131);font-size:13px;line-height:1.6;max-width:860px;}
+  .section{margin-top:20px;}
+  .eyebrow{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:rgb(86 106 131);margin:0 0 10px;}
+  .map{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .family{border:1px solid rgb(213 220 232);border-radius:var(--radius-card);background:linear-gradient(135deg,#fff,#F8FBFF);padding:14px;min-height:118px;box-sizing:border-box;}
+  .family b{display:block;font-family:var(--font-display);font-size:14px;line-height:1.15;margin-bottom:8px;}
+  .family p{font-size:10.5px;line-height:1.45;color:rgb(86 106 131);margin:0;}
+  .contract{display:grid;grid-template-columns:.9fr .9fr 1.35fr 1.15fr;gap:0;border:1px solid rgb(213 220 232);border-radius:16px;overflow:hidden;background:#fff;}
+  .contract>div{padding:10px 12px;border-left:1px solid rgb(213 220 232);border-top:1px solid rgb(213 220 232);font-size:10.5px;line-height:1.45;}
+  .contract>div:nth-child(-n+4){border-top:0;background:#F8FAFC;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:rgb(86 106 131);}
+  .contract>div:nth-child(4n+1){border-left:0;font-weight:800;color:rgb(15 33 57);}
+  .code{font-family:ui-monospace,Menlo,Consolas,monospace;color:rgb(11 87 206);}
+  .muted{color:rgb(86 106 131);}
+  .specimens{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  .spec{border:1px solid rgb(213 220 232);border-radius:var(--radius-card);background:#fff;padding:14px;box-sizing:border-box;min-height:190px;display:flex;flex-direction:column;justify-content:space-between;gap:12px;}
+  .spec h2{font-family:var(--font-display);font-size:15px;line-height:1.15;margin:0;}
+  .spec p{font-size:11px;line-height:1.45;color:rgb(86 106 131);margin:0;}
+  .meta{font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgb(86 106 131);}
+  .button-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .btn{height:38px;border-radius:var(--radius-control);border:1px solid rgb(213 220 232);padding:0 14px;font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#fff;color:rgb(15 33 57);transition:all var(--motion-control-duration) var(--ease-standard);}
+  .btn.primary{background:rgb(11 87 206);border-color:rgb(11 87 206);color:#fff;box-shadow:var(--elevation-cta);}
+  .btn.quiet{background:#F4F7FB;}
+  .icon-btn{width:38px;padding:0;border-radius:var(--radius-launcher);}
+  .widget{border-radius:var(--radius-widget);border:1px solid rgb(232 116 46 / .24);background:linear-gradient(135deg,#fff,#FFF7F0);box-shadow:var(--elevation-widget);padding:14px;display:grid;gap:10px;}
+  .widget-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .avatar{width:38px;height:38px;border-radius:var(--radius-launcher);display:flex;align-items:center;justify-content:center;background:rgb(255 247 242);border:1px solid rgb(232 116 46 / .3);font-size:12px;font-weight:900;color:rgb(147 69 21);}
+  .pill{height:24px;border-radius:var(--radius-pill);display:inline-flex;align-items:center;padding:0 9px;font-size:10px;font-weight:800;background:rgb(236 247 244);color:rgb(41 134 70);}
+  .field{display:grid;gap:var(--gap-field);}
+  .label{font-size:12px;font-weight:800;color:rgb(15 33 57);}
+  .input{height:42px;border-radius:var(--radius-input);border:1px solid rgb(197 207 222);background:#fff;padding:0 13px;display:flex;align-items:center;font-size:12px;color:rgb(86 106 131);}
+  .hint{font-size:10.5px;line-height:1.4;color:rgb(86 106 131);}
+  .row{height:44px;border-radius:var(--radius-row);border:1px solid rgb(213 220 232);background:#fff;box-shadow:var(--elevation-row);display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-size:12px;}
+  .metric{border-radius:var(--radius-card-compact);border:1px solid rgb(213 220 232);background:linear-gradient(135deg,#fff,#F8FBFF);padding:13px;display:grid;gap:6px;}
+  .metric strong{font-family:var(--font-display);font-size:24px;line-height:1;}
+  .surface{border-radius:var(--radius-panel);border:1px solid rgb(213 220 232);background:linear-gradient(135deg,#fff,#F8FBFF);padding:14px;box-shadow:var(--elevation-panel);}
+  .session{border-radius:var(--radius-session);background:linear-gradient(135deg,#0F2139,#17375F);color:#fff;padding:15px;min-height:92px;display:flex;flex-direction:column;justify-content:space-between;}
+  .session p{color:rgb(213 225 241);}
+  .checkgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .check{border:1px solid rgb(213 220 232);border-radius:var(--radius-card-compact);background:#fff;padding:12px;min-height:108px;box-sizing:border-box;}
+  .check b{display:block;font-size:12px;margin-bottom:7px;}
+  .check p{font-size:10.5px;line-height:1.42;color:rgb(86 106 131);margin:0;}
+  .rulebox{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .rule{border:1px solid rgb(213 220 232);border-radius:var(--radius-card);background:#fff;padding:14px;}
+  .rule b{display:block;font-family:var(--font-display);font-size:14px;margin-bottom:7px;}
+  .rule p{font-size:11px;line-height:1.5;color:rgb(86 106 131);margin:0;}
+  .note{margin:16px 0 0;padding:13px 14px;background:#EEF2F6;border-radius:14px;color:rgb(86 106 131);font-size:12px;line-height:1.55;}
+  .note b{color:rgb(15 33 57);}
+</style>
+</head>
+<body>
+  <h1>Components are product objects with contracts</h1>
+  <p class="lede">A component is not a styled box. It owns a job, anatomy, variants, states, token dependencies and usage rules. Future implementation work should select the component role first, then apply foundations through the contract below.</p>
+
+  <div class="section">
+    <p class="eyebrow">Component taxonomy</p>
+    <div class="map">
+      <div class="family"><b>Actions</b><p>Buttons, icon buttons, avatar-style launchers, split actions and session controls.</p></div>
+      <div class="family"><b>Inputs</b><p>Fields, textareas, selects, comboboxes, checkboxes, switches, radios and steppers.</p></div>
+      <div class="family"><b>Navigation</b><p>Tabs, segmented controls, rails, breadcrumbs, mobile docks and route steppers.</p></div>
+      <div class="family"><b>Feedback</b><p>Alerts, toasts, validation, status pills, progress, loading and saved/queued states.</p></div>
+      <div class="family"><b>Data display</b><p>Tables, list rows, metrics, score cards, chart shells, trend previews and QA summaries.</p></div>
+      <div class="family"><b>Surfaces</b><p>Cards, widgets, panels, sheets, dialogs, popovers and candidate action surfaces.</p></div>
+      <div class="family"><b>Session objects</b><p>Prompt cards, transcript turns, recording states, timers, turn-taking and control bars.</p></div>
+      <div class="family"><b>Content objects</b><p>Empty states, educational callouts, guidance blocks, debrief sections and reflection prompts.</p></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="eyebrow">Agent-native component contract</p>
+    <div class="contract">
+      <div>Family</div><div>Primary roles</div><div>Required contract</div><div>Product emphasis</div>
+      <div>Actions</div><div class="code">Button, IconButton, Launcher</div><div class="muted">Intent, hierarchy, icon policy, loading, disabled, focus-visible, press state, target size.</div><div class="muted">Candidate coach update and next-round launchers; recruiter invite actions; session controls.</div>
+      <div>Inputs</div><div class="code">Field, Select, Switch, Stepper</div><div class="muted">Label, hint, validation, error/warning/success, disabled, optional helper copy, density.</div><div class="muted">Recruiter create invite; candidate setup; admin filters.</div>
+      <div>Navigation</div><div class="code">Tabs, Segmented, Rail, Dock</div><div class="muted">Current state, responsive collapse, keyboard navigation, icon/text pairing, page-frame fit.</div><div class="muted">Protected app sections, candidate dashboard views, session support navigation.</div>
+      <div>Feedback</div><div class="code">Pill, Alert, Toast, Progress</div><div class="muted">Semantic color, text label, icon pairing, duration if transient, non-color cue.</div><div class="muted">Preparedness, queued, QA, saved, warning, invite progress and session activity.</div>
+      <div>Data display</div><div class="code">Table, Row, Metric, ChartShell</div><div class="muted">Density, empty state, sort/filter state, loading state, responsive summary and scan hierarchy.</div><div class="muted">Recruiter dashboard/admin/QA and candidate preparedness summaries.</div>
+      <div>Surfaces</div><div class="code">Card, Widget, Panel, Overlay</div><div class="muted">Surface role, anatomy, nesting limit, elevation, action affordance, mobile behavior.</div><div class="muted">Candidate dashboard has broadest surface variety; admin stays restrained.</div>
+      <div>Session objects</div><div class="code">Prompt, Turn, Recorder, ControlBar</div><div class="muted">Focus, stable layout, calm motion, live status, accessibility labels and recovery states.</div><div class="muted">Shared candidate session experience across recruiter and candidate apps.</div>
+      <div>Content objects</div><div class="code">Callout, EmptyState, DebriefBlock</div><div class="muted">Tone, hierarchy, illustration/icon rule, action availability, educational depth.</div><div class="muted">Feedforward, feedback, reflection and next best action.</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="eyebrow">Representative specimens</p>
+    <div class="specimens">
+      <div class="spec">
+        <div><span class="meta">Actions</span><h2>Buttons and launchers</h2><p>Action components encode hierarchy. Avatar-style launchers are allowed for candidate coach surfaces, not generic admin actions.</p></div>
+        <div class="button-row"><span class="btn primary">Continue</span><span class="btn quiet">Save draft</span><span class="btn icon-btn">CU</span></div>
+      </div>
+      <div class="spec">
+        <div><span class="meta">Candidate surface</span><h2>Widget contract</h2><p>A widget is a dashboard object with a clear job, status and action path. It is not just a decorative card.</p></div>
+        <div class="widget">
+          <div class="widget-head"><div><b>Coach update</b><p>New practice guidance is ready.</p></div><span class="avatar">CU</span></div>
+          <span class="pill">3 planned questions</span>
+        </div>
+      </div>
+      <div class="spec">
+        <div><span class="meta">Inputs</span><h2>Form field anatomy</h2><p>Every form field carries label, control, hint or validation slot, and density appropriate to workflow.</p></div>
+        <div class="field"><span class="label">Candidate email</span><div class="input">name@example.com</div><span class="hint">Used only to deliver the practice invite.</span></div>
+      </div>
+      <div class="spec">
+        <div><span class="meta">Data display</span><h2>Admin row and metric</h2><p>Recruiter/admin views should scan quickly. Rows are border-led; metrics use display type only when they carry decision weight.</p></div>
+        <div class="row"><b>Interview QA</b><span class="pill">Needs review</span></div>
+        <div class="metric"><span class="meta">Ready candidates</span><strong>18</strong></div>
+      </div>
+      <div class="spec">
+        <div><span class="meta">Panel</span><h2>Guidance surface</h2><p>Panels hold larger explanatory or reflective content. They should not contain a stack of unrelated cards.</p></div>
+        <div class="surface"><b>Skill focus</b><p>Practice examples that connect conflict resolution to measurable business impact.</p></div>
+      </div>
+      <div class="spec">
+        <div><span class="meta">Session object</span><h2>Prompt shell</h2><p>Core session components prioritize stability, contrast and focus over visual variety.</p></div>
+        <div class="session"><b>Practice prompt</b><p>Tell me about a time you adapted after receiving difficult feedback.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="eyebrow">Required state checklist</p>
+    <div class="checkgrid">
+      <div class="check"><b>Interactive</b><p>Default, hover, focus-visible, active/pressed, selected/current, disabled and loading.</p></div>
+      <div class="check"><b>Feedback</b><p>Success, warning, neutral, queued, saved, needs review and in-progress states with text labels.</p></div>
+      <div class="check"><b>Content</b><p>Empty, loading, partial data, long text, missing optional media and narrow viewport behavior.</p></div>
+      <div class="check"><b>Motion</b><p>Reduced-motion equivalent is defined before any animation is accepted.</p></div>
+      <div class="check"><b>Accessibility</b><p>Keyboard path, aria label/name, visible focus, contrast and minimum target size.</p></div>
+      <div class="check"><b>Density</b><p>Compact for admin/QA, comfort for dashboard/setup/debrief, focus for core session.</p></div>
+      <div class="check"><b>Composition</b><p>Component anatomy is explicit. Avoid anonymous nested boxes and equal-radius card stacks.</p></div>
+      <div class="check"><b>Token use</b><p>Color, type, spacing, shape, elevation, icon and motion roles are named in the component spec.</p></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="eyebrow">Usage rules</p>
+    <div class="rulebox">
+      <div class="rule"><b>Use component roles before visual taste</b><p>Choose Button, Widget, Row, Panel, Overlay or SessionObject based on the job. Then apply semantic tokens. Do not create color-named variants like blue card or orange button.</p></div>
+      <div class="rule"><b>Audit current implementation after roles are named</b><p>Do not preserve existing app classes because they exist. First decide the desired component role; then rename, consolidate or remove current UI objects that do not match.</p></div>
+      <div class="rule"><b>Separate components from patterns</b><p>A component is a reusable object. A pattern is a composed workflow such as invite creation, candidate setup, coach-planned practice, debrief or session flow.</p></div>
+      <div class="rule"><b>Protect product-specific exceptions</b><p>Avatar-style launchers, candidate action widgets and session controls can have special treatment only when their product job is named and repeatable.</p></div>
+    </div>
+  </div>
+
+  <p class="note"><b>Implementation rule:</b> every component spec should include job, anatomy, variants, states, token dependencies, accessibility, responsive behavior, and non-use guidance before it is promoted into the product UI.</p>
+</body>
+</html>

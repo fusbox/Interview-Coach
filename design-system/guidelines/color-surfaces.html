@@ -1,0 +1,206 @@
+<!-- @dsCard group="Colors" viewport="920x1520" name="Surface worksheet" subtitle="Future-state surface roles before surface-class revamp" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  :root{--ink:#0F2139;--muted:#566A83;--faint:#94A3B8;--line:#E7ECF2;--canvas:#F8FAFC;--paper:#fff;}
+  *{box-sizing:border-box;}
+  body{margin:0;padding:28px;font-family:var(--font-sans);background:var(--canvas);color:var(--ink);}
+  .sheet{max-width:860px;margin:0 auto;background:var(--paper);border:1px solid var(--line);border-radius:22px;box-shadow:0 18px 45px rgba(15,33,57,.08);padding:28px;}
+  .eyebrow{margin:0 0 8px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.22em;color:var(--muted);}
+  h1{margin:0;font-family:var(--font-display);font-size:28px;line-height:1.05;letter-spacing:0;}
+  .lede{max-width:700px;margin:10px 0 24px;color:var(--muted);font-size:13px;line-height:1.6;}
+  .section{padding-top:22px;margin-top:22px;border-top:1px solid var(--line);}
+  .section:first-of-type{padding-top:0;margin-top:0;border-top:0;}
+  h2{margin:0 0 12px;font-family:var(--font-display);font-size:17px;letter-spacing:0;}
+  .note{margin:0 0 14px;color:var(--muted);font-size:12px;line-height:1.55;}
+  .contexts{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+  .context{border:1px solid var(--line);border-radius:12px;background:#FAFBFC;padding:12px;}
+  .context b{display:block;font-size:12px;margin-bottom:4px;}
+  .context span{display:block;font-size:10.5px;line-height:1.45;color:var(--muted);}
+  .roles{display:flex;flex-direction:column;gap:10px;}
+  .role{display:grid;grid-template-columns:136px 1fr 172px;gap:14px;border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden;}
+  .sample{min-height:92px;padding:12px;display:flex;align-items:flex-end;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;}
+  .sample.canvas{background:#F8FAFC;color:#596984;}
+  .sample.surface{background:#fff;color:#122039;border-right:1px solid #EEF1F5;}
+  .sample.work{background:#fff;color:#122039;background-image:linear-gradient(#EEF1F5 1px,transparent 1px);background-size:100% 22px;}
+  .sample.focus{background:linear-gradient(135deg,#F7FBFF,#EAF3FF);color:#0036AC;}
+  .sample.insight{background:linear-gradient(to bottom right,#FFEBDD,#FFF8F3);color:#9A3E0A;}
+  .sample.coach{background:linear-gradient(135deg,#F8FAFC,#EEF5FF);color:#0B57CE;}
+  .sample.action{position:relative;background:linear-gradient(to bottom right,#FFFFFF,#EAF3FF);color:#0B57CE;}
+  .sample.action::before{content:"";position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:999px;background:linear-gradient(to bottom right,#E3F1FF,#FFFFFF);box-shadow:0 0 0 4px rgba(255,255,255,.72);}
+  .sample.action::after{content:"";position:absolute;top:21px;right:21px;width:12px;height:12px;border-radius:999px;background:#0B57CE;}
+  .sample.brand{background:#0B57CE;color:#fff;}
+  .sample.status{background:#FAF0D2;color:#6A560A;}
+  .sample.overlay{background:rgba(15,33,57,.12);color:#122039;backdrop-filter:blur(6px);}
+  .role-main{padding:12px 0;}
+  .role-main h3{margin:0 0 5px;font-size:13px;}
+  .role-main p{margin:0;color:var(--muted);font-size:11.5px;line-height:1.45;}
+  .rules{padding:12px 12px 12px 0;display:flex;align-items:flex-start;gap:6px;flex-wrap:wrap;}
+  .tag{display:inline-flex;border-radius:999px;padding:4px 8px;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;background:#EEF2F6;color:#566A83;}
+  .tag.yes{background:#E3F1FF;color:#0036AC;}
+  .tag.calm{background:#E0F7E4;color:#115629;}
+  .tag.warn{background:#FAF0D2;color:#6A560A;}
+  .matrix{display:grid;grid-template-columns:1.2fr repeat(4,.8fr);border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+  .matrix div{padding:10px 12px;border-top:1px solid var(--line);border-left:1px solid var(--line);font-size:11px;line-height:1.35;}
+  .matrix div:nth-child(-n+5){border-top:0;background:#FAFBFC;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);}
+  .matrix div:nth-child(5n+1){border-left:0;font-weight:700;color:var(--ink);}
+  .ok{color:#115629;font-weight:800;}
+  .maybe{color:#6A560A;font-weight:800;}
+  .no{color:#94A3B8;font-weight:800;}
+  .audit{display:grid;grid-template-columns:160px 1fr 128px;gap:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+  .audit div{padding:10px 12px;border-top:1px solid var(--line);border-left:1px solid var(--line);font-size:11px;line-height:1.45;}
+  .audit div:nth-child(-n+3){border-top:0;background:#FAFBFC;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);}
+  .audit div:nth-child(3n+1){border-left:0;font-family:monospace;color:#0F2139;}
+  .questions{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+  .q{border:1px dashed #CBD5E1;border-radius:12px;background:#FAFBFC;padding:12px;color:var(--muted);font-size:11.5px;line-height:1.45;}
+  .q b{display:block;color:var(--ink);margin-bottom:4px;}
+  .translation{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .translation-item{border:1px solid var(--line);border-radius:14px;background:#FAFBFC;padding:12px;font-size:11px;line-height:1.45;color:var(--muted);}
+  .translation-item b{display:block;margin-bottom:5px;color:var(--ink);font-size:12px;}
+  .token-grid{display:grid;grid-template-columns:178px .9fr 1.2fr 1.2fr;border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+  .token-grid>div{padding:10px 12px;border-top:1px solid var(--line);border-left:1px solid var(--line);font-size:10.5px;line-height:1.45;}
+  .token-grid>div:nth-child(-n+4){border-top:0;background:#FAFBFC;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);}
+  .token-grid>div:nth-child(4n+1){border-left:0;font-family:var(--font-sans);color:#0F2139;padding:8px;}
+  .token-grid>div:first-child{padding:10px 12px;}
+  .token-grid b{display:block;margin-bottom:3px;font-family:var(--font-sans);font-size:11px;color:var(--ink);}
+  .route-copy{color:var(--muted);}
+  .surface-chip{min-height:84px;border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 18px 45px rgba(15,33,57,.06);overflow:hidden;}
+  .surface-chip b{display:block;margin:0;font-family:monospace;font-size:9px;line-height:1.25;color:inherit;word-break:break-word;}
+  .surface-chip span{color:inherit;}
+  .mini{display:inline-flex;align-self:flex-start;border-radius:999px;padding:4px 7px;font-size:8.5px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;}
+  .surface-chip.canvas{background:linear-gradient(to bottom right,#F8FAFC,#F3F7FC);color:#0F2139;box-shadow:none;}
+  .surface-chip.standard{background:#fff;color:#122039;border-color:rgba(213,220,232,.78);}
+  .surface-chip.work{background:#fff;color:#122039;background-image:linear-gradient(#EEF1F5 1px,transparent 1px);background-size:100% 24px;box-shadow:0 1px 2px rgba(15,33,57,.04);}
+  .surface-chip.focus{background:linear-gradient(to bottom right,#F7FBFF,#EAF3FF);color:#0036AC;border-color:rgba(11,87,206,.18);}
+  .surface-chip.insight{background:linear-gradient(to bottom right,#FFEBDD,#FFF8F3);color:#9A3E0A;border-color:rgba(232,116,46,.22);}
+  .surface-chip.coach{background:linear-gradient(to bottom right,#F8FAFC,#EEF5FF);color:#0B57CE;border-color:rgba(11,87,206,.16);}
+  .surface-chip.action{position:relative;background:linear-gradient(to bottom right,#FFFFFF,#EAF3FF);color:#0B57CE;border-color:rgba(11,87,206,.18);box-shadow:0 12px 28px rgba(15,33,57,.08);}
+  .surface-chip.action::before{content:"";position:absolute;top:9px;right:9px;width:26px;height:26px;border-radius:999px;background:linear-gradient(to bottom right,#E3F1FF,#FFFFFF);box-shadow:0 0 0 4px rgba(255,255,255,.72);}
+  .surface-chip.action::after{content:"";position:absolute;top:17px;right:17px;width:10px;height:10px;border-radius:999px;background:#0B57CE;}
+  .surface-chip.brand{background:linear-gradient(to bottom right,#0036AC,#0B57CE);color:#fff;border-color:rgba(0,54,172,.42);}
+  .surface-chip.status{background:linear-gradient(to bottom right,hsl(45 80% 90%),hsl(130 59% 92%));color:#3D3B0B;border-color:rgba(226,185,38,.34);}
+  .surface-chip.overlay{background:rgba(255,255,255,.74);color:#122039;border-color:rgba(255,255,255,.72);box-shadow:0 24px 60px rgba(15,33,57,.18);backdrop-filter:blur(18px);}
+  .surface-chip.canvas .mini,.surface-chip.standard .mini,.surface-chip.work .mini{background:#EEF2F6;color:#566A83;}
+  .surface-chip.focus .mini,.surface-chip.coach .mini{background:#E3F1FF;color:#0036AC;}
+  .surface-chip.insight .mini{background:rgba(255,255,255,.68);color:#9A3E0A;}
+  .surface-chip.action .mini{background:#E3F1FF;color:#0036AC;}
+  .surface-chip.brand .mini{background:rgba(255,255,255,.18);color:#fff;}
+  .surface-chip.status .mini{background:rgba(255,255,255,.55);color:#6A560A;}
+  .surface-chip.overlay .mini{background:rgba(255,255,255,.72);color:#566A83;}
+</style>
+</head>
+<body>
+<main class="sheet">
+  <p class="eyebrow">Foundations · Color · Surface worksheet</p>
+  <h1>Define the surface system before revamping classes</h1>
+  <p class="lede">This worksheet starts from the product we want, not the classes we inherited. Existing classes are evidence to reconcile after the desired route contexts, surface roles, and interaction rules are clear.</p>
+
+  <section class="section">
+    <h2>Route Contexts</h2>
+    <p class="note">Each context can share primitives, but it should not share the same surface mix. A protected recruiter workspace and a candidate coaching dashboard should feel related, not identical.</p>
+    <div class="contexts">
+      <div class="context"><b>Public marketing</b><span>Current public routes are root and /recruiter. One landing page may funnel candidates and clients to the right host-platform destination.</span></div>
+      <div class="context"><b>Recruiter protected</b><span>Dense, operational, repeatable. Optimized for scanning and action.</span></div>
+      <div class="context"><b>Candidate protected</b><span>Self-regulated learning mediated by feedforward and feedback indicators.</span></div>
+      <div class="context"><b>Session mode</b><span>Shared candidate experience across recruiter and candidate apps; focused, low-distraction, answer-first.</span></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Reference Translation</h2>
+    <p class="note">Use external UI references as craft cues, not as palette or layout sources. The useful pattern is confidence: compact controls, careful spacing, distinct surface moods, and widgets that earn their chrome.</p>
+    <div class="translation">
+      <div class="translation-item"><b>Compact launchers</b>Coach update and next practice round can open from header/avatar-style controls. The opened panel is the larger surface; the launcher can stay small.</div>
+      <div class="translation-item"><b>Intermediate canvas</b>The canvas can sit between light and rich surfaces, giving panels room to be either brighter or calmer than the page field.</div>
+      <div class="translation-item"><b>Targeted glass</b>Keep glass for overlays, sticky controls, docked launchers, and temporary focus. Avoid making it the default material.</div>
+      <div class="translation-item"><b>Mood budget</b>Palette saturation changes the product mood. Candidate dashboard defaults understated; milestone, action, or marketing moments can be livelier.</div>
+      <div class="translation-item"><b>Widget cards</b>Dashboard cards may carry internal indicators: status pills, progress rings, category chips, mini charts, or current-plan badges.</div>
+      <div class="translation-item"><b>Learning views</b>Question set, category, skill, feedback, and practice guidance should read as one learning system, not unrelated card types.</div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Future Surface Roles</h2>
+    <div class="roles">
+      <div class="role"><div class="sample canvas">Canvas</div><div class="role-main"><h3>Page canvas</h3><p>Route background and mood setter. Carries slight value, not pure white; likely a barely perceptible cool to-br gradient for depth.</p></div><div class="rules"><span class="tag yes">all routes</span><span class="tag">cool bias</span><span class="tag">gradient</span></div></div>
+      <div class="role"><div class="sample surface">Surface</div><div class="role-main"><h3>Standard surface</h3><p>Default card, panel, or widget shell for grouped content. Most app surfaces should start here.</p></div><div class="rules"><span class="tag yes">protected</span><span class="tag">no nesting</span></div></div>
+      <div class="role"><div class="sample work">Work</div><div class="role-main"><h3>Work surface</h3><p>Forms, tables, filters, QA review, and admin controls. Quiet, dense, and predictable.</p></div><div class="rules"><span class="tag yes">recruiter</span><span class="tag">forms</span><span class="tag">data</span></div></div>
+      <div class="role"><div class="sample focus">Focus</div><div class="role-main"><h3>Focus surface</h3><p>Prompt, answer, recording, and active session space. Shared session experience between apps with reduced competing visual signals.</p></div><div class="rules"><span class="tag yes">session</span><span class="tag calm">candidate</span><span class="tag">shared exp</span></div></div>
+      <div class="role"><div class="sample insight">Insight</div><div class="role-main"><h3>Insight surface</h3><p>Preparedness map, chart clusters, summaries, and comparison surfaces.</p></div><div class="rules"><span class="tag calm">candidate</span><span class="tag">charts</span></div></div>
+      <div class="role"><div class="sample coach">Coach</div><div class="role-main"><h3>Coach surface</h3><p>Feedback, guidance, what-I-noticed content, and next-practice recommendations.</p></div><div class="rules"><span class="tag calm">candidate</span><span class="tag">voice-led</span></div></div>
+      <div class="role"><div class="sample action">Action</div><div class="role-main"><h3>Coach update launcher</h3><p>Compact avatar-style control for coach update or next practice. The control opens a larger coach, widget, sheet, or overlay surface.</p></div><div class="rules"><span class="tag calm">candidate</span><span class="tag yes">launcher</span></div></div>
+      <div class="role"><div class="sample brand">Brand</div><div class="role-main"><h3>Brand surface</h3><p>Product identity, public CTA, and major entry moments. Brand tint may appear in protected workflows when it serves the design.</p></div><div class="rules"><span class="tag yes">marketing</span><span class="tag">protected ok</span></div></div>
+      <div class="role"><div class="sample status">Status</div><div class="role-main"><h3>Status surface</h3><p>Semantic feedback, warnings, success confirmations, and system notices. Always label plus color.</p></div><div class="rules"><span class="tag warn">semantic</span><span class="tag">labeled</span></div></div>
+      <div class="role"><div class="sample overlay">Overlay</div><div class="role-main"><h3>Overlay surface</h3><p>Modals, scrims, popovers, sticky headers, mobile dock, glass treatment, and temporary focus layers.</p></div><div class="rules"><span class="tag yes">all routes</span><span class="tag">temporary</span><span class="tag">not surface</span></div></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Light Surface Token Draft</h2>
+    <p class="note">First-pass role tokens only. These names should drive future implementation after the worksheet is accepted; they are not yet global runtime tokens.</p>
+    <div class="token-grid">
+      <div>Specimen token</div><div>Purpose + routes</div><div>Material recipe</div><div>Text + interaction</div>
+      <div><div class="surface-chip canvas"><b>--surface-canvas</b><span class="mini">route</span></div></div><div><b>Page canvas</b><span class="route-copy">All routes. Establishes page temperature and density.</span></div><div>Background: #F8FAFC to #F3F7FC, cool to-br gradient. Border: none. Elevation: none.</div><div>Ink: #0F2139, muted #566A83. No hover state; route-level only.</div>
+      <div><div class="surface-chip standard"><b>--surface-standard</b><span class="mini">panel</span></div></div><div><b>Standard surface</b><span class="route-copy">Protected app content, grouped panels, default cards, widget shells.</span></div><div>Background: #FFFFFF. Border: rgb(213 220 232 / .78). Elevation: diffuse card shadow.</div><div>Default body contrast. Hover may raise one tier only when clickable.</div>
+      <div><div class="surface-chip work"><b>--surface-work</b><span class="mini">dense</span></div></div><div><b>Work surface</b><span class="route-copy">Recruiter admin, QA, forms, tables, filters, setup flows.</span></div><div>Background: #FFFFFF with subtle structural rules. Border: same neutral hairline. Elevation: flat to raised-1.</div><div>Dense slate text, restrained focus rings. Interaction favors clarity over flourish.</div>
+      <div><div class="surface-chip focus"><b>--surface-focus</b><span class="mini">session</span></div></div><div><b>Focus surface</b><span class="route-copy">Shared session experience, prompts, answers, recording.</span></div><div>Background: #F7FBFF to #EAF3FF. Border: rgb(11 87 206 / .18). Elevation: soft, stable.</div><div>Prompt text stays high contrast. Active session states should not jump or lift.</div>
+      <div><div class="surface-chip insight"><b>--surface-insight</b><span class="mini">chart</span></div></div><div><b>Insight surface</b><span class="route-copy">Preparedness map, charts, comparisons, proof moments.</span></div><div>Background: #FFEBDD to #FFF8F3, dark-light to-br orange gradient. Border: rgb(232 116 46 / .22). Elevation: soft card.</div><div>Chart color carries meaning; orange panel chrome supports interpretation, not warning.</div>
+      <div><div class="surface-chip coach"><b>--surface-coach</b><span class="mini">voice</span></div></div><div><b>Coach surface</b><span class="route-copy">Feedback, what-I-noticed, guidance, next practice.</span></div><div>Background: #F8FAFC to #EEF5FF. Border: rgb(11 87 206 / .16). Elevation: soft card.</div><div>Voice-led copy. Interactions should feel inviting, with gentle emphasis.</div>
+      <div><div class="surface-chip action"><b>--surface-coach-action</b><span class="mini">open</span></div></div><div><b>Coach update launcher</b><span class="route-copy">Candidate dashboard header control for coach update and next practice entry.</span></div><div>Background: #FFFFFF to #EAF3FF with avatar or icon badge. Border: rgb(11 87 206 / .18). Elevation: raised-1.</div><div>Small target, high trust. Hover can ring or brighten; opened content uses coach, widget, sheet, or overlay roles.</div>
+      <div><div class="surface-chip brand"><b>--surface-brand</b><span class="mini">CTA</span></div></div><div><b>Brand surface</b><span class="route-copy">Public marketing, CTAs, major entry points, purposeful protected emphasis.</span></div><div>Background: #0036AC to #0B57CE or solid brand blue. Border: deep blue / .42. Elevation: brand glow only for CTA surfaces.</div><div>Inverse text. Interaction should be decisive; never used as passive decoration.</div>
+      <div><div class="surface-chip status"><b>--surface-status</b><span class="mini">labeled</span></div></div><div><b>Status surface</b><span class="route-copy">Semantic feedback, success, warning, info, critical notices.</span></div><div>Background resolves to state soft tint. Border: state color / .25. Elevation: flat.</div><div>Always label plus color. Interaction is dismiss, confirm, or learn more, never color alone.</div>
+      <div><div class="surface-chip overlay"><b>--surface-overlay</b><span class="mini">modal</span></div></div><div><b>Overlay treatment</b><span class="route-copy">Modals, sheets, popovers, sticky headers, glass layers.</span></div><div>Background: white / .72 plus blur. Border: white / .72 or neutral hairline. Elevation: floating.</div><div>Text follows parent surface. Interaction manages focus, dismissal, and temporary priority.</div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Route Permission Matrix</h2>
+    <div class="matrix">
+      <div>Surface role</div><div>Public</div><div>Recruiter</div><div>Candidate</div><div>Session</div>
+      <div>Brand</div><div class="ok">Primary</div><div class="maybe">Purposeful</div><div class="maybe">Purposeful</div><div class="no">No</div>
+      <div>Work</div><div class="no">No</div><div class="ok">Primary</div><div class="maybe">Setup</div><div class="no">No</div>
+      <div>Focus</div><div class="no">No</div><div class="maybe">Review</div><div class="maybe">Setup</div><div class="ok">Shared exp</div>
+      <div>Insight</div><div class="maybe">Proof</div><div class="maybe">Metrics</div><div class="ok">Primary</div><div class="maybe">Feedback</div>
+      <div>Coach</div><div class="maybe">Value prop</div><div class="no">No</div><div class="ok">Primary</div><div class="ok">Feedback</div>
+      <div>Coach / next-round launcher</div><div class="no">No</div><div class="no">No</div><div class="ok">Primary</div><div class="maybe">Next step</div>
+      <div>Status</div><div class="maybe">Trust cues</div><div class="ok">System</div><div class="ok">System</div><div class="ok">System</div>
+      <div>Overlay</div><div class="ok">Modal</div><div class="ok">Modal</div><div class="ok">Modal</div><div class="ok">Sheet</div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Surface Class Revamp</h2>
+    <p class="note">Define the roles first, then revamp the surface classes from that. Existing classes are remediation material, not the taxonomy.</p>
+    <div class="audit">
+      <div>Current material</div><div>Role decision</div><div>Revamp action</div>
+      <div>.surface-base</div><div>Standard surface or candidate card surface.</div><div>Rename / simplify</div>
+      <div>.surface-elevated</div><div>Potential overlay or hero emphasis, not a default card.</div><div>Question</div>
+      <div>.surface-blue</div><div>Brand surface for public or protected moments when the tint serves the design.</div><div>Constrain by role</div>
+      <div>.surface-orange</div><div>Accent warmth only if assigned; not default status or action.</div><div>Question</div>
+      <div>.surface-sky</div><div>Focus, coach, or insight wash.</div><div>Question</div>
+      <div>.glass-card</div><div>Overlay treatment only; glass is not a true content surface.</div><div>Move under overlay</div>
+      <div>.glass-overlay</div><div>Overlay surface for temporary layers.</div><div>Keep narrow</div>
+      <div>semantic washes</div><div>Status surface.</div><div>Standardize</div>
+      <div>hardcoded white panels</div><div>Standard, work, or insight surface.</div><div>Replace</div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Decision Notes</h2>
+    <div class="questions">
+      <div class="q"><b>Marketing latitude</b>Root and /recruiter are the current public routes. If preserved, one landing page should use CTAs to direct current and potential candidates or clients to the right host-platform destination.</div>
+      <div class="q"><b>Candidate dashboard range</b>Take no cues from current UI. Open coach update and next practice from compact launchers; let the opened content use coach, insight, widget, sheet, or overlay surfaces.</div>
+      <div class="q"><b>Widget boundary</b>Widget cards can own internal indicators such as status pills, progress rings, chips, or mini charts without becoming new surface roles.</div>
+      <div class="q"><b>Canvas inheritance</b>Canvas can be an intermediate value so surfaces may sit lighter or richer than the page field; decide when a role may introduce its own canvas-level treatment.</div>
+      <div class="q"><b>Glass boundary</b>Glass is targeted overlay/control material, not a true system surface or default card material.</div>
+      <div class="q"><b>Brand tint boundary</b>Brand tint can appear inside protected surfaces when it serves the design.</div>
+      <div class="q"><b>Nesting rule</b>Open exploration. No firm rule yet; decide from real layouts rather than inherited card structure.</div>
+      <div class="q"><b>Dark theme readiness</b>All surface roles need direct dark counterparts before implementation.</div>
+    </div>
+  </section>
+</main>
+</body>
+</html>
