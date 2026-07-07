@@ -5,10 +5,8 @@ import CandidateSetupPage from "./page";
 it("renders the candidate setup inputs with required markers", () => {
     render(<CandidateSetupPage />);
 
-    expect(
-        screen.getByRole("heading", { name: "Tell me what interview you are preparing for." }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Practice setup")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Practice setup" })).toBeInTheDocument();
+    expect(screen.getByText(/Tell me what interview you are preparing for\. After setup/i)).toBeInTheDocument();
     expect(screen.queryByText(/Start with the role and job description/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText("Target role *")).toBeRequired();
     expect(screen.getByLabelText("Job description *")).toBeRequired();

@@ -2,11 +2,9 @@
 
 import {
     ArrowRight,
-    Briefcase,
     Camera,
     CheckCircle2,
     FileText,
-    ListChecks,
     Loader2,
     Upload,
     User,
@@ -105,8 +103,7 @@ export function CandidateSetupExperience() {
         <main className="candidate-design-system setup-page">
             <section className="setup-hero app-grid">
                 <div className="setup-hero__copy">
-                    <p className="type-eyebrow setup-eyebrow">Practice setup</p>
-                    <h1>Tell me what interview you are preparing for.</h1>
+                    <h1 className="setup-page-title">Practice setup</h1>
                 </div>
 
                 <aside className="setup-progress-card" aria-label="Setup progress">
@@ -115,7 +112,8 @@ export function CandidateSetupExperience() {
                     </div>
                     <div>
                         <p>
-                            After setup, I will prepare your first round and guide what to practice after you finish it.
+                            Tell me what interview you are preparing for. After setup, I will prepare your first round and
+                            guide what to practice after you finish it.
                         </p>
                     </div>
                 </aside>
@@ -125,9 +123,6 @@ export function CandidateSetupExperience() {
                 <div className="setup-form__main">
                     <section className="setup-panel" aria-labelledby="role-context-label">
                         <div className="setup-section-header">
-                            <div className="setup-section-header__icon" aria-hidden="true">
-                                <Briefcase size={18} />
-                            </div>
                             <div>
                                 <p className="type-eyebrow" id="role-context-label">
                                     Role
@@ -163,14 +158,11 @@ export function CandidateSetupExperience() {
 
                     <section className="setup-panel" aria-labelledby="resume-context-label">
                         <div className="setup-section-header">
-                            <div className="setup-section-header__icon" aria-hidden="true">
-                                <FileText size={18} />
-                            </div>
                             <div>
                                 <p className="type-eyebrow" id="resume-context-label">
                                     Resume
+                                    <span className="setup-eyebrow-note">Optional</span>
                                 </p>
-                                <p>Optional</p>
                             </div>
                         </div>
 
@@ -227,9 +219,6 @@ export function CandidateSetupExperience() {
 
                     <section className="setup-panel" aria-labelledby="practice-details-label">
                         <div className="setup-section-header">
-                            <div className="setup-section-header__icon" aria-hidden="true">
-                                <ListChecks size={18} />
-                            </div>
                             <div>
                                 <p className="type-eyebrow" id="practice-details-label">
                                     Interview details

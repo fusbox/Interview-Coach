@@ -524,19 +524,14 @@ select {
     max-width: 45rem;
 }
 
-.setup-eyebrow {
-    margin: 0;
-    color: rgb(var(--candidate-primary));
-}
-
-.setup-hero h1 {
+.setup-page-title {
     margin: 0;
     color: rgb(var(--candidate-display-foreground));
     font-family: var(--font-display);
-    font-size: 2.35rem;
+    font-size: 1.75rem;
     font-weight: 700;
     letter-spacing: 0;
-    line-height: 1.02;
+    line-height: 1.12;
 }
 
 .setup-hero__copy > p:not(.setup-eyebrow) {
@@ -560,7 +555,7 @@ select {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
     gap: var(--space-4);
-    align-items: start;
+    align-items: center;
     border-color: transparent;
     border-left: 4px solid rgb(var(--candidate-primary));
     background: rgb(255 255 255 / 0.96);
@@ -610,6 +605,7 @@ select {
     margin: 0;
     color: rgb(var(--candidate-foreground));
     font-size: var(--type-body-md-size);
+    font-weight: 600;
     line-height: var(--type-body-md-line);
 }
 
@@ -618,6 +614,17 @@ select {
 .setup-rail__card .type-eyebrow {
     margin: 0;
     color: rgb(var(--candidate-muted));
+}
+
+.setup-eyebrow-note {
+    margin-left: var(--space-2);
+    color: rgb(var(--candidate-muted));
+    font-size: var(--type-label-size);
+    font-style: italic;
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0;
+    line-height: var(--type-label-line);
+    text-transform: none;
 }
 
 .setup-form {
@@ -639,7 +646,7 @@ select {
 
 .setup-section-header {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-4);
     align-items: start;
 }
@@ -660,6 +667,11 @@ select {
     font-size: var(--type-label-size);
     font-weight: 700;
     line-height: var(--type-label-line);
+}
+
+.setup-fieldset legend {
+    margin: 0 0 var(--space-2);
+    padding: 0;
 }
 
 .setup-field input,
@@ -848,8 +860,8 @@ select {
     align-items: center;
     justify-content: center;
     border-radius: var(--radius-icon-capsule);
-    background: rgb(var(--candidate-primary));
-    color: white;
+    background: white;
+    color: rgb(var(--candidate-primary));
 }
 
 .setup-rail__card dl {
@@ -946,8 +958,8 @@ select {
 }
 
 @media (min-width: 720px) {
-    .setup-hero h1 {
-        font-size: 3rem;
+    .setup-page-title {
+        font-size: 2rem;
     }
 
     .resume-source-grid {
