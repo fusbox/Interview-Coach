@@ -111,7 +111,7 @@ select {
     display: inline-block;
     margin: 0;
     max-width: 100%;
-    background: linear-gradient(90deg, rgb(var(--candidate-primary)) 0%, rgb(var(--candidate-accent)) 58%, rgb(var(--candidate-foreground)) 100%);
+    background: linear-gradient(90deg, rgb(var(--candidate-primary)) 0%, rgb(var(--candidate-primary)) 42%, #17A079 100%);
     background-clip: text;
     color: transparent;
     font-family: var(--font-display);
@@ -242,7 +242,7 @@ select {
 }
 
 .section-heading--split {
-    align-items: end;
+    align-items: center;
 }
 
 .section-heading .section-title,
@@ -644,6 +644,7 @@ select {
     .gateway-hero__inner {
         grid-template-columns: minmax(0, 1.3fr) minmax(18rem, 0.7fr);
         gap: var(--space-16);
+        align-items: center;
     }
 
     .gateway-title {
