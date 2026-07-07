@@ -117,23 +117,23 @@ Last updated: 2026-07-07
 - QSO-S23 / Azure 821 is implemented locally and ready for validation.
 - Preview Irma seed data now includes a durable Client Services Representative first-interview fixture: 3 practiced voice answers against a 7-question rigor baseline, an aggregate emerging read, one remediation target, and remaining unpracticed coverage questions. This promotes the locally validated scenario into `db/seeds/002_candidate_preview_irma_seed.sql` and `db/validation/007_candidate_preview_irma_seed_smoke.sql`.
 - QSO-S24 import file is ready for the preview seed scenario slice.
-- ADR-0009 now accepts a parallel V2 rebuild strategy: candidate V2 should prove `/practice2`, `/session2/[sessionId]`, and `/dashboard2` as a clean vertical while old routes remain available. The rebuild may use `.untracked/design-system` as a reference pack, but production tokens/assets/components must be promoted into tracked source before V2 routes become release candidates. See [Parallel V2 Rebuild Implementation Plan](../superpowers/plans/2026-07-06-parallel-v2-rebuild.md).
+- ADR-0009 now accepts a clean V2 rebuild strategy: candidate V2 should prove `/candidate/setup`, `/candidate/session/[sessionId]`, and `/candidate/dashboard` as the canonical vertical while temporary `*2` paths remain compatibility redirects only. The rebuild may use `.untracked/interview-coach-refactor-agent-reference-pack` and tracked `design-system/` files as reference sources, but production tokens/assets/components must live in tracked source before V2 routes become release candidates. See [Parallel V2 Rebuild Implementation Plan](../superpowers/plans/2026-07-06-parallel-v2-rebuild.md).
 - Session GET/PATCH now delegates to the shared `authorizeCandidateSessionRequest` guard, so invite-token access and authenticated candidate-owned access share the same session authorization boundary before session read/update commands run.
 
 ## Current State And Context
 
 The current dashboard is useful as a visual shell and read-model proof, but it is not yet the final interview-preparedness product.
 
-The active direction is now a parallel V2 rebuild rather than further in-place dashboard polishing. Existing candidate dashboard work remains valuable as product evidence and regression reference, but the next durable candidate implementation should prove the clean V2 vertical on twin routes before cutover.
+The active direction is now a clean V2 rebuild rather than further in-place dashboard polishing. Existing candidate dashboard work remains valuable as product evidence and regression reference, but the next durable candidate implementation should prove the clean V2 vertical on canonical `/candidate/*` routes before cutover.
 
-- Candidate V2 may use `.untracked/design-system` as a reference pack during early implementation, but any production dependency on tokens, assets, or component behavior must be promoted into tracked source before V2 routes are release candidates. The first tracked V2 bridge now lives at `src/features/candidate-v2/design-system` and centralizes the shell classes, candidate tokens, and preparedness-state vocabulary used by the `/practice2`, `/session2/[sessionId]`, and `/dashboard2` placeholders.
+- Candidate V2 may use `.untracked/interview-coach-refactor-agent-reference-pack` and tracked `design-system/` files as reference sources during early implementation, but any production dependency on tokens, assets, or component behavior must be promoted into tracked source before V2 routes are release candidates. The first tracked V2 bridge now lives at `src/features/candidate-v2/design-system` and centralizes the shell classes, candidate tokens, and preparedness-state vocabulary used by the canonical `/candidate/*` placeholders.
 - The V2 branch is now cleanroom-first: tracked `src` app implementation code has been reduced to a minimal Next scaffold, and prior app behavior should be reintroduced only when the active numbered slice requires it.
 - New host-platform access context exists for later candidate work: already logged-in host-platform candidates are expected to reach Interview Coach through a verified-token redirect identity approach. Nothing is implemented for that access model yet, and it should not affect recruiter routes.
 
 Known current behavior:
 
 - Dashboard target-interview scoping is a first pass based on unfinished-session priority, explicit target-role selection, and target role title.
-- The current `feature/candidate-module` app does not yet route candidate-app users who finish a session back to the dashboard. The V2 completion-behavior slice should treat finished-session dashboard return as an explicit candidate-owned requirement, not inherited legacy behavior.
+- The current `feature/candidate-module` app does not yet route candidate-app users who finish a session back to the dashboard. The V2 route-contract slice now treats finished-session dashboard return as an explicit candidate-owned requirement by defaulting candidate-owned completion to `/candidate/dashboard`.
 - Coach Plan fixed framing is present as a compact orientation card above the current Preparedness Map transition surface. It includes the rounded gauge preparedness target derived from already-loaded selected-target items and `PracticeCoverageBaseline`; no new persistence was added in this slice.
 - Coach Plan Category face is present as a compact category selector below fixed framing. It reuses the selected target interview category model and opens a separate teaching-first sheet, leaving the older evidence-first category drilldown available from Quick View/Details during transition.
 - Coach Plan Skills face is present as a compact three-lane selector below the Category face. It uses only the parent lanes as tap/click targets and opens a separate teaching-first lane sheet with all child dimensions visible at once. The older evidence-first `SkillDrilldown` remains available from Quick View/Details during transition.
@@ -163,7 +163,7 @@ Known current behavior:
 
 Accepted next dashboard direction:
 
-- `/dashboard` should become a familiar Coach Plan home base with very visible post-practice Coach Update UI when applicable.
+- `/candidate/dashboard` should become a familiar Coach Plan home base with very visible post-practice Coach Update UI when applicable.
 - Coach Plan fixed framing carries target role, stage, baseline count, brief role/JD/stage rationale, preparedness target, and compact movement/progress microcopy.
 - The preparedness target shows baseline coverage (`X/Y practiced`), aggregate current prep state from practiced baseline questions, and repeat-practice movement indicators such as improved/watch counts. Repeat practice does not increase coverage.
 - The intended preparedness target visual is a simple rounded gauge: filled proportion reflects recommended baseline questions practiced at least once, fill color uses the aggregate qualitative prep-state color, and center copy shows the qualitative state plus `X/Y practiced`.
@@ -178,7 +178,7 @@ Accepted next dashboard direction:
 - Category and Skills faces should become reference/pivot presentations rather than competing feedback destinations. Category activation can filter to category-relevant questions and feedback; Skills activation can show the question set through a lane lens, with lane-specific feedback or targeted answer-shape guidance.
 - Practice Next may present a primary pair when both remediation and new coverage matter. Remediation has priority over new coverage when all else is equal.
 - Dashboard practice actions should funnel to doing another practice. Question-level surfaces should offer `Practice this now` for a one-question session and `Add this to my next round` / checked `Added` for queueing.
-- Replace the current long visible Practice Next list with a queued next-round interaction. Current direction: `/dashboard` removes the candidate sidebar/mobile dock to widen content, keeps `Next practice round` as the only persistent primary action, and moves new-role practice creation into the prep-context switcher footer as `Prep for a new role`.
+- Replace the current long visible Practice Next list with a queued next-round interaction. Current direction: `/candidate/dashboard` removes the candidate sidebar/mobile dock to widen content, keeps `Next practice round` as the only persistent primary action, and moves new-role practice creation into the prep-context switcher footer as `Prep for a new role`.
 - When the next-round queue is empty, clicking `Next practice round` should direct attention to the Question Set surface. When it has queued items, it should smoothly morph/expand into a responsive surface showing each queued question with Q#, question text, category chip, aggregate prep-state chip, lane prep-state chips, Start practice, Cancel, per-item delete, and clear-all.
 - Queue clear/delete actions should use styled confirmation. If removing items empties the queue, the expanded queue surface closes and the button returns to calm state. The same button/surface/transition pattern should adapt across desktop and mobile.
 - The current matrix survives as redundant transition/detail UI until the Coach Plan surfaces are ready to retire it. Do not spend additional matrix polish unless it supports migration or validation.
@@ -189,7 +189,7 @@ Active docs now use this lighter stack:
 - [DATA_CONTRACT](./DATA_CONTRACT.md) for system primitives and naming.
 - [HANDOFF](./HANDOFF.md) for this active execution snapshot.
 - [Decision Records](./08-decisions/README.md) for durable why-decisions.
-- [ADR-0009 Parallel V2 Rebuild](./08-decisions/ADR-0009-parallel-v2-rebuild.md) for the accepted twin-route rebuild strategy.
+- [ADR-0009 Parallel V2 Rebuild](./08-decisions/ADR-0009-parallel-v2-rebuild.md) for the accepted clean-rebuild strategy and temporary compatibility-route decision.
 - [Parallel V2 Rebuild Implementation Plan](../superpowers/plans/2026-07-06-parallel-v2-rebuild.md) for the first task sequence.
 - [Candidate Host Integration Chat 2026-07-06](./integration-chat-7-6-2026.md) for new context on host-platform verified-token redirect access and identity. This applies to candidate app access only and has no recruiter-app effect.
 - [Platform Launch PrepProfile Migration](./04-architecture/platform-launch-prepprofile-migration.md) for future host-platform schema integration.
@@ -206,7 +206,7 @@ Implement the parallel V2 rebuild in small, validated slices.
 
 Recommended next implementation slice:
 
-16. Continue the greenfield V2 UI rebuild by selecting the next candidate-owned surface to bring back from reference code. Before implementation, name the old surface or helper being superseded, confirm whether it is `keep as transition`, `remove now`, or `mark for retirement`, and use the tracked `design-system/` source directly so missing primitives remain visible rather than hidden behind local duplicates.
+17. Rebuild the candidate practice setup surface on `/candidate/setup`, using the v1 `/practice` route only as a reference implementation. Classify the old setup UI as `mark for retirement`, keep the temporary `/practice2` compatibility redirect in place until external links and tests stop using it, and use the tracked `design-system/` source directly so missing setup primitives remain visible rather than hidden behind local duplicates.
 
 
 Completed slices:
@@ -229,6 +229,7 @@ Completed slices:
 13. Completed after cleanroom reset: bring the full `.untracked/design-system` file set into tracked `design-system/` as the canonical design-system source for the V2 rebuild. This preserves tokens, guidelines, explorations, assets, component references, and candidate UI kit files without creating a second translated copy under `src`.
 14. Completed after cleanroom reset: rebuild the public root page using the tracked design-system source and recursive browser review. The page now imports `design-system/styles.css` instead of carrying a local token clone, removes the unclear hero flow/card metaphor and tree-like visual direction, keeps the hero title on one line at desktop, presents job-seeker and employer routing as audience choices, uses audience-oriented CTA labels without exposing destination brands, centers the product explanation on coaching instead of scoring, flexible practice, interview-question know-how, and many-job-types support, and tightens footer/legal presentation including the TalentArbor/Rangam lockup.
 15. Completed after cleanroom reset: tune the public root page design and copy after screenshot review. The page now uses the updated audience/product eyebrows, stage-guided flexible-practice copy, a promoted product explanation callout, equal-footprint proof cards with the many-job-types card set apart in soft green, a differentiated hero title, normalized eyebrow-to-heading spacing, non-wrapping desktop closing CTA copy, and lighter `A product of` footer text.
+16. Completed after cleanroom reset: promote the durable route contract from temporary `*2` paths to canonical actor namespaces. Candidate-owned setup, session, and dashboard shells now live at `/candidate/setup`, `/candidate/session/[sessionId]`, and `/candidate/dashboard`; `/candidate` redirects to the candidate dashboard; `/practice2`, `/session2/[sessionId]`, and `/dashboard2` are compatibility redirects only; candidate-owned session completion now resolves to `/candidate/dashboard`; SPEC, ADR-0009, shared-host routing, login redirect, and candidate tests use the new route contract.
 
 ---
 
@@ -244,6 +245,7 @@ Deprecation check for each dashboard refactor slice:
 
 - Same-title/different-JD prep profiles are not distinguishable in the dashboard until a profile switcher or stricter profile selector lands.
 - Historical candidate implementation tests are not available on the cleanroom V2 branch until their owning code is intentionally restored. `npm run test:candidate` is temporarily scoped to the scaffold smoke test.
+- `/practice2`, `/session2/[sessionId]`, and `/dashboard2` remain as temporary compatibility redirects. They should be removed once the canonical `/candidate/*` routes have absorbed all internal and external references.
 - Practice Next now exposes active-session pending questions, completed-session planned category gaps, and non-strong matrix cells, but the Coach Plan direction needs paired recommendation rules before it can confidently drive follow-up practice from coverage plus remediation.
 - Dashboard matrix cell state is derived from currently available lane-specific category score states. It remains useful as a transition/detail surface, but the normal candidate experience should migrate toward Coach Plan faces and coaching sheets.
 - The current Quick View pie interactions are functional but no longer the release target. The Coach Plan direction should replace the Quick View/Details trajectory instead of adding more polish to the current two-pie surface.

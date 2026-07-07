@@ -28,7 +28,7 @@ Current candidate helper:
 - `src/lib/server/candidate/candidate-observability.ts` records candidate route counters as `candidate_route_total`
 - route timings are recorded as `candidate_route_duration_ms`
 - both helpers add `actorType=candidate` and `appName=candidate_app`
-- `withCandidateRouteMetrics` wraps candidate route loaders for `/dashboard`, `/practice`, `/session/[sessionId]`, and `/summary/[sessionId]`
+- `withCandidateRouteMetrics` wraps candidate route loaders for `/candidate/dashboard`, `/candidate/setup`, `/candidate/session/[sessionId]`, and `/candidate/summary/[sessionId]`
 - `withCandidateMutationBoundary` applies shared rate-limit backend checks to candidate generation, session progress, answer submit, and retry mutations
 - current candidate server-action mutations are state-idempotent: repeat calls either set the same target state, return the already-submitted answer, or no-op when retry state is already clear
 - candidate protected-route redirects in external auth mode write structured logs with safe fields only: `actorType=candidate`, `actorMode=external`, `route=<path only>`, and `reason=missing_candidate_session`
@@ -41,7 +41,7 @@ Use `actorType: candidate` on candidate logs and include an `appName` or tag val
 | Area | Event / Metric | Why It Matters | Sensitive Data Rule |
 | --- | --- | --- | --- |
 | Auth | auth denial structured logs and server-side `auth_denials_total` tagged `actorType=candidate`, `actorMode`, `route`, `reason` where the runtime supports metrics | Detect broken SSO handoff, callback issues, or route guard loops | Do not log tokens, provider assertions, full callback payloads, query strings, or return-state values |
-| Login return | login-start and callback outcomes | Confirm `/practice` and `/dashboard` returns work after TalentArbor login | Log allowlisted `next` path only |
+| Login return | login-start and callback outcomes | Confirm `/candidate/setup` and `/candidate/dashboard` returns work after TalentArbor login | Log allowlisted `next` path only |
 | Draft lifecycle | draft create/update/submit/generation status counters | Detect stuck drafts and setup friction | Do not log job description, resume text, or intake free text |
 | Resume ingestion | upload accepted, extraction success/failure, retention outcome | Confirm private upload and deletion behavior | Log safe failure code only, never parser output or storage URL |
 | Session lifecycle | session created/started/paused/resumed/completed counters | Track whether candidates can get through the core flow | Do not log answers or generated coaching |
@@ -54,7 +54,7 @@ Use `actorType: candidate` on candidate logs and include an `appName` or tag val
 Before production pilot, the ops view should answer:
 
 - Are candidate auth denials spiking?
-- Are `/practice`, `/dashboard`, `/session`, and `/summary` returning errors?
+- Are `/candidate/setup`, `/candidate/dashboard`, `/candidate/session`, and `/candidate/summary` returning errors?
 - Are draft-to-session transitions succeeding?
 - Are resume extraction failures increasing?
 - Are AI generation failures or latency increasing?
@@ -73,7 +73,7 @@ Initial dashboard sources:
 Use low-noise alerts first:
 
 - candidate auth denial spike over a short window
-- candidate route 5xx spike on `/practice`, `/dashboard`, `/session`, or `/summary`
+- candidate route 5xx spike on `/candidate/setup`, `/candidate/dashboard`, `/candidate/session`, or `/candidate/summary`
 - resume extraction failure spike
 - AI generation error or malformed-response spike
 - durable metrics backend unavailable in production

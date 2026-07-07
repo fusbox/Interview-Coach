@@ -48,7 +48,7 @@ export function createCandidateSessionCompletionLinks(
         summaryBaseHref?: string;
     } = {},
 ): CandidateSessionCompletionLinks {
-    const dashboardHref = options.dashboardHref ?? "/dashboard2";
+    const dashboardHref = options.dashboardHref ?? "/candidate/dashboard";
     const summaryBaseHref = options.summaryBaseHref ?? "/summary2";
 
     return {
@@ -78,7 +78,7 @@ export function createSharedSessionContext(input: {
 export function resolveSessionCompletionTarget(context: SharedSessionContext): SessionCompletionTarget {
     if (context.audience === "candidate_owned") {
         return {
-            href: context.candidateCompletionLinks?.dashboardHref ?? "/dashboard2",
+            href: context.candidateCompletionLinks?.dashboardHref ?? "/candidate/dashboard",
             label: "Finish session",
             target: "candidate_dashboard",
         };

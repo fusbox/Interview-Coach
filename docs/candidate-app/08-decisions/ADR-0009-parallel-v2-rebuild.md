@@ -32,13 +32,15 @@ There is no requirement to preserve historical legacy candidate data in the V2 e
 
 Proceed with a parallel V2 rebuild instead of continuing to polish the existing candidate dashboard and session surfaces in place.
 
-The V2 effort will use twin routes while it proves the new architecture:
+The V2 effort originally planned to use twin `*2` routes while proving the new architecture. After the clean rebuild reset, the durable route contract is the final actor namespace:
 
-- `/practice2` for candidate-owned practice setup;
-- `/session2/[sessionId]` for the rebuilt shared session experience;
-- `/summary2/[sessionId]` only if the existing summary route cannot safely host the V2 completion contract;
-- `/dashboard2` for the rebuilt Coach Plan dashboard;
-- `/recruiter2/*` only after the candidate V2 vertical slice proves the shared planning and session contracts.
+- `/candidate/setup` for candidate-owned practice setup;
+- `/candidate/session/[sessionId]` for the rebuilt shared session experience;
+- `/candidate/summary/[sessionId]` only if summary remains a separate completion surface;
+- `/candidate/dashboard` for the rebuilt Coach Plan dashboard;
+- `/recruiter/*` for recruiter-owned surfaces when recruiter rebuild work is explicitly scoped.
+
+Temporary paths such as `/practice2`, `/session2/[sessionId]`, and `/dashboard2` may remain as compatibility redirects during the rebuild. They are no longer product route names.
 
 V2 is allowed to rebuild UI surfaces from the ground up, but it must reuse proven services where they remain clean and production-relevant:
 
@@ -107,7 +109,7 @@ Benefits:
 
 Tradeoffs:
 
-- V2 creates temporary route duplication.
+- V2 may keep temporary compatibility redirects while canonical `/candidate/*` routes are wired.
 - Test coverage must prove both old-route stability and V2 behavior during the overlap.
 - Shared services need stricter ownership boundaries because old and new routes will call them at the same time.
 - The team must resist adding broad V2 scope before the first candidate vertical slice is stable.

@@ -23,16 +23,16 @@ For context only, the employer/support provider/talent partner variant currently
 
 | Public CTA | External login target | Post-login Interview Coach target |
 | --- | --- | --- |
-| Start practicing | `https://talentarbor.com/Auth/LoginWithType/2` | `https://interviewcoach.talentarbor.com/practice` |
-| Review dashboard | `https://talentarbor.com/Auth/LoginWithType/2` | `https://interviewcoach.talentarbor.com/dashboard` |
+| Start practicing | `https://talentarbor.com/Auth/LoginWithType/2` | `https://interviewcoach.talentarbor.com/candidate/setup` |
+| Review dashboard | `https://talentarbor.com/Auth/LoginWithType/2` | `https://interviewcoach.talentarbor.com/candidate/dashboard` |
 
 ## Preferred App Flow
 
 The candidate app should not hard-code unvalidated external redirect URLs directly into every CTA. Prefer an internal start route:
 
 ```text
-/auth/talentarbor/start?next=/practice
-/auth/talentarbor/start?next=/dashboard
+/auth/talentarbor/start?next=/candidate/setup
+/auth/talentarbor/start?next=/candidate/dashboard
 ```
 
 That route should:
@@ -53,12 +53,12 @@ The TalentArbor/RangamWorks integration team needs to confirm:
 - how the Interview Coach app receives identity after login: OIDC, SAML, signed token, server-to-server session exchange, shared cookie, or another handoff
 - whether return URLs are allowlisted by host and path
 - what happens when login succeeds but the return target is missing, invalid, expired, or blocked
-- whether `/dashboard` should be the default return target for authenticated candidate launches
+- whether `/candidate/dashboard` should be the default return target for authenticated candidate launches
 
 ## Security Requirements
 
 - Never trust an arbitrary `returnUrl` or `next` query value.
-- Allow only internal paths such as `/practice`, `/dashboard`, `/session/[id]`, and `/summary/[id]`.
+- Allow only internal paths such as `/candidate/setup`, `/candidate/dashboard`, `/candidate/session/[id]`, and `/candidate/summary/[id]`.
 - Do not allow protocol-relative, absolute, external, or encoded external destinations.
 - Use signed or server-stored state if the external login can round-trip state.
 - Expire login intents quickly.
@@ -70,7 +70,7 @@ The TalentArbor/RangamWorks integration team needs to confirm:
 If TalentArbor login cannot preserve a return target yet:
 
 - both public CTAs should route to candidate login
-- successful login should default to `/dashboard`
+- successful login should default to `/candidate/dashboard`
 - the dashboard should prominently offer "Start a new practice" until return-target support exists
 - the missing return-target behavior should remain an integration blocker for the smoother `/practice` CTA path
 
@@ -79,8 +79,8 @@ If TalentArbor login cannot preserve a return target yet:
 Local dev auth should simulate the same contract:
 
 ```text
-/auth/dev/start?next=/practice
-/auth/dev/start?next=/dashboard
+/auth/dev/start?next=/candidate/setup
+/auth/dev/start?next=/candidate/dashboard
 ```
 
 The same allowlist and redirect behavior should apply in local mode so route protection and return-after-login are testable before external SSO is available.
@@ -88,13 +88,13 @@ The same allowlist and redirect behavior should apply in local mode so route pro
 ## Current Implementation Notes
 
 - `/auth/talentarbor/start` stores only allowlisted candidate paths in the short-lived `ic_candidate_login_next` cookie before redirecting to `LoginWithType/2`.
-- `/auth/callback` normalizes the `next` value through the same candidate allowlist before redirecting. Unsafe absolute, protocol-relative, query-bearing, fragment-bearing, API, recruiter, admin, or QA paths fall back to `/dashboard`.
+- `/auth/callback` normalizes the `next` value through the same candidate allowlist before redirecting. Unsafe absolute, protocol-relative, query-bearing, fragment-bearing, API, recruiter, admin, or QA paths fall back to `/candidate/dashboard`.
 - The actual external identity handoff remains open until the TalentArbor/RangamWorks team confirms the supported return/state/callback contract.
 
 ## Acceptance Criteria
 
-- Public `Start practicing` initiates candidate login and returns an authenticated candidate to `/practice`.
-- Public `Review dashboard` initiates candidate login and returns an authenticated candidate to `/dashboard`.
-- Invalid `next` values fall back to `/dashboard` or fail safely.
-- Authenticated candidates who open `/practice` or `/dashboard` directly do not loop back to login.
+- Public `Start practicing` initiates candidate login and returns an authenticated candidate to `/candidate/setup`.
+- Public `Review dashboard` initiates candidate login and returns an authenticated candidate to `/candidate/dashboard`.
+- Invalid `next` values fall back to `/candidate/dashboard` or fail safely.
+- Authenticated candidates who open `/candidate/setup` or `/candidate/dashboard` directly do not loop back to login.
 - Unauthenticated direct access to protected candidate routes preserves the intended target through login when the integration supports it.

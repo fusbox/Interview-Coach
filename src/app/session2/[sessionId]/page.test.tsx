@@ -1,21 +1,16 @@
-import { render, screen } from "@testing-library/react";
-import { expect, it } from "vitest";
+import { redirect } from "next/navigation";
+import { expect, it, vi } from "vitest";
 import Session2Page from "./page";
 
-it("renders the candidate V2 session route shell for the requested session", async () => {
-    const ui = await Session2Page({ params: Promise.resolve({ sessionId: "session-v2-1" }) });
+vi.mock("next/navigation", () => ({
+    redirect: vi.fn((href: string) => {
+        throw new Error(`NEXT_REDIRECT:${href}`);
+    }),
+}));
 
-    render(ui);
-
-    expect(screen.getByRole("heading", { name: "Practice session V2" })).toBeInTheDocument();
-    expect(screen.getByText(/session-v2-1/i)).toBeInTheDocument();
-});
-
-it("routes candidate-owned session completion back to the dashboard", async () => {
-    const ui = await Session2Page({ params: Promise.resolve({ sessionId: "session-v2-1" }) });
-
-    render(ui);
-
-    expect(screen.getByRole("link", { name: "Finish session" })).toHaveAttribute("href", "/dashboard2");
-    expect(screen.getByText(/dashboard is the next stop/i)).toBeInTheDocument();
+it("redirects the old V2 session route to the candidate namespace", async () => {
+    await expect(Session2Page({ params: Promise.resolve({ sessionId: "session v2 1" }) })).rejects.toThrow(
+        "NEXT_REDIRECT:/candidate/session/session%20v2%201",
+    );
+    expect(redirect).toHaveBeenCalledWith("/candidate/session/session%20v2%201");
 });

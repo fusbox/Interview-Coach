@@ -21,7 +21,7 @@ describe("session V2 domain contracts", () => {
         const links = createCandidateSessionCompletionLinks("session 1" as SessionId);
 
         expect(links).toEqual({
-            dashboardHref: "/dashboard2",
+            dashboardHref: "/candidate/dashboard",
             summaryHref: "/summary2/session%201",
         });
     });
@@ -68,7 +68,7 @@ describe("session V2 domain contracts", () => {
             sessionId: "candidate-session",
             audience: "candidate_owned",
             candidateCompletionLinks: {
-                dashboardHref: "/dashboard2",
+                dashboardHref: "/candidate/dashboard",
                 summaryHref: "/summary2/candidate-session",
             },
         });
@@ -82,7 +82,7 @@ describe("session V2 domain contracts", () => {
         });
 
         expect(resolveSessionCompletionTarget(context)).toEqual({
-            href: "/dashboard2",
+            href: "/candidate/dashboard",
             label: "Finish session",
             target: "candidate_dashboard",
         });

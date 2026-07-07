@@ -11,7 +11,7 @@ It is a reference for the future integration pass. It is not an executable datab
 
 ## Product Decision
 
-In production, `/practice` should require a trusted host-platform launch context.
+In production, `/candidate/setup` should require a trusted host-platform launch context.
 
 Local development keeps the current manual setup behavior.
 
@@ -20,7 +20,7 @@ The expected production entry is:
 ```text
 TalentArbor / RangamWorks job listing
 -> Practice Interview button
--> interviewcoach.talentarbor.com/practice?launchToken=...
+-> interviewcoach.talentarbor.com/candidate/setup?launchToken=...
 -> server resolves candidate, job, req, JD, and resume context
 -> app finds or creates the candidate prepProfile for that target interview
 ```
@@ -232,14 +232,14 @@ Exact constraint design should wait for confirmed platform identifiers and tenan
 
 Production:
 
-- `/practice` without a trusted launch context should not create a manual production profile.
+- `/candidate/setup` without a trusted launch context should not create a manual production profile.
 - Missing or invalid launch context should route to a candidate-safe error or login/return flow.
 - Resolved launch context should prepopulate or lock target role and JD.
 - Resume content should be optional and derived from the platform when available.
 
 Development:
 
-- Manual `/practice` remains available.
+- Manual `/candidate/setup` remains available.
 - Dev-created profiles should remain clearly scoped to local/dev identity.
 - Duplicate prevention can stay lightweight until the production launch contract lands.
 
@@ -296,11 +296,11 @@ Avoid storing by default:
 
 ## Implementation Phases
 
-1. Preserve current dev/manual `/practice` behavior.
+1. Preserve current dev/manual `/candidate/setup` behavior.
 2. Add launch-context types and docs without runtime enforcement.
 3. Add nullable platform launch columns to `candidate_role_preparation_profiles`.
 4. Add a server-only launch-context resolver boundary.
-5. Require launch context in production `/practice`.
+5. Require launch context in production `/candidate/setup`.
 6. Find-or-create `prepProfile` by platform job identity.
 7. Upgrade dashboard selector from target-role title to `prepProfile` instance.
 8. Add retention and masking safeguards for platform-provided resume context.

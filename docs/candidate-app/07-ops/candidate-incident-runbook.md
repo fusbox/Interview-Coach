@@ -11,7 +11,7 @@ Use it when candidate access, setup, resume ingestion, AI generation, dashboard,
 
 ## First Response
 
-1. Confirm the affected route: `/`, `/practice`, `/dashboard`, `/session/[sessionId]`, `/summary/[sessionId]`, or `/s/[token]`.
+1. Confirm the affected route: `/`, `/candidate/setup`, `/candidate/dashboard`, `/candidate/session/[sessionId]`, `/candidate/summary/[sessionId]`, or `/s/[token]`.
 2. Confirm actor path: public candidate, authenticated candidate, recruiter invite-token candidate, recruiter, admin, or QA.
 3. Check whether recruiter routes are also affected, especially `/recruiter`, `/recruiter/create`, `/recruiter/settings`, `/admin/feedback`, and `/qa/ai-quality`.
 4. Check latest deployment/build status in Azure.
@@ -32,7 +32,7 @@ Use it when candidate access, setup, resume ingestion, AI generation, dashboard,
 Symptoms:
 
 - candidate CTA reaches TalentArbor login but never returns
-- `/practice` or `/dashboard` redirects repeatedly
+- `/candidate/setup` or `/candidate/dashboard` redirects repeatedly
 - unsafe `next` target is accepted
 - candidate route accepts the wrong actor session
 
@@ -42,7 +42,7 @@ Checks:
 - Confirm `NEXT_PUBLIC_APP_URL=https://interviewcoach.talentarbor.com`.
 - Review candidate login redirect contract and TalentArbor return support.
 - Check `auth_denials_total` tagged `actorType=candidate`.
-- Verify `/auth/talentarbor/start?next=/practice` and `/auth/talentarbor/start?next=/dashboard` only preserve allowlisted internal targets.
+- Verify `/auth/talentarbor/start?next=/candidate/setup` and `/auth/talentarbor/start?next=/candidate/dashboard` only preserve allowlisted internal targets.
 
 Containment:
 
@@ -124,7 +124,7 @@ Checks:
 
 - Confirm candidate auth/profile resolution.
 - Check draft/session status values and resume target screen.
-- Review candidate route metrics for `/dashboard`, `/session`, and `/summary`.
+- Review candidate route metrics for `/candidate/dashboard`, `/candidate/session`, and `/candidate/summary`.
 - Re-run dashboard/session route tests for the affected surface.
 
 Containment:

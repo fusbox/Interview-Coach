@@ -9,9 +9,9 @@ The earlier candidate app direction assumed a separate repo and potentially a se
 
 - app host: `https://interviewcoach.talentarbor.com`
 - Azure project/repo path: existing `Interview_Coach_AI`
-- top-level route space, with candidate routes beside `/recruiter`, `/admin`, and `/qa`
+- shared route space, with candidate routes under `/candidate/*` and recruiter/admin/QA routes under their actor namespaces
 
-Recruiter launch from the ATS should land on `/recruiter`, which maps to the current recruiter create experience. Candidate authenticated launch should land on `/dashboard`.
+Recruiter launch from the ATS should land on `/recruiter`, which redirects or guards to the default recruiter experience. Candidate authenticated launch should land on `/candidate/dashboard`.
 
 ## Decision
 

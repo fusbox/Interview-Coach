@@ -1,10 +1,14 @@
-import { render, screen } from "@testing-library/react";
-import { expect, it } from "vitest";
+import { redirect } from "next/navigation";
+import { expect, it, vi } from "vitest";
 import Dashboard2Page from "./page";
 
-it("renders the candidate V2 dashboard route shell", () => {
-    render(<Dashboard2Page />);
+vi.mock("next/navigation", () => ({
+    redirect: vi.fn((href: string) => {
+        throw new Error(`NEXT_REDIRECT:${href}`);
+    }),
+}));
 
-    expect(screen.getByRole("heading", { name: "Dashboard V2" })).toBeInTheDocument();
-    expect(screen.getByText(/rebuilt Coach Plan dashboard/i)).toBeInTheDocument();
+it("redirects the old V2 dashboard route to the candidate namespace", () => {
+    expect(() => Dashboard2Page()).toThrow("NEXT_REDIRECT:/candidate/dashboard");
+    expect(redirect).toHaveBeenCalledWith("/candidate/dashboard");
 });
