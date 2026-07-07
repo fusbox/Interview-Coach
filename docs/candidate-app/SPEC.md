@@ -61,11 +61,15 @@ The candidate creates a practice round by providing:
 
 - target role, required;
 - job description, required;
-- resume content, optional;
-- what interview moment they are preparing for;
-- question count.
+- resume content, optional, supplied as pasted text or extracted text from an uploaded resume file or resume photo;
+- what interview moment they are preparing for, required;
+- question count, required.
 
 The default setup should stay short. Stage and question count are first-class practice configuration, not intake. Future advanced setup may expand inline for additional coaching customization, but it should not make setup feel like a long intake interview.
+
+When the candidate chooses an interview stage, the setup surface should recommend a default question count for that stage while still allowing the candidate to choose a different count. Recommendation help text should use first-person coach voice and explain that the coach will guide further practice after the first session.
+
+Resume upload and resume photo capture must normalize to text before downstream generation and coaching. The first UI may expose the file/photo capture and review-text surface before OCR or parser wiring lands, but it must not imply that raw files or photos are the coaching payload.
 
 Question planning should stay deterministic and explainable before any AI question text is generated. The app may use target role, job description, resume context, interview stage, and question count to choose the intended category mix, but it should not imply that the generated question set alone defines overall interview preparedness.
 
@@ -75,6 +79,8 @@ Candidate setup should clearly state:
 - that resume content is optional;
 - that candidate-led practice is for coaching and preparation;
 - that hiring-decision users should not use candidate-led practice content for selection decisions.
+
+Setup and session-launch transitions should include progress/loading UI so candidates understand when the app is preparing the plan, extracting resume text, generating questions, or moving into the session.
 
 ### Live Session
 
