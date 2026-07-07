@@ -105,7 +105,7 @@ export default function Home() {
                     </div>
 
                     <div className="gateway-audience" aria-label="Choose your path">
-                        <p className="gateway-audience__label">Choose where to go next</p>
+                        <p className="gateway-audience__label">Connect to better interview prep</p>
                         {audienceRoutes.map(({ title, body, href, action, icon: Icon }) => (
                             <Link href={href} className="audience-choice motion-surface" key={title}>
                                 <span className="audience-choice__icon" aria-hidden="true">
@@ -129,15 +129,15 @@ export default function Home() {
                 <div className="app-grid">
                     <div className="section-heading section-heading--split">
                         <div>
-                            <p className="eyebrow">What makes it useful</p>
+                            <p className="eyebrow">Smart coaching for everyone</p>
                             <h2 id="product-proof-heading" className="section-title">
-                                Level up on your own terms.
+                                Built to be flexible, designed for you.
                             </h2>
                         </div>
-                        <p className="section-copy">
+                        <p className="section-copy section-copy--proof">
                             Interview Coach is built for learning, not ranking. It gives you grounded guidance about
-                            interview questions, adapts to the job in front of you, and lets you practice in the amount
-                            that fits the moment.
+                            interview questions, adapts to the job in front of you, and guides practice by the
+                            interview stage you&apos;re preparing for.
                         </p>
                     </div>
 

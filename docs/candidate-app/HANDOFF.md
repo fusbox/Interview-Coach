@@ -1,7 +1,7 @@
 # Candidate App Handoff
 
 Status: Active execution state
-Last updated: 2026-07-06
+Last updated: 2026-07-07
 
 ## Completed
 
@@ -206,7 +206,7 @@ Implement the parallel V2 rebuild in small, validated slices.
 
 Recommended next implementation slice:
 
-15. Continue the greenfield V2 UI rebuild by selecting the next candidate-owned surface to bring back from reference code. Before implementation, name the old surface or helper being superseded, confirm whether it is `keep as transition`, `remove now`, or `mark for retirement`, and use the tracked `design-system/` source directly so missing primitives remain visible rather than hidden behind local duplicates.
+16. Continue the greenfield V2 UI rebuild by selecting the next candidate-owned surface to bring back from reference code. Before implementation, name the old surface or helper being superseded, confirm whether it is `keep as transition`, `remove now`, or `mark for retirement`, and use the tracked `design-system/` source directly so missing primitives remain visible rather than hidden behind local duplicates.
 
 
 Completed slices:
@@ -228,6 +228,7 @@ Completed slices:
 12. Completed after cleanroom reset: refactor the public root page into a restrained Interview Coach gateway using tracked public-page, audience-routing, feature, and trust primitives. The page now routes job seekers to `https://talentarbor.com/job-seeker`, employers to `https://rangam.com/employers`, keeps employee login low-prominence, and uses visitor-level product copy grounded in the candidate docs without exposing dashboard internals as marketing content.
 13. Completed after cleanroom reset: bring the full `.untracked/design-system` file set into tracked `design-system/` as the canonical design-system source for the V2 rebuild. This preserves tokens, guidelines, explorations, assets, component references, and candidate UI kit files without creating a second translated copy under `src`.
 14. Completed after cleanroom reset: rebuild the public root page using the tracked design-system source and recursive browser review. The page now imports `design-system/styles.css` instead of carrying a local token clone, removes the unclear hero flow/card metaphor and tree-like visual direction, keeps the hero title on one line at desktop, presents job-seeker and employer routing as audience choices, uses audience-oriented CTA labels without exposing destination brands, centers the product explanation on coaching instead of scoring, flexible practice, interview-question know-how, and many-job-types support, and tightens footer/legal presentation including the TalentArbor/Rangam lockup.
+15. Completed after cleanroom reset: tune the public root page design and copy after screenshot review. The page now uses the updated audience/product eyebrows, stage-guided flexible-practice copy, a promoted product explanation callout, equal-footprint proof cards with the many-job-types card set apart in soft green, a differentiated hero title, normalized eyebrow-to-heading spacing, non-wrapping desktop closing CTA copy, and lighter `A product of` footer text.
 
 ---
 

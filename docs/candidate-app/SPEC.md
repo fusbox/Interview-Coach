@@ -43,7 +43,7 @@ The public page should:
 - route job seekers to `https://talentarbor.com/job-seeker`;
 - route employer/client visitors to `https://rangam.com/employers`;
 - keep employee/recruiter login available as a low-prominence utility action;
-- explain product value through coaching instead of scoring, flexible practice on the candidate's own terms, support for many job types beyond tech/corporate roles, and grounded guidance about interview question types, why they are used, and how strong answers are shaped;
+- explain product value through coaching instead of scoring, flexible practice guided by the interview stage the candidate is preparing for, support for many job types beyond tech/corporate roles, and grounded guidance about interview question types, why they are used, and how strong answers are shaped;
 - avoid abstract product metaphors or decorative visuals that do not map to a real user action or product state;
 - state plainly that candidate-led practice is for preparation and review, not employer hiring decisions.
 

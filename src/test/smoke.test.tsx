@@ -11,5 +11,5 @@ it("renders the public Interview Coach root page", () => {
             level: 1,
         }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Level up on your own terms." })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Built to be flexible, designed for you." })).toBeInTheDocument();
 });

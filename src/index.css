@@ -108,15 +108,20 @@ select {
 }
 
 .gateway-title {
+    display: inline-block;
     margin: 0;
     max-width: 100%;
-    color: rgb(var(--candidate-foreground));
+    background: linear-gradient(90deg, rgb(var(--candidate-primary)) 0%, rgb(var(--candidate-accent)) 58%, rgb(var(--candidate-foreground)) 100%);
+    background-clip: text;
+    color: transparent;
     font-family: var(--font-display);
     font-size: 2.25rem;
-    font-weight: var(--font-weight-bold);
+    font-weight: 800;
     letter-spacing: 0;
     line-height: 0.94;
     white-space: nowrap;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .gateway-lede {
@@ -217,6 +222,15 @@ select {
 }
 
 /* 3. Content sections */
+.public-page .eyebrow {
+    margin: 0;
+}
+
+.public-page .eyebrow + h2,
+.public-page .eyebrow + .section-title {
+    margin-top: var(--space-3);
+}
+
 .product-proof-section,
 .closing-cta {
     padding-block: var(--space-16);
@@ -251,6 +265,15 @@ select {
     line-height: var(--type-body-md-line);
 }
 
+.section-copy--proof {
+    border-left: 3px solid rgb(var(--candidate-primary));
+    border-radius: var(--radius-card);
+    background: linear-gradient(135deg, rgb(255 255 255 / 0.7), rgb(var(--candidate-primary-soft) / 0.72));
+    padding: var(--space-5);
+    color: rgb(var(--candidate-foreground));
+    box-shadow: var(--elevation-card);
+}
+
 .product-proof-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -263,15 +286,16 @@ select {
     display: grid;
     gap: var(--space-4);
     align-content: start;
-    border-top: 1px solid rgb(var(--candidate-border) / 0.9);
-    padding-top: var(--space-5);
+    height: 100%;
+    border: 1px solid transparent;
+    border-radius: var(--radius-card);
+    background: transparent;
+    padding: var(--space-5);
 }
 
 .product-proof-card--inclusive {
-    border-top-color: rgb(var(--candidate-secondary-brand) / 0.42);
-    border-radius: var(--radius-card);
-    background: linear-gradient(135deg, rgb(255 255 255 / 0.92), rgb(var(--candidate-secondary-soft) / 0.5));
-    padding: var(--space-5);
+    border-color: rgb(var(--candidate-accent) / 0.22);
+    background: linear-gradient(135deg, rgb(255 255 255 / 0.92), rgb(var(--candidate-accent-soft) / 0.68));
     box-shadow: var(--elevation-card);
 }
 
@@ -307,13 +331,13 @@ select {
 }
 
 .product-proof-card--inclusive .product-proof-card__detail {
-    background: rgb(var(--candidate-secondary-soft) / 0.9);
-    color: rgb(129 62 24);
+    background: rgb(var(--candidate-accent-soft) / 0.92);
+    color: rgb(8 103 81);
 }
 
 .product-proof-card--inclusive .product-proof-card__icon {
-    background: rgb(var(--candidate-secondary-soft) / 0.78);
-    color: rgb(var(--candidate-secondary-brand));
+    background: rgb(var(--candidate-accent-soft) / 0.82);
+    color: rgb(var(--candidate-accent));
 }
 
 .product-proof-card h3 {
@@ -508,7 +532,7 @@ select {
     gap: var(--space-2);
     color: rgb(var(--candidate-muted));
     font-size: var(--type-label-size);
-    font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-normal);
     line-height: 1;
 }
 
@@ -594,13 +618,21 @@ select {
 }
 
 @media (min-width: 960px) {
-    .section-heading--split,
-    .closing-cta__inner {
+    .section-heading--split {
         grid-template-columns: minmax(0, 0.95fr) minmax(20rem, 0.65fr);
+    }
+
+    .closing-cta__inner {
+        grid-template-columns: minmax(0, 1fr) max-content;
     }
 
     .closing-cta__actions {
         justify-content: end;
+    }
+
+    .closing-cta h2 {
+        max-width: none;
+        white-space: nowrap;
     }
 
     .assurance-band__inner {

@@ -13,6 +13,7 @@ it("renders the public Interview Coach gateway", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "TalentArbor Interview Coach" })).toHaveAttribute("href", "/");
     expect(screen.getByRole("link", { name: "Employee login" })).toHaveAttribute("href", "/login");
+    expect(screen.getByText("Connect to better interview prep")).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /for job seekers/i })).toHaveLength(2);
     expect(screen.getAllByRole("link", { name: /for job seekers/i })[0]).toHaveAttribute(
         "href",
@@ -33,6 +34,8 @@ it("keeps public product claims candidate-safe", () => {
     render(<Home />);
 
     expect(screen.getByText(/practice with coaching, not a score/i)).toBeInTheDocument();
+    expect(screen.getByText(/smart coaching for everyone/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Built to be flexible, designed for you." })).toBeInTheDocument();
     expect(screen.getByText(/coaching, not scoring/i)).toBeInTheDocument();
     expect(screen.getByText(/practice on your own terms/i)).toBeInTheDocument();
     expect(screen.getByText(/built for many kinds of work/i)).toBeInTheDocument();
