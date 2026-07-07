@@ -1,162 +1,216 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowUpRight, BarChart3, Briefcase, FileText, LockKeyhole, MessageCircle, Target } from "lucide-react";
+import {
+    ArrowUpRight,
+    BarChart3,
+    Briefcase,
+    LockKeyhole,
+    MessageCircle,
+    ShieldCheck,
+    Target,
+    UserRound,
+} from "lucide-react";
 
 import { CandidateDisclosureFooter } from "@/components/shell/CandidateDisclosureFooter";
-import { Button } from "@/components/ui/button";
 
 const audienceRoutes = [
     {
         title: "Job seekers",
-        body: "Practice for a real role, get clearer about your answers, and see what to work on next.",
+        body: "Find roles on TalentArbor, then prepare for the one in front of you.",
         href: "https://talentarbor.com/job-seeker",
-        action: "Visit TalentArbor",
-        tone: "primary",
+        action: "For job seekers",
+        icon: UserRound,
     },
     {
         title: "Employers",
-        body: "Help candidates prepare with a supportive interview practice experience connected to Rangam.",
+        body: "See how Rangam supports inclusive hiring and candidate preparation.",
         href: "https://rangam.com/employers",
-        action: "Visit Rangam",
-        tone: "secondary",
+        action: "For employers",
+        icon: Briefcase,
     },
 ] as const;
 
-const productHighlights = [
+const productDifferentiators = [
     {
-        title: "Practice for the role in front of you",
-        body: "Interview Coach uses the target role and job description to shape a focused practice round.",
-        icon: Target,
-    },
-    {
-        title: "Add resume context when it helps",
-        body: "Resume content is optional. When included, it helps make questions and coaching more relevant.",
-        icon: FileText,
-    },
-    {
-        title: "Get coaching after each answer",
-        body: "Feedback is meant to help you clarify examples, structure responses, and decide what to try again.",
+        title: "Coaching, not scoring",
+        body: "Interview Coach does not turn practice into a grade. It helps you see what is working, what needs structure, and what to try next.",
+        detail: "No candidate score",
         icon: MessageCircle,
+        tone: "standard",
     },
     {
-        title: "Return to a preparedness dashboard",
-        body: "After practice, the dashboard shows what has evidence and what would be useful to practice next.",
-        icon: BarChart3,
+        title: "Practice on your own terms",
+        body: "Work through one answer, one question type, or a fuller round. You can build confidence piece by piece without sitting for a whole session every time.",
+        detail: "Flexible practice",
+        icon: Target,
+        tone: "standard",
     },
+    {
+        title: "Learn what the question is really asking",
+        body: "The coach is grounded in interview question types, why employers use them, and how stronger answers are usually shaped.",
+        detail: "Interview know-how",
+        icon: BarChart3,
+        tone: "standard",
+    },
+    {
+        title: "Built for many kinds of work",
+        body: "Use it for frontline, service, skilled, professional, technical, or corporate roles. The coach starts from the job you are preparing for.",
+        detail: "All job types",
+        icon: Briefcase,
+        tone: "inclusive",
+    },
+] as const;
+
+const trustPoints = [
+    "Candidate-led practice",
+    "Protected practice data",
+    "Not for hiring decisions",
 ] as const;
 
 export default function Home() {
     return (
         <main className="candidate-design-system public-page">
             <header className="public-header">
-                <Link href="/" aria-label="TalentArbor Interview Coach" className="brand-lockup">
-                    <Image
-                        src="/TA-logo.webp"
-                        alt=""
-                        width={300}
-                        height={70}
-                        className="brand-lockup__mark"
-                        priority
-                        unoptimized
-                    />
-                </Link>
-                <Link href="/login" className="utility-link">
-                    Employee login
-                </Link>
+                <div className="public-header__inner">
+                    <Link href="/" aria-label="TalentArbor Interview Coach" className="brand-lockup">
+                        <Image
+                            src="/TA-logo.webp"
+                            alt=""
+                            width={300}
+                            height={70}
+                            className="brand-lockup__mark"
+                            priority
+                            unoptimized
+                        />
+                    </Link>
+                    <Link href="/login" className="utility-link">
+                        Employee login
+                    </Link>
+                </div>
             </header>
 
-            <section className="public-hero">
-                <div className="public-hero__copy">
-                    <h1 className="display-hero">Interview Coach</h1>
-                    <p className="hero-statement">
-                        Practice for interviews with AI-guided questions, answer coaching, and a dashboard that keeps
-                        the next step clear.
-                    </p>
-                    <p className="hero-support">
-                        Built for preparation, not hiring decisions. Candidate-led practice stays focused on learning,
-                        confidence, and follow-through.
-                    </p>
-                </div>
-
-                <div className="hero-visual" aria-label="Interview Coach preparation flow">
-                    <div className="hero-visual__rail">
-                        <span>Role context</span>
-                        <span>Practice round</span>
-                        <span>Coach feedback</span>
-                        <span>Dashboard next step</span>
+            <section className="gateway-hero" aria-labelledby="gateway-heading">
+                <div className="gateway-hero__inner app-grid">
+                    <div className="gateway-hero__copy">
+                        <p className="eyebrow">TalentArbor Interview Coach</p>
+                        <h1 id="gateway-heading" className="gateway-title">
+                            Interview Coach
+                        </h1>
+                        <p className="gateway-lede">Practice with coaching, not a score.</p>
+                        <p className="gateway-copy">
+                            Use role-based questions and coach feedback to strengthen your answers without turning
+                            practice into a score. Your practice is for preparation and your own review, not employer
+                            hiring decisions.
+                        </p>
                     </div>
-                    <div className="hero-visual__panel">
-                        <Briefcase className="hero-visual__icon" aria-hidden="true" />
-                        <p>Start from the job you are preparing for.</p>
+
+                    <div className="gateway-audience" aria-label="Choose your path">
+                        <p className="gateway-audience__label">Choose where to go next</p>
+                        {audienceRoutes.map(({ title, body, href, action, icon: Icon }) => (
+                            <Link href={href} className="audience-choice motion-surface" key={title}>
+                                <span className="audience-choice__icon" aria-hidden="true">
+                                    <Icon className="h-5 w-5" />
+                                </span>
+                                <span className="audience-choice__copy">
+                                    <strong>{title}</strong>
+                                    <span>{body}</span>
+                                </span>
+                                <span className="audience-choice__action">
+                                    {action}
+                                    <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                                </span>
+                            </Link>
+                        ))}
                     </div>
                 </div>
             </section>
 
-            <section className="audience-band" aria-labelledby="audience-heading">
-                <div className="section-heading">
-                    <h2 id="audience-heading" className="section-title">
-                        Choose the path that fits why you are here.
-                    </h2>
-                    <p className="section-copy">
-                        Interview Coach is part of the TalentArbor candidate experience and connects employer interest
-                        back to Rangam.
-                    </p>
-                </div>
-                <div className="audience-grid">
-                    {audienceRoutes.map((route) => (
-                        <article className={`audience-panel audience-panel--${route.tone}`} key={route.title}>
-                            <div>
-                                <h3>{route.title}</h3>
-                                <p>{route.body}</p>
-                            </div>
-                            <Button asChild density="comfortable" shape="app" label="strong" emphasis="secondary">
-                                <Link href={route.href}>
-                                    {route.action}
-                                    <ArrowUpRight className="ml-2 h-4 w-4" aria-hidden="true" />
-                                </Link>
-                            </Button>
-                        </article>
-                    ))}
+            <section className="product-proof-section" aria-labelledby="product-proof-heading">
+                <div className="app-grid">
+                    <div className="section-heading section-heading--split">
+                        <div>
+                            <p className="eyebrow">What makes it useful</p>
+                            <h2 id="product-proof-heading" className="section-title">
+                                Level up on your own terms.
+                            </h2>
+                        </div>
+                        <p className="section-copy">
+                            Interview Coach is built for learning, not ranking. It gives you grounded guidance about
+                            interview questions, adapts to the job in front of you, and lets you practice in the amount
+                            that fits the moment.
+                        </p>
+                    </div>
+
+                    <div className="product-proof-grid">
+                        {productDifferentiators.map(({ title, body, detail, icon: Icon, tone }) => (
+                            <article
+                                className={`product-proof-card${tone === "inclusive" ? " product-proof-card--inclusive" : ""}`}
+                                key={title}
+                            >
+                                <div className="product-proof-card__topline">
+                                    <span className="product-proof-card__detail">{detail}</span>
+                                    <span className="product-proof-card__icon" aria-hidden="true">
+                                        <Icon className="h-5 w-5" />
+                                    </span>
+                                </div>
+                                <h3>{title}</h3>
+                                <p>{body}</p>
+                            </article>
+                        ))}
+                    </div>
                 </div>
             </section>
 
-            <section className="explain-section" aria-labelledby="explain-heading">
-                <div className="section-heading section-heading--center">
-                    <h2 id="explain-heading" className="section-title">
-                        What the app is built to do
-                    </h2>
-                    <p className="section-copy">
-                        A short practice loop: prepare with context, answer questions, review coaching, then decide what
-                        to practice next.
-                    </p>
-                </div>
-                <div className="feature-row">
-                    {productHighlights.map(({ title, body, icon: Icon }) => (
-                        <article className="feature-card" key={title}>
-                            <div className="feature-card__icon">
-                                <Icon className="h-5 w-5" aria-hidden="true" />
-                            </div>
-                            <h3>{title}</h3>
-                            <p>{body}</p>
-                        </article>
-                    ))}
+            <section className="assurance-band" aria-labelledby="assurance-heading">
+                <div className="assurance-band__inner app-grid">
+                    <div className="assurance-band__copy">
+                        <span className="assurance-band__icon" aria-hidden="true">
+                            <LockKeyhole className="h-6 w-6" />
+                        </span>
+                        <div>
+                            <p className="eyebrow">Practice stays practice</p>
+                            <h2 id="assurance-heading">For preparation, not hiring decisions.</h2>
+                            <p>
+                                Interview Coach uses AI to support candidate-led practice. Your answers and coach
+                                feedback are protected by app access controls and are not used to make hiring decisions.
+                            </p>
+                        </div>
+                    </div>
+
+                    <ul className="assurance-list" aria-label="Interview Coach commitments">
+                        {trustPoints.map((point) => (
+                            <li key={point}>
+                                <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+                                <span>{point}</span>
+                            </li>
+                        ))}
+                    </ul>
                 </div>
             </section>
 
-            <section className="trust-band" aria-labelledby="trust-heading">
-                <div className="trust-band__icon">
-                    <LockKeyhole className="h-7 w-7" aria-hidden="true" />
-                </div>
-                <div>
-                    <h2 id="trust-heading">Your practice stays yours.</h2>
-                    <p>
-                        Interview Coach uses AI for practice coaching. Candidate-led practice content is for preparation
-                        and review, not employer hiring decisions.
-                    </p>
+            <section className="closing-cta" aria-labelledby="closing-heading">
+                <div className="closing-cta__inner app-grid">
+                    <div>
+                        <p className="eyebrow">Ready when you are</p>
+                        <h2 id="closing-heading">Continue as a job seeker or employer.</h2>
+                    </div>
+                    <div className="closing-cta__actions">
+                        <Link href="https://talentarbor.com/job-seeker" className="public-action public-action--primary">
+                            For job seekers
+                            <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                        </Link>
+                        <Link href="https://rangam.com/employers" className="public-action public-action--secondary">
+                            For employers
+                            <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                        </Link>
+                    </div>
                 </div>
             </section>
 
-            <CandidateDisclosureFooter />
+            <CandidateDisclosureFooter>
+                Interview Coach uses AI to support practice coaching. Practice data is protected by app security and
+                access controls, and is not used to make hiring decisions.
+            </CandidateDisclosureFooter>
         </main>
     );
 }

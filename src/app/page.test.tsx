@@ -13,14 +13,18 @@ it("renders the public Interview Coach gateway", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "TalentArbor Interview Coach" })).toHaveAttribute("href", "/");
     expect(screen.getByRole("link", { name: "Employee login" })).toHaveAttribute("href", "/login");
-    expect(screen.getByRole("link", { name: /visit talentarbor/i })).toHaveAttribute(
+    expect(screen.getAllByRole("link", { name: /for job seekers/i })).toHaveLength(2);
+    expect(screen.getAllByRole("link", { name: /for job seekers/i })[0]).toHaveAttribute(
         "href",
         "https://talentarbor.com/job-seeker",
     );
-    expect(screen.getByRole("link", { name: /visit rangam/i })).toHaveAttribute(
+    expect(screen.getAllByRole("link", { name: /for employers/i })).toHaveLength(2);
+    expect(screen.getAllByRole("link", { name: /for employers/i })[0]).toHaveAttribute(
         "href",
         "https://rangam.com/employers",
     );
+    expect(screen.queryByRole("link", { name: /visit talentarbor/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /visit rangam/i })).not.toBeInTheDocument();
     expect(screen.getByRole("img", { name: "TalentArbor" })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Rangam" })).toBeInTheDocument();
 });
@@ -28,9 +32,15 @@ it("renders the public Interview Coach gateway", () => {
 it("keeps public product claims candidate-safe", () => {
     render(<Home />);
 
-    expect(screen.getByText(/built for preparation, not hiring decisions/i)).toBeInTheDocument();
-    expect(screen.getByText(/candidate-led practice content is for preparation and review/i)).toBeInTheDocument();
-    expect(screen.getByText(/resume content is optional/i)).toBeInTheDocument();
+    expect(screen.getByText(/practice with coaching, not a score/i)).toBeInTheDocument();
+    expect(screen.getByText(/coaching, not scoring/i)).toBeInTheDocument();
+    expect(screen.getByText(/practice on your own terms/i)).toBeInTheDocument();
+    expect(screen.getByText(/built for many kinds of work/i)).toBeInTheDocument();
+    expect(screen.getByText(/learn what the question is really asking/i)).toBeInTheDocument();
+    expect(screen.getByText(/no candidate score/i)).toBeInTheDocument();
+    expect(screen.getByText(/all job types/i)).toBeInTheDocument();
+    expect(screen.getByText(/for preparation, not hiring decisions/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/not used to make hiring decisions/i)).toHaveLength(2);
 });
 
 it("renders the TalentArbor policy footer", () => {

@@ -1,7 +1,7 @@
 # Candidate App Spec
 
 Status: Canonical product intent
-Last updated: 2026-07-06
+Last updated: 2026-07-07
 
 ## Purpose
 
@@ -35,7 +35,19 @@ Recruiter-created invite flows may share question planning services with the can
 
 ### Public Entry
 
-The public page introduces Interview Coach and directs candidate calls to action through the approved TalentArbor candidate login path. After login, the candidate should return to the intended candidate route when that integration contract is available.
+The public page introduces Interview Coach as a TalentArbor/Rangam gateway for visitors who arrive directly at `interviewcoach.talentarbor.com`.
+
+The public page should:
+
+- make the product name and preparation purpose clear in the first viewport;
+- route job seekers to `https://talentarbor.com/job-seeker`;
+- route employer/client visitors to `https://rangam.com/employers`;
+- keep employee/recruiter login available as a low-prominence utility action;
+- explain product value through coaching instead of scoring, flexible practice on the candidate's own terms, support for many job types beyond tech/corporate roles, and grounded guidance about interview question types, why they are used, and how strong answers are shaped;
+- avoid abstract product metaphors or decorative visuals that do not map to a real user action or product state;
+- state plainly that candidate-led practice is for preparation and review, not employer hiring decisions.
+
+After login or verified host launch, the candidate should return to the intended candidate route when that integration contract is available.
 
 ### Practice Setup
 

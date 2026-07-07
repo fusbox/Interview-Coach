@@ -6,7 +6,7 @@ type CandidateDisclosureFooterProps = {
 };
 
 const defaultDisclosure =
-    "Interview Coach uses AI for practice coaching. Practice data is protected by app security and access controls, and is not used to make hiring decisions.";
+    "Interview Coach uses AI to support practice coaching. Practice data is protected by app security and access controls, and is not used to make hiring decisions.";
 
 const policyLinks = [
     { label: "Privacy Policy", href: "https://talentarbor.com/privacy-policy" },
