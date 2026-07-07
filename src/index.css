@@ -266,9 +266,10 @@ select {
 }
 
 .section-copy--proof {
-    border-left: 3px solid rgb(var(--candidate-primary));
+    width: 100%;
+    max-width: none;
     border-radius: var(--radius-card);
-    background: rgb(var(--candidate-primary-soft));
+    background: rgb(255 255 255 / 0.92);
     padding: var(--space-5);
     color: rgb(var(--candidate-foreground));
     box-shadow: var(--elevation-card);
