@@ -1,6 +1,17 @@
 "use client";
 
-import { ArrowRight, Briefcase, Camera, CheckCircle2, FileText, Loader2, Upload } from "lucide-react";
+import {
+    ArrowRight,
+    Briefcase,
+    Camera,
+    CheckCircle2,
+    FileText,
+    ListChecks,
+    Loader2,
+    Upload,
+    User,
+    UserCheck,
+} from "lucide-react";
 import { type ChangeEvent, type FormEvent, useMemo, useState } from "react";
 
 type InterviewStageId = "practice_only" | "screening" | "first_interview" | "follow_up" | "final_interview";
@@ -60,6 +71,8 @@ const stageOptions: StageOption[] = [
 const questionCountOptions = [3, 5, 7, 10];
 
 export function CandidateSetupExperience() {
+    const [targetRole, setTargetRole] = useState("");
+    const [jobDescription, setJobDescription] = useState("");
     const [selectedStage, setSelectedStage] = useState<InterviewStageId>("first_interview");
     const [questionCount, setQuestionCount] = useState(7);
     const [resumeSource, setResumeSource] = useState<ResumeSource>("paste");
@@ -70,6 +83,7 @@ export function CandidateSetupExperience() {
         () => stageOptions.find((stage) => stage.id === selectedStage) ?? stageOptions[2],
         [selectedStage],
     );
+    const canStartPractice = targetRole.trim().length > 0 && jobDescription.trim().length > 0;
 
     function chooseStage(stage: StageOption) {
         setSelectedStage(stage.id);
@@ -91,21 +105,15 @@ export function CandidateSetupExperience() {
         <main className="candidate-design-system setup-page">
             <section className="setup-hero app-grid">
                 <div className="setup-hero__copy">
-                    <p className="type-eyebrow setup-eyebrow">Candidate setup</p>
+                    <p className="type-eyebrow setup-eyebrow">Practice setup</p>
                     <h1>Tell me what interview you are preparing for.</h1>
-                    <p>
-                        Start with the role and job description. Add resume context if it helps, then choose the
-                        interview stage and how much you want to practice first.
-                    </p>
                 </div>
 
                 <aside className="setup-progress-card" aria-label="Setup progress">
                     <div className="setup-progress-card__icon" aria-hidden="true">
-                        <Briefcase size={20} />
+                        <User size={20} />
                     </div>
                     <div>
-                        <p className="type-eyebrow">Next transition</p>
-                        <h2>Practice plan first, session next.</h2>
                         <p>
                             After setup, I will prepare your first round and guide what to practice after you finish it.
                         </p>
@@ -115,21 +123,28 @@ export function CandidateSetupExperience() {
 
             <form className="setup-form app-grid" onSubmit={handleSubmit}>
                 <div className="setup-form__main">
-                    <section className="setup-panel" aria-labelledby="role-context-title">
+                    <section className="setup-panel" aria-labelledby="role-context-label">
                         <div className="setup-section-header">
                             <div className="setup-section-header__icon" aria-hidden="true">
                                 <Briefcase size={18} />
                             </div>
                             <div>
-                                <p className="type-eyebrow">Role context</p>
-                                <h2 id="role-context-title">Start with the job in front of you.</h2>
+                                <p className="type-eyebrow" id="role-context-label">
+                                    Role
+                                </p>
                             </div>
                         </div>
 
                         <div className="setup-field-grid">
                             <label className="setup-field setup-field--full">
                                 <span>Target role *</span>
-                                <input name="targetRole" required placeholder="Example: Customer service representative" />
+                                <input
+                                    name="targetRole"
+                                    required
+                                    value={targetRole}
+                                    onChange={(event) => setTargetRole(event.target.value)}
+                                    placeholder="Example: Customer service representative"
+                                />
                             </label>
 
                             <label className="setup-field setup-field--full">
@@ -137,6 +152,8 @@ export function CandidateSetupExperience() {
                                 <textarea
                                     name="jobDescription"
                                     required
+                                    value={jobDescription}
+                                    onChange={(event) => setJobDescription(event.target.value)}
                                     rows={7}
                                     placeholder="Paste the job description or the parts that explain the role, duties, and requirements."
                                 />
@@ -144,15 +161,16 @@ export function CandidateSetupExperience() {
                         </div>
                     </section>
 
-                    <section className="setup-panel" aria-labelledby="resume-context-title">
+                    <section className="setup-panel" aria-labelledby="resume-context-label">
                         <div className="setup-section-header">
                             <div className="setup-section-header__icon" aria-hidden="true">
                                 <FileText size={18} />
                             </div>
                             <div>
-                                <p className="type-eyebrow">Resume context</p>
-                                <h2 id="resume-context-title">Add resume context if it helps.</h2>
-                                <p>Resume context is optional. The coaching payload is text, whether pasted or extracted.</p>
+                                <p className="type-eyebrow" id="resume-context-label">
+                                    Resume
+                                </p>
+                                <p>Optional</p>
                             </div>
                         </div>
 
@@ -198,23 +216,24 @@ export function CandidateSetupExperience() {
                         ) : null}
 
                         <label className="setup-field setup-field--full">
-                            <span>Resume text or extracted text</span>
+                            <span>Paste resume text</span>
                             <textarea
                                 name="resumeText"
                                 rows={6}
-                                placeholder="Paste resume text here, or review extracted text here after file/photo processing is wired."
+                                placeholder="Paste resume text here."
                             />
                         </label>
                     </section>
 
-                    <section className="setup-panel" aria-labelledby="practice-details-title">
+                    <section className="setup-panel" aria-labelledby="practice-details-label">
                         <div className="setup-section-header">
                             <div className="setup-section-header__icon" aria-hidden="true">
-                                <CheckCircle2 size={18} />
+                                <ListChecks size={18} />
                             </div>
                             <div>
-                                <p className="type-eyebrow">Interview details</p>
-                                <h2 id="practice-details-title">Choose the first round shape.</h2>
+                                <p className="type-eyebrow" id="practice-details-label">
+                                    Interview details
+                                </p>
                             </div>
                         </div>
 
@@ -263,7 +282,12 @@ export function CandidateSetupExperience() {
 
                 <aside className="setup-rail" aria-label="Setup summary">
                     <div className="setup-rail__card">
-                        <p className="type-eyebrow">Your first round</p>
+                        <div className="setup-rail__header">
+                            <span className="setup-rail__icon" aria-hidden="true">
+                                <CheckCircle2 size={18} />
+                            </span>
+                            <p className="type-eyebrow">Your first round</p>
+                        </div>
                         <dl>
                             <div>
                                 <dt>Stage</dt>
@@ -291,7 +315,7 @@ export function CandidateSetupExperience() {
                             </>
                         ) : (
                             <>
-                                <CheckCircle2 size={18} aria-hidden="true" />
+                                <UserCheck size={18} aria-hidden="true" />
                                 <div>
                                     <strong>Ready when you are.</strong>
                                     <span>Required fields are marked with an asterisk.</span>
@@ -300,7 +324,7 @@ export function CandidateSetupExperience() {
                         )}
                     </div>
 
-                    <button className="setup-submit" type="submit" disabled={isPreparing}>
+                    <button className="setup-submit" type="submit" disabled={isPreparing || !canStartPractice}>
                         {isPreparing ? "Preparing" : "Start practice"}
                         {isPreparing ? <Loader2 className="setup-spinner" size={16} aria-hidden="true" /> : <ArrowRight size={16} />}
                     </button>
