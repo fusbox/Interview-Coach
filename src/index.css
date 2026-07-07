@@ -480,9 +480,7 @@ select {
     border: 1px solid rgb(var(--candidate-primary));
     background: rgb(var(--candidate-primary));
     color: white;
-    box-shadow:
-        0 5px 12px rgb(var(--candidate-foreground) / 0.12),
-        0 2px 8px rgb(var(--candidate-primary) / 0.08);
+    box-shadow: var(--elevation-cta);
 }
 
 .public-action--primary:hover,

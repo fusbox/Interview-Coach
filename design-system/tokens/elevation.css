@@ -6,14 +6,16 @@
     --shadow-raised-1: 0 10px 24px rgba(15, 33, 57, 0.06); /* @kind shadow */
     --shadow-raised-2: 0 18px 42px rgba(15, 33, 57, 0.09); /* @kind shadow */
     --shadow-floating: 0 28px 80px rgba(15, 33, 57, 0.16); /* @kind shadow */
-    --shadow-primary-glow: 0 14px 30px rgba(11, 87, 206, 0.20); /* @kind shadow */
+    --shadow-primary-glow:
+        0 5px 12px rgb(var(--candidate-foreground) / 0.12),
+        0 2px 8px rgb(var(--candidate-primary) / 0.08); /* @kind shadow */
 
     /* Candidate shadows */
     --candidate-shadow-card: var(--shadow-raised-2);
     --candidate-shadow-panel: 0 26px 60px rgba(15, 33, 57, 0.12);
     --candidate-shadow-soft: var(--shadow-raised-1);
 
-    /* Primary CTA glow (ActionButton) */
+    /* Primary CTA shadow (ActionButton) */
     --candidate-shadow-cta: var(--shadow-primary-glow);
 
     /* Semantic elevation roles */
@@ -22,7 +24,7 @@
     --elevation-widget: var(--shadow-raised-2); /* candidate dashboard widgets @kind shadow */
     --elevation-panel: var(--candidate-shadow-panel); /* larger panels, debrief/report surfaces @kind shadow */
     --elevation-overlay: var(--shadow-floating); /* dialogs, popovers, drawers, sheets @kind shadow */
-    --elevation-cta: var(--shadow-primary-glow); /* primary action and selected launcher glow @kind shadow */
+    --elevation-cta: var(--shadow-primary-glow); /* primary action and selected launcher elevation @kind shadow */
     --elevation-hover: var(--shadow-raised-2); /* one-tier lift for hoverable surfaces @kind shadow */
     --elevation-pressed: var(--shadow-flat); /* pressed surfaces settle down @kind shadow */
 }
