@@ -23,6 +23,7 @@ This document records the confirmed route and deployment shape for Interview Coa
 | --- | --- | --- | --- |
 | `/` | Candidate/public | Public | Public Interview Coach page and funnel. |
 | `/candidate` | Candidate | Candidate auth required | Namespace index only. Redirects or guards to `/candidate/dashboard`; no standalone UI. |
+| `/candidate/launch` | Candidate | Signed host launch token required | TalentArbor/RangamWorks launch-token handoff. Verifies host token, resolves candidate identity, sets Interview Coach candidate session, and redirects away from the token URL. |
 | `/candidate/setup` | Candidate | Candidate auth required | Self-serve candidate practice setup. |
 | `/candidate/dashboard` | Candidate | Candidate auth required | Candidate post-login landing target and preparedness dashboard. |
 | `/candidate/session/[sessionId]` | Candidate | Candidate auth required | Candidate-owned session resume path. |
@@ -77,6 +78,7 @@ The standalone candidate repo can still be useful as an incubation workspace, bu
 - `/recruiter/dashboard` remains recruiter-owned and renders the migrated recruiter dashboard for authenticated recruiters.
 - `/candidate/dashboard` is candidate-owned and never resolves to recruiter dashboard data.
 - `/candidate/setup` requires candidate access and supports return-after-login.
+- `/candidate/launch` fails closed when a signed host launch token is missing, invalid, expired, or not for Interview Coach.
 - `/s/[token]` remains invite-token based.
 - Route ownership is documented in PRs that add or move top-level paths.
 - Branch and PR strategy follows [ADR-0006](../08-decisions/ADR-0006-shared-host-and-azure-branch-integration.md).
