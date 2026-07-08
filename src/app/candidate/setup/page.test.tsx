@@ -2,6 +2,10 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import CandidateSetupPage from "./page";
 import { CandidateSetupExperience } from "@/features/candidate-setup-v2/CandidateSetupExperience";
+import {
+    createCandidateSetupMemoryDraftStore,
+    saveCandidateSetupDraft,
+} from "@/features/candidate-setup-v2/candidate-setup-draft-store";
 
 it("renders the candidate setup inputs with required markers", () => {
     render(<CandidateSetupPage />);
@@ -101,5 +105,35 @@ it("submits a typed setup payload for the next transition", () => {
             questionCount: 3,
             resumeCaptureMode: "pasted_text",
         },
+    });
+});
+
+it("restores and autosaves a candidate setup draft for the same owner key", () => {
+    const draftStore = createCandidateSetupMemoryDraftStore();
+    saveCandidateSetupDraft(draftStore, "candidate:demo", {
+        targetRole: "Warehouse lead",
+        jobDescription: "Coordinate safety workflows.",
+        resumeText: "Led daily standups.",
+        interviewStage: "follow_up",
+        questionCount: 7,
+    });
+
+    render(<CandidateSetupExperience draftOwnerKey="candidate:demo" draftStore={draftStore} />);
+
+    expect(screen.getByLabelText("Target role *")).toHaveValue("Warehouse lead");
+    expect(screen.getByLabelText("Job description *")).toHaveValue("Coordinate safety workflows.");
+    expect(screen.getByLabelText("Paste resume text")).toHaveValue("Led daily standups.");
+    expect(screen.getByRole("button", { name: /follow-up interview/i })).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.change(screen.getByLabelText("Target role *"), {
+        target: { value: "Warehouse supervisor" },
+    });
+
+    expect(draftStore.readDraft("candidate:demo")).toMatchObject({
+        targetRole: "Warehouse supervisor",
+        jobDescription: "Coordinate safety workflows.",
+        resumeText: "Led daily standups.",
+        interviewStage: "follow_up",
+        questionCount: 7,
     });
 });

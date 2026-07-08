@@ -20,6 +20,13 @@ import {
     type CandidateSetupStageId,
     type CandidateSetupTransition,
 } from "./candidate-setup-contract";
+import {
+    createCandidateSetupBrowserDraftStore,
+    restoreCandidateSetupDraft,
+    saveCandidateSetupDraft,
+    toCandidateSetupDraftFormState,
+    type CandidateSetupDraftStore,
+} from "./candidate-setup-draft-store";
 
 type ResumeSource = "paste" | "file" | "photo";
 
@@ -27,14 +34,28 @@ const questionCountOptions = [3, 5, 7, 10];
 
 type CandidateSetupExperienceProps = {
     onSetupReady?: (transition: CandidateSetupTransition) => void;
+    draftOwnerKey?: string;
+    draftStore?: CandidateSetupDraftStore;
 };
 
-export function CandidateSetupExperience({ onSetupReady }: CandidateSetupExperienceProps = {}) {
-    const [targetRole, setTargetRole] = useState("");
-    const [jobDescription, setJobDescription] = useState("");
-    const [resumeText, setResumeText] = useState("");
-    const [selectedStage, setSelectedStage] = useState<CandidateSetupStageId>("first_interview");
-    const [questionCount, setQuestionCount] = useState(7);
+export function CandidateSetupExperience({
+    onSetupReady,
+    draftOwnerKey = "candidate:local",
+    draftStore,
+}: CandidateSetupExperienceProps = {}) {
+    const resolvedDraftStore = useMemo(
+        () => draftStore ?? (typeof window !== "undefined" ? createCandidateSetupBrowserDraftStore(window.localStorage) : null),
+        [draftStore],
+    );
+    const restoredDraftState = useMemo(
+        () => toCandidateSetupDraftFormState(resolvedDraftStore ? restoreCandidateSetupDraft(resolvedDraftStore, draftOwnerKey) : null),
+        [draftOwnerKey, resolvedDraftStore],
+    );
+    const [targetRole, setTargetRole] = useState(restoredDraftState.targetRole);
+    const [jobDescription, setJobDescription] = useState(restoredDraftState.jobDescription);
+    const [resumeText, setResumeText] = useState(restoredDraftState.resumeText);
+    const [selectedStage, setSelectedStage] = useState<CandidateSetupStageId>(restoredDraftState.interviewStage);
+    const [questionCount, setQuestionCount] = useState(restoredDraftState.questionCount);
     const [resumeSource, setResumeSource] = useState<ResumeSource>("paste");
     const [resumeAssetName, setResumeAssetName] = useState("");
     const [isPreparing, setIsPreparing] = useState(false);
@@ -52,6 +73,10 @@ export function CandidateSetupExperience({ onSetupReady }: CandidateSetupExperie
     function chooseStage(stage: (typeof candidateSetupStageOptions)[number]) {
         setSelectedStage(stage.id);
         setQuestionCount(stage.recommendedCount);
+        saveSetupDraft({
+            interviewStage: stage.id,
+            questionCount: stage.recommendedCount,
+        });
     }
 
     function handleResumeAsset(event: ChangeEvent<HTMLInputElement>, source: ResumeSource) {
@@ -82,6 +107,29 @@ export function CandidateSetupExperience({ onSetupReady }: CandidateSetupExperie
             event.preventDefault();
             setAttemptedStart(true);
         }
+    }
+
+    function saveSetupDraft(overrides: Partial<{
+        targetRole: string;
+        jobDescription: string;
+        resumeText: string;
+        interviewStage: CandidateSetupStageId;
+        questionCount: number;
+    }> = {}) {
+        const nextTargetRole = overrides.targetRole ?? targetRole;
+        const nextJobDescription = overrides.jobDescription ?? jobDescription;
+
+        if (!resolvedDraftStore || !nextTargetRole.trim() || !nextJobDescription.trim()) {
+            return;
+        }
+
+        saveCandidateSetupDraft(resolvedDraftStore, draftOwnerKey, {
+            targetRole: nextTargetRole,
+            jobDescription: nextJobDescription,
+            resumeText: overrides.resumeText ?? resumeText,
+            interviewStage: overrides.interviewStage ?? selectedStage,
+            questionCount: overrides.questionCount ?? questionCount,
+        });
     }
 
     return (
@@ -124,7 +172,10 @@ export function CandidateSetupExperience({ onSetupReady }: CandidateSetupExperie
                                     aria-invalid={isTargetRoleMissing}
                                     className={isTargetRoleMissing ? "is-required-missing" : undefined}
                                     value={targetRole}
-                                    onChange={(event) => setTargetRole(event.target.value)}
+                                    onChange={(event) => {
+                                        setTargetRole(event.target.value);
+                                        saveSetupDraft({ targetRole: event.target.value });
+                                    }}
                                     placeholder="Example: Customer service representative"
                                 />
                             </label>
@@ -137,7 +188,10 @@ export function CandidateSetupExperience({ onSetupReady }: CandidateSetupExperie
                                     aria-invalid={isJobDescriptionMissing}
                                     className={isJobDescriptionMissing ? "is-required-missing" : undefined}
                                     value={jobDescription}
-                                    onChange={(event) => setJobDescription(event.target.value)}
+                                    onChange={(event) => {
+                                        setJobDescription(event.target.value);
+                                        saveSetupDraft({ jobDescription: event.target.value });
+                                    }}
                                     rows={7}
                                     placeholder="Paste the job description or the parts that explain the role, duties, and requirements."
                                 />
@@ -201,7 +255,10 @@ export function CandidateSetupExperience({ onSetupReady }: CandidateSetupExperie
                             <textarea
                                 name="resumeText"
                                 value={resumeText}
-                                onChange={(event) => setResumeText(event.target.value)}
+                                onChange={(event) => {
+                                    setResumeText(event.target.value);
+                                    saveSetupDraft({ resumeText: event.target.value });
+                                }}
                                 rows={6}
                                 placeholder="Paste resume text here."
                             />
@@ -245,7 +302,10 @@ export function CandidateSetupExperience({ onSetupReady }: CandidateSetupExperie
                                         type="button"
                                         className={questionCount === count ? "count-option is-selected" : "count-option"}
                                         aria-pressed={questionCount === count}
-                                        onClick={() => setQuestionCount(count)}
+                                        onClick={() => {
+                                            setQuestionCount(count);
+                                            saveSetupDraft({ questionCount: count });
+                                        }}
                                     >
                                         {count}
                                     </button>

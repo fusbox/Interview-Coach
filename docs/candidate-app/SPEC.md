@@ -69,6 +69,8 @@ The default setup should stay short. Stage and question count are first-class pr
 
 Setup submission must produce a typed payload before any session-generation side effect runs. The payload should include normalized `targetRole`, normalized `jobDescription`, nullable normalized `resumeText`, `interviewStage`, `questionCount`, and the resume capture mode. The first transition contract may point to `/candidate/session/[sessionId]` as the next route shape, but it must not create a session until the durable draft and generation boundary are explicitly implemented.
 
+Setup draft preservation should begin before session creation. Once the candidate has supplied the required role and job description, setup should create or restore an editable draft, autosave normalized setup fields, and restore the same draft when the candidate revisits or reloads. Production persistence must be identity-backed so the same candidate can return from another authenticated device; local browser persistence is acceptable only as a development bridge while the verified host-launch identity boundary is being built.
+
 When the candidate chooses an interview stage, the setup surface should recommend a default question count for that stage while still allowing the candidate to choose a different count. Recommendation help text should use first-person coach voice and explain that the coach will guide further practice after the first session.
 
 Resume upload and resume photo capture must normalize to text before downstream generation and coaching. The first UI may expose the file/photo capture and review-text surface before OCR or parser wiring lands, but it must not imply that raw files or photos are the coaching payload.
