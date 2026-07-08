@@ -1,16 +1,17 @@
 "use client";
 
 import {
+    AlertCircle,
     ArrowRight,
+    BadgeCheck,
     Camera,
-    CheckCircle2,
     FileText,
     Loader2,
     Upload,
     User,
     UserCheck,
 } from "lucide-react";
-import { type ChangeEvent, type FormEvent, useMemo, useState } from "react";
+import { type ChangeEvent, type FormEvent, type MouseEvent, useMemo, useState } from "react";
 
 type InterviewStageId = "practice_only" | "screening" | "first_interview" | "follow_up" | "final_interview";
 type ResumeSource = "paste" | "file" | "photo";
@@ -76,12 +77,16 @@ export function CandidateSetupExperience() {
     const [resumeSource, setResumeSource] = useState<ResumeSource>("paste");
     const [resumeAssetName, setResumeAssetName] = useState("");
     const [isPreparing, setIsPreparing] = useState(false);
+    const [attemptedStart, setAttemptedStart] = useState(false);
 
     const activeStage = useMemo(
         () => stageOptions.find((stage) => stage.id === selectedStage) ?? stageOptions[2],
         [selectedStage],
     );
     const canStartPractice = targetRole.trim().length > 0 && jobDescription.trim().length > 0;
+    const showRequiredAlert = attemptedStart && !canStartPractice;
+    const isTargetRoleMissing = showRequiredAlert && targetRole.trim().length === 0;
+    const isJobDescriptionMissing = showRequiredAlert && jobDescription.trim().length === 0;
 
     function chooseStage(stage: StageOption) {
         setSelectedStage(stage.id);
@@ -96,14 +101,25 @@ export function CandidateSetupExperience() {
 
     function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        if (!canStartPractice) {
+            setAttemptedStart(true);
+            return;
+        }
         setIsPreparing(true);
+    }
+
+    function handleStartPracticeClick(event: MouseEvent<HTMLButtonElement>) {
+        if (!canStartPractice) {
+            event.preventDefault();
+            setAttemptedStart(true);
+        }
     }
 
     return (
         <main className="candidate-design-system setup-page">
             <section className="setup-hero app-grid">
                 <div className="setup-hero__copy">
-                    <h1 className="setup-page-title">Practice setup</h1>
+                    <h1 className="setup-page-title">Practice Setup</h1>
                 </div>
 
                 <aside className="setup-progress-card" aria-label="Setup progress">
@@ -136,6 +152,8 @@ export function CandidateSetupExperience() {
                                 <input
                                     name="targetRole"
                                     required
+                                    aria-invalid={isTargetRoleMissing}
+                                    className={isTargetRoleMissing ? "is-required-missing" : undefined}
                                     value={targetRole}
                                     onChange={(event) => setTargetRole(event.target.value)}
                                     placeholder="Example: Customer service representative"
@@ -147,6 +165,8 @@ export function CandidateSetupExperience() {
                                 <textarea
                                     name="jobDescription"
                                     required
+                                    aria-invalid={isJobDescriptionMissing}
+                                    className={isJobDescriptionMissing ? "is-required-missing" : undefined}
                                     value={jobDescription}
                                     onChange={(event) => setJobDescription(event.target.value)}
                                     rows={7}
@@ -270,12 +290,12 @@ export function CandidateSetupExperience() {
                 </div>
 
                 <aside className="setup-rail" aria-label="Setup summary">
-                    <div className="setup-rail__card">
+                    <div className={canStartPractice ? "setup-rail__card is-ready" : "setup-rail__card"}>
                         <div className="setup-rail__header">
                             <span className="setup-rail__icon" aria-hidden="true">
-                                <CheckCircle2 size={18} />
+                                {canStartPractice ? <BadgeCheck size={18} /> : <UserCheck size={18} />}
                             </span>
-                            <p className="type-eyebrow">Your first round</p>
+                            <p className="type-eyebrow">{canStartPractice ? "Ready when you are" : "Your first round"}</p>
                         </div>
                         <dl>
                             <div>
@@ -293,7 +313,17 @@ export function CandidateSetupExperience() {
                         </dl>
                     </div>
 
-                    <div className={isPreparing ? "setup-loading-card is-active" : "setup-loading-card"} aria-live="polite">
+                    <div
+                        className={
+                            isPreparing
+                                ? "setup-loading-card is-active"
+                                : showRequiredAlert
+                                  ? "setup-loading-card is-alert"
+                                  : "setup-loading-card"
+                        }
+                        aria-live="polite"
+                        role={showRequiredAlert ? "alert" : undefined}
+                    >
                         {isPreparing ? (
                             <>
                                 <Loader2 className="setup-spinner" size={18} aria-hidden="true" />
@@ -304,16 +334,25 @@ export function CandidateSetupExperience() {
                             </>
                         ) : (
                             <>
-                                <UserCheck size={18} aria-hidden="true" />
+                                {showRequiredAlert ? (
+                                    <span className="setup-loading-card__icon" aria-hidden="true">
+                                        <AlertCircle size={18} />
+                                    </span>
+                                ) : null}
                                 <div>
-                                    <strong>Ready when you are.</strong>
                                     <span>Required fields are marked with an asterisk.</span>
                                 </div>
                             </>
                         )}
                     </div>
 
-                    <button className="setup-submit" type="submit" disabled={isPreparing || !canStartPractice}>
+                    <button
+                        className="setup-submit"
+                        type="submit"
+                        disabled={isPreparing}
+                        aria-disabled={!canStartPractice}
+                        onClick={handleStartPracticeClick}
+                    >
                         {isPreparing ? "Preparing" : "Start practice"}
                         {isPreparing ? <Loader2 className="setup-spinner" size={16} aria-hidden="true" /> : <ArrowRight size={16} />}
                     </button>

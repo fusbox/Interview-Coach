@@ -333,6 +333,8 @@ The app must not claim:
 - Use plain-language labels, not internal model or product-planning terms.
 - Prefer graphical, evidence-backed preparedness views over long text blocks.
 - Use microinteractions to reveal why an area matters and what evidence supports it.
+- Landing on a candidate page, screen, or view should set scroll position to the top unless a specific interaction pattern intentionally preserves scroll.
+- Candidate draft state should be preserved on revisit by default, including reloads and new-device return flows once durable identity-backed storage is available. Local-only preservation is not enough for production setup, session-planning, or dashboard queue drafts.
 - Keep one clear next action on the dashboard.
 - Make empty states educational without overexplaining implementation.
 - Avoid exposing raw AI internals, hidden scoring, or privacy-sensitive source content in candidate UI.

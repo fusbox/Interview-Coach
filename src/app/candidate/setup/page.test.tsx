@@ -5,7 +5,7 @@ import CandidateSetupPage from "./page";
 it("renders the candidate setup inputs with required markers", () => {
     render(<CandidateSetupPage />);
 
-    expect(screen.getByRole("heading", { name: "Practice setup" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Practice Setup" })).toBeInTheDocument();
     expect(screen.getByText(/Tell me what interview you are preparing for\. After setup/i)).toBeInTheDocument();
     expect(screen.queryByText(/Start with the role and job description/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText("Target role *")).toBeRequired();
@@ -45,16 +45,26 @@ it("changes the recommended question count when the interview stage changes", ()
 it("shows a progress transition after setup submission", () => {
     render(<CandidateSetupPage />);
 
-    expect(screen.getByRole("button", { name: /start practice/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /start practice/i })).toHaveAttribute("aria-disabled", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: /start practice/i }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Required fields are marked with an asterisk.");
+    expect(screen.getByLabelText("Target role *")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText("Job description *")).toHaveAttribute("aria-invalid", "true");
 
     fireEvent.change(screen.getByLabelText("Target role *"), {
         target: { value: "Customer service representative" },
     });
+
+    expect(screen.getByLabelText("Target role *")).toHaveAttribute("aria-invalid", "false");
+
     fireEvent.change(screen.getByLabelText("Job description *"), {
         target: { value: "Help customers resolve service questions." },
     });
 
-    expect(screen.getByRole("button", { name: /start practice/i })).toBeEnabled();
+    expect(screen.getByText("Ready when you are")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /start practice/i })).toHaveAttribute("aria-disabled", "false");
 
     fireEvent.click(screen.getByRole("button", { name: /start practice/i }));
 
