@@ -13,66 +13,27 @@ import {
 } from "lucide-react";
 import { type ChangeEvent, type FormEvent, type MouseEvent, useMemo, useState } from "react";
 
-type InterviewStageId = "practice_only" | "screening" | "first_interview" | "follow_up" | "final_interview";
+import {
+    candidateSetupStageOptions,
+    parseCandidateSetupInput,
+    toCandidateSetupTransition,
+    type CandidateSetupStageId,
+    type CandidateSetupTransition,
+} from "./candidate-setup-contract";
+
 type ResumeSource = "paste" | "file" | "photo";
-
-type StageOption = {
-    id: InterviewStageId;
-    label: string;
-    detail: string;
-    recommendedCount: number;
-    recommendation: string;
-};
-
-const stageOptions: StageOption[] = [
-    {
-        id: "practice_only",
-        label: "Not sure yet",
-        detail: "Use this when you want broad practice before a specific interview is scheduled.",
-        recommendedCount: 5,
-        recommendation:
-            "I recommend 5 questions so you can get useful coaching without making the first round feel heavy.",
-    },
-    {
-        id: "screening",
-        label: "Screening call",
-        detail: "Prepare for early interest, background, availability, and fit questions.",
-        recommendedCount: 5,
-        recommendation:
-            "I recommend 5 questions for a screening call because this stage is usually focused and quick.",
-    },
-    {
-        id: "first_interview",
-        label: "First interview",
-        detail: "Practice a balanced set across role fit, examples, and work situations.",
-        recommendedCount: 7,
-        recommendation:
-            "I recommend 7 questions so we can cover the main question types without turning this into a long session.",
-    },
-    {
-        id: "follow_up",
-        label: "Follow-up interview",
-        detail: "Work on deeper examples, clarifying answers, and role-specific follow-up areas.",
-        recommendedCount: 7,
-        recommendation:
-            "I recommend 7 questions so you can build on what may come next and still keep the practice manageable.",
-    },
-    {
-        id: "final_interview",
-        label: "Final interview",
-        detail: "Prepare for decision-stage questions, judgment, examples, and closing confidence.",
-        recommendedCount: 10,
-        recommendation:
-            "I recommend 10 questions because final rounds tend to ask for broader evidence and sharper examples.",
-    },
-];
 
 const questionCountOptions = [3, 5, 7, 10];
 
-export function CandidateSetupExperience() {
+type CandidateSetupExperienceProps = {
+    onSetupReady?: (transition: CandidateSetupTransition) => void;
+};
+
+export function CandidateSetupExperience({ onSetupReady }: CandidateSetupExperienceProps = {}) {
     const [targetRole, setTargetRole] = useState("");
     const [jobDescription, setJobDescription] = useState("");
-    const [selectedStage, setSelectedStage] = useState<InterviewStageId>("first_interview");
+    const [resumeText, setResumeText] = useState("");
+    const [selectedStage, setSelectedStage] = useState<CandidateSetupStageId>("first_interview");
     const [questionCount, setQuestionCount] = useState(7);
     const [resumeSource, setResumeSource] = useState<ResumeSource>("paste");
     const [resumeAssetName, setResumeAssetName] = useState("");
@@ -80,7 +41,7 @@ export function CandidateSetupExperience() {
     const [attemptedStart, setAttemptedStart] = useState(false);
 
     const activeStage = useMemo(
-        () => stageOptions.find((stage) => stage.id === selectedStage) ?? stageOptions[2],
+        () => candidateSetupStageOptions.find((stage) => stage.id === selectedStage) ?? candidateSetupStageOptions[2],
         [selectedStage],
     );
     const canStartPractice = targetRole.trim().length > 0 && jobDescription.trim().length > 0;
@@ -88,7 +49,7 @@ export function CandidateSetupExperience() {
     const isTargetRoleMissing = showRequiredAlert && targetRole.trim().length === 0;
     const isJobDescriptionMissing = showRequiredAlert && jobDescription.trim().length === 0;
 
-    function chooseStage(stage: StageOption) {
+    function chooseStage(stage: (typeof candidateSetupStageOptions)[number]) {
         setSelectedStage(stage.id);
         setQuestionCount(stage.recommendedCount);
     }
@@ -105,6 +66,14 @@ export function CandidateSetupExperience() {
             setAttemptedStart(true);
             return;
         }
+        const payload = parseCandidateSetupInput({
+            targetRole,
+            jobDescription,
+            resumeText,
+            interviewStage: selectedStage,
+            questionCount,
+        });
+        onSetupReady?.(toCandidateSetupTransition(payload));
         setIsPreparing(true);
     }
 
@@ -231,6 +200,8 @@ export function CandidateSetupExperience() {
                             <span>Paste resume text</span>
                             <textarea
                                 name="resumeText"
+                                value={resumeText}
+                                onChange={(event) => setResumeText(event.target.value)}
                                 rows={6}
                                 placeholder="Paste resume text here."
                             />
@@ -249,7 +220,7 @@ export function CandidateSetupExperience() {
                         <fieldset className="setup-fieldset">
                             <legend>Interview stage *</legend>
                             <div className="stage-grid">
-                                {stageOptions.map((stage) => (
+                                {candidateSetupStageOptions.map((stage) => (
                                     <button
                                         key={stage.id}
                                         type="button"

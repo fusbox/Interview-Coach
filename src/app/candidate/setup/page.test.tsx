@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import CandidateSetupPage from "./page";
+import { CandidateSetupExperience } from "@/features/candidate-setup-v2/CandidateSetupExperience";
 
 it("renders the candidate setup inputs with required markers", () => {
     render(<CandidateSetupPage />);
@@ -70,4 +71,35 @@ it("shows a progress transition after setup submission", () => {
 
     expect(screen.getByText(/Building your practice plan/i)).toBeInTheDocument();
     expect(screen.getByText(/Preparing the transition into your first session/i)).toBeInTheDocument();
+});
+
+it("submits a typed setup payload for the next transition", () => {
+    const handleSetupReady = vi.fn();
+    render(<CandidateSetupExperience onSetupReady={handleSetupReady} />);
+
+    fireEvent.change(screen.getByLabelText("Target role *"), {
+        target: { value: " Customer service representative " },
+    });
+    fireEvent.change(screen.getByLabelText("Job description *"), {
+        target: { value: " Help customers resolve service questions. " },
+    });
+    fireEvent.change(screen.getByLabelText("Paste resume text"), {
+        target: { value: " Supported a high-volume front desk. " },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /screening call/i }));
+    fireEvent.click(screen.getByRole("button", { name: "3" }));
+    fireEvent.click(screen.getByRole("button", { name: /start practice/i }));
+
+    expect(handleSetupReady).toHaveBeenCalledWith({
+        status: "ready_for_session_creation",
+        nextRoute: "/candidate/session/[sessionId]",
+        payload: {
+            targetRole: "Customer service representative",
+            jobDescription: "Help customers resolve service questions.",
+            resumeText: "Supported a high-volume front desk.",
+            interviewStage: "screening",
+            questionCount: 3,
+            resumeCaptureMode: "pasted_text",
+        },
+    });
 });

@@ -67,6 +67,8 @@ The candidate creates a practice round by providing:
 
 The default setup should stay short. Stage and question count are first-class practice configuration, not intake. Future advanced setup may expand inline for additional coaching customization, but it should not make setup feel like a long intake interview.
 
+Setup submission must produce a typed payload before any session-generation side effect runs. The payload should include normalized `targetRole`, normalized `jobDescription`, nullable normalized `resumeText`, `interviewStage`, `questionCount`, and the resume capture mode. The first transition contract may point to `/candidate/session/[sessionId]` as the next route shape, but it must not create a session until the durable draft and generation boundary are explicitly implemented.
+
 When the candidate chooses an interview stage, the setup surface should recommend a default question count for that stage while still allowing the candidate to choose a different count. Recommendation help text should use first-person coach voice and explain that the coach will guide further practice after the first session.
 
 Resume upload and resume photo capture must normalize to text before downstream generation and coaching. The first UI may expose the file/photo capture and review-text surface before OCR or parser wiring lands, but it must not imply that raw files or photos are the coaching payload.
