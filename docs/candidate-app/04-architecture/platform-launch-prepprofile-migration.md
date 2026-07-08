@@ -20,7 +20,9 @@ The expected production entry is:
 ```text
 TalentArbor / RangamWorks job listing
 -> Practice Interview button
--> interviewcoach.talentarbor.com/candidate/setup?launchToken=...
+-> interviewcoach.talentarbor.com/candidate/launch?token=...
+-> server verifies signed host launch token
+-> server resolves or creates candidate profile/identity mapping
 -> server resolves candidate, job, req, JD, and resume context
 -> app finds or creates the candidate prepProfile for that target interview
 ```
@@ -113,6 +115,22 @@ Open decision:
 ## Launch Context Contract
 
 The host button should eventually pass a signed, short-lived launch token rather than raw candidate, JD, or resume data in the URL.
+
+The July 6, 2026 integration transcript clarifies the first expected token direction:
+
+- the token is passed as a query parameter during redirect from the host platform;
+- the token should be URL-safe and may be long;
+- the token is JWT-like and validated through server-side signature verification;
+- the signing secret is shared between the TalentArbor/RangamWorks server side and the Interview Coach server side and must not be exposed to client code;
+- the token includes expiry;
+- the token includes a product value used only for validation, not persistence;
+- candidate identity claims are expected to support creating or mapping an Interview Coach candidate profile;
+- exact claim names, algorithm, query parameter name, and replay requirements are still pending.
+
+Current V2 scaffold:
+
+- [Host launch contract](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-auth-v2/host-launch-contract.ts)
+- [Host launch contract tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-auth-v2/host-launch-contract.test.ts)
 
 Expected resolved launch context:
 
@@ -284,7 +302,10 @@ Avoid storing by default:
 
 ## Open Questions
 
-- What is the exact TalentArbor/RangamWorks launch-token format?
+- What is the exact TalentArbor/RangamWorks launch-token query parameter name?
+- What JWT algorithm, issuer, audience, product claim value, and shared-secret rotation plan will TalentArbor/RangamWorks use?
+- What are the exact payload claim names for email, host user id, host candidate id, TalentArbor id, RangamWorks id, display name, and expiry?
+- Are launch tokens single-use/replay-protected or valid until expiry?
 - Which service resolves launch token to candidate, job, req, resume, and consent context?
 - Which platform identifier is canonical for candidate identity?
 - Is `JobCollectionID` always present from job-search launch surfaces?

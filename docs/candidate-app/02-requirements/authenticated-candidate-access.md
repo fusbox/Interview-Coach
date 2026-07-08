@@ -41,6 +41,27 @@ Expected behavior:
 - default candidate landing route is `/dashboard`
 - logout or back-navigation behavior aligns with the portal contract
 
+### Host Launch Token
+
+The July 6, 2026 integration discussion clarified the expected production handoff shape:
+
+- TalentArbor/RangamWorks will redirect the candidate to Interview Coach with a token in a query parameter.
+- The token is expected to be long and URL-safe.
+- The token is expected to be JWT-like and signed with a shared secret stored only on the TalentArbor/RangamWorks server side and the Interview Coach server side.
+- Interview Coach must verify the token signature server-side before trusting any claim.
+- The token includes expiry.
+- The token includes a product claim. Interview Coach should validate that the product is Interview Coach, but it does not need to store the product value.
+- The token payload should identify the candidate enough to resolve or create an Interview Coach candidate profile and map that profile to host-side identity such as email, user id, candidate id, TalentArbor id, or RangamWorks id.
+- If a host-authenticated candidate is new to Interview Coach, Interview Coach creates the candidate profile/identity mapping after token verification.
+- After verification and profile resolution, Interview Coach should establish its own candidate session and redirect to a canonical candidate route without leaving the token-bearing URL in normal navigation.
+
+Current V2 scaffold:
+
+- [Host launch contract](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-auth-v2/host-launch-contract.ts)
+- [Host launch contract tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-auth-v2/host-launch-contract.test.ts)
+
+The scaffold intentionally injects the token verifier until the exact payload, query parameter name, JWT algorithm, and secret-management contract are confirmed.
+
 ### Standalone Dev Auth
 
 Expected behavior:
@@ -135,7 +156,15 @@ The middleware keeps recruiter/admin/QA auth separate from candidate routes. Can
 
 ## Open Questions
 
-- What exact protocol will TalentArbor/RangamWorks use to hand identity to Interview Coach after login?
+- What is the exact token query parameter name?
+- Which JWT algorithm will TalentArbor/RangamWorks use?
+- What are the exact payload claim names and required/optional fields?
+- What are the issuer, audience, and product claim values?
+- What expiry duration and clock-skew tolerance should Interview Coach accept?
+- Are launch tokens single-use, replay-protected, or valid until expiry?
+- Does the launch token include the intended route, or does Interview Coach always default to `/candidate/dashboard` or `/candidate/setup`?
+- Does the launch token include job/req/JD/resume context, or will Interview Coach fetch that context separately after identity resolution?
+- What is the shared-secret rotation plan?
 - Does `LoginWithType/2` support a return URL, callback URL, or signed state parameter?
 - Will the shared identity source live inside this app database or a separate candidate platform service?
 - Should candidate logout return to TalentArbor, clear only Interview Coach state, or both?
