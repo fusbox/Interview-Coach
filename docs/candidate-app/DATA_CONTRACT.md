@@ -1,7 +1,7 @@
 # Candidate App Data Contract
 
 Status: Canonical system truth
-Last updated: 2026-07-06
+Last updated: 2026-07-09
 
 ## Purpose
 
@@ -174,6 +174,57 @@ Optional:
 
 Current setup rule: candidate-led `/practice` requires a job description because production entry is expected to supply JD context and the practice model is role-specific.
 
+### CandidatePracticeSession
+
+`CandidatePracticeSession` is the V2 durable boundary for a candidate-owned practice round created from setup.
+
+Current backing:
+
+- `candidate_practice_sessions`;
+- repository adapter: `src/features/candidate-session-v2/candidate-practice-session-repository.ts`;
+- migration: `db/migrations/007_candidate_practice_sessions_schema.sql`.
+
+Current contract:
+
+```ts
+type CandidatePracticeSessionProgress = {
+    status: "planned" | "question_preview";
+    currentQuestionIndex: number;
+};
+
+type CandidateAnswerDraft = {
+    slotId: string;
+    questionIndex: number;
+    mode: "text";
+    text: string;
+    updatedAt: string;
+};
+
+type CandidatePracticeSession = {
+    candidatePracticeSessionId: string;
+    candidateProfileId: string;
+    roleProfileId?: string | null;
+    candidateLaunchSessionId?: string | null;
+    status: "planned" | "in_progress" | "completed" | "abandoned";
+    setupSnapshot: CandidateSetupPayload & { createdAt: string };
+    questionPlanSnapshot: QuestionPlan;
+    questionWordingSnapshot?: QuestionWordingResult | null;
+    questionWordingStatus: "not_requested" | "provider_not_configured" | "worded" | "failed";
+    progress: CandidatePracticeSessionProgress;
+    answerDrafts: Record<string, CandidateAnswerDraft>;
+};
+```
+
+Rules:
+
+- `setupSnapshot`, `questionPlanSnapshot`, optional `questionWordingSnapshot`, `progress`, and `answerDrafts` are persisted as immutable or explicitly updated JSONB boundaries so the app can trace setup -> plan -> wording -> progress -> draft without rebuilding from mutable UI state.
+- The table is candidate-owned and may link to `prepProfile` through `role_profile_id` and to host launch through `candidate_launch_session_id`.
+- `/candidate/setup/start` persists setup-created sessions into `candidate_practice_sessions` when candidate identity can be resolved from the route context. If identity cannot be resolved, the route may continue returning the browser-bridge provisional session result for local/dev continuity. If identity resolves but persistence fails, the route must fail closed.
+- `/candidate/session/[sessionId]` may recover a setup-created practice round from `candidate_practice_sessions` only after the launch-session cookie resolves to the owning `candidateProfileId`. Recovered sessions hydrate the planned-session shell before browser storage is consulted. If durable recovery is unavailable, browser session storage remains the local/dev fallback.
+- The answer-draft shell may save typed draft text to `candidate_practice_sessions.answer_drafts_json` through an ownership-scoped candidate session route when durable identity is available. Browser-bridge sessions keep answer draft text component-local only. Answer drafts must not write to `answers`, evaluator inputs, feedback, or dashboard read models until answer submission deliberately lands.
+- This table does not replace the legacy/live `sessions`, `questions`, `answers`, or evaluation rows yet. Live answer runtime, provider generation, dashboard reads, and summary/debrief persistence remain separate slices.
+- Browser session storage remains a development bridge until all session progress and answer-draft persistence is identity-backed.
+
 ### QuestionPlan
 
 `QuestionPlan` is the deterministic plan for the question category mix before AI question text generation.
@@ -241,7 +292,7 @@ Rules:
 - planned provider output uses `caseScenario` as the first-class keyed Case/Scenario container. Legacy provider payloads that still put case/scenario-like keys inside `behavioral` are normalized into `caseScenario` after parsing for compatibility.
 - after provider parsing, the service repairs schema-valid output that under-fills a planned category by adding deterministic role-specific fallback questions. The UI may trim a larger pool down to the confirmed plan, but it should not silently accept fewer usable questions than `QuestionPlan.questionCount`.
 - legacy `interviewType` remains compatibility-only for older candidate inputs and fallback ordering when no `interviewStage`/`QuestionPlan` is available. New recruiter and candidate setup work should use `interviewStage` plus `questionCount`; retiring `interviewType` is blocked until older-row read behavior is reviewed.
-- candidate-created sessions persist the resolved `QuestionPlan` as `sessions.intakeData.questionPlanSnapshot` at session creation time. This is the immutable planned sampling contract for that practice round and should be used for later dashboard coverage/recovery reads instead of rebuilding from mutable setup state.
+- legacy candidate-created sessions persist the resolved `QuestionPlan` as `sessions.intakeData.questionPlanSnapshot` at session creation time. In V2 cleanroom work, setup-created practice rounds persist the carried `questionPlanSnapshot` on `candidate_practice_sessions` first; later live-runtime wiring can decide how and when to mirror that into `sessions`/`questions` rows.
 
 ### PracticeCoverageBaseline
 

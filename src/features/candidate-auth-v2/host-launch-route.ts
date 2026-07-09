@@ -29,28 +29,44 @@ export async function handleCandidateHostLaunchRequest({
         verifyLaunchToken,
         resolveCandidateProfile,
     });
-    const redirectUrl = new URL(result.redirectTo, url.origin);
     const response = new Response(null, {
         status: 302,
         headers: {
-            Location: redirectUrl.toString(),
+            Location: result.redirectTo,
         },
     });
 
     if (result.ok) {
-        response.headers.append("Set-Cookie", serializeLaunchSessionCookie(result.session.sessionId, result.session.expiresAt));
+        response.headers.append("Set-Cookie", serializeLaunchSessionCookie({
+            sessionId: result.session.sessionId,
+            expiresAt: result.session.expiresAt,
+            secure: url.protocol === "https:",
+        }));
     }
 
     return response;
 }
 
-function serializeLaunchSessionCookie(sessionId: string, expiresAt: string) {
-    return [
+function serializeLaunchSessionCookie({
+    sessionId,
+    expiresAt,
+    secure,
+}: {
+    sessionId: string;
+    expiresAt: string;
+    secure: boolean;
+}) {
+    const parts = [
         `${CANDIDATE_HOST_LAUNCH_SESSION_COOKIE}=${encodeURIComponent(sessionId)}`,
         "Path=/candidate",
         "HttpOnly",
         "SameSite=Lax",
-        "Secure",
         `Expires=${new Date(expiresAt).toUTCString()}`,
-    ].join("; ");
+    ];
+
+    if (secure) {
+        parts.splice(4, 0, "Secure");
+    }
+
+    return parts.join("; ");
 }

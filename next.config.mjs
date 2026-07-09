@@ -2,7 +2,13 @@
 const nextConfig = {
     // Rebuild trigger: 3
     reactStrictMode: true,
-    allowedDevOrigins: ['127.0.0.1', 'localhost'],
+    allowedDevOrigins: [
+        '127.0.0.1',
+        'localhost',
+        '192.168.1.177',
+        '192.168.1.177:3000',
+        '192.168.1.177:3001',
+    ],
     experimental: {
         serverActions: {
             allowedOrigins: [

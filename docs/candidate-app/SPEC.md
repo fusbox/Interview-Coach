@@ -1,7 +1,7 @@
 # Candidate App Spec
 
 Status: Canonical product intent
-Last updated: 2026-07-07
+Last updated: 2026-07-09
 
 ## Purpose
 
@@ -67,15 +67,19 @@ The candidate creates a practice round by providing:
 
 The default setup should stay short. Stage and question count are first-class practice configuration, not intake. Future advanced setup may expand inline for additional coaching customization, but it should not make setup feel like a long intake interview.
 
-Setup submission must produce a typed payload before any session-generation side effect runs. The payload should include normalized `targetRole`, normalized `jobDescription`, nullable normalized `resumeText`, `interviewStage`, `questionCount`, and the resume capture mode. The first transition contract may point to `/candidate/session/[sessionId]` as the next route shape, but it must not create a session until the durable draft and generation boundary are explicitly implemented.
+Setup submission must produce a typed payload before any session-generation side effect runs. The payload should include normalized `targetRole`, normalized `jobDescription`, nullable normalized `resumeText`, `interviewStage`, `questionCount`, and the resume capture mode. The first server transition may create a provisional candidate session route id and return `/candidate/session/[sessionId]` as the next route shape. That transition should carry the setup snapshot, the deterministic `questionPlanSnapshot`, and any provisional fixture `questionWordingSnapshot` so later persistence and generation can trace from one explicit setup input to one explicit planned category sequence to one exact worded-question sequence. It must not persist a durable practice session, call the production question-generation provider, or imply that the full session runtime exists until the durable draft, provider generation, and live-session boundaries are explicitly implemented.
 
 Setup draft preservation should begin before session creation. Once the candidate has supplied the required role and job description, setup should create or restore an editable draft, autosave normalized setup fields, and restore the same draft when the candidate revisits or reloads. Production persistence must be identity-backed so the same candidate can return from another authenticated device; local browser persistence is acceptable only as a development bridge while the verified host-launch identity boundary is being built.
+
+Setup draft state remains editable and restorable until a setup submission successfully creates the next session boundary. Failed submissions must preserve the draft so the candidate can retry without losing work. Successful session creation should clear the setup draft for that candidate so returning to `/candidate/setup` starts a new prep context instead of re-opening an already-submitted setup.
 
 When the candidate chooses an interview stage, the setup surface should recommend a default question count for that stage while still allowing the candidate to choose a different count. Recommendation help text should use first-person coach voice and explain that the coach will guide further practice after the first session.
 
 Resume upload and resume photo capture must normalize to text before downstream generation and coaching. The first UI may expose the file/photo capture and review-text surface before OCR or parser wiring lands, but it must not imply that raw files or photos are the coaching payload.
 
 Question planning should stay deterministic and explainable before any AI question text is generated. The app may use target role, job description, resume context, interview stage, and question count to choose the intended category mix, but it should not imply that the generated question set alone defines overall interview preparedness.
+
+Question wording must be requested from the explicit setup snapshot plus the carried `questionPlanSnapshot`. Provider or fixture output must be parsed through a typed result boundary that maps every question back to exactly one plan slot in order. Results that skip, duplicate, reorder, or misclassify plan slots must fail closed rather than being repaired silently. Until a provider is deliberately wired, the wording boundary should expose an explicit unavailable state instead of fabricating live-session questions.
 
 Candidate setup should clearly state:
 
@@ -89,6 +93,10 @@ Setup and session-launch transitions should include progress/loading UI so candi
 ### Live Session
 
 The live session should feel equivalent in quality to the recruiter-invited practice session experience while preserving candidate ownership.
+
+During the cleanroom rebuild, `/candidate/session/[sessionId]` may first render a planned-session shell before the live runtime is restored. When a candidate-owned durable practice-session id can be resolved through the verified launch-session identity, that shell should recover the persisted setup snapshot, carried `questionPlanSnapshot`, optional `questionWordingSnapshot`, wording status, provisional progress, and answer drafts from `candidate_practice_sessions`. Browser session storage remains only a local/development bridge when durable identity or durable session recovery is unavailable. The shell should show the target role, interview stage, question count, resume inclusion state, role/JD context, the carried `questionPlanSnapshot`, and the carried provisional `questionWordingSnapshot` when present. It may create the provider-free question-wording request, show the explicit wording-unavailable state while provider wiring is absent, render deterministic fixture wording as a read-only preview only after the stored or fallback preview questions parse through the same strict slot-mapping boundary, and open a read-only question shell from that wording snapshot. Provisional progress is limited to planned/not-started versus read-only-question-preview state and the current preview question index, so reload/revisit behavior is deterministic while the live runtime is absent. The question shell may expose a local answer-draft surface with text entry and visible voice/photo affordances; text drafts should persist through the durable practice-session boundary when identity is available and stay component-local for browser-bridge sessions. Submission, feedback, and media capture must stay disabled or unavailable until the answer lifecycle lands beyond its fail-closed stub. The shell must clearly state that production question wording has not been generated yet, keep live-question start disabled, and must not imply the round has already started.
+
+The V2 durable persistence boundary for setup-created practice rounds is `candidate_practice_sessions`. It stores the setup snapshot, carried question plan snapshot, optional question wording snapshot or wording status, provisional progress state, and answer drafts with candidate ownership and optional links to role profile and host-launch session context. `/candidate/setup/start` should persist through this boundary when candidate identity is available; if no candidate identity is available, local development may continue to return the browser-bridge provisional session result. If candidate identity resolves but durable persistence fails, the transition should fail closed instead of silently falling back. This boundary does not by itself wire provider calls, answer submission, feedback, dashboard reads, or the live `sessions`/`questions` runtime.
 
 Expected behavior:
 
@@ -337,7 +345,8 @@ The app must not claim:
 - Use plain-language labels, not internal model or product-planning terms.
 - Prefer graphical, evidence-backed preparedness views over long text blocks.
 - Use microinteractions to reveal why an area matters and what evidence supports it.
-- Landing on a candidate page, screen, or view should set scroll position to the top unless a specific interaction pattern intentionally preserves scroll.
+- Candidate surfaces should be intentionally stateful. Preserve unsubmitted or in-progress candidate work by default, but define explicit reset boundaries when a user action completes or replaces that work, such as successful setup submission creating a session.
+- Landing on a candidate page, screen, or view should set scroll position to the top unless a specific interaction pattern intentionally preserves scroll. Any exception should be deliberate and documented by the slice that introduces it.
 - Candidate draft state should be preserved on revisit by default, including reloads and new-device return flows once durable identity-backed storage is available. Local-only preservation is not enough for production setup, session-planning, or dashboard queue drafts.
 - Keep one clear next action on the dashboard.
 - Make empty states educational without overexplaining implementation.

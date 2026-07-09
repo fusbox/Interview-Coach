@@ -67,6 +67,9 @@ AI-eval/
 # Azure Boards import/export scratch
 docs/candidate-app/work-items*.csv
 
+# Disposable database backups/exports
+db/exports/
+
 # Understand-Anything local scratch
 .understand-anything/intermediate/
 .understand-anything/tmp/

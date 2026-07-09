@@ -13,7 +13,7 @@ describe("candidate host launch contract", () => {
         email: " candidate@example.com ",
         displayName: " Candidate Example ",
         workspace: "talentarbor",
-        product: "interview_coach",
+        product: "interview-coach",
         expiresAt: "2026-07-08T18:00:00.000Z",
         issuedAt: "2026-07-08T17:55:00.000Z",
         hostCandidateId: "cand-123",
@@ -58,6 +58,15 @@ describe("candidate host launch contract", () => {
                 rangamWorksId: null,
                 talentArborId: null,
             },
+            launchContextHint: {
+                candidateId: "cand-123",
+                jobCollectionId: null,
+                hostDomain: null,
+                sourceSurface: "UNKNOWN",
+            },
+        }, {
+            expiresAt: "2026-07-08T18:00:00.000Z",
+            issuedAt: "2026-07-08T17:55:00.000Z",
         });
     });
 

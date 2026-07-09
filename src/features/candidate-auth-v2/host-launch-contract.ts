@@ -1,4 +1,4 @@
-export const CANDIDATE_HOST_LAUNCH_PRODUCT = "interview_coach";
+export const CANDIDATE_HOST_LAUNCH_PRODUCT = "interview-coach";
 export const CANDIDATE_HOST_LAUNCH_DEFAULT_REDIRECT = "/candidate/dashboard";
 
 const candidateLaunchRedirectAllowlist = new Set([
@@ -22,6 +22,9 @@ export type CandidateHostLaunchTokenPayload = {
     hostUserId?: string | null;
     talentArborId?: string | null;
     rangamWorksId?: string | null;
+    jobCollectionId?: string | null;
+    hostDomain?: string | null;
+    sourceSurface?: string | null;
 };
 
 export type CandidateHostLaunchHandoff = {
@@ -36,6 +39,12 @@ export type CandidateHostLaunchHandoff = {
         hostUserId: string | null;
         talentArborId: string | null;
         rangamWorksId: string | null;
+    };
+    launchContextHint: {
+        candidateId: string | null;
+        jobCollectionId: string | null;
+        hostDomain: string | null;
+        sourceSurface: string;
     };
 };
 
@@ -69,10 +78,13 @@ export type CandidateHostLaunchDependencies = {
     now: Date;
     requestedRedirect?: string | null;
     verifyLaunchToken: (token: string) => Promise<CandidateHostLaunchTokenPayload | null>;
-    resolveCandidateProfile: (handoff: CandidateHostLaunchHandoff) => Promise<{
+    resolveCandidateProfile: (handoff: CandidateHostLaunchHandoff, source: {
+        expiresAt: string;
+        issuedAt: string | null;
+    }) => Promise<{
         candidateProfileId: string;
         sessionId: string;
-    }>;
+    } | null>;
 };
 
 export async function createCandidateHostLaunchSession({
@@ -107,7 +119,13 @@ export async function createCandidateHostLaunchSession({
         return failCandidateLaunch("invalid_identity");
     }
 
-    const session = await resolveCandidateProfile(handoff);
+    const session = await resolveCandidateProfile(handoff, {
+        expiresAt: payload.expiresAt,
+        issuedAt: payload.issuedAt ?? null,
+    });
+    if (!session) {
+        return failCandidateLaunch("invalid_identity");
+    }
 
     return {
         ok: true,
@@ -150,6 +168,12 @@ function toCandidateHostLaunchHandoff(payload: CandidateHostLaunchTokenPayload):
             talentArborId: payload.talentArborId?.trim() || null,
             rangamWorksId: payload.rangamWorksId?.trim() || null,
         },
+        launchContextHint: {
+            candidateId: firstNonEmpty(payload.hostCandidateId, payload.talentArborId, payload.rangamWorksId),
+            jobCollectionId: payload.jobCollectionId?.trim() || null,
+            hostDomain: payload.hostDomain?.trim() || null,
+            sourceSurface: payload.sourceSurface?.trim() || "UNKNOWN",
+        },
     };
 }
 
@@ -164,4 +188,15 @@ function failCandidateLaunch(reason: CandidateHostLaunchFailureReason): Candidat
         reason,
         redirectTo: CANDIDATE_HOST_LAUNCH_DEFAULT_REDIRECT,
     };
+}
+
+function firstNonEmpty(...values: Array<string | null | undefined>) {
+    for (const value of values) {
+        const normalized = value?.trim();
+        if (normalized) {
+            return normalized;
+        }
+    }
+
+    return null;
 }

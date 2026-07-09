@@ -50,7 +50,7 @@ The July 6, 2026 integration discussion clarified the expected production handof
 - The token is expected to be JWT-like and signed with a shared secret stored only on the TalentArbor/RangamWorks server side and the Interview Coach server side.
 - Interview Coach must verify the token signature server-side before trusting any claim.
 - The token includes expiry.
-- The token includes a product claim. Interview Coach should validate that the product is Interview Coach, but it does not need to store the product value.
+- The token includes a product claim. Current integration understanding expects `product: "interview-coach"`. Interview Coach should validate that the product is Interview Coach, but it does not need to store the product value.
 - The token payload should identify the candidate enough to resolve or create an Interview Coach candidate profile and map that profile to host-side identity such as email, user id, candidate id, TalentArbor id, or RangamWorks id.
 - If a host-authenticated candidate is new to Interview Coach, Interview Coach creates the candidate profile/identity mapping after token verification.
 - After verification and profile resolution, Interview Coach should establish its own candidate session and redirect to a canonical candidate route without leaving the token-bearing URL in normal navigation.
@@ -59,8 +59,71 @@ Current V2 scaffold:
 
 - [Host launch contract](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-auth-v2/host-launch-contract.ts)
 - [Host launch contract tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-auth-v2/host-launch-contract.test.ts)
+- [Production host launch verifier boundary](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-auth-v2/production-host-launch-verifier.ts)
+- [Production host launch verifier tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-auth-v2/production-host-launch-verifier.test.ts)
+- [Production host launch runtime assembly](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-auth-v2/production-host-launch-runtime.ts)
+- [Production host launch runtime tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-auth-v2/production-host-launch-runtime.test.ts)
+- [Candidate launch session resolver boundary](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-auth-v2/candidate-launch-session-resolver.ts)
+- [Candidate launch session resolver tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-auth-v2/candidate-launch-session-resolver.test.ts)
+- [Host launch orchestrator boundary](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-auth-v2/host-launch-orchestrator.ts)
+- [Host launch orchestrator tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-auth-v2/host-launch-orchestrator.test.ts)
 
-The scaffold intentionally injects the token verifier until the exact payload, query parameter name, JWT algorithm, and secret-management contract are confirmed.
+The scaffold intentionally keeps the TA/RW launch-context lookup injected until the exact proc/query contract is confirmed.
+
+The exported `/candidate/launch` route now assembles production dependencies when `CANDIDATE_HOST_LAUNCH_SECRET` and `DATABASE_URL` are present. It verifies production host tokens and uses the concrete candidate launch-session repository, but still fails closed at the placeholder TA/RW launch-context lookup and does not set the candidate session cookie until that lookup adapter is implemented.
+
+Expected production env names:
+
+- `CANDIDATE_HOST_LAUNCH_SECRET`: server-only shared signing secret.
+- `CANDIDATE_HOST_LAUNCH_EXPECTED_ISSUER`: optional expected issuer, defaulting to `talentarbor` until the host contract is finalized.
+- `CANDIDATE_HOST_LAUNCH_CLOCK_SKEW_SECONDS`: optional non-negative clock-skew allowance, defaulting to 60 seconds.
+- `DATABASE_URL`: Interview Coach Postgres database URL used by the candidate launch-session repository.
+
+Current supported algorithm is `HS256`, matching the shared-secret direction from the integration transcript. This remains a boundary assumption until TalentArbor/RangamWorks confirms the exact JWT algorithm and secret rotation plan. Missing secret or invalid clock-skew configuration fails closed. Token verification returns telemetry-safe reasons such as `malformed_token`, `invalid_signature`, `invalid_product`, `invalid_issuer`, `invalid_expiry`, and `expired_token`; it must not log raw tokens or claim payloads.
+
+Launch-context resolution is a separate boundary from token verification. TA staging DB discovery did not find a single existing proc/view that returns the full Interview Coach context from `CandidateID + JobCollectionID`, so production should use a purpose-built resolver such as `USP_InterviewCoach_GetLaunchContext`. The app contract expects candidate/source/job/resume-availability/consent metadata, while full resume text remains a separate approved retrieval path before AI use.
+
+Profile/session resolution is also a separate boundary. After the host token is verified and launch context is normalized, the app resolves an Interview Coach candidate profile through a traceable identity chain:
+
+```text
+host launch handoff
++ normalized launch context
+-> launch identity key
+-> candidate_profile_id
+-> Interview Coach candidate session
+```
+
+The launch identity key is provider/issuer/subject plus trusted platform candidate identifiers, not email alone. New candidates can create a profile and upsert the host-launch identity mapping; existing candidates reuse the mapped profile. The resolver fails closed when token identity and launch context disagree, when a profile cannot be resolved or created, or when an app session cannot be created.
+
+The V2 storage contract now has a concrete migration and repository adapter for this boundary:
+
+- `candidate_identities` accepts `talentarbor_launch` and `rangamworks_launch`.
+- host-launch identity rows store `host_candidate_id`, `host_user_id`, `platform_candidate_id`, and `workspace`.
+- `candidate_launch_sessions` stores the app session id plus provider identity, candidate profile id, platform candidate id, job collection id, source surface, host domain, expiry, and compact launch-context JSON.
+- the repository adapter takes an injected query client; production `/candidate/launch` now assembles that query client from `DATABASE_URL`, but the route still cannot create a session until TA/RW launch context is resolved.
+
+Host launch orchestration now has a tested injectable boundary:
+
+```text
+signed token
+-> token verifier
+-> normalized host launch handoff
+-> launch-context lookup from candidate/job hints
+-> normalized launch context
+-> candidate profile/session resolver
+-> candidate session result for the route cookie
+```
+
+The exported production `/candidate/launch` route remains fail-closed until the TA/RW launch-context lookup implementation is supplied. The route already requires production verifier config plus `DATABASE_URL`; the remaining placeholder lookup means even a valid token redirects without setting a candidate session cookie. The orchestration requires a platform job hint such as `jobCollectionId`; a token that identifies only the candidate is not enough to start a production target-interview setup flow.
+
+Local development can exercise the same redirect shape with explicit dev-only host launch mode:
+
+- `CANDIDATE_HOST_LAUNCH_DEV_MODE=true`
+- `CANDIDATE_HOST_LAUNCH_DEV_SECRET=<local-only shared secret>`
+- `/candidate/dev/launch?candidate=primary&next=/candidate/setup`
+- `/candidate/dev/launch?candidate=alternate&next=/candidate/setup`
+
+The dev route is unavailable unless the explicit mode and secret are present and `NODE_ENV` is not production. It mints a local HMAC-signed token shaped around `candidate_id`, `product`, `email`, and `exp`, then redirects through the normal `/candidate/launch` route so URL cleanup and session-cookie behavior stay aligned with production intent.
 
 ### Standalone Dev Auth
 

@@ -10,7 +10,7 @@ describe("candidate host launch route shell", () => {
         email: "candidate@example.com",
         displayName: "Candidate Example",
         workspace: "talentarbor",
-        product: "interview_coach",
+        product: "interview-coach",
         expiresAt: "2026-07-08T18:00:00.000Z",
         hostCandidateId: "candidate-123",
     };
@@ -24,7 +24,7 @@ describe("candidate host launch route shell", () => {
         });
 
         expect(response.status).toBe(302);
-        expect(response.headers.get("Location")).toBe("https://interviewcoach.talentarbor.com/candidate/dashboard");
+        expect(response.headers.get("Location")).toBe("/candidate/dashboard");
         expect(response.headers.get("Set-Cookie")).toBeNull();
     });
 
@@ -43,7 +43,7 @@ describe("candidate host launch route shell", () => {
         });
 
         expect(response.status).toBe(302);
-        expect(response.headers.get("Location")).toBe("https://interviewcoach.talentarbor.com/candidate/setup");
+        expect(response.headers.get("Location")).toBe("/candidate/setup");
         expect(response.headers.get("Location")).not.toContain("signed.jwt");
         expect(response.headers.get("Set-Cookie")).toContain("ic_candidate_launch_session=session-123");
         expect(response.headers.get("Set-Cookie")).toContain("HttpOnly");
@@ -52,7 +52,26 @@ describe("candidate host launch route shell", () => {
         expect(resolveCandidateProfile).toHaveBeenCalledWith(expect.objectContaining({
             email: "candidate@example.com",
             subject: "host-user-123",
-        }));
+        }), {
+            expiresAt: "2026-07-08T18:00:00.000Z",
+            issuedAt: null,
+        });
+    });
+
+    it("omits the Secure cookie attribute for local http dev launches", async () => {
+        const response = await handleCandidateHostLaunchRequest({
+            requestUrl: "http://0.0.0.0:3000/candidate/launch?token=signed.jwt&next=/candidate/setup",
+            now: new Date("2026-07-08T17:55:00.000Z"),
+            verifyLaunchToken: vi.fn(async () => payload),
+            resolveCandidateProfile: vi.fn(async () => ({
+                candidateProfileId: "profile-123",
+                sessionId: "session-123",
+            })),
+        });
+
+        expect(response.headers.get("Set-Cookie")).toContain("SameSite=Lax");
+        expect(response.headers.get("Set-Cookie")).not.toContain("Secure");
+        expect(response.headers.get("Location")).toBe("/candidate/setup");
     });
 
     it("falls back to the default candidate route for unsafe next targets", async () => {
@@ -67,7 +86,7 @@ describe("candidate host launch route shell", () => {
         });
 
         expect(response.status).toBe(302);
-        expect(response.headers.get("Location")).toBe("https://interviewcoach.talentarbor.com/candidate/dashboard");
+        expect(response.headers.get("Location")).toBe("/candidate/dashboard");
     });
 
     it("does not set a session cookie when signature verification fails", async () => {
@@ -79,7 +98,7 @@ describe("candidate host launch route shell", () => {
         });
 
         expect(response.status).toBe(302);
-        expect(response.headers.get("Location")).toBe("https://interviewcoach.talentarbor.com/candidate/dashboard");
+        expect(response.headers.get("Location")).toBe("/candidate/dashboard");
         expect(response.headers.get("Set-Cookie")).toBeNull();
     });
 });

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import {
     CANDIDATE_SETUP_DRAFT_STORAGE_KEY,
+    clearCandidateSetupDraft,
     createCandidateSetupBrowserDraftStore,
     createCandidateSetupMemoryDraftStore,
     restoreCandidateSetupDraft,
@@ -105,5 +106,24 @@ describe("candidate setup draft store", () => {
             questionCount: 5,
         });
         expect(localStorage.getItem(CANDIDATE_SETUP_DRAFT_STORAGE_KEY)).toContain("Medical assistant");
+    });
+
+    it("clears only the submitted draft for the same owner key", () => {
+        const store = createCandidateSetupMemoryDraftStore();
+        saveCandidateSetupDraft(store, ownerKey, {
+            targetRole: "Medical assistant",
+            jobDescription: "Support patients and clinical staff.",
+        });
+        saveCandidateSetupDraft(store, "candidate:other", {
+            targetRole: "Warehouse lead",
+            jobDescription: "Coordinate safety workflows.",
+        });
+
+        clearCandidateSetupDraft(store, ownerKey);
+
+        expect(restoreCandidateSetupDraft(store, ownerKey)).toBeNull();
+        expect(restoreCandidateSetupDraft(store, "candidate:other")).toMatchObject({
+            targetRole: "Warehouse lead",
+        });
     });
 });

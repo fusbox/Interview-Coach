@@ -1,7 +1,7 @@
 # Platform Launch PrepProfile Migration
 
 Status: Draft reference for future platform integration
-Last updated: 2026-06-01
+Last updated: 2026-07-08
 
 ## Purpose
 
@@ -123,61 +123,147 @@ The July 6, 2026 integration transcript clarifies the first expected token direc
 - the token is JWT-like and validated through server-side signature verification;
 - the signing secret is shared between the TalentArbor/RangamWorks server side and the Interview Coach server side and must not be exposed to client code;
 - the token includes expiry;
-- the token includes a product value used only for validation, not persistence;
+- the token includes a product value used only for validation, not persistence; current integration understanding expects `product: "interview-coach"`;
 - candidate identity claims are expected to support creating or mapping an Interview Coach candidate profile;
 - exact claim names, algorithm, query parameter name, and replay requirements are still pending.
+
+Local V2 development now has a dev-only host launch mode that mirrors this redirect pattern with deterministic fixture candidates. It is intentionally HMAC/local-secret based and environment-gated; it is not the production verifier.
 
 Current V2 scaffold:
 
 - [Host launch contract](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-auth-v2/host-launch-contract.ts)
 - [Host launch contract tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-auth-v2/host-launch-contract.test.ts)
+- [Production host launch verifier boundary](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-auth-v2/production-host-launch-verifier.ts)
+- [Candidate launch session resolver boundary](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-auth-v2/candidate-launch-session-resolver.ts)
+- [Host launch orchestrator boundary](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-auth-v2/host-launch-orchestrator.ts)
+
+The production verifier boundary is deliberately separate from local dev host launch mode. It defines server-only env names, HS256 shared-secret verification for the current expected claim shape, clock-skew handling, and telemetry-safe invalid-token reasons. `/candidate/launch` should not accept production host traffic until profile/session resolution, job-context resolution, replay handling, and secret rotation are explicitly wired.
+
+The TA staging DB discovery found no existing single procedure or view that returns the full Interview Coach launch context from `CandidateID + JobCollectionID`. The production integration should use a purpose-built resolver such as:
+
+```sql
+USP_InterviewCoach_GetLaunchContext
+  @CandidateID INT,
+  @JobCollectionID INT,
+  @HostDomain VARCHAR(150) = NULL,
+  @SourceSurface VARCHAR(100) = NULL
+```
+
+Expected output should include candidate ids, source surface/domain/channel, job listing and requirement metadata, job title/JD/source, resume availability/source metadata, and AI consent state. Resume text should be fetched through a separate approved path, not returned by the launch-context resolver.
 
 Expected resolved launch context:
 
 ```ts
 type CandidateLaunchContext = {
     candidate: {
-        candidateProfileId?: string;
-        platformCandidateId: string;
-        platformUserId?: string;
-        companyId?: string;
-        displayName?: string;
-        email?: string;
+        candidateId: string;
+        userId: string | null;
+        companyId: string | null;
+        displayName: string | null;
+        email: string | null;
     };
     source: {
-        sourceSurface: "TalentArbor" | "RangamWorks" | "SourceAbled" | "SourceVets" | "Unknown";
-        hostDomain: string;
-        talentChannelId?: string;
+        sourceSurface: string;
+        hostDomain: string | null;
+        talentChannelId: string | null;
     };
     job: {
         jobCollectionId: string;
-        requirementId?: string;
-        requirementCode?: string;
+        requirementId: string | null;
+        requirementCode: string | null;
         title: string;
         description: string;
         descriptionSource: "JobCollection" | "RequirementMaster" | "RequirementDescTxn" | "HostPayload";
+        client: string | null;
+        location: string | null;
+        isActive: boolean | null;
+        isExpired: boolean | null;
+        expirationDate: string | null;
     };
     resume: {
-        hasResume: boolean;
-        sourceType?: "ResumeParserJSONMaster" | "CandidateResume" | "SubmissionResume";
-        sourceId?: string;
-        sourceCreatedAt?: string;
-        contentHash?: string;
-        cleanedText?: string;
+        hasParsedResume: boolean;
+        sourceType: "ResumeParserJSONMaster" | "CandidateResume" | "DisplayCandidateResume" | "SubmissionResume" | "None";
+        createdDate: string | null;
+        contentAvailable: boolean;
     };
     consent: {
         hasAIConsent: boolean;
-        consentDate?: string;
-    };
-    token: {
-        issuedAt: string;
-        expiresAt: string;
-        nonce: string;
+        consentDate: string | null;
     };
 };
 ```
 
-`cleanedText` is runtime input for coaching. It should not automatically become durable Interview Coach storage.
+`cleanedText` is runtime input for coaching and is intentionally outside this launch-context contract. It should not automatically become durable Interview Coach storage.
+
+## Profile And Session Resolution
+
+After token verification and launch-context normalization, the app should resolve the launch into these logical identifiers:
+
+```text
+CandidateHostLaunchHandoff
++ CandidateLaunchContext
+-> CandidateLaunchIdentityKey
+-> candidate_profile_id
+-> candidate launch session id
+```
+
+`CandidateLaunchIdentityKey` is keyed by:
+
+- launch provider;
+- issuer;
+- subject;
+- host candidate id;
+- host user id;
+- platform candidate id from the normalized launch context;
+- workspace.
+
+This keeps tracing clear when a candidate enters from TalentArbor, RangamWorks, or a future host surface. Email and display name are profile attributes, not primary identity keys.
+
+Current resolver behavior:
+
+- reuse an existing profile when the identity mapping is already known;
+- create a candidate profile and upsert the launch identity mapping when no mapping exists;
+- prefer token email/display name, then launch-context email/display name, for profile attributes;
+- create the app session with the token expiry as the session expiry source;
+- store only a small launch-context snapshot with the session boundary: candidate id, job collection id, source surface, and host domain;
+- fail closed when token/platform candidate ids disagree, when profile creation cannot resolve a profile, or when session creation fails.
+
+This resolver does not fetch resume text and does not create a durable `prepProfile`. Those remain separate integration slices.
+
+Current storage contract:
+
+- `candidate_identities` is superseded by the host-launch migration to allow `talentarbor_launch` and `rangamworks_launch` provider values.
+- `candidate_identities` now carries platform trace fields: `host_candidate_id`, `host_user_id`, `platform_candidate_id`, and `workspace`.
+- `candidate_launch_sessions` stores the app launch session id, candidate profile id, provider/issuer/subject, platform candidate id, job collection id, source surface, host domain, expiry, revocation timestamp, and a compact JSON launch-context snapshot.
+- `candidate_launch_sessions` does not store full resume text or raw host payloads.
+- `candidate-launch-session-repository` is an injected-query adapter for this schema and implements the profile/session repository contract used by the orchestrator.
+
+## Host Launch Orchestration
+
+The orchestration boundary composes the tested pieces without hard-coding production database access:
+
+```text
+token
+-> verify token
+-> normalize CandidateHostLaunchHandoff
+-> derive CandidateLaunchContextLookupInput
+-> resolve CandidateLaunchContext
+-> resolve CandidateLaunchSession
+-> return route-compatible CandidateHostLaunchResult
+```
+
+The normalized handoff owns `launchContextHint`, currently:
+
+- candidate id;
+- job collection id;
+- host domain;
+- source surface.
+
+Production host tokens should include the target job identity, or the app must have a separate trusted way to derive it before orchestration can continue. If the job hint is absent, if launch context cannot be normalized, or if profile/session resolution fails, the orchestrator returns a fail-closed launch result and the route should not set the candidate session cookie.
+
+The current production verifier preserves optional `job_collection_id`, `host_domain`, and `source_surface` claims into the normalized token payload. Exact claim names remain pending TA/RW confirmation.
+
+`/candidate/launch` now assembles the production verifier and concrete candidate launch-session repository when server-side launch secret config and `DATABASE_URL` are present. The production route still intentionally fails closed because the TA/RW launch-context lookup remains a placeholder returning no context. The next production launch slice should replace only that lookup with the confirmed TA/RW proc/query adapter; resume text retrieval, replay protection, durable `prepProfile` creation, and setup/session generation should stay separate.
 
 ## PrepProfile Identity
 

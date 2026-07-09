@@ -11,7 +11,7 @@ import {
     User,
     UserCheck,
 } from "lucide-react";
-import { type ChangeEvent, type FormEvent, type MouseEvent, useMemo, useState } from "react";
+import { type ChangeEvent, type FormEvent, type MouseEvent, useEffect, useMemo, useState } from "react";
 
 import {
     candidateSetupStageOptions,
@@ -20,7 +20,10 @@ import {
     type CandidateSetupStageId,
     type CandidateSetupTransition,
 } from "./candidate-setup-contract";
+import type { CandidateSetupSessionCreationResult } from "./candidate-setup-session-creation";
+import { saveCandidateProvisionalSession } from "@/features/candidate-session-v2/candidate-provisional-session-store";
 import {
+    clearCandidateSetupDraft,
     createCandidateSetupBrowserDraftStore,
     restoreCandidateSetupDraft,
     saveCandidateSetupDraft,
@@ -34,31 +37,32 @@ const questionCountOptions = [3, 5, 7, 10];
 
 type CandidateSetupExperienceProps = {
     onSetupReady?: (transition: CandidateSetupTransition) => void;
+    createSession?: (transition: CandidateSetupTransition) => Promise<CandidateSetupSessionCreationResult>;
     draftOwnerKey?: string;
     draftStore?: CandidateSetupDraftStore;
 };
 
 export function CandidateSetupExperience({
     onSetupReady,
+    createSession,
     draftOwnerKey = "candidate:local",
     draftStore,
 }: CandidateSetupExperienceProps = {}) {
-    const resolvedDraftStore = useMemo(
-        () => draftStore ?? (typeof window !== "undefined" ? createCandidateSetupBrowserDraftStore(window.localStorage) : null),
-        [draftStore],
+    const [browserDraftStore, setBrowserDraftStore] = useState<CandidateSetupDraftStore | null>(null);
+    const activeDraftStore = draftStore ?? browserDraftStore;
+    const initialDraftState = useMemo(
+        () => toCandidateSetupDraftFormState(draftStore ? restoreCandidateSetupDraft(draftStore, draftOwnerKey) : null),
+        [draftOwnerKey, draftStore],
     );
-    const restoredDraftState = useMemo(
-        () => toCandidateSetupDraftFormState(resolvedDraftStore ? restoreCandidateSetupDraft(resolvedDraftStore, draftOwnerKey) : null),
-        [draftOwnerKey, resolvedDraftStore],
-    );
-    const [targetRole, setTargetRole] = useState(restoredDraftState.targetRole);
-    const [jobDescription, setJobDescription] = useState(restoredDraftState.jobDescription);
-    const [resumeText, setResumeText] = useState(restoredDraftState.resumeText);
-    const [selectedStage, setSelectedStage] = useState<CandidateSetupStageId>(restoredDraftState.interviewStage);
-    const [questionCount, setQuestionCount] = useState(restoredDraftState.questionCount);
+    const [targetRole, setTargetRole] = useState(initialDraftState.targetRole);
+    const [jobDescription, setJobDescription] = useState(initialDraftState.jobDescription);
+    const [resumeText, setResumeText] = useState(initialDraftState.resumeText);
+    const [selectedStage, setSelectedStage] = useState<CandidateSetupStageId>(initialDraftState.interviewStage);
+    const [questionCount, setQuestionCount] = useState(initialDraftState.questionCount);
     const [resumeSource, setResumeSource] = useState<ResumeSource>("paste");
     const [resumeAssetName, setResumeAssetName] = useState("");
     const [isPreparing, setIsPreparing] = useState(false);
+    const [setupError, setSetupError] = useState("");
     const [attemptedStart, setAttemptedStart] = useState(false);
 
     const activeStage = useMemo(
@@ -69,6 +73,21 @@ export function CandidateSetupExperience({
     const showRequiredAlert = attemptedStart && !canStartPractice;
     const isTargetRoleMissing = showRequiredAlert && targetRole.trim().length === 0;
     const isJobDescriptionMissing = showRequiredAlert && jobDescription.trim().length === 0;
+
+    useEffect(() => {
+        if (draftStore || typeof window === "undefined") {
+            return;
+        }
+
+        const nextDraftStore = createCandidateSetupBrowserDraftStore(window.localStorage);
+        const nextDraftState = toCandidateSetupDraftFormState(restoreCandidateSetupDraft(nextDraftStore, draftOwnerKey));
+        setBrowserDraftStore(nextDraftStore);
+        setTargetRole(nextDraftState.targetRole);
+        setJobDescription(nextDraftState.jobDescription);
+        setResumeText(nextDraftState.resumeText);
+        setSelectedStage(nextDraftState.interviewStage);
+        setQuestionCount(nextDraftState.questionCount);
+    }, [draftOwnerKey, draftStore]);
 
     function chooseStage(stage: (typeof candidateSetupStageOptions)[number]) {
         setSelectedStage(stage.id);
@@ -85,7 +104,7 @@ export function CandidateSetupExperience({
         setResumeAssetName(file?.name ?? "");
     }
 
-    function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         if (!canStartPractice) {
             setAttemptedStart(true);
@@ -98,8 +117,26 @@ export function CandidateSetupExperience({
             interviewStage: selectedStage,
             questionCount,
         });
-        onSetupReady?.(toCandidateSetupTransition(payload));
+        const transition = toCandidateSetupTransition(payload);
+        onSetupReady?.(transition);
         setIsPreparing(true);
+        setSetupError("");
+
+        if (!createSession && onSetupReady) {
+            return;
+        }
+
+        try {
+            const result = await (createSession ?? createSessionViaSetupRoute)(transition);
+            saveCandidateProvisionalSession(window.sessionStorage, result);
+            if (activeDraftStore) {
+                clearCandidateSetupDraft(activeDraftStore, draftOwnerKey);
+            }
+            window.location.assign(result.nextRoute);
+        } catch {
+            setIsPreparing(false);
+            setSetupError("I could not start this practice round. Try again.");
+        }
     }
 
     function handleStartPracticeClick(event: MouseEvent<HTMLButtonElement>) {
@@ -119,11 +156,11 @@ export function CandidateSetupExperience({
         const nextTargetRole = overrides.targetRole ?? targetRole;
         const nextJobDescription = overrides.jobDescription ?? jobDescription;
 
-        if (!resolvedDraftStore || !nextTargetRole.trim() || !nextJobDescription.trim()) {
+        if (!activeDraftStore || !nextTargetRole.trim() || !nextJobDescription.trim()) {
             return;
         }
 
-        saveCandidateSetupDraft(resolvedDraftStore, draftOwnerKey, {
+        saveCandidateSetupDraft(activeDraftStore, draftOwnerKey, {
             targetRole: nextTargetRole,
             jobDescription: nextJobDescription,
             resumeText: overrides.resumeText ?? resumeText,
@@ -348,12 +385,14 @@ export function CandidateSetupExperience({
                         className={
                             isPreparing
                                 ? "setup-loading-card is-active"
+                                : setupError
+                                  ? "setup-loading-card is-alert"
                                 : showRequiredAlert
                                   ? "setup-loading-card is-alert"
                                   : "setup-loading-card"
                         }
                         aria-live="polite"
-                        role={showRequiredAlert ? "alert" : undefined}
+                        role={showRequiredAlert || setupError ? "alert" : undefined}
                     >
                         {isPreparing ? (
                             <>
@@ -361,6 +400,15 @@ export function CandidateSetupExperience({
                                 <div>
                                     <strong>Building your practice plan.</strong>
                                     <span>Preparing the transition into your first session.</span>
+                                </div>
+                            </>
+                        ) : setupError ? (
+                            <>
+                                <span className="setup-loading-card__icon" aria-hidden="true">
+                                    <AlertCircle size={18} />
+                                </span>
+                                <div>
+                                    <span>{setupError}</span>
                                 </div>
                             </>
                         ) : (
@@ -391,4 +439,20 @@ export function CandidateSetupExperience({
             </form>
         </main>
     );
+}
+
+async function createSessionViaSetupRoute(transition: CandidateSetupTransition) {
+    const response = await fetch("/candidate/setup/start", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(transition.payload),
+    });
+
+    if (!response.ok) {
+        throw new Error("Candidate setup session creation failed.");
+    }
+
+    return await response.json() as CandidateSetupSessionCreationResult;
 }

@@ -98,6 +98,43 @@ Seeded candidate identities:
 - Primary: `candidate-dev-primary@talentarbor.local`
 - Alternate ownership-check candidate: `candidate-dev-alt@talentarbor.local`
 
+## Local Host Launch Mode
+
+Use local host launch mode when you want development to mirror the TalentArbor/RangamWorks redirect shape instead of opening candidate routes directly.
+
+It is disabled by default and rejected in production. Enable it only for local/mobile development:
+
+```powershell
+$env:CANDIDATE_HOST_LAUNCH_DEV_MODE = "true"
+$env:CANDIDATE_HOST_LAUNCH_DEV_SECRET = "local-only-shared-secret"
+```
+
+Then start the app and open one of these URLs:
+
+```text
+http://localhost:3000/candidate/dev/launch?candidate=primary&next=/candidate/setup
+http://localhost:3000/candidate/dev/launch?candidate=alternate&next=/candidate/setup
+```
+
+For mobile LAN testing, replace `localhost` with the workstation LAN IP:
+
+```text
+http://<workstation-lan-ip>:3000/candidate/dev/launch?candidate=primary&next=/candidate/setup
+```
+
+The dev route mints a short local host-shaped token, redirects through `/candidate/launch?token=...`, lets the normal launch route verify it server-side, and then redirects away from the token URL. The token payload mirrors the current expected host shape:
+
+```json
+{
+  "candidate_id": "100001",
+  "product": "interview-coach",
+  "email": "candidate-dev-primary@talentarbor.local",
+  "exp": "1783512000"
+}
+```
+
+The default token lifetime is one week. The local dev verifier maps the numeric candidate id to the deterministic seeded candidate profiles. Production JWT verification, replay handling, secret rotation, and database-backed profile/session resolution remain separate integration slices.
+
 For the quickest local UI pass:
 
 ```text

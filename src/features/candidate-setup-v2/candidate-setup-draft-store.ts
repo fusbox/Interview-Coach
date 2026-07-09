@@ -29,6 +29,7 @@ export type CandidateSetupDraftInput = {
 export type CandidateSetupDraftStore = {
     readDraft: (ownerKey: string) => CandidateSetupDraft | null;
     writeDraft: (draft: CandidateSetupDraft) => void;
+    clearDraft: (ownerKey: string) => void;
 };
 
 export function createCandidateSetupMemoryDraftStore(initialDrafts: CandidateSetupDraft[] = []): CandidateSetupDraftStore {
@@ -40,6 +41,9 @@ export function createCandidateSetupMemoryDraftStore(initialDrafts: CandidateSet
         },
         writeDraft(draft) {
             draftsByOwner.set(draft.ownerKey, draft);
+        },
+        clearDraft(ownerKey) {
+            draftsByOwner.delete(ownerKey);
         },
     };
 }
@@ -54,11 +58,26 @@ export function createCandidateSetupBrowserDraftStore(storage: Storage): Candida
             drafts[draft.ownerKey] = draft;
             storage.setItem(CANDIDATE_SETUP_DRAFT_STORAGE_KEY, JSON.stringify(drafts));
         },
+        clearDraft(ownerKey) {
+            const drafts = readBrowserDrafts(storage);
+            delete drafts[ownerKey];
+
+            if (Object.keys(drafts).length === 0) {
+                storage.removeItem(CANDIDATE_SETUP_DRAFT_STORAGE_KEY);
+                return;
+            }
+
+            storage.setItem(CANDIDATE_SETUP_DRAFT_STORAGE_KEY, JSON.stringify(drafts));
+        },
     };
 }
 
 export function restoreCandidateSetupDraft(store: CandidateSetupDraftStore, ownerKey: string): CandidateSetupDraft | null {
     return store.readDraft(ownerKey);
+}
+
+export function clearCandidateSetupDraft(store: CandidateSetupDraftStore, ownerKey: string): void {
+    store.clearDraft(ownerKey);
 }
 
 export function saveCandidateSetupDraft(
