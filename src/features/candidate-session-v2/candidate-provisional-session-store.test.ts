@@ -122,6 +122,44 @@ describe("candidate provisional session store", () => {
         });
     });
 
+    it("round-trips live question progress for the browser bridge", () => {
+        const storage = createMemoryStorage();
+        const setupSnapshot = {
+            targetRole: "Customer service representative",
+            jobDescription: "Help customers resolve service questions.",
+            resumeText: null,
+            interviewStage: "first_interview" as const,
+            questionCount: 7,
+            resumeCaptureMode: "none" as const,
+            createdAt: "2026-07-08T18:00:00.000Z",
+        };
+        const questionPlanSnapshot = createCandidateQuestionPlan({
+            interviewStage: "first_interview",
+            questionCount: 7,
+        });
+        saveCandidateProvisionalSession(storage, {
+            status: "session_created",
+            sessionId: "candidate-session-123",
+            nextRoute: "/candidate/session/candidate-session-123",
+            setupSnapshot,
+            questionPlanSnapshot,
+            questionWordingSnapshot: createFixtureCandidateQuestionWordingResult({
+                setupSnapshot,
+                questionPlanSnapshot,
+            }),
+        });
+
+        saveCandidateProvisionalSessionProgress(storage, "candidate-session-123", {
+            status: "live_question",
+            currentQuestionIndex: 1,
+        });
+
+        expect(readCandidateProvisionalSessionProgress(storage, "candidate-session-123")).toEqual({
+            status: "live_question",
+            currentQuestionIndex: 1,
+        });
+    });
+
     it("returns null for missing or malformed stored data", () => {
         const storage = createMemoryStorage();
         storage.setItem(CANDIDATE_PROVISIONAL_SESSION_STORAGE_KEY, "{not json");

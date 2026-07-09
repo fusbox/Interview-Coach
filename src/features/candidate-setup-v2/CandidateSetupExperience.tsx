@@ -14,8 +14,9 @@ import {
 import { type ChangeEvent, type FormEvent, type MouseEvent, useEffect, useMemo, useState } from "react";
 
 import {
+    CANDIDATE_SETUP_LIMITS,
     candidateSetupStageOptions,
-    parseCandidateSetupInput,
+    safeParseCandidateSetupInput,
     toCandidateSetupTransition,
     type CandidateSetupStageId,
     type CandidateSetupTransition,
@@ -63,6 +64,8 @@ export function CandidateSetupExperience({
     const [resumeAssetName, setResumeAssetName] = useState("");
     const [isPreparing, setIsPreparing] = useState(false);
     const [setupError, setSetupError] = useState("");
+    const [setupValidationMessage, setSetupValidationMessage] = useState("");
+    const [setupValidationFields, setSetupValidationFields] = useState<Set<string>>(new Set());
     const [attemptedStart, setAttemptedStart] = useState(false);
 
     const activeStage = useMemo(
@@ -73,6 +76,8 @@ export function CandidateSetupExperience({
     const showRequiredAlert = attemptedStart && !canStartPractice;
     const isTargetRoleMissing = showRequiredAlert && targetRole.trim().length === 0;
     const isJobDescriptionMissing = showRequiredAlert && jobDescription.trim().length === 0;
+    const isTargetRoleInvalid = isTargetRoleMissing || setupValidationFields.has("targetRole");
+    const isJobDescriptionInvalid = isJobDescriptionMissing || setupValidationFields.has("jobDescription");
 
     useEffect(() => {
         if (draftStore || typeof window === "undefined") {
@@ -108,19 +113,34 @@ export function CandidateSetupExperience({
         event.preventDefault();
         if (!canStartPractice) {
             setAttemptedStart(true);
+            setSetupValidationMessage("");
+            setSetupValidationFields(new Set());
             return;
         }
-        const payload = parseCandidateSetupInput({
+        const setupInput = {
             targetRole,
             jobDescription,
             resumeText,
             interviewStage: selectedStage,
             questionCount,
-        });
+        };
+        const parsedSetup = safeParseCandidateSetupInput(setupInput);
+        if (!parsedSetup.success) {
+            const fieldErrors = parsedSetup.error.flatten().fieldErrors;
+            setAttemptedStart(true);
+            setSetupError("");
+            setSetupValidationFields(new Set(Object.keys(fieldErrors)));
+            setSetupValidationMessage(toSetupValidationMessage(fieldErrors));
+            return;
+        }
+
+        const payload = parsedSetup.data;
         const transition = toCandidateSetupTransition(payload);
         onSetupReady?.(transition);
         setIsPreparing(true);
         setSetupError("");
+        setSetupValidationMessage("");
+        setSetupValidationFields(new Set());
 
         if (!createSession && onSetupReady) {
             return;
@@ -143,7 +163,18 @@ export function CandidateSetupExperience({
         if (!canStartPractice) {
             event.preventDefault();
             setAttemptedStart(true);
+            setSetupValidationMessage("");
+            setSetupValidationFields(new Set());
         }
+    }
+
+    function clearSetupValidation() {
+        if (!setupValidationMessage && setupValidationFields.size === 0) {
+            return;
+        }
+
+        setSetupValidationMessage("");
+        setSetupValidationFields(new Set());
     }
 
     function saveSetupDraft(overrides: Partial<{
@@ -156,17 +187,24 @@ export function CandidateSetupExperience({
         const nextTargetRole = overrides.targetRole ?? targetRole;
         const nextJobDescription = overrides.jobDescription ?? jobDescription;
 
-        if (!activeDraftStore || !nextTargetRole.trim() || !nextJobDescription.trim()) {
-            return;
-        }
-
-        saveCandidateSetupDraft(activeDraftStore, draftOwnerKey, {
+        const nextInput = {
             targetRole: nextTargetRole,
             jobDescription: nextJobDescription,
             resumeText: overrides.resumeText ?? resumeText,
             interviewStage: overrides.interviewStage ?? selectedStage,
             questionCount: overrides.questionCount ?? questionCount,
-        });
+        };
+
+        if (
+            !activeDraftStore
+            || !nextTargetRole.trim()
+            || !nextJobDescription.trim()
+            || !safeParseCandidateSetupInput(nextInput).success
+        ) {
+            return;
+        }
+
+        saveCandidateSetupDraft(activeDraftStore, draftOwnerKey, nextInput);
     }
 
     return (
@@ -206,10 +244,12 @@ export function CandidateSetupExperience({
                                 <input
                                     name="targetRole"
                                     required
-                                    aria-invalid={isTargetRoleMissing}
-                                    className={isTargetRoleMissing ? "is-required-missing" : undefined}
+                                    maxLength={CANDIDATE_SETUP_LIMITS.targetRole + 1}
+                                    aria-invalid={isTargetRoleInvalid}
+                                    className={isTargetRoleInvalid ? "is-required-missing" : undefined}
                                     value={targetRole}
                                     onChange={(event) => {
+                                        clearSetupValidation();
                                         setTargetRole(event.target.value);
                                         saveSetupDraft({ targetRole: event.target.value });
                                     }}
@@ -222,10 +262,12 @@ export function CandidateSetupExperience({
                                 <textarea
                                     name="jobDescription"
                                     required
-                                    aria-invalid={isJobDescriptionMissing}
-                                    className={isJobDescriptionMissing ? "is-required-missing" : undefined}
+                                    maxLength={CANDIDATE_SETUP_LIMITS.jobDescription + 1}
+                                    aria-invalid={isJobDescriptionInvalid}
+                                    className={isJobDescriptionInvalid ? "is-required-missing" : undefined}
                                     value={jobDescription}
                                     onChange={(event) => {
+                                        clearSetupValidation();
                                         setJobDescription(event.target.value);
                                         saveSetupDraft({ jobDescription: event.target.value });
                                     }}
@@ -291,8 +333,10 @@ export function CandidateSetupExperience({
                             <span>Paste resume text</span>
                             <textarea
                                 name="resumeText"
+                                maxLength={CANDIDATE_SETUP_LIMITS.resumeText + 1}
                                 value={resumeText}
                                 onChange={(event) => {
+                                    clearSetupValidation();
                                     setResumeText(event.target.value);
                                     saveSetupDraft({ resumeText: event.target.value });
                                 }}
@@ -387,12 +431,14 @@ export function CandidateSetupExperience({
                                 ? "setup-loading-card is-active"
                                 : setupError
                                   ? "setup-loading-card is-alert"
+                                : setupValidationMessage
+                                  ? "setup-loading-card is-alert"
                                 : showRequiredAlert
                                   ? "setup-loading-card is-alert"
                                   : "setup-loading-card"
                         }
                         aria-live="polite"
-                        role={showRequiredAlert || setupError ? "alert" : undefined}
+                        role={showRequiredAlert || setupError || setupValidationMessage ? "alert" : undefined}
                     >
                         {isPreparing ? (
                             <>
@@ -409,6 +455,15 @@ export function CandidateSetupExperience({
                                 </span>
                                 <div>
                                     <span>{setupError}</span>
+                                </div>
+                            </>
+                        ) : setupValidationMessage ? (
+                            <>
+                                <span className="setup-loading-card__icon" aria-hidden="true">
+                                    <AlertCircle size={18} />
+                                </span>
+                                <div>
+                                    <span>{setupValidationMessage}</span>
                                 </div>
                             </>
                         ) : (
@@ -439,6 +494,20 @@ export function CandidateSetupExperience({
             </form>
         </main>
     );
+}
+
+function toSetupValidationMessage(fieldErrors: {
+    targetRole?: string[];
+    jobDescription?: string[];
+    resumeText?: string[];
+    questionCount?: string[];
+}) {
+    return [
+        ...(fieldErrors.targetRole ?? []),
+        ...(fieldErrors.jobDescription ?? []),
+        ...(fieldErrors.resumeText ?? []),
+        ...(fieldErrors.questionCount ?? []),
+    ][0] ?? "Check the setup details and try again.";
 }
 
 async function createSessionViaSetupRoute(transition: CandidateSetupTransition) {

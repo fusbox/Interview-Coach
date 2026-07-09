@@ -8,6 +8,7 @@ Current docs:
 - [Current Foundation](./current-foundation.md)
 - [Shared Host Routing Contract](./shared-host-routing-contract.md)
 - [Candidate-Driven Implementation Plan](./candidate-driven-implementation-plan.md)
+- [V1 SWOT And Rebuild Runway](./v1-swot-and-rebuild-runway.md)
 - [Practice Session Draft Contract](./practice-session-draft-contract.md)
 - [Candidate Session Engine Port Plan](./session-engine-port-plan.md)
 - [Postgres Candidate Data Contract](./postgres-candidate-data-contract.md)

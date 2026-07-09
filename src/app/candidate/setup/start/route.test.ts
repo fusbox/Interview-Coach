@@ -1,8 +1,24 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { handleCandidateSetupStartRequest, POST } from "./route";
+import { handleCandidateSetupStartRequest, resolveCandidateSetupIdentityFromDevLaunchCookie, POST } from "./route";
 
 describe("/candidate/setup/start route", () => {
+    it("resolves explicit dev host-launch fixture cookies without candidate launch-session storage", async () => {
+        vi.stubEnv("CANDIDATE_HOST_LAUNCH_DEV_MODE", "true");
+        vi.stubEnv("CANDIDATE_HOST_LAUNCH_DEV_SECRET", "local-dev-shared-secret");
+
+        await expect(resolveCandidateSetupIdentityFromDevLaunchCookie(
+            new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
+                headers: {
+                    Cookie: "ic_candidate_launch_session=dev-host-launch-100001",
+                },
+            }),
+        )).resolves.toEqual({
+            candidateProfileId: "10000000-0000-4000-8000-000000000001",
+            candidateLaunchSessionId: null,
+        });
+    });
+
     it("creates a provisional session transition from valid setup input", async () => {
         const response = await POST(new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
             method: "POST",
@@ -75,6 +91,30 @@ describe("/candidate/setup/start route", () => {
 
         await expect(response.json()).resolves.toEqual({
             error: "Invalid setup request.",
+            fieldErrors: {
+                jobDescription: ["Job description is required."],
+                targetRole: ["Target role is required."],
+            },
+        });
+        expect(response.status).toBe(400);
+    });
+
+    it("returns setup field errors for payloads that fail the setup contract", async () => {
+        const response = await POST(new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
+            method: "POST",
+            body: JSON.stringify({
+                targetRole: "Material handler",
+                jobDescription: "a".repeat(12_001),
+                interviewStage: "first_interview",
+                questionCount: 7,
+            }),
+        }));
+
+        await expect(response.json()).resolves.toEqual({
+            error: "Invalid setup request.",
+            fieldErrors: {
+                jobDescription: ["Job description must be 12,000 characters or fewer."],
+            },
         });
         expect(response.status).toBe(400);
     });
@@ -192,6 +232,33 @@ describe("/candidate/setup/start route", () => {
 
         await expect(response.json()).resolves.toEqual({
             error: "Candidate practice session could not be saved.",
+        });
+        expect(response.status).toBe(503);
+    });
+
+    it("reports identity lookup failures as setup-start infrastructure failures", async () => {
+        const response = await handleCandidateSetupStartRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
+                method: "POST",
+                body: JSON.stringify({
+                    targetRole: "Customer service representative",
+                    jobDescription: "Help customers resolve service questions.",
+                    interviewStage: "first_interview",
+                    questionCount: 7,
+                }),
+            }),
+            now: new Date("2026-07-09T16:00:00.000Z"),
+            createSessionId: () => "browser-bridge-session-id",
+            resolveCandidateSetupIdentity: async () => {
+                throw new Error("relation candidate_launch_sessions does not exist");
+            },
+            practiceSessionRepository: {
+                createSetupSession: vi.fn(),
+            },
+        });
+
+        await expect(response.json()).resolves.toEqual({
+            error: "Candidate setup could not be started.",
         });
         expect(response.status).toBe(503);
     });

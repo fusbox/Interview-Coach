@@ -101,30 +101,31 @@ Use the reference map below.
 6. [Current Foundation](04-architecture/current-foundation.md)
 7. [Shared Host Routing Contract](04-architecture/shared-host-routing-contract.md)
 8. [Candidate-Driven Implementation Plan](04-architecture/candidate-driven-implementation-plan.md)
-9. [Practice Session Draft Contract](04-architecture/practice-session-draft-contract.md)
-10. [Candidate Session Engine Port Plan](04-architecture/session-engine-port-plan.md)
-11. [Postgres Candidate Data Contract](04-architecture/postgres-candidate-data-contract.md)
-12. [Storage And Resume Ingestion](04-architecture/storage-and-resume-ingestion.md)
-13. [Role Preparedness Data Inventory](04-architecture/role-preparedness-data-inventory.md)
-14. [Interview Preparedness Signal Contract](04-architecture/preparedness-signal-contract.md)
+9. [V1 SWOT And Rebuild Runway](04-architecture/v1-swot-and-rebuild-runway.md)
+10. [Practice Session Draft Contract](04-architecture/practice-session-draft-contract.md)
+11. [Candidate Session Engine Port Plan](04-architecture/session-engine-port-plan.md)
+12. [Postgres Candidate Data Contract](04-architecture/postgres-candidate-data-contract.md)
+13. [Storage And Resume Ingestion](04-architecture/storage-and-resume-ingestion.md)
+14. [Role Preparedness Data Inventory](04-architecture/role-preparedness-data-inventory.md)
+15. [Interview Preparedness Signal Contract](04-architecture/preparedness-signal-contract.md)
 
 ### Quality, security, and operations
 
-15. [Test Strategy](05-quality/test-strategy.md)
-16. [Accessibility Baseline](05-quality/accessibility-baseline.md)
-17. [Recruiter Regression Checklist For Candidate PRs](05-quality/recruiter-regression-checklist.md)
-18. [Security And Privacy Docs](06-security/README.md)
-19. [Candidate App Threat Model](06-security/threat-model.md)
-20. [Privacy, Disclosures, And Consent Requirements](06-security/privacy-disclosures-and-consent-requirements.md)
-21. [Azure DevOps Operating Model](07-ops/azure-devops-operating-model.md)
-22. [Candidate Observability Plan](07-ops/candidate-observability-plan.md)
-23. [Candidate Incident Runbook](07-ops/candidate-incident-runbook.md)
-24. [Candidate Integration PR Policy](07-ops/candidate-integration-pr-policy.md)
+16. [Test Strategy](05-quality/test-strategy.md)
+17. [Accessibility Baseline](05-quality/accessibility-baseline.md)
+18. [Recruiter Regression Checklist For Candidate PRs](05-quality/recruiter-regression-checklist.md)
+19. [Security And Privacy Docs](06-security/README.md)
+20. [Candidate App Threat Model](06-security/threat-model.md)
+21. [Privacy, Disclosures, And Consent Requirements](06-security/privacy-disclosures-and-consent-requirements.md)
+22. [Azure DevOps Operating Model](07-ops/azure-devops-operating-model.md)
+23. [Candidate Observability Plan](07-ops/candidate-observability-plan.md)
+24. [Candidate Incident Runbook](07-ops/candidate-incident-runbook.md)
+25. [Candidate Integration PR Policy](07-ops/candidate-integration-pr-policy.md)
 
 ### Decisions and developer setup
 
-25. [Decision Records](08-decisions/README.md)
-26. [Local Dev Bootstrap](09-dev/local-dev-bootstrap.md)
+26. [Decision Records](08-decisions/README.md)
+27. [Local Dev Bootstrap](09-dev/local-dev-bootstrap.md)
 
 ## Document Rules
 

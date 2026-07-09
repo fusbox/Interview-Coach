@@ -1,29 +1,25 @@
 import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-v2/host-launch-route";
 import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidate-auth-v2/dev-host-launch-cookie-identity";
 import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-auth-v2/production-host-launch-runtime";
-import {
-    createCandidateAnswerDraftChange,
-    type CandidateAnswerDraft,
-    type CandidateAnswerDrafts,
-} from "@/features/candidate-session-v2/candidate-answer-lifecycle";
+import type { CandidateProvisionalSessionProgress } from "@/features/candidate-session-v2/candidate-provisional-session-store";
 import { createCandidatePracticeSessionRepository } from "@/features/candidate-session-v2/candidate-practice-session-repository";
+import { isSessionRuntimeProgressStatus } from "@/features/interview-session-v2/session-runtime-contract";
 
 type CandidateSessionIdentity = {
     candidateProfileId: string;
 };
 
-type CandidateAnswerDraftRepository = {
-    saveAnswerDraft: (input: {
+type CandidateSessionProgressRepository = {
+    saveProgress: (input: {
         candidatePracticeSessionId: string;
         candidateProfileId: string;
-        draft: CandidateAnswerDraft;
-    }) => Promise<CandidateAnswerDrafts | null>;
+        progress: CandidateProvisionalSessionProgress;
+    }) => Promise<CandidateProvisionalSessionProgress | null>;
 };
 
-export type CandidateAnswerDraftRouteDependencies = {
-    now: Date;
+export type CandidateSessionProgressRouteDependencies = {
     resolveCandidateSessionIdentity?: (request: Request) => Promise<CandidateSessionIdentity | null>;
-    practiceSessionRepository?: CandidateAnswerDraftRepository;
+    practiceSessionRepository?: CandidateSessionProgressRepository;
 };
 
 export async function PUT(
@@ -31,21 +27,19 @@ export async function PUT(
     context: { params: Promise<{ sessionId: string }> },
 ) {
     const { sessionId } = await context.params;
-    return handleCandidateAnswerDraftRequest({
+    return handleCandidateSessionProgressRequest({
         request,
         sessionId,
-        now: new Date(),
-        ...createDefaultCandidateAnswerDraftDependencies(),
+        ...createDefaultCandidateSessionProgressDependencies(),
     });
 }
 
-export async function handleCandidateAnswerDraftRequest({
+export async function handleCandidateSessionProgressRequest({
     request,
     sessionId,
-    now,
     resolveCandidateSessionIdentity,
     practiceSessionRepository,
-}: CandidateAnswerDraftRouteDependencies & {
+}: CandidateSessionProgressRouteDependencies & {
     request: Request;
     sessionId: string;
 }) {
@@ -53,12 +47,12 @@ export async function handleCandidateAnswerDraftRequest({
     try {
         body = await request.json();
     } catch {
-        return Response.json({ error: "Invalid answer draft request." }, { status: 400 });
+        return Response.json({ error: "Invalid session progress request." }, { status: 400 });
     }
 
-    const parsedBody = parseAnswerDraftBody(body);
-    if (!parsedBody) {
-        return Response.json({ error: "Invalid answer draft request." }, { status: 400 });
+    const progress = parseProgressBody(body);
+    if (!progress) {
+        return Response.json({ error: "Invalid session progress request." }, { status: 400 });
     }
 
     const identity = resolveCandidateSessionIdentity
@@ -68,28 +62,24 @@ export async function handleCandidateAnswerDraftRequest({
         return Response.json({ error: "Candidate session identity is required." }, { status: 401 });
     }
 
-    const draftChange = createCandidateAnswerDraftChange({
-        ...parsedBody,
-        now,
-    });
-    const answerDrafts = await practiceSessionRepository.saveAnswerDraft({
+    const savedProgress = await practiceSessionRepository.saveProgress({
         candidatePracticeSessionId: sessionId,
         candidateProfileId: identity.candidateProfileId,
-        draft: draftChange.draft,
+        progress,
     });
 
-    if (!answerDrafts) {
-        return Response.json({ error: "Candidate answer draft could not be saved." }, { status: 404 });
+    if (!savedProgress) {
+        return Response.json({ error: "Candidate session progress could not be saved." }, { status: 404 });
     }
 
     return Response.json({
-        status: "answer_draft_saved",
-        answerDrafts,
+        status: "progress_saved",
+        progress: savedProgress,
     });
 }
 
-function createDefaultCandidateAnswerDraftDependencies(): Pick<
-    CandidateAnswerDraftRouteDependencies,
+function createDefaultCandidateSessionProgressDependencies(): Pick<
+    CandidateSessionProgressRouteDependencies,
     "resolveCandidateSessionIdentity" | "practiceSessionRepository"
 > {
     const databaseUrl = process.env[CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV]?.trim();
@@ -101,20 +91,20 @@ function createDefaultCandidateAnswerDraftDependencies(): Pick<
 
     return {
         resolveCandidateSessionIdentity: async (request) => {
-            const devIdentity = resolveCandidateAnswerDraftIdentityFromDevLaunchCookie(request.headers.get("Cookie"));
+            const devIdentity = resolveCandidateSessionProgressIdentityFromDevLaunchCookie(request.headers.get("Cookie"));
             return devIdentity ?? resolveCandidateSessionIdentityFromLaunchCookie(request, queryClient);
         },
         practiceSessionRepository: createCandidatePracticeSessionRepository(queryClient),
     };
 }
 
-type CandidateAnswerDraftQueryClient = {
+type CandidateSessionProgressQueryClient = {
     query: (sql: string, values: unknown[]) => Promise<{
         rows: Array<Record<string, unknown>>;
     }>;
 };
 
-function createLazyPostgresQueryClient(databaseUrl: string): CandidateAnswerDraftQueryClient {
+function createLazyPostgresQueryClient(databaseUrl: string): CandidateSessionProgressQueryClient {
     let pool: import("pg").Pool | null = null;
 
     return {
@@ -124,7 +114,7 @@ function createLazyPostgresQueryClient(databaseUrl: string): CandidateAnswerDraf
                 connectionString: databaseUrl,
                 ssl: getRuntimeSslConfig(databaseUrl),
                 max: 2,
-                application_name: "interview-coach-candidate-answer-draft",
+                application_name: "interview-coach-candidate-session-progress",
             });
             return pool.query(sql, values);
         },
@@ -133,7 +123,7 @@ function createLazyPostgresQueryClient(databaseUrl: string): CandidateAnswerDraf
 
 async function resolveCandidateSessionIdentityFromLaunchCookie(
     request: Request,
-    client: CandidateAnswerDraftQueryClient,
+    client: CandidateSessionProgressQueryClient,
 ): Promise<CandidateSessionIdentity | null> {
     const candidateLaunchSessionId = readCookieValue(request.headers.get("Cookie"), CANDIDATE_HOST_LAUNCH_SESSION_COOKIE);
     if (!candidateLaunchSessionId) {
@@ -153,33 +143,32 @@ async function resolveCandidateSessionIdentityFromLaunchCookie(
     return candidateProfileId ? { candidateProfileId } : null;
 }
 
-export function resolveCandidateAnswerDraftIdentityFromDevLaunchCookie(cookieHeader: string | null) {
+export function resolveCandidateSessionProgressIdentityFromDevLaunchCookie(cookieHeader: string | null) {
     return resolveCandidateDevHostLaunchCookieIdentity(cookieHeader);
 }
 
-function parseAnswerDraftBody(value: unknown) {
+function parseProgressBody(value: unknown): CandidateProvisionalSessionProgress | null {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
         return null;
     }
 
     const body = value as Record<string, unknown>;
-    const slotId = readString(body.slotId);
+    if (!isSessionRuntimeProgressStatus(body.status)) {
+        return null;
+    }
+
+    const currentQuestionIndex = body.currentQuestionIndex;
     if (
-        !slotId
-        || body.mode !== "text"
-        || typeof body.text !== "string"
-        || typeof body.questionIndex !== "number"
-        || !Number.isInteger(body.questionIndex)
-        || body.questionIndex < 0
+        typeof currentQuestionIndex !== "number"
+        || !Number.isInteger(currentQuestionIndex)
+        || currentQuestionIndex < 0
     ) {
         return null;
     }
 
     return {
-        slotId,
-        questionIndex: body.questionIndex,
-        mode: "text" as const,
-        text: body.text,
+        status: body.status,
+        currentQuestionIndex,
     };
 }
 

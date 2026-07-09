@@ -188,7 +188,7 @@ Current contract:
 
 ```ts
 type CandidatePracticeSessionProgress = {
-    status: "planned" | "question_preview";
+    status: "planned" | "question_preview" | "live_question";
     currentQuestionIndex: number;
 };
 
@@ -220,7 +220,10 @@ Rules:
 - `setupSnapshot`, `questionPlanSnapshot`, optional `questionWordingSnapshot`, `progress`, and `answerDrafts` are persisted as immutable or explicitly updated JSONB boundaries so the app can trace setup -> plan -> wording -> progress -> draft without rebuilding from mutable UI state.
 - The table is candidate-owned and may link to `prepProfile` through `role_profile_id` and to host launch through `candidate_launch_session_id`.
 - `/candidate/setup/start` persists setup-created sessions into `candidate_practice_sessions` when candidate identity can be resolved from the route context. If identity cannot be resolved, the route may continue returning the browser-bridge provisional session result for local/dev continuity. If identity resolves but persistence fails, the route must fail closed.
+- `/candidate/setup/start` returns `400` with setup `fieldErrors` only for invalid setup payloads. Candidate identity lookup, database schema, or durable session startup failures should return a fail-closed startup error, currently `503`, so local/dev database drift is not misreported as a candidate input problem.
 - `/candidate/session/[sessionId]` may recover a setup-created practice round from `candidate_practice_sessions` only after the launch-session cookie resolves to the owning `candidateProfileId`. Recovered sessions hydrate the planned-session shell before browser storage is consulted. If durable recovery is unavailable, browser session storage remains the local/dev fallback.
+- In explicit local dev host-launch mode, deterministic `dev-host-launch-*` cookies resolve directly to fixture `candidateProfileId` values for setup-start, durable session recovery, and answer-draft saves. These cookie values are not persisted into `candidate_practice_sessions.candidate_launch_session_id` because they are not UUID rows in `candidate_launch_sessions`.
+- `/candidate/session/[sessionId]/progress` may save the active session view state to `candidate_practice_sessions.progress_state_json` for candidate-owned durable sessions. Current progress states are `planned`, `question_preview`, and `live_question`; both question-surface states must carry the current question index. This supports pause/resume, refresh, and cross-tab recovery back to the active question surface.
 - The answer-draft shell may save typed draft text to `candidate_practice_sessions.answer_drafts_json` through an ownership-scoped candidate session route when durable identity is available. Browser-bridge sessions keep answer draft text component-local only. Answer drafts must not write to `answers`, evaluator inputs, feedback, or dashboard read models until answer submission deliberately lands.
 - This table does not replace the legacy/live `sessions`, `questions`, `answers`, or evaluation rows yet. Live answer runtime, provider generation, dashboard reads, and summary/debrief persistence remain separate slices.
 - Browser session storage remains a development bridge until all session progress and answer-draft persistence is identity-backed.

@@ -4,6 +4,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import CandidateSessionPage, { renderCandidateSessionPage } from "./page";
 import { saveCandidateProvisionalSession } from "@/features/candidate-session-v2/candidate-provisional-session-store";
 import { createCandidateQuestionPlan } from "@/features/candidate-session-v2/candidate-question-plan";
+import { resolveCandidateSessionIdentityFromDevLaunchCookie } from "./page";
 
 beforeEach(() => {
     vi.unstubAllGlobals();
@@ -90,7 +91,7 @@ it("renders the setup-created planned session shell for the requested session", 
     expect(screen.getByText("Included")).toBeInTheDocument();
     expect(screen.getByText(/Question wording comes next/i)).toBeInTheDocument();
     expect(screen.getByText(/Question wording request is ready/i)).toBeInTheDocument();
-    expect(screen.getByText(/question wording is not connected yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/production wording service is still unavailable/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Question preview/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Stored snapshot question for the first slot/i)).toBeInTheDocument();
     expect(screen.queryByText(/What interests you about this Customer service representative role/i)).not.toBeInTheDocument();
@@ -165,6 +166,17 @@ it("hydrates a candidate-owned durable planned session before browser storage fa
     expect(screen.getByRole("heading", { name: "Question 2 of 3" })).toBeInTheDocument();
     expect(screen.getByText("Durable snapshot question for the second slot.")).toBeInTheDocument();
     expect(screen.queryByText(/I need the setup details for this practice round/i)).not.toBeInTheDocument();
+});
+
+it("resolves explicit dev host-launch cookies for durable session recovery", async () => {
+    vi.stubEnv("CANDIDATE_HOST_LAUNCH_DEV_MODE", "true");
+    vi.stubEnv("CANDIDATE_HOST_LAUNCH_DEV_SECRET", "local-dev-shared-secret");
+
+    expect(resolveCandidateSessionIdentityFromDevLaunchCookie(
+        "ic_candidate_launch_session=dev-host-launch-100001",
+    )).toEqual({
+        candidateProfileId: "10000000-0000-4000-8000-000000000001",
+    });
 });
 
 it("restores and saves answer drafts for a durable candidate-owned session", async () => {
@@ -266,6 +278,178 @@ it("restores and saves answer drafts for a durable candidate-owned session", asy
     );
 });
 
+it("persists durable question preview progress so pause and resume returns to the active question", async () => {
+    window.sessionStorage.clear();
+    const fetch = vi.fn(async () => new Response(JSON.stringify({
+        status: "progress_saved",
+        progress: {
+            status: "question_preview",
+            currentQuestionIndex: 2,
+        },
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", fetch);
+    const resolveDurableSession = vi.fn(async () => ({
+        status: "session_created" as const,
+        sessionId: "durable-session-1",
+        nextRoute: "/candidate/session/durable-session-1" as const,
+        setupSnapshot: {
+            targetRole: "Material Handler I",
+            jobDescription: "Move materials safely across the warehouse.",
+            resumeText: null,
+            interviewStage: "first_interview" as const,
+            questionCount: 3,
+            resumeCaptureMode: "none" as const,
+            createdAt: "2026-07-09T18:00:00.000Z",
+        },
+        questionPlanSnapshot: createCandidateQuestionPlan({
+            interviewStage: "first_interview",
+            questionCount: 3,
+        }),
+        questionWordingSnapshot: {
+            status: "questions_worded" as const,
+            questions: [
+                {
+                    slotId: "slot-1",
+                    index: 0,
+                    category: "screening" as const,
+                    questionText: "Durable snapshot question for the first slot.",
+                },
+                {
+                    slotId: "slot-2",
+                    index: 1,
+                    category: "behavioral" as const,
+                    questionText: "Durable snapshot question for the second slot.",
+                },
+                {
+                    slotId: "slot-3",
+                    index: 2,
+                    category: "culture_fit" as const,
+                    questionText: "Durable snapshot question for the third slot.",
+                },
+            ],
+        },
+        progress: {
+            status: "question_preview" as const,
+            currentQuestionIndex: 1,
+        },
+    }));
+
+    const ui = await renderCandidateSessionPage({
+        params: Promise.resolve({ sessionId: "durable-session-1" }),
+        dependencies: {
+            resolveDurableSession,
+        },
+    });
+
+    await act(async () => {
+        render(ui);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Next question preview" }));
+
+    expect(fetch).toHaveBeenCalledWith(
+        "/candidate/session/durable-session-1/progress",
+        expect.objectContaining({
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                status: "question_preview",
+                currentQuestionIndex: 2,
+            }),
+        }),
+    );
+});
+
+it("starts a live question from the carried wording snapshot and persists live progress", async () => {
+    window.sessionStorage.clear();
+    const fetch = vi.fn(async () => new Response(JSON.stringify({
+        status: "progress_saved",
+        progress: {
+            status: "live_question",
+            currentQuestionIndex: 0,
+        },
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", fetch);
+    const resolveDurableSession = vi.fn(async () => ({
+        status: "session_created" as const,
+        sessionId: "durable-session-1",
+        nextRoute: "/candidate/session/durable-session-1" as const,
+        setupSnapshot: {
+            targetRole: "Material Handler I",
+            jobDescription: "Move materials safely across the warehouse.",
+            resumeText: null,
+            interviewStage: "first_interview" as const,
+            questionCount: 3,
+            resumeCaptureMode: "none" as const,
+            createdAt: "2026-07-09T18:00:00.000Z",
+        },
+        questionPlanSnapshot: createCandidateQuestionPlan({
+            interviewStage: "first_interview",
+            questionCount: 3,
+        }),
+        questionWordingSnapshot: {
+            status: "questions_worded" as const,
+            questions: [
+                {
+                    slotId: "slot-1",
+                    index: 0,
+                    category: "screening" as const,
+                    questionText: "Durable snapshot question for the first slot.",
+                },
+                {
+                    slotId: "slot-2",
+                    index: 1,
+                    category: "behavioral" as const,
+                    questionText: "Durable snapshot question for the second slot.",
+                },
+                {
+                    slotId: "slot-3",
+                    index: 2,
+                    category: "culture_fit" as const,
+                    questionText: "Durable snapshot question for the third slot.",
+                },
+            ],
+        },
+        progress: {
+            status: "planned" as const,
+            currentQuestionIndex: 0,
+        },
+    }));
+
+    const ui = await renderCandidateSessionPage({
+        params: Promise.resolve({ sessionId: "durable-session-1" }),
+        dependencies: {
+            resolveDurableSession,
+        },
+    });
+
+    await act(async () => {
+        render(ui);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Start questions" }));
+
+    expect(screen.getByRole("heading", { name: "Question 1 of 3" })).toBeInTheDocument();
+    expect(screen.getByText("Durable snapshot question for the first slot.")).toBeInTheDocument();
+    expect(screen.getByText(/Live practice has started/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /submit answer/i })).toBeDisabled();
+    expect(fetch).toHaveBeenCalledWith(
+        "/candidate/session/durable-session-1/progress",
+        expect.objectContaining({
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                status: "live_question",
+                currentQuestionIndex: 0,
+            }),
+        }),
+    );
+});
+
 it("opens a read-only first question shell from the carried wording snapshot", async () => {
     window.sessionStorage.clear();
     saveCandidateProvisionalSession(window.sessionStorage, {
@@ -327,13 +511,11 @@ it("opens a read-only first question shell from the carried wording snapshot", a
         render(ui);
     });
 
-    expect(screen.getByRole("button", { name: "Start questions" })).toBeDisabled();
-
     fireEvent.click(screen.getByRole("button", { name: "Open first question preview" }));
 
     expect(screen.getByRole("heading", { name: "Question 1 of 5" })).toBeInTheDocument();
     expect(screen.getByText("Stored snapshot question for the first slot.")).toBeInTheDocument();
-    expect(screen.getByText(/This is a read-only question shell/i)).toBeInTheDocument();
+    expect(screen.getByText(/This is a read-only question preview/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /submit answer/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Back to plan" })).toBeInTheDocument();
 });

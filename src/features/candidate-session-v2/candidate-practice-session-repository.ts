@@ -5,6 +5,7 @@ import {
     type CandidateAnswerDrafts,
 } from "./candidate-answer-lifecycle";
 import type { CandidateProvisionalSessionProgress } from "./candidate-provisional-session-store";
+import { normalizeSessionRuntimeProgress } from "@/features/interview-session-v2/session-runtime-contract";
 import type { CandidateQuestionPlan } from "./candidate-question-plan";
 import type {
     CandidateQuestionWordingResult,
@@ -145,6 +146,29 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
                 ? normalizeCandidateAnswerDrafts(result.rows[0].answer_drafts_json)
                 : null;
         },
+
+        async saveProgress(input: {
+            candidatePracticeSessionId: string;
+            candidateProfileId: string;
+            progress: CandidateProvisionalSessionProgress;
+        }) {
+            const progress = normalizeProgress(input.progress);
+            const result = await client.query(`
+                update public.candidate_practice_sessions
+                set progress_state_json = $3::jsonb
+                where candidate_practice_session_id = $1
+                  and candidate_profile_id = $2
+                returning progress_state_json
+            `, [
+                input.candidatePracticeSessionId,
+                input.candidateProfileId,
+                progress,
+            ]);
+
+            return result.rows[0]
+                ? normalizeProgress(result.rows[0].progress_state_json)
+                : null;
+        },
     };
 }
 
@@ -191,24 +215,7 @@ function toQuestionWordingStatus(
 }
 
 function normalizeProgress(value: unknown): CandidateProvisionalSessionProgress {
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
-        return {
-            status: "planned",
-            currentQuestionIndex: 0,
-        };
-    }
-
-    const progress = value as Partial<CandidateProvisionalSessionProgress>;
-    const currentQuestionIndex = progress.currentQuestionIndex;
-
-    return {
-        status: progress.status === "question_preview" ? "question_preview" : "planned",
-        currentQuestionIndex: typeof currentQuestionIndex === "number"
-            && Number.isInteger(currentQuestionIndex)
-            && currentQuestionIndex >= 0
-            ? currentQuestionIndex
-            : 0,
-    };
+    return normalizeSessionRuntimeProgress(value);
 }
 
 function readString(value: unknown) {

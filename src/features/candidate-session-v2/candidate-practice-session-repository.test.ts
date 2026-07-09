@@ -183,4 +183,70 @@ describe("candidate practice session repository", () => {
             },
         ]);
     });
+
+    it("persists preview progress by candidate-owned session", async () => {
+        const query = vi.fn(async () => ({
+            rows: [{
+                progress_state_json: {
+                    status: "question_preview",
+                    currentQuestionIndex: 2,
+                },
+            }],
+        }));
+        const repository = createCandidatePracticeSessionRepository({ query });
+
+        await expect(repository.saveProgress({
+            candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            candidatePracticeSessionId: "11111111-1111-4111-8111-111111111111",
+            progress: {
+                status: "question_preview",
+                currentQuestionIndex: 2,
+            },
+        })).resolves.toEqual({
+            status: "question_preview",
+            currentQuestionIndex: 2,
+        });
+
+        expect(query).toHaveBeenCalledWith(expect.stringContaining("progress_state_json = $3::jsonb"), [
+            "11111111-1111-4111-8111-111111111111",
+            "22222222-2222-4222-8222-222222222222",
+            {
+                status: "question_preview",
+                currentQuestionIndex: 2,
+            },
+        ]);
+    });
+
+    it("persists live question progress by candidate-owned session", async () => {
+        const query = vi.fn(async () => ({
+            rows: [{
+                progress_state_json: {
+                    status: "live_question",
+                    currentQuestionIndex: 0,
+                },
+            }],
+        }));
+        const repository = createCandidatePracticeSessionRepository({ query });
+
+        await expect(repository.saveProgress({
+            candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            candidatePracticeSessionId: "11111111-1111-4111-8111-111111111111",
+            progress: {
+                status: "live_question",
+                currentQuestionIndex: 0,
+            },
+        })).resolves.toEqual({
+            status: "live_question",
+            currentQuestionIndex: 0,
+        });
+
+        expect(query).toHaveBeenCalledWith(expect.stringContaining("progress_state_json = $3::jsonb"), [
+            "11111111-1111-4111-8111-111111111111",
+            "22222222-2222-4222-8222-222222222222",
+            {
+                status: "live_question",
+                currentQuestionIndex: 0,
+            },
+        ]);
+    });
 });

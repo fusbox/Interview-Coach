@@ -93,6 +93,26 @@ it("shows a progress transition after setup submission", () => {
     }));
 });
 
+it("shows setup contract errors before posting invalid setup input", async () => {
+    const createSession = vi.fn();
+    render(<CandidateSetupExperience createSession={createSession} />);
+
+    fireEvent.change(screen.getByLabelText("Target role *"), {
+        target: { value: "Material handler" },
+    });
+    fireEvent.change(screen.getByLabelText("Job description *"), {
+        target: { value: "a".repeat(12_001) },
+    });
+
+    await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /start practice/i }));
+    });
+
+    expect(createSession).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent("Job description must be 12,000 characters or fewer.");
+    expect(screen.getByLabelText("Job description *")).toHaveAttribute("aria-invalid", "true");
+});
+
 it("submits a typed setup payload for the next transition", () => {
     const handleSetupReady = vi.fn();
     render(<CandidateSetupExperience onSetupReady={handleSetupReady} />);

@@ -163,35 +163,50 @@ export function CandidatePlannedSessionExperience({
         );
     }
 
-    if (progress.status === "question_preview" && questionWordingPreview) {
+    if ((progress.status === "question_preview" || progress.status === "live_question") && questionWordingPreview) {
         const activeQuestionIndex = Math.min(
             progress.currentQuestionIndex,
             Math.max(questionWordingPreview.questions.length - 1, 0),
         );
         const activeQuestion = questionWordingPreview.questions[activeQuestionIndex];
         const activeSlot = questionPlan?.slots[activeQuestion.index] ?? null;
+        const isLiveQuestion = progress.status === "live_question";
 
         return (
             <main className="candidate-design-system planned-session-page">
                 <section className="planned-live-question app-grid" aria-labelledby="planned-live-question-title">
                     <div className="planned-question-plan__header">
-                        <p className="type-eyebrow">Question preview</p>
+                        <p className="type-eyebrow">{isLiveQuestion ? "Practice question" : "Question preview"}</p>
                         <h1 id="planned-live-question-title">
                             Question {activeQuestion.index + 1} of {questionWordingPreview.questions.length}
                         </h1>
-                        <p>
-                            This is a read-only question shell from the carried wording snapshot. Answer submission and
-                            feedback are not connected yet.
-                        </p>
+                        {isLiveQuestion ? (
+                            <p>
+                                Live practice has started from the carried wording snapshot. Answer submission and
+                                feedback are not connected yet.
+                            </p>
+                        ) : (
+                            <p>
+                                This is a read-only question preview from the carried wording snapshot. Answer
+                                submission and feedback are not connected yet.
+                            </p>
+                        )}
                     </div>
 
                     <article className="planned-live-question__card">
                         <p className="type-eyebrow">{activeSlot?.label ?? "Question"}</p>
                         <h2>{activeQuestion.questionText}</h2>
-                        <p>
-                            When the live runtime lands, this surface will collect your answer and guide the next step.
-                            For now, it only proves the question handoff.
-                        </p>
+                        {isLiveQuestion ? (
+                            <p>
+                                This started state preserves the question position for pause and resume while the
+                                answer lifecycle remains unavailable.
+                            </p>
+                        ) : (
+                            <p>
+                                When the live runtime lands, this surface will collect your answer and guide the next
+                                step. For now, it only proves the question handoff.
+                            </p>
+                        )}
                     </article>
 
                     <section className="answer-draft-shell" aria-labelledby="answer-draft-title">
@@ -256,7 +271,7 @@ export function CandidatePlannedSessionExperience({
                         type="button"
                         disabled={activeQuestionIndex === 0}
                         onClick={() => updateProgress({
-                            status: "question_preview",
+                            status: progress.status,
                             currentQuestionIndex: Math.max(activeQuestionIndex - 1, 0),
                         })}
                     >
@@ -267,7 +282,7 @@ export function CandidatePlannedSessionExperience({
                         type="button"
                         disabled={activeQuestionIndex >= questionWordingPreview.questions.length - 1}
                         onClick={() => updateProgress({
-                            status: "question_preview",
+                            status: progress.status,
                             currentQuestionIndex: Math.min(
                                 activeQuestionIndex + 1,
                                 questionWordingPreview.questions.length - 1,
@@ -276,10 +291,19 @@ export function CandidatePlannedSessionExperience({
                     >
                         Next question preview
                     </button>
-                    <button className="planned-session-action" type="button" disabled>
-                        <Play size={16} aria-hidden="true" />
-                        Start questions
-                    </button>
+                    {isLiveQuestion ? null : (
+                        <button
+                            className="planned-session-action"
+                            type="button"
+                            onClick={() => updateProgress({
+                                status: "live_question",
+                                currentQuestionIndex: activeQuestionIndex,
+                            })}
+                        >
+                            <Play size={16} aria-hidden="true" />
+                            Start questions
+                        </button>
+                    )}
                 </section>
             </main>
         );
@@ -349,12 +373,13 @@ export function CandidatePlannedSessionExperience({
                         <h2>Question wording request is ready.</h2>
                         <p>
                             {questionWordingState.request.questionPlanSnapshot.slots.length} planned slots are ready to
-                            send for wording. Fixture wording is shown below, but question wording is not connected yet.
+                            send for wording. Fixture wording is shown below while the production wording service is
+                            still unavailable.
                         </p>
                         {questionWordingState.unavailable.reason === "provider_not_configured" ? (
                             <p>
-                                Start questions stays disabled until the wording service returns questions that match
-                                the plan.
+                                Start questions can open the carried local wording as a live-session scaffold. Answer
+                                submission and coaching stay unavailable until the answer runtime lands.
                             </p>
                         ) : null}
                     </article>
@@ -422,7 +447,15 @@ export function CandidatePlannedSessionExperience({
                         Open first question preview
                     </button>
                 ) : null}
-                <button className="planned-session-action" type="button" disabled>
+                <button
+                    className="planned-session-action"
+                    type="button"
+                    disabled={!questionWordingPreview}
+                    onClick={() => updateProgress({
+                        status: "live_question",
+                        currentQuestionIndex: 0,
+                    })}
+                >
                     <Play size={16} aria-hidden="true" />
                     Start questions
                 </button>
@@ -433,6 +466,18 @@ export function CandidatePlannedSessionExperience({
     function updateProgress(nextProgress: CandidateProvisionalSessionProgress) {
         setProgress(nextProgress);
         saveCandidateProvisionalSessionProgress(window.sessionStorage, sessionId, nextProgress);
+
+        if (!initialSession) {
+            return;
+        }
+
+        void fetch(`/candidate/session/${encodeURIComponent(sessionId)}/progress`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(nextProgress),
+        });
     }
 
     function updateAnswerDraft({

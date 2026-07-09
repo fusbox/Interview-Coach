@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 
 import { createCandidateSetupSessionTransition } from "@/features/candidate-setup-v2/candidate-setup-session-creation";
+import { safeParseCandidateSetupInput } from "@/features/candidate-setup-v2/candidate-setup-contract";
 import type { CandidateProvisionalSessionProgress } from "@/features/candidate-session-v2/candidate-provisional-session-store";
 import {
     createCandidatePracticeSessionRepository,
@@ -8,6 +9,8 @@ import {
 } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-auth-v2/production-host-launch-runtime";
 import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-v2/host-launch-route";
+import { isCandidateDevHostLaunchEnabled } from "@/features/candidate-auth-v2/dev-host-launch";
+import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidate-auth-v2/dev-host-launch-cookie-identity";
 
 export async function POST(request: Request) {
     return handleCandidateSetupStartRequest({
@@ -53,12 +56,21 @@ export async function handleCandidateSetupStartRequest({
         return Response.json({ error: "Invalid setup request." }, { status: 400 });
     }
 
+    const parsedSetup = safeParseCandidateSetupInput(body);
+    if (!parsedSetup.success) {
+        return Response.json({
+            error: "Invalid setup request.",
+            fieldErrors: parsedSetup.error.flatten().fieldErrors,
+        }, { status: 400 });
+    }
+
+    const result = createCandidateSetupSessionTransition({
+        payload: parsedSetup.data,
+        now,
+        createSessionId,
+    });
+
     try {
-        const result = createCandidateSetupSessionTransition({
-            payload: body,
-            now,
-            createSessionId,
-        });
         const identity = resolveCandidateSetupIdentity
             ? await resolveCandidateSetupIdentity(request)
             : null;
@@ -93,7 +105,7 @@ export async function handleCandidateSetupStartRequest({
 
         return Response.json(result, { status: 201 });
     } catch {
-        return Response.json({ error: "Invalid setup request." }, { status: 400 });
+        return Response.json({ error: "Candidate setup could not be started." }, { status: 503 });
     }
 }
 
@@ -103,13 +115,20 @@ function createDefaultCandidateSetupStartDependencies(): Pick<
 > {
     const databaseUrl = process.env[CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV]?.trim();
     if (!databaseUrl) {
-        return {};
+        return isCandidateDevHostLaunchEnabled()
+            ? {
+                resolveCandidateSetupIdentity: resolveCandidateSetupIdentityFromDevLaunchCookie,
+            }
+            : {};
     }
 
     const queryClient = createLazyPostgresQueryClient(databaseUrl);
 
     return {
-        resolveCandidateSetupIdentity: (request) => resolveCandidateSetupIdentityFromLaunchCookie(request, queryClient),
+        resolveCandidateSetupIdentity: async (request) => {
+            const devIdentity = await resolveCandidateSetupIdentityFromDevLaunchCookie(request);
+            return devIdentity ?? resolveCandidateSetupIdentityFromLaunchCookie(request, queryClient);
+        },
         practiceSessionRepository: createCandidatePracticeSessionRepository(queryClient),
     };
 }
@@ -183,6 +202,17 @@ function readCookieValue(cookieHeader: string | null, name: string) {
 
 function readString(value: unknown) {
     return typeof value === "string" && value.trim() ? value : null;
+}
+
+export async function resolveCandidateSetupIdentityFromDevLaunchCookie(request: Request): Promise<CandidateSetupIdentity | null> {
+    const identity = resolveCandidateDevHostLaunchCookieIdentity(request.headers.get("Cookie"));
+
+    return identity
+        ? {
+            candidateProfileId: identity.candidateProfileId,
+            candidateLaunchSessionId: null,
+        }
+        : null;
 }
 
 function getRuntimeSslConfig(databaseUrl: string) {

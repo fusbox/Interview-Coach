@@ -135,6 +135,23 @@ The dev route mints a short local host-shaped token, redirects through `/candida
 
 The default token lifetime is one week. The local dev verifier maps the numeric candidate id to the deterministic seeded candidate profiles. Production JWT verification, replay handling, secret rotation, and database-backed profile/session resolution remain separate integration slices.
 
+If `DATABASE_URL` is present in `.env` or the shell, `/candidate/setup/start` uses the durable local Postgres path. Before validating setup submission, make sure the smoke database has both the current migrations and deterministic candidate fixtures:
+
+```powershell
+npm run db:migrate
+npm run db:seed-candidate-dev
+```
+
+If setup submission returns `503`, first run:
+
+```powershell
+npm run db:smoke-candidate-host-launch-schema
+npm run db:smoke-candidate-practice-sessions-schema
+npm run db:smoke-candidate-dev-seed
+```
+
+These checks confirm the launch/session tables and fixture candidate profiles required by local host launch mode.
+
 For the quickest local UI pass:
 
 ```text

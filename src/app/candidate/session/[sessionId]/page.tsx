@@ -1,4 +1,5 @@
 import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-v2/host-launch-route";
+import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidate-auth-v2/dev-host-launch-cookie-identity";
 import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-auth-v2/production-host-launch-runtime";
 import { CandidatePlannedSessionExperience } from "@/features/candidate-session-v2/CandidatePlannedSessionExperience";
 import type { CandidateProvisionalSessionRecord } from "@/features/candidate-session-v2/candidate-provisional-session-store";
@@ -72,6 +73,16 @@ function createDefaultCandidateSessionPageDependencies(): CandidateSessionPageDe
                     requestHeaders.get("cookie"),
                     CANDIDATE_HOST_LAUNCH_SESSION_COOKIE,
                 );
+                const devIdentity = resolveCandidateSessionIdentityFromDevLaunchCookie(requestHeaders.get("cookie"));
+                if (devIdentity) {
+                    const durableSession = await practiceSessionRepository.findSetupSession({
+                        candidatePracticeSessionId: sessionId,
+                        candidateProfileId: devIdentity.candidateProfileId,
+                    });
+
+                    return durableSession ? toCandidateProvisionalSession(durableSession) : null;
+                }
+
                 if (!candidateLaunchSessionId) {
                     return null;
                 }
@@ -95,6 +106,10 @@ function createDefaultCandidateSessionPageDependencies(): CandidateSessionPageDe
             }
         },
     };
+}
+
+export function resolveCandidateSessionIdentityFromDevLaunchCookie(cookieHeader: string | null) {
+    return resolveCandidateDevHostLaunchCookieIdentity(cookieHeader);
 }
 
 type CandidateSessionQueryClient = {

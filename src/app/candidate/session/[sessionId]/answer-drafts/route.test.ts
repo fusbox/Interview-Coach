@@ -1,8 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { handleCandidateAnswerDraftRequest } from "./route";
+import { handleCandidateAnswerDraftRequest, resolveCandidateAnswerDraftIdentityFromDevLaunchCookie } from "./route";
 
 describe("/candidate/session/[sessionId]/answer-drafts route", () => {
+    it("resolves explicit dev host-launch cookies for durable answer draft saves", () => {
+        vi.stubEnv("CANDIDATE_HOST_LAUNCH_DEV_MODE", "true");
+        vi.stubEnv("CANDIDATE_HOST_LAUNCH_DEV_SECRET", "local-dev-shared-secret");
+
+        expect(resolveCandidateAnswerDraftIdentityFromDevLaunchCookie(
+            "ic_candidate_launch_session=dev-host-launch-100001",
+        )).toEqual({
+            candidateProfileId: "10000000-0000-4000-8000-000000000001",
+        });
+    });
+
     it("persists a typed answer draft when candidate identity resolves", async () => {
         const saveAnswerDraft = vi.fn(async () => ({
             "slot-1": {

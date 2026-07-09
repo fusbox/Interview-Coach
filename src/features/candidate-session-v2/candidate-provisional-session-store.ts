@@ -3,14 +3,15 @@ import {
     normalizeCandidateAnswerDrafts,
     type CandidateAnswerDrafts,
 } from "./candidate-answer-lifecycle";
+import {
+    normalizeSessionRuntimeProgress,
+    type SessionRuntimeProgress,
+} from "@/features/interview-session-v2/session-runtime-contract";
 import type { CandidateQuestionWordingResult } from "./candidate-question-wording";
 
 export const CANDIDATE_PROVISIONAL_SESSION_STORAGE_KEY = "interview-coach:candidate-provisional-sessions:v1";
 
-export type CandidateProvisionalSessionProgress = {
-    status: "planned" | "question_preview";
-    currentQuestionIndex: number;
-};
+export type CandidateProvisionalSessionProgress = SessionRuntimeProgress;
 
 export type CandidateProvisionalSessionRecord = (CandidateSetupSessionCreationResult | (
     Omit<CandidateSetupSessionCreationResult, "questionWordingSnapshot"> & {
@@ -101,14 +102,5 @@ function readCandidateProvisionalSessionMap(storage: Pick<Storage, "getItem">): 
 function normalizeCandidateProvisionalSessionProgress(
     progress?: CandidateProvisionalSessionProgress,
 ): CandidateProvisionalSessionProgress {
-    const currentQuestionIndex = progress?.currentQuestionIndex;
-
-    return {
-        status: progress?.status === "question_preview" ? "question_preview" : "planned",
-        currentQuestionIndex: typeof currentQuestionIndex === "number"
-            && Number.isInteger(currentQuestionIndex)
-            && currentQuestionIndex >= 0
-            ? currentQuestionIndex
-            : 0,
-    };
+    return normalizeSessionRuntimeProgress(progress);
 }
