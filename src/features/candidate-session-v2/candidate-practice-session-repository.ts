@@ -1,8 +1,11 @@
 import type { CandidateSetupSessionCreationResult } from "@/features/candidate-setup-v2/candidate-setup-session-creation";
 import {
     normalizeCandidateAnswerDrafts,
+    normalizeCandidateAnswerSubmissions,
     type CandidateAnswerDraft,
     type CandidateAnswerDrafts,
+    type CandidateAnswerSubmission,
+    type CandidateAnswerSubmissions,
 } from "./candidate-answer-lifecycle";
 import type { CandidateProvisionalSessionProgress } from "./candidate-provisional-session-store";
 import { normalizeSessionRuntimeProgress } from "@/features/interview-session-v2/session-runtime-contract";
@@ -11,6 +14,7 @@ import type {
     CandidateQuestionWordingResult,
     CandidateQuestionWordingUnavailableResult,
 } from "./candidate-question-wording";
+import type { CandidateAnswerAnalysisProviderResult } from "./candidate-answer-analysis-adapter";
 
 export type CandidatePracticeSessionQueryClient = {
     query: (sql: string, values: unknown[]) => Promise<{
@@ -36,7 +40,11 @@ export type CandidatePracticeSessionRecord = {
     questionWordingStatus: CandidatePracticeSessionWordingStatus;
     progress: CandidateProvisionalSessionProgress;
     answerDrafts: CandidateAnswerDrafts;
+    answerSubmissions: CandidateAnswerSubmissions;
+    answerAnalysisSnapshots: CandidateAnswerAnalysisSnapshots;
 };
+
+export type CandidateAnswerAnalysisSnapshots = Record<string, CandidateAnswerAnalysisProviderResult>;
 
 export type CreateCandidatePracticeSessionInput = {
     candidateProfileId: string;
@@ -47,6 +55,7 @@ export type CreateCandidatePracticeSessionInput = {
     questionWordingSnapshot?: CandidateQuestionWordingResult | CandidateQuestionWordingUnavailableResult | null;
     progress?: CandidateProvisionalSessionProgress;
     answerDrafts?: CandidateAnswerDrafts;
+    answerSubmissions?: CandidateAnswerSubmissions;
 };
 
 export function createCandidatePracticeSessionRepository(client: CandidatePracticeSessionQueryClient) {
@@ -106,7 +115,9 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
                   question_wording_snapshot_json,
                   question_wording_status,
                   progress_state_json,
-                  answer_drafts_json
+                  answer_drafts_json,
+                  answer_submissions_json,
+                  answer_analysis_snapshots_json
                 from public.candidate_practice_sessions
                 where candidate_practice_session_id = $1
                   and candidate_profile_id = $2
@@ -144,6 +155,62 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
 
             return result.rows[0]
                 ? normalizeCandidateAnswerDrafts(result.rows[0].answer_drafts_json)
+                : null;
+        },
+
+        async saveAnswerSubmission(input: {
+            candidatePracticeSessionId: string;
+            candidateProfileId: string;
+            answerSubmission: CandidateAnswerSubmission;
+        }) {
+            const result = await client.query(`
+                update public.candidate_practice_sessions
+                set answer_submissions_json = jsonb_set(
+                  coalesce(answer_submissions_json, '{}'::jsonb),
+                  $3::text[],
+                  $4::jsonb,
+                  true
+                )
+                where candidate_practice_session_id = $1
+                  and candidate_profile_id = $2
+                returning answer_submissions_json
+            `, [
+                input.candidatePracticeSessionId,
+                input.candidateProfileId,
+                [input.answerSubmission.slotId],
+                input.answerSubmission,
+            ]);
+
+            return result.rows[0]
+                ? normalizeCandidateAnswerSubmissions(result.rows[0].answer_submissions_json)
+                : null;
+        },
+
+        async saveAnswerAnalysisSnapshot(input: {
+            candidatePracticeSessionId: string;
+            candidateProfileId: string;
+            analysisSnapshot: CandidateAnswerAnalysisProviderResult;
+        }) {
+            const result = await client.query(`
+                update public.candidate_practice_sessions
+                set answer_analysis_snapshots_json = jsonb_set(
+                  coalesce(answer_analysis_snapshots_json, '{}'::jsonb),
+                  $3::text[],
+                  $4::jsonb,
+                  true
+                )
+                where candidate_practice_session_id = $1
+                  and candidate_profile_id = $2
+                returning answer_analysis_snapshots_json
+            `, [
+                input.candidatePracticeSessionId,
+                input.candidateProfileId,
+                [input.analysisSnapshot.answer.slotId],
+                input.analysisSnapshot,
+            ]);
+
+            return result.rows[0]
+                ? normalizeCandidateAnswerAnalysisSnapshots(result.rows[0].answer_analysis_snapshots_json)
                 : null;
         },
 
@@ -197,7 +264,17 @@ function toCandidatePracticeSessionRecord(row: Record<string, unknown> | undefin
         questionWordingStatus: readQuestionWordingStatus(row.question_wording_status),
         progress: normalizeProgress(row.progress_state_json),
         answerDrafts: normalizeCandidateAnswerDrafts(row.answer_drafts_json),
+        answerSubmissions: normalizeCandidateAnswerSubmissions(row.answer_submissions_json),
+        answerAnalysisSnapshots: normalizeCandidateAnswerAnalysisSnapshots(row.answer_analysis_snapshots_json),
     };
+}
+
+function normalizeCandidateAnswerAnalysisSnapshots(value: unknown): CandidateAnswerAnalysisSnapshots {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return {};
+    }
+
+    return value as CandidateAnswerAnalysisSnapshots;
 }
 
 function toQuestionWordingStatus(

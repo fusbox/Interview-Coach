@@ -13,6 +13,8 @@ create table if not exists public.candidate_practice_sessions (
   question_wording_status text not null default 'not_requested',
   progress_state_json jsonb not null default '{"status":"planned","currentQuestionIndex":0}'::jsonb,
   answer_drafts_json jsonb not null default '{}'::jsonb,
+  answer_submissions_json jsonb not null default '{}'::jsonb,
+  answer_analysis_snapshots_json jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint chk_candidate_practice_sessions_status check (status in ('planned', 'in_progress', 'completed', 'abandoned')),
@@ -21,17 +23,45 @@ create table if not exists public.candidate_practice_sessions (
   constraint chk_candidate_practice_sessions_question_plan_object check (jsonb_typeof(question_plan_snapshot_json) = 'object'),
   constraint chk_candidate_practice_sessions_wording_snapshot_object check (question_wording_snapshot_json is null or jsonb_typeof(question_wording_snapshot_json) = 'object'),
   constraint chk_candidate_practice_sessions_progress_object check (jsonb_typeof(progress_state_json) = 'object'),
-  constraint chk_candidate_practice_sessions_answer_drafts_object check (jsonb_typeof(answer_drafts_json) = 'object')
+  constraint chk_candidate_practice_sessions_answer_drafts_object check (jsonb_typeof(answer_drafts_json) = 'object'),
+  constraint chk_candidate_practice_sessions_answer_submissions_object check (jsonb_typeof(answer_submissions_json) = 'object'),
+  constraint chk_candidate_practice_sessions_answer_analysis_snapshots_object check (jsonb_typeof(answer_analysis_snapshots_json) = 'object')
 );
 
 alter table public.candidate_practice_sessions
   add column if not exists answer_drafts_json jsonb not null default '{}'::jsonb;
+
+alter table public.candidate_practice_sessions
+  add column if not exists answer_submissions_json jsonb not null default '{}'::jsonb;
+
+alter table public.candidate_practice_sessions
+  add column if not exists answer_analysis_snapshots_json jsonb not null default '{}'::jsonb;
 
 do $$
 begin
   alter table public.candidate_practice_sessions
     add constraint chk_candidate_practice_sessions_answer_drafts_object
     check (jsonb_typeof(answer_drafts_json) = 'object');
+exception
+  when duplicate_object then null;
+end;
+$$;
+
+do $$
+begin
+  alter table public.candidate_practice_sessions
+    add constraint chk_candidate_practice_sessions_answer_submissions_object
+    check (jsonb_typeof(answer_submissions_json) = 'object');
+exception
+  when duplicate_object then null;
+end;
+$$;
+
+do $$
+begin
+  alter table public.candidate_practice_sessions
+    add constraint chk_candidate_practice_sessions_answer_analysis_snapshots_object
+    check (jsonb_typeof(answer_analysis_snapshots_json) = 'object');
 exception
   when duplicate_object then null;
 end;

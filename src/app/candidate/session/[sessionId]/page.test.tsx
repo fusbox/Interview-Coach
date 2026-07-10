@@ -450,6 +450,239 @@ it("starts a live question from the carried wording snapshot and persists live p
     );
 });
 
+it("attempts typed answer submission from a live question and surfaces the fail-closed boundary", async () => {
+    window.sessionStorage.clear();
+    const fetch = vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.endsWith("/answers")) {
+            return new Response(JSON.stringify({
+                status: "answer_submit_saved",
+                next: "analysis_not_connected",
+            }), { status: 202 });
+        }
+
+        if (url.endsWith("/answers/slot-1/analysis")) {
+            return new Response(JSON.stringify({
+                status: "answer_analysis_unavailable",
+                reason: "provider_not_configured",
+            }), { status: 503 });
+        }
+
+        return new Response(JSON.stringify({
+            status: "answer_draft_saved",
+            answerDrafts: {},
+        }), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetch);
+    const resolveDurableSession = vi.fn(async () => ({
+        status: "session_created" as const,
+        sessionId: "durable-session-1",
+        nextRoute: "/candidate/session/durable-session-1" as const,
+        setupSnapshot: {
+            targetRole: "Material Handler I",
+            jobDescription: "Move materials safely across the warehouse.",
+            resumeText: null,
+            interviewStage: "first_interview" as const,
+            questionCount: 3,
+            resumeCaptureMode: "none" as const,
+            createdAt: "2026-07-09T18:00:00.000Z",
+        },
+        questionPlanSnapshot: createCandidateQuestionPlan({
+            interviewStage: "first_interview",
+            questionCount: 3,
+        }),
+        questionWordingSnapshot: {
+            status: "questions_worded" as const,
+            questions: [
+                {
+                    slotId: "slot-1",
+                    index: 0,
+                    category: "screening" as const,
+                    questionText: "Durable snapshot question for the first slot.",
+                },
+                {
+                    slotId: "slot-2",
+                    index: 1,
+                    category: "behavioral" as const,
+                    questionText: "Durable snapshot question for the second slot.",
+                },
+                {
+                    slotId: "slot-3",
+                    index: 2,
+                    category: "culture_fit" as const,
+                    questionText: "Durable snapshot question for the third slot.",
+                },
+            ],
+        },
+        progress: {
+            status: "live_question" as const,
+            currentQuestionIndex: 0,
+        },
+    }));
+
+    const ui = await renderCandidateSessionPage({
+        params: Promise.resolve({ sessionId: "durable-session-1" }),
+        dependencies: {
+            resolveDurableSession,
+        },
+    });
+
+    await act(async () => {
+        render(ui);
+    });
+
+    const answerDraft = screen.getByRole("textbox", { name: "Draft answer" });
+    fireEvent.change(answerDraft, {
+        target: {
+            value: "I would ask a clarifying question first.",
+        },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
+
+    expect(fetch).toHaveBeenCalledWith(
+        "/candidate/session/durable-session-1/answers",
+        expect.objectContaining({
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                slotId: "slot-1",
+                questionIndex: 0,
+                mode: "text",
+                text: "I would ask a clarifying question first.",
+            }),
+        }),
+    );
+    expect(await screen.findByText(/Answer saved. Coaching is still being connected/i)).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledWith(
+        "/candidate/session/durable-session-1/answers/slot-1/analysis",
+        expect.objectContaining({
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        }),
+    );
+});
+
+it("shows read-only coach feedback when answer analysis returns an isolated V2 snapshot", async () => {
+    window.sessionStorage.clear();
+    const analysisSnapshot = {
+        status: "answer_analysis_provider_result" as const,
+        provider: "candidate_v2_answer_evaluator" as const,
+        analyzedAt: "2026-07-09T20:03:00.000Z",
+        answer: {
+            slotId: "slot-1",
+            questionIndex: 0,
+        },
+        coachFeedback: {
+            acknowledgement: "You named a practical first step.",
+            observation: "The answer would be stronger with the result of your choice.",
+            nextPracticeFocus: "Add what changed after you set the priority.",
+        },
+        evidence: [
+            {
+                criterionId: "answer_specificity",
+                applicability: "observed" as const,
+                score: 3,
+            },
+        ],
+    };
+    const fetch = vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.endsWith("/answers")) {
+            return new Response(JSON.stringify({
+                status: "answer_submit_saved",
+                next: "analysis_not_connected",
+            }), { status: 202 });
+        }
+
+        if (url.endsWith("/answers/slot-1/analysis")) {
+            return new Response(JSON.stringify({
+                status: "answer_analysis_saved",
+                analysisSnapshot,
+            }), { status: 200 });
+        }
+
+        return new Response(JSON.stringify({
+            status: "answer_draft_saved",
+            answerDrafts: {},
+        }), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetch);
+    const resolveDurableSession = vi.fn(async () => ({
+        status: "session_created" as const,
+        sessionId: "durable-session-1",
+        nextRoute: "/candidate/session/durable-session-1" as const,
+        setupSnapshot: {
+            targetRole: "Material Handler I",
+            jobDescription: "Move materials safely across the warehouse.",
+            resumeText: null,
+            interviewStage: "first_interview" as const,
+            questionCount: 3,
+            resumeCaptureMode: "none" as const,
+            createdAt: "2026-07-09T18:00:00.000Z",
+        },
+        questionPlanSnapshot: createCandidateQuestionPlan({
+            interviewStage: "first_interview",
+            questionCount: 3,
+        }),
+        questionWordingSnapshot: {
+            status: "questions_worded" as const,
+            questions: [
+                {
+                    slotId: "slot-1",
+                    index: 0,
+                    category: "screening" as const,
+                    questionText: "Durable snapshot question for the first slot.",
+                },
+                {
+                    slotId: "slot-2",
+                    index: 1,
+                    category: "behavioral" as const,
+                    questionText: "Durable snapshot question for the second slot.",
+                },
+                {
+                    slotId: "slot-3",
+                    index: 2,
+                    category: "culture_fit" as const,
+                    questionText: "Durable snapshot question for the third slot.",
+                },
+            ],
+        },
+        progress: {
+            status: "live_question" as const,
+            currentQuestionIndex: 0,
+        },
+    }));
+
+    const ui = await renderCandidateSessionPage({
+        params: Promise.resolve({ sessionId: "durable-session-1" }),
+        dependencies: {
+            resolveDurableSession,
+        },
+    });
+
+    await act(async () => {
+        render(ui);
+    });
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Draft answer" }), {
+        target: {
+            value: "I would ask a clarifying question first.",
+        },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
+
+    expect(await screen.findByText("Answer saved. Coaching is ready to review.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Coach feedback" })).toBeInTheDocument();
+    expect(screen.getByText("You named a practical first step.")).toBeInTheDocument();
+    expect(screen.getByText("The answer would be stronger with the result of your choice.")).toBeInTheDocument();
+    expect(screen.getByText("Add what changed after you set the priority.")).toBeInTheDocument();
+    expect(screen.queryByText(/score/i)).not.toBeInTheDocument();
+});
+
 it("opens a read-only first question shell from the carried wording snapshot", async () => {
     window.sessionStorage.clear();
     saveCandidateProvisionalSession(window.sessionStorage, {
@@ -602,7 +835,7 @@ it("keeps local answer drafts on the question surface without enabling submissio
     expect(screen.getByRole("textbox", { name: "Draft answer" })).toHaveValue(
         "I would greet the customer, ask one clarifying question, and confirm the next step.",
     );
-    expect(screen.getByText(/Drafts stay on this screen only/i)).toBeInTheDocument();
+    expect(screen.getByText(/Drafts save separately from final submission/i)).toBeInTheDocument();
 });
 
 it("restores read-only question preview progress after remount", async () => {

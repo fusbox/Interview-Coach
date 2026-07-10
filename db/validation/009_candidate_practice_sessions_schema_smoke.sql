@@ -73,7 +73,9 @@ insert into public.candidate_practice_sessions (
   question_wording_snapshot_json,
   question_wording_status,
   progress_state_json,
-  answer_drafts_json
+  answer_drafts_json,
+  answer_submissions_json,
+  answer_analysis_snapshots_json
 )
 values (
   '84848484-8484-4484-8484-848484848484',
@@ -86,7 +88,9 @@ values (
   '{"status":"questions_worded","questions":[{"slotId":"slot-1","index":0,"category":"screening","questionText":"What interests you about this Material Handler role?"}]}'::jsonb,
   'worded',
   '{"status":"question_preview","currentQuestionIndex":0}'::jsonb,
-  '{"slot-1":{"slotId":"slot-1","questionIndex":0,"mode":"text","text":"I would start by confirming the movement ticket.","updatedAt":"2026-07-09T20:00:00.000Z"}}'::jsonb
+  '{"slot-1":{"slotId":"slot-1","questionIndex":0,"mode":"text","text":"I would start by confirming the movement ticket.","updatedAt":"2026-07-09T20:00:00.000Z"}}'::jsonb,
+  '{"slot-1":{"slotId":"slot-1","questionIndex":0,"mode":"text","text":"I would start by confirming the movement ticket.","submittedAt":"2026-07-09T20:01:00.000Z","status":"pending_analysis"}}'::jsonb,
+  '{"slot-1":{"status":"answer_analysis_provider_result","provider":"candidate_v2_answer_evaluator","analyzedAt":"2026-07-09T20:02:00.000Z","answer":{"slotId":"slot-1","questionIndex":0},"coachFeedback":{"acknowledgement":"You named a practical first step.","observation":"The answer would be stronger with the result of your choice.","nextPracticeFocus":"Add what changed after you set the priority."},"evidence":[{"criterionId":"answer_specificity","applicability":"observed","score":3}]}}'::jsonb
 );
 
 do $$
@@ -109,7 +113,9 @@ begin
     and session.question_plan_snapshot_json ->> 'questionCount' = '7'
     and session.question_wording_snapshot_json ->> 'status' = 'questions_worded'
     and session.progress_state_json ->> 'status' = 'question_preview'
-    and session.answer_drafts_json #>> '{slot-1,text}' = 'I would start by confirming the movement ticket.';
+    and session.answer_drafts_json #>> '{slot-1,text}' = 'I would start by confirming the movement ticket.'
+    and session.answer_submissions_json #>> '{slot-1,status}' = 'pending_analysis'
+    and session.answer_analysis_snapshots_json #>> '{slot-1,status}' = 'answer_analysis_provider_result';
 
   if v_session_count <> 1 then
     raise exception 'expected 1 traceable candidate practice session, found %', v_session_count;
@@ -143,10 +149,34 @@ $$;
 do $$
 begin
   update public.candidate_practice_sessions
+  set answer_submissions_json = '[]'::jsonb
+  where candidate_practice_session_id = '84848484-8484-4484-8484-848484848484';
+
+  raise exception 'expected array answer submissions to fail';
+exception
+  when check_violation then null;
+end;
+$$;
+
+do $$
+begin
+  update public.candidate_practice_sessions
   set answer_drafts_json = '[]'::jsonb
   where candidate_practice_session_id = '84848484-8484-4484-8484-848484848484';
 
   raise exception 'expected array answer drafts to fail';
+exception
+  when check_violation then null;
+end;
+$$;
+
+do $$
+begin
+  update public.candidate_practice_sessions
+  set answer_analysis_snapshots_json = '[]'::jsonb
+  where candidate_practice_session_id = '84848484-8484-4484-8484-848484848484';
+
+  raise exception 'expected array answer analysis snapshots to fail';
 exception
   when check_violation then null;
 end;

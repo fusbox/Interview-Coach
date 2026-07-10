@@ -1,7 +1,7 @@
 # Candidate App Data Contract
 
 Status: Canonical system truth
-Last updated: 2026-07-09
+Last updated: 2026-07-10
 
 ## Purpose
 
@@ -200,6 +200,15 @@ type CandidateAnswerDraft = {
     updatedAt: string;
 };
 
+type CandidateAnswerSubmission = {
+    slotId: string;
+    questionIndex: number;
+    mode: "text";
+    text: string;
+    submittedAt: string;
+    status: "pending_analysis";
+};
+
 type CandidatePracticeSession = {
     candidatePracticeSessionId: string;
     candidateProfileId: string;
@@ -212,12 +221,14 @@ type CandidatePracticeSession = {
     questionWordingStatus: "not_requested" | "provider_not_configured" | "worded" | "failed";
     progress: CandidatePracticeSessionProgress;
     answerDrafts: Record<string, CandidateAnswerDraft>;
+    answerSubmissions: Record<string, CandidateAnswerSubmission>;
+    answerAnalysisSnapshots: Record<string, CandidateAnswerAnalysisProviderResult>;
 };
 ```
 
 Rules:
 
-- `setupSnapshot`, `questionPlanSnapshot`, optional `questionWordingSnapshot`, `progress`, and `answerDrafts` are persisted as immutable or explicitly updated JSONB boundaries so the app can trace setup -> plan -> wording -> progress -> draft without rebuilding from mutable UI state.
+- `setupSnapshot`, `questionPlanSnapshot`, optional `questionWordingSnapshot`, `progress`, `answerDrafts`, and `answerSubmissions` are persisted as immutable or explicitly updated JSONB boundaries so the app can trace setup -> plan -> wording -> progress -> draft -> submitted answer without rebuilding from mutable UI state.
 - The table is candidate-owned and may link to `prepProfile` through `role_profile_id` and to host launch through `candidate_launch_session_id`.
 - `/candidate/setup/start` persists setup-created sessions into `candidate_practice_sessions` when candidate identity can be resolved from the route context. If identity cannot be resolved, the route may continue returning the browser-bridge provisional session result for local/dev continuity. If identity resolves but persistence fails, the route must fail closed.
 - `/candidate/setup/start` returns `400` with setup `fieldErrors` only for invalid setup payloads. Candidate identity lookup, database schema, or durable session startup failures should return a fail-closed startup error, currently `503`, so local/dev database drift is not misreported as a candidate input problem.
@@ -225,6 +236,10 @@ Rules:
 - In explicit local dev host-launch mode, deterministic `dev-host-launch-*` cookies resolve directly to fixture `candidateProfileId` values for setup-start, durable session recovery, and answer-draft saves. These cookie values are not persisted into `candidate_practice_sessions.candidate_launch_session_id` because they are not UUID rows in `candidate_launch_sessions`.
 - `/candidate/session/[sessionId]/progress` may save the active session view state to `candidate_practice_sessions.progress_state_json` for candidate-owned durable sessions. Current progress states are `planned`, `question_preview`, and `live_question`; both question-surface states must carry the current question index. This supports pause/resume, refresh, and cross-tab recovery back to the active question surface.
 - The answer-draft shell may save typed draft text to `candidate_practice_sessions.answer_drafts_json` through an ownership-scoped candidate session route when durable identity is available. Browser-bridge sessions keep answer draft text component-local only. Answer drafts must not write to `answers`, evaluator inputs, feedback, or dashboard read models until answer submission deliberately lands.
+- `/candidate/session/[sessionId]/answers` is the first candidate-owned answer-submit persistence boundary. It validates a nonblank typed draft payload, resolves the candidate identity, verifies ownership of the durable practice session, creates a typed `answer_submit_requested` event, saves a slot-scoped `pending_analysis` submission to `candidate_practice_sessions.answer_submissions_json`, and returns `answer_submit_saved` with `next: "analysis_not_connected"`. It must not write to legacy `answers`, evaluator inputs, feedback, or dashboard read models until the analysis lifecycle is deliberately connected.
+- `/candidate/session/[sessionId]/answers/[slotId]/analysis` is the first answer-analysis handoff boundary. It resolves candidate identity, verifies the durable practice session is owned by that candidate, reads the existing slot-scoped `pending_analysis` submission, creates an `answer_analysis_requested` request, and currently returns `answer_analysis_unavailable` with `provider_not_configured`. When an explicit route-level provider dependency is injected, the route may assemble and send an `answer_analysis_provider_requested` payload from the saved pending answer, the exact slot-mapped worded question, and the setup snapshot. If that injected provider returns a valid `answer_analysis_provider_result`, the route may persist it to `candidate_practice_sessions.answer_analysis_snapshots_json` and return `answer_analysis_saved`. The live question shell may show the snapshot's candidate-safe `coachFeedback` fields as a read-only current-answer surface. It must not create summaries, dashboard evidence, legacy `eval_results`, or legacy answer-analysis fields until those surfaces are deliberately wired.
+- `answer_analysis_provider_requested` is the V2 provider adapter input after `answer_analysis_requested`. It is created from one saved pending answer submission, one slot-mapped worded question, and the setup snapshot context. The adapter must fail if the question slot/index do not match the submitted answer.
+- `answer_analysis_provider_result` is the V2 provider adapter output shape. It must map back to the same answer slot/index, contain candidate-safe coach feedback fields, and carry evidence items that obey the V2 evaluation evidence contract. Numeric `score` values are allowed only for `observed` evidence. `not_elicited`, `insufficient_data`, and `unscoreable` evidence must not carry scores or contribute to candidate-facing evaluation bands.
 - This table does not replace the legacy/live `sessions`, `questions`, `answers`, or evaluation rows yet. Live answer runtime, provider generation, dashboard reads, and summary/debrief persistence remain separate slices.
 - Browser session storage remains a development bridge until all session progress and answer-draft persistence is identity-backed.
 

@@ -168,6 +168,7 @@ function toCandidateProvisionalSession(
             : {}),
         progress: durableSession.progress,
         answerDrafts: durableSession.answerDrafts,
+        answerAnalysisSnapshots: durableSession.answerAnalysisSnapshots,
     };
 }
 

@@ -8,6 +8,7 @@ import {
     type SessionRuntimeProgress,
 } from "@/features/interview-session-v2/session-runtime-contract";
 import type { CandidateQuestionWordingResult } from "./candidate-question-wording";
+import type { CandidateAnswerAnalysisProviderResult } from "./candidate-answer-analysis-adapter";
 
 export const CANDIDATE_PROVISIONAL_SESSION_STORAGE_KEY = "interview-coach:candidate-provisional-sessions:v1";
 
@@ -20,9 +21,11 @@ export type CandidateProvisionalSessionRecord = (CandidateSetupSessionCreationRe
 )) & {
     progress?: CandidateProvisionalSessionProgress;
     answerDrafts?: CandidateAnswerDrafts;
+    answerAnalysisSnapshots?: CandidateAnswerAnalysisSnapshots;
 };
 
 type CandidateProvisionalSessionMap = Record<string, CandidateProvisionalSessionRecord>;
+export type CandidateAnswerAnalysisSnapshots = Record<string, CandidateAnswerAnalysisProviderResult>;
 
 export function saveCandidateProvisionalSession(
     storage: Pick<Storage, "getItem" | "setItem">,
@@ -33,6 +36,7 @@ export function saveCandidateProvisionalSession(
         ...session,
         progress: normalizeCandidateProvisionalSessionProgress(session.progress),
         answerDrafts: normalizeCandidateAnswerDrafts(session.answerDrafts),
+        answerAnalysisSnapshots: normalizeCandidateAnswerAnalysisSnapshots(session.answerAnalysisSnapshots),
     };
     storage.setItem(CANDIDATE_PROVISIONAL_SESSION_STORAGE_KEY, JSON.stringify(sessions));
 }
@@ -91,6 +95,7 @@ function readCandidateProvisionalSessionMap(storage: Pick<Storage, "getItem">): 
                     ...session,
                     progress: normalizeCandidateProvisionalSessionProgress(session.progress),
                     answerDrafts: normalizeCandidateAnswerDrafts(session.answerDrafts),
+                    answerAnalysisSnapshots: normalizeCandidateAnswerAnalysisSnapshots(session.answerAnalysisSnapshots),
                 },
             ]),
         );
@@ -103,4 +108,12 @@ function normalizeCandidateProvisionalSessionProgress(
     progress?: CandidateProvisionalSessionProgress,
 ): CandidateProvisionalSessionProgress {
     return normalizeSessionRuntimeProgress(progress);
+}
+
+function normalizeCandidateAnswerAnalysisSnapshots(value: unknown): CandidateAnswerAnalysisSnapshots {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return {};
+    }
+
+    return value as CandidateAnswerAnalysisSnapshots;
 }

@@ -29,6 +29,7 @@ import {
 import {
     readCandidateProvisionalSession,
     saveCandidateProvisionalSessionProgress,
+    type CandidateAnswerAnalysisSnapshots,
     type CandidateProvisionalSessionProgress,
     type CandidateProvisionalSessionRecord,
 } from "./candidate-provisional-session-store";
@@ -57,6 +58,11 @@ export function CandidatePlannedSessionExperience({
         currentQuestionIndex: initialSession?.progress?.currentQuestionIndex ?? 0,
     });
     const [answerDrafts, setAnswerDrafts] = useState<CandidateAnswerDrafts>(initialSession?.answerDrafts ?? {});
+    const [answerAnalysisSnapshots, setAnswerAnalysisSnapshots] = useState<CandidateAnswerAnalysisSnapshots>(
+        initialSession?.answerAnalysisSnapshots ?? {},
+    );
+    const [answerSubmitMessage, setAnswerSubmitMessage] = useState<string | null>(null);
+    const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
 
     useEffect(() => {
         if (initialSession) {
@@ -67,6 +73,7 @@ export function CandidatePlannedSessionExperience({
                 currentQuestionIndex: 0,
             });
             setAnswerDrafts(initialSession.answerDrafts ?? {});
+            setAnswerAnalysisSnapshots(initialSession.answerAnalysisSnapshots ?? {});
             window.scrollTo({ top: 0 });
             return;
         }
@@ -79,6 +86,7 @@ export function CandidatePlannedSessionExperience({
             currentQuestionIndex: 0,
         });
         setAnswerDrafts(storedSession?.answerDrafts ?? {});
+        setAnswerAnalysisSnapshots(storedSession?.answerAnalysisSnapshots ?? {});
         window.scrollTo({ top: 0 });
     }, [initialSession, sessionId]);
 
@@ -171,6 +179,8 @@ export function CandidatePlannedSessionExperience({
         const activeQuestion = questionWordingPreview.questions[activeQuestionIndex];
         const activeSlot = questionPlan?.slots[activeQuestion.index] ?? null;
         const isLiveQuestion = progress.status === "live_question";
+        const activeDraftText = answerDrafts[activeQuestion.slotId]?.text ?? "";
+        const activeAnalysisSnapshot = answerAnalysisSnapshots[activeQuestion.slotId] ?? null;
 
         return (
             <main className="candidate-design-system planned-session-page">
@@ -234,7 +244,7 @@ export function CandidatePlannedSessionExperience({
                         <label className="answer-draft-shell__field">
                             <span>Draft answer</span>
                             <textarea
-                                value={answerDrafts[activeQuestion.slotId]?.text ?? ""}
+                                value={activeDraftText}
                                 onChange={(event) => updateAnswerDraft({
                                     slotId: activeQuestion.slotId,
                                     questionIndex: activeQuestion.index,
@@ -246,13 +256,50 @@ export function CandidatePlannedSessionExperience({
                         </label>
 
                         <div className="answer-draft-shell__footer">
-                            <p>Drafts stay on this screen only until the answer lifecycle is connected.</p>
-                            <button className="planned-session-action" type="button" disabled>
+                            <p>
+                                {answerSubmitMessage
+                                    ?? "Drafts save separately from final submission while the answer lifecycle is being connected."}
+                            </p>
+                            <button
+                                className="planned-session-action"
+                                type="button"
+                                disabled={!isLiveQuestion || !activeDraftText.trim() || isSubmittingAnswer}
+                                onClick={() => submitAnswerDraft({
+                                    slotId: activeQuestion.slotId,
+                                    questionIndex: activeQuestion.index,
+                                    text: activeDraftText,
+                                })}
+                            >
                                 <SendHorizontal size={16} aria-hidden="true" />
                                 Submit answer
                             </button>
                         </div>
                     </section>
+
+                    {activeAnalysisSnapshot ? (
+                        <section className="answer-draft-shell" aria-labelledby="coach-feedback-title">
+                            <div className="answer-draft-shell__header">
+                                <div>
+                                    <p className="type-eyebrow">Coaching</p>
+                                    <h2 id="coach-feedback-title">Coach feedback</h2>
+                                </div>
+                            </div>
+                            <dl className="planned-session-summary">
+                                <div>
+                                    <dt>What worked</dt>
+                                    <dd>{activeAnalysisSnapshot.coachFeedback.acknowledgement}</dd>
+                                </div>
+                                <div>
+                                    <dt>What to strengthen</dt>
+                                    <dd>{activeAnalysisSnapshot.coachFeedback.observation}</dd>
+                                </div>
+                                <div>
+                                    <dt>Practice next</dt>
+                                    <dd>{activeAnalysisSnapshot.coachFeedback.nextPracticeFocus}</dd>
+                                </div>
+                            </dl>
+                        </section>
+                    ) : null}
                 </section>
 
                 <section className="planned-session-footer app-grid" aria-label="Question preview actions">
@@ -518,6 +565,101 @@ export function CandidatePlannedSessionExperience({
                 text,
             }),
         });
+    }
+
+    async function submitAnswerDraft({
+        slotId,
+        questionIndex,
+        text,
+    }: {
+        slotId: string;
+        questionIndex: number;
+        text: string;
+    }) {
+        if (!text.trim()) {
+            setAnswerSubmitMessage("Enter an answer before submitting.");
+            return;
+        }
+
+        setIsSubmittingAnswer(true);
+        setAnswerSubmitMessage(null);
+
+        try {
+            const response = await fetch(`/candidate/session/${encodeURIComponent(sessionId)}/answers`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    slotId,
+                    questionIndex,
+                    mode: "text",
+                    text,
+                }),
+            });
+            const result = await response.json().catch(() => null) as { status?: string } | null;
+            if (result?.status === "answer_submit_saved") {
+                await requestAnswerAnalysis({
+                    slotId,
+                });
+                return;
+            }
+
+            if (result?.status === "answer_submit_unavailable") {
+                setAnswerSubmitMessage("Answer submission is not connected yet. Your draft is still saved.");
+                return;
+            }
+
+            if (!response.ok) {
+                setAnswerSubmitMessage("Answer submission is not available yet. Your draft is still saved.");
+            }
+        } catch {
+            setAnswerSubmitMessage("Answer submission is not available yet. Your draft is still saved.");
+        } finally {
+            setIsSubmittingAnswer(false);
+        }
+    }
+
+    async function requestAnswerAnalysis({
+        slotId,
+    }: {
+        slotId: string;
+    }) {
+        try {
+            const response = await fetch(
+                `/candidate/session/${encodeURIComponent(sessionId)}/answers/${encodeURIComponent(slotId)}/analysis`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                },
+            );
+            const result = await response.json().catch(() => null) as {
+                status?: string;
+                reason?: string;
+                analysisSnapshot?: CandidateAnswerAnalysisSnapshots[string];
+            } | null;
+            if (result?.status === "answer_analysis_saved" && result.analysisSnapshot) {
+                setAnswerAnalysisSnapshots((currentSnapshots) => ({
+                    ...currentSnapshots,
+                    [result.analysisSnapshot!.answer.slotId]: result.analysisSnapshot!,
+                }));
+                setAnswerSubmitMessage("Answer saved. Coaching is ready to review.");
+                return;
+            }
+
+            if (result?.status === "answer_analysis_unavailable" && result.reason === "provider_not_configured") {
+                setAnswerSubmitMessage("Answer saved. Coaching is still being connected.");
+                return;
+            }
+
+            if (!response.ok) {
+                setAnswerSubmitMessage("Answer saved. Coaching is not connected yet.");
+            }
+        } catch {
+            setAnswerSubmitMessage("Answer saved. Coaching is not connected yet.");
+        }
     }
 }
 
