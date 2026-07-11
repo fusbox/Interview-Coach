@@ -135,6 +135,62 @@ describe("candidate practice session repository", () => {
         ]);
     });
 
+    it("lists candidate-owned practice sessions for dashboard read models", async () => {
+        const setupSnapshot = {
+            targetRole: "Warehouse lead",
+            jobDescription: "Coordinate safety workflows.",
+            resumeText: null,
+            interviewStage: "first_interview" as const,
+            questionCount: 3,
+            resumeCaptureMode: "none" as const,
+            createdAt: "2026-07-09T16:00:00.000Z",
+        };
+        const questionPlanSnapshot = createCandidateQuestionPlan({
+            interviewStage: "first_interview",
+            questionCount: 3,
+        });
+        const query = vi.fn(async () => ({
+            rows: [{
+                candidate_practice_session_id: "11111111-1111-4111-8111-111111111111",
+                candidate_profile_id: "22222222-2222-4222-8222-222222222222",
+                role_profile_id: null,
+                candidate_launch_session_id: null,
+                status: "completed",
+                setup_snapshot_json: setupSnapshot,
+                question_plan_snapshot_json: questionPlanSnapshot,
+                question_wording_snapshot_json: null,
+                question_wording_status: "worded",
+                progress_state_json: {
+                    status: "completed",
+                    currentQuestionIndex: 2,
+                },
+                answer_drafts_json: {},
+                answer_submissions_json: {},
+                answer_idempotency_json: {},
+                answer_analysis_snapshots_json: {},
+                feedback_actions_json: {},
+                completion_snapshot_json: null,
+            }],
+        }));
+        const repository = createCandidatePracticeSessionRepository({ query });
+
+        await expect(repository.listPracticeSessionsForCandidate({
+            candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            limit: 25,
+        })).resolves.toMatchObject([{
+            candidatePracticeSessionId: "11111111-1111-4111-8111-111111111111",
+            candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            status: "completed",
+            setupSnapshot: {
+                targetRole: "Warehouse lead",
+            },
+        }]);
+        expect(query).toHaveBeenCalledWith(expect.stringContaining("order by updated_at desc, created_at desc"), [
+            "22222222-2222-4222-8222-222222222222",
+            25,
+        ]);
+    });
+
     it("persists one answer draft by candidate-owned session and slot", async () => {
         const query = vi.fn(async () => ({
             rows: [{

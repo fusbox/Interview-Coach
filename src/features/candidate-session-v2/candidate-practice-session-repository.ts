@@ -142,6 +142,43 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
             return toCandidatePracticeSessionRecord(result.rows[0]);
         },
 
+        async listPracticeSessionsForCandidate(input: {
+            candidateProfileId: string;
+            limit?: number;
+        }) {
+            const limit = Math.min(Math.max(input.limit ?? 20, 1), 100);
+            const result = await client.query(`
+                select
+                  candidate_practice_session_id,
+                  candidate_profile_id,
+                  role_profile_id,
+                  candidate_launch_session_id,
+                  status,
+                  setup_snapshot_json,
+                  question_plan_snapshot_json,
+                  question_wording_snapshot_json,
+                  question_wording_status,
+                  progress_state_json,
+                  answer_drafts_json,
+                  answer_submissions_json,
+                  answer_idempotency_json,
+                  answer_analysis_snapshots_json,
+                  feedback_actions_json,
+                  completion_snapshot_json
+                from public.candidate_practice_sessions
+                where candidate_profile_id = $1
+                order by updated_at desc, created_at desc
+                limit $2
+            `, [
+                input.candidateProfileId,
+                limit,
+            ]);
+
+            return result.rows
+                .map(toCandidatePracticeSessionRecord)
+                .filter((record): record is CandidatePracticeSessionRecord => Boolean(record));
+        },
+
         async saveAnswerDraft(input: {
             candidatePracticeSessionId: string;
             candidateProfileId: string;

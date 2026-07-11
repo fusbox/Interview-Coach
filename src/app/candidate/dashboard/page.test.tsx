@@ -1,10 +1,374 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { expect, it } from "vitest";
-import CandidateDashboardPage from "./page";
+import CandidateDashboardPage, { getCandidateDashboardRuntimeSslConfig, renderCandidateDashboardPage } from "./page";
 
-it("renders the candidate dashboard route shell", () => {
-    render(<CandidateDashboardPage />);
+it("renders the candidate dashboard route shell", async () => {
+    render(await CandidateDashboardPage());
 
-    expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
-    expect(screen.getByText(/rebuilt Coach Plan dashboard/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Coach Plan" })).toBeInTheDocument();
+    expect(screen.getByText(/Start with one practice round/i)).toBeInTheDocument();
+});
+
+it("renders the V2 dashboard read boundary when completed-round facts are available", async () => {
+    render(await renderCandidateDashboardPage({
+        dependencies: {
+            resolveDashboardModel: async () => ({
+                status: "candidate_dashboard_v2_read_model",
+                candidateProfileId: "candidate-1",
+                selectedTargetInterview: {
+                    status: "candidate_dashboard_target_interview",
+                    id: "material handler i",
+                    targetRole: "Material Handler I",
+                    isSelected: true,
+                    activeRoundCount: 0,
+                    completedRoundCount: 1,
+                    answeredQuestionCount: 2,
+                    coachedAnswerCount: 1,
+                    lastActivityAt: "2026-07-11T12:00:00.000Z",
+                },
+                targetInterviews: [{
+                    status: "candidate_dashboard_target_interview",
+                    id: "material handler i",
+                    targetRole: "Material Handler I",
+                    isSelected: true,
+                    activeRoundCount: 0,
+                    completedRoundCount: 1,
+                    answeredQuestionCount: 2,
+                    coachedAnswerCount: 1,
+                    lastActivityAt: "2026-07-11T12:00:00.000Z",
+                }],
+                source: {
+                    kind: "derived_from_candidate_practice_sessions",
+                    durableSource: "candidate_practice_sessions",
+                    persistence: "read_time_projection",
+                    shouldPersistDashboardProjection: false,
+                },
+                stats: {
+                    activeRoundCount: 0,
+                    completedRoundCount: 1,
+                    answeredQuestionCount: 2,
+                    coachedAnswerCount: 1,
+                },
+                activeRound: null,
+                completedRounds: [],
+                latestCoachUpdate: {
+                    status: "candidate_dashboard_coach_update_ready",
+                    candidatePracticeSessionId: "session-1",
+                    title: "Material Handler I practice complete",
+                    body: "You answered 2 of 3 questions. I have coaching ready for 1 answer.",
+                    href: "/candidate/dashboard",
+                    completedAt: "2026-07-11T12:00:00.000Z",
+                    answeredCount: 2,
+                    questionCount: 3,
+                },
+                coachingLoop: {
+                    status: "candidate_dashboard_coaching_loop_ready",
+                    principle: "Use what happened in practice to choose the next useful move.",
+                    feedback: {
+                        status: "candidate_dashboard_feedback_ready",
+                        label: "Coach Update",
+                        title: "Material Handler I practice complete",
+                        body: "You answered 2 of 3 questions. I have coaching ready for 1 answer.",
+                        href: "/candidate/dashboard",
+                        completedAt: "2026-07-11T12:00:00.000Z",
+                        answeredCount: 2,
+                        questionCount: 3,
+                        questionContext: "Question 2 · Behavioral",
+                        observation: "Your answer connects to the role, but it can use one sharper detail.",
+                    },
+                    feedforward: {
+                        status: "candidate_dashboard_feedforward_ready",
+                        label: "Practice Next",
+                        title: "Add one result from the inventory count.",
+                        body: "Use the latest coach feedback to choose one focused answer pattern to practice next.",
+                        href: "/candidate/setup",
+                        source: "coaching_focus",
+                        questionKeys: ["slot-1"],
+                    },
+                },
+                postRoundReviews: [],
+                practiceNext: {
+                    status: "candidate_practice_next_ready",
+                    source: "coaching_focus",
+                    label: "Add one result from the inventory count.",
+                    reason: "Use the latest coach feedback to choose one focused answer pattern to practice next.",
+                    href: "/candidate/setup",
+                    questionKeys: ["slot-1"],
+                },
+                practiceDirection: {
+                    status: "candidate_dashboard_practice_direction_ready",
+                    primaryAction: "practice_from_feedback",
+                    planProgress: {
+                        status: "candidate_dashboard_plan_progress_ready",
+                        label: "Plan progress",
+                        source: "completed_plan",
+                        title: "The latest round is complete.",
+                        body: "You answered every planned question in this round.",
+                        href: "/candidate/setup",
+                        questionKeys: [],
+                    },
+                    coachGuidedFocus: {
+                        status: "candidate_dashboard_coach_guided_focus_ready",
+                        label: "Practice from feedback",
+                        source: "coach_feedback",
+                        title: "Add one result from the inventory count.",
+                        body: "Use the latest coach feedback to choose one focused answer pattern to practice next.",
+                        href: "/candidate/setup",
+                        questionKeys: ["slot-1"],
+                    },
+                },
+            }),
+        },
+    }));
+
+    expect(screen.getByRole("heading", { name: "Coach Plan" })).toBeInTheDocument();
+    expect(screen.getByText("Coach Update")).toBeInTheDocument();
+    expect(screen.getByText("Plan progress")).toBeInTheDocument();
+    expect(screen.getByText("Practice from feedback")).toBeInTheDocument();
+    expect(screen.getByText("Use what happened in practice to choose the next useful move.")).toBeInTheDocument();
+    expect(screen.getByText(/Your answer connects to the role/i)).toBeInTheDocument();
+    expect(screen.getByText("Completed rounds")).toBeInTheDocument();
+    expect(screen.getByText("Answered questions")).toBeInTheDocument();
+    expect(screen.getByText("Coached answers")).toBeInTheDocument();
+    expect(screen.getByText("Add one result from the inventory count.")).toBeInTheDocument();
+    expect(screen.getByText("Material Handler I practice complete")).toBeInTheDocument();
+});
+
+it("renders selected target interview context and switch links", async () => {
+    render(await renderCandidateDashboardPage({
+        dependencies: {
+            resolveDashboardModel: async () => ({
+                status: "candidate_dashboard_v2_read_model",
+                candidateProfileId: "candidate-1",
+                selectedTargetInterview: {
+                    status: "candidate_dashboard_target_interview",
+                    id: "csr",
+                    targetRole: "CSR",
+                    isSelected: true,
+                    activeRoundCount: 0,
+                    completedRoundCount: 1,
+                    answeredQuestionCount: 5,
+                    coachedAnswerCount: 5,
+                    lastActivityAt: "2026-07-11T13:00:00.000Z",
+                },
+                targetInterviews: [
+                    {
+                        status: "candidate_dashboard_target_interview",
+                        id: "csr",
+                        targetRole: "CSR",
+                        isSelected: true,
+                        activeRoundCount: 0,
+                        completedRoundCount: 1,
+                        answeredQuestionCount: 5,
+                        coachedAnswerCount: 5,
+                        lastActivityAt: "2026-07-11T13:00:00.000Z",
+                    },
+                    {
+                        status: "candidate_dashboard_target_interview",
+                        id: "packaging associate",
+                        targetRole: "Packaging Associate",
+                        isSelected: false,
+                        activeRoundCount: 1,
+                        completedRoundCount: 0,
+                        answeredQuestionCount: 0,
+                        coachedAnswerCount: 0,
+                        lastActivityAt: "2026-07-11T12:00:00.000Z",
+                    },
+                ],
+                source: {
+                    kind: "derived_from_candidate_practice_sessions",
+                    durableSource: "candidate_practice_sessions",
+                    persistence: "read_time_projection",
+                    shouldPersistDashboardProjection: false,
+                },
+                stats: {
+                    activeRoundCount: 0,
+                    completedRoundCount: 1,
+                    answeredQuestionCount: 5,
+                    coachedAnswerCount: 5,
+                },
+                activeRound: null,
+                completedRounds: [],
+                latestCoachUpdate: null,
+                coachingLoop: {
+                    status: "candidate_dashboard_coaching_loop_ready",
+                    principle: "Use what happened in practice to choose the next useful move.",
+                    feedback: null,
+                    feedforward: {
+                        status: "candidate_dashboard_feedforward_ready",
+                        label: "Practice Next",
+                        title: "Start a practice round",
+                        body: "Your first completed practice round will create the evidence this dashboard uses.",
+                        href: "/candidate/setup",
+                        source: "new_round",
+                        questionKeys: [],
+                    },
+                },
+                postRoundReviews: [],
+                practiceNext: {
+                    status: "candidate_practice_next_ready",
+                    source: "new_round",
+                    label: "Start a practice round",
+                    reason: "Your first completed practice round will create the evidence this dashboard uses.",
+                    href: "/candidate/setup",
+                    questionKeys: [],
+                },
+                practiceDirection: {
+                    status: "candidate_dashboard_practice_direction_ready",
+                    primaryAction: "start_new_round",
+                    planProgress: {
+                        status: "candidate_dashboard_plan_progress_ready",
+                        label: "Plan progress",
+                        source: "completed_plan",
+                        title: "The latest round is complete.",
+                        body: "You answered every planned question in this round.",
+                        href: "/candidate/setup",
+                        questionKeys: [],
+                    },
+                    coachGuidedFocus: null,
+                },
+            }),
+        },
+    }));
+
+    expect(screen.getByRole("navigation", { name: "Interview prep context" })).toHaveTextContent("Current focus");
+    expect(screen.getByRole("heading", { name: "CSR" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Packaging Associate/i })).toHaveAttribute(
+        "href",
+        "/candidate/dashboard?targetRole=packaging+associate",
+    );
+});
+
+it("renders selected-context active round resume details", async () => {
+    render(await renderCandidateDashboardPage({
+        dependencies: {
+            resolveDashboardModel: async () => ({
+                status: "candidate_dashboard_v2_read_model",
+                candidateProfileId: "candidate-1",
+                selectedTargetInterview: {
+                    status: "candidate_dashboard_target_interview",
+                    id: "packaging associate",
+                    targetRole: "Packaging Associate",
+                    isSelected: true,
+                    activeRoundCount: 1,
+                    completedRoundCount: 0,
+                    answeredQuestionCount: 2,
+                    coachedAnswerCount: 2,
+                    lastActivityAt: "2026-07-11T13:00:00.000Z",
+                },
+                targetInterviews: [{
+                    status: "candidate_dashboard_target_interview",
+                    id: "packaging associate",
+                    targetRole: "Packaging Associate",
+                    isSelected: true,
+                    activeRoundCount: 1,
+                    completedRoundCount: 0,
+                    answeredQuestionCount: 2,
+                    coachedAnswerCount: 2,
+                    lastActivityAt: "2026-07-11T13:00:00.000Z",
+                }],
+                source: {
+                    kind: "derived_from_candidate_practice_sessions",
+                    durableSource: "candidate_practice_sessions",
+                    persistence: "read_time_projection",
+                    shouldPersistDashboardProjection: false,
+                },
+                stats: {
+                    activeRoundCount: 1,
+                    completedRoundCount: 0,
+                    answeredQuestionCount: 0,
+                    coachedAnswerCount: 0,
+                },
+                activeRound: {
+                    status: "candidate_dashboard_active_round",
+                    candidatePracticeSessionId: "active-session",
+                    targetRole: "Packaging Associate",
+                    sessionStatus: "in_progress",
+                    href: "/candidate/session/active-session",
+                    questionCount: 5,
+                    answeredCount: 2,
+                    currentQuestionNumber: 3,
+                    progressLabel: "2 of 5 answered",
+                },
+                completedRounds: [],
+                latestCoachUpdate: null,
+                coachingLoop: {
+                    status: "candidate_dashboard_coaching_loop_ready",
+                    principle: "Use what happened in practice to choose the next useful move.",
+                    feedback: null,
+                    feedforward: {
+                        status: "candidate_dashboard_feedforward_ready",
+                        label: "Practice Next",
+                        title: "Start a practice round",
+                        body: "Your first completed practice round will create the evidence this dashboard uses.",
+                        href: "/candidate/setup",
+                        source: "new_round",
+                        questionKeys: [],
+                    },
+                },
+                postRoundReviews: [],
+                practiceNext: {
+                    status: "candidate_practice_next_ready",
+                    source: "new_round",
+                    label: "Start a practice round",
+                    reason: "Your first completed practice round will create the evidence this dashboard uses.",
+                    href: "/candidate/setup",
+                    questionKeys: [],
+                },
+                practiceDirection: {
+                    status: "candidate_dashboard_practice_direction_ready",
+                    primaryAction: "resume_planned_round",
+                    planProgress: {
+                        status: "candidate_dashboard_plan_progress_ready",
+                        label: "Plan progress",
+                        source: "active_round",
+                        title: "Resume your current practice round.",
+                        body: "Packaging Associate practice is already part of your Coach Plan.",
+                        href: "/candidate/session/active-session",
+                        questionKeys: [],
+                        candidatePracticeSessionId: "active-session",
+                    },
+                    coachGuidedFocus: null,
+                },
+            }),
+        },
+    }));
+
+    const activeRound = screen.getByRole("region", { name: "Active round" });
+    expect(activeRound).toHaveTextContent("Packaging Associate");
+    expect(activeRound).toHaveTextContent("2 of 5 answered");
+    expect(activeRound).toHaveTextContent("Question 3");
+    expect(within(activeRound).getByRole("link", { name: /Resume round/i })).toHaveAttribute(
+        "href",
+        "/candidate/session/active-session",
+    );
+});
+
+it("passes explicit target interview selection into the dashboard read boundary", async () => {
+    let capturedTargetInterviewId: string | null | undefined;
+
+    render(await renderCandidateDashboardPage({
+        selectedTargetInterviewId: "csr",
+        dependencies: {
+            resolveDashboardModel: async ({ selectedTargetInterviewId }) => {
+                capturedTargetInterviewId = selectedTargetInterviewId;
+                return null;
+            },
+        },
+    }));
+
+    expect(capturedTargetInterviewId).toBe("csr");
+    expect(screen.getByText(/Start with one practice round/i)).toBeInTheDocument();
+});
+
+it("does not force SSL for the plain local smoke database URL", () => {
+    expect(getCandidateDashboardRuntimeSslConfig(
+        "postgresql://postgres:password@127.0.0.1:5434/interviewcoach_smoke",
+    )).toBeUndefined();
+    expect(getCandidateDashboardRuntimeSslConfig(
+        "postgresql://postgres:password@127.0.0.1:5434/interviewcoach_smoke?sslmode=disable",
+    )).toBe(false);
+    expect(getCandidateDashboardRuntimeSslConfig(
+        "postgresql://postgres:password@db.example.supabase.co:5432/postgres?sslmode=require",
+    )).toEqual({ rejectUnauthorized: false });
 });

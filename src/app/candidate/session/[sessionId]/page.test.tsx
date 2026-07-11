@@ -1,7 +1,8 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { act } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
 import CandidateSessionPage, { renderCandidateSessionPage, toCandidateProvisionalSession } from "./page";
+import { CandidatePlannedSessionExperience } from "@/features/candidate-session-v2/CandidatePlannedSessionExperience";
 import { saveCandidateProvisionalSession } from "@/features/candidate-session-v2/candidate-provisional-session-store";
 import { createCandidateQuestionPlan } from "@/features/candidate-session-v2/candidate-question-plan";
 import { resolveCandidateSessionIdentityFromDevLaunchCookie } from "./page";
@@ -812,6 +813,111 @@ it("shows read-only coach feedback when answer analysis returns an isolated V2 s
     expect(screen.queryByText(/score/i)).not.toBeInTheDocument();
 });
 
+it("continues from saved coach feedback directly to the next live question", async () => {
+    window.sessionStorage.clear();
+    const analysisSnapshot = {
+        status: "answer_analysis_provider_result" as const,
+        provider: "candidate_v2_answer_evaluator" as const,
+        analyzedAt: "2026-07-09T20:03:00.000Z",
+        answer: {
+            slotId: "slot-1",
+            questionIndex: 0,
+        },
+        coachFeedback: {
+            acknowledgement: "You named a practical first step.",
+            observation: "The answer would be stronger with the result of your choice.",
+            nextPracticeFocus: "Add what changed after you set the priority.",
+        },
+        evidence: [
+            {
+                criterionId: "answer_specificity",
+                applicability: "observed" as const,
+                score: 3,
+            },
+        ],
+    };
+    const fetch = vi.fn(async () => new Response(JSON.stringify({
+        status: "progress_saved",
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", fetch);
+    const resolveDurableSession = vi.fn(async () => ({
+        status: "session_created" as const,
+        sessionId: "durable-session-1",
+        nextRoute: "/candidate/session/durable-session-1" as const,
+        setupSnapshot: {
+            targetRole: "Material Handler I",
+            jobDescription: "Move materials safely across the warehouse.",
+            resumeText: null,
+            interviewStage: "first_interview" as const,
+            questionCount: 3,
+            resumeCaptureMode: "none" as const,
+            createdAt: "2026-07-09T18:00:00.000Z",
+        },
+        questionPlanSnapshot: createCandidateQuestionPlan({
+            interviewStage: "first_interview",
+            questionCount: 3,
+        }),
+        questionWordingSnapshot: {
+            status: "questions_worded" as const,
+            questions: [
+                {
+                    slotId: "slot-1",
+                    index: 0,
+                    category: "screening" as const,
+                    questionText: "Durable snapshot question for the first slot.",
+                },
+                {
+                    slotId: "slot-2",
+                    index: 1,
+                    category: "behavioral" as const,
+                    questionText: "Durable snapshot question for the second slot.",
+                },
+                {
+                    slotId: "slot-3",
+                    index: 2,
+                    category: "culture_fit" as const,
+                    questionText: "Durable snapshot question for the third slot.",
+                },
+            ],
+        },
+        progress: {
+            status: "live_question" as const,
+            currentQuestionIndex: 0,
+        },
+        answerAnalysisSnapshots: {
+            "slot-1": analysisSnapshot,
+        },
+    }));
+
+    const ui = await renderCandidateSessionPage({
+        params: Promise.resolve({ sessionId: "durable-session-1" }),
+        dependencies: {
+            resolveDurableSession,
+        },
+    });
+
+    await act(async () => {
+        render(ui);
+    });
+
+    expect(screen.getByRole("heading", { name: "Coach feedback" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Continue to next question" }));
+
+    expect(screen.getByRole("heading", { name: "Question 2 of 3" })).toBeInTheDocument();
+    expect(screen.getByText("Durable snapshot question for the second slot.")).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledWith(
+        "/candidate/session/durable-session-1/progress",
+        expect.objectContaining({
+            method: "PUT",
+            body: JSON.stringify({
+                status: "live_question",
+                currentQuestionIndex: 1,
+            }),
+        }),
+    );
+});
+
 it("opens a read-only first question shell from the carried wording snapshot", async () => {
     window.sessionStorage.clear();
     saveCandidateProvisionalSession(window.sessionStorage, {
@@ -964,7 +1070,82 @@ it("keeps local answer drafts on the question surface without enabling submissio
     expect(screen.getByRole("textbox", { name: "Draft answer" })).toHaveValue(
         "I would greet the customer, ask one clarifying question, and confirm the next step.",
     );
-    expect(screen.getByText(/Drafts save separately from final submission/i)).toBeInTheDocument();
+    expect(screen.getByText(/Drafts save as you write/i)).toBeInTheDocument();
+});
+
+it("does not clear the first live answer draft when the same initial session is reissued", () => {
+    window.sessionStorage.clear();
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+        status: "answer_draft_saved",
+        answerDrafts: {},
+    }), { status: 200 })));
+    const setupSnapshot = {
+        targetRole: "Customer service representative",
+        jobDescription: "Help customers resolve service questions.",
+        resumeText: null,
+        interviewStage: "first_interview" as const,
+        questionCount: 2,
+        resumeCaptureMode: "none" as const,
+        createdAt: "2026-07-08T18:00:00.000Z",
+    };
+    const questionPlanSnapshot = createCandidateQuestionPlan({
+        interviewStage: "first_interview",
+        questionCount: 2,
+    });
+    const initialSession = {
+        status: "session_created" as const,
+        sessionId: "durable-session-1",
+        nextRoute: "/candidate/session/durable-session-1" as const,
+        setupSnapshot,
+        questionPlanSnapshot,
+        questionWordingSnapshot: {
+            status: "questions_worded" as const,
+            questions: [
+                {
+                    slotId: "slot-1",
+                    index: 0,
+                    category: "screening" as const,
+                    questionText: "Stored snapshot question for the first slot.",
+                },
+                {
+                    slotId: "slot-2",
+                    index: 1,
+                    category: "behavioral" as const,
+                    questionText: "Stored snapshot question for the second slot.",
+                },
+            ],
+        },
+        progress: {
+            status: "live_question" as const,
+            currentQuestionIndex: 0,
+        },
+        answerDrafts: {},
+    };
+    const { rerender } = render(
+        <CandidatePlannedSessionExperience
+            sessionId="durable-session-1"
+            dashboardHref="/candidate/dashboard"
+            initialSession={initialSession}
+        />,
+    );
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Draft answer" }), {
+        target: {
+            value: "My first answer should stay visible.",
+        },
+    });
+    rerender(
+        <CandidatePlannedSessionExperience
+            sessionId="durable-session-1"
+            dashboardHref="/candidate/dashboard"
+            initialSession={{
+                ...initialSession,
+                answerDrafts: {},
+            }}
+        />,
+    );
+
+    expect(screen.getByRole("textbox", { name: "Draft answer" })).toHaveValue("My first answer should stay visible.");
 });
 
 it("restores read-only question preview progress after remount", async () => {
@@ -1075,34 +1256,178 @@ it("prefers the carried question plan snapshot over render-time setup derivation
     expect(screen.queryByText("Technical / Role-Specific")).not.toBeInTheDocument();
 });
 
-it("routes candidate-owned session completion back to the candidate dashboard", async () => {
+it("posts candidate-owned session completion before routing back to the dashboard", async () => {
     window.sessionStorage.clear();
-    saveCandidateProvisionalSession(window.sessionStorage, {
-        status: "session_created",
-        sessionId: "session-v2-1",
-        nextRoute: "/candidate/session/session-v2-1",
+    const assign = vi.fn();
+    Object.defineProperty(window, "location", {
+        configurable: true,
+        value: {
+            ...window.location,
+            assign,
+        },
+    });
+    const fetch = vi.fn(async () => new Response(JSON.stringify({
+        status: "candidate_session_completed",
+        nextRoute: "/candidate/dashboard",
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", fetch);
+    const resolveDurableSession = vi.fn(async () => ({
+        status: "session_created" as const,
+        sessionId: "durable-session-1",
+        nextRoute: "/candidate/session/durable-session-1" as const,
         setupSnapshot: {
             targetRole: "Customer service representative",
             jobDescription: "Help customers resolve service questions.",
             resumeText: null,
-            interviewStage: "first_interview",
-            questionCount: 7,
-            resumeCaptureMode: "none",
+            interviewStage: "first_interview" as const,
+            questionCount: 2,
+            resumeCaptureMode: "none" as const,
             createdAt: "2026-07-08T18:00:00.000Z",
         },
         questionPlanSnapshot: createCandidateQuestionPlan({
             interviewStage: "first_interview",
-            questionCount: 7,
+            questionCount: 2,
         }),
+        questionWordingSnapshot: {
+            status: "questions_worded" as const,
+            questions: [
+                {
+                    slotId: "slot-1",
+                    index: 0,
+                    category: "screening" as const,
+                    questionText: "Stored snapshot question for the first slot.",
+                },
+                {
+                    slotId: "slot-2",
+                    index: 1,
+                    category: "behavioral" as const,
+                    questionText: "Stored snapshot question for the second slot.",
+                },
+            ],
+        },
+        progress: {
+            status: "planned" as const,
+            currentQuestionIndex: 1,
+        },
+    }));
+    const ui = await renderCandidateSessionPage({
+        params: Promise.resolve({ sessionId: "durable-session-1" }),
+        dependencies: {
+            resolveDurableSession,
+        },
     });
-    const ui = await CandidateSessionPage({ params: Promise.resolve({ sessionId: "session-v2-1" }) });
 
     await act(async () => {
         render(ui);
     });
 
-    expect(screen.getByRole("link", { name: "Finish session" })).toHaveAttribute(
-        "href",
-        "/candidate/dashboard",
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Finish session" }));
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(
+        "/candidate/session/durable-session-1/complete",
+        expect.objectContaining({
+            method: "POST",
+        }),
+    ));
+    expect(assign).toHaveBeenCalledWith("/candidate/dashboard");
+});
+
+it("finishes directly from the final live question after coaching is ready", async () => {
+    window.sessionStorage.clear();
+    const assign = vi.fn();
+    Object.defineProperty(window, "location", {
+        configurable: true,
+        value: {
+            ...window.location,
+            assign,
+        },
+    });
+    const analysisSnapshot = {
+        status: "answer_analysis_provider_result" as const,
+        provider: "candidate_v2_answer_evaluator" as const,
+        analyzedAt: "2026-07-09T20:03:00.000Z",
+        answer: {
+            slotId: "slot-2",
+            questionIndex: 1,
+        },
+        coachFeedback: {
+            acknowledgement: "You connected the example to the job.",
+            observation: "Name the outcome to make it stronger.",
+            nextPracticeFocus: "Practice closing with what changed.",
+        },
+        evidence: [
+            {
+                criterionId: "answer_specificity",
+                applicability: "observed" as const,
+                score: 3,
+            },
+        ],
+    };
+    const fetch = vi.fn(async () => new Response(JSON.stringify({
+        status: "candidate_session_completed",
+        nextRoute: "/candidate/dashboard",
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", fetch);
+    const resolveDurableSession = vi.fn(async () => ({
+        status: "session_created" as const,
+        sessionId: "durable-session-1",
+        nextRoute: "/candidate/session/durable-session-1" as const,
+        setupSnapshot: {
+            targetRole: "Customer service representative",
+            jobDescription: "Help customers resolve service questions.",
+            resumeText: null,
+            interviewStage: "first_interview" as const,
+            questionCount: 2,
+            resumeCaptureMode: "none" as const,
+            createdAt: "2026-07-08T18:00:00.000Z",
+        },
+        questionPlanSnapshot: createCandidateQuestionPlan({
+            interviewStage: "first_interview",
+            questionCount: 2,
+        }),
+        questionWordingSnapshot: {
+            status: "questions_worded" as const,
+            questions: [
+                {
+                    slotId: "slot-1",
+                    index: 0,
+                    category: "screening" as const,
+                    questionText: "Stored snapshot question for the first slot.",
+                },
+                {
+                    slotId: "slot-2",
+                    index: 1,
+                    category: "behavioral" as const,
+                    questionText: "Stored snapshot question for the second slot.",
+                },
+            ],
+        },
+        progress: {
+            status: "live_question" as const,
+            currentQuestionIndex: 1,
+        },
+        answerAnalysisSnapshots: {
+            "slot-2": analysisSnapshot,
+        },
+    }));
+    const ui = await renderCandidateSessionPage({
+        params: Promise.resolve({ sessionId: "durable-session-1" }),
+        dependencies: {
+            resolveDurableSession,
+        },
+    });
+
+    await act(async () => {
+        render(ui);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Finish session" }));
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(
+        "/candidate/session/durable-session-1/complete",
+        expect.objectContaining({
+            method: "POST",
+        }),
+    ));
+    expect(assign).toHaveBeenCalledWith("/candidate/dashboard");
 });

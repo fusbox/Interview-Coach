@@ -12,7 +12,7 @@ import {
     SendHorizontal,
     UserCheck,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
     candidateSetupStageOptions,
@@ -63,8 +63,19 @@ export function CandidatePlannedSessionExperience({
     );
     const [answerSubmitMessage, setAnswerSubmitMessage] = useState<string | null>(null);
     const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
+    const [sessionCompletionMessage, setSessionCompletionMessage] = useState<string | null>(null);
+    const [isCompletingSession, setIsCompletingSession] = useState(false);
+    const loadedSessionIdRef = useRef<string | null>(initialSession ? sessionId : null);
 
     useEffect(() => {
+        if (loadedSessionIdRef.current === sessionId) {
+            setHasCheckedStorage(true);
+            window.scrollTo({ top: 0 });
+            return;
+        }
+
+        loadedSessionIdRef.current = sessionId;
+
         if (initialSession) {
             setSession(initialSession);
             setHasCheckedStorage(true);
@@ -181,6 +192,7 @@ export function CandidatePlannedSessionExperience({
         const isLiveQuestion = progress.status === "live_question";
         const activeDraftText = answerDrafts[activeQuestion.slotId]?.text ?? "";
         const activeAnalysisSnapshot = answerAnalysisSnapshots[activeQuestion.slotId] ?? null;
+        const isLastQuestion = activeQuestionIndex >= questionWordingPreview.questions.length - 1;
 
         return (
             <main className="candidate-design-system planned-session-page">
@@ -192,13 +204,13 @@ export function CandidatePlannedSessionExperience({
                         </h1>
                         {isLiveQuestion ? (
                             <p>
-                                Live practice has started from the carried wording snapshot. Answer submission and
-                                feedback are not connected yet.
+                                Live practice has started. Answer this question, review the coaching, then continue
+                                when you are ready.
                             </p>
                         ) : (
                             <p>
                                 This is a read-only question preview from the carried wording snapshot. Answer
-                                submission and feedback are not connected yet.
+                                submission and coaching start when you enter live practice.
                             </p>
                         )}
                     </div>
@@ -208,8 +220,7 @@ export function CandidatePlannedSessionExperience({
                         <h2>{activeQuestion.questionText}</h2>
                         {isLiveQuestion ? (
                             <p>
-                                This started state preserves the question position for pause and resume while the
-                                answer lifecycle remains unavailable.
+                                This started state preserves the question position for pause and resume.
                             </p>
                         ) : (
                             <p>
@@ -251,14 +262,14 @@ export function CandidatePlannedSessionExperience({
                                     text: event.target.value,
                                 })}
                                 rows={7}
-                                placeholder="Write a rough answer. Submission and coaching are not connected yet."
+                                placeholder="Write your answer here."
                             />
                         </label>
 
                         <div className="answer-draft-shell__footer">
                             <p>
                                 {answerSubmitMessage
-                                    ?? "Drafts save separately from final submission while the answer lifecycle is being connected."}
+                                    ?? "Drafts save as you write. Submit when you are ready for coaching."}
                             </p>
                             <button
                                 className="planned-session-action"
@@ -298,6 +309,39 @@ export function CandidatePlannedSessionExperience({
                                     <dd>{activeAnalysisSnapshot.coachFeedback.nextPracticeFocus}</dd>
                                 </div>
                             </dl>
+                            <div className="answer-draft-shell__footer">
+                                <p>
+                                    {isLastQuestion
+                                        ? "You have reached the end of this round."
+                                        : "Keep going when you are ready for the next question."}
+                                </p>
+                                {isLastQuestion ? (
+                                    <button
+                                        className="planned-session-action"
+                                        type="button"
+                                        disabled={isCompletingSession}
+                                        onClick={finishSession}
+                                    >
+                                        {isCompletingSession ? "Finishing..." : "Finish session"}
+                                    </button>
+                                ) : (
+                                    <button
+                                        className="planned-session-action"
+                                        type="button"
+                                        onClick={() => updateProgress({
+                                            status: "live_question",
+                                            currentQuestionIndex: activeQuestionIndex + 1,
+                                        })}
+                                    >
+                                        Continue to next question
+                                    </button>
+                                )}
+                            </div>
+                            {sessionCompletionMessage ? (
+                                <p className="planned-session-status" role="alert">
+                                    {sessionCompletionMessage}
+                                </p>
+                            ) : null}
                         </section>
                     ) : null}
                 </section>
@@ -483,9 +527,14 @@ export function CandidatePlannedSessionExperience({
             ) : null}
 
             <section className="planned-session-footer app-grid" aria-label="Session actions">
-                <a className="planned-session-secondary" href={dashboardHref}>
-                    Finish session
-                </a>
+                <button
+                    className="planned-session-secondary"
+                    type="button"
+                    disabled={isCompletingSession}
+                    onClick={finishSession}
+                >
+                    {isCompletingSession ? "Finishing..." : "Finish session"}
+                </button>
                 {questionWordingPreview ? (
                     <button
                         className="planned-session-secondary"
@@ -663,6 +712,40 @@ export function CandidatePlannedSessionExperience({
             }
         } catch {
             setAnswerSubmitMessage("Answer saved. Coaching is not connected yet.");
+        }
+    }
+
+    async function finishSession() {
+        if (isCompletingSession) {
+            return;
+        }
+
+        setIsCompletingSession(true);
+        setSessionCompletionMessage(null);
+
+        try {
+            const response = await fetch(`/candidate/session/${encodeURIComponent(sessionId)}/complete`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+            const result = await response.json().catch(() => null) as {
+                status?: string;
+                nextRoute?: string;
+                error?: string;
+            } | null;
+
+            if (response.ok && result?.status === "candidate_session_completed") {
+                window.location.assign(result.nextRoute ?? dashboardHref);
+                return;
+            }
+
+            setSessionCompletionMessage(result?.error ?? "I could not finish this session yet. Try again.");
+        } catch {
+            setSessionCompletionMessage("I could not finish this session yet. Try again.");
+        } finally {
+            setIsCompletingSession(false);
         }
     }
 }

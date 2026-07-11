@@ -152,9 +152,9 @@ Current dashboard scoping rule:
 1. Prefer an unfinished candidate-owned session as the selected target interview context.
 2. Honor an explicit dashboard target-role selection when it matches one of the candidate's available target interview contexts.
 3. Otherwise use the latest practice activity as the selected target interview context.
-4. Keep dashboard stats, Practice Next, Previous Sessions, and Preparedness Map evidence scoped to that selected target interview title until the multi-profile manager is implemented.
+4. Keep dashboard stats, Coach Update, Plan Progress, Practice from Feedback, Previous Sessions, latest-round review, and Preparedness Map evidence scoped to that selected target interview title until the multi-profile manager is implemented.
 
-This is a first guard against mixed-role dashboard pollution. The current prep-context switcher exposes the selected target interview, practiced/planned question coverage, qualitative prep state, and latest practice timestamp for each target role. A later profile manager can tighten the selector to `prepProfileId` plus job-description snapshot when the UI supports switching between multiple active target interviews with the same role title.
+This is a first guard against mixed-role dashboard pollution. The current prep-context switcher exposes the selected target interview, practiced/planned question coverage, qualitative prep state, and latest practice timestamp for each target role. The current route may carry the selected context in a query parameter so the browser can recover/share a selected dashboard view, but that parameter is not durable prep-profile identity. A later profile manager should tighten the selector to an opaque `prepProfileId` or `targetInterviewId` plus job-description or host-job snapshot when the UI supports switching between multiple active target interviews with the same role title.
 
 ### InterviewContext
 
@@ -254,6 +254,11 @@ Rules:
   - `postRoundReview`: a question-first review model with question text, category, practiced versus skipped/unanswered status, submitted answer text, and candidate-safe coach observation/focus when available;
   - `practiceNext`: a next-practice seed that prioritizes skipped/unanswered questions before coaching focus and new-round fallback.
 - `candidate_completed_round_read_models` must not expose raw scores, averages, hidden readiness, `oneBigUpgrade`, legacy recruiter feedback JSON, dashboard lane claims, summary narrative, QA export data, or legacy `sessions` mutations. It is a derivation layer for surfaces, not a persistence write.
+- `candidate_dashboard_v2_read_model` is the first candidate dashboard consumption boundary for completed V2 practice rounds. It is a read-time projection over candidate-owned `candidate_practice_sessions`, not a new JSONB projection table or durable dashboard row. It must choose one selected target interview context before deriving candidate-facing dashboard claims. The default selection rule mirrors the V1 dashboard loader: honor an explicit target interview selection when valid, otherwise prefer an unfinished candidate-owned session, otherwise use the latest completed practice activity. The read model may expose target-interview context options from all candidate sessions, but active/completed counts, `activeRound`, completed-round read models, latest Coach Update, post-round review models, Practice Next, and `coachingLoop` must be scoped to the selected context. `activeRound` is the selected-context unfinished practice summary: practice-session id, role, planned/in-progress status, href, question count, answered count, current question number, and progress label. Route-level selected-target metadata is currently an affordance for navigation/recovery and should not be treated as the durable identity of the prep profile. The loop is a presentation/read-model derivation for self-regulated learning support; it is not a persisted conclusion. It must not write dashboard evidence, copy legacy `eval_results.feedback_json`, persist hidden score/average fields, or treat summary narrative as dashboard truth. Add a separate persisted projection only if later query volume, multi-round aggregation, or cross-device dashboard latency makes read-time derivation inadequate.
+- `candidate_dashboard_practice_direction` is the dashboard read-model split for next-practice meaning. It should expose:
+  - `planProgress`: unfinished or remaining Coach Plan work for the selected target interview context, sourced from an active setup-created round first, then skipped/unanswered planned questions, then completed-plan or first-round fallback;
+  - `coachGuidedFocus`: feedback-based practice for the selected target interview context, sourced from candidate-safe coaching on a submitted answer.
+  The primary action should prioritize resuming active rounds, then finishing planned coverage, then feedback-based focus, then first/new-round setup. This shape prevents the dashboard from conflating "continue the plan" with "practice what the coach noticed." Both are derived reads, not persisted dashboard conclusions.
 - `candidate_qa_eval_case` is the V2 QA/evaluation export case shape for answer-quality review. It is derived from `candidate_practice_sessions` only when a submitted answer and exact slot-mapped worded question exist. It carries a stable case id, stable input fingerprint, redacted candidate identity, optional role-profile link, interview stage, question count, compact setup context, question text/category/purpose, submitted answer text/mode/submitted-at, expected signal applicability, and privacy fingerprints for JD/resume context. It should include full candidate answer text because the evaluator job requires it, but it should not repeat full JD/resume blobs when fingerprints and compact excerpts are sufficient for review.
 - `candidate_qa_eval_run` is one model/prompt/evaluator response against one fixed `candidate_qa_eval_case`. It carries model provider/name, prompt version, evaluator version, optional params, requested/completed timestamps, optional latency and token usage, parsed coach feedback, parsed evidence, and validation flags for case mapping, observed-only scoring, and candidate-safe projection language. It is the right home for internal evidence scores and model metadata. It is not a candidate-facing read model.
 - `candidate_qa_eval_comparison` compares two `candidate_qa_eval_run` records only when their `caseId` and `inputFingerprint` match. A/B comparison means comparing different model or model/prompt responses to the same fixed prompt/context/input case, not comparing two candidate answers. Mismatched inputs must be flagged rather than silently compared.
@@ -1010,14 +1015,15 @@ The following controls are not release-complete runtime behavior, but they are d
 
 ### Recommendation Priority
 
-Practice Next is the only dashboard action surface for now.
+Practice Next is the only dashboard action surface for now, but the read model should separate plan-progress recommendations from feedback-based practice recommendations.
 
 Priority:
 
 1. Resume unfinished candidate-owned session.
-2. Practice latest high-priority unresolved signal.
-3. Practice next unpracticed primary signal.
-4. Expand interview range or polish a clear/strong area.
+2. Finish planned coverage that still lacks practice evidence.
+3. Practice latest high-priority unresolved signal from coach feedback.
+4. Practice next unpracticed primary signal.
+5. Expand interview range or polish a clear/strong area.
 
 ## Feedback And Confidence
 
