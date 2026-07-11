@@ -18,6 +18,7 @@ describe("/candidate/session/[sessionId]/answers route", () => {
         const findSetupSession = vi.fn(async () => ({
             candidatePracticeSessionId: "session-1",
             candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            answerIdempotencyRecords: {},
         }));
         const saveAnswerSubmission = vi.fn(async () => ({
             "slot-1": {
@@ -92,6 +93,180 @@ describe("/candidate/session/[sessionId]/answers route", () => {
                 submittedAt: "2026-07-09T20:01:00.000Z",
                 status: "pending_analysis",
             },
+        });
+    });
+
+    it("replays a completed typed answer submit with the same idempotency key and payload", async () => {
+        const responseBody = {
+            status: "answer_submit_saved",
+            answerSubmissions: {
+                "slot-1": {
+                    slotId: "slot-1",
+                    questionIndex: 0,
+                    mode: "text" as const,
+                    text: "I would ask a clarifying question first.",
+                    submittedAt: "2026-07-09T20:01:00.000Z",
+                    status: "pending_analysis" as const,
+                },
+            },
+            next: "analysis_not_connected",
+        };
+        const saveAnswerSubmission = vi.fn();
+
+        const response = await handleCandidateAnswerSubmitRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/session/session-1/answers", {
+                method: "POST",
+                headers: {
+                    "Idempotency-Key": "client-submit-key-1",
+                },
+                body: JSON.stringify({
+                    slotId: "slot-1",
+                    questionIndex: 0,
+                    mode: "text",
+                    text: "I would ask a clarifying question first.",
+                }),
+            }),
+            sessionId: "session-1",
+            now: new Date("2026-07-09T20:01:30.000Z"),
+            resolveCandidateSessionIdentity: vi.fn(async () => ({
+                candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            })),
+            practiceSessionRepository: {
+                findSetupSession: vi.fn(async () => ({
+                    answerIdempotencyRecords: {
+                        "answer_submit:candidate_answer_submit:session-1:slot-1:client-submit-key-1": {
+                            recordKey: "answer_submit:candidate_answer_submit:session-1:slot-1:client-submit-key-1",
+                            operation: "answer_submit" as const,
+                            scope: "candidate_answer_submit:session-1:slot-1",
+                            actorId: "22222222-2222-4222-8222-222222222222",
+                            key: "client-submit-key-1",
+                            payload: {
+                                candidatePracticeSessionId: "session-1",
+                                slotId: "slot-1",
+                                questionIndex: 0,
+                                mode: "text" as const,
+                                text: "I would ask a clarifying question first.",
+                            },
+                            status: "completed" as const,
+                            requestedAt: "2026-07-09T20:01:00.000Z",
+                            completedAt: "2026-07-09T20:01:00.000Z",
+                            response: {
+                                statusCode: 202,
+                                body: responseBody,
+                            },
+                        },
+                    },
+                })),
+                saveAnswerSubmission,
+            },
+        });
+
+        expect(response.status).toBe(202);
+        await expect(response.json()).resolves.toEqual(responseBody);
+        expect(saveAnswerSubmission).not.toHaveBeenCalled();
+    });
+
+    it("returns a retryable conflict when the same answer submit is already in progress", async () => {
+        const response = await handleCandidateAnswerSubmitRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/session/session-1/answers", {
+                method: "POST",
+                headers: {
+                    "Idempotency-Key": "client-submit-key-1",
+                },
+                body: JSON.stringify({
+                    slotId: "slot-1",
+                    questionIndex: 0,
+                    mode: "text",
+                    text: "I would ask a clarifying question first.",
+                }),
+            }),
+            sessionId: "session-1",
+            now: new Date("2026-07-09T20:01:30.000Z"),
+            resolveCandidateSessionIdentity: vi.fn(async () => ({
+                candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            })),
+            practiceSessionRepository: {
+                findSetupSession: vi.fn(async () => ({
+                    answerIdempotencyRecords: {
+                        "answer_submit:candidate_answer_submit:session-1:slot-1:client-submit-key-1": {
+                            recordKey: "answer_submit:candidate_answer_submit:session-1:slot-1:client-submit-key-1",
+                            operation: "answer_submit" as const,
+                            scope: "candidate_answer_submit:session-1:slot-1",
+                            actorId: "22222222-2222-4222-8222-222222222222",
+                            key: "client-submit-key-1",
+                            payload: {
+                                candidatePracticeSessionId: "session-1",
+                                slotId: "slot-1",
+                                questionIndex: 0,
+                                mode: "text" as const,
+                                text: "I would ask a clarifying question first.",
+                            },
+                            status: "pending" as const,
+                            requestedAt: "2026-07-09T20:01:00.000Z",
+                        },
+                    },
+                })),
+                saveAnswerSubmission: vi.fn(),
+            },
+        });
+
+        expect(response.status).toBe(409);
+        await expect(response.json()).resolves.toEqual({
+            code: "REQUEST_IN_PROGRESS",
+            error: "An identical answer submit request is already in progress.",
+            retryable: true,
+        });
+    });
+
+    it("returns a nonretryable conflict when an answer submit key is reused with a different payload", async () => {
+        const response = await handleCandidateAnswerSubmitRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/session/session-1/answers", {
+                method: "POST",
+                headers: {
+                    "Idempotency-Key": "client-submit-key-1",
+                },
+                body: JSON.stringify({
+                    slotId: "slot-1",
+                    questionIndex: 0,
+                    mode: "text",
+                    text: "This is a different answer.",
+                }),
+            }),
+            sessionId: "session-1",
+            now: new Date("2026-07-09T20:01:30.000Z"),
+            resolveCandidateSessionIdentity: vi.fn(async () => ({
+                candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            })),
+            practiceSessionRepository: {
+                findSetupSession: vi.fn(async () => ({
+                    answerIdempotencyRecords: {
+                        "answer_submit:candidate_answer_submit:session-1:slot-1:client-submit-key-1": {
+                            recordKey: "answer_submit:candidate_answer_submit:session-1:slot-1:client-submit-key-1",
+                            operation: "answer_submit" as const,
+                            scope: "candidate_answer_submit:session-1:slot-1",
+                            actorId: "22222222-2222-4222-8222-222222222222",
+                            key: "client-submit-key-1",
+                            payload: {
+                                candidatePracticeSessionId: "session-1",
+                                slotId: "slot-1",
+                                questionIndex: 0,
+                                mode: "text" as const,
+                                text: "I would ask a clarifying question first.",
+                            },
+                            status: "completed" as const,
+                            requestedAt: "2026-07-09T20:01:00.000Z",
+                        },
+                    },
+                })),
+                saveAnswerSubmission: vi.fn(),
+            },
+        });
+
+        expect(response.status).toBe(409);
+        await expect(response.json()).resolves.toEqual({
+            code: "IDEMPOTENCY_MISMATCH",
+            error: "Idempotency key cannot be reused with a different answer submit payload.",
+            retryable: false,
         });
     });
 

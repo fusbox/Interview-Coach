@@ -75,7 +75,9 @@ insert into public.candidate_practice_sessions (
   progress_state_json,
   answer_drafts_json,
   answer_submissions_json,
-  answer_analysis_snapshots_json
+  answer_analysis_snapshots_json,
+  feedback_actions_json,
+  completion_snapshot_json
 )
 values (
   '84848484-8484-4484-8484-848484848484',
@@ -90,7 +92,9 @@ values (
   '{"status":"question_preview","currentQuestionIndex":0}'::jsonb,
   '{"slot-1":{"slotId":"slot-1","questionIndex":0,"mode":"text","text":"I would start by confirming the movement ticket.","updatedAt":"2026-07-09T20:00:00.000Z"}}'::jsonb,
   '{"slot-1":{"slotId":"slot-1","questionIndex":0,"mode":"text","text":"I would start by confirming the movement ticket.","submittedAt":"2026-07-09T20:01:00.000Z","status":"pending_analysis"}}'::jsonb,
-  '{"slot-1":{"status":"answer_analysis_provider_result","provider":"candidate_v2_answer_evaluator","analyzedAt":"2026-07-09T20:02:00.000Z","answer":{"slotId":"slot-1","questionIndex":0},"coachFeedback":{"acknowledgement":"You named a practical first step.","observation":"The answer would be stronger with the result of your choice.","nextPracticeFocus":"Add what changed after you set the priority."},"evidence":[{"criterionId":"answer_specificity","applicability":"observed","score":3}]}}'::jsonb
+  '{"slot-1":{"status":"answer_analysis_provider_result","provider":"candidate_v2_answer_evaluator","analyzedAt":"2026-07-09T20:02:00.000Z","answer":{"slotId":"slot-1","questionIndex":0},"coachFeedback":{"acknowledgement":"You named a practical first step.","observation":"The answer would be stronger with the result of your choice.","nextPracticeFocus":"Add what changed after you set the priority."},"evidence":[{"criterionId":"answer_specificity","applicability":"observed","score":3}]}}'::jsonb,
+  '{"slot-1":{"status":"feedback_action_selected","answer":{"slotId":"slot-1","questionIndex":0},"stageId":"next_step","actionKind":"continue_to_next_question","transition":"advance_to_next_question","selectedAt":"2026-07-09T20:03:00.000Z"}}'::jsonb,
+  '{"status":"candidate_session_completed","audience":"candidate_led","sessionId":"84848484-8484-4484-8484-848484848484","completedAt":"2026-07-09T20:04:00.000Z","finalProgress":{"status":"completed","currentQuestionIndex":0},"questionCount":1,"answeredCount":1,"coachedCount":1,"answeredQuestionKeys":["slot-1"],"coachedQuestionKeys":["slot-1"],"skippedOrUnansweredQuestionKeys":[],"nextRoute":"/candidate/dashboard"}'::jsonb
 );
 
 do $$
@@ -115,7 +119,9 @@ begin
     and session.progress_state_json ->> 'status' = 'question_preview'
     and session.answer_drafts_json #>> '{slot-1,text}' = 'I would start by confirming the movement ticket.'
     and session.answer_submissions_json #>> '{slot-1,status}' = 'pending_analysis'
-    and session.answer_analysis_snapshots_json #>> '{slot-1,status}' = 'answer_analysis_provider_result';
+    and session.answer_analysis_snapshots_json #>> '{slot-1,status}' = 'answer_analysis_provider_result'
+    and session.feedback_actions_json #>> '{slot-1,actionKind}' = 'continue_to_next_question'
+    and session.completion_snapshot_json ->> 'status' = 'candidate_session_completed';
 
   if v_session_count <> 1 then
     raise exception 'expected 1 traceable candidate practice session, found %', v_session_count;
@@ -177,6 +183,30 @@ begin
   where candidate_practice_session_id = '84848484-8484-4484-8484-848484848484';
 
   raise exception 'expected array answer analysis snapshots to fail';
+exception
+  when check_violation then null;
+end;
+$$;
+
+do $$
+begin
+  update public.candidate_practice_sessions
+  set feedback_actions_json = '[]'::jsonb
+  where candidate_practice_session_id = '84848484-8484-4484-8484-848484848484';
+
+  raise exception 'expected array feedback actions to fail';
+exception
+  when check_violation then null;
+end;
+$$;
+
+do $$
+begin
+  update public.candidate_practice_sessions
+  set completion_snapshot_json = '[]'::jsonb
+  where candidate_practice_session_id = '84848484-8484-4484-8484-848484848484';
+
+  raise exception 'expected array completion snapshot to fail';
 exception
   when check_violation then null;
 end;

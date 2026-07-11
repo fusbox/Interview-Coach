@@ -154,7 +154,7 @@ async function resolveCandidateProfileIdFromLaunchSession(
         : null;
 }
 
-function toCandidateProvisionalSession(
+export function toCandidateProvisionalSession(
     durableSession: CandidatePracticeSessionRecord,
 ): CandidateProvisionalSessionRecord {
     return {
@@ -169,6 +169,7 @@ function toCandidateProvisionalSession(
         progress: durableSession.progress,
         answerDrafts: durableSession.answerDrafts,
         answerAnalysisSnapshots: durableSession.answerAnalysisSnapshots,
+        feedbackActionEvents: durableSession.feedbackActionEvents,
     };
 }
 

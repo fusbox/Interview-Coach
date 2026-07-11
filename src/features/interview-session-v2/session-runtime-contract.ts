@@ -1,7 +1,8 @@
 export type SessionRuntimeProgressStatus =
     | "planned"
     | "question_preview"
-    | "live_question";
+    | "live_question"
+    | "completed";
 
 export type SessionRuntimeProgress = {
     status: SessionRuntimeProgressStatus;
@@ -60,7 +61,10 @@ export function isQuestionSurfaceProgress(progress: SessionRuntimeProgress) {
 }
 
 export function isSessionRuntimeProgressStatus(value: unknown): value is SessionRuntimeProgressStatus {
-    return value === "planned" || value === "question_preview" || value === "live_question";
+    return value === "planned"
+        || value === "question_preview"
+        || value === "live_question"
+        || value === "completed";
 }
 
 function readProgressStatus(value: unknown): SessionRuntimeProgressStatus {

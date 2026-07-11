@@ -21,7 +21,7 @@ Related durable docs:
 - [Candidate App Operating Model](01-product/candidate-app-operating-model.md)
 - [Practice Setup Scope](02-requirements/practice-setup-scope.md)
 - [Interview Preparedness Signal Contract](04-architecture/preparedness-signal-contract.md)
-- [Postgres Candidate Data Contract](04-architecture/postgres-candidate-data-contract.md)
+- [Postgres Candidate Data Contract](reference-archive/architecture/postgres-candidate-data-contract.md)
 - [Privacy, Disclosures, And Consent Requirements](06-security/privacy-disclosures-and-consent-requirements.md)
 
 ## Current Naming Decision: prepProfile

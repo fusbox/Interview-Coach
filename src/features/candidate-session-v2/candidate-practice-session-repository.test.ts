@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createCandidatePracticeSessionRepository } from "./candidate-practice-session-repository";
 import { createCandidateQuestionPlan } from "./candidate-question-plan";
 import { createFixtureCandidateQuestionWordingResult } from "./candidate-question-wording";
+import type { CandidateLedSessionCompletionSnapshot } from "@/features/interview-session-v2/session-completion-contract";
 
 describe("candidate practice session repository", () => {
     it("stores a setup-created candidate practice session with traceable snapshots", async () => {
@@ -285,6 +286,106 @@ describe("candidate practice session repository", () => {
         ]);
     });
 
+    it("persists one feedback action event by candidate-owned session and slot", async () => {
+        const feedbackActionEvent = {
+            status: "feedback_action_selected" as const,
+            answer: {
+                slotId: "slot-1",
+                questionIndex: 0,
+            },
+            stageId: "next_step" as const,
+            actionKind: "continue_to_next_question" as const,
+            transition: "advance_to_next_question" as const,
+            selectedAt: "2026-07-09T20:03:00.000Z",
+        };
+        const query = vi.fn(async () => ({
+            rows: [{
+                feedback_actions_json: {
+                    "slot-1": feedbackActionEvent,
+                },
+            }],
+        }));
+        const repository = createCandidatePracticeSessionRepository({ query });
+
+        await expect(repository.saveFeedbackActionEvent({
+            candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            candidatePracticeSessionId: "11111111-1111-4111-8111-111111111111",
+            feedbackActionEvent,
+        })).resolves.toEqual({
+            "slot-1": feedbackActionEvent,
+        });
+
+        expect(query).toHaveBeenCalledWith(expect.stringContaining("feedback_actions_json = jsonb_set"), [
+            "11111111-1111-4111-8111-111111111111",
+            "22222222-2222-4222-8222-222222222222",
+            ["slot-1"],
+            feedbackActionEvent,
+        ]);
+    });
+
+    it("persists one answer idempotency record by candidate-owned session and record key", async () => {
+        const record = {
+            recordKey: "answer_submit:candidate_answer_submit:session-1:slot-1:client-key-1",
+            operation: "answer_submit" as const,
+            scope: "candidate_answer_submit:session-1:slot-1",
+            actorId: "22222222-2222-4222-8222-222222222222",
+            key: "client-key-1",
+            payload: {
+                candidatePracticeSessionId: "11111111-1111-4111-8111-111111111111",
+                slotId: "slot-1",
+                questionIndex: 0,
+                mode: "text" as const,
+                text: "I would ask a clarifying question first.",
+            },
+            status: "pending" as const,
+            requestedAt: "2026-07-09T20:01:00.000Z",
+        };
+        const query = vi.fn(async () => ({
+            rows: [{
+                answer_idempotency_json: {
+                    [record.recordKey]: record,
+                },
+            }],
+        }));
+        const repository = createCandidatePracticeSessionRepository({ query });
+
+        await expect(repository.saveAnswerIdempotencyRecord({
+            candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            candidatePracticeSessionId: "11111111-1111-4111-8111-111111111111",
+            record,
+        })).resolves.toEqual({
+            [record.recordKey]: record,
+        });
+
+        expect(query).toHaveBeenCalledWith(expect.stringContaining("answer_idempotency_json = jsonb_set"), [
+            "11111111-1111-4111-8111-111111111111",
+            "22222222-2222-4222-8222-222222222222",
+            [record.recordKey],
+            record,
+        ]);
+    });
+
+    it("clears one answer idempotency record after an unreplayable failure", async () => {
+        const query = vi.fn(async () => ({
+            rows: [{
+                answer_idempotency_json: {},
+            }],
+        }));
+        const repository = createCandidatePracticeSessionRepository({ query });
+
+        await expect(repository.clearAnswerIdempotencyRecord({
+            candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            candidatePracticeSessionId: "11111111-1111-4111-8111-111111111111",
+            recordKey: "answer_analysis:candidate_answer_analysis:session-1:slot-1:client-key-1",
+        })).resolves.toEqual({});
+
+        expect(query).toHaveBeenCalledWith(expect.stringContaining("answer_idempotency_json = coalesce(answer_idempotency_json, '{}'::jsonb) - $3"), [
+            "11111111-1111-4111-8111-111111111111",
+            "22222222-2222-4222-8222-222222222222",
+            "answer_analysis:candidate_answer_analysis:session-1:slot-1:client-key-1",
+        ]);
+    });
+
     it("persists preview progress by candidate-owned session", async () => {
         const query = vi.fn(async () => ({
             rows: [{
@@ -348,6 +449,49 @@ describe("candidate practice session repository", () => {
                 status: "live_question",
                 currentQuestionIndex: 0,
             },
+        ]);
+    });
+
+    it("persists a candidate-led completion snapshot and final progress state", async () => {
+        const completionSnapshot: CandidateLedSessionCompletionSnapshot = {
+            status: "candidate_session_completed",
+            audience: "candidate_led",
+            sessionId: "11111111-1111-4111-8111-111111111111",
+            completedAt: "2026-07-10T22:10:00.000Z",
+            finalProgress: {
+                status: "completed",
+                currentQuestionIndex: 2,
+            },
+            questionCount: 3,
+            answeredCount: 2,
+            coachedCount: 1,
+            answeredQuestionKeys: ["slot-1", "slot-2"],
+            coachedQuestionKeys: ["slot-1"],
+            skippedOrUnansweredQuestionKeys: ["slot-3"],
+            nextRoute: "/candidate/dashboard",
+        };
+        const query = vi.fn(async () => ({
+            rows: [{
+                completion_snapshot_json: completionSnapshot,
+                progress_state_json: completionSnapshot.finalProgress,
+            }],
+        }));
+        const repository = createCandidatePracticeSessionRepository({ query });
+
+        await expect(repository.completeSession({
+            candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            candidatePracticeSessionId: "11111111-1111-4111-8111-111111111111",
+            completionSnapshot,
+        })).resolves.toEqual({
+            completionSnapshot,
+            progress: completionSnapshot.finalProgress,
+        });
+
+        expect(query).toHaveBeenCalledWith(expect.stringContaining("status = 'completed'"), [
+            "11111111-1111-4111-8111-111111111111",
+            "22222222-2222-4222-8222-222222222222",
+            completionSnapshot,
+            completionSnapshot.finalProgress,
         ]);
     });
 });

@@ -9,6 +9,7 @@ import {
 } from "@/features/interview-session-v2/session-runtime-contract";
 import type { CandidateQuestionWordingResult } from "./candidate-question-wording";
 import type { CandidateAnswerAnalysisProviderResult } from "./candidate-answer-analysis-adapter";
+import type { CandidateFeedbackActionEvent } from "./candidate-feedback-interaction";
 
 export const CANDIDATE_PROVISIONAL_SESSION_STORAGE_KEY = "interview-coach:candidate-provisional-sessions:v1";
 
@@ -22,10 +23,12 @@ export type CandidateProvisionalSessionRecord = (CandidateSetupSessionCreationRe
     progress?: CandidateProvisionalSessionProgress;
     answerDrafts?: CandidateAnswerDrafts;
     answerAnalysisSnapshots?: CandidateAnswerAnalysisSnapshots;
+    feedbackActionEvents?: CandidateFeedbackActionEvents;
 };
 
 type CandidateProvisionalSessionMap = Record<string, CandidateProvisionalSessionRecord>;
 export type CandidateAnswerAnalysisSnapshots = Record<string, CandidateAnswerAnalysisProviderResult>;
+export type CandidateFeedbackActionEvents = Record<string, CandidateFeedbackActionEvent>;
 
 export function saveCandidateProvisionalSession(
     storage: Pick<Storage, "getItem" | "setItem">,
@@ -37,6 +40,7 @@ export function saveCandidateProvisionalSession(
         progress: normalizeCandidateProvisionalSessionProgress(session.progress),
         answerDrafts: normalizeCandidateAnswerDrafts(session.answerDrafts),
         answerAnalysisSnapshots: normalizeCandidateAnswerAnalysisSnapshots(session.answerAnalysisSnapshots),
+        feedbackActionEvents: normalizeCandidateFeedbackActionEvents(session.feedbackActionEvents),
     };
     storage.setItem(CANDIDATE_PROVISIONAL_SESSION_STORAGE_KEY, JSON.stringify(sessions));
 }
@@ -96,6 +100,7 @@ function readCandidateProvisionalSessionMap(storage: Pick<Storage, "getItem">): 
                     progress: normalizeCandidateProvisionalSessionProgress(session.progress),
                     answerDrafts: normalizeCandidateAnswerDrafts(session.answerDrafts),
                     answerAnalysisSnapshots: normalizeCandidateAnswerAnalysisSnapshots(session.answerAnalysisSnapshots),
+                    feedbackActionEvents: normalizeCandidateFeedbackActionEvents(session.feedbackActionEvents),
                 },
             ]),
         );
@@ -116,4 +121,12 @@ function normalizeCandidateAnswerAnalysisSnapshots(value: unknown): CandidateAns
     }
 
     return value as CandidateAnswerAnalysisSnapshots;
+}
+
+function normalizeCandidateFeedbackActionEvents(value: unknown): CandidateFeedbackActionEvents {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return {};
+    }
+
+    return value as CandidateFeedbackActionEvents;
 }

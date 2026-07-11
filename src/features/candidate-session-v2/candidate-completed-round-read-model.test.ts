@@ -1,0 +1,230 @@
+import { describe, expect, it } from "vitest";
+
+import { createCandidateCompletedRoundReadModels } from "./candidate-completed-round-read-model";
+import { createCandidateQuestionPlan } from "./candidate-question-plan";
+import type { CandidatePracticeSessionRecord } from "./candidate-practice-session-repository";
+
+const analysisSnapshot = {
+    status: "answer_analysis_provider_result" as const,
+    provider: "candidate_v2_answer_evaluator" as const,
+    analyzedAt: "2026-07-10T22:03:00.000Z",
+    answer: {
+        slotId: "slot-1",
+        questionIndex: 0,
+    },
+    coachFeedback: {
+        acknowledgement: "You gave a direct answer.",
+        observation: "Add a specific example from the shift.",
+        nextPracticeFocus: "Name one task you handled well and what changed.",
+    },
+    evidence: [
+        {
+            criterionId: "answer_specificity",
+            applicability: "observed" as const,
+            score: 3,
+        },
+    ],
+};
+
+describe("candidate completed round read model", () => {
+    it("bridges a completed candidate practice session into dashboard and post-round review models", () => {
+        const session = createCompletedSessionRecord();
+
+        expect(createCandidateCompletedRoundReadModels(session)).toEqual({
+            status: "candidate_completed_round_read_models",
+            round: {
+                candidatePracticeSessionId: "session-1",
+                targetRole: "Material Handler I",
+                interviewStage: "first_interview",
+                completedAt: "2026-07-10T22:10:00.000Z",
+                questionCount: 3,
+                answeredCount: 2,
+                coachedCount: 1,
+                skippedOrUnansweredCount: 1,
+            },
+            dashboardUpdate: {
+                status: "candidate_dashboard_coach_update_ready",
+                candidatePracticeSessionId: "session-1",
+                title: "Material Handler I practice complete",
+                body: "You answered 2 of 3 questions. I have coaching ready for 1 answer.",
+                href: "/candidate/dashboard",
+                completedAt: "2026-07-10T22:10:00.000Z",
+                answeredCount: 2,
+                questionCount: 3,
+                coachingPreview: {
+                    questionKey: "slot-1",
+                    questionNumber: 1,
+                    category: "Screening",
+                    observation: "Add a specific example from the shift.",
+                    nextPracticeFocus: "Name one task you handled well and what changed.",
+                },
+            },
+            postRoundReview: {
+                status: "candidate_post_round_review_ready",
+                candidatePracticeSessionId: "session-1",
+                targetRole: "Material Handler I",
+                completedAt: "2026-07-10T22:10:00.000Z",
+                answeredCount: 2,
+                questionCount: 3,
+                questions: [
+                    {
+                        questionKey: "slot-1",
+                        questionNumber: 1,
+                        category: "Screening",
+                        questionText: "What interests you about this Material Handler role?",
+                        status: "practiced",
+                        answer: {
+                            mode: "text",
+                            text: "I like keeping materials organized.",
+                            submittedAt: "2026-07-10T22:01:00.000Z",
+                        },
+                        coaching: {
+                            acknowledgement: "You gave a direct answer.",
+                            observation: "Add a specific example from the shift.",
+                            nextPracticeFocus: "Name one task you handled well and what changed.",
+                            overallBand: "clear",
+                        },
+                    },
+                    {
+                        questionKey: "slot-2",
+                        questionNumber: 2,
+                        category: "Behavioral",
+                        questionText: "Tell me about a time you handled a deadline.",
+                        status: "practiced",
+                        answer: {
+                            mode: "text",
+                            text: "I prioritized the urgent shipment.",
+                            submittedAt: "2026-07-10T22:05:00.000Z",
+                        },
+                    },
+                    {
+                        questionKey: "slot-3",
+                        questionNumber: 3,
+                        category: "Scenario",
+                        questionText: "How would you handle a shipment delay?",
+                        status: "skipped_or_unanswered",
+                    },
+                ],
+            },
+            practiceNext: {
+                status: "candidate_practice_next_ready",
+                source: "unanswered_question",
+                label: "Practice the questions you did not answer",
+                reason: "One planned question still needs practice evidence.",
+                href: "/candidate/setup",
+                questionKeys: ["slot-3"],
+            },
+        });
+    });
+
+    it("does not expose raw scores, averages, or legacy coach feedback fields", () => {
+        const model = createCandidateCompletedRoundReadModels(createCompletedSessionRecord());
+
+        expect(JSON.stringify(model)).not.toMatch(/score|averageScore|oneBigUpgrade|readinessLevel/i);
+    });
+
+    it("returns null when the durable session is not completed or lacks a completion snapshot", () => {
+        const completedSession = createCompletedSessionRecord();
+
+        expect(createCandidateCompletedRoundReadModels({
+            ...completedSession,
+            status: "in_progress",
+        })).toBeNull();
+        expect(createCandidateCompletedRoundReadModels({
+            ...completedSession,
+            completionSnapshot: null,
+        })).toBeNull();
+    });
+});
+
+function createCompletedSessionRecord(): CandidatePracticeSessionRecord {
+    return {
+        candidatePracticeSessionId: "session-1",
+        candidateProfileId: "22222222-2222-4222-8222-222222222222",
+        roleProfileId: null,
+        candidateLaunchSessionId: null,
+        status: "completed",
+        setupSnapshot: {
+            targetRole: "Material Handler I",
+            jobDescription: "Move materials and maintain inventory.",
+            resumeText: null,
+            interviewStage: "first_interview",
+            questionCount: 3,
+            resumeCaptureMode: "none",
+            createdAt: "2026-07-10T22:00:00.000Z",
+        },
+        questionPlanSnapshot: createCandidateQuestionPlan({
+            interviewStage: "first_interview",
+            questionCount: 3,
+        }),
+        questionWordingSnapshot: {
+            status: "questions_worded",
+            questions: [
+                {
+                    slotId: "slot-1",
+                    index: 0,
+                    category: "screening",
+                    questionText: "What interests you about this Material Handler role?",
+                },
+                {
+                    slotId: "slot-2",
+                    index: 1,
+                    category: "behavioral",
+                    questionText: "Tell me about a time you handled a deadline.",
+                },
+                {
+                    slotId: "slot-3",
+                    index: 2,
+                    category: "case_scenario",
+                    questionText: "How would you handle a shipment delay?",
+                },
+            ],
+        },
+        questionWordingStatus: "worded",
+        progress: {
+            status: "completed",
+            currentQuestionIndex: 2,
+        },
+        answerDrafts: {},
+        answerSubmissions: {
+            "slot-1": {
+                slotId: "slot-1",
+                questionIndex: 0,
+                mode: "text",
+                text: "I like keeping materials organized.",
+                submittedAt: "2026-07-10T22:01:00.000Z",
+                status: "pending_analysis",
+            },
+            "slot-2": {
+                slotId: "slot-2",
+                questionIndex: 1,
+                mode: "text",
+                text: "I prioritized the urgent shipment.",
+                submittedAt: "2026-07-10T22:05:00.000Z",
+                status: "pending_analysis",
+            },
+        },
+        answerIdempotencyRecords: {},
+        answerAnalysisSnapshots: {
+            "slot-1": analysisSnapshot,
+        },
+        feedbackActionEvents: {},
+        completionSnapshot: {
+            status: "candidate_session_completed",
+            audience: "candidate_led",
+            sessionId: "session-1",
+            completedAt: "2026-07-10T22:10:00.000Z",
+            finalProgress: {
+                status: "completed",
+                currentQuestionIndex: 2,
+            },
+            questionCount: 3,
+            answeredCount: 2,
+            coachedCount: 1,
+            answeredQuestionKeys: ["slot-1", "slot-2"],
+            coachedQuestionKeys: ["slot-1"],
+            skippedOrUnansweredQuestionKeys: ["slot-3"],
+            nextRoute: "/candidate/dashboard",
+        },
+    };
+}

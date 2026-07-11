@@ -1,237 +1,201 @@
 # Local Dev Bootstrap
 
-Date: 2026-05-07
-Status: Working bootstrap contract
+Status: Active cleanroom V2 bootstrap
+Last updated: 2026-07-10
 
 ## Purpose
 
-This document defines the intended local developer setup path for the candidate app.
+This is the current local setup path for the candidate V2 rebuild in this repo.
 
-The goal is to make local development repeatable before the app has production infrastructure.
+Older candidate docs and SQL helpers may still describe the V1 `/practice` -> `/session` -> `/summary` app. Treat those as reference material only. Current V2 work uses canonical `/candidate/*` routes and the `candidate_practice_sessions` persistence boundary.
 
-## Current Baseline
+## The Commands You Usually Need
 
-Current commands:
+### Fresh Local Smoke DB Setup
 
-- `npm install`
-- `npm run dev`
-- `npm run dev:candidate`
-- `npm run lint`
-- `npm run typecheck`
-- `npm run test:candidate`
-- `npm run test:coverage`
-- `npm run ci:candidate`
-- `npm run build`
-- `npm run postgres:smoke:start`
-- `npm run db:setup`
-- `npm run db:migrate`
-- `npm run db:apply-schema`
-- `npm run db:apply-candidate-schema`
-- `npm run db:apply-candidate-drafts-schema`
-- `npm run db:seed`
-- `npm run db:seed-candidate-dev`
-- `npm run db:smoke-candidate-readiness`
-- `npm run db:smoke-candidate-schema`
-- `npm run db:smoke-candidate-drafts-schema`
-- `npm run db:smoke-candidate-dev-seed`
-- `npm run db:smoke-candidate-setup-summary`
-- `npm run test:e2e:candidate-seeded`
-- `npm run ci:candidate:with-db`
-
-Current development server:
-
-- `http://localhost:3000`
-
-## Target Bootstrap Flow
-
-The current smoke-Postgres bootstrap supports:
-
-```powershell
-npm install
-npm run db:setup
-npm run dev:candidate
-```
-
-Use `npm run dev:candidate` when you want to browse candidate UI without routing through the external TalentArbor login. It starts the same Next dev server as `npm run dev`, but defaults local-only candidate auth to the seeded primary candidate.
-
-`db:setup` starts the local smoke Postgres container, applies the shared recruiter schema plus candidate migrations, and seeds deterministic candidate fixtures.
-
-If Docker or the smoke container is already managed separately, run the pieces explicitly:
-
-```powershell
-npm run db:migrate
-npm run db:seed
-```
-
-Current candidate schema smoke flow:
+Use this when the local smoke Postgres container is new, reset, or missing current schema:
 
 ```powershell
 npm run postgres:smoke:start
 npm run db:migrate
 npm run db:seed-candidate-dev
-npm run db:smoke-candidate-schema
-npm run db:smoke-candidate-drafts-schema
-npm run db:smoke-candidate-dev-seed
-npm run db:smoke-candidate-setup-summary
+npm run db:smoke-candidate-readiness
 ```
 
-This applies the recruiter Postgres baseline, applies the candidate identity/profile and practice draft migrations, seeds deterministic primary and alternate dev candidates, and validates candidate profile, provider identity, draft, session, setup-to-summary, saved-feedback, and ownership fixtures inside rollback-only smoke scripts.
+Shortcut:
 
-The readiness shortcut is:
+```powershell
+npm run db:setup
+npm run db:smoke-candidate-readiness
+```
+
+`db:setup` starts the smoke container, applies all current migrations, and seeds deterministic local candidate identities. `db:smoke-candidate-readiness` reruns the current candidate schema and fixture checks.
+
+### After This Branch Changes `007_candidate_practice_sessions_schema.sql`
+
+Use this when you already have the smoke DB running and only need the latest V2 practice-session table shape:
+
+```powershell
+npm run db:apply-candidate-practice-sessions-schema
+npm run db:smoke-candidate-practice-sessions-schema
+```
+
+For the current slice, this is the important narrow update because `answer_idempotency_json` was added to `candidate_practice_sessions`.
+
+### Full Candidate Quality Check
+
+Use this before packaging candidate V2 work:
+
+```powershell
+npm run test:candidate
+```
+
+When you also need database readiness:
 
 ```powershell
 npm run db:smoke-candidate-readiness
 ```
 
-The full local candidate quality path is:
+The heavier combined path is:
 
 ```powershell
-npm run ci:candidate
-npm run db:smoke-candidate-readiness
-npm run test:e2e:candidate-seeded
+npm run ci:candidate:with-db
 ```
 
-`npm run ci:candidate:with-db` runs those checks as a single chain when the smoke Postgres container is available.
+That runs lint, typecheck, candidate tests, build, DB readiness, and the seeded browser smoke.
 
-Seeded candidate identities:
+## Current DB Script Map
 
-- Primary: `candidate-dev-primary@talentarbor.local`
-- Alternate ownership-check candidate: `candidate-dev-alt@talentarbor.local`
+Current candidate V2 local development depends on these scripts:
 
-## Local Host Launch Mode
+| Need | Command |
+| --- | --- |
+| Start disposable local Postgres | `npm run postgres:smoke:start` |
+| Apply all current migrations | `npm run db:migrate` |
+| Apply only host-launch schema | `npm run db:apply-candidate-host-launch-schema` |
+| Apply only V2 practice-session schema | `npm run db:apply-candidate-practice-sessions-schema` |
+| Seed local primary/alternate candidates | `npm run db:seed-candidate-dev` |
+| Validate host-launch schema | `npm run db:smoke-candidate-host-launch-schema` |
+| Validate V2 practice-session schema | `npm run db:smoke-candidate-practice-sessions-schema` |
+| Validate local candidate fixtures | `npm run db:smoke-candidate-dev-seed` |
+| Run current candidate DB readiness chain | `npm run db:smoke-candidate-readiness` |
 
-Use local host launch mode when you want development to mirror the TalentArbor/RangamWorks redirect shape instead of opening candidate routes directly.
+The V1-style `postgres:smoke:*` product scripts still exist because the repo also contains recruiter and mature shared-session surfaces. Do not use them as the default validation path for the cleanroom candidate V2 rebuild unless a slice explicitly says to compare or validate against V1 behavior.
 
-It is disabled by default and rejected in production. Enable it only for local/mobile development:
+## Local Dev Host Launch
+
+The current preferred browser path is host-launch-shaped, even in local development.
+
+Add these to `.env.local`:
+
+```text
+CANDIDATE_HOST_LAUNCH_DEV_MODE=true
+CANDIDATE_HOST_LAUNCH_DEV_SECRET=local-only-shared-secret
+```
+
+To browser-validate the current submit -> analysis -> read-only coaching surface without production provider credentials, also add:
+
+```text
+CANDIDATE_ANSWER_ANALYSIS_PROVIDER=fixture
+```
+
+The fixture provider is accepted only with explicit local dev host-launch mode. If the variable is missing, answer analysis remains fail-closed with provider-not-configured behavior.
+
+Then start the app:
 
 ```powershell
-$env:CANDIDATE_HOST_LAUNCH_DEV_MODE = "true"
-$env:CANDIDATE_HOST_LAUNCH_DEV_SECRET = "local-only-shared-secret"
+npm run dev
 ```
 
-Then start the app and open one of these URLs:
+Open the dev launch route:
 
 ```text
 http://localhost:3000/candidate/dev/launch?candidate=primary&next=/candidate/setup
+```
+
+Alternate candidate:
+
+```text
 http://localhost:3000/candidate/dev/launch?candidate=alternate&next=/candidate/setup
 ```
 
-For mobile LAN testing, replace `localhost` with the workstation LAN IP:
+Mobile LAN testing uses the same path with your workstation IP:
 
 ```text
 http://<workstation-lan-ip>:3000/candidate/dev/launch?candidate=primary&next=/candidate/setup
 ```
 
-The dev route mints a short local host-shaped token, redirects through `/candidate/launch?token=...`, lets the normal launch route verify it server-side, and then redirects away from the token URL. The token payload mirrors the current expected host shape:
+If Next logs a blocked cross-origin warning for `/_next/*`, add the workstation origin to `allowedDevOrigins` in `next.config` only if the page fails to load or hot reload becomes unusable.
 
-```json
-{
-  "candidate_id": "100001",
-  "product": "interview-coach",
-  "email": "candidate-dev-primary@talentarbor.local",
-  "exp": "1783512000"
-}
-```
+## Dev Server Options
 
-The default token lifetime is one week. The local dev verifier maps the numeric candidate id to the deterministic seeded candidate profiles. Production JWT verification, replay handling, secret rotation, and database-backed profile/session resolution remain separate integration slices.
+Use `npm run dev` for the current host-launch-shaped flow.
 
-If `DATABASE_URL` is present in `.env` or the shell, `/candidate/setup/start` uses the durable local Postgres path. Before validating setup submission, make sure the smoke database has both the current migrations and deterministic candidate fixtures:
+`npm run dev:candidate` still exists as a convenience wrapper. It sets `DATABASE_URL` to the smoke DB and defaults older candidate auth env values, but it is not the primary V2 launch path because it does not exercise the host redirect shape by itself.
+
+## Seeded Local Candidates
+
+The deterministic local candidates are:
+
+| Candidate | Email | Host-launch shortcut |
+| --- | --- | --- |
+| Primary | `candidate-dev-primary@talentarbor.local` | `candidate=primary` |
+| Alternate | `candidate-dev-alt@talentarbor.local` | `candidate=alternate` |
+
+The dev host launch maps deterministic host-style candidate ids to these seeded candidate profiles.
+
+## Troubleshooting
+
+### Setup Submit Returns `503`
+
+Most likely causes:
+
+- smoke DB is not running;
+- `.env.local` has `DATABASE_URL` but migrations have not been applied;
+- deterministic candidate fixtures are missing;
+- `007_candidate_practice_sessions_schema.sql` changed but the local table was not updated.
+
+Run:
 
 ```powershell
+npm run postgres:smoke:start
 npm run db:migrate
 npm run db:seed-candidate-dev
+npm run db:smoke-candidate-readiness
 ```
 
-If setup submission returns `503`, first run:
+For a known practice-session migration delta, the narrower check is:
 
 ```powershell
-npm run db:smoke-candidate-host-launch-schema
+npm run db:apply-candidate-practice-sessions-schema
 npm run db:smoke-candidate-practice-sessions-schema
-npm run db:smoke-candidate-dev-seed
 ```
 
-These checks confirm the launch/session tables and fixture candidate profiles required by local host launch mode.
+### Browser Opens The Session But Data Does Not Recover
 
-For the quickest local UI pass:
+Check that you entered through `/candidate/dev/launch` and that the `ic_candidate_launch_session` cookie exists. Directly opening `/candidate/setup` can still render the UI, but durable candidate-owned recovery depends on the launch-session identity boundary.
 
-```text
-CANDIDATE_AUTH_MODE=dev
-```
+### PowerShell Shows `Terminate batch job (Y/N)?`
 
-`dev` mode resolves the primary seeded candidate automatically. It is intended for local browser DX and is rejected in production.
+That prompt appears when the dev server was started through `cmd /c`, including nested npm scripts. It is normal on Windows. Press `Y` to stop the batch process.
 
-For primary password-mode local access:
+## Reference Archive
 
-```text
-$env:CANDIDATE_DEV_AUTH_ENABLED = "true"
-$env:CANDIDATE_AUTH_MODE = "password"
-$env:CANDIDATE_DEV_EMAIL = "candidate-dev-primary@talentarbor.local"
-$env:CANDIDATE_DEV_ISSUER = "interview-coach-local"
-$env:CANDIDATE_DEV_SUBJECT = "candidate-dev-primary@talentarbor.local"
-$env:CANDIDATE_DEV_DISPLAY_NAME = "Dev Candidate Primary"
-```
+Historical V1/interim docs and the old all-in-one local SQL query live under:
 
-For alternate password-mode local access:
+- [Reference Archive](../reference-archive/README.md)
+- [V1 master query](../reference-archive/sql/master_query.v1.sql)
 
-```text
-$env:CANDIDATE_DEV_AUTH_ENABLED = "true"
-$env:CANDIDATE_AUTH_MODE = "password"
-$env:CANDIDATE_DEV_EMAIL = "candidate-dev-alt@talentarbor.local"
-$env:CANDIDATE_DEV_ISSUER = "interview-coach-local"
-$env:CANDIDATE_DEV_SUBJECT = "candidate-dev-alt@talentarbor.local"
-$env:CANDIDATE_DEV_DISPLAY_NAME = "Dev Candidate Alternate"
-```
+Use those files when comparing against V1 behavior. Do not treat them as current bootstrap instructions.
 
-## Inspect Candidate Practice Flow Data
+## Acceptance Checklist
 
-Use this query in the VS Code PostgreSQL extension or any Postgres client connected to the local smoke database when you need to inspect candidate-owned data from `/practice` through `/summary`.
+For current V2 local development:
 
-The result returns one row per candidate practice flow. The first columns make the grid readable; `flow_json` contains the full nested setup, session, question, answer, feedback, summary, event, and AI-generation trail.
-
-To narrow the output, set one or more values in the `params` CTE.
-
-Use the saved SQL file: [master_query.sql](master_query.sql).
-
-To copy it from PowerShell:
-
-```powershell
-Get-Content docs/candidate-app/09-dev/master_query.sql -Raw | Set-Clipboard
-```
-
-Notes:
-
-- The query prefers explicit `questionId` references for question-scoped AI rows, then falls back to `session_id + questionText` for older hint and strong-response captures.
-- TTS is intentionally status-only in this query: `ttsState`, `ttsAudioRefPresent`, and `ttsGeneratedAt`.
-
-## Environment Setup
-
-Copy [.env.example](../../.env.example) to `.env.local` and fill only the values needed for the current slice.
-
-Early development can use:
-
-- `CANDIDATE_AUTH_MODE=dev`
-- `CANDIDATE_AUTH_MODE=mock`
-- `RATE_LIMIT_BACKEND=memory`
-- `METRICS_BACKEND=memory`
-- local or smoke Postgres once the database layer exists
-
-Production-like development should use:
-
-- `CANDIDATE_AUTH_MODE=password`
-- `DATABASE_URL`
-- `APP_AUTH_BACKEND=postgres`
-- `CANDIDATE_DATA_BACKEND=postgres`
-
-## Bootstrap Acceptance Criteria
-
-- a new developer can install dependencies and start the app
-- local env shape is documented
-- database setup, migration, seed, and readiness checks are scripted
-- seed data creates primary and alternate dev candidate profiles for happy-path and ownership checks
-- local auth can exercise protected candidate routes
-- quality scripts pass before implementation work is marked done
-
-## Open Questions
-
-- Should local Postgres run through Docker, native Postgres, Azure-hosted dev DB, or all three?
-- Should mock auth be enabled by cookie, env, or a test-only route?
+- smoke Postgres is running;
+- `db:migrate` has applied through `007_candidate_practice_sessions_schema.sql`;
+- local candidate dev seed is present;
+- `db:smoke-candidate-readiness` passes;
+- the app is launched with `npm run dev`;
+- browser entry starts at `/candidate/dev/launch?...next=/candidate/setup`;
+- candidate route recovery works through the launch-session cookie.

@@ -39,12 +39,17 @@ describe("session runtime contract", () => {
             status: "live_question",
             currentQuestionIndex: 0,
         })).toBe(true);
+        expect(isQuestionSurfaceProgress({
+            status: "completed",
+            currentQuestionIndex: 0,
+        })).toBe(false);
     });
 
     it("recognizes every allowed progress status for route and repository validation", () => {
         expect(isSessionRuntimeProgressStatus("planned")).toBe(true);
         expect(isSessionRuntimeProgressStatus("question_preview")).toBe(true);
         expect(isSessionRuntimeProgressStatus("live_question")).toBe(true);
+        expect(isSessionRuntimeProgressStatus("completed")).toBe(true);
         expect(isSessionRuntimeProgressStatus("answered")).toBe(false);
         expect(isSessionRuntimeProgressStatus(null)).toBe(false);
     });

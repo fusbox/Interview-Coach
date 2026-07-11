@@ -240,7 +240,7 @@ Use these only when needed:
 
 - [Shared Host Routing Contract](04-architecture/shared-host-routing-contract.md)
 - [Candidate Login Redirect Contract](02-requirements/candidate-login-redirect-contract.md)
-- [Postgres Candidate Data Contract](04-architecture/postgres-candidate-data-contract.md)
+- [Postgres Candidate Data Contract](reference-archive/architecture/postgres-candidate-data-contract.md)
 - [Storage And Resume Ingestion](04-architecture/storage-and-resume-ingestion.md)
 - [Recruiter Regression Checklist For Candidate PRs](05-quality/recruiter-regression-checklist.md)
 - [Candidate Integration PR Policy](07-ops/candidate-integration-pr-policy.md)

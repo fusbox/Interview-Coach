@@ -20,9 +20,9 @@ Related docs:
 - [Working Backlog](../00-working-backlog.md)
 - [Candidate Dashboard And Practice V2 Disposable Spec](../candidate-dashboard-practice-v2-disposable-spec.md)
 - [Interview Preparedness Signal Contract](./preparedness-signal-contract.md)
-- [Postgres Candidate Data Contract](./postgres-candidate-data-contract.md)
-- [Practice Session Draft Contract](./practice-session-draft-contract.md)
-- [Candidate Session Engine Port Plan](./session-engine-port-plan.md)
+- [Postgres Candidate Data Contract](../reference-archive/architecture/postgres-candidate-data-contract.md)
+- [Practice Session Draft Contract](../reference-archive/architecture/practice-session-draft-contract.md)
+- [Candidate Session Engine Port Plan](../reference-archive/architecture/session-engine-port-plan.md)
 
 ## Product Position
 

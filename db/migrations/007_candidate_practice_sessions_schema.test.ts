@@ -30,17 +30,26 @@ describe("candidate practice sessions schema migration", () => {
         expect(sql).toContain("progress_state_json jsonb not null default '{\"status\":\"planned\",\"currentquestionindex\":0}'::jsonb");
         expect(sql).toContain("answer_drafts_json jsonb not null default '{}'::jsonb");
         expect(sql).toContain("answer_submissions_json jsonb not null default '{}'::jsonb");
+        expect(sql).toContain("answer_idempotency_json jsonb not null default '{}'::jsonb");
         expect(sql).toContain("answer_analysis_snapshots_json jsonb not null default '{}'::jsonb");
+        expect(sql).toContain("feedback_actions_json jsonb not null default '{}'::jsonb");
+        expect(sql).toContain("completion_snapshot_json jsonb");
         expect(sql).toContain("alter table public.candidate_practice_sessions add column if not exists answer_drafts_json jsonb not null default '{}'::jsonb");
         expect(sql).toContain("alter table public.candidate_practice_sessions add column if not exists answer_submissions_json jsonb not null default '{}'::jsonb");
+        expect(sql).toContain("alter table public.candidate_practice_sessions add column if not exists answer_idempotency_json jsonb not null default '{}'::jsonb");
         expect(sql).toContain("alter table public.candidate_practice_sessions add column if not exists answer_analysis_snapshots_json jsonb not null default '{}'::jsonb");
+        expect(sql).toContain("alter table public.candidate_practice_sessions add column if not exists feedback_actions_json jsonb not null default '{}'::jsonb");
+        expect(sql).toContain("alter table public.candidate_practice_sessions add column if not exists completion_snapshot_json jsonb");
         expect(sql).toContain("constraint chk_candidate_practice_sessions_setup_snapshot_object check (jsonb_typeof(setup_snapshot_json) = 'object')");
         expect(sql).toContain("constraint chk_candidate_practice_sessions_question_plan_object check (jsonb_typeof(question_plan_snapshot_json) = 'object')");
         expect(sql).toContain("constraint chk_candidate_practice_sessions_wording_snapshot_object check (question_wording_snapshot_json is null or jsonb_typeof(question_wording_snapshot_json) = 'object')");
         expect(sql).toContain("constraint chk_candidate_practice_sessions_progress_object check (jsonb_typeof(progress_state_json) = 'object')");
         expect(sql).toContain("constraint chk_candidate_practice_sessions_answer_drafts_object check (jsonb_typeof(answer_drafts_json) = 'object')");
         expect(sql).toContain("constraint chk_candidate_practice_sessions_answer_submissions_object check (jsonb_typeof(answer_submissions_json) = 'object')");
+        expect(sql).toContain("constraint chk_candidate_practice_sessions_answer_idempotency_object check (jsonb_typeof(answer_idempotency_json) = 'object')");
         expect(sql).toContain("constraint chk_candidate_practice_sessions_answer_analysis_snapshots_object check (jsonb_typeof(answer_analysis_snapshots_json) = 'object')");
+        expect(sql).toContain("constraint chk_candidate_practice_sessions_feedback_actions_object check (jsonb_typeof(feedback_actions_json) = 'object')");
+        expect(sql).toContain("constraint chk_candidate_practice_sessions_completion_snapshot_object check (completion_snapshot_json is null or jsonb_typeof(completion_snapshot_json) = 'object')");
     });
 
     it("adds query indexes and managed updated_at for candidate session recovery", () => {

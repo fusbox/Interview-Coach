@@ -27,12 +27,12 @@ This retired backlog is preserved as a project artifact because it contains usef
 - [Authenticated Candidate Access](02-requirements/authenticated-candidate-access.md)
 - [Candidate Login Redirect Contract](02-requirements/candidate-login-redirect-contract.md)
 - [Design System Foundation](03-design/design-system-foundation.md)
-- [Current Foundation](04-architecture/current-foundation.md)
+- [Current Foundation](reference-archive/architecture/current-foundation.md)
 - [Shared Host Routing Contract](04-architecture/shared-host-routing-contract.md)
-- [Candidate-Driven Implementation Plan](04-architecture/candidate-driven-implementation-plan.md)
-- [Practice Session Draft Contract](04-architecture/practice-session-draft-contract.md)
-- [Candidate Session Engine Port Plan](04-architecture/session-engine-port-plan.md)
-- [Postgres Candidate Data Contract](04-architecture/postgres-candidate-data-contract.md)
+- [Candidate-Driven Implementation Plan](reference-archive/architecture/candidate-driven-implementation-plan.md)
+- [Practice Session Draft Contract](reference-archive/architecture/practice-session-draft-contract.md)
+- [Candidate Session Engine Port Plan](reference-archive/architecture/session-engine-port-plan.md)
+- [Postgres Candidate Data Contract](reference-archive/architecture/postgres-candidate-data-contract.md)
 - [Platform Launch PrepProfile Migration](04-architecture/platform-launch-prepprofile-migration.md)
 - [Interview Preparedness Signal Contract](04-architecture/preparedness-signal-contract.md)
 - [Preparedness Signal Map](04-architecture/preparedness-signal-map.md)
@@ -107,7 +107,7 @@ Ground truth:
 - [DATA_CONTRACT](DATA_CONTRACT.md)
 - [HANDOFF](HANDOFF.md)
 - [Candidate App Operating Model](01-product/candidate-app-operating-model.md)
-- [Current Foundation](04-architecture/current-foundation.md)
+- [Current Foundation](reference-archive/architecture/current-foundation.md)
 - [Decision Records](08-decisions/README.md)
 - [Local Dev Bootstrap](09-dev/local-dev-bootstrap.md)
 
@@ -170,7 +170,7 @@ Ground truth:
 
 - [Authenticated Candidate Access](02-requirements/authenticated-candidate-access.md)
 - [Candidate Login Redirect Contract](02-requirements/candidate-login-redirect-contract.md)
-- [Postgres Candidate Data Contract](04-architecture/postgres-candidate-data-contract.md)
+- [Postgres Candidate Data Contract](reference-archive/architecture/postgres-candidate-data-contract.md)
 - [ADR-0003: Dev Auth And Mock Candidate Mode](08-decisions/ADR-0003-dev-auth-and-mock-candidate-mode.md)
 
 | ID | Azure ID | Level | State | Assigned To | Item | Acceptance Evidence |
@@ -202,8 +202,8 @@ Non-goals: Supabase runtime fallback, production DB ownership decisions, cross-p
 
 Ground truth:
 
-- [Postgres Candidate Data Contract](04-architecture/postgres-candidate-data-contract.md)
-- [Candidate-Driven Implementation Plan](04-architecture/candidate-driven-implementation-plan.md)
+- [Postgres Candidate Data Contract](reference-archive/architecture/postgres-candidate-data-contract.md)
+- [Candidate-Driven Implementation Plan](reference-archive/architecture/candidate-driven-implementation-plan.md)
 - [ADR-0002: Postgres-Only Backend Direction](08-decisions/ADR-0002-postgres-only-backend-direction.md)
 
 | ID | Azure ID | Level | State | Assigned To | Item | Acceptance Evidence |
@@ -232,7 +232,7 @@ Non-goals: final upload/OCR pipeline, dashboard analytics, full session engine.
 Ground truth:
 
 - [Practice Setup Scope](02-requirements/practice-setup-scope.md)
-- [Practice Session Draft Contract](04-architecture/practice-session-draft-contract.md)
+- [Practice Session Draft Contract](reference-archive/architecture/practice-session-draft-contract.md)
 - [ADR-0004: Multiple Active Practice Drafts](08-decisions/ADR-0004-multiple-active-practice-drafts.md)
 
 | ID | Azure ID | Level | State | Assigned To | Item | Acceptance Evidence |
@@ -263,9 +263,9 @@ Non-goals: recruiter invite management, recruiter review UI, candidate dashboard
 
 Ground truth:
 
-- [Candidate-Driven Implementation Plan](04-architecture/candidate-driven-implementation-plan.md)
-- [Practice Session Draft Contract](04-architecture/practice-session-draft-contract.md)
-- [Candidate Session Engine Port Plan](04-architecture/session-engine-port-plan.md)
+- [Candidate-Driven Implementation Plan](reference-archive/architecture/candidate-driven-implementation-plan.md)
+- [Practice Session Draft Contract](reference-archive/architecture/practice-session-draft-contract.md)
+- [Candidate Session Engine Port Plan](reference-archive/architecture/session-engine-port-plan.md)
 
 | ID | Azure ID | Level | State | Assigned To | Item | Acceptance Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -338,8 +338,8 @@ Non-goals: recruiter dashboards, cross-candidate analytics, public marketing pag
 
 Ground truth:
 
-- [Candidate-Driven Implementation Plan](04-architecture/candidate-driven-implementation-plan.md)
-- [Postgres Candidate Data Contract](04-architecture/postgres-candidate-data-contract.md)
+- [Candidate-Driven Implementation Plan](reference-archive/architecture/candidate-driven-implementation-plan.md)
+- [Postgres Candidate Data Contract](reference-archive/architecture/postgres-candidate-data-contract.md)
 
 | ID | Azure ID | Level | State | Assigned To | Item | Acceptance Evidence |
 | --- | --- | --- | --- | --- | --- | --- |

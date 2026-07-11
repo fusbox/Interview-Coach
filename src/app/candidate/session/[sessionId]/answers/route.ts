@@ -2,9 +2,15 @@ import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-
 import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidate-auth-v2/dev-host-launch-cookie-identity";
 import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-auth-v2/production-host-launch-runtime";
 import {
+    completeCandidateAnswerIdempotencyRecord,
     createCandidateAnswerDraftChange,
+    createCandidateAnswerIdempotencyPendingRecord,
     createCandidateAnswerSubmission,
+    createCandidateAnswerSubmitIdempotencyContract,
     createCandidateAnswerSubmitRequest,
+    resolveCandidateAnswerIdempotencyDecision,
+    type CandidateAnswerIdempotencyRecord,
+    type CandidateAnswerIdempotencyRecords,
     type CandidateAnswerSubmission,
     type CandidateAnswerSubmissions,
 } from "@/features/candidate-session-v2/candidate-answer-lifecycle";
@@ -14,16 +20,30 @@ type CandidateSessionIdentity = {
     candidateProfileId: string;
 };
 
+type CandidateAnswerSubmitSession = {
+    answerIdempotencyRecords?: CandidateAnswerIdempotencyRecords;
+};
+
 type CandidateAnswerSubmitRepository = {
     findSetupSession: (input: {
         candidatePracticeSessionId: string;
         candidateProfileId: string;
-    }) => Promise<unknown | null>;
+    }) => Promise<CandidateAnswerSubmitSession | null>;
     saveAnswerSubmission: (input: {
         candidatePracticeSessionId: string;
         candidateProfileId: string;
         answerSubmission: CandidateAnswerSubmission;
     }) => Promise<CandidateAnswerSubmissions | null>;
+    saveAnswerIdempotencyRecord?: (input: {
+        candidatePracticeSessionId: string;
+        candidateProfileId: string;
+        record: CandidateAnswerIdempotencyRecord;
+    }) => Promise<CandidateAnswerIdempotencyRecords | null>;
+    clearAnswerIdempotencyRecord?: (input: {
+        candidatePracticeSessionId: string;
+        candidateProfileId: string;
+        recordKey: string;
+    }) => Promise<CandidateAnswerIdempotencyRecords | null>;
 };
 
 export type CandidateAnswerSubmitRouteDependencies = {
@@ -90,6 +110,49 @@ export async function handleCandidateAnswerSubmitRequest({
         draft: draftChange.draft,
         requestedAt: now,
     });
+    const idempotencyContract = createCandidateAnswerSubmitIdempotencyContract({
+        candidatePracticeSessionId: sessionId,
+        candidateProfileId: identity.candidateProfileId,
+        request: submitRequest,
+        idempotencyKey: request.headers.get("Idempotency-Key"),
+    });
+    const idempotencyDecision = resolveCandidateAnswerIdempotencyDecision({
+        contract: idempotencyContract,
+        records: practiceSession.answerIdempotencyRecords ?? {},
+        requestedAt: now,
+    });
+
+    if (idempotencyDecision.kind === "replay") {
+        return Response.json(idempotencyDecision.body, { status: idempotencyDecision.statusCode });
+    }
+
+    if (idempotencyDecision.kind === "pending") {
+        return Response.json({
+            code: "REQUEST_IN_PROGRESS",
+            error: "An identical answer submit request is already in progress.",
+            retryable: true,
+        }, { status: idempotencyContract.replay.pendingHttpStatus });
+    }
+
+    if (idempotencyDecision.kind === "conflict") {
+        return Response.json({
+            code: "IDEMPOTENCY_MISMATCH",
+            error: "Idempotency key cannot be reused with a different answer submit payload.",
+            retryable: false,
+        }, { status: idempotencyContract.replay.conflictHttpStatus });
+    }
+
+    if (practiceSessionRepository.saveAnswerIdempotencyRecord) {
+        await practiceSessionRepository.saveAnswerIdempotencyRecord({
+            candidatePracticeSessionId: sessionId,
+            candidateProfileId: identity.candidateProfileId,
+            record: createCandidateAnswerIdempotencyPendingRecord({
+                contract: idempotencyContract,
+                requestedAt: now,
+            }),
+        });
+    }
+
     const answerSubmission = createCandidateAnswerSubmission({
         request: submitRequest,
     });
@@ -100,15 +163,37 @@ export async function handleCandidateAnswerSubmitRequest({
     });
 
     if (!answerSubmissions) {
+        if (practiceSessionRepository.clearAnswerIdempotencyRecord) {
+            await practiceSessionRepository.clearAnswerIdempotencyRecord({
+                candidatePracticeSessionId: sessionId,
+                candidateProfileId: identity.candidateProfileId,
+                recordKey: idempotencyDecision.record.recordKey,
+            });
+        }
         return Response.json({ error: "Candidate answer submission could not be saved." }, { status: 404 });
     }
 
-    return Response.json({
+    const responseBody = {
         status: "answer_submit_saved",
         answerSubmissions,
         request: submitRequest,
         next: "analysis_not_connected",
-    }, { status: 202 });
+    };
+
+    if (practiceSessionRepository.saveAnswerIdempotencyRecord) {
+        await practiceSessionRepository.saveAnswerIdempotencyRecord({
+            candidatePracticeSessionId: sessionId,
+            candidateProfileId: identity.candidateProfileId,
+            record: completeCandidateAnswerIdempotencyRecord({
+                record: idempotencyDecision.record,
+                completedAt: now,
+                statusCode: 202,
+                body: responseBody,
+            }),
+        });
+    }
+
+    return Response.json(responseBody, { status: 202 });
 }
 
 function createDefaultCandidateAnswerSubmitDependencies(): Pick<

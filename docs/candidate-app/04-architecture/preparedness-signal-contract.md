@@ -20,8 +20,8 @@ Related docs:
 - [HANDOFF](../HANDOFF.md)
 - [Interview Preparedness Data Inventory](./role-preparedness-data-inventory.md)
 - [Candidate Dashboard And Practice V2 Disposable Spec](../candidate-dashboard-practice-v2-disposable-spec.md)
-- [Postgres Candidate Data Contract](./postgres-candidate-data-contract.md)
-- [Candidate Session Engine Port Plan](./session-engine-port-plan.md)
+- [Postgres Candidate Data Contract](../reference-archive/architecture/postgres-candidate-data-contract.md)
+- [Candidate Session Engine Port Plan](../reference-archive/architecture/session-engine-port-plan.md)
 
 ## Product Contract
 

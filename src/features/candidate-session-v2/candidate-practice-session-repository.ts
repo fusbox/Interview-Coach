@@ -1,9 +1,12 @@
 import type { CandidateSetupSessionCreationResult } from "@/features/candidate-setup-v2/candidate-setup-session-creation";
 import {
     normalizeCandidateAnswerDrafts,
+    normalizeCandidateAnswerIdempotencyRecords,
     normalizeCandidateAnswerSubmissions,
     type CandidateAnswerDraft,
     type CandidateAnswerDrafts,
+    type CandidateAnswerIdempotencyRecord,
+    type CandidateAnswerIdempotencyRecords,
     type CandidateAnswerSubmission,
     type CandidateAnswerSubmissions,
 } from "./candidate-answer-lifecycle";
@@ -15,6 +18,8 @@ import type {
     CandidateQuestionWordingUnavailableResult,
 } from "./candidate-question-wording";
 import type { CandidateAnswerAnalysisProviderResult } from "./candidate-answer-analysis-adapter";
+import type { CandidateFeedbackActionEvent } from "./candidate-feedback-interaction";
+import type { CandidateLedSessionCompletionSnapshot } from "@/features/interview-session-v2/session-completion-contract";
 
 export type CandidatePracticeSessionQueryClient = {
     query: (sql: string, values: unknown[]) => Promise<{
@@ -41,10 +46,14 @@ export type CandidatePracticeSessionRecord = {
     progress: CandidateProvisionalSessionProgress;
     answerDrafts: CandidateAnswerDrafts;
     answerSubmissions: CandidateAnswerSubmissions;
+    answerIdempotencyRecords: CandidateAnswerIdempotencyRecords;
     answerAnalysisSnapshots: CandidateAnswerAnalysisSnapshots;
+    feedbackActionEvents: CandidateFeedbackActionEvents;
+    completionSnapshot: CandidateLedSessionCompletionSnapshot | null;
 };
 
 export type CandidateAnswerAnalysisSnapshots = Record<string, CandidateAnswerAnalysisProviderResult>;
+export type CandidateFeedbackActionEvents = Record<string, CandidateFeedbackActionEvent>;
 
 export type CreateCandidatePracticeSessionInput = {
     candidateProfileId: string;
@@ -117,7 +126,10 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
                   progress_state_json,
                   answer_drafts_json,
                   answer_submissions_json,
-                  answer_analysis_snapshots_json
+                  answer_idempotency_json,
+                  answer_analysis_snapshots_json,
+                  feedback_actions_json,
+                  completion_snapshot_json
                 from public.candidate_practice_sessions
                 where candidate_practice_session_id = $1
                   and candidate_profile_id = $2
@@ -186,6 +198,56 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
                 : null;
         },
 
+        async saveAnswerIdempotencyRecord(input: {
+            candidatePracticeSessionId: string;
+            candidateProfileId: string;
+            record: CandidateAnswerIdempotencyRecord;
+        }) {
+            const result = await client.query(`
+                update public.candidate_practice_sessions
+                set answer_idempotency_json = jsonb_set(
+                  coalesce(answer_idempotency_json, '{}'::jsonb),
+                  $3::text[],
+                  $4::jsonb,
+                  true
+                )
+                where candidate_practice_session_id = $1
+                  and candidate_profile_id = $2
+                returning answer_idempotency_json
+            `, [
+                input.candidatePracticeSessionId,
+                input.candidateProfileId,
+                [input.record.recordKey],
+                input.record,
+            ]);
+
+            return result.rows[0]
+                ? normalizeCandidateAnswerIdempotencyRecords(result.rows[0].answer_idempotency_json)
+                : null;
+        },
+
+        async clearAnswerIdempotencyRecord(input: {
+            candidatePracticeSessionId: string;
+            candidateProfileId: string;
+            recordKey: string;
+        }) {
+            const result = await client.query(`
+                update public.candidate_practice_sessions
+                set answer_idempotency_json = coalesce(answer_idempotency_json, '{}'::jsonb) - $3
+                where candidate_practice_session_id = $1
+                  and candidate_profile_id = $2
+                returning answer_idempotency_json
+            `, [
+                input.candidatePracticeSessionId,
+                input.candidateProfileId,
+                input.recordKey,
+            ]);
+
+            return result.rows[0]
+                ? normalizeCandidateAnswerIdempotencyRecords(result.rows[0].answer_idempotency_json)
+                : null;
+        },
+
         async saveAnswerAnalysisSnapshot(input: {
             candidatePracticeSessionId: string;
             candidateProfileId: string;
@@ -214,6 +276,34 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
                 : null;
         },
 
+        async saveFeedbackActionEvent(input: {
+            candidatePracticeSessionId: string;
+            candidateProfileId: string;
+            feedbackActionEvent: CandidateFeedbackActionEvent;
+        }) {
+            const result = await client.query(`
+                update public.candidate_practice_sessions
+                set feedback_actions_json = jsonb_set(
+                  coalesce(feedback_actions_json, '{}'::jsonb),
+                  $3::text[],
+                  $4::jsonb,
+                  true
+                )
+                where candidate_practice_session_id = $1
+                  and candidate_profile_id = $2
+                returning feedback_actions_json
+            `, [
+                input.candidatePracticeSessionId,
+                input.candidateProfileId,
+                [input.feedbackActionEvent.answer.slotId],
+                input.feedbackActionEvent,
+            ]);
+
+            return result.rows[0]
+                ? normalizeCandidateFeedbackActionEvents(result.rows[0].feedback_actions_json)
+                : null;
+        },
+
         async saveProgress(input: {
             candidatePracticeSessionId: string;
             candidateProfileId: string;
@@ -234,6 +324,34 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
 
             return result.rows[0]
                 ? normalizeProgress(result.rows[0].progress_state_json)
+                : null;
+        },
+
+        async completeSession(input: {
+            candidatePracticeSessionId: string;
+            candidateProfileId: string;
+            completionSnapshot: CandidateLedSessionCompletionSnapshot;
+        }) {
+            const result = await client.query(`
+                update public.candidate_practice_sessions
+                set status = 'completed',
+                    completion_snapshot_json = $3::jsonb,
+                    progress_state_json = $4::jsonb
+                where candidate_practice_session_id = $1
+                  and candidate_profile_id = $2
+                returning completion_snapshot_json, progress_state_json
+            `, [
+                input.candidatePracticeSessionId,
+                input.candidateProfileId,
+                input.completionSnapshot,
+                input.completionSnapshot.finalProgress,
+            ]);
+
+            return result.rows[0]
+                ? {
+                    completionSnapshot: normalizeCandidateCompletionSnapshot(result.rows[0].completion_snapshot_json),
+                    progress: normalizeProgress(result.rows[0].progress_state_json),
+                }
                 : null;
         },
     };
@@ -265,8 +383,20 @@ function toCandidatePracticeSessionRecord(row: Record<string, unknown> | undefin
         progress: normalizeProgress(row.progress_state_json),
         answerDrafts: normalizeCandidateAnswerDrafts(row.answer_drafts_json),
         answerSubmissions: normalizeCandidateAnswerSubmissions(row.answer_submissions_json),
+        answerIdempotencyRecords: normalizeCandidateAnswerIdempotencyRecords(row.answer_idempotency_json),
         answerAnalysisSnapshots: normalizeCandidateAnswerAnalysisSnapshots(row.answer_analysis_snapshots_json),
+        feedbackActionEvents: normalizeCandidateFeedbackActionEvents(row.feedback_actions_json),
+        completionSnapshot: normalizeCandidateCompletionSnapshot(row.completion_snapshot_json),
     };
+}
+
+function normalizeCandidateCompletionSnapshot(value: unknown): CandidateLedSessionCompletionSnapshot | null {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return null;
+    }
+
+    const snapshot = value as Partial<CandidateLedSessionCompletionSnapshot>;
+    return snapshot.status === "candidate_session_completed" ? snapshot as CandidateLedSessionCompletionSnapshot : null;
 }
 
 function normalizeCandidateAnswerAnalysisSnapshots(value: unknown): CandidateAnswerAnalysisSnapshots {
@@ -275,6 +405,14 @@ function normalizeCandidateAnswerAnalysisSnapshots(value: unknown): CandidateAns
     }
 
     return value as CandidateAnswerAnalysisSnapshots;
+}
+
+function normalizeCandidateFeedbackActionEvents(value: unknown): CandidateFeedbackActionEvents {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return {};
+    }
+
+    return value as CandidateFeedbackActionEvents;
 }
 
 function toQuestionWordingStatus(

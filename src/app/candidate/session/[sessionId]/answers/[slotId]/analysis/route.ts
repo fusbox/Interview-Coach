@@ -1,9 +1,19 @@
 import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-v2/host-launch-route";
 import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidate-auth-v2/dev-host-launch-cookie-identity";
+import {
+    CANDIDATE_HOST_LAUNCH_DEV_MODE_ENV,
+    CANDIDATE_HOST_LAUNCH_DEV_SECRET_ENV,
+} from "@/features/candidate-auth-v2/dev-host-launch";
 import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-auth-v2/production-host-launch-runtime";
 import {
+    completeCandidateAnswerIdempotencyRecord,
+    createCandidateAnswerAnalysisIdempotencyContract,
     createCandidateAnswerAnalysisRequest,
     createCandidateAnswerAnalysisUnavailable,
+    createCandidateAnswerIdempotencyPendingRecord,
+    resolveCandidateAnswerIdempotencyDecision,
+    type CandidateAnswerIdempotencyRecord,
+    type CandidateAnswerIdempotencyRecords,
     type CandidateAnswerSubmissions,
 } from "@/features/candidate-session-v2/candidate-answer-lifecycle";
 import {
@@ -24,6 +34,7 @@ type CandidateAnswerAnalysisSession = {
     setupSnapshot: CandidateAnswerAnalysisSetupSnapshot;
     questionWordingSnapshot: CandidateQuestionWordingResult | null;
     answerSubmissions: CandidateAnswerSubmissions;
+    answerIdempotencyRecords?: CandidateAnswerIdempotencyRecords;
 };
 
 type CandidateAnswerAnalysisRepository = {
@@ -36,6 +47,16 @@ type CandidateAnswerAnalysisRepository = {
         candidateProfileId: string;
         analysisSnapshot: CandidateAnswerAnalysisProviderResult;
     }) => Promise<Record<string, CandidateAnswerAnalysisProviderResult> | null>;
+    saveAnswerIdempotencyRecord?: (input: {
+        candidatePracticeSessionId: string;
+        candidateProfileId: string;
+        record: CandidateAnswerIdempotencyRecord;
+    }) => Promise<CandidateAnswerIdempotencyRecords | null>;
+    clearAnswerIdempotencyRecord?: (input: {
+        candidatePracticeSessionId: string;
+        candidateProfileId: string;
+        recordKey: string;
+    }) => Promise<CandidateAnswerIdempotencyRecords | null>;
 };
 
 export type CandidateAnswerAnalysisRouteDependencies = {
@@ -44,6 +65,8 @@ export type CandidateAnswerAnalysisRouteDependencies = {
     practiceSessionRepository?: CandidateAnswerAnalysisRepository;
     requestAnswerAnalysis?: (request: CandidateAnswerAnalysisProviderRequest) => Promise<unknown>;
 };
+
+export const CANDIDATE_ANSWER_ANALYSIS_PROVIDER_ENV = "CANDIDATE_ANSWER_ANALYSIS_PROVIDER";
 
 export async function POST(
     request: Request,
@@ -100,6 +123,37 @@ export async function handleCandidateAnswerAnalysisRequest({
         answerSubmission,
         requestedAt: now,
     });
+    const idempotencyContract = createCandidateAnswerAnalysisIdempotencyContract({
+        candidatePracticeSessionId: sessionId,
+        candidateProfileId: identity.candidateProfileId,
+        request: analysisRequest,
+        idempotencyKey: request.headers.get("Idempotency-Key"),
+    });
+    const idempotencyDecision = resolveCandidateAnswerIdempotencyDecision({
+        contract: idempotencyContract,
+        records: practiceSession.answerIdempotencyRecords ?? {},
+        requestedAt: now,
+    });
+
+    if (idempotencyDecision.kind === "replay") {
+        return Response.json(idempotencyDecision.body, { status: idempotencyDecision.statusCode });
+    }
+
+    if (idempotencyDecision.kind === "pending") {
+        return Response.json({
+            code: "REQUEST_IN_PROGRESS",
+            error: "An identical answer analysis request is already in progress.",
+            retryable: true,
+        }, { status: idempotencyContract.replay.pendingHttpStatus });
+    }
+
+    if (idempotencyDecision.kind === "conflict") {
+        return Response.json({
+            code: "IDEMPOTENCY_MISMATCH",
+            error: "Idempotency key cannot be reused with a different answer analysis payload.",
+            retryable: false,
+        }, { status: idempotencyContract.replay.conflictHttpStatus });
+    }
 
     if (requestAnswerAnalysis) {
         const question = practiceSession.questionWordingSnapshot?.questions.find((candidateQuestion) => (
@@ -114,6 +168,18 @@ export async function handleCandidateAnswerAnalysisRequest({
             question,
             setupSnapshot: practiceSession.setupSnapshot,
         });
+
+        if (practiceSessionRepository.saveAnswerIdempotencyRecord) {
+            await practiceSessionRepository.saveAnswerIdempotencyRecord({
+                candidatePracticeSessionId: sessionId,
+                candidateProfileId: identity.candidateProfileId,
+                record: createCandidateAnswerIdempotencyPendingRecord({
+                    contract: idempotencyContract,
+                    requestedAt: now,
+                }),
+            });
+        }
+
         const providerResult = await requestAnswerAnalysis(providerRequest);
         const analysisSnapshot = parseCandidateAnswerAnalysisProviderResult(providerResult, analysisRequest);
 
@@ -125,11 +191,34 @@ export async function handleCandidateAnswerAnalysisRequest({
             });
 
             if (savedSnapshots?.[slotId]) {
-                return Response.json({
+                const responseBody = {
                     status: "answer_analysis_saved",
                     analysisSnapshot: savedSnapshots[slotId],
-                }, { status: 200 });
+                };
+
+                if (practiceSessionRepository.saveAnswerIdempotencyRecord) {
+                    await practiceSessionRepository.saveAnswerIdempotencyRecord({
+                        candidatePracticeSessionId: sessionId,
+                        candidateProfileId: identity.candidateProfileId,
+                        record: completeCandidateAnswerIdempotencyRecord({
+                            record: idempotencyDecision.record,
+                            completedAt: now,
+                            statusCode: 200,
+                            body: responseBody,
+                        }),
+                    });
+                }
+
+                return Response.json(responseBody, { status: 200 });
             }
+        }
+
+        if (practiceSessionRepository.clearAnswerIdempotencyRecord) {
+            await practiceSessionRepository.clearAnswerIdempotencyRecord({
+                candidatePracticeSessionId: sessionId,
+                candidateProfileId: identity.candidateProfileId,
+                recordKey: idempotencyDecision.record.recordKey,
+            });
         }
     }
 
@@ -138,9 +227,9 @@ export async function handleCandidateAnswerAnalysisRequest({
     }), { status: 503 });
 }
 
-function createDefaultCandidateAnswerAnalysisDependencies(): Pick<
+export function createDefaultCandidateAnswerAnalysisDependencies(): Pick<
     CandidateAnswerAnalysisRouteDependencies,
-    "resolveCandidateSessionIdentity" | "practiceSessionRepository"
+    "resolveCandidateSessionIdentity" | "practiceSessionRepository" | "requestAnswerAnalysis"
 > {
     const databaseUrl = process.env[CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV]?.trim();
     if (!databaseUrl) {
@@ -155,7 +244,50 @@ function createDefaultCandidateAnswerAnalysisDependencies(): Pick<
             return devIdentity ?? resolveCandidateSessionIdentityFromLaunchCookie(request, queryClient);
         },
         practiceSessionRepository: createCandidatePracticeSessionRepository(queryClient),
+        requestAnswerAnalysis: createDefaultCandidateAnswerAnalysisProvider(),
     };
+}
+
+function createDefaultCandidateAnswerAnalysisProvider() {
+    const provider = process.env[CANDIDATE_ANSWER_ANALYSIS_PROVIDER_ENV]?.trim().toLowerCase();
+    if (provider !== "fixture" || !isExplicitLocalDevLaunchMode()) {
+        return undefined;
+    }
+
+    return async function requestFixtureAnswerAnalysis(
+        request: CandidateAnswerAnalysisProviderRequest,
+    ): Promise<CandidateAnswerAnalysisProviderResult> {
+        return {
+            status: "answer_analysis_provider_result",
+            provider: "candidate_v2_answer_evaluator",
+            analyzedAt: request.requestedAt,
+            answer: {
+                slotId: request.answer.slotId,
+                questionIndex: request.answer.questionIndex,
+            },
+            coachFeedback: {
+                acknowledgement: "You have a workable starting point for this answer.",
+                observation: "Your response connects to the question, but it will be stronger with a clearer example, action, and result.",
+                nextPracticeFocus: "Practice adding one concrete detail from your work history and the outcome it led to.",
+            },
+            evidence: [
+                {
+                    criterionId: "answer_relevance",
+                    applicability: "observed",
+                    score: 3,
+                },
+                {
+                    criterionId: "specific_example",
+                    applicability: "insufficient_data",
+                },
+            ],
+        };
+    };
+}
+
+function isExplicitLocalDevLaunchMode() {
+    return process.env[CANDIDATE_HOST_LAUNCH_DEV_MODE_ENV] === "true"
+        && Boolean(process.env[CANDIDATE_HOST_LAUNCH_DEV_SECRET_ENV]?.trim());
 }
 
 type CandidateAnswerAnalysisQueryClient = {

@@ -313,31 +313,35 @@ export function CandidatePlannedSessionExperience({
                     >
                         Back to plan
                     </button>
-                    <button
-                        className="planned-session-secondary"
-                        type="button"
-                        disabled={activeQuestionIndex === 0}
-                        onClick={() => updateProgress({
-                            status: progress.status,
-                            currentQuestionIndex: Math.max(activeQuestionIndex - 1, 0),
-                        })}
-                    >
-                        Previous question preview
-                    </button>
-                    <button
-                        className="planned-session-secondary"
-                        type="button"
-                        disabled={activeQuestionIndex >= questionWordingPreview.questions.length - 1}
-                        onClick={() => updateProgress({
-                            status: progress.status,
-                            currentQuestionIndex: Math.min(
-                                activeQuestionIndex + 1,
-                                questionWordingPreview.questions.length - 1,
-                            ),
-                        })}
-                    >
-                        Next question preview
-                    </button>
+                    {isLiveQuestion ? null : (
+                        <>
+                            <button
+                                className="planned-session-secondary"
+                                type="button"
+                                disabled={activeQuestionIndex === 0}
+                                onClick={() => updateProgress({
+                                    status: progress.status,
+                                    currentQuestionIndex: Math.max(activeQuestionIndex - 1, 0),
+                                })}
+                            >
+                                Previous question preview
+                            </button>
+                            <button
+                                className="planned-session-secondary"
+                                type="button"
+                                disabled={activeQuestionIndex >= questionWordingPreview.questions.length - 1}
+                                onClick={() => updateProgress({
+                                    status: progress.status,
+                                    currentQuestionIndex: Math.min(
+                                        activeQuestionIndex + 1,
+                                        questionWordingPreview.questions.length - 1,
+                                    ),
+                                })}
+                            >
+                                Next question preview
+                            </button>
+                        </>
+                    )}
                     {isLiveQuestion ? null : (
                         <button
                             className="planned-session-action"
