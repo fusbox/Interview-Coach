@@ -1,4 +1,4 @@
-import { ArrowRight, BadgeCheck } from "lucide-react";
+import { ArrowRight, BadgeCheck, CircleDashed } from "lucide-react";
 
 import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-v2/host-launch-route";
 import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidate-auth-v2/dev-host-launch-cookie-identity";
@@ -117,6 +117,12 @@ function CandidateDashboardLearningLoop({ dashboard }: { dashboard: CandidateDas
                                 {dashboard.coachingLoop.feedback.observation ? (
                                     <p className="candidate-loop-panel__quote">{dashboard.coachingLoop.feedback.observation}</p>
                                 ) : null}
+                                {latestReview ? (
+                                    <a className="candidate-dashboard-action candidate-dashboard-action--secondary" href="#latest-round-review">
+                                        Review coach feedback
+                                        <ArrowRight size={16} aria-hidden="true" />
+                                    </a>
+                                ) : null}
                             </>
                         ) : (
                             <p>Finish a practice round and I will reflect back what your answer shows.</p>
@@ -160,7 +166,7 @@ function CandidateDashboardLearningLoop({ dashboard }: { dashboard: CandidateDas
                 </div>
             </section>
 
-            <section className="candidate-dashboard-review" aria-labelledby="latest-review-title">
+            <section className="candidate-dashboard-review" id="latest-round-review" aria-labelledby="latest-review-title">
                 <div className="candidate-dashboard-review__header">
                     <div>
                         <p className="type-eyebrow">Latest round</p>
@@ -171,7 +177,13 @@ function CandidateDashboardLearningLoop({ dashboard }: { dashboard: CandidateDas
                     ) : null}
                 </div>
 
-                {practicedQuestions.length > 0 ? (
+                {latestReview && latestReview.questions.length > 0 ? (
+                    <ol className="candidate-dashboard-question-list">
+                        {latestReview.questions.map((question) => (
+                            <CandidateDashboardReviewQuestion key={question.questionKey} question={question} />
+                        ))}
+                    </ol>
+                ) : practicedQuestions.length > 0 ? (
                     <ol className="candidate-dashboard-question-list">
                         {practicedQuestions.slice(0, 3).map((question) => (
                             <li key={question.questionKey}>
@@ -193,6 +205,49 @@ function CandidateDashboardLearningLoop({ dashboard }: { dashboard: CandidateDas
                 )}
             </section>
         </div>
+    );
+}
+
+function CandidateDashboardReviewQuestion({
+    question,
+}: {
+    question: CandidateDashboardV2ReadModel["postRoundReviews"][number]["questions"][number];
+}) {
+    const isPracticed = question.status === "practiced";
+
+    return (
+        <li className={isPracticed ? "is-practiced" : "is-missing-evidence"}>
+            <span className="candidate-dashboard-question-list__icon" aria-hidden="true">
+                {isPracticed ? <BadgeCheck size={16} /> : <CircleDashed size={16} />}
+            </span>
+            <div className="candidate-dashboard-question-list__content">
+                <div className="candidate-dashboard-question-list__topline">
+                    <p className="candidate-dashboard-question-list__label">
+                        Q{question.questionNumber} - {question.category}
+                    </p>
+                    {!isPracticed ? (
+                        <p className="candidate-dashboard-question-list__status">Needs practice evidence</p>
+                    ) : null}
+                </div>
+                <h3>{question.questionText}</h3>
+                {question.answer ? (
+                    <blockquote className="candidate-dashboard-question-list__answer">
+                        {question.answer.text}
+                    </blockquote>
+                ) : null}
+                {question.coaching ? (
+                    <div className="candidate-dashboard-question-list__coach">
+                        <p>{question.coaching.observation}</p>
+                        <p>{question.coaching.nextPracticeFocus}</p>
+                    </div>
+                ) : null}
+                {!isPracticed ? (
+                    <p className="candidate-dashboard-question-list__missing">
+                        This planned question has not been answered yet. I will treat it as missing practice evidence, not as a weak answer.
+                    </p>
+                ) : null}
+            </div>
+        </li>
     );
 }
 
