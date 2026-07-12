@@ -61,6 +61,7 @@ it("renders the V2 dashboard read boundary when completed-round facts are availa
                     answeredCount: 2,
                     questionCount: 3,
                 },
+                coachUpdateDetail: null,
                 coachingLoop: {
                     status: "candidate_dashboard_coaching_loop_ready",
                     principle: "Use what happened in practice to choose the next useful move.",
@@ -186,6 +187,7 @@ it("renders the latest round review as a question-first coach update surface", a
                     answeredCount: 1,
                     questionCount: 2,
                 },
+                coachUpdateDetail: null,
                 coachingLoop: {
                     status: "candidate_dashboard_coaching_loop_ready",
                     principle: "Use what happened in practice to choose the next useful move.",
@@ -349,6 +351,7 @@ it("renders selected target interview context and switch links", async () => {
                 activeRound: null,
                 completedRounds: [],
                 latestCoachUpdate: null,
+                coachUpdateDetail: null,
                 coachingLoop: {
                     status: "candidate_dashboard_coaching_loop_ready",
                     principle: "Use what happened in practice to choose the next useful move.",
@@ -451,6 +454,7 @@ it("renders selected-context active round resume details", async () => {
                 },
                 completedRounds: [],
                 latestCoachUpdate: null,
+                coachUpdateDetail: null,
                 coachingLoop: {
                     status: "candidate_dashboard_coaching_loop_ready",
                     principle: "Use what happened in practice to choose the next useful move.",

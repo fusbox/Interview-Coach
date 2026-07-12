@@ -71,6 +71,22 @@ describe("candidate dashboard V2 read model", () => {
                 title: "Material Handler I practice complete",
                 completedAt: "2026-07-11T12:00:00.000Z",
             },
+            coachUpdateDetail: {
+                status: "candidate_coach_update_detail_ready",
+                candidatePracticeSessionId: "newer-session",
+                targetRole: "Material Handler I",
+                reviewPosture: "fully_reviewable",
+                items: [
+                    {
+                        status: "candidate_coach_update_question_detail",
+                        questionKey: "slot-1",
+                        evidenceStatus: "practiced",
+                        actionPosture: {
+                            kind: "review_coaching",
+                        },
+                    },
+                ],
+            },
             practiceNext: {
                 source: "coaching_focus",
                 label: "Explain what changed after you escalated the damage.",

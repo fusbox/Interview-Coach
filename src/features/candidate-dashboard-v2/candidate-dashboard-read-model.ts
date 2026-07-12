@@ -7,6 +7,11 @@ import {
 } from "@/features/candidate-session-v2/candidate-completed-round-read-model";
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 
+import {
+    createCandidateCoachUpdateDetail,
+    type CandidateCoachUpdateDetail,
+} from "./candidate-coach-update-detail";
+
 export type CandidateDashboardV2ReadModel = {
     status: "candidate_dashboard_v2_read_model";
     candidateProfileId: string;
@@ -27,6 +32,7 @@ export type CandidateDashboardV2ReadModel = {
     activeRound: CandidateDashboardActiveRound | null;
     completedRounds: CandidateCompletedRoundReadModels[];
     latestCoachUpdate: CandidateDashboardCoachUpdate | null;
+    coachUpdateDetail: CandidateCoachUpdateDetail | null;
     coachingLoop: CandidateDashboardCoachingLoop;
     postRoundReviews: CandidatePostRoundReview[];
     practiceNext: CandidatePracticeNext;
@@ -163,6 +169,7 @@ export function createCandidateDashboardV2ReadModel({
         activeRound: createActiveRound(activeSession),
         completedRounds,
         latestCoachUpdate: completedRounds[0]?.dashboardUpdate ?? null,
+        coachUpdateDetail: createCandidateCoachUpdateDetail(completedRounds[0]?.postRoundReview ?? null),
         coachingLoop: createCoachingLoop({
             latestCoachUpdate: completedRounds[0]?.dashboardUpdate ?? null,
             practiceNext: latestPracticeNext,
