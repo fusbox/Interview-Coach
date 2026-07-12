@@ -1,4 +1,4 @@
-import { ArrowRight, BadgeCheck, CircleDashed } from "lucide-react";
+import { ArrowRight, BadgeCheck, CircleDashed, MessageSquareQuote } from "lucide-react";
 
 import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-v2/host-launch-route";
 import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidate-auth-v2/dev-host-launch-cookie-identity";
@@ -104,30 +104,7 @@ function CandidateDashboardLearningLoop({ dashboard }: { dashboard: CandidateDas
                 </div>
 
                 <div className="candidate-learning-loop__panels">
-                    <article className="candidate-loop-panel candidate-loop-panel--feedback">
-                        <p className="candidate-loop-panel__meta">Feedback</p>
-                        <h3>{dashboard.coachingLoop.feedback?.label ?? "Coach Update"}</h3>
-                        {dashboard.coachingLoop.feedback ? (
-                            <>
-                                <p className="candidate-loop-panel__title">{dashboard.coachingLoop.feedback.title}</p>
-                                <p>{dashboard.coachingLoop.feedback.body}</p>
-                                {dashboard.coachingLoop.feedback.questionContext ? (
-                                    <p className="candidate-loop-panel__context">{dashboard.coachingLoop.feedback.questionContext}</p>
-                                ) : null}
-                                {dashboard.coachingLoop.feedback.observation ? (
-                                    <p className="candidate-loop-panel__quote">{dashboard.coachingLoop.feedback.observation}</p>
-                                ) : null}
-                                {latestReview ? (
-                                    <a className="candidate-dashboard-action candidate-dashboard-action--secondary" href="#latest-round-review">
-                                        Review coach feedback
-                                        <ArrowRight size={16} aria-hidden="true" />
-                                    </a>
-                                ) : null}
-                            </>
-                        ) : (
-                            <p>Finish a practice round and I will reflect back what your answer shows.</p>
-                        )}
-                    </article>
+                    <CandidateDashboardCoachUpdatePanel dashboard={dashboard} />
 
                     <article className="candidate-loop-panel candidate-loop-panel--plan">
                         <p className="candidate-loop-panel__meta">Coach Plan</p>
@@ -165,6 +142,8 @@ function CandidateDashboardLearningLoop({ dashboard }: { dashboard: CandidateDas
                     </article>
                 </div>
             </section>
+
+            <CandidateDashboardCoachUpdateDetail detail={dashboard.coachUpdateDetail} />
 
             <section className="candidate-dashboard-review" id="latest-round-review" aria-labelledby="latest-review-title">
                 <div className="candidate-dashboard-review__header">
@@ -205,6 +184,129 @@ function CandidateDashboardLearningLoop({ dashboard }: { dashboard: CandidateDas
                 )}
             </section>
         </div>
+    );
+}
+
+function CandidateDashboardCoachUpdatePanel({ dashboard }: { dashboard: CandidateDashboardV2ReadModel }) {
+    const feedback = dashboard.coachingLoop.feedback;
+    const detailHref = dashboard.coachUpdateDetail
+        ? "#coach-update-detail"
+        : dashboard.postRoundReviews.length > 0
+            ? "#latest-round-review"
+            : null;
+
+    const content = (
+        <>
+            <p className="candidate-loop-panel__meta">Feedback</p>
+            <h3>{feedback?.label ?? "Coach Update"}</h3>
+            {feedback ? (
+                <>
+                    <p className="candidate-loop-panel__title">{feedback.title}</p>
+                    <p>{feedback.body}</p>
+                    {detailHref ? (
+                        <p className="candidate-loop-panel__context">
+                            Open the coach read
+                            <ArrowRight size={15} aria-hidden="true" />
+                        </p>
+                    ) : null}
+                </>
+            ) : (
+                <p>Finish a practice round and I will reflect back what your answer shows.</p>
+            )}
+        </>
+    );
+
+    if (!detailHref) {
+        return (
+            <article className="candidate-loop-panel candidate-loop-panel--feedback">
+                {content}
+            </article>
+        );
+    }
+
+    return (
+        <a className="candidate-loop-panel candidate-loop-panel--feedback candidate-loop-panel--link" href={detailHref}>
+            {content}
+        </a>
+    );
+}
+
+function CandidateDashboardCoachUpdateDetail({
+    detail,
+}: {
+    detail: CandidateDashboardV2ReadModel["coachUpdateDetail"];
+}) {
+    if (!detail) {
+        return null;
+    }
+
+    return (
+        <section
+            className="candidate-dashboard-coach-update-detail"
+            id="coach-update-detail"
+            aria-label="Coach Update detail"
+        >
+            <div className="candidate-dashboard-coach-update-detail__header">
+                <div className="candidate-dashboard-coach-update-detail__mark" aria-hidden="true">
+                    <MessageSquareQuote size={20} />
+                </div>
+                <div>
+                    <p className="type-eyebrow">Coach Update</p>
+                    <h2>{detail.targetRole} Coach Update</h2>
+                </div>
+                <p>
+                    {detail.answeredCount} of {detail.questionCount} answered
+                </p>
+            </div>
+
+            <ol className="candidate-dashboard-coach-update-detail__items">
+                {detail.items.map((item) => (
+                    <CandidateDashboardCoachUpdateDetailItem key={item.questionKey} item={item} />
+                ))}
+            </ol>
+        </section>
+    );
+}
+
+function CandidateDashboardCoachUpdateDetailItem({
+    item,
+}: {
+    item: NonNullable<CandidateDashboardV2ReadModel["coachUpdateDetail"]>["items"][number];
+}) {
+    const isPracticed = item.evidenceStatus === "practiced";
+
+    return (
+        <li className={isPracticed ? "is-practiced" : "is-missing-evidence"}>
+            <div className="candidate-dashboard-coach-update-detail__item-header">
+                <p className="candidate-dashboard-question-list__label">
+                    Q{item.questionNumber} - {item.category}
+                </p>
+                <p className="candidate-dashboard-coach-update-detail__status">
+                    {isPracticed ? item.actionPosture.label : "Still needs practice evidence"}
+                </p>
+            </div>
+
+            <h3>{item.questionText}</h3>
+
+            {item.answer ? (
+                <blockquote className="candidate-dashboard-coach-update-detail__answer">
+                    {item.answer.text}
+                </blockquote>
+            ) : null}
+
+            {item.coachRead ? (
+                <div className="candidate-dashboard-coach-update-detail__coach" role="region" aria-label="Coach observation">
+                    <p>{item.coachRead.observation}</p>
+                    <p>{item.coachRead.nextPracticeFocus}</p>
+                </div>
+            ) : null}
+
+            {!isPracticed ? (
+                <p className="candidate-dashboard-coach-update-detail__missing">
+                    {item.actionPosture.reason} I will treat it as missing practice evidence, not as a weak answer.
+                </p>
+            ) : null}
+        </li>
     );
 }
 

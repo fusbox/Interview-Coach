@@ -1563,6 +1563,7 @@ select {
 }
 
 .candidate-learning-loop,
+.candidate-dashboard-coach-update-detail,
 .candidate-dashboard-review,
 .candidate-dashboard-empty {
     display: grid;
@@ -1570,6 +1571,7 @@ select {
 }
 
 .candidate-learning-loop__header,
+.candidate-dashboard-coach-update-detail__header,
 .candidate-dashboard-review__header {
     display: grid;
     gap: var(--space-3);
@@ -1577,6 +1579,7 @@ select {
 }
 
 .candidate-learning-loop__header h2,
+.candidate-dashboard-coach-update-detail__header h2,
 .candidate-dashboard-review__header h2,
 .candidate-dashboard-empty h2 {
     margin: var(--space-1) 0 0;
@@ -1588,6 +1591,7 @@ select {
 }
 
 .candidate-learning-loop__header p:not(.type-eyebrow),
+.candidate-dashboard-coach-update-detail__header p,
 .candidate-dashboard-review__header p,
 .candidate-dashboard-empty p:not(.type-eyebrow) {
     margin: 0;
@@ -1614,6 +1618,21 @@ select {
     border-radius: var(--radius-card);
     background: rgb(255 255 255);
     box-shadow: var(--elevation-card);
+}
+
+.candidate-loop-panel--link {
+    color: inherit;
+    text-decoration: none;
+    transition:
+        border-color 160ms ease,
+        box-shadow 160ms ease,
+        transform 160ms ease;
+}
+
+.candidate-loop-panel--link:hover {
+    border-color: rgb(var(--candidate-primary) / 0.42);
+    box-shadow: var(--elevation-card-hover);
+    transform: translateY(-1px);
 }
 
 .candidate-loop-panel--feedback {
@@ -1671,6 +1690,10 @@ select {
 }
 
 .candidate-loop-panel__context {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    gap: var(--space-1);
     color: rgb(var(--candidate-primary));
     font-size: var(--type-label-size);
     font-weight: 800;
@@ -1714,12 +1737,134 @@ select {
 }
 
 .candidate-dashboard-review,
+.candidate-dashboard-coach-update-detail,
 .candidate-dashboard-empty {
     padding: var(--space-5);
     border: 1px solid rgb(var(--candidate-border) / 0.78);
     border-radius: var(--radius-card);
     background: rgb(255 255 255);
     box-shadow: var(--elevation-card);
+}
+
+.candidate-dashboard-coach-update-detail {
+    border-left: 6px solid rgb(var(--candidate-primary));
+    background:
+        linear-gradient(135deg, rgb(var(--candidate-primary-soft) / 0.78), rgb(255 255 255) 54%),
+        rgb(255 255 255);
+}
+
+.candidate-dashboard-coach-update-detail__header {
+    grid-template-columns: auto minmax(0, 1fr);
+}
+
+.candidate-dashboard-coach-update-detail__header > p {
+    grid-column: 2;
+}
+
+.candidate-dashboard-coach-update-detail__mark {
+    display: inline-flex;
+    width: 2.7rem;
+    height: 2.7rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-icon-capsule);
+    background: rgb(255 255 255);
+    color: rgb(var(--candidate-primary));
+    box-shadow: inset 0 0 0 1px rgb(var(--candidate-border) / 0.72);
+}
+
+.candidate-dashboard-coach-update-detail__items {
+    display: grid;
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.candidate-dashboard-coach-update-detail__items li {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border: 1px solid rgb(var(--candidate-border) / 0.74);
+    border-radius: var(--radius-card);
+    background: rgb(255 255 255);
+}
+
+.candidate-dashboard-coach-update-detail__items li.is-missing-evidence {
+    background: rgb(var(--candidate-surface));
+}
+
+.candidate-dashboard-coach-update-detail__item-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    align-items: center;
+    justify-content: space-between;
+}
+
+.candidate-dashboard-coach-update-detail__items h3,
+.candidate-dashboard-coach-update-detail__items p,
+.candidate-dashboard-coach-update-detail__items blockquote {
+    margin: 0;
+}
+
+.candidate-dashboard-coach-update-detail__items h3 {
+    color: rgb(var(--candidate-heading));
+    font-size: var(--type-title-size);
+    line-height: var(--type-title-line);
+}
+
+.candidate-dashboard-coach-update-detail__status {
+    width: fit-content;
+    padding: 0.2rem var(--space-2);
+    border-radius: var(--radius-pill);
+    background: rgb(var(--candidate-primary-soft));
+    color: rgb(var(--candidate-primary));
+    font-size: var(--type-label-size);
+    font-weight: 800;
+    line-height: var(--type-label-line);
+}
+
+.candidate-dashboard-coach-update-detail__items li.is-missing-evidence .candidate-dashboard-coach-update-detail__status {
+    background: rgb(var(--candidate-border) / 0.42);
+    color: rgb(var(--candidate-muted));
+}
+
+.candidate-dashboard-coach-update-detail__answer {
+    padding: var(--space-4);
+    border-left: 3px solid rgb(var(--candidate-border));
+    border-radius: var(--radius-row);
+    background: rgb(var(--candidate-surface));
+    color: rgb(var(--candidate-foreground));
+    font-size: var(--type-body-md-size);
+    line-height: var(--type-body-md-line);
+}
+
+.candidate-dashboard-coach-update-detail__coach {
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    border-left: 3px solid rgb(var(--candidate-primary));
+    border-radius: var(--radius-row);
+    background: rgb(var(--candidate-primary-soft) / 0.55);
+}
+
+.candidate-dashboard-coach-update-detail__coach p {
+    color: rgb(var(--candidate-muted));
+    font-size: var(--type-body-md-size);
+    line-height: var(--type-body-md-line);
+}
+
+.candidate-dashboard-coach-update-detail__coach p:first-child {
+    color: rgb(var(--candidate-foreground));
+    font-weight: 650;
+}
+
+.candidate-dashboard-coach-update-detail__missing {
+    max-width: 46rem;
+    color: rgb(var(--candidate-muted));
+    font-size: var(--type-body-sm-size);
+    line-height: var(--type-body-sm-line);
 }
 
 .candidate-dashboard-question-list {
@@ -1902,6 +2047,16 @@ select {
 
     .candidate-dashboard-active-round {
         grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .candidate-dashboard-coach-update-detail__header {
+        grid-template-columns: auto minmax(0, 1fr) minmax(12rem, auto);
+    }
+
+    .candidate-dashboard-coach-update-detail__header > p {
+        grid-column: auto;
+        justify-self: end;
+        text-align: right;
     }
 
     .candidate-learning-loop__panels {

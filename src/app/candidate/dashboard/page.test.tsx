@@ -127,7 +127,6 @@ it("renders the V2 dashboard read boundary when completed-round facts are availa
     expect(screen.getByText("Plan progress")).toBeInTheDocument();
     expect(screen.getByText("Practice from feedback")).toBeInTheDocument();
     expect(screen.getByText("Use what happened in practice to choose the next useful move.")).toBeInTheDocument();
-    expect(screen.getByText(/Your answer connects to the role/i)).toBeInTheDocument();
     expect(screen.getByText("Completed rounds")).toBeInTheDocument();
     expect(screen.getByText("Answered questions")).toBeInTheDocument();
     expect(screen.getByText("Coached answers")).toBeInTheDocument();
@@ -282,7 +281,7 @@ it("renders the latest round review as a question-first coach update surface", a
         },
     }));
 
-    expect(screen.getByRole("link", { name: /Review coach feedback/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Coach Update/i })).toHaveAttribute(
         "href",
         "#latest-round-review",
     );
@@ -293,6 +292,179 @@ it("renders the latest round review as a question-first coach update surface", a
     expect(screen.getByText("Q2 - Scenario")).toBeInTheDocument();
     expect(screen.getByText("Needs practice evidence")).toBeInTheDocument();
     expect(screen.getByText(/pallet label did not match/i)).toBeInTheDocument();
+});
+
+it("opens a Coach Update detail section from the sparse feedback card", async () => {
+    render(await renderCandidateDashboardPage({
+        dependencies: {
+            resolveDashboardModel: async () => ({
+                status: "candidate_dashboard_v2_read_model",
+                candidateProfileId: "candidate-1",
+                selectedTargetInterview: {
+                    status: "candidate_dashboard_target_interview",
+                    id: "material handler i",
+                    targetRole: "Material Handler I",
+                    isSelected: true,
+                    activeRoundCount: 0,
+                    completedRoundCount: 1,
+                    answeredQuestionCount: 1,
+                    coachedAnswerCount: 1,
+                    lastActivityAt: "2026-07-11T12:00:00.000Z",
+                },
+                targetInterviews: [{
+                    status: "candidate_dashboard_target_interview",
+                    id: "material handler i",
+                    targetRole: "Material Handler I",
+                    isSelected: true,
+                    activeRoundCount: 0,
+                    completedRoundCount: 1,
+                    answeredQuestionCount: 1,
+                    coachedAnswerCount: 1,
+                    lastActivityAt: "2026-07-11T12:00:00.000Z",
+                }],
+                source: {
+                    kind: "derived_from_candidate_practice_sessions",
+                    durableSource: "candidate_practice_sessions",
+                    persistence: "read_time_projection",
+                    shouldPersistDashboardProjection: false,
+                },
+                stats: {
+                    activeRoundCount: 0,
+                    completedRoundCount: 1,
+                    answeredQuestionCount: 1,
+                    coachedAnswerCount: 1,
+                },
+                activeRound: null,
+                completedRounds: [],
+                latestCoachUpdate: {
+                    status: "candidate_dashboard_coach_update_ready",
+                    candidatePracticeSessionId: "session-1",
+                    title: "Material Handler I practice complete",
+                    body: "You answered 1 of 2 questions. I have coaching ready for 1 answer.",
+                    href: "/candidate/dashboard",
+                    completedAt: "2026-07-11T12:00:00.000Z",
+                    answeredCount: 1,
+                    questionCount: 2,
+                },
+                coachUpdateDetail: {
+                    status: "candidate_coach_update_detail_ready",
+                    candidatePracticeSessionId: "session-1",
+                    targetRole: "Material Handler I",
+                    completedAt: "2026-07-11T12:00:00.000Z",
+                    answeredCount: 1,
+                    questionCount: 2,
+                    reviewPosture: "partially_reviewable",
+                    items: [
+                        {
+                            status: "candidate_coach_update_question_detail",
+                            questionKey: "slot-1",
+                            questionNumber: 1,
+                            category: "Behavioral",
+                            questionText: "Tell me about a time you handled an inventory issue.",
+                            evidenceStatus: "practiced",
+                            answer: {
+                                mode: "text",
+                                text: "I checked the shipment records before updating the inventory sheet.",
+                                submittedAt: "2026-07-11T12:01:00.000Z",
+                            },
+                            coachRead: {
+                                acknowledgement: "You chose a relevant work example.",
+                                observation: "Your answer includes the task, but the result is still missing.",
+                                nextPracticeFocus: "Add the result of the inventory count.",
+                                overallBand: "clear",
+                            },
+                            actionPosture: {
+                                kind: "review_coaching",
+                                label: "Review coach feedback",
+                                reason: "This answer has coaching ready.",
+                            },
+                        },
+                        {
+                            status: "candidate_coach_update_question_detail",
+                            questionKey: "slot-2",
+                            questionNumber: 2,
+                            category: "Scenario",
+                            questionText: "How would you respond if a pallet label did not match the manifest?",
+                            evidenceStatus: "missing_practice_evidence",
+                            actionPosture: {
+                                kind: "practice_missing_evidence",
+                                label: "Practice this question",
+                                reason: "This planned question has not been answered yet.",
+                            },
+                        },
+                    ],
+                },
+                coachingLoop: {
+                    status: "candidate_dashboard_coaching_loop_ready",
+                    principle: "Use what happened in practice to choose the next useful move.",
+                    feedback: {
+                        status: "candidate_dashboard_feedback_ready",
+                        label: "Coach Update",
+                        title: "Material Handler I practice complete",
+                        body: "You answered 1 of 2 questions. I have coaching ready for 1 answer.",
+                        href: "/candidate/dashboard",
+                        completedAt: "2026-07-11T12:00:00.000Z",
+                        answeredCount: 1,
+                        questionCount: 2,
+                    },
+                    feedforward: {
+                        status: "candidate_dashboard_feedforward_ready",
+                        label: "Practice Next",
+                        title: "Add the result of the inventory count.",
+                        body: "Use the latest coach feedback to choose one focused answer pattern to practice next.",
+                        href: "/candidate/setup",
+                        source: "coaching_focus",
+                        questionKeys: ["slot-1"],
+                    },
+                },
+                postRoundReviews: [],
+                practiceNext: {
+                    status: "candidate_practice_next_ready",
+                    source: "coaching_focus",
+                    label: "Add the result of the inventory count.",
+                    reason: "Use the latest coach feedback to choose one focused answer pattern to practice next.",
+                    href: "/candidate/setup",
+                    questionKeys: ["slot-1"],
+                },
+                practiceDirection: {
+                    status: "candidate_dashboard_practice_direction_ready",
+                    primaryAction: "practice_from_feedback",
+                    planProgress: {
+                        status: "candidate_dashboard_plan_progress_ready",
+                        label: "Plan progress",
+                        source: "completed_plan",
+                        title: "The latest round is complete.",
+                        body: "You answered every planned question in this round.",
+                        href: "/candidate/setup",
+                        questionKeys: [],
+                    },
+                    coachGuidedFocus: {
+                        status: "candidate_dashboard_coach_guided_focus_ready",
+                        label: "Practice from feedback",
+                        source: "coach_feedback",
+                        title: "Add the result of the inventory count.",
+                        body: "Use the latest coach feedback to choose one focused answer pattern to practice next.",
+                        href: "/candidate/setup",
+                        questionKeys: ["slot-1"],
+                    },
+                },
+            }),
+        },
+    }));
+
+    expect(screen.getByRole("link", { name: /Coach Update/i })).toHaveAttribute("href", "#coach-update-detail");
+
+    const detail = screen.getByRole("region", { name: "Coach Update detail" });
+    expect(within(detail).getByRole("heading", { name: "Material Handler I Coach Update" })).toBeInTheDocument();
+    expect(within(detail).getByText("Q1 - Behavioral")).toBeInTheDocument();
+    expect(within(detail).getByText("I checked the shipment records before updating the inventory sheet.")).toBeInTheDocument();
+    expect(within(detail).getByRole("region", { name: "Coach observation" })).toHaveTextContent(
+        "Your answer includes the task, but the result is still missing.",
+    );
+    expect(within(detail).getByText("Add the result of the inventory count.")).toBeInTheDocument();
+    expect(within(detail).getByText("Q2 - Scenario")).toBeInTheDocument();
+    expect(within(detail).getByText("Still needs practice evidence")).toBeInTheDocument();
+    expect(JSON.stringify(detail.textContent)).not.toMatch(/score|oneBigUpgrade|percentile|pass|fail/i);
 });
 
 it("renders selected target interview context and switch links", async () => {
