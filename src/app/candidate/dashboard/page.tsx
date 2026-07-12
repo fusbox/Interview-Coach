@@ -306,6 +306,16 @@ function CandidateDashboardCoachUpdateDetailItem({
                     {item.actionPosture.reason} I will treat it as missing practice evidence, not as a weak answer.
                 </p>
             ) : null}
+
+            {item.focusedPracticeAction ? (
+                <a
+                    className="candidate-dashboard-coach-update-detail__action"
+                    href={item.focusedPracticeAction.href}
+                >
+                    {item.focusedPracticeAction.label}
+                    <ArrowRight size={16} aria-hidden="true" />
+                </a>
+            ) : null}
         </li>
     );
 }

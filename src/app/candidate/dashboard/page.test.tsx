@@ -378,6 +378,20 @@ it("opens a Coach Update detail section from the sparse feedback card", async ()
                                 label: "Review coach feedback",
                                 reason: "This answer has coaching ready.",
                             },
+                            focusedPracticeAction: {
+                                status: "candidate_focused_practice_action",
+                                kind: "practice_from_feedback",
+                                label: "Practice this focus",
+                                href: "/candidate/setup?intent=coach-update-feedback-focus&fromSession=session-1&questionKey=slot-1",
+                                source: {
+                                    kind: "coach_update_detail",
+                                    candidatePracticeSessionId: "session-1",
+                                    questionKey: "slot-1",
+                                    questionNumber: 1,
+                                    category: "Behavioral",
+                                    targetRole: "Material Handler I",
+                                },
+                            },
                         },
                         {
                             status: "candidate_coach_update_question_detail",
@@ -390,6 +404,20 @@ it("opens a Coach Update detail section from the sparse feedback card", async ()
                                 kind: "practice_missing_evidence",
                                 label: "Practice this question",
                                 reason: "This planned question has not been answered yet.",
+                            },
+                            focusedPracticeAction: {
+                                status: "candidate_focused_practice_action",
+                                kind: "practice_missing_evidence",
+                                label: "Practice this question",
+                                href: "/candidate/setup?intent=coach-update-missing-evidence&fromSession=session-1&questionKey=slot-2",
+                                source: {
+                                    kind: "coach_update_detail",
+                                    candidatePracticeSessionId: "session-1",
+                                    questionKey: "slot-2",
+                                    questionNumber: 2,
+                                    category: "Scenario",
+                                    targetRole: "Material Handler I",
+                                },
                             },
                         },
                     ],
@@ -464,6 +492,14 @@ it("opens a Coach Update detail section from the sparse feedback card", async ()
     expect(within(detail).getByText("Add the result of the inventory count.")).toBeInTheDocument();
     expect(within(detail).getByText("Q2 - Scenario")).toBeInTheDocument();
     expect(within(detail).getByText("Still needs practice evidence")).toBeInTheDocument();
+    expect(within(detail).getByRole("link", { name: "Practice this focus" })).toHaveAttribute(
+        "href",
+        "/candidate/setup?intent=coach-update-feedback-focus&fromSession=session-1&questionKey=slot-1",
+    );
+    expect(within(detail).getByRole("link", { name: "Practice this question" })).toHaveAttribute(
+        "href",
+        "/candidate/setup?intent=coach-update-missing-evidence&fromSession=session-1&questionKey=slot-2",
+    );
     expect(JSON.stringify(detail.textContent)).not.toMatch(/score|oneBigUpgrade|percentile|pass|fail/i);
 });
 

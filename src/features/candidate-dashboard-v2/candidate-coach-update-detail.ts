@@ -24,6 +24,7 @@ export type CandidateCoachUpdateQuestionDetail = {
     answer?: CandidatePostRoundReviewQuestion["answer"];
     coachRead?: CandidatePostRoundReviewQuestion["coaching"];
     actionPosture: CandidateCoachUpdateActionPosture;
+    focusedPracticeAction?: CandidateFocusedPracticeAction;
 };
 
 export type CandidateCoachUpdateActionPosture =
@@ -43,6 +44,21 @@ export type CandidateCoachUpdateActionPosture =
         reason: "This planned question has not been answered yet.";
     };
 
+export type CandidateFocusedPracticeAction = {
+    status: "candidate_focused_practice_action";
+    kind: "practice_from_feedback" | "practice_missing_evidence";
+    label: "Practice this focus" | "Practice this question";
+    href: string;
+    source: {
+        kind: "coach_update_detail";
+        candidatePracticeSessionId: string;
+        questionKey: string;
+        questionNumber: number;
+        category: string;
+        targetRole: string;
+    };
+};
+
 export function createCandidateCoachUpdateDetail(
     postRoundReview: CandidatePostRoundReview | null,
 ): CandidateCoachUpdateDetail | null {
@@ -50,7 +66,11 @@ export function createCandidateCoachUpdateDetail(
         return null;
     }
 
-    const items = postRoundReview.questions.map(toQuestionDetail);
+    const items = postRoundReview.questions.map((question) => toQuestionDetail({
+        question,
+        candidatePracticeSessionId: postRoundReview.candidatePracticeSessionId,
+        targetRole: postRoundReview.targetRole,
+    }));
 
     return {
         status: "candidate_coach_update_detail_ready",
@@ -64,8 +84,17 @@ export function createCandidateCoachUpdateDetail(
     };
 }
 
-function toQuestionDetail(question: CandidatePostRoundReviewQuestion): CandidateCoachUpdateQuestionDetail {
+function toQuestionDetail({
+    question,
+    candidatePracticeSessionId,
+    targetRole,
+}: {
+    question: CandidatePostRoundReviewQuestion;
+    candidatePracticeSessionId: string;
+    targetRole: string;
+}): CandidateCoachUpdateQuestionDetail {
     const isPracticed = question.status === "practiced";
+    const actionPosture = getActionPosture(question);
 
     return {
         status: "candidate_coach_update_question_detail",
@@ -76,7 +105,13 @@ function toQuestionDetail(question: CandidatePostRoundReviewQuestion): Candidate
         evidenceStatus: isPracticed ? "practiced" : "missing_practice_evidence",
         ...(question.answer ? { answer: question.answer } : {}),
         ...(question.coaching ? { coachRead: question.coaching } : {}),
-        actionPosture: getActionPosture(question),
+        actionPosture,
+        ...getFocusedPracticeAction({
+            actionPosture,
+            candidatePracticeSessionId,
+            targetRole,
+            question,
+        }),
     };
 }
 
@@ -101,6 +136,51 @@ function getActionPosture(question: CandidatePostRoundReviewQuestion): Candidate
         kind: "review_coaching",
         label: "Review coach feedback",
         reason: "This answer has coaching ready.",
+    };
+}
+
+function getFocusedPracticeAction({
+    actionPosture,
+    candidatePracticeSessionId,
+    targetRole,
+    question,
+}: {
+    actionPosture: CandidateCoachUpdateActionPosture;
+    candidatePracticeSessionId: string;
+    targetRole: string;
+    question: CandidatePostRoundReviewQuestion;
+}): { focusedPracticeAction: CandidateFocusedPracticeAction } | Record<string, never> {
+    if (actionPosture.kind === "await_coaching") {
+        return {};
+    }
+
+    const kind = actionPosture.kind === "review_coaching"
+        ? "practice_from_feedback"
+        : "practice_missing_evidence";
+    const intent = kind === "practice_from_feedback"
+        ? "coach-update-feedback-focus"
+        : "coach-update-missing-evidence";
+    const searchParams = new URLSearchParams({
+        intent,
+        fromSession: candidatePracticeSessionId,
+        questionKey: question.questionKey,
+    });
+
+    return {
+        focusedPracticeAction: {
+            status: "candidate_focused_practice_action",
+            kind,
+            label: kind === "practice_from_feedback" ? "Practice this focus" : "Practice this question",
+            href: `/candidate/setup?${searchParams.toString()}`,
+            source: {
+                kind: "coach_update_detail",
+                candidatePracticeSessionId,
+                questionKey: question.questionKey,
+                questionNumber: question.questionNumber,
+                category: question.category,
+                targetRole,
+            },
+        },
     };
 }
 

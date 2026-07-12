@@ -290,7 +290,9 @@ When order matters, the coach should recommend an order and explain why. When th
 
 Alternatives should be secondary. They should mainly let candidates keep momentum by browsing unanswered questions. After all baseline questions have at least one answer, alternatives may shift toward polishing clear areas to strong or improving specific dimensions.
 
-Question-level feedback surfaces may expose two practice actions before full queue persistence lands:
+Question-level feedback surfaces may expose setup-intent actions before full queue persistence lands. In the Coach Update detail surface, the first action contract is a stable link back to `/candidate/setup` with an intent, source practice-session id, and question key. A coached practiced answer should expose a feedback-focus intent, and a skipped/unanswered planned question should expose a missing-evidence intent. These links are allowed to prove the route/read-model boundary before setup prefill or session creation behavior exists, but they must not put submitted answer text, coach observation text, JD text, resume text, or score-like values in query params.
+
+Question-level feedback surfaces may later expose two practice actions:
 
 - **Practice this now** as the immediate one-question practice affordance;
 - **Add this to my next round** / **Added** as the candidate-visible queue affordance.

@@ -40,6 +40,20 @@ describe("candidate Coach Update detail contract", () => {
                         label: "Review coach feedback",
                         reason: "This answer has coaching ready.",
                     },
+                    focusedPracticeAction: {
+                        status: "candidate_focused_practice_action",
+                        kind: "practice_from_feedback",
+                        label: "Practice this focus",
+                        href: "/candidate/setup?intent=coach-update-feedback-focus&fromSession=session-1&questionKey=slot-1",
+                        source: {
+                            kind: "coach_update_detail",
+                            candidatePracticeSessionId: "session-1",
+                            questionKey: "slot-1",
+                            questionNumber: 1,
+                            category: "Behavioral",
+                            targetRole: "Material Handler I",
+                        },
+                    },
                 },
                 {
                     status: "candidate_coach_update_question_detail",
@@ -53,6 +67,20 @@ describe("candidate Coach Update detail contract", () => {
                         label: "Practice this question",
                         reason: "This planned question has not been answered yet.",
                     },
+                    focusedPracticeAction: {
+                        status: "candidate_focused_practice_action",
+                        kind: "practice_missing_evidence",
+                        label: "Practice this question",
+                        href: "/candidate/setup?intent=coach-update-missing-evidence&fromSession=session-1&questionKey=slot-2",
+                        source: {
+                            kind: "coach_update_detail",
+                            candidatePracticeSessionId: "session-1",
+                            questionKey: "slot-2",
+                            questionNumber: 2,
+                            category: "Scenario",
+                            targetRole: "Material Handler I",
+                        },
+                    },
                 },
             ],
         });
@@ -64,6 +92,42 @@ describe("candidate Coach Update detail contract", () => {
         expect(JSON.stringify(detail)).not.toMatch(
             /score|averageScore|readinessLevel|oneBigUpgrade|feedback_json|summaryNarrative|pass|fail|percentile/i,
         );
+    });
+
+    it("adds stable focused-practice actions without putting answer or coaching text in the URL", () => {
+        const detail = createCandidateCoachUpdateDetail(createPostRoundReview());
+
+        expect(detail?.items[0]?.focusedPracticeAction).toEqual({
+            status: "candidate_focused_practice_action",
+            kind: "practice_from_feedback",
+            label: "Practice this focus",
+            href: "/candidate/setup?intent=coach-update-feedback-focus&fromSession=session-1&questionKey=slot-1",
+            source: {
+                kind: "coach_update_detail",
+                candidatePracticeSessionId: "session-1",
+                questionKey: "slot-1",
+                questionNumber: 1,
+                category: "Behavioral",
+                targetRole: "Material Handler I",
+            },
+        });
+        expect(detail?.items[1]?.focusedPracticeAction).toEqual({
+            status: "candidate_focused_practice_action",
+            kind: "practice_missing_evidence",
+            label: "Practice this question",
+            href: "/candidate/setup?intent=coach-update-missing-evidence&fromSession=session-1&questionKey=slot-2",
+            source: {
+                kind: "coach_update_detail",
+                candidatePracticeSessionId: "session-1",
+                questionKey: "slot-2",
+                questionNumber: 2,
+                category: "Scenario",
+                targetRole: "Material Handler I",
+            },
+        });
+        expect(detail?.items[0]?.focusedPracticeAction?.href).not.toContain("shipment");
+        expect(detail?.items[0]?.focusedPracticeAction?.href).not.toContain("inventory");
+        expect(detail?.items[0]?.focusedPracticeAction?.href).not.toContain("result");
     });
 
     it("returns null when there is no post-round review to open", () => {
