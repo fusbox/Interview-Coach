@@ -382,7 +382,7 @@ it("opens a Coach Update detail section from the sparse feedback card", async ()
                                 status: "candidate_focused_practice_action",
                                 kind: "practice_from_feedback",
                                 label: "Practice this focus",
-                                href: "/candidate/setup?intent=coach-update-feedback-focus&fromSession=session-1&questionKey=slot-1",
+                                href: "/candidate/practice/ready?intent=coach-update-feedback-focus&fromSession=session-1&questionKey=slot-1",
                                 source: {
                                     kind: "coach_update_detail",
                                     candidatePracticeSessionId: "session-1",
@@ -409,7 +409,7 @@ it("opens a Coach Update detail section from the sparse feedback card", async ()
                                 status: "candidate_focused_practice_action",
                                 kind: "practice_missing_evidence",
                                 label: "Practice this question",
-                                href: "/candidate/setup?intent=coach-update-missing-evidence&fromSession=session-1&questionKey=slot-2",
+                                href: "/candidate/practice/ready?intent=coach-update-missing-evidence&fromSession=session-1&questionKey=slot-2",
                                 source: {
                                     kind: "coach_update_detail",
                                     candidatePracticeSessionId: "session-1",
@@ -494,11 +494,11 @@ it("opens a Coach Update detail section from the sparse feedback card", async ()
     expect(within(detail).getByText("Still needs practice evidence")).toBeInTheDocument();
     expect(within(detail).getByRole("link", { name: "Practice this focus" })).toHaveAttribute(
         "href",
-        "/candidate/setup?intent=coach-update-feedback-focus&fromSession=session-1&questionKey=slot-1",
+        "/candidate/practice/ready?intent=coach-update-feedback-focus&fromSession=session-1&questionKey=slot-1",
     );
     expect(within(detail).getByRole("link", { name: "Practice this question" })).toHaveAttribute(
         "href",
-        "/candidate/setup?intent=coach-update-missing-evidence&fromSession=session-1&questionKey=slot-2",
+        "/candidate/practice/ready?intent=coach-update-missing-evidence&fromSession=session-1&questionKey=slot-2",
     );
     expect(JSON.stringify(detail.textContent)).not.toMatch(/score|oneBigUpgrade|percentile|pass|fail/i);
 });

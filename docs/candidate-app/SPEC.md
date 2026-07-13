@@ -98,7 +98,11 @@ The live session should feel equivalent in quality to the recruiter-invited prac
 
 During the cleanroom rebuild, `/candidate/session/[sessionId]` may first render a planned-session shell before the live runtime is restored. When a candidate-owned durable practice-session id can be resolved through the verified launch-session identity, that shell should recover the persisted setup snapshot, carried `questionPlanSnapshot`, optional `questionWordingSnapshot`, wording status, provisional progress, answer drafts, and pending answer submissions from `candidate_practice_sessions`. Browser session storage remains only a local/development bridge when durable identity or durable session recovery is unavailable. The shell should show the target role, interview stage, question count, resume inclusion state, role/JD context, the carried `questionPlanSnapshot`, and the carried provisional `questionWordingSnapshot` when present. It may create the provider-free question-wording request, show the explicit wording-unavailable state while provider wiring is absent, render deterministic fixture wording as a scaffold-only read-only preview after strict slot parsing, and open a read-only question preview from that wording snapshot for local validation. Provisional progress includes planned/not-started, read-only-question-preview, and started-live-question scaffold state plus the current question index; durable sessions should save that progress on navigation or live start so pause/resume, refresh, and cross-tab recovery return to the active question surface. The question shell may expose a local answer-draft surface with text entry and visible voice/photo affordances; text drafts should persist through the durable practice-session boundary when identity is available and stay component-local for browser-bridge sessions. The scaffold may start from carried local or stored wording before production provider wiring lands, typed draft submission may save a candidate-owned pending-analysis answer submission after ownership verification, and an analysis handoff route may read that saved pending submission before returning an explicit provider-not-configured unavailable state or, in explicit local dev validation mode, a deterministic fixture coaching snapshot. Answer-submit and answer-analysis mutations should be idempotent per candidate-owned practice session and question slot: V2 contracts use the candidate profile as actor, slot-scoped `candidate_answer_submit` or `candidate_answer_analysis` scopes, explicit `Idempotency-Key` values when supplied, deterministic fallback keys from the submitted payload when not supplied, replay for completed matching work, retryable `409` for matching in-flight work, and nonretryable `409` for key reuse with a different payload. The provider adapter should use the saved answer, the exact slot-mapped question, and setup context to request coaching, then accept only provider output that maps back to the same answer and evidence contract. Valid provider output may be persisted as an isolated V2 analysis snapshot, and the live question shell may show its candidate-safe coach feedback as a read-only current-answer surface. After that feedback appears, the live shell should provide the next executable transition: continue to the next live question, or finish the session on the last question. Finishing must call the candidate-owned completion route before routing to `/candidate/dashboard`. That pending submission, analysis request, provider adapter, analysis snapshot, feedback transition, and completion action must not create summaries, dashboard evidence, or legacy final answer rows until those lifecycles land. Media capture must stay disabled or unavailable until deliberately wired.
 
-The production candidate flow should be setup submission, then a pre-session landing page, then the live session after the candidate chooses to continue. V1 does not have dual preview/live modes, and V2 should not make scaffold preview mode part of the production candidate session by default. If a preview capability is later designed, it should have a distinct product purpose and should not be a read-only mirror of the active session UI.
+The production candidate flow should be setup submission, then a pre-session landing page, then the live session after the candidate chooses to continue. Initial and follow-up candidate-led rounds should share one landing composition with variant facts: the initial round summarizes its role, stage, question count, and optional resume context; follow-up rounds summarize the selected practice items without sending the candidate through generic setup again. Both variants should make pause-and-return behavior clear, use candidate-led privacy language, and expose one primary start action. A brief preparing-practice transition may absorb loading and orient the candidate, but it must not imply a live interview, recruiter presence, or session generation when a durable round already exists.
+
+Invited candidates retain V1's two-stage entry pattern as a separate entry variant: initials confirmation first, then the pre-session landing. Initials are a lightweight possible-misinvitation signal for the recruiter, not authentication or proof of identity. Invited copy may explain recruiter answer visibility, return through the original invitation, and invited completion behavior; those claims must not leak into authenticated candidate-led practice. Candidate-led rounds do not need initials entry or invitation-link guidance.
+
+Pre-session confidence should be optional and must never gate the start action. When its persistence contract lands, use a fully labeled non-emoji scale and store it as a self-reported confidence measurement, separate from answer evaluation and generic product feedback. Do not ship a selector that discards the response. V1 does not have dual preview/live modes, and V2 should not make scaffold preview mode part of the production candidate session by default. If a preview capability is later designed, it should have a distinct product purpose and should not be a read-only mirror of the active session UI.
 
 Read-only question preview navigation belongs only to the scaffold pre-live preview state. Once the candidate starts live practice, the session should show live-answer controls and must not expose previous/next preview controls.
 
@@ -144,18 +148,32 @@ The candidate-led feedback flow may show candidate-only coaching elements such a
 
 Candidate-led and recruiter-invited candidate sessions should converge around shared runtime facts where practical: question identity, prompt text, category, submitted answer, coaching facts, current position, and completion behavior. Candidate-led host launch, profile ownership, setup drafts, resume capture, and browser-bridge recovery are candidate-app concerns and should not leak into invited-session product behavior.
 
-### Summary
+### Candidate UI Productization Runway
 
-After the final question, the candidate should route to summary immediately. The summary page owns the loading state while debrief content is generated or loaded.
+The current V2 session and dashboard screens are behavior scaffolds over increasingly durable contracts. They prove ownership, planning, wording, progress, answer, analysis, feedback-action, completion, dashboard-read, and follow-up-intent boundaries; they are not the final candidate-facing composition.
 
-The summary should:
+The next surface-build milestone should be worked in this order:
+
+1. Replace preview-as-product with a production-shaped pre-session landing surface for both initial and follow-up rounds.
+2. Establish one shared live-practice shell that can serve candidate-led and invited candidates with narrow entry, ownership, permission, and completion differences.
+3. Productize typed answer capture, saving/analyzing/error states, recovery, and pause behavior before enabling additional media modes.
+4. Render staged feedback from V2 evidence-first coaching facts while preserving the useful V1 acknowledgement, explore/skip, retry/continue, and finish cadence.
+5. Validate completion into the candidate dashboard, then shape the dashboard's final information architecture around Coach Update, Coach Plan, and flexible next-practice assembly.
+
+Attempt lineage should remain available in durable session facts and read models during this milestone. Standalone attempt-count labels, chips, and charts are deferred until the core session and dashboard surfaces are productized and a clear candidate trend use case is designed. This does not block recruiter or company reporting contracts from consuming the same lineage later.
+
+### Post-Round Destination
+
+After the final question, a candidate-led session should complete durably and route to `/candidate/dashboard`, where Coach Update and next-practice guidance provide the post-round read. Candidate-led completion should not require an intermediate standalone summary page. Recruiter-invited sessions may retain a summary/debrief destination through the shared completion-behavior contract.
+
+If a standalone candidate summary is later justified, it should:
 
 - congratulate the candidate in a candidate-facing voice;
 - summarize strengths;
 - identify the primary growth area;
 - provide momentum and next steps;
 - collect candidate feedback separately from confidence measurement;
-- offer low-emphasis navigation back to dashboard and practice setup.
+- offer low-emphasis navigation back to dashboard and new-role setup.
 
 ### Dashboard
 
@@ -290,14 +308,27 @@ When order matters, the coach should recommend an order and explain why. When th
 
 Alternatives should be secondary. They should mainly let candidates keep momentum by browsing unanswered questions. After all baseline questions have at least one answer, alternatives may shift toward polishing clear areas to strong or improving specific dimensions.
 
-Question-level feedback surfaces may expose setup-intent actions before full queue persistence lands. In the Coach Update detail surface, the first action contract is a stable link back to `/candidate/setup` with an intent, source practice-session id, and question key. A coached practiced answer should expose a feedback-focus intent, and a skipped/unanswered planned question should expose a missing-evidence intent. These links are allowed to prove the route/read-model boundary before setup prefill or session creation behavior exists, but they must not put submitted answer text, coach observation text, JD text, resume text, or score-like values in query params.
+Question-level feedback surfaces may expose follow-up practice actions before full queue launch behavior lands. In the Coach Update detail surface, the first bridge action contract is a stable link to `/candidate/practice/ready` with an intent, source practice-session id, and question key. A coached practiced answer should expose a feedback-focus intent, and a skipped/unanswered planned question should expose a missing-evidence intent. These links are allowed to prove the route/read-model boundary before follow-up session creation behavior exists, but they must not put submitted answer text, coach observation text, JD text, resume text, or score-like values in query params. The follow-up practice route may parse those params as stable pointers, but any trusted practice-ready copy must come from a durable candidate-owned source session/question resolved through current candidate identity and, when provided, the selected target-interview context. Failed durable validation should suppress source details rather than falling back to URL-derived copy.
+
+The durable follow-up practice target is `/candidate/practice/ready/[intentId]`, backed by `candidate_practice_intents`. That route must work the same way for one-question fast paths, practice-builder selections, plan-aware queue items, and coach suggested bundles. The candidate should see a lightweight pre-session staging surface that confirms the role and selected practice questions, without restating the full new-context setup form. The temporary `/candidate/practice/ready` query-pointer bridge may create a one-question durable intent and redirect to the durable route when persistence is available. Multi-question builders and queues should use the same stable-pointer creation contract through `/candidate/practice/ready/intents`. `/candidate/setup` remains the generic new-prep-context setup surface and should not carry follow-up-practice UI.
+
+Candidates may practice the same question as many times as they choose. Repeated practice should preserve question-level attempt context within the selected prep/practice plan, not overwrite the original answer or collapse repeated attempts into one event. Candidate dashboard surfaces may later use this for performance-over-time views, but current scaffold UI should not add standalone attempt-count treatment before the core session and dashboard surfaces are productized. Company and recruiter-facing engagement reads may roll this up as session attempts, question attempts, and total attempts, while still respecting candidate-led privacy boundaries.
 
 Question-level feedback surfaces may later expose two practice actions:
 
 - **Practice this now** as the immediate one-question practice affordance;
 - **Add this to my next round** / **Added** as the candidate-visible queue affordance.
 
-The first implementation may keep the add/added state local to the current dashboard surface. Durable queue persistence, the expanded next-round surface, and actual one-question session launch behavior should be implemented as follow-on slices.
+The first implementation may keep the add/added state local to the current dashboard surface. Durable queue persistence, the expanded next-round surface, and actual follow-up session launch behavior should be implemented as follow-on slices. When these actions become executable, they should create a durable practice intent and redirect to `/candidate/practice/ready/[intentId]` before creating the live session.
+
+Follow-up practice should support flexible next-round assembly without turning the new-context setup page into a generic router. Ideas to scope soon:
+
+- **Practice builder**: a dashboard surface where coach-recommended items, queued items, and missing-coverage items can be assembled into a focused round before launch.
+- **Question-level fast path**: `Practice this now` creates a one-question follow-up round from the selected Coach Update item and lands on a lightweight practice-ready staging surface.
+- **Plan-aware queue**: queued questions are shown against the selected prep context's question plan, distinguishing feedback-driven practice, missing evidence, coverage gaps, and foundational plan coverage.
+- **Coach suggested bundles**: the coach may offer candidate-selectable bundles such as quick focus, balanced round, finish planned coverage, or category-specific review.
+
+General, foundational, and referential coach guidance that does not change per answer, such as interview concepts, best practices, and the overall practice plan, should have a stable home in the selected prep context. That guidance may sit adjacent to, or partially power, the plan-aware queue surface.
 
 When the local queue state exists in a dashboard visit, shared question-feedback surfaces should reflect it consistently. Coach Update and Question Set feedback surfaces should use the same per-question queue switch: `Add Q# to my next round.` followed by a toggle control. The switch should present as a compact centered label/control group rather than a second button-shaped CTA. Turning the switch on adds that question to Next Practice Round; turning it off removes it without scrolling the current feedback surface. Removing the same question from the Next Practice Round surface should turn the switch off everywhere that question appears during the visit.
 
@@ -340,6 +371,8 @@ What varies by target interview is the question mix, evidence, drilldown content
 The app distinguishes the selected practice round from the coach's baseline coverage expectation for the interview moment. The selected round may contain fewer questions than the baseline. In that case, the generated round should use an appropriate sample of the baseline mix, while the dashboard can still show remaining planned coverage as upcoming/to-practice areas. The current release baseline is deterministic by interview stage; future revisions may adjust that baseline using structured role/JD signals such as industry, role family, level, compliance risk, or client-facing intensity.
 
 The candidate should understand that a practice round is not always a literal simulation of the whole interview. It is a flexible way to practice answering questions within the coach's broader baseline plan. Candidates may practice fewer questions than the baseline when time or focus requires it.
+
+Repeated attempts belong to the flexible-practice model. They should count as additional practice evidence for the same source question or coach-plan item, not as new baseline questions. Read models may carry attempt counts and source-question lineage before the final UI is designed. Candidate-facing attempt history or trend direction is a later design problem, not a requirement for the current scaffolds; when it lands, it should avoid implying that repeating a question is a penalty.
 
 Resume and job description context are source evidence. They are not standalone dashboard lanes.
 

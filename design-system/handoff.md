@@ -39,16 +39,16 @@ Four representations appear on purpose; don't "fix" them into one:
 
 ## Derivation recipe (canonical convention)
 How every derived color variant is produced from a base — the method is standardized so variants are minted consistently, on demand. Documented in-doc under Foundations › Color. All deltas are **OKLCH from the base, chroma & hue held**:
-- **Hover** = L − 0.05 · **Active** = L − 0.10 · **Deep** = L − 0.14 · **Soft tint** = L 0.955, C 0.035.
+- **Hover** = L − 0.05 · **Active** = L − 0.10 · **Deep** = L − 0.14 · **Soft tint** = L 0.955, C 0.035 · **Wash** = L 0.975, C 0.022.
 - **Focus ring** = base / 45% alpha, **Disabled** = base / 38% alpha — via `rgb(var(--token) / .xx)`, **no new token**.
-- **Provisioning rule:** derive only what a surface consumes. Primary → full set; accents → base + soft; neutral ramp → built out in full up front. Opaque states = named tokens; translucent states = alpha on the base triplet.
+- **Provisioning rule:** derive only what a surface consumes. Primary → full interaction set; accents → base + soft; wash → only when a large passive surface or internal layer consumes it; neutral ramp → built out in full up front. Opaque states = named tokens; translucent states = alpha on the base triplet.
 - Compute hex/triplets with a real sRGB↔OKLab↔OKLCH conversion (see the eval used this pass), then clamp to sRGB.
 
 ## Current canonical foundation
 
 1. **Primary / action blue** — `#0B57CE` (`--candidate-primary: 11 87 206`; shadcn `--primary: 217 90% 43%`). The single action color.
 2. **Accent · Viridian** — `#17A079` (`--candidate-accent: 23 160 121`) and **Accent · Warm orange** — `#E8742E` (`--candidate-secondary-brand: 232 116 46`; `--brand-orange: 23 80% 55%`). Two sparing accents. _These three replaced the earlier extracted values (old action blue #0C61E9, Rangam orange #F95500, teal #0EB099) through the `explorations/choosing-the-*` rounds._
-   **Derived variants (via the recipe below):** blue ships a full interaction set — `--candidate-primary-hover` (0 71 189 / #0047BD), `--candidate-primary-active` (0 54 172 / #0036AC), `--candidate-primary-deep` (0 40 159 / #00289F), `--candidate-primary-soft` (227 241 255 / #E3F1FF). Accents ship base + soft only: `--candidate-accent-soft` (#DBF8EB), `--candidate-secondary-soft` (#FFEADC). `--brand-deep` was **renamed `--primary-deep`** (hsl, root 225 100% 31%), re-derived from the new blue; its one consumer `components/display/IconBadge.jsx` (the `--brand` variant) was updated to match.
+   **Derived variants (via the recipe below):** blue ships a full interaction set — `--candidate-primary-hover` (0 71 189 / #0047BD), `--candidate-primary-active` (0 54 172 / #0036AC), `--candidate-primary-deep` (0 40 159 / #00289F), `--candidate-primary-soft` (227 241 255 / #E3F1FF), and `--candidate-primary-wash` (238 247 255 / #EEF7FF). Viridian now ships `--candidate-accent-soft` (#DBF8EB) and `--candidate-accent-wash` (234 252 244 / #EAFCF4); warm orange retains `--candidate-secondary-soft` (#FFEADC). `--brand-deep` was **renamed `--primary-deep`** (hsl, root 225 100% 31%), re-derived from the new blue; its one consumer `components/display/IconBadge.jsx` (the `--brand` variant) was updated to match.
 3. **Preparedness ramp** — the newly selected family **"A✷ · Ripening, warm start"** (chosen in `explorations/readiness-intermediates.html`). Ordered, positive-only growth scale; the low state is neutral slate, never a red mark. Now in `tokens/colors.css` as OKLCH tokens (full color values, not the HSL/RGB triplets the rest of the file uses):
 
    | State | Dot | Tint (chip bg) | Text (label) |

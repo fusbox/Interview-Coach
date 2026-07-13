@@ -1,10 +1,9 @@
 /* Typography tokens.
-   Sans (body/UI): Inter — var(--font-sans)
-   Display (h1, hero, section titles): Manrope — var(--font-display) */
+   Atkinson Hyperlegible Next drives body/UI; IBM Plex Sans supplies display character. */
 
 :root {
-    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-    --font-display: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    --font-sans: 'Atkinson Hyperlegible Next', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
 
     /* Weights */
     --font-weight-normal: 400; /* @kind font */

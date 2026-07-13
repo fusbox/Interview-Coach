@@ -1,7 +1,7 @@
 # V1 SWOT And Rebuild Runway
 
 Status: Working architecture and operating reference
-Last updated: 2026-07-09
+Last updated: 2026-07-12
 
 ## Purpose
 
@@ -112,54 +112,34 @@ Original refactor plan:
 - Legacy hidden-score language can leak back into candidate-facing UI if dashboard migration is not handled as a separate evidence-first pass.
 - Tests can drift if the rebuilt candidate suite stops checking both V2 contracts and preserved V1 behavior.
 
-## Integrated Read
+## Slice 93 Integrated Read
 
-The original refactor plan assumed the existing app would be strangled into a shared kernel:
+The original refactor plan still supplies the architectural test: one session experience, one answer lifecycle, one evidence-first evaluation engine, and two intentional completion destinations. The cleanroom rebuild has now established more of that foundation than the earlier runway recorded: durable candidate practice sessions, planned and worded questions, live progress, answer drafts and submissions, idempotent analysis boundaries, fixture coaching snapshots, feedback action events, completion snapshots, dashboard read models, durable follow-up intents, and attempt lineage all exist.
 
-1. Inventory current paths.
-2. Make the shared runtime candidate-owned capable.
-3. Move candidate-led sessions onto the shared runtime.
-4. Add canonical categories and evidence-first contracts.
-5. Introduce evaluator V2 behind a flag.
-6. Move the dashboard to criteria bands and derived evidence.
-7. Retire legacy paths.
+What remains is not another plumbing-first detour. The next gap is turning those boundaries into the real candidate experience while keeping them capable of converging with the invited-candidate runtime.
 
-The cleanroom rebuild has changed the order:
+### V1 Disposition For The UI Build
 
-- V2 has already established canonical `/candidate/*` routes, a design-system direction, setup contracts, host-launch boundaries, deterministic question planning, strict question-wording validation, durable `candidate_practice_sessions`, progress state, and answer-draft persistence.
-- V2 has not yet restored the real live-answer runtime, answer submission, evaluator wiring, feedback rendering, summary, or dashboard migration.
-- Some later-phase ideas are already represented as contracts, but the main missing middle is still the live runtime and one answer lifecycle.
+- **Preserve:** pre-session entry before question one; one-question-at-a-time live workspace; text/voice mode parity; explicit progress; pause/resume and current-question recovery; acknowledgement before detailed coaching; explore-or-skip feedback; conditional retry versus continue; finish on the last question; clear completion destination.
+- **Reinterpret:** V1's standalone candidate summary becomes candidate-led dashboard Coach Update and next-practice guidance; hints and strong-response examples must be checked against the new coaching model; dashboard Coach Plan and queue ideas should consume V2 read models and durable practice intents rather than legacy feedback JSON.
+- **Retire:** candidate-led and invited duplicate runtimes; scaffold preview as a production mode; hidden-score and legacy `feedback_json` conclusions as dashboard truth; candidate setup as the destination for follow-up practice.
+- **Defer:** production voice/photo capture, attempt-count UI, performance-over-time charts, final dashboard visual composition, and recruiter route migration until the core candidate surfaces and evidence-first feedback path are productized.
 
-This means the next runway should not jump straight to dashboard or evaluator UI. It should first restore the live question loop on top of the V2 persistence and route contracts, using V1 as a behavior checklist and the refactor pack as the target architecture checklist.
+### Current Divergences To Keep Explicit
+
+- V1 routes candidate-led completion through a standalone summary. V2 routes candidate-led completion to `/candidate/dashboard`; invited completion may remain summary/debrief-oriented.
+- V1's interaction cadence is useful, but its feedback content and score-derived dashboard conclusions are not the V2 source of truth.
+- The refactor pack preferred adapting the existing shared runtime. The cleanroom rebuild may establish newly factored shared modules instead, provided candidate-led and invited flows derive from the same runtime facts and answer lifecycle rather than creating a third path.
+- V2 already carries attempt lineage for repeated practice, recruiter engagement, and company reporting. Candidate-visible attempt treatment is deferred until a real trend or progress presentation is designed.
 
 ## Recommended Runway
 
-Good next commit milestone:
+Good next commit milestone: productize the candidate session arc over the landed V2 contracts, then return to final dashboard information architecture.
 
-Restore a V2 live-question runtime foundation that can start a session, answer by typed text, persist progress and drafts, and stop before evaluator/provider feedback if those dependencies are not deliberately wired.
+1. Production-shaped pre-session landing for initial and follow-up rounds.
+2. Shared live-practice shell with narrow candidate-led/invited divergence.
+3. Candidate-ready typed answer capture, mutation states, recovery, and pause behavior.
+4. Staged evidence-first feedback using the useful V1 action cadence.
+5. End-to-end completion and recovery validation into the selected-context candidate dashboard.
 
-Suggested slices:
-
-1. V1 live-session capability ledger for the current V2 session shell.
-   - In bounds: inspect V1 session, shared runtime, progress, answer, feedback recovery, and tests; document preserved/retired behavior; add or update V2 acceptance tests where useful.
-   - Out of bounds: source copying, evaluator changes, dashboard changes.
-2. V2 live-session state contract.
-   - In bounds: define typed states/events from planned preview to live question, answer draft, submitting, submitted-unavailable, feedback-unavailable, paused, and completed.
-   - Out of bounds: real evaluator/provider calls.
-3. Start-live transition from carried wording snapshot.
-   - In bounds: convert the read-only preview into an explicit startable live session only when question wording exists and maps to the plan.
-   - Out of bounds: question generation provider wiring.
-4. Typed answer submission persistence for text mode.
-   - In bounds: save one answer attempt with idempotency, loader/error states, current question ownership, and recovery.
-   - Out of bounds: scoring, feedback composition, dashboard read updates.
-5. Voice/photo affordance decision slice.
-   - In bounds: decide whether V2 restores voice first, keeps it disabled until shared runtime parity, or stages it behind a capability flag; preserve privacy copy and browser permission handling.
-   - Out of bounds: broad media storage redesign.
-6. Feedback boundary adapter.
-   - In bounds: decide whether the next pass uses a legacy adapter, a provider-unavailable state, or the evidence-first contract stub.
-   - Out of bounds: full evaluator V2 unless intentionally started as its own milestone.
-7. Candidate completion route.
-   - In bounds: finish session to candidate dashboard or summary/dashboard according to the current product spec, preserve setup reset and session resume boundaries.
-   - Out of bounds: full dashboard redesign.
-
-After that milestone, the next coherent arc is dashboard migration: build the read model from answer attempts, question categories, and evidence-first feedback artifacts instead of treating legacy feedback JSON as durable dashboard truth.
+After that milestone, the next coherent arc is dashboard composition: Coach Update as the post-practice feedback read, Coach Plan as broader coverage context, and a plan-aware builder/queue as the flexible feedforward action surface. Attempt history, trend views, and analytics projections should follow only when those core surfaces make their product purpose clear.

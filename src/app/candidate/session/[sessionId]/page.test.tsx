@@ -3,6 +3,7 @@ import { act } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
 import CandidateSessionPage, { renderCandidateSessionPage, toCandidateProvisionalSession } from "./page";
 import { CandidatePlannedSessionExperience } from "@/features/candidate-session-v2/CandidatePlannedSessionExperience";
+import { CandidatePreSessionLanding } from "@/features/candidate-session-v2/CandidatePreSessionLanding";
 import { saveCandidateProvisionalSession } from "@/features/candidate-session-v2/candidate-provisional-session-store";
 import { createCandidateQuestionPlan } from "@/features/candidate-session-v2/candidate-question-plan";
 import { resolveCandidateSessionIdentityFromDevLaunchCookie } from "./page";
@@ -23,6 +24,22 @@ it("shows a recovery state when a provisional session snapshot is missing", asyn
     expect(screen.getByText("Practice session")).toBeInTheDocument();
     expect(screen.getByText(/I need the setup details for this practice round/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /back to setup/i })).toHaveAttribute("href", "/candidate/setup");
+});
+
+it("describes broad practice without exposing the raw not-sure-yet stage label in a sentence", () => {
+    render(
+        <CandidatePreSessionLanding
+            variant="initial"
+            targetRole="Material Handler I"
+            stageLabel="Not sure yet"
+            questionCount={5}
+            resumeIncluded={false}
+            onStart={vi.fn()}
+        />,
+    );
+
+    expect(screen.getByText(/5 questions based on the role details you shared/i)).toBeInTheDocument();
+    expect(screen.queryByText(/for your not sure yet/i)).not.toBeInTheDocument();
 });
 
 it("renders the setup-created planned session shell for the requested session", async () => {
@@ -86,22 +103,17 @@ it("renders the setup-created planned session shell for the requested session", 
         render(ui);
     });
 
+    expect(screen.getByRole("heading", { name: "Your practice is ready." })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Customer service representative" })).toBeInTheDocument();
     expect(screen.getByText("Screening call")).toBeInTheDocument();
     expect(screen.getByText("5")).toBeInTheDocument();
     expect(screen.getByText("Included")).toBeInTheDocument();
-    expect(screen.getByText(/Question wording comes next/i)).toBeInTheDocument();
-    expect(screen.getByText(/Question wording request is ready/i)).toBeInTheDocument();
-    expect(screen.getByText(/production wording service is still unavailable/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/Question preview/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Stored snapshot question for the first slot/i)).toBeInTheDocument();
-    expect(screen.queryByText(/What interests you about this Customer service representative role/i)).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Here is the mix I planned from." })).toBeInTheDocument();
-    expect(screen.getByText(/Question wording has not been generated yet/i)).toBeInTheDocument();
-    expect(screen.getAllByText("Screening")).toHaveLength(4);
-    expect(screen.getAllByText("Behavioral")).toHaveLength(2);
-    expect(screen.getAllByText("Culture / Fit")).toHaveLength(2);
-    expect(screen.getAllByText("Technical / Role-Specific")).toHaveLength(2);
+    expect(screen.getByText(/After each answer, I'll help you see what's working/i)).toBeInTheDocument();
+    expect(screen.getByText(/Your progress is saved as you go/i)).toBeInTheDocument();
+    expect(screen.getByText(/not used to make hiring decisions/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start practice" })).toBeEnabled();
+    expect(screen.queryByText(/Stored snapshot question for the first slot/i)).not.toBeInTheDocument();
+    expect(screen.getByText("Development tools")).toBeInTheDocument();
 });
 
 it("hydrates a candidate-owned durable planned session before browser storage fallback", async () => {
@@ -486,9 +498,10 @@ it("starts a live question from the carried wording snapshot and persists live p
         render(ui);
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Start questions" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start practice" }));
 
-    expect(screen.getByRole("heading", { name: "Question 1 of 3" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Getting your practice ready." })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Question 1 of 3" }, { timeout: 1_000 })).toBeInTheDocument();
     expect(screen.getByText("Durable snapshot question for the first slot.")).toBeInTheDocument();
     expect(screen.getByText(/Live practice has started/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /submit answer/i })).toBeDisabled();
@@ -1251,12 +1264,11 @@ it("prefers the carried question plan snapshot over render-time setup derivation
     });
 
     expect(screen.getByText("7")).toBeInTheDocument();
-    expect(screen.getAllByText("Culture / Fit")).toHaveLength(2);
-    expect(screen.queryByText("Scenario")).not.toBeInTheDocument();
-    expect(screen.queryByText("Technical / Role-Specific")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Open first question preview" }));
+    expect(screen.getByRole("heading", { name: "Question 1 of 3" })).toBeInTheDocument();
 });
 
-it("posts candidate-owned session completion before routing back to the dashboard", async () => {
+it("does not expose candidate-owned session completion before practice starts", async () => {
     window.sessionStorage.clear();
     const assign = vi.fn();
     Object.defineProperty(window, "location", {
@@ -1321,15 +1333,9 @@ it("posts candidate-owned session completion before routing back to the dashboar
         render(ui);
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Finish session" }));
-
-    await waitFor(() => expect(fetch).toHaveBeenCalledWith(
-        "/candidate/session/durable-session-1/complete",
-        expect.objectContaining({
-            method: "POST",
-        }),
-    ));
-    expect(assign).toHaveBeenCalledWith("/candidate/dashboard");
+    expect(screen.queryByRole("button", { name: "Finish session" })).not.toBeInTheDocument();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(assign).not.toHaveBeenCalled();
 });
 
 it("finishes directly from the final live question after coaching is ready", async () => {

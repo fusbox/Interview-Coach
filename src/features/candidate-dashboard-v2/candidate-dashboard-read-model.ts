@@ -28,6 +28,7 @@ export type CandidateDashboardV2ReadModel = {
         completedRoundCount: number;
         answeredQuestionCount: number;
         coachedAnswerCount: number;
+        attempts?: CandidateDashboardAttemptRollup;
     };
     activeRound: CandidateDashboardActiveRound | null;
     completedRounds: CandidateCompletedRoundReadModels[];
@@ -49,6 +50,14 @@ export type CandidateDashboardTargetInterview = {
     answeredQuestionCount: number;
     coachedAnswerCount: number;
     lastActivityAt: string;
+    attempts?: CandidateDashboardAttemptRollup;
+};
+
+export type CandidateDashboardAttemptRollup = {
+    sessionAttemptCount: number;
+    followUpSessionAttemptCount: number;
+    questionAttemptCount: number;
+    followUpQuestionAttemptCount: number;
 };
 
 export type CandidateDashboardActiveRound = {
@@ -148,6 +157,7 @@ export function createCandidateDashboardV2ReadModel({
         .filter((model): model is CandidateCompletedRoundReadModels => Boolean(model))
         .sort((left, right) => right.round.completedAt.localeCompare(left.round.completedAt));
     const latestPracticeNext = completedRounds[0]?.practiceNext ?? createFirstPracticeNext();
+    const attemptRollup = createAttemptRollup(scopedCandidateSessions);
 
     return {
         status: "candidate_dashboard_v2_read_model",
@@ -165,6 +175,7 @@ export function createCandidateDashboardV2ReadModel({
             completedRoundCount: completedRounds.length,
             answeredQuestionCount: completedRounds.reduce((total, round) => total + round.round.answeredCount, 0),
             coachedAnswerCount: completedRounds.reduce((total, round) => total + round.round.coachedCount, 0),
+            attempts: attemptRollup,
         },
         activeRound: createActiveRound(activeSession),
         completedRounds,
@@ -233,6 +244,7 @@ function createTargetInterviews(
             answeredQuestionCount: 0,
             coachedAnswerCount: 0,
             lastActivityAt: getSessionActivityAt(session),
+            attempts: createEmptyAttemptRollup(),
         };
 
         if (session.status === "planned" || session.status === "in_progress") {
@@ -243,6 +255,7 @@ function createTargetInterviews(
             current.answeredQuestionCount += session.completionSnapshot.answeredCount;
             current.coachedAnswerCount += session.completionSnapshot.coachedCount;
         }
+        current.attempts = addAttemptRollups(current.attempts ?? createEmptyAttemptRollup(), createAttemptRollup([session]));
 
         const activityAt = getSessionActivityAt(session);
         if (activityAt.localeCompare(current.lastActivityAt) > 0) {
@@ -264,6 +277,76 @@ function createTargetInterviews(
             }
             return right.lastActivityAt.localeCompare(left.lastActivityAt);
         });
+}
+
+function createAttemptRollup(sessions: CandidatePracticeSessionRecord[]): CandidateDashboardAttemptRollup {
+    return sessions.reduce((rollup, session) => {
+        const followUpPractice = readFollowUpPractice(session.setupSnapshot);
+        const answeredQuestionKeys = new Set(Object.keys(session.answerSubmissions));
+        const followUpAnsweredCount = followUpPractice
+            ? followUpPractice.items.filter((item) => answeredQuestionKeys.has(item.localSlotId)).length
+            : 0;
+
+        return {
+            sessionAttemptCount: rollup.sessionAttemptCount + 1,
+            followUpSessionAttemptCount: rollup.followUpSessionAttemptCount + (followUpPractice ? 1 : 0),
+            questionAttemptCount: rollup.questionAttemptCount + answeredQuestionKeys.size,
+            followUpQuestionAttemptCount: rollup.followUpQuestionAttemptCount + followUpAnsweredCount,
+        };
+    }, createEmptyAttemptRollup());
+}
+
+function addAttemptRollups(
+    left: CandidateDashboardAttemptRollup,
+    right: CandidateDashboardAttemptRollup,
+): CandidateDashboardAttemptRollup {
+    return {
+        sessionAttemptCount: left.sessionAttemptCount + right.sessionAttemptCount,
+        followUpSessionAttemptCount: left.followUpSessionAttemptCount + right.followUpSessionAttemptCount,
+        questionAttemptCount: left.questionAttemptCount + right.questionAttemptCount,
+        followUpQuestionAttemptCount: left.followUpQuestionAttemptCount + right.followUpQuestionAttemptCount,
+    };
+}
+
+function createEmptyAttemptRollup(): CandidateDashboardAttemptRollup {
+    return {
+        sessionAttemptCount: 0,
+        followUpSessionAttemptCount: 0,
+        questionAttemptCount: 0,
+        followUpQuestionAttemptCount: 0,
+    };
+}
+
+type FollowUpPracticeSnapshot = {
+    items: Array<{
+        localSlotId: string;
+    }>;
+};
+
+function readFollowUpPractice(setupSnapshot: unknown): FollowUpPracticeSnapshot | null {
+    if (!setupSnapshot || typeof setupSnapshot !== "object" || Array.isArray(setupSnapshot)) {
+        return null;
+    }
+
+    const followUpPractice = (setupSnapshot as { followUpPractice?: unknown }).followUpPractice;
+    if (
+        !followUpPractice
+        || typeof followUpPractice !== "object"
+        || Array.isArray(followUpPractice)
+        || (followUpPractice as { status?: unknown }).status !== "candidate_follow_up_practice_session"
+        || !Array.isArray((followUpPractice as { items?: unknown }).items)
+    ) {
+        return null;
+    }
+
+    return {
+        items: (followUpPractice as { items: unknown[] }).items.filter((item): item is { localSlotId: string } => (
+            Boolean(item)
+            && typeof item === "object"
+            && !Array.isArray(item)
+            && typeof (item as { localSlotId?: unknown }).localSlotId === "string"
+        )),
+    };
 }
 
 function getTargetInterviewId(session: CandidatePracticeSessionRecord) {

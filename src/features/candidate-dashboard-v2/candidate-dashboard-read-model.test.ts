@@ -179,6 +179,12 @@ describe("candidate dashboard V2 read model", () => {
             completedRoundCount: 0,
             answeredQuestionCount: 0,
             coachedAnswerCount: 0,
+            attempts: {
+                sessionAttemptCount: 1,
+                followUpSessionAttemptCount: 0,
+                questionAttemptCount: 1,
+                followUpQuestionAttemptCount: 0,
+            },
         });
         expect(model.latestCoachUpdate).toBeNull();
         expect(model.completedRounds).toEqual([]);
@@ -278,6 +284,68 @@ describe("candidate dashboard V2 read model", () => {
         });
     });
 
+    it("rolls up repeated follow-up practice attempts without counting them as duplicated baseline coverage", () => {
+        const model = createCandidateDashboardV2ReadModel({
+            candidateProfileId: "candidate-1",
+            practiceSessions: [
+                createCompletedSession({
+                    candidatePracticeSessionId: "source-session-1",
+                    completedAt: "2026-07-10T12:00:00.000Z",
+                    answerText: "I kept materials organized.",
+                    focus: "Add the result of the organization work.",
+                }),
+                createCompletedSession({
+                    candidatePracticeSessionId: "follow-up-session-2",
+                    completedAt: "2026-07-11T12:00:00.000Z",
+                    answerText: "I kept materials organized and reduced search time.",
+                    focus: "Name the measurable outcome sooner.",
+                    followUpPractice: {
+                        sourceIntentId: "intent-1",
+                        sessionAttemptNumber: 2,
+                        itemCount: 1,
+                        items: [{
+                            localSlotId: "slot-1",
+                            localQuestionNumber: 1,
+                            candidatePracticeSessionId: "source-session-1",
+                            questionKey: "slot-1",
+                            sourceCandidatePracticeSessionId: "source-session-1",
+                            sourceQuestionKey: "slot-1",
+                            sourceQuestionNumber: 1,
+                            sourceQuestionText: "Tell me about a time you handled warehouse materials.",
+                            sourceCategory: "Behavioral",
+                            questionAttemptNumber: 2,
+                            practiceKind: "practice_from_feedback",
+                        }],
+                    },
+                }),
+            ],
+        });
+
+        expect(model.stats.attempts).toEqual({
+            sessionAttemptCount: 2,
+            followUpSessionAttemptCount: 1,
+            questionAttemptCount: 2,
+            followUpQuestionAttemptCount: 1,
+        });
+        expect(model.selectedTargetInterview?.attempts).toEqual({
+            sessionAttemptCount: 2,
+            followUpSessionAttemptCount: 1,
+            questionAttemptCount: 2,
+            followUpQuestionAttemptCount: 1,
+        });
+        expect(model.postRoundReviews[0].questions).toHaveLength(1);
+        expect(model.postRoundReviews[0].questions[0]).toMatchObject({
+            questionKey: "slot-1",
+            attemptContext: {
+                isFollowUpPractice: true,
+                sessionAttemptNumber: 2,
+                questionAttemptNumber: 2,
+                sourceCandidatePracticeSessionId: "source-session-1",
+                sourceQuestionKey: "slot-1",
+            },
+        });
+    });
+
     it("returns a first-practice next step when the candidate has no completed V2 rounds", () => {
         const model = createCandidateDashboardV2ReadModel({
             candidateProfileId: "candidate-1",
@@ -363,6 +431,7 @@ function createCompletedSession({
     targetRole = "Material Handler I",
     createdAt = "2026-07-11T11:00:00.000Z",
     skippedQuestionCount = 0,
+    followUpPractice,
 }: {
     candidatePracticeSessionId: string;
     completedAt: string;
@@ -371,6 +440,24 @@ function createCompletedSession({
     targetRole?: string;
     createdAt?: string;
     skippedQuestionCount?: number;
+    followUpPractice?: {
+        sourceIntentId: string;
+        sessionAttemptNumber: number;
+        itemCount: number;
+        items: Array<{
+            localSlotId: string;
+            localQuestionNumber: number;
+            candidatePracticeSessionId: string;
+            questionKey: string;
+            sourceCandidatePracticeSessionId: string;
+            sourceQuestionKey: string;
+            sourceQuestionNumber: number;
+            sourceQuestionText: string;
+            sourceCategory: string;
+            questionAttemptNumber: number;
+            practiceKind: "practice_from_feedback" | "practice_missing_evidence";
+        }>;
+    };
 }): CandidatePracticeSessionRecord {
     const questionPlanSnapshot = createCandidateQuestionPlan({
         interviewStage: "first_interview",
@@ -407,11 +494,33 @@ function createCompletedSession({
             questionCount: 1,
             resumeCaptureMode: "none",
             createdAt,
+            ...(followUpPractice
+                ? {
+                    followUpPractice: {
+                        status: "candidate_follow_up_practice_session",
+                        sourceIntentId: followUpPractice.sourceIntentId,
+                        source: "practice_builder",
+                        sessionAttemptNumber: followUpPractice.sessionAttemptNumber,
+                        itemCount: followUpPractice.itemCount,
+                        items: followUpPractice.items,
+                    },
+                }
+                : {}),
         },
         questionPlanSnapshot,
         questionWordingSnapshot: {
             status: "questions_worded",
             questions,
+            ...(followUpPractice
+                ? {
+                    followUpPractice: {
+                        sourceIntentId: followUpPractice.sourceIntentId,
+                        source: "practice_builder",
+                        sessionAttemptNumber: followUpPractice.sessionAttemptNumber,
+                        itemCount: followUpPractice.itemCount,
+                    },
+                }
+                : {}),
         },
         questionWordingStatus: "worded",
         progress: {

@@ -171,7 +171,7 @@ function getFocusedPracticeAction({
             status: "candidate_focused_practice_action",
             kind,
             label: kind === "practice_from_feedback" ? "Practice this focus" : "Practice this question",
-            href: `/candidate/setup?${searchParams.toString()}`,
+            href: `/candidate/practice/ready?${searchParams.toString()}`,
             source: {
                 kind: "coach_update_detail",
                 candidatePracticeSessionId,

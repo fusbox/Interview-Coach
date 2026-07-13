@@ -121,9 +121,9 @@
       <!-- 1.2 Brand -->
       <div class="sub" id="f-brand">
         <div class="subhead"><span class="subnum">1.2</span><h3 class="subtitle">Brand</h3><p class="subpurpose">Blue leads as the single action color; viridian and warm orange are the two accents; TA is the release logo.</p></div>
-        <div class="panel"><iframe class="embed" src="color-brand.html" height="320" title="Brand colors"></iframe></div>
+        <div class="panel"><iframe class="embed" src="color-brand.html" height="410" title="Brand colors"></iframe></div>
         <div class="panel"><iframe class="embed" src="brand-logos.html" height="170" title="Logo usage"></iframe></div>
-        <p class="subnote"><b>Blue (#0B57CE)</b> is the only action color and carries a full interaction set (hover · active · deep · soft). <b>Viridian (#17A079)</b> and <b>warm orange (#E8742E)</b> are accents — base + a soft tint each — used sparingly, never as competing calls-to-action. All variants follow the derivation recipe below.</p>
+        <p class="subnote"><b>Blue (#0B57CE)</b> is the only action color and carries a full interaction set (hover · active · deep · soft · wash). <b>Viridian (#17A079)</b> and <b>warm orange (#E8742E)</b> are accents used sparingly, never as competing calls-to-action. Blue and viridian now include an opaque wash for quiet large surfaces and internal layering. All variants follow the derivation recipe below.</p>
         <p class="rule"><b>Logo rule:</b> release surfaces use the <b>TalentArbor / TA</b> mark. Rangam can remain in parent/provenance copy, but it is not a default in-app logo placement.</p>
       </div>
 
@@ -155,10 +155,11 @@
           <div class="frow"><div class="fk">Active</div><div class="fv"><b>L − 0.10</b> — pressed state.</div></div>
           <div class="frow"><div class="fk">Deep</div><div class="fv"><b>L − 0.14</b> — darker brand shade for headers &amp; gradients (e.g. <b>--candidate-primary-deep</b> / <b>--primary-deep</b>).</div></div>
           <div class="frow"><div class="fk">Soft tint</div><div class="fv"><b>L 0.955, C 0.035</b> — pale background wash for selected states, badges, icon capsules.</div></div>
+          <div class="frow"><div class="fk">Wash</div><div class="fv"><b>L 0.975, C 0.022</b> — quieter opaque tint for large passive surfaces, bento blocks, and internal layering.</div></div>
           <div class="frow"><div class="fk">Focus ring</div><div class="fv"><b>base / 45% alpha</b> — <b>rgb(var(--token) / .45)</b>. Translucent, no new token.</div></div>
           <div class="frow"><div class="fk">Disabled</div><div class="fv"><b>base / 38% alpha</b> — <b>rgb(var(--token) / .38)</b>. Translucent, no new token.</div></div>
         </div>
-        <p class="rule"><b>Provisioning rule:</b> derive only what a surface consumes today. The <b>primary</b> earns the full set (hover · active · deep · soft); <b>accents</b> get base + soft only; the <b>neutral ramp</b> is the one family built out in full up front. Opaque states become named tokens; translucent states use alpha on the base triplet.</p>
+        <p class="rule"><b>Provisioning rule:</b> derive only what a surface consumes today. The <b>primary</b> earns the full interaction set; accents begin with base + soft. A <b>wash</b> is minted only when a large passive surface or internal layer consumes it, as blue and viridian now do. Opaque states become named tokens; translucent states use alpha on the base triplet.</p>
       </div>
 
       <!-- 1.4 Typography -->

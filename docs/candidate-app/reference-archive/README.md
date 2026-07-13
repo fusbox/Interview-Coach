@@ -9,6 +9,7 @@ Use these files to understand V1 behavior, earlier candidate-module planning, or
 
 ## Architecture References
 
+- [Handoff Pre-Compaction Snapshot](handoff-pre-compaction-2026-07-12.md): full detailed handoff and completed-slice ledger before the active handoff was compressed into a resumption contract.
 - [Current Foundation](architecture/current-foundation.md): earlier standalone candidate repo foundation notes.
 - [Candidate-Driven Implementation Plan](architecture/candidate-driven-implementation-plan.md): pre-cleanroom shared-host plan.
 - [Practice Session Draft Contract](architecture/practice-session-draft-contract.md): server-backed `/practice` draft model from the V1/interim candidate app.

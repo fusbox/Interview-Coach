@@ -19,6 +19,14 @@ export type CandidateCompletedRoundSummary = {
     answeredCount: number;
     coachedCount: number;
     skippedOrUnansweredCount: number;
+    attemptContext?: CandidateSessionAttemptContext;
+};
+
+export type CandidateSessionAttemptContext = {
+    isFollowUpPractice: true;
+    sessionAttemptNumber: number;
+    sourceIntentId: string;
+    itemCount: number;
 };
 
 export type CandidateDashboardCoachUpdate = {
@@ -66,6 +74,17 @@ export type CandidatePostRoundReviewQuestion = {
         nextPracticeFocus: string;
         overallBand: "not_enough_evidence" | "emerging" | "clear" | "strong";
     };
+    attemptContext?: CandidateQuestionAttemptContext;
+};
+
+export type CandidateQuestionAttemptContext = {
+    isFollowUpPractice: true;
+    sessionAttemptNumber: number;
+    questionAttemptNumber: number;
+    sourceCandidatePracticeSessionId: string;
+    sourceQuestionKey: string;
+    sourceQuestionNumber: number;
+    practiceKind: "practice_from_feedback" | "practice_missing_evidence";
 };
 
 export type CandidatePracticeNext = {
@@ -85,10 +104,12 @@ export function createCandidateCompletedRoundReadModels(
     }
 
     const completion = session.completionSnapshot;
+    const followUpPractice = readFollowUpPractice(session.setupSnapshot);
     const questions = session.questionWordingSnapshot.questions.map((question) => {
         const answerSubmission = session.answerSubmissions[question.slotId];
         const analysisSnapshot = session.answerAnalysisSnapshots[question.slotId];
         const coachingFacts = analysisSnapshot ? createCandidateAnswerCoachingFacts(analysisSnapshot) : null;
+        const followUpItem = followUpPractice?.items.find((item) => item.localSlotId === question.slotId);
 
         return {
             questionKey: question.slotId,
@@ -115,6 +136,19 @@ export function createCandidateCompletedRoundReadModels(
                     },
                 }
                 : {}),
+            ...(followUpPractice && followUpItem
+                ? {
+                    attemptContext: {
+                        isFollowUpPractice: true as const,
+                        sessionAttemptNumber: followUpPractice.sessionAttemptNumber,
+                        questionAttemptNumber: followUpItem.questionAttemptNumber,
+                        sourceCandidatePracticeSessionId: followUpItem.sourceCandidatePracticeSessionId,
+                        sourceQuestionKey: followUpItem.sourceQuestionKey,
+                        sourceQuestionNumber: followUpItem.sourceQuestionNumber,
+                        practiceKind: followUpItem.practiceKind,
+                    },
+                }
+                : {}),
         };
     });
     const firstCoachedQuestion = questions.find((question) => question.coaching);
@@ -130,6 +164,16 @@ export function createCandidateCompletedRoundReadModels(
             answeredCount: completion.answeredCount,
             coachedCount: completion.coachedCount,
             skippedOrUnansweredCount: completion.skippedOrUnansweredQuestionKeys.length,
+            ...(followUpPractice
+                ? {
+                    attemptContext: {
+                        isFollowUpPractice: true,
+                        sessionAttemptNumber: followUpPractice.sessionAttemptNumber,
+                        sourceIntentId: followUpPractice.sourceIntentId,
+                        itemCount: followUpPractice.itemCount,
+                    },
+                }
+                : {}),
         },
         dashboardUpdate: {
             status: "candidate_dashboard_coach_update_ready",
@@ -162,6 +206,72 @@ export function createCandidateCompletedRoundReadModels(
             questions,
         },
         practiceNext: buildPracticeNext(session, completion.skippedOrUnansweredQuestionKeys, firstCoachedQuestion),
+    };
+}
+
+type FollowUpPracticeSnapshot = {
+    status: "candidate_follow_up_practice_session";
+    sourceIntentId: string;
+    sessionAttemptNumber: number;
+    itemCount: number;
+    items: Array<{
+        localSlotId: string;
+        sourceCandidatePracticeSessionId: string;
+        sourceQuestionKey: string;
+        sourceQuestionNumber: number;
+        questionAttemptNumber: number;
+        practiceKind: "practice_from_feedback" | "practice_missing_evidence";
+    }>;
+};
+
+function readFollowUpPractice(setupSnapshot: unknown): FollowUpPracticeSnapshot | null {
+    if (!setupSnapshot || typeof setupSnapshot !== "object" || Array.isArray(setupSnapshot)) {
+        return null;
+    }
+
+    const followUpPractice = (setupSnapshot as { followUpPractice?: unknown }).followUpPractice;
+    if (!followUpPractice || typeof followUpPractice !== "object" || Array.isArray(followUpPractice)) {
+        return null;
+    }
+
+    const record = followUpPractice as {
+        status?: unknown;
+        sourceIntentId?: unknown;
+        sessionAttemptNumber?: unknown;
+        itemCount?: unknown;
+        items?: unknown;
+    };
+    if (
+        record.status !== "candidate_follow_up_practice_session"
+        || typeof record.sourceIntentId !== "string"
+        || typeof record.sessionAttemptNumber !== "number"
+        || typeof record.itemCount !== "number"
+        || !Array.isArray(record.items)
+    ) {
+        return null;
+    }
+
+    const items = record.items.filter((item): item is FollowUpPracticeSnapshot["items"][number] => (
+        Boolean(item)
+        && typeof item === "object"
+        && !Array.isArray(item)
+        && typeof (item as { localSlotId?: unknown }).localSlotId === "string"
+        && typeof (item as { sourceCandidatePracticeSessionId?: unknown }).sourceCandidatePracticeSessionId === "string"
+        && typeof (item as { sourceQuestionKey?: unknown }).sourceQuestionKey === "string"
+        && typeof (item as { sourceQuestionNumber?: unknown }).sourceQuestionNumber === "number"
+        && typeof (item as { questionAttemptNumber?: unknown }).questionAttemptNumber === "number"
+        && (
+            (item as { practiceKind?: unknown }).practiceKind === "practice_from_feedback"
+            || (item as { practiceKind?: unknown }).practiceKind === "practice_missing_evidence"
+        )
+    ));
+
+    return {
+        status: "candidate_follow_up_practice_session",
+        sourceIntentId: record.sourceIntentId,
+        sessionAttemptNumber: record.sessionAttemptNumber,
+        itemCount: record.itemCount,
+        items,
     };
 }
 

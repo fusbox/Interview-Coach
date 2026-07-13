@@ -31,16 +31,18 @@ npm run db:smoke-candidate-readiness
 
 `db:setup` starts the smoke container, applies all current migrations, and seeds deterministic local candidate identities. `db:smoke-candidate-readiness` reruns the current candidate schema and fixture checks.
 
-### After This Branch Changes `007_candidate_practice_sessions_schema.sql`
+### After This Branch Changes Practice Persistence Migrations
 
-Use this when you already have the smoke DB running and only need the latest V2 practice-session table shape:
+Use this when you already have the smoke DB running and only need the latest V2 practice-session or practice-intent table shape:
 
 ```powershell
 npm run db:apply-candidate-practice-sessions-schema
 npm run db:smoke-candidate-practice-sessions-schema
+npm run db:apply-candidate-practice-intents-schema
+npm run db:smoke-candidate-practice-intents-schema
 ```
 
-For the current slice, this is the important narrow update because `answer_idempotency_json` was added to `candidate_practice_sessions`.
+For the current follow-up practice slices, `candidate_practice_sessions` remains the durable session boundary and `candidate_practice_intents` is the durable ready-round boundary for one-question or multi-question follow-up practice selections.
 
 ### Full Candidate Quality Check
 
@@ -74,9 +76,11 @@ Current candidate V2 local development depends on these scripts:
 | Apply all current migrations | `npm run db:migrate` |
 | Apply only host-launch schema | `npm run db:apply-candidate-host-launch-schema` |
 | Apply only V2 practice-session schema | `npm run db:apply-candidate-practice-sessions-schema` |
+| Apply only V2 practice-intent schema | `npm run db:apply-candidate-practice-intents-schema` |
 | Seed local primary/alternate candidates | `npm run db:seed-candidate-dev` |
 | Validate host-launch schema | `npm run db:smoke-candidate-host-launch-schema` |
 | Validate V2 practice-session schema | `npm run db:smoke-candidate-practice-sessions-schema` |
+| Validate V2 practice-intent schema | `npm run db:smoke-candidate-practice-intents-schema` |
 | Validate local candidate fixtures | `npm run db:smoke-candidate-dev-seed` |
 | Run current candidate DB readiness chain | `npm run db:smoke-candidate-readiness` |
 
@@ -153,7 +157,7 @@ Most likely causes:
 - smoke DB is not running;
 - `.env.local` has `DATABASE_URL` but migrations have not been applied;
 - deterministic candidate fixtures are missing;
-- `007_candidate_practice_sessions_schema.sql` changed but the local table was not updated.
+- a practice persistence migration changed but the local tables were not updated.
 
 Run:
 
@@ -164,11 +168,13 @@ npm run db:seed-candidate-dev
 npm run db:smoke-candidate-readiness
 ```
 
-For a known practice-session migration delta, the narrower check is:
+For a known practice persistence migration delta, the narrower check is:
 
 ```powershell
 npm run db:apply-candidate-practice-sessions-schema
 npm run db:smoke-candidate-practice-sessions-schema
+npm run db:apply-candidate-practice-intents-schema
+npm run db:smoke-candidate-practice-intents-schema
 ```
 
 ### Browser Opens The Session But Data Does Not Recover
@@ -193,7 +199,7 @@ Use those files when comparing against V1 behavior. Do not treat them as current
 For current V2 local development:
 
 - smoke Postgres is running;
-- `db:migrate` has applied through `007_candidate_practice_sessions_schema.sql`;
+- `db:migrate` has applied through `008_candidate_practice_intents_schema.sql`;
 - local candidate dev seed is present;
 - `db:smoke-candidate-readiness` passes;
 - the app is launched with `npm run dev`;

@@ -123,6 +123,51 @@ describe("candidate completed round read model", () => {
         expect(JSON.stringify(model)).not.toMatch(/score|averageScore|oneBigUpgrade|readinessLevel/i);
     });
 
+    it("carries follow-up session and question attempt lineage without treating repeated practice as a new baseline question", () => {
+        const model = createCandidateCompletedRoundReadModels(createCompletedSessionRecord({
+            candidatePracticeSessionId: "follow-up-session-2",
+            followUpPractice: {
+                sourceIntentId: "intent-1",
+                sessionAttemptNumber: 2,
+                itemCount: 1,
+                items: [{
+                    localSlotId: "slot-1",
+                    localQuestionNumber: 1,
+                    candidatePracticeSessionId: "source-session-1",
+                    questionKey: "slot-1",
+                    sourceCandidatePracticeSessionId: "source-session-1",
+                    sourceQuestionKey: "slot-1",
+                    sourceQuestionNumber: 1,
+                    sourceQuestionText: "What interests you about this Material Handler role?",
+                    sourceCategory: "Screening",
+                    questionAttemptNumber: 2,
+                    practiceKind: "practice_from_feedback",
+                }],
+            },
+        }));
+
+        expect(model?.round.attemptContext).toEqual({
+            isFollowUpPractice: true,
+            sessionAttemptNumber: 2,
+            sourceIntentId: "intent-1",
+            itemCount: 1,
+        });
+        expect(model?.postRoundReview.questions).toHaveLength(1);
+        expect(model?.postRoundReview.questions[0]).toMatchObject({
+            questionKey: "slot-1",
+            questionNumber: 1,
+            attemptContext: {
+                isFollowUpPractice: true,
+                sessionAttemptNumber: 2,
+                questionAttemptNumber: 2,
+                sourceCandidatePracticeSessionId: "source-session-1",
+                sourceQuestionKey: "slot-1",
+                sourceQuestionNumber: 1,
+                practiceKind: "practice_from_feedback",
+            },
+        });
+    });
+
     it("returns null when the durable session is not completed or lacks a completion snapshot", () => {
         const completedSession = createCompletedSessionRecord();
 
@@ -137,9 +182,60 @@ describe("candidate completed round read model", () => {
     });
 });
 
-function createCompletedSessionRecord(): CandidatePracticeSessionRecord {
+function createCompletedSessionRecord({
+    candidatePracticeSessionId = "session-1",
+    followUpPractice,
+}: {
+    candidatePracticeSessionId?: string;
+    followUpPractice?: {
+        sourceIntentId: string;
+        sessionAttemptNumber: number;
+        itemCount: number;
+        items: Array<{
+            localSlotId: string;
+            localQuestionNumber: number;
+            candidatePracticeSessionId: string;
+            questionKey: string;
+            sourceCandidatePracticeSessionId: string;
+            sourceQuestionKey: string;
+            sourceQuestionNumber: number;
+            sourceQuestionText: string;
+            sourceCategory: string;
+            questionAttemptNumber: number;
+            practiceKind: "practice_from_feedback" | "practice_missing_evidence";
+        }>;
+    };
+} = {}): CandidatePracticeSessionRecord {
+    const questions = followUpPractice
+        ? [{
+            slotId: "slot-1",
+            index: 0,
+            category: "screening" as const,
+            questionText: "What interests you about this Material Handler role?",
+        }]
+        : [
+            {
+                slotId: "slot-1",
+                index: 0,
+                category: "screening" as const,
+                questionText: "What interests you about this Material Handler role?",
+            },
+            {
+                slotId: "slot-2",
+                index: 1,
+                category: "behavioral" as const,
+                questionText: "Tell me about a time you handled a deadline.",
+            },
+            {
+                slotId: "slot-3",
+                index: 2,
+                category: "case_scenario" as const,
+                questionText: "How would you handle a shipment delay?",
+            },
+        ];
+
     return {
-        candidatePracticeSessionId: "session-1",
+        candidatePracticeSessionId,
         candidateProfileId: "22222222-2222-4222-8222-222222222222",
         roleProfileId: null,
         candidateLaunchSessionId: null,
@@ -152,6 +248,18 @@ function createCompletedSessionRecord(): CandidatePracticeSessionRecord {
             questionCount: 3,
             resumeCaptureMode: "none",
             createdAt: "2026-07-10T22:00:00.000Z",
+            ...(followUpPractice
+                ? {
+                    followUpPractice: {
+                        status: "candidate_follow_up_practice_session",
+                        sourceIntentId: followUpPractice.sourceIntentId,
+                        source: "practice_builder",
+                        sessionAttemptNumber: followUpPractice.sessionAttemptNumber,
+                        itemCount: followUpPractice.itemCount,
+                        items: followUpPractice.items,
+                    },
+                }
+                : {}),
         },
         questionPlanSnapshot: createCandidateQuestionPlan({
             interviewStage: "first_interview",
@@ -159,26 +267,17 @@ function createCompletedSessionRecord(): CandidatePracticeSessionRecord {
         }),
         questionWordingSnapshot: {
             status: "questions_worded",
-            questions: [
-                {
-                    slotId: "slot-1",
-                    index: 0,
-                    category: "screening",
-                    questionText: "What interests you about this Material Handler role?",
-                },
-                {
-                    slotId: "slot-2",
-                    index: 1,
-                    category: "behavioral",
-                    questionText: "Tell me about a time you handled a deadline.",
-                },
-                {
-                    slotId: "slot-3",
-                    index: 2,
-                    category: "case_scenario",
-                    questionText: "How would you handle a shipment delay?",
-                },
-            ],
+            questions,
+            ...(followUpPractice
+                ? {
+                    followUpPractice: {
+                        sourceIntentId: followUpPractice.sourceIntentId,
+                        source: "practice_builder",
+                        sessionAttemptNumber: followUpPractice.sessionAttemptNumber,
+                        itemCount: followUpPractice.itemCount,
+                    },
+                }
+                : {}),
         },
         questionWordingStatus: "worded",
         progress: {
@@ -219,11 +318,11 @@ function createCompletedSessionRecord(): CandidatePracticeSessionRecord {
                 currentQuestionIndex: 2,
             },
             questionCount: 3,
-            answeredCount: 2,
+            answeredCount: followUpPractice ? 1 : 2,
             coachedCount: 1,
             answeredQuestionKeys: ["slot-1", "slot-2"],
             coachedQuestionKeys: ["slot-1"],
-            skippedOrUnansweredQuestionKeys: ["slot-3"],
+            skippedOrUnansweredQuestionKeys: followUpPractice ? [] : ["slot-3"],
             nextRoute: "/candidate/dashboard",
         },
     };

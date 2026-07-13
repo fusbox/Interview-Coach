@@ -225,6 +225,7 @@ export function CandidateSetupExperience({
                         </p>
                     </div>
                 </aside>
+
             </section>
 
             <form className="setup-form app-grid" onSubmit={handleSubmit}>

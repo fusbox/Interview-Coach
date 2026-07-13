@@ -102,11 +102,14 @@
     --candidate-primary-hover: 0 71 189; /* @kind color */
     --candidate-primary-active: 0 54 172; /* @kind color */
     --candidate-primary-deep: 0 40 159; /* @kind color */
+    --candidate-on-primary: 255 255 255; /* @kind color */
     --candidate-primary-soft: 227 241 255; /* @kind color */
+    --candidate-primary-wash: 238 247 255; /* @kind color */
     --candidate-secondary-brand: 232 116 46; /* @kind color */
     --candidate-secondary-soft: 255 234 220; /* @kind color */
     --candidate-accent: 23 160 121; /* @kind color */
     --candidate-accent-soft: 219 248 235; /* @kind color */
+    --candidate-accent-wash: 234 252 244; /* @kind color */
     --candidate-success: 27 160 96; /* @kind color */
 }
 

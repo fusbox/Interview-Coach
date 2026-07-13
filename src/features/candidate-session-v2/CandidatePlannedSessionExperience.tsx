@@ -1,16 +1,12 @@
 "use client";
 
 import {
-    AlertCircle,
     ArrowLeft,
     Camera,
-    CheckCircle2,
-    ClipboardList,
     Keyboard,
     Mic,
     Play,
     SendHorizontal,
-    UserCheck,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -24,8 +20,8 @@ import type {
 } from "./candidate-answer-lifecycle";
 import {
     createCandidateQuestionPlan,
-    type CandidateQuestionPlanSlot,
 } from "./candidate-question-plan";
+import { CandidatePreSessionLanding } from "./CandidatePreSessionLanding";
 import {
     readCandidateProvisionalSession,
     saveCandidateProvisionalSessionProgress,
@@ -34,8 +30,6 @@ import {
     type CandidateProvisionalSessionRecord,
 } from "./candidate-provisional-session-store";
 import {
-    createCandidateQuestionWordingRequest,
-    createCandidateQuestionWordingUnavailableResult,
     createFixtureCandidateQuestionWordingResult,
     parseCandidateQuestionWordingResult,
 } from "./candidate-question-wording";
@@ -115,24 +109,6 @@ export function CandidatePlannedSessionExperience({
             questionCount: session.setupSnapshot.questionCount,
         });
     }, [session]);
-    const questionWordingState = useMemo(() => {
-        if (!session || !questionPlan) {
-            return null;
-        }
-
-        try {
-            return {
-                request: createCandidateQuestionWordingRequest({
-                    setupSnapshot: session.setupSnapshot,
-                    questionPlanSnapshot: questionPlan,
-                    now: new Date(session.setupSnapshot.createdAt),
-                }),
-                unavailable: createCandidateQuestionWordingUnavailableResult(),
-            };
-        } catch {
-            return null;
-        }
-    }, [questionPlan, session]);
     const questionWordingPreview = useMemo(() => {
         if (!session || !questionPlan) {
             return null;
@@ -405,162 +381,21 @@ export function CandidatePlannedSessionExperience({
     }
 
     return (
-        <main className="candidate-design-system planned-session-page">
-            <section className="planned-session-hero app-grid">
-                <div className="planned-session-hero__copy">
-                    <p className="type-eyebrow">Practice session</p>
-                    <h1>{session.setupSnapshot.targetRole}</h1>
-                    <p>
-                        I have the setup details for this round. Next, I will use them to plan questions before the live
-                        session begins.
-                    </p>
-                </div>
-
-                <aside className="planned-session-card planned-session-card--accent" aria-label="Round setup">
-                    <div className="planned-session-card__icon" aria-hidden="true">
-                        <UserCheck size={20} />
-                    </div>
-                    <dl className="planned-session-summary">
-                        <div>
-                            <dt>Stage</dt>
-                            <dd>{stageLabel}</dd>
-                        </div>
-                        <div>
-                            <dt>Questions</dt>
-                            <dd>{session.setupSnapshot.questionCount}</dd>
-                        </div>
-                        <div>
-                            <dt>Resume</dt>
-                            <dd>{session.setupSnapshot.resumeText ? "Included" : "Not included"}</dd>
-                        </div>
-                    </dl>
-                </aside>
-            </section>
-
-            <section className="planned-session-grid app-grid" aria-label="Practice plan">
-                <article className="planned-session-card">
-                    <div className="planned-session-card__icon" aria-hidden="true">
-                        <ClipboardList size={20} />
-                    </div>
-                    <p className="type-eyebrow">Role context</p>
-                    <h2>Job description is ready.</h2>
-                    <p>{session.setupSnapshot.jobDescription}</p>
-                </article>
-
-                <article className="planned-session-card planned-session-card--soft">
-                    <div className="planned-session-card__icon" aria-hidden="true">
-                        <CheckCircle2 size={20} />
-                    </div>
-                    <p className="type-eyebrow">Next boundary</p>
-                    <h2>Question wording comes next.</h2>
-                    <p>
-                        I have the category mix for this round. Next, I will turn it into the questions you can answer
-                        in the live practice session.
-                    </p>
-                </article>
-
-                {questionWordingState ? (
-                    <article className="planned-session-card" aria-label="Question wording status">
-                        <div className="planned-session-card__icon" aria-hidden="true">
-                            <AlertCircle size={20} />
-                        </div>
-                        <p className="type-eyebrow">Wording status</p>
-                        <h2>Question wording request is ready.</h2>
-                        <p>
-                            {questionWordingState.request.questionPlanSnapshot.slots.length} planned slots are ready to
-                            send for wording. Fixture wording is shown below while the production wording service is
-                            still unavailable.
-                        </p>
-                        {questionWordingState.unavailable.reason === "provider_not_configured" ? (
-                            <p>
-                                Start questions can open the carried local wording as a live-session scaffold. Answer
-                                submission and coaching stay unavailable until the answer runtime lands.
-                            </p>
-                        ) : null}
-                    </article>
-                ) : null}
-            </section>
-
-            {questionPlan ? (
-                <section className="planned-question-plan app-grid" aria-labelledby="planned-question-plan-title">
-                    <div className="planned-question-plan__header">
-                        <p className="type-eyebrow">Question plan</p>
-                        <h2 id="planned-question-plan-title">Here is the mix I planned from.</h2>
-                        <p>
-                            This is the category shape for your selected round. Production question wording has not been
-                            generated yet.
-                        </p>
-                    </div>
-
-                    <ol className="planned-question-list">
-                        {questionPlan.slots.map((slot) => (
-                            <li key={slot.id}>
-                                <QuestionPlanSlotView slot={slot} />
-                            </li>
-                        ))}
-                    </ol>
-                </section>
-            ) : null}
-
-            {questionWordingPreview && questionPlan ? (
-                <section className="planned-question-plan app-grid" aria-labelledby="planned-question-preview-title">
-                    <div className="planned-question-plan__header">
-                        <p className="type-eyebrow">Question preview</p>
-                        <h2 id="planned-question-preview-title">Here is the fixture wording for this round.</h2>
-                        <p>
-                            This preview is deterministic local wording mapped to the plan slots. It is not the live
-                            question-generation service.
-                        </p>
-                    </div>
-
-                    <ol className="planned-question-list">
-                        {questionWordingPreview.questions.map((question, index) => (
-                            <li key={question.slotId}>
-                                <QuestionPreviewSlotView
-                                    questionText={question.questionText}
-                                    slot={questionPlan.slots[index]}
-                                />
-                            </li>
-                        ))}
-                    </ol>
-                </section>
-            ) : null}
-
-            <section className="planned-session-footer app-grid" aria-label="Session actions">
-                <button
-                    className="planned-session-secondary"
-                    type="button"
-                    disabled={isCompletingSession}
-                    onClick={finishSession}
-                >
-                    {isCompletingSession ? "Finishing..." : "Finish session"}
-                </button>
-                {questionWordingPreview ? (
-                    <button
-                        className="planned-session-secondary"
-                        type="button"
-                        onClick={() => updateProgress({
-                            status: "question_preview",
-                            currentQuestionIndex: 0,
-                        })}
-                    >
-                        Open first question preview
-                    </button>
-                ) : null}
-                <button
-                    className="planned-session-action"
-                    type="button"
-                    disabled={!questionWordingPreview}
-                    onClick={() => updateProgress({
-                        status: "live_question",
-                        currentQuestionIndex: 0,
-                    })}
-                >
-                    <Play size={16} aria-hidden="true" />
-                    Start questions
-                </button>
-            </section>
-        </main>
+        <CandidatePreSessionLanding
+            variant="initial"
+            targetRole={session.setupSnapshot.targetRole}
+            stageLabel={stageLabel}
+            questionCount={session.setupSnapshot.questionCount}
+            resumeIncluded={Boolean(session.setupSnapshot.resumeText)}
+            onStart={questionWordingPreview ? () => updateProgress({
+                status: "live_question",
+                currentQuestionIndex: 0,
+            }) : undefined}
+            onOpenDevelopmentPreview={questionWordingPreview ? () => updateProgress({
+                status: "question_preview",
+                currentQuestionIndex: 0,
+            }) : undefined}
+        />
     );
 
     function updateProgress(nextProgress: CandidateProvisionalSessionProgress) {
@@ -748,36 +583,6 @@ export function CandidatePlannedSessionExperience({
             setIsCompletingSession(false);
         }
     }
-}
-
-function QuestionPreviewSlotView({
-    questionText,
-    slot,
-}: {
-    questionText: string;
-    slot: CandidateQuestionPlanSlot;
-}) {
-    return (
-        <article className="planned-question-slot">
-            <span className="planned-question-slot__number">Q{slot.index + 1}</span>
-            <div>
-                <h3>{slot.label}</h3>
-                <p>{questionText}</p>
-            </div>
-        </article>
-    );
-}
-
-function QuestionPlanSlotView({ slot }: { slot: CandidateQuestionPlanSlot }) {
-    return (
-        <article className="planned-question-slot">
-            <span className="planned-question-slot__number">Q{slot.index + 1}</span>
-            <div>
-                <h3>{slot.label}</h3>
-                <p>{slot.purpose}</p>
-            </div>
-        </article>
-    );
 }
 
 function getStageLabel(stageId: CandidateSetupStageId) {

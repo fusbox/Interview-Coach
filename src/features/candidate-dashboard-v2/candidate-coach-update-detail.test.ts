@@ -44,7 +44,7 @@ describe("candidate Coach Update detail contract", () => {
                         status: "candidate_focused_practice_action",
                         kind: "practice_from_feedback",
                         label: "Practice this focus",
-                        href: "/candidate/setup?intent=coach-update-feedback-focus&fromSession=session-1&questionKey=slot-1",
+                        href: "/candidate/practice/ready?intent=coach-update-feedback-focus&fromSession=session-1&questionKey=slot-1",
                         source: {
                             kind: "coach_update_detail",
                             candidatePracticeSessionId: "session-1",
@@ -71,7 +71,7 @@ describe("candidate Coach Update detail contract", () => {
                         status: "candidate_focused_practice_action",
                         kind: "practice_missing_evidence",
                         label: "Practice this question",
-                        href: "/candidate/setup?intent=coach-update-missing-evidence&fromSession=session-1&questionKey=slot-2",
+                        href: "/candidate/practice/ready?intent=coach-update-missing-evidence&fromSession=session-1&questionKey=slot-2",
                         source: {
                             kind: "coach_update_detail",
                             candidatePracticeSessionId: "session-1",
@@ -101,7 +101,7 @@ describe("candidate Coach Update detail contract", () => {
             status: "candidate_focused_practice_action",
             kind: "practice_from_feedback",
             label: "Practice this focus",
-            href: "/candidate/setup?intent=coach-update-feedback-focus&fromSession=session-1&questionKey=slot-1",
+            href: "/candidate/practice/ready?intent=coach-update-feedback-focus&fromSession=session-1&questionKey=slot-1",
             source: {
                 kind: "coach_update_detail",
                 candidatePracticeSessionId: "session-1",
@@ -115,7 +115,7 @@ describe("candidate Coach Update detail contract", () => {
             status: "candidate_focused_practice_action",
             kind: "practice_missing_evidence",
             label: "Practice this question",
-            href: "/candidate/setup?intent=coach-update-missing-evidence&fromSession=session-1&questionKey=slot-2",
+            href: "/candidate/practice/ready?intent=coach-update-missing-evidence&fromSession=session-1&questionKey=slot-2",
             source: {
                 kind: "coach_update_detail",
                 candidatePracticeSessionId: "session-1",
