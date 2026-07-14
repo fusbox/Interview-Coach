@@ -124,16 +124,16 @@ describe("/candidate/session/[sessionId]/complete route", () => {
                 answeredQuestionKeys: ["slot-1", "slot-2"],
                 coachedQuestionKeys: ["slot-1"],
                 skippedOrUnansweredQuestionKeys: ["slot-3"],
-                nextRoute: "/candidate/dashboard",
+                nextRoute: "/candidate/dashboard?targetRole=material+handler+i",
             },
-            nextRoute: "/candidate/dashboard",
+            nextRoute: "/candidate/dashboard?targetRole=material+handler+i",
         });
         expect(completeSession).toHaveBeenCalledWith({
             candidatePracticeSessionId: "session-1",
             candidateProfileId: "22222222-2222-4222-8222-222222222222",
             completionSnapshot: expect.objectContaining({
                 status: "candidate_session_completed",
-                nextRoute: "/candidate/dashboard",
+                nextRoute: "/candidate/dashboard?targetRole=material+handler+i",
             }),
         });
     });

@@ -6,11 +6,12 @@ import {
     type CandidatePracticeNext,
 } from "@/features/candidate-session-v2/candidate-completed-round-read-model";
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
-
 import {
     createCandidateCoachUpdateDetail,
+    createCandidateFocusedPracticeHref,
     type CandidateCoachUpdateDetail,
 } from "./candidate-coach-update-detail";
+import { normalizeCandidateTargetInterviewId } from "./candidate-dashboard-route";
 
 export type CandidateDashboardV2ReadModel = {
     status: "candidate_dashboard_v2_read_model";
@@ -200,7 +201,7 @@ function selectTargetInterviewId(
     requestedTargetInterviewId?: string | null,
 ) {
     const availableTargetInterviewIds = new Set(candidateSessions.map(getTargetInterviewId));
-    const normalizedRequestedId = normalizeTargetInterviewId(requestedTargetInterviewId);
+    const normalizedRequestedId = normalizeCandidateTargetInterviewId(requestedTargetInterviewId);
     if (normalizedRequestedId && availableTargetInterviewIds.has(normalizedRequestedId)) {
         return normalizedRequestedId;
     }
@@ -350,11 +351,7 @@ function readFollowUpPractice(setupSnapshot: unknown): FollowUpPracticeSnapshot 
 }
 
 function getTargetInterviewId(session: CandidatePracticeSessionRecord) {
-    return normalizeTargetInterviewId(session.setupSnapshot.targetRole) || "unknown-role";
-}
-
-function normalizeTargetInterviewId(value: string | null | undefined) {
-    return (value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+    return normalizeCandidateTargetInterviewId(session.setupSnapshot.targetRole) || "unknown-role";
 }
 
 function getSessionActivityAt(session: CandidatePracticeSessionRecord) {
@@ -502,6 +499,7 @@ function createPlanProgress({
             body: practiceNext.reason,
             href: practiceNext.href,
             questionKeys: practiceNext.questionKeys,
+            candidatePracticeSessionId: latestCompletedRound?.round.candidatePracticeSessionId,
         };
     }
 
@@ -531,7 +529,11 @@ function createPlanProgress({
 function createCoachGuidedFocus(
     latestCompletedRound: CandidateCompletedRoundReadModels | null,
 ): CandidateDashboardCoachGuidedFocusIndicator | null {
-    const firstCoachedQuestion = latestCompletedRound?.postRoundReview.questions.find((question) => question.coaching);
+    if (!latestCompletedRound) {
+        return null;
+    }
+
+    const firstCoachedQuestion = latestCompletedRound.postRoundReview.questions.find((question) => question.coaching);
     if (!firstCoachedQuestion?.coaching) {
         return null;
     }
@@ -542,7 +544,11 @@ function createCoachGuidedFocus(
         source: "coach_feedback",
         title: firstCoachedQuestion.coaching.nextPracticeFocus,
         body: "Use the latest coach feedback to choose one focused answer pattern to practice next.",
-        href: "/candidate/setup",
+        href: createCandidateFocusedPracticeHref({
+            kind: "practice_from_feedback",
+            candidatePracticeSessionId: latestCompletedRound.round.candidatePracticeSessionId,
+            questionKey: firstCoachedQuestion.questionKey,
+        }),
         questionKeys: [firstCoachedQuestion.questionKey],
     };
 }

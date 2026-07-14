@@ -5,6 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import {
+    toSessionQuestionAudioTarget,
+    type SessionQuestionAudioLifecycle,
+} from "@/features/interview-session-v2/session-question-audio-contract";
+
 export type CandidatePreSessionQuestion = {
     id: string;
     number: number;
@@ -20,11 +25,18 @@ type CandidatePreSessionLandingProps = {
     resumeIncluded: boolean;
     candidateFirstName?: string;
     questions?: CandidatePreSessionQuestion[];
+    sessionId?: string;
+    firstQuestion?: CandidatePreSessionQuestion;
+    questionAudio?: SessionQuestionAudioLifecycle;
     startActionUrl?: string;
     onStart?: () => void;
     returnHref?: string;
     onOpenDevelopmentPreview?: () => void;
+    manageTransitionExternally?: boolean;
 };
+
+export const CANDIDATE_PRACTICE_ENTRY_HOLD_MS = 1_250;
+export const CANDIDATE_PRACTICE_ENTRY_FADE_MS = 420;
 
 export function CandidatePreSessionLanding({
     variant,
@@ -34,13 +46,16 @@ export function CandidatePreSessionLanding({
     resumeIncluded,
     candidateFirstName,
     questions = [],
+    sessionId,
+    firstQuestion,
+    questionAudio,
     startActionUrl,
     onStart,
     returnHref,
     onOpenDevelopmentPreview,
+    manageTransitionExternally = false,
 }: CandidatePreSessionLandingProps) {
     const [isPreparing, setIsPreparing] = useState(false);
-    const formRef = useRef<HTMLFormElement>(null);
     const transitionTimerRef = useRef<number | null>(null);
     const isFollowUp = variant === "follow_up";
     const isInvited = variant === "invited";
@@ -62,23 +77,27 @@ export function CandidatePreSessionLanding({
         }
     }, []);
 
-    if (isPreparing) {
-        return (
-            <main className="candidate-pre-session candidate-app-shell candidate-pre-session--transition">
-                <section className="candidate-pre-session__transition" aria-live="polite" aria-busy="true">
-                    <span className="candidate-pre-session__loader" aria-hidden="true">
-                        <Sparkles size={24} />
-                    </span>
-                    <p className="type-eyebrow">Practice is next</p>
-                    <h1>Getting your practice ready.</h1>
-                    <p>I&apos;m bringing your questions and round context together. You&apos;ll begin in a moment.</p>
-                </section>
-            </main>
-        );
-    }
+    useEffect(() => {
+        if (!questionAudio || !sessionId || !firstQuestion) {
+            return;
+        }
+
+        questionAudio.prefetch(toSessionQuestionAudioTarget({
+            sessionId,
+            question: {
+                questionKey: firstQuestion.id,
+                questionText: firstQuestion.questionText,
+            },
+        }));
+    }, [firstQuestion, questionAudio, sessionId]);
 
     return (
-        <main className="candidate-pre-session candidate-app-shell">
+        <>
+        <main
+            className="candidate-pre-session candidate-app-shell"
+            inert={isPreparing ? true : undefined}
+            aria-hidden={isPreparing || undefined}
+        >
             <header className="candidate-pre-session__brand app-grid" aria-label="TalentArbor">
                 <Image
                     src="/TA-logo.webp"
@@ -180,14 +199,9 @@ export function CandidatePreSessionLanding({
                 <section className="candidate-pre-session__actions" aria-label="Practice actions">
                     {startActionUrl ? (
                         <form
-                            ref={formRef}
                             aria-label="Start follow-up practice"
                             action={startActionUrl}
                             method="post"
-                            onSubmit={(event) => {
-                                event.preventDefault();
-                                beginPreparing(() => formRef.current?.submit());
-                            }}
                         >
                             <button className="candidate-button candidate-button--primary" type="submit">
                                 <Play size={16} aria-hidden="true" />
@@ -230,6 +244,8 @@ export function CandidatePreSessionLanding({
                 ) : null}
             </div>
         </main>
+        {isPreparing ? <CandidatePracticeEntryTransitionOverlay isReleasing={false} /> : null}
+        </>
     );
 
     function beginPreparing(continueToPractice?: () => void) {
@@ -237,7 +253,42 @@ export function CandidatePreSessionLanding({
             return;
         }
 
+        void questionAudio?.unlock();
+        if (manageTransitionExternally) {
+            continueToPractice();
+            return;
+        }
+
         setIsPreparing(true);
-        transitionTimerRef.current = window.setTimeout(continueToPractice, 450);
+        transitionTimerRef.current = window.setTimeout(continueToPractice, CANDIDATE_PRACTICE_ENTRY_HOLD_MS);
     }
+}
+
+export function CandidatePracticeEntryTransitionOverlay({
+    isReleasing,
+}: {
+    isReleasing: boolean;
+}) {
+    return (
+        <div
+            className={`candidate-practice-entry-overlay${isReleasing ? " is-releasing" : ""}`}
+            aria-live="polite"
+            aria-busy={!isReleasing}
+        >
+            <CandidatePracticeEntryTransitionContent />
+        </div>
+    );
+}
+
+function CandidatePracticeEntryTransitionContent() {
+    return (
+        <section className="candidate-pre-session__transition">
+            <span className="candidate-pre-session__loader" aria-hidden="true">
+                <Sparkles size={24} />
+            </span>
+            <p className="type-eyebrow">Practice round</p>
+            <h1>Entering practice space</h1>
+            <p>Your first question is ready. You&apos;ll begin in a moment.</p>
+        </section>
+    );
 }

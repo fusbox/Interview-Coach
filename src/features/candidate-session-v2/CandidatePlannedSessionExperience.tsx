@@ -1,15 +1,10 @@
 "use client";
 
-import {
-    ArrowLeft,
-    Camera,
-    Keyboard,
-    Mic,
-    Play,
-    SendHorizontal,
-} from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { SharedLivePracticeShell } from "@/features/interview-session-v2/SharedLivePracticeShell";
+import { createSessionRuntimeFacts } from "@/features/interview-session-v2/session-runtime-facts";
 import {
     candidateSetupStageOptions,
     type CandidateSetupStageId,
@@ -17,11 +12,18 @@ import {
 import type {
     CandidateAnswerDraft,
     CandidateAnswerDrafts,
+    CandidateAnswerSubmissions,
 } from "./candidate-answer-lifecycle";
+import { createCandidateAnswerCoachingFacts } from "./candidate-coaching-facts";
 import {
     createCandidateQuestionPlan,
 } from "./candidate-question-plan";
-import { CandidatePreSessionLanding } from "./CandidatePreSessionLanding";
+import {
+    CANDIDATE_PRACTICE_ENTRY_FADE_MS,
+    CANDIDATE_PRACTICE_ENTRY_HOLD_MS,
+    CandidatePracticeEntryTransitionOverlay,
+    CandidatePreSessionLanding,
+} from "./CandidatePreSessionLanding";
 import {
     readCandidateProvisionalSession,
     saveCandidateProvisionalSessionProgress,
@@ -38,12 +40,14 @@ type CandidatePlannedSessionExperienceProps = {
     sessionId: string;
     dashboardHref: string;
     initialSession?: CandidateProvisionalSessionRecord | null;
+    entryTransitionRequested?: boolean;
 };
 
 export function CandidatePlannedSessionExperience({
     sessionId,
     dashboardHref,
     initialSession = null,
+    entryTransitionRequested = false,
 }: CandidatePlannedSessionExperienceProps) {
     const [session, setSession] = useState<CandidateProvisionalSessionRecord | null>(initialSession);
     const [hasCheckedStorage, setHasCheckedStorage] = useState(Boolean(initialSession));
@@ -52,6 +56,9 @@ export function CandidatePlannedSessionExperience({
         currentQuestionIndex: initialSession?.progress?.currentQuestionIndex ?? 0,
     });
     const [answerDrafts, setAnswerDrafts] = useState<CandidateAnswerDrafts>(initialSession?.answerDrafts ?? {});
+    const [answerSubmissions, setAnswerSubmissions] = useState<CandidateAnswerSubmissions>(
+        initialSession?.answerSubmissions ?? {},
+    );
     const [answerAnalysisSnapshots, setAnswerAnalysisSnapshots] = useState<CandidateAnswerAnalysisSnapshots>(
         initialSession?.answerAnalysisSnapshots ?? {},
     );
@@ -59,7 +66,26 @@ export function CandidatePlannedSessionExperience({
     const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
     const [sessionCompletionMessage, setSessionCompletionMessage] = useState<string | null>(null);
     const [isCompletingSession, setIsCompletingSession] = useState(false);
+    const [entryTransitionPhase, setEntryTransitionPhase] = useState<"entering" | "releasing" | null>(
+        entryTransitionRequested ? "entering" : null,
+    );
     const loadedSessionIdRef = useRef<string | null>(initialSession ? sessionId : null);
+    const routedEntryTransitionRef = useRef(entryTransitionRequested);
+    const entryHoldTimerRef = useRef<number | null>(null);
+    const entryReleaseTimerRef = useRef<number | null>(null);
+    const entryFrameOneRef = useRef<number | null>(null);
+    const entryFrameTwoRef = useRef<number | null>(null);
+
+    const releasePracticeEntryTransition = useCallback(() => {
+        entryFrameOneRef.current = window.requestAnimationFrame(() => {
+            entryFrameTwoRef.current = window.requestAnimationFrame(() => {
+                setEntryTransitionPhase("releasing");
+                entryReleaseTimerRef.current = window.setTimeout(() => {
+                    setEntryTransitionPhase(null);
+                }, CANDIDATE_PRACTICE_ENTRY_FADE_MS);
+            });
+        });
+    }, []);
 
     useEffect(() => {
         if (loadedSessionIdRef.current === sessionId) {
@@ -78,6 +104,7 @@ export function CandidatePlannedSessionExperience({
                 currentQuestionIndex: 0,
             });
             setAnswerDrafts(initialSession.answerDrafts ?? {});
+            setAnswerSubmissions(initialSession.answerSubmissions ?? {});
             setAnswerAnalysisSnapshots(initialSession.answerAnalysisSnapshots ?? {});
             window.scrollTo({ top: 0 });
             return;
@@ -91,6 +118,7 @@ export function CandidatePlannedSessionExperience({
             currentQuestionIndex: 0,
         });
         setAnswerDrafts(storedSession?.answerDrafts ?? {});
+        setAnswerSubmissions(storedSession?.answerSubmissions ?? {});
         setAnswerAnalysisSnapshots(storedSession?.answerAnalysisSnapshots ?? {});
         window.scrollTo({ top: 0 });
     }, [initialSession, sessionId]);
@@ -127,6 +155,121 @@ export function CandidatePlannedSessionExperience({
             return null;
         }
     }, [questionPlan, session]);
+    const runtimeFacts = useMemo(() => {
+        if (!session || !questionWordingPreview) {
+            return null;
+        }
+
+        return createSessionRuntimeFacts({
+            audience: "candidate_led",
+            sessionId,
+            targetRole: session.setupSnapshot.targetRole,
+            interviewStage: session.setupSnapshot.interviewStage,
+            questionCount: questionWordingPreview.questions.length,
+            currentQuestionIndex: progress.currentQuestionIndex,
+            questions: questionWordingPreview.questions.map((question) => {
+                const answerSubmission = answerSubmissions[question.slotId];
+                const analysisSnapshot = answerAnalysisSnapshots[question.slotId];
+
+                return {
+                    questionKey: question.slotId,
+                    questionIndex: question.index,
+                    category: question.category,
+                    questionText: question.questionText,
+                    ...(answerSubmission ? {
+                        answer: {
+                            mode: answerSubmission.mode,
+                            text: answerSubmission.text,
+                            submittedAt: answerSubmission.submittedAt,
+                            lifecycleStatus: analysisSnapshot ? "analysis_saved" as const : "pending_analysis" as const,
+                        },
+                    } : {}),
+                    ...(analysisSnapshot ? {
+                        coachingFacts: createCandidateAnswerCoachingFacts(analysisSnapshot),
+                    } : {}),
+                };
+            }),
+            completionBehavior: {
+                kind: "candidate_dashboard",
+                dashboardHref,
+            },
+        });
+    }, [
+        answerAnalysisSnapshots,
+        answerSubmissions,
+        dashboardHref,
+        progress.currentQuestionIndex,
+        questionWordingPreview,
+        session,
+        sessionId,
+    ]);
+
+    useEffect(() => {
+        if (progress.status !== "question_preview") {
+            return;
+        }
+
+        const nextProgress: CandidateProvisionalSessionProgress = {
+            status: "live_question",
+            currentQuestionIndex: progress.currentQuestionIndex,
+        };
+        setProgress(nextProgress);
+        saveCandidateProvisionalSessionProgress(window.sessionStorage, sessionId, nextProgress);
+
+        if (initialSession) {
+            void fetch(`/candidate/session/${encodeURIComponent(sessionId)}/progress`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(nextProgress),
+            }).catch(() => undefined);
+        }
+    }, [initialSession, progress.currentQuestionIndex, progress.status, sessionId]);
+
+    useEffect(() => {
+        setAnswerSubmitMessage(null);
+        setSessionCompletionMessage(null);
+    }, [progress.currentQuestionIndex]);
+
+    useEffect(() => {
+        if (!routedEntryTransitionRef.current) {
+            return;
+        }
+
+        routedEntryTransitionRef.current = false;
+        const url = new URL(window.location.href);
+        url.searchParams.delete("entry");
+        window.history.replaceState(
+            window.history.state,
+            "",
+            `${url.pathname}${url.search}${url.hash}`,
+        );
+
+        entryHoldTimerRef.current = window.setTimeout(
+            releasePracticeEntryTransition,
+            CANDIDATE_PRACTICE_ENTRY_HOLD_MS,
+        );
+    }, [releasePracticeEntryTransition]);
+
+    useEffect(() => () => {
+        if (entryHoldTimerRef.current !== null) {
+            window.clearTimeout(entryHoldTimerRef.current);
+        }
+        if (entryReleaseTimerRef.current !== null) {
+            window.clearTimeout(entryReleaseTimerRef.current);
+        }
+        if (entryFrameOneRef.current !== null) {
+            window.cancelAnimationFrame(entryFrameOneRef.current);
+        }
+        if (entryFrameTwoRef.current !== null) {
+            window.cancelAnimationFrame(entryFrameTwoRef.current);
+        }
+    }, []);
+
+    const entryTransition = entryTransitionPhase ? (
+        <CandidatePracticeEntryTransitionOverlay isReleasing={entryTransitionPhase === "releasing"} />
+    ) : null;
 
     if (!hasCheckedStorage) {
         return (
@@ -158,244 +301,117 @@ export function CandidatePlannedSessionExperience({
         );
     }
 
-    if ((progress.status === "question_preview" || progress.status === "live_question") && questionWordingPreview) {
-        const activeQuestionIndex = Math.min(
-            progress.currentQuestionIndex,
-            Math.max(questionWordingPreview.questions.length - 1, 0),
-        );
+    if (
+        (progress.status === "question_preview" || progress.status === "live_question")
+        && questionWordingPreview
+        && runtimeFacts
+    ) {
+        const activeQuestionIndex = runtimeFacts.currentQuestionIndex;
         const activeQuestion = questionWordingPreview.questions[activeQuestionIndex];
-        const activeSlot = questionPlan?.slots[activeQuestion.index] ?? null;
-        const isLiveQuestion = progress.status === "live_question";
         const activeDraftText = answerDrafts[activeQuestion.slotId]?.text ?? "";
         const activeAnalysisSnapshot = answerAnalysisSnapshots[activeQuestion.slotId] ?? null;
         const isLastQuestion = activeQuestionIndex >= questionWordingPreview.questions.length - 1;
-
-        return (
-            <main className="candidate-design-system planned-session-page">
-                <section className="planned-live-question app-grid" aria-labelledby="planned-live-question-title">
-                    <div className="planned-question-plan__header">
-                        <p className="type-eyebrow">{isLiveQuestion ? "Practice question" : "Question preview"}</p>
-                        <h1 id="planned-live-question-title">
-                            Question {activeQuestion.index + 1} of {questionWordingPreview.questions.length}
-                        </h1>
-                        {isLiveQuestion ? (
-                            <p>
-                                Live practice has started. Answer this question, review the coaching, then continue
-                                when you are ready.
-                            </p>
-                        ) : (
-                            <p>
-                                This is a read-only question preview from the carried wording snapshot. Answer
-                                submission and coaching start when you enter live practice.
-                            </p>
-                        )}
+        const feedbackContent = activeAnalysisSnapshot ? (
+            <section className="candidate-live-feedback" aria-labelledby="coach-feedback-title">
+                <header>
+                    <p className="type-eyebrow">Coaching</p>
+                    <h2 id="coach-feedback-title">Coach feedback</h2>
+                </header>
+                <dl className="planned-session-summary">
+                    <div>
+                        <dt>What worked</dt>
+                        <dd>{activeAnalysisSnapshot.coachFeedback.acknowledgement}</dd>
                     </div>
-
-                    <article className="planned-live-question__card">
-                        <p className="type-eyebrow">{activeSlot?.label ?? "Question"}</p>
-                        <h2>{activeQuestion.questionText}</h2>
-                        {isLiveQuestion ? (
-                            <p>
-                                This started state preserves the question position for pause and resume.
-                            </p>
-                        ) : (
-                            <p>
-                                When the live runtime lands, this surface will collect your answer and guide the next
-                                step. For now, it only proves the question handoff.
-                            </p>
-                        )}
-                    </article>
-
-                    <section className="answer-draft-shell" aria-labelledby="answer-draft-title">
-                        <div className="answer-draft-shell__header">
-                            <div>
-                                <p className="type-eyebrow">Answer draft</p>
-                                <h2 id="answer-draft-title">Try your answer here.</h2>
-                            </div>
-                            <div className="answer-draft-shell__modes" aria-label="Answer mode">
-                                <button type="button" aria-pressed="true">
-                                    <Keyboard size={16} aria-hidden="true" />
-                                    Type answer
-                                </button>
-                                <button type="button" disabled>
-                                    <Mic size={16} aria-hidden="true" />
-                                    Record answer
-                                </button>
-                                <button type="button" disabled>
-                                    <Camera size={16} aria-hidden="true" />
-                                    Add photo notes
-                                </button>
-                            </div>
-                        </div>
-
-                        <label className="answer-draft-shell__field">
-                            <span>Draft answer</span>
-                            <textarea
-                                value={activeDraftText}
-                                onChange={(event) => updateAnswerDraft({
-                                    slotId: activeQuestion.slotId,
-                                    questionIndex: activeQuestion.index,
-                                    text: event.target.value,
-                                })}
-                                rows={7}
-                                placeholder="Write your answer here."
-                            />
-                        </label>
-
-                        <div className="answer-draft-shell__footer">
-                            <p>
-                                {answerSubmitMessage
-                                    ?? "Drafts save as you write. Submit when you are ready for coaching."}
-                            </p>
-                            <button
-                                className="planned-session-action"
-                                type="button"
-                                disabled={!isLiveQuestion || !activeDraftText.trim() || isSubmittingAnswer}
-                                onClick={() => submitAnswerDraft({
-                                    slotId: activeQuestion.slotId,
-                                    questionIndex: activeQuestion.index,
-                                    text: activeDraftText,
-                                })}
-                            >
-                                <SendHorizontal size={16} aria-hidden="true" />
-                                Submit answer
-                            </button>
-                        </div>
-                    </section>
-
-                    {activeAnalysisSnapshot ? (
-                        <section className="answer-draft-shell" aria-labelledby="coach-feedback-title">
-                            <div className="answer-draft-shell__header">
-                                <div>
-                                    <p className="type-eyebrow">Coaching</p>
-                                    <h2 id="coach-feedback-title">Coach feedback</h2>
-                                </div>
-                            </div>
-                            <dl className="planned-session-summary">
-                                <div>
-                                    <dt>What worked</dt>
-                                    <dd>{activeAnalysisSnapshot.coachFeedback.acknowledgement}</dd>
-                                </div>
-                                <div>
-                                    <dt>What to strengthen</dt>
-                                    <dd>{activeAnalysisSnapshot.coachFeedback.observation}</dd>
-                                </div>
-                                <div>
-                                    <dt>Practice next</dt>
-                                    <dd>{activeAnalysisSnapshot.coachFeedback.nextPracticeFocus}</dd>
-                                </div>
-                            </dl>
-                            <div className="answer-draft-shell__footer">
-                                <p>
-                                    {isLastQuestion
-                                        ? "You have reached the end of this round."
-                                        : "Keep going when you are ready for the next question."}
-                                </p>
-                                {isLastQuestion ? (
-                                    <button
-                                        className="planned-session-action"
-                                        type="button"
-                                        disabled={isCompletingSession}
-                                        onClick={finishSession}
-                                    >
-                                        {isCompletingSession ? "Finishing..." : "Finish session"}
-                                    </button>
-                                ) : (
-                                    <button
-                                        className="planned-session-action"
-                                        type="button"
-                                        onClick={() => updateProgress({
-                                            status: "live_question",
-                                            currentQuestionIndex: activeQuestionIndex + 1,
-                                        })}
-                                    >
-                                        Continue to next question
-                                    </button>
-                                )}
-                            </div>
-                            {sessionCompletionMessage ? (
-                                <p className="planned-session-status" role="alert">
-                                    {sessionCompletionMessage}
-                                </p>
-                            ) : null}
-                        </section>
-                    ) : null}
-                </section>
-
-                <section className="planned-session-footer app-grid" aria-label="Question preview actions">
-                    <button
-                        className="planned-session-secondary"
-                        type="button"
-                        onClick={() => updateProgress({
-                            status: "planned",
-                            currentQuestionIndex: activeQuestionIndex,
-                        })}
-                    >
-                        Back to plan
-                    </button>
-                    {isLiveQuestion ? null : (
-                        <>
-                            <button
-                                className="planned-session-secondary"
-                                type="button"
-                                disabled={activeQuestionIndex === 0}
-                                onClick={() => updateProgress({
-                                    status: progress.status,
-                                    currentQuestionIndex: Math.max(activeQuestionIndex - 1, 0),
-                                })}
-                            >
-                                Previous question preview
-                            </button>
-                            <button
-                                className="planned-session-secondary"
-                                type="button"
-                                disabled={activeQuestionIndex >= questionWordingPreview.questions.length - 1}
-                                onClick={() => updateProgress({
-                                    status: progress.status,
-                                    currentQuestionIndex: Math.min(
-                                        activeQuestionIndex + 1,
-                                        questionWordingPreview.questions.length - 1,
-                                    ),
-                                })}
-                            >
-                                Next question preview
-                            </button>
-                        </>
-                    )}
-                    {isLiveQuestion ? null : (
+                    <div>
+                        <dt>What to strengthen</dt>
+                        <dd>{activeAnalysisSnapshot.coachFeedback.observation}</dd>
+                    </div>
+                    <div>
+                        <dt>Practice next</dt>
+                        <dd>{activeAnalysisSnapshot.coachFeedback.nextPracticeFocus}</dd>
+                    </div>
+                </dl>
+                <footer>
+                    <p>
+                        {isLastQuestion
+                            ? "You have reached the end of this round."
+                            : "Keep going when you are ready for the next question."}
+                    </p>
+                    {isLastQuestion ? (
                         <button
-                            className="planned-session-action"
+                            className="candidate-button candidate-button--primary"
+                            type="button"
+                            disabled={isCompletingSession}
+                            onClick={finishSession}
+                        >
+                            {isCompletingSession ? "Finishing..." : "Finish session"}
+                        </button>
+                    ) : (
+                        <button
+                            className="candidate-button candidate-button--primary"
                             type="button"
                             onClick={() => updateProgress({
                                 status: "live_question",
-                                currentQuestionIndex: activeQuestionIndex,
+                                currentQuestionIndex: activeQuestionIndex + 1,
                             })}
                         >
-                            <Play size={16} aria-hidden="true" />
-                            Start questions
+                            Continue to next question
                         </button>
                     )}
-                </section>
-            </main>
+                </footer>
+                {sessionCompletionMessage ? (
+                    <p className="planned-session-status" role="alert">
+                        {sessionCompletionMessage}
+                    </p>
+                ) : null}
+            </section>
+        ) : null;
+
+        return (
+            <>
+                <SharedLivePracticeShell
+                    facts={runtimeFacts}
+                    answerMode="text"
+                    draftText={activeDraftText}
+                    isSubmitting={isSubmittingAnswer}
+                    statusMessage={answerSubmitMessage}
+                    feedbackContent={feedbackContent}
+                    onDraftChange={(text) => updateAnswerDraft({
+                        slotId: activeQuestion.slotId,
+                        questionIndex: activeQuestion.index,
+                        text,
+                    })}
+                    onSubmit={() => submitAnswerDraft({
+                        slotId: activeQuestion.slotId,
+                        questionIndex: activeQuestion.index,
+                        text: activeDraftText,
+                    })}
+                />
+                {entryTransition}
+            </>
         );
     }
 
     return (
-        <CandidatePreSessionLanding
-            variant="initial"
-            targetRole={session.setupSnapshot.targetRole}
-            stageLabel={stageLabel}
-            questionCount={session.setupSnapshot.questionCount}
-            resumeIncluded={Boolean(session.setupSnapshot.resumeText)}
-            onStart={questionWordingPreview ? () => updateProgress({
-                status: "live_question",
-                currentQuestionIndex: 0,
-            }) : undefined}
-            onOpenDevelopmentPreview={questionWordingPreview ? () => updateProgress({
-                status: "question_preview",
-                currentQuestionIndex: 0,
-            }) : undefined}
-        />
+        <>
+            <CandidatePreSessionLanding
+                variant="initial"
+                targetRole={session.setupSnapshot.targetRole}
+                stageLabel={stageLabel}
+                questionCount={session.setupSnapshot.questionCount}
+                resumeIncluded={Boolean(session.setupSnapshot.resumeText)}
+                sessionId={sessionId}
+                firstQuestion={questionWordingPreview?.questions[0] ? {
+                    id: questionWordingPreview.questions[0].slotId,
+                    number: 1,
+                    category: questionWordingPreview.questions[0].category,
+                    questionText: questionWordingPreview.questions[0].questionText,
+                } : undefined}
+                manageTransitionExternally
+                onStart={questionWordingPreview ? beginPracticeEntryTransition : undefined}
+            />
+            {entryTransition}
+        </>
     );
 
     function updateProgress(nextProgress: CandidateProvisionalSessionProgress) {
@@ -413,6 +429,21 @@ export function CandidatePlannedSessionExperience({
             },
             body: JSON.stringify(nextProgress),
         });
+    }
+
+    function beginPracticeEntryTransition() {
+        if (entryTransitionPhase) {
+            return;
+        }
+
+        setEntryTransitionPhase("entering");
+        entryHoldTimerRef.current = window.setTimeout(() => {
+            updateProgress({
+                status: "live_question",
+                currentQuestionIndex: 0,
+            });
+            releasePracticeEntryTransition();
+        }, CANDIDATE_PRACTICE_ENTRY_HOLD_MS);
     }
 
     function updateAnswerDraft({
@@ -485,8 +516,14 @@ export function CandidatePlannedSessionExperience({
                     text,
                 }),
             });
-            const result = await response.json().catch(() => null) as { status?: string } | null;
+            const result = await response.json().catch(() => null) as {
+                status?: string;
+                answerSubmissions?: CandidateAnswerSubmissions;
+            } | null;
             if (result?.status === "answer_submit_saved") {
+                if (result.answerSubmissions) {
+                    setAnswerSubmissions(result.answerSubmissions);
+                }
                 await requestAnswerAnalysis({
                     slotId,
                 });

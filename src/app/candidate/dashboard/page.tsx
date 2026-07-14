@@ -1,4 +1,5 @@
 import { ArrowRight, BadgeCheck, CircleDashed, MessageSquareQuote } from "lucide-react";
+import { redirect } from "next/navigation";
 
 import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-v2/host-launch-route";
 import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidate-auth-v2/dev-host-launch-cookie-identity";
@@ -7,6 +8,11 @@ import {
     createCandidateDashboardV2ReadModel,
     type CandidateDashboardV2ReadModel,
 } from "@/features/candidate-dashboard-v2/candidate-dashboard-read-model";
+import { CandidatePlanProgressAction } from "@/features/candidate-dashboard-v2/CandidatePlanProgressAction";
+import {
+    createCandidateDashboardHref,
+    normalizeCandidateTargetInterviewId,
+} from "@/features/candidate-dashboard-v2/candidate-dashboard-route";
 import {
     createCandidatePracticeSessionRepository,
 } from "@/features/candidate-session-v2/candidate-practice-session-repository";
@@ -21,6 +27,7 @@ export default async function CandidateDashboardPage({ searchParams }: Candidate
     return renderCandidateDashboardPage({
         dependencies: createDefaultCandidateDashboardPageDependencies(),
         selectedTargetInterviewId: readSearchParam(resolvedSearchParams.targetRole),
+        canonicalizeSelection: true,
     });
 }
 
@@ -33,13 +40,23 @@ type CandidateDashboardPageDependencies = {
 export async function renderCandidateDashboardPage({
     dependencies = {},
     selectedTargetInterviewId = null,
+    canonicalizeSelection = false,
 }: {
     dependencies?: CandidateDashboardPageDependencies;
     selectedTargetInterviewId?: string | null;
+    canonicalizeSelection?: boolean;
 }) {
     const dashboard = dependencies.resolveDashboardModel
         ? await dependencies.resolveDashboardModel({ selectedTargetInterviewId })
         : null;
+
+    if (
+        canonicalizeSelection
+        && dashboard?.selectedTargetInterview
+        && normalizeCandidateTargetInterviewId(selectedTargetInterviewId) !== dashboard.selectedTargetInterview.id
+    ) {
+        redirect(createCandidateDashboardHref(dashboard.selectedTargetInterview.id));
+    }
 
     return <CandidateDashboardHome dashboard={dashboard} />;
 }
@@ -112,10 +129,10 @@ function CandidateDashboardLearningLoop({ dashboard }: { dashboard: CandidateDas
                         <p className="candidate-loop-panel__title">{planProgress.title}</p>
                         <p>{planProgress.body}</p>
                         {primaryAction !== "practice_from_feedback" ? (
-                            <a className="candidate-dashboard-action" href={planProgress.href}>
-                                {getPlanProgressActionLabel(planProgress.source)}
-                                <ArrowRight size={16} aria-hidden="true" />
-                            </a>
+                            <CandidatePlanProgressAction
+                                planProgress={planProgress}
+                                label={getPlanProgressActionLabel(planProgress.source)}
+                            />
                         ) : null}
                     </article>
 
@@ -421,8 +438,7 @@ function CandidateDashboardTargetContext({ dashboard }: { dashboard: CandidateDa
 }
 
 function createDashboardTargetInterviewHref(targetInterviewId: string) {
-    const searchParams = new URLSearchParams({ targetRole: targetInterviewId });
-    return `/candidate/dashboard?${searchParams.toString()}`;
+    return createCandidateDashboardHref(targetInterviewId);
 }
 
 function formatTargetInterviewProgress(targetInterview: CandidateDashboardV2ReadModel["targetInterviews"][number]) {

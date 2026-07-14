@@ -1,6 +1,7 @@
 import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-v2/host-launch-route";
 import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidate-auth-v2/dev-host-launch-cookie-identity";
 import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-auth-v2/production-host-launch-runtime";
+import { createCandidateDashboardHref } from "@/features/candidate-dashboard-v2/candidate-dashboard-route";
 import { CandidatePlannedSessionExperience } from "@/features/candidate-session-v2/CandidatePlannedSessionExperience";
 import type { CandidateProvisionalSessionRecord } from "@/features/candidate-session-v2/candidate-provisional-session-store";
 import {
@@ -14,9 +15,20 @@ import {
     resolveSessionCompletionTarget,
 } from "@/features/session-v2/session-domain";
 
-export default async function CandidateSessionPage({ params }: { params: Promise<{ sessionId: string }> }) {
+type CandidateSessionPageSearchParams = {
+    entry?: string | string[];
+};
+
+export default async function CandidateSessionPage({
+    params,
+    searchParams,
+}: {
+    params: Promise<{ sessionId: string }>;
+    searchParams?: Promise<CandidateSessionPageSearchParams>;
+}) {
     return renderCandidateSessionPage({
         params,
+        searchParams,
         dependencies: createDefaultCandidateSessionPageDependencies(),
     });
 }
@@ -29,30 +41,40 @@ type CandidateSessionPageDependencies = {
 
 export async function renderCandidateSessionPage({
     params,
+    searchParams,
     dependencies = {},
 }: {
     params: Promise<{ sessionId: string }>;
+    searchParams?: Promise<CandidateSessionPageSearchParams> | CandidateSessionPageSearchParams;
     dependencies?: CandidateSessionPageDependencies;
 }) {
     const { sessionId } = await params;
+    const resolvedSearchParams = await searchParams;
     const parsedSessionId = parseSessionId(sessionId);
-    const sessionContext = createSharedSessionContext({
-        sessionId: parsedSessionId,
-        audience: "candidate_owned",
-        candidateCompletionLinks: createCandidateSessionCompletionLinks(parsedSessionId),
-    });
-    const completionTarget = resolveSessionCompletionTarget(sessionContext);
     const initialSession = dependencies.resolveDurableSession
         ? await dependencies.resolveDurableSession({ sessionId: parsedSessionId })
         : null;
+    const sessionContext = createSharedSessionContext({
+        sessionId: parsedSessionId,
+        audience: "candidate_owned",
+        candidateCompletionLinks: createCandidateSessionCompletionLinks(parsedSessionId, {
+            dashboardHref: createCandidateDashboardHref(initialSession?.setupSnapshot.targetRole),
+        }),
+    });
+    const completionTarget = resolveSessionCompletionTarget(sessionContext);
 
     return (
         <CandidatePlannedSessionExperience
             sessionId={parsedSessionId}
             dashboardHref={completionTarget.href}
             initialSession={initialSession}
+            entryTransitionRequested={readSingleSearchParam(resolvedSearchParams?.entry) === "1"}
         />
     );
+}
+
+function readSingleSearchParam(value: string | string[] | undefined) {
+    return Array.isArray(value) ? value[0] : value;
 }
 
 function createDefaultCandidateSessionPageDependencies(): CandidateSessionPageDependencies {
@@ -168,6 +190,7 @@ export function toCandidateProvisionalSession(
             : {}),
         progress: durableSession.progress,
         answerDrafts: durableSession.answerDrafts,
+        answerSubmissions: durableSession.answerSubmissions,
         answerAnalysisSnapshots: durableSession.answerAnalysisSnapshots,
         feedbackActionEvents: durableSession.feedbackActionEvents,
     };

@@ -167,7 +167,7 @@ export function createCandidateFollowUpSessionInputFromIntent({
         questionPlanSnapshot,
         questionWordingSnapshot,
         progress: {
-            status: "planned",
+            status: "live_question",
             currentQuestionIndex: 0,
         },
     } as CreateCandidatePracticeSessionInput;

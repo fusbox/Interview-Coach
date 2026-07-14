@@ -245,6 +245,7 @@ describe("candidate dashboard V2 read model", () => {
             },
             coachGuidedFocus: {
                 title: "Add the customer outcome from your example.",
+                href: "/candidate/practice/ready?intent=coach-update-feedback-focus&fromSession=csr-completed-session&questionKey=slot-1",
             },
         });
     });
@@ -274,12 +275,14 @@ describe("candidate dashboard V2 read model", () => {
                 source: "unanswered_planned_questions",
                 title: "Practice the questions you did not answer",
                 questionKeys: ["slot-2"],
+                candidatePracticeSessionId: "partial-session",
             },
             coachGuidedFocus: {
                 label: "Practice from feedback",
                 source: "coach_feedback",
                 title: "Explain what changed after you escalated the damage.",
                 questionKeys: ["slot-1"],
+                href: "/candidate/practice/ready?intent=coach-update-feedback-focus&fromSession=partial-session&questionKey=slot-1",
             },
         });
     });

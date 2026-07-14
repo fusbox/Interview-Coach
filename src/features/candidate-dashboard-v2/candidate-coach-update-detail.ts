@@ -157,21 +157,16 @@ function getFocusedPracticeAction({
     const kind = actionPosture.kind === "review_coaching"
         ? "practice_from_feedback"
         : "practice_missing_evidence";
-    const intent = kind === "practice_from_feedback"
-        ? "coach-update-feedback-focus"
-        : "coach-update-missing-evidence";
-    const searchParams = new URLSearchParams({
-        intent,
-        fromSession: candidatePracticeSessionId,
-        questionKey: question.questionKey,
-    });
-
     return {
         focusedPracticeAction: {
             status: "candidate_focused_practice_action",
             kind,
             label: kind === "practice_from_feedback" ? "Practice this focus" : "Practice this question",
-            href: `/candidate/practice/ready?${searchParams.toString()}`,
+            href: createCandidateFocusedPracticeHref({
+                kind,
+                candidatePracticeSessionId,
+                questionKey: question.questionKey,
+            }),
             source: {
                 kind: "coach_update_detail",
                 candidatePracticeSessionId,
@@ -182,6 +177,26 @@ function getFocusedPracticeAction({
             },
         },
     };
+}
+
+export function createCandidateFocusedPracticeHref({
+    kind,
+    candidatePracticeSessionId,
+    questionKey,
+}: {
+    kind: CandidateFocusedPracticeAction["kind"];
+    candidatePracticeSessionId: string;
+    questionKey: string;
+}) {
+    const intent = kind === "practice_from_feedback"
+        ? "coach-update-feedback-focus"
+        : "coach-update-missing-evidence";
+    const searchParams = new URLSearchParams({
+        intent,
+        fromSession: candidatePracticeSessionId,
+        questionKey,
+    });
+    return `/candidate/practice/ready?${searchParams.toString()}`;
 }
 
 function getReviewPosture(items: CandidateCoachUpdateQuestionDetail[]): CandidateCoachUpdateDetail["reviewPosture"] {

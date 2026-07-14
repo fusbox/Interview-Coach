@@ -46,7 +46,15 @@ describe("candidate practice intent repository", () => {
             "material handler i",
             "Material Handler I",
         ]);
-        expect(queries[0].values[6]).toMatchObject([
+        expect(queries[0].values[5]).toEqual(JSON.stringify({
+            targetRole: "Material Handler I",
+            jobDescription: "Move materials safely.",
+            interviewStage: "first_interview",
+            questionCount: 3,
+            resumeIncluded: false,
+        }));
+        expect(queries[0].values[6]).toEqual(expect.any(String));
+        expect(JSON.parse(queries[0].values[6] as string)).toMatchObject([
             {
                 source: {
                     questionKey: "slot-1",

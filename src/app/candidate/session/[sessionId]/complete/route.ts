@@ -1,6 +1,7 @@
 import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidate-auth-v2/dev-host-launch-cookie-identity";
 import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-v2/host-launch-route";
 import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-auth-v2/production-host-launch-runtime";
+import { createCandidateDashboardHref } from "@/features/candidate-dashboard-v2/candidate-dashboard-route";
 import type { CandidateAnswerAnalysisProviderResult } from "@/features/candidate-session-v2/candidate-answer-analysis-adapter";
 import type { CandidateAnswerSubmissions } from "@/features/candidate-session-v2/candidate-answer-lifecycle";
 import { createCandidateAnswerCoachingFacts } from "@/features/candidate-session-v2/candidate-coaching-facts";
@@ -127,7 +128,7 @@ export async function handleCandidateSessionCompleteRequest({
             }),
             completionBehavior: {
                 kind: "candidate_dashboard",
-                dashboardHref: "/candidate/dashboard",
+                dashboardHref: createCandidateDashboardHref(session.setupSnapshot?.targetRole),
             },
         }),
         completedAt: now.toISOString(),

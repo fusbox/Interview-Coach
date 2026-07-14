@@ -1,7 +1,9 @@
 import type { CandidateSetupSessionCreationResult } from "@/features/candidate-setup-v2/candidate-setup-session-creation";
 import {
     normalizeCandidateAnswerDrafts,
+    normalizeCandidateAnswerSubmissions,
     type CandidateAnswerDrafts,
+    type CandidateAnswerSubmissions,
 } from "./candidate-answer-lifecycle";
 import {
     normalizeSessionRuntimeProgress,
@@ -22,6 +24,7 @@ export type CandidateProvisionalSessionRecord = (CandidateSetupSessionCreationRe
 )) & {
     progress?: CandidateProvisionalSessionProgress;
     answerDrafts?: CandidateAnswerDrafts;
+    answerSubmissions?: CandidateAnswerSubmissions;
     answerAnalysisSnapshots?: CandidateAnswerAnalysisSnapshots;
     feedbackActionEvents?: CandidateFeedbackActionEvents;
 };
@@ -39,6 +42,7 @@ export function saveCandidateProvisionalSession(
         ...session,
         progress: normalizeCandidateProvisionalSessionProgress(session.progress),
         answerDrafts: normalizeCandidateAnswerDrafts(session.answerDrafts),
+        answerSubmissions: normalizeCandidateAnswerSubmissions(session.answerSubmissions),
         answerAnalysisSnapshots: normalizeCandidateAnswerAnalysisSnapshots(session.answerAnalysisSnapshots),
         feedbackActionEvents: normalizeCandidateFeedbackActionEvents(session.feedbackActionEvents),
     };
@@ -99,6 +103,7 @@ function readCandidateProvisionalSessionMap(storage: Pick<Storage, "getItem">): 
                     ...session,
                     progress: normalizeCandidateProvisionalSessionProgress(session.progress),
                     answerDrafts: normalizeCandidateAnswerDrafts(session.answerDrafts),
+                    answerSubmissions: normalizeCandidateAnswerSubmissions(session.answerSubmissions),
                     answerAnalysisSnapshots: normalizeCandidateAnswerAnalysisSnapshots(session.answerAnalysisSnapshots),
                     feedbackActionEvents: normalizeCandidateFeedbackActionEvents(session.feedbackActionEvents),
                 },

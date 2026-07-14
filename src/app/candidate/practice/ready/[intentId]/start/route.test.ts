@@ -36,7 +36,7 @@ describe("/candidate/practice/ready/[intentId]/start route", () => {
         }));
 
         const response = await handleCandidatePracticeIntentStartRequest({
-            request: new Request("https://interviewcoach.talentarbor.com/candidate/practice/ready/intent-1/start", {
+            request: new Request("http://0.0.0.0:3001/candidate/practice/ready/intent-1/start", {
                 method: "POST",
             }),
             intentId: "intent-1",
@@ -98,16 +98,20 @@ describe("/candidate/practice/ready/[intentId]/start route", () => {
                     }],
                 },
                 progress: {
-                    status: "planned",
+                    status: "live_question",
                     currentQuestionIndex: 0,
                 },
             })),
         });
 
         expect(response.status).toBe(303);
-        expect(response.headers.get("location")).toBe("https://interviewcoach.talentarbor.com/candidate/session/session-2");
+        expect(response.headers.get("location")).toBe("/candidate/session/session-2?entry=1");
         expect(createSetupSession).toHaveBeenCalledWith(expect.objectContaining({
             candidateProfileId: "candidate-1",
+            progress: {
+                status: "live_question",
+                currentQuestionIndex: 0,
+            },
             setupSnapshot: expect.objectContaining({
                 followUpPractice: expect.objectContaining({
                     sourceIntentId: "intent-1",
@@ -164,7 +168,7 @@ describe("/candidate/practice/ready/[intentId]/start route", () => {
         });
 
         expect(response.status).toBe(303);
-        expect(response.headers.get("location")).toBe("https://interviewcoach.talentarbor.com/candidate/session/session-2");
+        expect(response.headers.get("location")).toBe("/candidate/session/session-2?entry=1");
     });
 
     it("fails closed when candidate identity or ready intent ownership cannot be confirmed", async () => {

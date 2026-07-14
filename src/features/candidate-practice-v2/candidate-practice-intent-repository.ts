@@ -45,8 +45,8 @@ export function createCandidatePracticeIntentRepository(client: CandidatePractic
                 lifecycleState,
                 input.targetInterviewId,
                 input.targetRole,
-                input.setupContext,
-                input.items,
+                JSON.stringify(input.setupContext),
+                JSON.stringify(input.items),
             ]);
 
             const candidatePracticeIntentId = readString(result.rows[0]?.candidate_practice_intent_id);

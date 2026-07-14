@@ -63,7 +63,7 @@ describe("candidate follow-up session creation", () => {
                 },
             },
             progress: {
-                status: "planned",
+                status: "live_question",
                 currentQuestionIndex: 0,
             },
         });

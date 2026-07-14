@@ -176,8 +176,13 @@ function createDefaultCandidatePracticeIntentStartDependencies(): CandidatePract
     };
 }
 
-function redirectToSession(request: Request, candidatePracticeSessionId: string) {
-    return Response.redirect(new URL(`/candidate/session/${candidatePracticeSessionId}`, request.url), 303);
+function redirectToSession(_request: Request, candidatePracticeSessionId: string) {
+    return new Response(null, {
+        status: 303,
+        headers: {
+            Location: `/candidate/session/${encodeURIComponent(candidatePracticeSessionId)}?entry=1`,
+        },
+    });
 }
 
 function jsonResponse(body: unknown, status: number) {
