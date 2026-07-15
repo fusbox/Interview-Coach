@@ -22,6 +22,7 @@ export type CandidateProvisionalSessionRecord = (CandidateSetupSessionCreationRe
         questionWordingSnapshot?: CandidateQuestionWordingResult;
     }
 )) & {
+    roleProfileId?: string | null;
     progress?: CandidateProvisionalSessionProgress;
     answerDrafts?: CandidateAnswerDrafts;
     answerSubmissions?: CandidateAnswerSubmissions;
@@ -77,6 +78,54 @@ export function saveCandidateProvisionalSessionProgress(
     const nextSession = {
         ...session,
         progress: normalizeCandidateProvisionalSessionProgress(progress),
+    };
+    sessions[sessionId] = nextSession;
+    storage.setItem(CANDIDATE_PROVISIONAL_SESSION_STORAGE_KEY, JSON.stringify(sessions));
+
+    return nextSession;
+}
+
+export function saveCandidateProvisionalSessionAnswerDraft(
+    storage: Pick<Storage, "getItem" | "setItem">,
+    sessionId: string,
+    draft: CandidateAnswerDrafts[string],
+) {
+    const sessions = readCandidateProvisionalSessionMap(storage);
+    const session = sessions[sessionId];
+    if (!session) {
+        return null;
+    }
+
+    const nextSession = {
+        ...session,
+        answerDrafts: {
+            ...session.answerDrafts,
+            [draft.slotId]: draft,
+        },
+    };
+    sessions[sessionId] = nextSession;
+    storage.setItem(CANDIDATE_PROVISIONAL_SESSION_STORAGE_KEY, JSON.stringify(sessions));
+
+    return nextSession;
+}
+
+export function saveCandidateProvisionalSessionFeedbackActionEvent(
+    storage: Pick<Storage, "getItem" | "setItem">,
+    sessionId: string,
+    feedbackActionEvent: CandidateFeedbackActionEvent,
+) {
+    const sessions = readCandidateProvisionalSessionMap(storage);
+    const session = sessions[sessionId];
+    if (!session) {
+        return null;
+    }
+
+    const nextSession = {
+        ...session,
+        feedbackActionEvents: {
+            ...session.feedbackActionEvents,
+            [feedbackActionEvent.answer.slotId]: feedbackActionEvent,
+        },
     };
     sessions[sessionId] = nextSession;
     storage.setItem(CANDIDATE_PROVISIONAL_SESSION_STORAGE_KEY, JSON.stringify(sessions));

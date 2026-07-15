@@ -30,6 +30,10 @@ describe("/candidate/session/[sessionId]/complete route", () => {
             completionSnapshot: input.completionSnapshot,
             progress: input.completionSnapshot.finalProgress,
         }));
+        const ensureCoachUpdateArtifact = vi.fn(async () => ({
+            status: "coach_update_unavailable" as const,
+            reason: "source_not_ready" as const,
+        }));
 
         const response = await handleCandidateSessionCompleteRequest({
             request: new Request("https://interviewcoach.talentarbor.com/candidate/session/session-1/complete", {
@@ -44,6 +48,7 @@ describe("/candidate/session/[sessionId]/complete route", () => {
                 findSetupSession: vi.fn(async () => ({
                     candidatePracticeSessionId: "session-1",
                     candidateProfileId: "22222222-2222-4222-8222-222222222222",
+                    roleProfileId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
                     setupSnapshot: {
                         targetRole: "Material Handler I",
                         jobDescription: "Move materials and maintain inventory.",
@@ -104,6 +109,7 @@ describe("/candidate/session/[sessionId]/complete route", () => {
                 })),
                 completeSession,
             },
+            ensureCoachUpdateArtifact,
         });
 
         expect(response.status).toBe(200);
@@ -124,17 +130,22 @@ describe("/candidate/session/[sessionId]/complete route", () => {
                 answeredQuestionKeys: ["slot-1", "slot-2"],
                 coachedQuestionKeys: ["slot-1"],
                 skippedOrUnansweredQuestionKeys: ["slot-3"],
-                nextRoute: "/candidate/dashboard?targetRole=material+handler+i",
+                nextRoute: "/candidate/dashboard?prep=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
             },
-            nextRoute: "/candidate/dashboard?targetRole=material+handler+i",
+            nextRoute: "/candidate/dashboard?prep=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            coachUpdateStatus: "coach_update_unavailable",
         });
         expect(completeSession).toHaveBeenCalledWith({
             candidatePracticeSessionId: "session-1",
             candidateProfileId: "22222222-2222-4222-8222-222222222222",
             completionSnapshot: expect.objectContaining({
                 status: "candidate_session_completed",
-                nextRoute: "/candidate/dashboard?targetRole=material+handler+i",
+                nextRoute: "/candidate/dashboard?prep=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
             }),
+        });
+        expect(ensureCoachUpdateArtifact).toHaveBeenCalledWith({
+            candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            sourceCandidatePracticeSessionId: "session-1",
         });
     });
 
@@ -162,5 +173,51 @@ describe("/candidate/session/[sessionId]/complete route", () => {
         await expect(response.json()).resolves.toEqual({
             error: "Question wording is required before completion.",
         });
+    });
+
+    it("replays the first stored completion without rebuilding it from later compatibility fields", async () => {
+        const completionSnapshot = {
+            status: "candidate_session_completed" as const,
+            audience: "candidate_led" as const,
+            sessionId: "session-1",
+            completedAt: "2026-07-09T20:05:00.000Z",
+            finalProgress: { status: "completed" as const, currentQuestionIndex: 0 },
+            questionCount: 1,
+            answeredCount: 1,
+            coachedCount: 1,
+            answeredQuestionKeys: ["slot-1"],
+            coachedQuestionKeys: ["slot-1"],
+            skippedOrUnansweredQuestionKeys: [],
+            nextRoute: "/candidate/dashboard?prep=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        };
+        const completeSession = vi.fn(async () => ({
+            completionSnapshot,
+            progress: completionSnapshot.finalProgress,
+        }));
+        const response = await handleCandidateSessionCompleteRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/session/session-1/complete", {
+                method: "POST",
+            }),
+            sessionId: "session-1",
+            now: new Date("2026-07-10T20:05:00.000Z"),
+            resolveCandidateSessionIdentity: vi.fn(async () => ({ candidateProfileId: "candidate-1" })),
+            practiceSessionRepository: {
+                findSetupSession: vi.fn(async () => ({
+                    status: "completed" as const,
+                    completionSnapshot,
+                    questionWordingSnapshot: null,
+                })),
+                completeSession,
+            },
+        });
+
+        expect(response.status).toBe(200);
+        await expect(response.json()).resolves.toMatchObject({
+            status: "candidate_session_completed",
+            completionSnapshot: {
+                completedAt: "2026-07-09T20:05:00.000Z",
+            },
+        });
+        expect(completeSession).toHaveBeenCalledWith(expect.objectContaining({ completionSnapshot }));
     });
 });

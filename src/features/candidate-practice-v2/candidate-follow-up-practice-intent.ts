@@ -17,6 +17,13 @@ export type CandidatePracticeIntentLifecycleState =
     | "cancelled"
     | "expired";
 
+export type CandidatePracticeIntentItemProvenance =
+    | "coach_update"
+    | "coach_plan"
+    | "practice_next"
+    | "candidate_selection"
+    | "coach_bundle";
+
 export type CandidateFollowUpPracticeIntent = {
     status: "candidate_follow_up_practice_intent_ready";
     kind: CandidateFollowUpPracticeIntentKind;
@@ -33,6 +40,7 @@ export type CandidateFollowUpPracticeIntent = {
 
 export type CandidateResolvedFollowUpPracticeIntent = {
     status: "candidate_follow_up_practice_intent_resolved";
+    roleProfileId: string | null;
     kind: CandidateFollowUpPracticeIntentKind;
     source: {
         kind: "coach_update_detail";
@@ -59,6 +67,12 @@ export type CandidatePracticeIntentItem = {
     kind: CandidateFollowUpPracticeIntentKind;
     source: CandidateResolvedFollowUpPracticeIntent["source"];
     display: CandidateResolvedFollowUpPracticeIntent["display"];
+    assembly?: {
+        source: "next_round_draft";
+        candidateNextRoundDraftItemId: string;
+        provenance: CandidatePracticeIntentItemProvenance;
+        displayPosition: number;
+    };
 };
 
 export type CandidatePracticeIntentRecord = {
@@ -68,6 +82,9 @@ export type CandidatePracticeIntentRecord = {
     source: CandidatePracticeIntentSource;
     lifecycleState: CandidatePracticeIntentLifecycleState;
     consumedCandidatePracticeSessionId?: string | null;
+    sourceNextRoundDraftId?: string | null;
+    sourceNextRoundDraftVersion?: number | null;
+    roleProfileId: string | null;
     targetInterviewId: string;
     targetRole: string;
     itemCount: number;
@@ -127,12 +144,14 @@ export function resolveCandidateFollowUpPracticeIntent({
     intent,
     candidateProfileId,
     practiceSessions,
-    selectedTargetInterviewId,
+    selectedRoleProfileId,
+    selectedLegacyTargetRole,
 }: {
     intent: CandidateFollowUpPracticeIntent | null;
     candidateProfileId: string;
     practiceSessions: CandidatePracticeSessionRecord[];
-    selectedTargetInterviewId?: string | null;
+    selectedRoleProfileId?: string | null;
+    selectedLegacyTargetRole?: string | null;
 }): CandidateResolvedFollowUpPracticeIntent | null {
     if (!intent) {
         return null;
@@ -147,8 +166,13 @@ export function resolveCandidateFollowUpPracticeIntent({
     }
 
     const targetInterviewId = normalizeTargetInterviewId(sourceSession.setupSnapshot.targetRole);
-    const normalizedSelectedTargetInterviewId = normalizeTargetInterviewId(selectedTargetInterviewId);
-    if (normalizedSelectedTargetInterviewId && normalizedSelectedTargetInterviewId !== targetInterviewId) {
+    const roleProfileId = readNullableString(sourceSession.roleProfileId);
+    const requestedRoleProfileId = readNullableString(selectedRoleProfileId);
+    const requestedLegacyTargetRole = normalizeTargetInterviewId(selectedLegacyTargetRole);
+    if (requestedRoleProfileId && requestedRoleProfileId !== roleProfileId) {
+        return null;
+    }
+    if (requestedLegacyTargetRole && (roleProfileId || requestedLegacyTargetRole !== targetInterviewId)) {
         return null;
     }
 
@@ -171,6 +195,7 @@ export function resolveCandidateFollowUpPracticeIntent({
 
     return {
         status: "candidate_follow_up_practice_intent_resolved",
+        roleProfileId,
         kind: intent.kind,
         source: {
             kind: "coach_update_detail",
@@ -218,13 +243,15 @@ export function createCandidateFollowUpPracticeIntentRecord({
 
     const targetInterviewId = firstItem.source.targetInterviewId;
     const targetRole = firstItem.source.targetRole;
+    const roleProfileId = firstItem.roleProfileId;
     const setupContext = firstItem.setupContext;
     const sourceKeys = new Set<string>();
     const normalizedItems: CandidatePracticeIntentItem[] = [];
 
     for (const item of items) {
         if (
-            item.source.targetInterviewId !== targetInterviewId
+            item.roleProfileId !== roleProfileId
+            || item.source.targetInterviewId !== targetInterviewId
             || item.source.targetRole !== targetRole
             || item.setupContext.targetRole !== setupContext.targetRole
             || item.setupContext.jobDescription !== setupContext.jobDescription
@@ -253,6 +280,7 @@ export function createCandidateFollowUpPracticeIntentRecord({
         candidateProfileId,
         source,
         lifecycleState,
+        roleProfileId,
         targetInterviewId,
         targetRole,
         itemCount: normalizedItems.length,
@@ -276,6 +304,10 @@ function readSingleSearchParam(searchParams: CandidatePracticeReadySearchParams 
 
 function readString(value: unknown) {
     return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function readNullableString(value: unknown) {
+    return value === null || value === undefined ? null : readString(value);
 }
 
 export function isCandidatePracticeIntentSource(value: unknown): value is CandidatePracticeIntentSource {

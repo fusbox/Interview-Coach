@@ -1,7 +1,9 @@
 # ADR-0008: Coach Plan Dashboard Home Base
 
 Date: 2026-06-27
-Status: Accepted
+Status: Superseded in part by ADR-0010
+
+ADR-0010 supersedes score-driven aggregate preparedness, title-based context grouping, and the earlier broad Coach Update/debrief boundary. It preserves Coach Plan as the stable teaching and reference object.
 
 ## Context
 

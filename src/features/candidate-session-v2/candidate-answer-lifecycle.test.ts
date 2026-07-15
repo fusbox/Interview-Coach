@@ -5,10 +5,12 @@ import {
     createCandidateAnswerAnalysisRequest,
     createCandidateAnswerAnalysisUnavailable,
     createCandidateAnswerDraftChange,
+    createCandidateAnswerIdempotencyPendingRecord,
     createCandidateAnswerSubmission,
     createCandidateAnswerSubmitIdempotencyContract,
     createCandidateAnswerSubmitRequest,
     createCandidateAnswerSubmitUnavailable,
+    resolveCandidateAnswerIdempotencyDecision,
 } from "./candidate-answer-lifecycle";
 
 describe("candidate answer lifecycle", () => {
@@ -172,6 +174,40 @@ describe("candidate answer lifecycle", () => {
         }).key).toBe("client-submit-key-1");
     });
 
+    it("binds feedback-retry idempotency to the exact source attempt", () => {
+        const draft = createCandidateAnswerDraftChange({
+            slotId: "slot-1",
+            questionIndex: 0,
+            mode: "text",
+            text: "I would ask a clarifying question first.",
+            now: new Date("2026-07-09T20:00:00.000Z"),
+        }).draft;
+        const initialContract = createCandidateAnswerSubmitIdempotencyContract({
+            candidatePracticeSessionId: "practice-session-1",
+            candidateProfileId: "candidate-1",
+            request: createCandidateAnswerSubmitRequest({
+                draft,
+                requestedAt: new Date("2026-07-09T20:01:00.000Z"),
+            }),
+        });
+        const retryContract = createCandidateAnswerSubmitIdempotencyContract({
+            candidatePracticeSessionId: "practice-session-1",
+            candidateProfileId: "candidate-1",
+            request: createCandidateAnswerSubmitRequest({
+                draft,
+                requestedAt: new Date("2026-07-09T20:02:00.000Z"),
+                trigger: "feedback_retry",
+                supersedesAnswerAttemptId: "11111111-1111-4111-8111-111111111111",
+            }),
+        });
+
+        expect(retryContract.key).not.toBe(initialContract.key);
+        expect(retryContract.payload).toMatchObject({
+            trigger: "feedback_retry",
+            supersedesAnswerAttemptId: "11111111-1111-4111-8111-111111111111",
+        });
+    });
+
     it("defines a slot-scoped idempotency contract for answer analysis", () => {
         const answerSubmission = {
             slotId: "slot-1",
@@ -209,6 +245,42 @@ describe("candidate answer lifecycle", () => {
                 pendingRetryable: true,
                 conflictHttpStatus: 409,
                 conflictRetryable: false,
+            },
+        });
+    });
+
+    it("restarts a matching pending request after its recovery window expires", () => {
+        const draftChange = createCandidateAnswerDraftChange({
+            slotId: "slot-1",
+            questionIndex: 0,
+            mode: "text",
+            text: "I would ask a clarifying question first.",
+            now: new Date("2026-07-09T20:00:00.000Z"),
+        });
+        const contract = createCandidateAnswerSubmitIdempotencyContract({
+            candidatePracticeSessionId: "practice-session-1",
+            candidateProfileId: "candidate-1",
+            request: createCandidateAnswerSubmitRequest({
+                draft: draftChange.draft,
+                requestedAt: new Date("2026-07-09T20:00:00.000Z"),
+            }),
+        });
+        const pendingRecord = createCandidateAnswerIdempotencyPendingRecord({
+            contract,
+            requestedAt: new Date("2026-07-09T20:00:00.000Z"),
+        });
+
+        expect(resolveCandidateAnswerIdempotencyDecision({
+            contract,
+            records: {
+                [pendingRecord.recordKey]: pendingRecord,
+            },
+            requestedAt: new Date("2026-07-09T20:02:00.000Z"),
+        })).toMatchObject({
+            kind: "start",
+            record: {
+                status: "pending",
+                requestedAt: "2026-07-09T20:02:00.000Z",
             },
         });
     });

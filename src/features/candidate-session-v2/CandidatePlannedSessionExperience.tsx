@@ -10,11 +10,15 @@ import {
     type CandidateSetupStageId,
 } from "@/features/candidate-setup-v2/candidate-setup-contract";
 import type {
-    CandidateAnswerDraft,
     CandidateAnswerDrafts,
     CandidateAnswerSubmissions,
 } from "./candidate-answer-lifecycle";
 import { createCandidateAnswerCoachingFacts } from "./candidate-coaching-facts";
+import { CandidateStagedFeedback } from "./CandidateStagedFeedback";
+import {
+    createCandidateFeedbackInteraction,
+    type CandidateFeedbackActionEvent,
+} from "./candidate-feedback-interaction";
 import {
     createCandidateQuestionPlan,
 } from "./candidate-question-plan";
@@ -26,8 +30,11 @@ import {
 } from "./CandidatePreSessionLanding";
 import {
     readCandidateProvisionalSession,
+    saveCandidateProvisionalSessionAnswerDraft,
+    saveCandidateProvisionalSessionFeedbackActionEvent,
     saveCandidateProvisionalSessionProgress,
     type CandidateAnswerAnalysisSnapshots,
+    type CandidateFeedbackActionEvents,
     type CandidateProvisionalSessionProgress,
     type CandidateProvisionalSessionRecord,
 } from "./candidate-provisional-session-store";
@@ -35,6 +42,7 @@ import {
     createFixtureCandidateQuestionWordingResult,
     parseCandidateQuestionWordingResult,
 } from "./candidate-question-wording";
+import { useCandidateTypedAnswerMutations } from "./useCandidateTypedAnswerMutations";
 
 type CandidatePlannedSessionExperienceProps = {
     sessionId: string;
@@ -62,8 +70,13 @@ export function CandidatePlannedSessionExperience({
     const [answerAnalysisSnapshots, setAnswerAnalysisSnapshots] = useState<CandidateAnswerAnalysisSnapshots>(
         initialSession?.answerAnalysisSnapshots ?? {},
     );
-    const [answerSubmitMessage, setAnswerSubmitMessage] = useState<string | null>(null);
-    const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
+    const [feedbackActionEvents, setFeedbackActionEvents] = useState<CandidateFeedbackActionEvents>(
+        initialSession?.feedbackActionEvents ?? {},
+    );
+    const [feedbackRetrySources, setFeedbackRetrySources] = useState<Record<string, string>>(() => (
+        createRecoveredFeedbackRetrySources(initialSession)
+    ));
+    const feedbackRetrySourcesRef = useRef(feedbackRetrySources);
     const [sessionCompletionMessage, setSessionCompletionMessage] = useState<string | null>(null);
     const [isCompletingSession, setIsCompletingSession] = useState(false);
     const [entryTransitionPhase, setEntryTransitionPhase] = useState<"entering" | "releasing" | null>(
@@ -75,6 +88,37 @@ export function CandidatePlannedSessionExperience({
     const entryReleaseTimerRef = useRef<number | null>(null);
     const entryFrameOneRef = useRef<number | null>(null);
     const entryFrameTwoRef = useRef<number | null>(null);
+    const handleAnswerSubmissionSaved = useCallback((slotId: string) => {
+        const nextSources = { ...feedbackRetrySourcesRef.current };
+        delete nextSources[slotId];
+        feedbackRetrySourcesRef.current = nextSources;
+        setFeedbackRetrySources((currentSources) => {
+            if (!(slotId in currentSources)) {
+                return currentSources;
+            }
+
+            const nextStateSources = { ...currentSources };
+            delete nextStateSources[slotId];
+            return nextStateSources;
+        });
+    }, []);
+    const {
+        answerMutationPhases,
+        flushAnswerDraft,
+        retryAnswerAnalysis,
+        submitAnswerDraft,
+        updateAnswerDraft,
+    } = useCandidateTypedAnswerMutations({
+        sessionId,
+        hasDurableSession: Boolean(initialSession),
+        setAnswerDrafts,
+        setAnswerSubmissions,
+        setAnswerAnalysisSnapshots,
+        saveBrowserDraft: (draft) => {
+            saveCandidateProvisionalSessionAnswerDraft(window.sessionStorage, sessionId, draft);
+        },
+        onAnswerSubmissionSaved: handleAnswerSubmissionSaved,
+    });
 
     const releasePracticeEntryTransition = useCallback(() => {
         entryFrameOneRef.current = window.requestAnimationFrame(() => {
@@ -106,6 +150,10 @@ export function CandidatePlannedSessionExperience({
             setAnswerDrafts(initialSession.answerDrafts ?? {});
             setAnswerSubmissions(initialSession.answerSubmissions ?? {});
             setAnswerAnalysisSnapshots(initialSession.answerAnalysisSnapshots ?? {});
+            setFeedbackActionEvents(initialSession.feedbackActionEvents ?? {});
+            const recoveredRetrySources = createRecoveredFeedbackRetrySources(initialSession);
+            feedbackRetrySourcesRef.current = recoveredRetrySources;
+            setFeedbackRetrySources(recoveredRetrySources);
             window.scrollTo({ top: 0 });
             return;
         }
@@ -120,6 +168,10 @@ export function CandidatePlannedSessionExperience({
         setAnswerDrafts(storedSession?.answerDrafts ?? {});
         setAnswerSubmissions(storedSession?.answerSubmissions ?? {});
         setAnswerAnalysisSnapshots(storedSession?.answerAnalysisSnapshots ?? {});
+        setFeedbackActionEvents(storedSession?.feedbackActionEvents ?? {});
+        const recoveredRetrySources = createRecoveredFeedbackRetrySources(storedSession);
+        feedbackRetrySourcesRef.current = recoveredRetrySources;
+        setFeedbackRetrySources(recoveredRetrySources);
         window.scrollTo({ top: 0 });
     }, [initialSession, sessionId]);
 
@@ -169,7 +221,12 @@ export function CandidatePlannedSessionExperience({
             currentQuestionIndex: progress.currentQuestionIndex,
             questions: questionWordingPreview.questions.map((question) => {
                 const answerSubmission = answerSubmissions[question.slotId];
-                const analysisSnapshot = answerAnalysisSnapshots[question.slotId];
+                const analysisSnapshot = feedbackRetrySources[question.slotId]
+                    ? null
+                    : getCurrentAnswerAnalysisSnapshot(
+                        answerSubmission,
+                        answerAnalysisSnapshots[question.slotId],
+                    );
 
                 return {
                     questionKey: question.slotId,
@@ -198,6 +255,7 @@ export function CandidatePlannedSessionExperience({
         answerAnalysisSnapshots,
         answerSubmissions,
         dashboardHref,
+        feedbackRetrySources,
         progress.currentQuestionIndex,
         questionWordingPreview,
         session,
@@ -228,7 +286,6 @@ export function CandidatePlannedSessionExperience({
     }, [initialSession, progress.currentQuestionIndex, progress.status, sessionId]);
 
     useEffect(() => {
-        setAnswerSubmitMessage(null);
         setSessionCompletionMessage(null);
     }, [progress.currentQuestionIndex]);
 
@@ -308,63 +365,60 @@ export function CandidatePlannedSessionExperience({
     ) {
         const activeQuestionIndex = runtimeFacts.currentQuestionIndex;
         const activeQuestion = questionWordingPreview.questions[activeQuestionIndex];
-        const activeDraftText = answerDrafts[activeQuestion.slotId]?.text ?? "";
-        const activeAnalysisSnapshot = answerAnalysisSnapshots[activeQuestion.slotId] ?? null;
+        const activeAnswerSubmission = answerSubmissions[activeQuestion.slotId] ?? null;
+        const activeDraftText = answerDrafts[activeQuestion.slotId]?.text ?? activeAnswerSubmission?.text ?? "";
+        const activeRetrySource = feedbackRetrySources[activeQuestion.slotId] ?? null;
+        const activeAnalysisSnapshot = activeRetrySource
+            ? null
+            : getCurrentAnswerAnalysisSnapshot(
+                activeAnswerSubmission,
+                answerAnalysisSnapshots[activeQuestion.slotId],
+            );
+        const activeAnswerMutationPhase = answerMutationPhases[activeQuestion.slotId]
+            ?? (activeRetrySource
+                ? "draft_saved"
+                : activeAnalysisSnapshot
+                ? "analysis_ready"
+                : activeAnswerSubmission
+                    ? "analysis_failed"
+                    : activeDraftText
+                        ? "draft_saved"
+                        : "idle");
         const isLastQuestion = activeQuestionIndex >= questionWordingPreview.questions.length - 1;
+        const feedbackInteraction = activeAnalysisSnapshot
+            ? createCandidateFeedbackInteraction({
+                analysisSnapshot: activeAnalysisSnapshot,
+                isLastQuestion,
+            })
+            : null;
         const feedbackContent = activeAnalysisSnapshot ? (
-            <section className="candidate-live-feedback" aria-labelledby="coach-feedback-title">
-                <header>
-                    <p className="type-eyebrow">Coaching</p>
-                    <h2 id="coach-feedback-title">Coach feedback</h2>
-                </header>
-                <dl className="planned-session-summary">
-                    <div>
-                        <dt>What worked</dt>
-                        <dd>{activeAnalysisSnapshot.coachFeedback.acknowledgement}</dd>
-                    </div>
-                    <div>
-                        <dt>What to strengthen</dt>
-                        <dd>{activeAnalysisSnapshot.coachFeedback.observation}</dd>
-                    </div>
-                    <div>
-                        <dt>Practice next</dt>
-                        <dd>{activeAnalysisSnapshot.coachFeedback.nextPracticeFocus}</dd>
-                    </div>
-                </dl>
-                <footer>
-                    <p>
-                        {isLastQuestion
-                            ? "You have reached the end of this round."
-                            : "Keep going when you are ready for the next question."}
-                    </p>
-                    {isLastQuestion ? (
-                        <button
-                            className="candidate-button candidate-button--primary"
-                            type="button"
-                            disabled={isCompletingSession}
-                            onClick={finishSession}
-                        >
-                            {isCompletingSession ? "Finishing..." : "Finish session"}
-                        </button>
-                    ) : (
-                        <button
-                            className="candidate-button candidate-button--primary"
-                            type="button"
-                            onClick={() => updateProgress({
-                                status: "live_question",
-                                currentQuestionIndex: activeQuestionIndex + 1,
-                            })}
-                        >
-                            Continue to next question
-                        </button>
-                    )}
-                </footer>
-                {sessionCompletionMessage ? (
-                    <p className="planned-session-status" role="alert">
-                        {sessionCompletionMessage}
-                    </p>
-                ) : null}
-            </section>
+            <CandidateStagedFeedback
+                key={`${activeQuestion.slotId}:${activeAnalysisSnapshot.answer.answerAttemptId ?? activeAnalysisSnapshot.analyzedAt}`}
+                interaction={feedbackInteraction!}
+                savedActionEvent={feedbackActionEvents[activeQuestion.slotId]}
+                isCompletingSession={isCompletingSession}
+                completionMessage={sessionCompletionMessage}
+                onPersistAction={persistFeedbackAction}
+                onAdvanceQuestion={() => updateProgress({
+                    status: "live_question",
+                    currentQuestionIndex: activeQuestionIndex + 1,
+                })}
+                onFinishSession={finishSession}
+                onRetryAnswer={(sourceAnswerAttemptId) => {
+                    const nextRetrySources = {
+                        ...feedbackRetrySourcesRef.current,
+                        [activeQuestion.slotId]: sourceAnswerAttemptId,
+                    };
+                    feedbackRetrySourcesRef.current = nextRetrySources;
+                    setFeedbackRetrySources(nextRetrySources);
+                    updateAnswerDraft({
+                        slotId: activeQuestion.slotId,
+                        questionIndex: activeQuestion.index,
+                        text: activeAnswerSubmission?.text ?? activeDraftText,
+                    });
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+            />
         ) : null;
 
         return (
@@ -373,18 +427,31 @@ export function CandidatePlannedSessionExperience({
                     facts={runtimeFacts}
                     answerMode="text"
                     draftText={activeDraftText}
-                    isSubmitting={isSubmittingAnswer}
-                    statusMessage={answerSubmitMessage}
+                    answerMutationPhase={activeAnswerMutationPhase}
                     feedbackContent={feedbackContent}
                     onDraftChange={(text) => updateAnswerDraft({
                         slotId: activeQuestion.slotId,
                         questionIndex: activeQuestion.index,
                         text,
                     })}
+                    onDraftBlur={() => flushAnswerDraft({
+                        slotId: activeQuestion.slotId,
+                        questionIndex: activeQuestion.index,
+                        text: activeDraftText,
+                        retrySourceAnswerAttemptId: activeRetrySource,
+                    })}
+                    onRetryDraftSave={() => flushAnswerDraft({
+                        slotId: activeQuestion.slotId,
+                        questionIndex: activeQuestion.index,
+                        text: activeDraftText,
+                    })}
+                    onRetryAnalysis={() => retryAnswerAnalysis(activeQuestion.slotId)}
                     onSubmit={() => submitAnswerDraft({
                         slotId: activeQuestion.slotId,
                         questionIndex: activeQuestion.index,
                         text: activeDraftText,
+                        retrySourceAnswerAttemptId: feedbackRetrySourcesRef.current[activeQuestion.slotId]
+                            ?? activeRetrySource,
                     })}
                 />
                 {entryTransition}
@@ -446,144 +513,40 @@ export function CandidatePlannedSessionExperience({
         }, CANDIDATE_PRACTICE_ENTRY_HOLD_MS);
     }
 
-    function updateAnswerDraft({
-        slotId,
-        questionIndex,
-        text,
-    }: {
-        slotId: string;
-        questionIndex: number;
-        text: string;
-    }) {
-        const draft: CandidateAnswerDraft = {
-            slotId,
-            questionIndex,
-            mode: "text",
-            text,
-            updatedAt: new Date().toISOString(),
-        };
-
-        setAnswerDrafts((currentDrafts) => ({
-            ...currentDrafts,
-            [slotId]: draft,
-        }));
-
+    async function persistFeedbackAction(feedbackActionEvent: CandidateFeedbackActionEvent) {
         if (!initialSession) {
-            return;
+            const savedSession = saveCandidateProvisionalSessionFeedbackActionEvent(
+                window.sessionStorage,
+                sessionId,
+                feedbackActionEvent,
+            );
+            if (!savedSession) {
+                return false;
+            }
+            setFeedbackActionEvents(savedSession.feedbackActionEvents ?? {});
+            return true;
         }
-
-        void fetch(`/candidate/session/${encodeURIComponent(sessionId)}/answer-drafts`, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                slotId,
-                questionIndex,
-                mode: "text",
-                text,
-            }),
-        });
-    }
-
-    async function submitAnswerDraft({
-        slotId,
-        questionIndex,
-        text,
-    }: {
-        slotId: string;
-        questionIndex: number;
-        text: string;
-    }) {
-        if (!text.trim()) {
-            setAnswerSubmitMessage("Enter an answer before submitting.");
-            return;
-        }
-
-        setIsSubmittingAnswer(true);
-        setAnswerSubmitMessage(null);
 
         try {
-            const response = await fetch(`/candidate/session/${encodeURIComponent(sessionId)}/answers`, {
+            const response = await fetch(`/candidate/session/${encodeURIComponent(sessionId)}/feedback-actions`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({
-                    slotId,
-                    questionIndex,
-                    mode: "text",
-                    text,
-                }),
+                body: JSON.stringify(feedbackActionEvent),
             });
             const result = await response.json().catch(() => null) as {
                 status?: string;
-                answerSubmissions?: CandidateAnswerSubmissions;
+                feedbackActionEvents?: CandidateFeedbackActionEvents;
             } | null;
-            if (result?.status === "answer_submit_saved") {
-                if (result.answerSubmissions) {
-                    setAnswerSubmissions(result.answerSubmissions);
-                }
-                await requestAnswerAnalysis({
-                    slotId,
-                });
-                return;
+            if (!response.ok || result?.status !== "feedback_action_saved" || !result.feedbackActionEvents) {
+                return false;
             }
 
-            if (result?.status === "answer_submit_unavailable") {
-                setAnswerSubmitMessage("Answer submission is not connected yet. Your draft is still saved.");
-                return;
-            }
-
-            if (!response.ok) {
-                setAnswerSubmitMessage("Answer submission is not available yet. Your draft is still saved.");
-            }
+            setFeedbackActionEvents(result.feedbackActionEvents);
+            return true;
         } catch {
-            setAnswerSubmitMessage("Answer submission is not available yet. Your draft is still saved.");
-        } finally {
-            setIsSubmittingAnswer(false);
-        }
-    }
-
-    async function requestAnswerAnalysis({
-        slotId,
-    }: {
-        slotId: string;
-    }) {
-        try {
-            const response = await fetch(
-                `/candidate/session/${encodeURIComponent(sessionId)}/answers/${encodeURIComponent(slotId)}/analysis`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                },
-            );
-            const result = await response.json().catch(() => null) as {
-                status?: string;
-                reason?: string;
-                analysisSnapshot?: CandidateAnswerAnalysisSnapshots[string];
-            } | null;
-            if (result?.status === "answer_analysis_saved" && result.analysisSnapshot) {
-                setAnswerAnalysisSnapshots((currentSnapshots) => ({
-                    ...currentSnapshots,
-                    [result.analysisSnapshot!.answer.slotId]: result.analysisSnapshot!,
-                }));
-                setAnswerSubmitMessage("Answer saved. Coaching is ready to review.");
-                return;
-            }
-
-            if (result?.status === "answer_analysis_unavailable" && result.reason === "provider_not_configured") {
-                setAnswerSubmitMessage("Answer saved. Coaching is still being connected.");
-                return;
-            }
-
-            if (!response.ok) {
-                setAnswerSubmitMessage("Answer saved. Coaching is not connected yet.");
-            }
-        } catch {
-            setAnswerSubmitMessage("Answer saved. Coaching is not connected yet.");
+            return false;
         }
     }
 
@@ -624,4 +587,46 @@ export function CandidatePlannedSessionExperience({
 
 function getStageLabel(stageId: CandidateSetupStageId) {
     return candidateSetupStageOptions.find((stage) => stage.id === stageId)?.label ?? "First interview";
+}
+
+function getCurrentAnswerAnalysisSnapshot(
+    answerSubmission: CandidateAnswerSubmissions[string] | null | undefined,
+    analysisSnapshot: CandidateAnswerAnalysisSnapshots[string] | null | undefined,
+) {
+    if (!answerSubmission || !analysisSnapshot) {
+        return null;
+    }
+
+    if (analysisSnapshot.answer.answerAttemptId) {
+        return analysisSnapshot.answer.answerAttemptId === answerSubmission.answerAttemptId
+            ? analysisSnapshot
+            : null;
+    }
+
+    return !answerSubmission.attemptNumber || answerSubmission.attemptNumber === 1
+        ? analysisSnapshot
+        : null;
+}
+
+function createRecoveredFeedbackRetrySources(
+    session: CandidateProvisionalSessionRecord | null | undefined,
+) {
+    if (!session) {
+        return {};
+    }
+
+    return Object.fromEntries(
+        Object.entries(session.feedbackActionEvents ?? {}).flatMap(([slotId, event]) => {
+            const sourceAttemptId = event.answer.answerAttemptId;
+            const answerSubmission = session.answerSubmissions?.[slotId];
+            const analysisSnapshot = session.answerAnalysisSnapshots?.[slotId];
+            return event.actionKind === "retry_answer"
+                && event.transition === "retry_current_question"
+                && sourceAttemptId
+                && answerSubmission?.answerAttemptId === sourceAttemptId
+                && analysisSnapshot?.answer.answerAttemptId === sourceAttemptId
+                ? [[slotId, sourceAttemptId] as const]
+                : [];
+        }),
+    );
 }

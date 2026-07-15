@@ -11,6 +11,7 @@ import {
 describe("/candidate/launch route", () => {
     afterEach(() => {
         vi.unstubAllEnvs();
+        vi.useRealTimers();
     });
 
     it("fails closed and redirects to the candidate dashboard when the verifier is not configured", async () => {
@@ -22,6 +23,8 @@ describe("/candidate/launch route", () => {
     });
 
     it("accepts a local dev host-launch token only when explicit dev mode is enabled", async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date("2026-07-08T12:00:00.000Z"));
         vi.stubEnv("NODE_ENV", "development");
         vi.stubEnv("CANDIDATE_HOST_LAUNCH_DEV_MODE", "true");
         vi.stubEnv("CANDIDATE_HOST_LAUNCH_DEV_SECRET", "local-dev-shared-secret");

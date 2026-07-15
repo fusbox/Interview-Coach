@@ -6,12 +6,16 @@ import {
     type CandidatePracticeNext,
 } from "@/features/candidate-session-v2/candidate-completed-round-read-model";
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
+import type { CandidateCoachUpdateArtifactRecord } from "./candidate-coach-update-artifact";
 import {
     createCandidateCoachUpdateDetail,
     createCandidateFocusedPracticeHref,
     type CandidateCoachUpdateDetail,
 } from "./candidate-coach-update-detail";
-import { normalizeCandidateTargetInterviewId } from "./candidate-dashboard-route";
+import {
+    normalizeCandidateRoleProfileId,
+    normalizeCandidateTargetInterviewId,
+} from "./candidate-dashboard-route";
 
 export type CandidateDashboardV2ReadModel = {
     status: "candidate_dashboard_v2_read_model";
@@ -44,6 +48,7 @@ export type CandidateDashboardV2ReadModel = {
 export type CandidateDashboardTargetInterview = {
     status: "candidate_dashboard_target_interview";
     id: string;
+    roleProfileId: string | null;
     targetRole: string;
     isSelected: boolean;
     activeRoundCount: number;
@@ -134,18 +139,26 @@ export type CandidateDashboardCoachGuidedFocusIndicator = {
 export function createCandidateDashboardV2ReadModel({
     candidateProfileId,
     practiceSessions,
-    selectedTargetInterviewId,
+    selectedRoleProfileId,
+    selectedLegacyTargetRole,
+    coachUpdateArtifacts = [],
 }: {
     candidateProfileId: string;
     practiceSessions: CandidatePracticeSessionRecord[];
-    selectedTargetInterviewId?: string | null;
+    selectedRoleProfileId?: string | null;
+    selectedLegacyTargetRole?: string | null;
+    coachUpdateArtifacts?: CandidateCoachUpdateArtifactRecord[];
 }): CandidateDashboardV2ReadModel {
     const candidateSessions = practiceSessions.filter((session) => session.candidateProfileId === candidateProfileId);
-    const selectedContextId = selectTargetInterviewId(candidateSessions, selectedTargetInterviewId);
-    const scopedCandidateSessions = selectedContextId
-        ? candidateSessions.filter((session) => getTargetInterviewId(session) === selectedContextId)
+    const selectedContextKey = selectTargetInterviewContextKey({
+        candidateSessions,
+        requestedRoleProfileId: selectedRoleProfileId,
+        requestedLegacyTargetRole: selectedLegacyTargetRole,
+    });
+    const scopedCandidateSessions = selectedContextKey
+        ? candidateSessions.filter((session) => getTargetInterviewContextKey(session) === selectedContextKey)
         : [];
-    const targetInterviews = createTargetInterviews(candidateSessions, selectedContextId);
+    const targetInterviews = createTargetInterviews(candidateSessions, selectedContextKey);
     const activeSessions = scopedCandidateSessions.filter((session) => (
         session.status === "planned" || session.status === "in_progress"
     ));
@@ -159,6 +172,17 @@ export function createCandidateDashboardV2ReadModel({
         .sort((left, right) => right.round.completedAt.localeCompare(left.round.completedAt));
     const latestPracticeNext = completedRounds[0]?.practiceNext ?? createFirstPracticeNext();
     const attemptRollup = createAttemptRollup(scopedCandidateSessions);
+    const questionEvidence = createQuestionEvidenceRollup(scopedCandidateSessions);
+    const latestCompletedRound = completedRounds[0] ?? null;
+    const latestCoachUpdateArtifact = latestCompletedRound
+        ? coachUpdateArtifacts.find((artifact) => (
+            artifact.lifecycleState === "completed"
+            && artifact.candidateProfileId === candidateProfileId
+            && artifact.roleProfileId === selectedRoleProfileIdFromKey(selectedContextKey)
+            && artifact.sourceCandidatePracticeSessionId === latestCompletedRound.round.candidatePracticeSessionId
+        )) ?? null
+        : null;
+    const latestCoachUpdate = createDashboardCoachUpdateFromArtifact(latestCoachUpdateArtifact, latestCompletedRound);
 
     return {
         status: "candidate_dashboard_v2_read_model",
@@ -174,16 +198,16 @@ export function createCandidateDashboardV2ReadModel({
         stats: {
             activeRoundCount,
             completedRoundCount: completedRounds.length,
-            answeredQuestionCount: completedRounds.reduce((total, round) => total + round.round.answeredCount, 0),
-            coachedAnswerCount: completedRounds.reduce((total, round) => total + round.round.coachedCount, 0),
+            answeredQuestionCount: questionEvidence.answeredQuestionCount,
+            coachedAnswerCount: questionEvidence.coachedAnswerCount,
             attempts: attemptRollup,
         },
         activeRound: createActiveRound(activeSession),
         completedRounds,
-        latestCoachUpdate: completedRounds[0]?.dashboardUpdate ?? null,
-        coachUpdateDetail: createCandidateCoachUpdateDetail(completedRounds[0]?.postRoundReview ?? null),
+        latestCoachUpdate,
+        coachUpdateDetail: createCandidateCoachUpdateDetail(latestCoachUpdateArtifact),
         coachingLoop: createCoachingLoop({
-            latestCoachUpdate: completedRounds[0]?.dashboardUpdate ?? null,
+            latestCoachUpdate,
             practiceNext: latestPracticeNext,
         }),
         postRoundReviews: completedRounds.map((round) => round.postRoundReview),
@@ -196,21 +220,70 @@ export function createCandidateDashboardV2ReadModel({
     };
 }
 
-function selectTargetInterviewId(
-    candidateSessions: CandidatePracticeSessionRecord[],
-    requestedTargetInterviewId?: string | null,
-) {
-    const availableTargetInterviewIds = new Set(candidateSessions.map(getTargetInterviewId));
-    const normalizedRequestedId = normalizeCandidateTargetInterviewId(requestedTargetInterviewId);
-    if (normalizedRequestedId && availableTargetInterviewIds.has(normalizedRequestedId)) {
-        return normalizedRequestedId;
+function createDashboardCoachUpdateFromArtifact(
+    artifact: CandidateCoachUpdateArtifactRecord | null,
+    latestCompletedRound: CandidateCompletedRoundReadModels | null,
+): CandidateDashboardCoachUpdate | null {
+    const content = artifact?.candidateSafeContent;
+    if (!artifact || !content || !artifact.completedAt || !latestCompletedRound) return null;
+    const firstQuestion = content.questions[0];
+    return {
+        status: "candidate_dashboard_coach_update_ready",
+        candidatePracticeSessionId: artifact.sourceCandidatePracticeSessionId,
+        title: content.title,
+        body: content.summary,
+        href: "#coach-update-detail",
+        completedAt: artifact.completedAt,
+        answeredCount: content.questions.length,
+        questionCount: latestCompletedRound.round.questionCount,
+        ...(firstQuestion ? {
+            coachingPreview: {
+                questionKey: firstQuestion.questionKey,
+                questionNumber: firstQuestion.questionNumber,
+                category: firstQuestion.category,
+                observation: firstQuestion.coaching.observation,
+                nextPracticeFocus: firstQuestion.coaching.nextPracticeFocus,
+            },
+        } : {}),
+    };
+}
+
+function selectedRoleProfileIdFromKey(contextKey: string | null) {
+    return contextKey?.startsWith("profile:") ? contextKey.slice("profile:".length) : null;
+}
+
+function selectTargetInterviewContextKey({
+    candidateSessions,
+    requestedRoleProfileId,
+    requestedLegacyTargetRole,
+}: {
+    candidateSessions: CandidatePracticeSessionRecord[];
+    requestedRoleProfileId?: string | null;
+    requestedLegacyTargetRole?: string | null;
+}) {
+    const availableContextKeys = new Set(candidateSessions.map(getTargetInterviewContextKey));
+    const hasRequestedRoleProfileId = Boolean(requestedRoleProfileId?.trim());
+    const normalizedRoleProfileId = normalizeCandidateRoleProfileId(requestedRoleProfileId);
+    const requestedProfileKey = normalizedRoleProfileId ? createRoleProfileContextKey(normalizedRoleProfileId) : null;
+    if (requestedProfileKey && availableContextKeys.has(requestedProfileKey)) {
+        return requestedProfileKey;
+    }
+
+    const normalizedLegacyTargetRole = hasRequestedRoleProfileId
+        ? ""
+        : normalizeCandidateTargetInterviewId(requestedLegacyTargetRole);
+    const requestedLegacyKey = normalizedLegacyTargetRole
+        ? createLegacyTargetRoleContextKey(normalizedLegacyTargetRole)
+        : null;
+    if (requestedLegacyKey && availableContextKeys.has(requestedLegacyKey)) {
+        return requestedLegacyKey;
     }
 
     const activeSession = [...candidateSessions]
         .filter((session) => session.status === "planned" || session.status === "in_progress")
         .sort((left, right) => right.setupSnapshot.createdAt.localeCompare(left.setupSnapshot.createdAt))[0];
     if (activeSession) {
-        return getTargetInterviewId(activeSession);
+        return getTargetInterviewContextKey(activeSession);
     }
 
     const latestCompletedSession = [...candidateSessions]
@@ -219,27 +292,30 @@ function selectTargetInterviewId(
             (right.completionSnapshot?.completedAt ?? "").localeCompare(left.completionSnapshot?.completedAt ?? "")
         ))[0];
     if (latestCompletedSession) {
-        return getTargetInterviewId(latestCompletedSession);
+        return getTargetInterviewContextKey(latestCompletedSession);
     }
 
     const latestSession = [...candidateSessions]
         .sort((left, right) => right.setupSnapshot.createdAt.localeCompare(left.setupSnapshot.createdAt))[0];
-    return latestSession ? getTargetInterviewId(latestSession) : null;
+    return latestSession ? getTargetInterviewContextKey(latestSession) : null;
 }
 
 function createTargetInterviews(
     candidateSessions: CandidatePracticeSessionRecord[],
-    selectedTargetInterviewId: string | null,
+    selectedContextKey: string | null,
 ): CandidateDashboardTargetInterview[] {
     const targetInterviewsById = new Map<string, CandidateDashboardTargetInterview>();
 
     for (const session of candidateSessions) {
-        const id = getTargetInterviewId(session);
-        const current = targetInterviewsById.get(id) ?? {
+        const contextKey = getTargetInterviewContextKey(session);
+        const roleProfileId = normalizeCandidateRoleProfileId(session.roleProfileId);
+        const id = roleProfileId ?? getLegacyTargetInterviewId(session);
+        const current = targetInterviewsById.get(contextKey) ?? {
             status: "candidate_dashboard_target_interview" as const,
             id,
+            roleProfileId,
             targetRole: session.setupSnapshot.targetRole,
-            isSelected: id === selectedTargetInterviewId,
+            isSelected: contextKey === selectedContextKey,
             activeRoundCount: 0,
             completedRoundCount: 0,
             answeredQuestionCount: 0,
@@ -253,9 +329,10 @@ function createTargetInterviews(
         }
         if (session.status === "completed" && session.completionSnapshot) {
             current.completedRoundCount += 1;
-            current.answeredQuestionCount += session.completionSnapshot.answeredCount;
-            current.coachedAnswerCount += session.completionSnapshot.coachedCount;
         }
+        const questionEvidence = createQuestionEvidenceRollup([session]);
+        current.answeredQuestionCount += questionEvidence.answeredQuestionCount;
+        current.coachedAnswerCount += questionEvidence.coachedAnswerCount;
         current.attempts = addAttemptRollups(current.attempts ?? createEmptyAttemptRollup(), createAttemptRollup([session]));
 
         const activityAt = getSessionActivityAt(session);
@@ -264,13 +341,13 @@ function createTargetInterviews(
             current.targetRole = session.setupSnapshot.targetRole;
         }
 
-        targetInterviewsById.set(id, current);
+        targetInterviewsById.set(contextKey, current);
     }
 
     return Array.from(targetInterviewsById.values())
         .map((targetInterview) => ({
             ...targetInterview,
-            isSelected: targetInterview.id === selectedTargetInterviewId,
+            isSelected: getTargetInterviewOptionContextKey(targetInterview) === selectedContextKey,
         }))
         .sort((left, right) => {
             if (left.isSelected !== right.isSelected) {
@@ -278,6 +355,43 @@ function createTargetInterviews(
             }
             return right.lastActivityAt.localeCompare(left.lastActivityAt);
         });
+}
+
+function createQuestionEvidenceRollup(sessions: CandidatePracticeSessionRecord[]) {
+    return sessions.reduce((rollup, session) => {
+        if (session.status === "completed" && session.completionSnapshot) {
+            return {
+                answeredQuestionCount: rollup.answeredQuestionCount + session.completionSnapshot.answeredCount,
+                coachedAnswerCount: rollup.coachedAnswerCount + session.completionSnapshot.coachedCount,
+            };
+        }
+
+        const submissions = Object.entries(session.answerSubmissions).filter(([slotId, submission]) => (
+            submission.slotId === slotId
+        ));
+        const coachedAnswerCount = submissions.filter(([slotId, submission]) => {
+            const analysis = session.answerAnalysisSnapshots[slotId];
+            if (
+                !analysis
+                || analysis.answer.slotId !== submission.slotId
+                || analysis.answer.questionIndex !== submission.questionIndex
+            ) {
+                return false;
+            }
+            if (analysis.answer.answerAttemptId) {
+                return analysis.answer.answerAttemptId === submission.answerAttemptId;
+            }
+            return !submission.attemptNumber || submission.attemptNumber === 1;
+        }).length;
+
+        return {
+            answeredQuestionCount: rollup.answeredQuestionCount + submissions.length,
+            coachedAnswerCount: rollup.coachedAnswerCount + coachedAnswerCount,
+        };
+    }, {
+        answeredQuestionCount: 0,
+        coachedAnswerCount: 0,
+    });
 }
 
 function createAttemptRollup(sessions: CandidatePracticeSessionRecord[]): CandidateDashboardAttemptRollup {
@@ -350,8 +464,29 @@ function readFollowUpPractice(setupSnapshot: unknown): FollowUpPracticeSnapshot 
     };
 }
 
-function getTargetInterviewId(session: CandidatePracticeSessionRecord) {
+function getTargetInterviewContextKey(session: CandidatePracticeSessionRecord) {
+    const roleProfileId = normalizeCandidateRoleProfileId(session.roleProfileId);
+    return roleProfileId
+        ? createRoleProfileContextKey(roleProfileId)
+        : createLegacyTargetRoleContextKey(getLegacyTargetInterviewId(session));
+}
+
+function getTargetInterviewOptionContextKey(targetInterview: CandidateDashboardTargetInterview) {
+    return targetInterview.roleProfileId
+        ? createRoleProfileContextKey(targetInterview.roleProfileId)
+        : createLegacyTargetRoleContextKey(targetInterview.id);
+}
+
+function getLegacyTargetInterviewId(session: CandidatePracticeSessionRecord) {
     return normalizeCandidateTargetInterviewId(session.setupSnapshot.targetRole) || "unknown-role";
+}
+
+function createRoleProfileContextKey(roleProfileId: string) {
+    return `profile:${roleProfileId}`;
+}
+
+function createLegacyTargetRoleContextKey(normalizedTargetRole: string) {
+    return `legacy:${normalizedTargetRole}`;
 }
 
 function getSessionActivityAt(session: CandidatePracticeSessionRecord) {

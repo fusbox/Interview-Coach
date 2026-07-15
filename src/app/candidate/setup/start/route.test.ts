@@ -16,6 +16,8 @@ describe("/candidate/setup/start route", () => {
         )).resolves.toEqual({
             candidateProfileId: "10000000-0000-4000-8000-000000000001",
             candidateLaunchSessionId: null,
+            allowManualPrepContextCreation: true,
+            allowBrowserBridgeFallback: true,
         });
     });
 
@@ -120,6 +122,11 @@ describe("/candidate/setup/start route", () => {
     });
 
     it("persists the setup-created session when candidate identity dependencies resolve", async () => {
+        const resolveSetupPrepContext = vi.fn(async () => ({
+            status: "resolved" as const,
+            roleProfileId: "33333333-3333-4333-8333-333333333333",
+            resolution: "created" as const,
+        }));
         const createSetupSession = vi.fn(async () => ({
             candidatePracticeSessionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
         }));
@@ -143,7 +150,11 @@ describe("/candidate/setup/start route", () => {
             resolveCandidateSetupIdentity: vi.fn(async () => ({
                 candidateProfileId: "22222222-2222-4222-8222-222222222222",
                 candidateLaunchSessionId: "launch-session-123",
+                allowManualPrepContextCreation: true,
             })),
+            prepContextResolver: {
+                resolveSetupPrepContext,
+            },
             practiceSessionRepository: {
                 createSetupSession,
             },
@@ -159,10 +170,20 @@ describe("/candidate/setup/start route", () => {
             },
         });
         expect(response.status).toBe(201);
+        expect(resolveSetupPrepContext).toHaveBeenCalledWith({
+            candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            requestedRoleProfileId: null,
+            createSeparateFromRoleProfileId: null,
+            allowManualCreation: true,
+            setupSnapshot: expect.objectContaining({
+                targetRole: "Customer service representative",
+                jobDescription: "Help customers resolve service questions.",
+            }),
+        });
         expect(createSetupSession).toHaveBeenCalledWith(expect.objectContaining({
             candidateProfileId: "22222222-2222-4222-8222-222222222222",
             candidateLaunchSessionId: "launch-session-123",
-            roleProfileId: null,
+            roleProfileId: "33333333-3333-4333-8333-333333333333",
             setupSnapshot: expect.objectContaining({
                 targetRole: "Customer service representative",
             }),
@@ -177,6 +198,133 @@ describe("/candidate/setup/start route", () => {
                 currentQuestionIndex: 0,
             },
         }));
+    });
+
+    it("returns candidate-owned exact-match facts without creating a session", async () => {
+        const createSetupSession = vi.fn();
+        const resolveSetupPrepContext = vi.fn(async () => ({
+            status: "existing_paths" as const,
+            existingPrepContexts: [{
+                roleProfileId: "33333333-3333-4333-8333-333333333333",
+                targetRole: "Customer service representative",
+                jobDescription: "Help customers resolve service questions.",
+                interviewStage: "first_interview" as const,
+                questionCount: 7,
+                createdAt: "2026-07-01T15:00:00.000Z",
+                lastPracticeActivityAt: "2026-07-14T15:00:00.000Z",
+                completedSessionCount: 2,
+                completedQuestionCount: 11,
+                activeRound: {
+                    completedQuestionCount: 2,
+                    totalQuestionCount: 5,
+                },
+            }],
+        }));
+
+        const response = await handleCandidateSetupStartRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
+                method: "POST",
+                body: JSON.stringify({
+                    targetRole: "Customer service representative",
+                    jobDescription: "Help customers resolve service questions.",
+                    interviewStage: "first_interview",
+                    questionCount: 7,
+                }),
+            }),
+            now: new Date("2026-07-15T16:00:00.000Z"),
+            createSessionId: () => "unused-session-id",
+            resolveCandidateSetupIdentity: vi.fn(async () => ({
+                candidateProfileId: "22222222-2222-4222-8222-222222222222",
+                allowManualPrepContextCreation: true,
+            })),
+            prepContextResolver: { resolveSetupPrepContext },
+            practiceSessionRepository: { createSetupSession },
+        });
+
+        await expect(response.json()).resolves.toEqual({
+            status: "existing_prep_context_found",
+            existingPrepContexts: [expect.objectContaining({
+                roleProfileId: "33333333-3333-4333-8333-333333333333",
+                completedSessionCount: 2,
+                completedQuestionCount: 11,
+                activeRound: {
+                    completedQuestionCount: 2,
+                    totalQuestionCount: 5,
+                },
+            })],
+        });
+        expect(response.status).toBe(409);
+        expect(createSetupSession).not.toHaveBeenCalled();
+    });
+
+    it("creates a separate profile and session only after an explicit exact-match choice", async () => {
+        const resolveSetupPrepContext = vi.fn(async () => ({
+            status: "resolved" as const,
+            roleProfileId: "44444444-4444-4444-8444-444444444444",
+            resolution: "separate_created" as const,
+        }));
+        const createSetupSession = vi.fn(async () => ({
+            candidatePracticeSessionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        }));
+
+        const response = await handleCandidateSetupStartRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
+                method: "POST",
+                body: JSON.stringify({
+                    targetRole: "Customer service representative",
+                    jobDescription: "Help customers resolve service questions.",
+                    interviewStage: "first_interview",
+                    questionCount: 7,
+                    prepContextDecision: {
+                        action: "create_separate_path",
+                        matchingRoleProfileId: "33333333-3333-4333-8333-333333333333",
+                    },
+                }),
+            }),
+            now: new Date("2026-07-15T16:00:00.000Z"),
+            createSessionId: () => "unused-session-id",
+            resolveCandidateSetupIdentity: vi.fn(async () => ({
+                candidateProfileId: "22222222-2222-4222-8222-222222222222",
+                allowManualPrepContextCreation: true,
+            })),
+            prepContextResolver: { resolveSetupPrepContext },
+            practiceSessionRepository: { createSetupSession },
+        });
+
+        expect(response.status).toBe(201);
+        expect(resolveSetupPrepContext).toHaveBeenCalledWith(expect.objectContaining({
+            createSeparateFromRoleProfileId: "33333333-3333-4333-8333-333333333333",
+        }));
+        expect(createSetupSession).toHaveBeenCalledWith(expect.objectContaining({
+            roleProfileId: "44444444-4444-4444-8444-444444444444",
+        }));
+    });
+
+    it("rejects malformed separate-path decisions before resolving identity", async () => {
+        const resolveCandidateSetupIdentity = vi.fn();
+        const response = await handleCandidateSetupStartRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
+                method: "POST",
+                body: JSON.stringify({
+                    targetRole: "Material handler",
+                    jobDescription: "Move and label materials.",
+                    interviewStage: "first_interview",
+                    questionCount: 7,
+                    prepContextDecision: {
+                        action: "reuse_without_confirmation",
+                    },
+                }),
+            }),
+            now: new Date("2026-07-15T16:00:00.000Z"),
+            createSessionId: () => "unused-session-id",
+            resolveCandidateSetupIdentity,
+        });
+
+        await expect(response.json()).resolves.toEqual({
+            error: "Invalid preparation-context choice.",
+        });
+        expect(response.status).toBe(400);
+        expect(resolveCandidateSetupIdentity).not.toHaveBeenCalled();
     });
 
     it("keeps the browser-bridge provisional response when candidate identity is unavailable", async () => {
@@ -194,6 +342,7 @@ describe("/candidate/setup/start route", () => {
             }),
             now: new Date("2026-07-09T16:00:00.000Z"),
             createSessionId: () => "browser-bridge-session-id",
+            allowBrowserBridgeWithoutIdentity: true,
             resolveCandidateSetupIdentity: vi.fn(async () => null),
             practiceSessionRepository: {
                 createSetupSession,
@@ -207,6 +356,29 @@ describe("/candidate/setup/start route", () => {
         });
         expect(response.status).toBe(201);
         expect(createSetupSession).not.toHaveBeenCalled();
+    });
+
+    it("rejects an identity-less setup transition when browser-bridge mode is not explicitly allowed", async () => {
+        const response = await handleCandidateSetupStartRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
+                method: "POST",
+                body: JSON.stringify({
+                    targetRole: "Material handler",
+                    jobDescription: "Move and label materials.",
+                    interviewStage: "first_interview",
+                    questionCount: 7,
+                }),
+            }),
+            now: new Date("2026-07-14T20:00:00.000Z"),
+            createSessionId: () => "browser-bridge-session-id",
+            allowBrowserBridgeWithoutIdentity: false,
+            resolveCandidateSetupIdentity: vi.fn(async () => null),
+        });
+
+        await expect(response.json()).resolves.toEqual({
+            error: "Candidate access could not be verified.",
+        });
+        expect(response.status).toBe(401);
     });
 
     it("fails closed when durable persistence is attempted but unavailable", async () => {
@@ -224,7 +396,15 @@ describe("/candidate/setup/start route", () => {
             createSessionId: () => "browser-bridge-session-id",
             resolveCandidateSetupIdentity: vi.fn(async () => ({
                 candidateProfileId: "22222222-2222-4222-8222-222222222222",
+                allowManualPrepContextCreation: true,
             })),
+            prepContextResolver: {
+                resolveSetupPrepContext: vi.fn(async () => ({
+                    status: "resolved" as const,
+                    roleProfileId: "33333333-3333-4333-8333-333333333333",
+                    resolution: "created" as const,
+                })),
+            },
             practiceSessionRepository: {
                 createSetupSession: vi.fn(async () => null),
             },
@@ -234,6 +414,98 @@ describe("/candidate/setup/start route", () => {
             error: "Candidate practice session could not be saved.",
         });
         expect(response.status).toBe(503);
+    });
+
+    it("fails closed before session creation when no candidate-owned prep context resolves", async () => {
+        const createSetupSession = vi.fn();
+        const resolveSetupPrepContext = vi.fn(async () => null);
+
+        const response = await handleCandidateSetupStartRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
+                method: "POST",
+                body: JSON.stringify({
+                    targetRole: "Material handler",
+                    jobDescription: "Move and label materials.",
+                    interviewStage: "first_interview",
+                    questionCount: 7,
+                }),
+            }),
+            now: new Date("2026-07-14T20:00:00.000Z"),
+            createSessionId: () => "browser-bridge-session-id",
+            resolveCandidateSetupIdentity: vi.fn(async () => ({
+                candidateProfileId: "22222222-2222-4222-8222-222222222222",
+                roleProfileId: "unowned-role-profile",
+                allowManualPrepContextCreation: false,
+            })),
+            prepContextResolver: {
+                resolveSetupPrepContext,
+            },
+            practiceSessionRepository: {
+                createSetupSession,
+            },
+        });
+
+        await expect(response.json()).resolves.toEqual({
+            error: "Candidate preparation context could not be resolved.",
+        });
+        expect(response.status).toBe(503);
+        expect(resolveSetupPrepContext).toHaveBeenCalledWith(expect.objectContaining({
+            requestedRoleProfileId: "unowned-role-profile",
+            allowManualCreation: false,
+        }));
+        expect(createSetupSession).not.toHaveBeenCalled();
+    });
+
+    it("does not silently use browser-bridge state when durable identity lacks persistence dependencies", async () => {
+        const response = await handleCandidateSetupStartRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
+                method: "POST",
+                body: JSON.stringify({
+                    targetRole: "Material handler",
+                    jobDescription: "Move and label materials.",
+                    interviewStage: "first_interview",
+                    questionCount: 7,
+                }),
+            }),
+            now: new Date("2026-07-14T20:00:00.000Z"),
+            createSessionId: () => "browser-bridge-session-id",
+            resolveCandidateSetupIdentity: vi.fn(async () => ({
+                candidateProfileId: "22222222-2222-4222-8222-222222222222",
+                allowBrowserBridgeFallback: false,
+            })),
+        });
+
+        await expect(response.json()).resolves.toEqual({
+            error: "Candidate practice session could not be saved.",
+        });
+        expect(response.status).toBe(503);
+    });
+
+    it("retains the explicit dev-only browser bridge when durable storage is absent", async () => {
+        const response = await handleCandidateSetupStartRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
+                method: "POST",
+                body: JSON.stringify({
+                    targetRole: "Material handler",
+                    jobDescription: "Move and label materials.",
+                    interviewStage: "first_interview",
+                    questionCount: 7,
+                }),
+            }),
+            now: new Date("2026-07-14T20:00:00.000Z"),
+            createSessionId: () => "browser-bridge-session-id",
+            resolveCandidateSetupIdentity: vi.fn(async () => ({
+                candidateProfileId: "22222222-2222-4222-8222-222222222222",
+                allowManualPrepContextCreation: true,
+                allowBrowserBridgeFallback: true,
+            })),
+        });
+
+        await expect(response.json()).resolves.toMatchObject({
+            sessionId: "browser-bridge-session-id",
+            nextRoute: "/candidate/session/browser-bridge-session-id",
+        });
+        expect(response.status).toBe(201);
     });
 
     it("reports identity lookup failures as setup-start infrastructure failures", async () => {

@@ -35,6 +35,9 @@ export type CandidateQaEvalCaseSnapshot = {
         plannedPurpose: string;
     };
     answer: {
+        answerAttemptId?: string;
+        attemptNumber?: number;
+        trigger?: "initial_submit" | "feedback_retry";
         mode: "text";
         text: string;
         submittedAt: string;
@@ -150,6 +153,11 @@ export function createCandidateQaEvalCasesFromPracticeSession(
                 plannedPurpose: plannedSlot.purpose,
             },
             answer: {
+                ...(submittedAnswer.answerAttemptId ? {
+                    answerAttemptId: submittedAnswer.answerAttemptId,
+                    attemptNumber: submittedAnswer.attemptNumber,
+                    trigger: submittedAnswer.trigger,
+                } : {}),
                 mode: submittedAnswer.mode,
                 text: submittedAnswer.text,
                 submittedAt: submittedAnswer.submittedAt,
@@ -161,7 +169,12 @@ export function createCandidateQaEvalCasesFromPracticeSession(
         return [{
             status: "candidate_qa_eval_case" as const,
             schemaVersion: 1 as const,
-            caseId: `candidate-qa-case:${session.candidatePracticeSessionId}:${question.slotId}`,
+            caseId: [
+                "candidate-qa-case",
+                session.candidatePracticeSessionId,
+                question.slotId,
+                ...(submittedAnswer.answerAttemptId ? [submittedAnswer.answerAttemptId] : []),
+            ].join(":"),
             inputFingerprint,
             candidatePracticeSessionId: session.candidatePracticeSessionId,
             candidateProfileId: "redacted" as const,

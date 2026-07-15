@@ -5,6 +5,8 @@ import {
     readCandidateProvisionalSession,
     readCandidateProvisionalSessionProgress,
     saveCandidateProvisionalSession,
+    saveCandidateProvisionalSessionAnswerDraft,
+    saveCandidateProvisionalSessionFeedbackActionEvent,
     saveCandidateProvisionalSessionProgress,
 } from "./candidate-provisional-session-store";
 import { createCandidateQuestionPlan } from "./candidate-question-plan";
@@ -158,6 +160,94 @@ describe("candidate provisional session store", () => {
             status: "live_question",
             currentQuestionIndex: 1,
         });
+    });
+
+    it("keeps browser-bridge answer drafts with their exact question", () => {
+        const storage = createMemoryStorage();
+        const setupSnapshot = {
+            targetRole: "Customer service representative",
+            jobDescription: "Help customers resolve service questions.",
+            resumeText: null,
+            interviewStage: "first_interview" as const,
+            questionCount: 7,
+            resumeCaptureMode: "none" as const,
+            createdAt: "2026-07-08T18:00:00.000Z",
+        };
+        const questionPlanSnapshot = createCandidateQuestionPlan({
+            interviewStage: "first_interview",
+            questionCount: 7,
+        });
+        saveCandidateProvisionalSession(storage, {
+            status: "session_created",
+            sessionId: "candidate-session-123",
+            nextRoute: "/candidate/session/candidate-session-123",
+            setupSnapshot,
+            questionPlanSnapshot,
+        });
+
+        saveCandidateProvisionalSessionAnswerDraft(storage, "candidate-session-123", {
+            slotId: "slot-2",
+            questionIndex: 1,
+            mode: "text",
+            text: "My in-progress answer",
+            updatedAt: "2026-07-14T16:00:00.000Z",
+        });
+
+        expect(readCandidateProvisionalSession(storage, "candidate-session-123")?.answerDrafts).toEqual({
+            "slot-2": expect.objectContaining({
+                questionIndex: 1,
+                text: "My in-progress answer",
+            }),
+        });
+    });
+
+    it("keeps a browser-bridge feedback transition bound to its exact answer attempt", () => {
+        const storage = createMemoryStorage();
+        const setupSnapshot = {
+            targetRole: "Customer service representative",
+            jobDescription: "Help customers resolve service questions.",
+            resumeText: null,
+            interviewStage: "first_interview" as const,
+            questionCount: 7,
+            resumeCaptureMode: "none" as const,
+            createdAt: "2026-07-08T18:00:00.000Z",
+        };
+        saveCandidateProvisionalSession(storage, {
+            status: "session_created",
+            sessionId: "candidate-session-123",
+            nextRoute: "/candidate/session/candidate-session-123",
+            setupSnapshot,
+            questionPlanSnapshot: createCandidateQuestionPlan({
+                interviewStage: "first_interview",
+                questionCount: 7,
+            }),
+        });
+
+        saveCandidateProvisionalSessionFeedbackActionEvent(storage, "candidate-session-123", {
+            status: "feedback_action_selected",
+            answer: {
+                slotId: "slot-1",
+                questionIndex: 0,
+                answerAttemptId: "11111111-1111-4111-8111-111111111111",
+                attemptNumber: 1,
+                trigger: "initial_submit",
+            },
+            stageId: "acknowledgement",
+            actionKind: "explore_feedback",
+            transition: "show_feedback_stage",
+            targetStageId: "content_coaching",
+            selectedAt: "2026-07-14T20:00:00.000Z",
+        });
+
+        expect(readCandidateProvisionalSession(storage, "candidate-session-123")?.feedbackActionEvents)
+            .toEqual({
+                "slot-1": expect.objectContaining({
+                    actionKind: "explore_feedback",
+                    answer: expect.objectContaining({
+                        answerAttemptId: "11111111-1111-4111-8111-111111111111",
+                    }),
+                }),
+            });
     });
 
     it("returns null for missing or malformed stored data", () => {

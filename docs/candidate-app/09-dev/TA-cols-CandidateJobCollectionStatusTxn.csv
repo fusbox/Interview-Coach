@@ -1,0 +1,11 @@
+COLUMN_NAME,DATA_TYPE,CHARACTER_MAXIMUM_LENGTH,IS_NULLABLE,ORDINAL_POSITION
+CandidateJobCollectionStatusTxnID,int,,NO,1
+CandidateJobCollectionTxnID,int,,NO,2
+DirectJobStatusMasterID,int,,NO,3
+StatusDate,datetime,,NO,4
+IsActive,bit,,NO,5
+CreatedDate,datetime,,NO,6
+CreatedBy,int,,NO,7
+ModifiedDate,datetime,,YES,8
+ModifedBy,int,,YES,9
+LinkID,uniqueidentifier,,YES,10

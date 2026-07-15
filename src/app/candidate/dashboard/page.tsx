@@ -8,9 +8,11 @@ import {
     createCandidateDashboardV2ReadModel,
     type CandidateDashboardV2ReadModel,
 } from "@/features/candidate-dashboard-v2/candidate-dashboard-read-model";
+import { createCandidateCoachUpdateArtifactRepository } from "@/features/candidate-dashboard-v2/candidate-coach-update-artifact-repository";
 import { CandidatePlanProgressAction } from "@/features/candidate-dashboard-v2/CandidatePlanProgressAction";
 import {
     createCandidateDashboardHref,
+    normalizeCandidateRoleProfileId,
     normalizeCandidateTargetInterviewId,
 } from "@/features/candidate-dashboard-v2/candidate-dashboard-route";
 import {
@@ -26,36 +28,43 @@ export default async function CandidateDashboardPage({ searchParams }: Candidate
 
     return renderCandidateDashboardPage({
         dependencies: createDefaultCandidateDashboardPageDependencies(),
-        selectedTargetInterviewId: readSearchParam(resolvedSearchParams.targetRole),
+        selectedRoleProfileId: readSearchParam(resolvedSearchParams.prep),
+        selectedLegacyTargetRole: readSearchParam(resolvedSearchParams.targetRole),
         canonicalizeSelection: true,
     });
 }
 
 type CandidateDashboardPageDependencies = {
     resolveDashboardModel?: (input: {
-        selectedTargetInterviewId?: string | null;
+        selectedRoleProfileId?: string | null;
+        selectedLegacyTargetRole?: string | null;
     }) => Promise<CandidateDashboardV2ReadModel | null>;
 };
 
 export async function renderCandidateDashboardPage({
     dependencies = {},
-    selectedTargetInterviewId = null,
+    selectedRoleProfileId = null,
+    selectedLegacyTargetRole = null,
     canonicalizeSelection = false,
 }: {
     dependencies?: CandidateDashboardPageDependencies;
-    selectedTargetInterviewId?: string | null;
+    selectedRoleProfileId?: string | null;
+    selectedLegacyTargetRole?: string | null;
     canonicalizeSelection?: boolean;
 }) {
     const dashboard = dependencies.resolveDashboardModel
-        ? await dependencies.resolveDashboardModel({ selectedTargetInterviewId })
+        ? await dependencies.resolveDashboardModel({ selectedRoleProfileId, selectedLegacyTargetRole })
         : null;
 
-    if (
-        canonicalizeSelection
-        && dashboard?.selectedTargetInterview
-        && normalizeCandidateTargetInterviewId(selectedTargetInterviewId) !== dashboard.selectedTargetInterview.id
-    ) {
-        redirect(createCandidateDashboardHref(dashboard.selectedTargetInterview.id));
+    if (canonicalizeSelection && dashboard?.selectedTargetInterview) {
+        const requestedHref = createCandidateDashboardHrefFromRequest({
+            selectedRoleProfileId,
+            selectedLegacyTargetRole,
+        });
+        const selectedHref = createCandidateDashboardTargetInterviewHref(dashboard.selectedTargetInterview);
+        if (requestedHref !== selectedHref) {
+            redirect(selectedHref);
+        }
     }
 
     return <CandidateDashboardHome dashboard={dashboard} />;
@@ -315,6 +324,7 @@ function CandidateDashboardCoachUpdateDetailItem({
                 <div className="candidate-dashboard-coach-update-detail__coach" role="region" aria-label="Coach observation">
                     <p>{item.coachRead.observation}</p>
                     <p>{item.coachRead.nextPracticeFocus}</p>
+                    {item.comparison.kind === "repeat_practice" ? <p>{item.comparison.message}</p> : null}
                 </div>
             ) : null}
 
@@ -425,7 +435,7 @@ function CandidateDashboardTargetContext({ dashboard }: { dashboard: CandidateDa
                     {alternateTargetInterviews.map((targetInterview) => (
                         <a
                             key={targetInterview.id}
-                            href={createDashboardTargetInterviewHref(targetInterview.id)}
+                            href={createCandidateDashboardTargetInterviewHref(targetInterview)}
                         >
                             <span>{targetInterview.targetRole}</span>
                             <span>{formatTargetInterviewProgress(targetInterview)}</span>
@@ -437,8 +447,32 @@ function CandidateDashboardTargetContext({ dashboard }: { dashboard: CandidateDa
     );
 }
 
-function createDashboardTargetInterviewHref(targetInterviewId: string) {
-    return createCandidateDashboardHref(targetInterviewId);
+function createCandidateDashboardTargetInterviewHref(
+    targetInterview: CandidateDashboardV2ReadModel["targetInterviews"][number],
+) {
+    return targetInterview.roleProfileId
+        ? createCandidateDashboardHref({ roleProfileId: targetInterview.roleProfileId })
+        : createCandidateDashboardHref({ legacyTargetRole: targetInterview.id });
+}
+
+function createCandidateDashboardHrefFromRequest({
+    selectedRoleProfileId,
+    selectedLegacyTargetRole,
+}: {
+    selectedRoleProfileId?: string | null;
+    selectedLegacyTargetRole?: string | null;
+}) {
+    if (selectedRoleProfileId?.trim()) {
+        const roleProfileId = normalizeCandidateRoleProfileId(selectedRoleProfileId);
+        return roleProfileId
+            ? createCandidateDashboardHref({ roleProfileId })
+            : createCandidateDashboardHref();
+    }
+
+    const legacyTargetRole = normalizeCandidateTargetInterviewId(selectedLegacyTargetRole);
+    return legacyTargetRole
+        ? createCandidateDashboardHref({ legacyTargetRole })
+        : createCandidateDashboardHref();
 }
 
 function formatTargetInterviewProgress(targetInterview: CandidateDashboardV2ReadModel["targetInterviews"][number]) {
@@ -496,9 +530,10 @@ function createDefaultCandidateDashboardPageDependencies(): CandidateDashboardPa
 
     const queryClient = createLazyPostgresQueryClient(databaseUrl);
     const practiceSessionRepository = createCandidatePracticeSessionRepository(queryClient);
+    const coachUpdateArtifactRepository = createCandidateCoachUpdateArtifactRepository(queryClient);
 
     return {
-        async resolveDashboardModel({ selectedTargetInterviewId }) {
+        async resolveDashboardModel({ selectedRoleProfileId, selectedLegacyTargetRole }) {
             try {
                 const { headers } = await import("next/headers");
                 const requestHeaders = await headers();
@@ -511,15 +546,20 @@ function createDefaultCandidateDashboardPageDependencies(): CandidateDashboardPa
                     return null;
                 }
 
-                const practiceSessions = await practiceSessionRepository.listPracticeSessionsForCandidate({
-                    candidateProfileId,
-                    limit: 50,
-                });
+                const [practiceSessions, coachUpdateArtifacts] = await Promise.all([
+                    practiceSessionRepository.listPracticeSessionsForCandidate({
+                        candidateProfileId,
+                        limit: 50,
+                    }),
+                    coachUpdateArtifactRepository.listCompletedArtifacts({ candidateProfileId }),
+                ]);
 
                 return createCandidateDashboardV2ReadModel({
                     candidateProfileId,
                     practiceSessions,
-                    selectedTargetInterviewId,
+                    coachUpdateArtifacts,
+                    selectedRoleProfileId,
+                    selectedLegacyTargetRole,
                 });
             } catch {
                 return null;

@@ -7,6 +7,7 @@ import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-aut
 import {
     createCandidatePracticeIntentRepository,
 } from "@/features/candidate-practice-v2/candidate-practice-intent-repository";
+import { createCandidateDashboardHref } from "@/features/candidate-dashboard-v2/candidate-dashboard-route";
 import type {
     CandidatePracticeIntentRecord,
 } from "@/features/candidate-practice-v2/candidate-follow-up-practice-intent";
@@ -50,6 +51,10 @@ export async function renderCandidatePracticeIntentReadyPage({
 }
 
 function PracticeIntentReadyResolvedState({ intent }: { intent: CandidatePracticeIntentRecord }) {
+    const returnHref = intent.roleProfileId
+        ? createCandidateDashboardHref({ roleProfileId: intent.roleProfileId })
+        : createCandidateDashboardHref({ legacyTargetRole: intent.targetInterviewId });
+
     return (
         <CandidatePreSessionLanding
             variant="follow_up"
@@ -64,7 +69,7 @@ function PracticeIntentReadyResolvedState({ intent }: { intent: CandidatePractic
                 questionText: item.source.questionText,
             }))}
             startActionUrl={`/candidate/practice/ready/${intent.candidatePracticeIntentId}/start`}
-            returnHref="/candidate/dashboard"
+            returnHref={returnHref}
         />
     );
 }

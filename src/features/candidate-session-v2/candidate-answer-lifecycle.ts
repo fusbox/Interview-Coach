@@ -19,6 +19,10 @@ export type CandidateAnswerSubmission = {
     text: string;
     submittedAt: string;
     status: CandidateAnswerSubmissionStatus;
+    answerAttemptId?: string;
+    attemptNumber?: number;
+    trigger?: "initial_submit" | "feedback_retry";
+    supersedesAnswerAttemptId?: string | null;
 };
 
 export type CandidateAnswerSubmissions = Record<string, CandidateAnswerSubmission>;
@@ -37,10 +41,13 @@ export type CandidateAnswerSubmitIdempotencyPayload = {
     questionIndex: number;
     mode: CandidateAnswerMode;
     text: string;
+    trigger?: "initial_submit" | "feedback_retry";
+    supersedesAnswerAttemptId?: string | null;
 };
 
 export type CandidateAnswerAnalysisIdempotencyPayload = CandidateAnswerSubmitIdempotencyPayload & {
     submittedAt: string;
+    answerAttemptId?: string | null;
 };
 
 export type CandidateAnswerSubmitIdempotencyContract = {
@@ -87,6 +94,8 @@ export type CandidateAnswerIdempotencyDecision =
     | { kind: "pending"; record: CandidateAnswerIdempotencyRecord }
     | { kind: "conflict"; record: CandidateAnswerIdempotencyRecord };
 
+export const CANDIDATE_ANSWER_PENDING_REQUEST_TTL_MS = 2 * 60 * 1000;
+
 export type CandidateAnswerDraftChanged = {
     status: "answer_draft_changed";
     draft: CandidateAnswerDraft;
@@ -96,6 +105,8 @@ export type CandidateAnswerSubmitRequest = {
     status: "answer_submit_requested";
     draft: CandidateAnswerDraft;
     requestedAt: string;
+    trigger?: "initial_submit" | "feedback_retry";
+    supersedesAnswerAttemptId?: string | null;
 };
 
 export type CandidateAnswerSubmitUnavailable = {
@@ -144,14 +155,29 @@ export function createCandidateAnswerDraftChange({
 export function createCandidateAnswerSubmitRequest({
     draft,
     requestedAt,
+    trigger = "initial_submit",
+    supersedesAnswerAttemptId = null,
 }: {
     draft: CandidateAnswerDraft;
     requestedAt: Date;
+    trigger?: "initial_submit" | "feedback_retry";
+    supersedesAnswerAttemptId?: string | null;
 }): CandidateAnswerSubmitRequest {
+    if (
+        (trigger === "initial_submit" && supersedesAnswerAttemptId)
+        || (trigger === "feedback_retry" && !readTrimmedString(supersedesAnswerAttemptId))
+    ) {
+        throw new Error("Answer submit trigger does not match its source attempt.");
+    }
+
     return {
         status: "answer_submit_requested",
         draft,
         requestedAt: requestedAt.toISOString(),
+        ...(trigger === "feedback_retry" ? {
+            trigger,
+            supersedesAnswerAttemptId: readTrimmedString(supersedesAnswerAttemptId)!,
+        } : {}),
     };
 }
 
@@ -195,8 +221,13 @@ export function createCandidateAnswerAnalysisUnavailable({
 
 export function createCandidateAnswerSubmission({
     request,
+    attempt,
 }: {
     request: CandidateAnswerSubmitRequest;
+    attempt?: Pick<
+        CandidateAnswerSubmission,
+        "answerAttemptId" | "attemptNumber" | "trigger" | "supersedesAnswerAttemptId"
+    >;
 }): CandidateAnswerSubmission {
     return {
         slotId: request.draft.slotId,
@@ -205,6 +236,7 @@ export function createCandidateAnswerSubmission({
         text: request.draft.text,
         submittedAt: request.requestedAt,
         status: "pending_analysis",
+        ...(attempt ?? {}),
     };
 }
 
@@ -219,12 +251,17 @@ export function createCandidateAnswerSubmitIdempotencyContract({
     request: CandidateAnswerSubmitRequest;
     idempotencyKey?: string | null;
 }): CandidateAnswerSubmitIdempotencyContract {
+    const trigger = request.trigger ?? "initial_submit";
     const payload = {
         candidatePracticeSessionId,
         slotId: request.draft.slotId,
         questionIndex: request.draft.questionIndex,
         mode: request.draft.mode,
         text: request.draft.text,
+        ...(trigger === "feedback_retry" ? {
+            trigger,
+            supersedesAnswerAttemptId: request.supersedesAnswerAttemptId!,
+        } : {}),
     };
 
     return {
@@ -266,6 +303,11 @@ export function createCandidateAnswerAnalysisIdempotencyContract({
         mode: request.answerSubmission.mode,
         text: request.answerSubmission.text,
         submittedAt: request.answerSubmission.submittedAt,
+        ...(request.answerSubmission.answerAttemptId ? {
+            trigger: request.answerSubmission.trigger ?? "initial_submit",
+            supersedesAnswerAttemptId: request.answerSubmission.supersedesAnswerAttemptId ?? null,
+            answerAttemptId: request.answerSubmission.answerAttemptId,
+        } : {}),
     };
 
     return {
@@ -365,10 +407,27 @@ export function resolveCandidateAnswerIdempotencyDecision({
         };
     }
 
+    if (isPendingAnswerRequestStale(existingRecord, requestedAt)) {
+        return {
+            kind: "start",
+            record: createCandidateAnswerIdempotencyPendingRecord({ contract, requestedAt }),
+        };
+    }
+
     return {
         kind: "pending",
         record: existingRecord,
     };
+}
+
+function isPendingAnswerRequestStale(record: CandidateAnswerIdempotencyRecord, requestedAt: Date) {
+    if (record.status !== "pending") {
+        return false;
+    }
+
+    const pendingSince = Date.parse(record.requestedAt);
+    return Number.isFinite(pendingSince)
+        && requestedAt.getTime() - pendingSince >= CANDIDATE_ANSWER_PENDING_REQUEST_TTL_MS;
 }
 
 export function normalizeCandidateAnswerIdempotencyRecords(value: unknown): CandidateAnswerIdempotencyRecords {
@@ -457,6 +516,35 @@ function normalizeCandidateAnswerSubmission(value: unknown): CandidateAnswerSubm
         return null;
     }
 
+    const answerAttemptId = readNonEmptyString(answerSubmission.answerAttemptId);
+    const hasAttemptMetadata = Boolean(
+        answerAttemptId
+        || answerSubmission.attemptNumber
+        || answerSubmission.trigger
+        || typeof answerSubmission.supersedesAnswerAttemptId !== "undefined"
+    );
+    const hasValidAttemptMetadata = Boolean(
+        answerAttemptId
+        && typeof answerSubmission.attemptNumber === "number"
+        && Number.isInteger(answerSubmission.attemptNumber)
+        && answerSubmission.attemptNumber > 0
+        && (answerSubmission.trigger === "initial_submit" || answerSubmission.trigger === "feedback_retry")
+        && (
+            (answerSubmission.attemptNumber === 1
+                && answerSubmission.trigger === "initial_submit"
+                && (answerSubmission.supersedesAnswerAttemptId === null
+                    || typeof answerSubmission.supersedesAnswerAttemptId === "undefined"))
+            ||
+            (answerSubmission.attemptNumber > 1
+                && answerSubmission.trigger === "feedback_retry"
+                && Boolean(readNonEmptyString(answerSubmission.supersedesAnswerAttemptId)))
+        )
+    );
+
+    if (hasAttemptMetadata && !hasValidAttemptMetadata) {
+        return null;
+    }
+
     return {
         slotId,
         questionIndex: answerSubmission.questionIndex,
@@ -464,6 +552,12 @@ function normalizeCandidateAnswerSubmission(value: unknown): CandidateAnswerSubm
         text: answerSubmission.text,
         submittedAt,
         status: "pending_analysis",
+        ...(hasValidAttemptMetadata ? {
+            answerAttemptId: answerAttemptId!,
+            attemptNumber: answerSubmission.attemptNumber!,
+            trigger: answerSubmission.trigger!,
+            supersedesAnswerAttemptId: answerSubmission.supersedesAnswerAttemptId ?? null,
+        } : {}),
     };
 }
 

@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+    createFixtureEvidenceFirstAnswerAnalysis,
+    createFixtureEvidenceFirstEvaluationCase,
+} from "@/features/candidate-session-v2/candidate-answer-analysis-fixture";
+
+import {
     createDefaultCandidateAnswerAnalysisDependencies,
     handleCandidateAnswerAnalysisRequest,
     resolveCandidateAnswerAnalysisIdentityFromDevLaunchCookie,
@@ -33,7 +38,7 @@ describe("/candidate/session/[sessionId]/answers/[slotId]/analysis route", () =>
 
         const provider = createDefaultCandidateAnswerAnalysisDependencies().requestAnswerAnalysis;
 
-        await expect(provider?.({
+        const result = await provider?.({
             status: "answer_analysis_provider_requested",
             provider: "candidate_v2_answer_evaluator",
             requestedAt: "2026-07-09T20:02:00.000Z",
@@ -43,12 +48,16 @@ describe("/candidate/session/[sessionId]/answers/[slotId]/analysis route", () =>
                 mode: "text",
                 text: "I would ask a clarifying question first.",
                 submittedAt: "2026-07-09T20:01:00.000Z",
+                answerAttemptId: "attempt-1",
+                attemptNumber: 1,
+                trigger: "initial_submit",
             },
             question: {
                 slotId: "slot-1",
                 questionIndex: 0,
                 category: "behavioral",
                 questionText: "Tell me about a time you prioritized similar work.",
+                plannedPurpose: "Real past examples that show what you personally did and what changed.",
             },
             setupContext: {
                 targetRole: "Material Handler I",
@@ -57,31 +66,34 @@ describe("/candidate/session/[sessionId]/answers/[slotId]/analysis route", () =>
                 interviewStage: "first_interview",
                 questionCount: 7,
             },
-        })).resolves.toEqual({
+        });
+
+        expect(result).toMatchObject({
             status: "answer_analysis_provider_result",
             provider: "candidate_v2_answer_evaluator",
             analyzedAt: "2026-07-09T20:02:00.000Z",
             answer: {
                 slotId: "slot-1",
                 questionIndex: 0,
+                answerAttemptId: "attempt-1",
+                attemptNumber: 1,
+                trigger: "initial_submit",
             },
             coachFeedback: {
-                acknowledgement: "You have a workable starting point for this answer.",
-                observation: "Your response connects to the question, but it will be stronger with a clearer example, action, and result.",
-                nextPracticeFocus: "Practice adding one concrete detail from your work history and the outcome it led to.",
+                acknowledgement: "You gave me a direct starting point to work with.",
             },
-            evidence: [
-                {
-                    criterionId: "answer_relevance",
-                    applicability: "observed",
-                    score: 3,
+            evidence: [],
+            evidenceFirst: {
+                contractVersion: "candidate_evidence_first_v1",
+                feedbackPlan: {
+                    intervention: "revise_answer",
                 },
-                {
-                    criterionId: "specific_example",
-                    applicability: "insufficient_data",
+                candidateFeedback: {
+                    status: "candidate_safe_feedback",
                 },
-            ],
+            },
         });
+        expect(JSON.stringify(result)).not.toMatch(/"score"/);
     });
 
     it("does not assemble the fixture analysis provider outside explicit local dev validation", () => {
@@ -182,6 +194,7 @@ describe("/candidate/session/[sessionId]/answers/[slotId]/analysis route", () =>
                 questionIndex: 0,
                 category: "behavioral",
                 questionText: "Tell me about a time you prioritized similar work.",
+                plannedPurpose: "Real past examples that show what you personally did and what changed.",
             },
             setupContext: {
                 targetRole: "Material Handler I",
@@ -191,6 +204,70 @@ describe("/candidate/session/[sessionId]/answers/[slotId]/analysis route", () =>
                 questionCount: 7,
             },
         });
+    });
+
+    it("clears a pending idempotency record when the analysis provider throws", async () => {
+        const clearAnswerIdempotencyRecord = vi.fn(async () => ({}));
+        const response = await handleCandidateAnswerAnalysisRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/session/session-1/answers/slot-1/analysis", {
+                method: "POST",
+            }),
+            sessionId: "session-1",
+            slotId: "slot-1",
+            now: new Date("2026-07-09T20:02:00.000Z"),
+            resolveCandidateSessionIdentity: vi.fn(async () => ({
+                candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            })),
+            practiceSessionRepository: {
+                findSetupSession: vi.fn(async () => ({
+                    setupSnapshot: {
+                        targetRole: "Material Handler I",
+                        jobDescription: "Move materials and maintain inventory.",
+                        resumeText: null,
+                        interviewStage: "first_interview" as const,
+                        questionCount: 7,
+                        resumeCaptureMode: "none" as const,
+                        createdAt: "2026-07-09T20:00:00.000Z",
+                    },
+                    questionWordingSnapshot: {
+                        status: "questions_worded" as const,
+                        questions: [{
+                            slotId: "slot-1",
+                            index: 0,
+                            category: "behavioral" as const,
+                            questionText: "Tell me about a time you prioritized similar work.",
+                        }],
+                    },
+                    answerSubmissions: {
+                        "slot-1": {
+                            slotId: "slot-1",
+                            questionIndex: 0,
+                            mode: "text" as const,
+                            text: "I would ask a clarifying question first.",
+                            submittedAt: "2026-07-09T20:01:00.000Z",
+                            status: "pending_analysis" as const,
+                        },
+                    },
+                    answerIdempotencyRecords: {},
+                })),
+                saveAnswerIdempotencyRecord: vi.fn(async () => ({})),
+                clearAnswerIdempotencyRecord,
+            },
+            requestAnswerAnalysis: vi.fn(async () => {
+                throw new Error("provider unavailable");
+            }),
+        });
+
+        expect(response.status).toBe(503);
+        await expect(response.json()).resolves.toEqual({
+            code: "ANSWER_ANALYSIS_FAILED",
+            error: "Candidate coaching could not be prepared.",
+            retryable: true,
+        });
+        expect(clearAnswerIdempotencyRecord).toHaveBeenCalledWith(expect.objectContaining({
+            candidatePracticeSessionId: "session-1",
+            recordKey: expect.stringContaining("candidate_answer_analysis:session-1:slot-1"),
+        }));
     });
 
     it("fails closed when candidate identity is unavailable", async () => {
@@ -345,6 +422,127 @@ describe("/candidate/session/[sessionId]/answers/[slotId]/analysis route", () =>
             candidateProfileId: "22222222-2222-4222-8222-222222222222",
             analysisSnapshot,
         });
+    });
+
+    it("persists accepted fixture coaching as a normalized evaluator run before the session projection", async () => {
+        const saveAnswerAnalysisSnapshot = vi.fn(async (input) => ({
+            "slot-1": input.analysisSnapshot,
+        }));
+        const startEvaluationRun = vi.fn(async (input) => ({
+            outcome: "created" as const,
+            run: {
+                candidateAnswerEvaluationRunId: "run-1",
+                candidateAnswerAttemptId: input.candidateAnswerAttemptId,
+                purpose: input.purpose,
+                provider: input.provider,
+                modelName: input.modelName,
+                promptVersion: input.promptVersion,
+                evaluatorVersion: input.evaluatorVersion,
+                inputFingerprint: input.inputFingerprint,
+                idempotencyKey: input.idempotencyKey,
+                lifecycleState: "requested" as const,
+                result: null,
+                validation: null,
+                errorCode: null,
+                requestedAt: input.requestedAt,
+                completedAt: null,
+                createdAt: input.requestedAt,
+                updatedAt: input.requestedAt,
+            },
+        }));
+        const completeEvaluationRun = vi.fn(async (input) => ({
+            candidateAnswerEvaluationRunId: input.candidateAnswerEvaluationRunId,
+            candidateAnswerAttemptId: input.candidateAnswerAttemptId,
+            purpose: "candidate_coaching" as const,
+            provider: "candidate_v2_answer_evaluator",
+            modelName: "deterministic_local_fixture",
+            promptVersion: "evidence_first_fixture_v1",
+            evaluatorVersion: "evidence_first_v1",
+            inputFingerprint: input.validation.inputFingerprint as string,
+            idempotencyKey: "analysis-key",
+            lifecycleState: "completed" as const,
+            result: input.result,
+            validation: input.validation,
+            errorCode: null,
+            requestedAt: "2026-07-09T20:02:00.000Z",
+            completedAt: input.completedAt,
+            createdAt: "2026-07-09T20:02:00.000Z",
+            updatedAt: input.completedAt,
+        }));
+
+        const response = await handleCandidateAnswerAnalysisRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/session/session-1/answers/slot-1/analysis", {
+                method: "POST",
+            }),
+            sessionId: "session-1",
+            slotId: "slot-1",
+            now: new Date("2026-07-09T20:02:00.000Z"),
+            resolveCandidateSessionIdentity: vi.fn(async () => ({ candidateProfileId: "candidate-1" })),
+            practiceSessionRepository: {
+                findSetupSession: vi.fn(async () => ({
+                    setupSnapshot: {
+                        targetRole: "Material Handler I",
+                        jobDescription: "Move materials and maintain inventory.",
+                        resumeText: null,
+                        interviewStage: "first_interview" as const,
+                        questionCount: 1,
+                        resumeCaptureMode: "none" as const,
+                        createdAt: "2026-07-09T20:00:00.000Z",
+                    },
+                    questionWordingSnapshot: {
+                        status: "questions_worded" as const,
+                        questions: [{
+                            slotId: "slot-1",
+                            index: 0,
+                            category: "behavioral" as const,
+                            questionText: "Tell me about a time you prioritized similar work.",
+                        }],
+                    },
+                    answerSubmissions: {
+                        "slot-1": {
+                            slotId: "slot-1",
+                            questionIndex: 0,
+                            mode: "text" as const,
+                            text: "I would ask a clarifying question first.",
+                            submittedAt: "2026-07-09T20:01:00.000Z",
+                            status: "pending_analysis" as const,
+                            answerAttemptId: "attempt-1",
+                            attemptNumber: 1,
+                            trigger: "initial_submit" as const,
+                            supersedesAnswerAttemptId: null,
+                        },
+                    },
+                })),
+                saveAnswerAnalysisSnapshot,
+            },
+            requestAnswerAnalysis: async (request) => createFixtureEvidenceFirstAnswerAnalysis(request),
+            evaluationRunRepository: {
+                startEvaluationRun,
+                completeEvaluationRun,
+                failEvaluationRun: vi.fn(async () => null),
+            },
+            evaluationRunConfiguration: {
+                provider: "candidate_v2_answer_evaluator",
+                modelName: "deterministic_local_fixture",
+                promptVersion: "evidence_first_fixture_v1",
+                evaluatorVersion: "evidence_first_v1",
+                createInputFingerprint: (request) => createFixtureEvidenceFirstEvaluationCase(request).inputFingerprint,
+            },
+        });
+
+        expect(response.status).toBe(200);
+        expect(startEvaluationRun).toHaveBeenCalledWith(expect.objectContaining({
+            candidateAnswerAttemptId: "attempt-1",
+            purpose: "candidate_coaching",
+        }));
+        expect(completeEvaluationRun).toHaveBeenCalledWith(expect.objectContaining({
+            candidateAnswerEvaluationRunId: "run-1",
+            validation: expect.objectContaining({
+                disposition: "accepted",
+                candidateSafeProjection: true,
+            }),
+        }));
+        expect(saveAnswerAnalysisSnapshot).toHaveBeenCalledOnce();
     });
 
     it("replays completed answer analysis with the same idempotency key and submitted answer payload", async () => {

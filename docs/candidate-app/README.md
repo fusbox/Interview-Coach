@@ -66,6 +66,14 @@ http://localhost:3000/recruiter/dashboard
 - [Working Backlog](00-working-backlog.md): retired project artifact with historical work items and sequence
 - [Candidate Integration Work Pass Checklist](START-WORK-PASS.md): repeatable work-pass process
 
+Repository-local senior review skills provide the quality gates around implementation:
+
+- `.agents/skills/senior-slice-pass`: frame and close one meaningful slice, including lifecycle, lineage, counterfactual, recovery, ownership, privacy, and verification review;
+- `.agents/skills/senior-milestone-pass`: review integrated journeys and architecture before a multi-slice commit or phase transition;
+- `.agents/skills/senior-release-pass`: judge deployment or pilot readiness across product, data, security, privacy, reliability, observability, accessibility, configuration, and rollback evidence.
+
+The skills do not replace specialist security, database, framework, accessibility, or browser reviews. They decide when those deeper reviews are warranted and require findings to be fixed, deliberately deferred with a trigger, or surfaced as a product/architecture decision.
+
 ### Investigating A Specific Concern
 
 Use the reference map below.
@@ -104,25 +112,27 @@ Use the reference map below.
 9. [Role Preparedness Data Inventory](04-architecture/role-preparedness-data-inventory.md)
 10. [Interview Preparedness Signal Contract](04-architecture/preparedness-signal-contract.md)
 11. [Preparedness Signal Map](04-architecture/preparedness-signal-map.md)
-12. [Reference Archive](reference-archive/README.md)
+12. [Evidence-First Dashboard Information Architecture](04-architecture/evidence-first-dashboard-information-architecture.md)
+13. [Reference Archive](reference-archive/README.md)
 
 ### Quality, security, and operations
 
-13. [Test Strategy](05-quality/test-strategy.md)
-14. [Accessibility Baseline](05-quality/accessibility-baseline.md)
-15. [Recruiter Regression Checklist For Candidate PRs](05-quality/recruiter-regression-checklist.md)
-16. [Security And Privacy Docs](06-security/README.md)
-17. [Candidate App Threat Model](06-security/threat-model.md)
-18. [Privacy, Disclosures, And Consent Requirements](06-security/privacy-disclosures-and-consent-requirements.md)
-19. [Azure DevOps Operating Model](07-ops/azure-devops-operating-model.md)
-23. [Candidate Observability Plan](07-ops/candidate-observability-plan.md)
-24. [Candidate Incident Runbook](07-ops/candidate-incident-runbook.md)
-25. [Candidate Integration PR Policy](07-ops/candidate-integration-pr-policy.md)
+14. [Test Strategy](05-quality/test-strategy.md)
+15. [Accessibility Baseline](05-quality/accessibility-baseline.md)
+16. [Recruiter Regression Checklist For Candidate PRs](05-quality/recruiter-regression-checklist.md)
+17. [Evidence-First Evaluator Contract](05-quality/evidence-first-evaluator-contract.md)
+18. [Security And Privacy Docs](06-security/README.md)
+19. [Candidate App Threat Model](06-security/threat-model.md)
+20. [Privacy, Disclosures, And Consent Requirements](06-security/privacy-disclosures-and-consent-requirements.md)
+21. [Azure DevOps Operating Model](07-ops/azure-devops-operating-model.md)
+22. [Candidate Observability Plan](07-ops/candidate-observability-plan.md)
+23. [Candidate Incident Runbook](07-ops/candidate-incident-runbook.md)
+24. [Candidate Integration PR Policy](07-ops/candidate-integration-pr-policy.md)
 
 ### Decisions and developer setup
 
-26. [Decision Records](08-decisions/README.md)
-27. [Local Dev Bootstrap](09-dev/local-dev-bootstrap.md)
+25. [Decision Records](08-decisions/README.md)
+26. [Local Dev Bootstrap](09-dev/local-dev-bootstrap.md)
 
 ## Document Rules
 

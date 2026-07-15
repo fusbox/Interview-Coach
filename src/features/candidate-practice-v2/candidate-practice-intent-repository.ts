@@ -17,6 +17,9 @@ export type CreateCandidatePracticeIntentInput = {
     candidateProfileId: string;
     source: CandidatePracticeIntentSource;
     lifecycleState?: CandidatePracticeIntentLifecycleState;
+    sourceNextRoundDraftId?: string | null;
+    sourceNextRoundDraftVersion?: number | null;
+    roleProfileId: string | null;
     targetInterviewId: string;
     targetRole: string;
     setupContext: CandidatePracticeIntentRecord["setupContext"];
@@ -32,17 +35,23 @@ export function createCandidatePracticeIntentRepository(client: CandidatePractic
                   candidate_profile_id,
                   source,
                   lifecycle_state,
+                  source_next_round_draft_id,
+                  source_next_round_draft_version,
+                  role_profile_id,
                   target_interview_id,
                   target_role,
                   setup_context_json,
                   items_json
                 )
-                values ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb)
+                values ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb)
                 returning candidate_practice_intent_id
             `, [
                 input.candidateProfileId,
                 input.source,
                 lifecycleState,
+                input.sourceNextRoundDraftId ?? null,
+                input.sourceNextRoundDraftVersion ?? null,
+                input.roleProfileId,
                 input.targetInterviewId,
                 input.targetRole,
                 JSON.stringify(input.setupContext),
@@ -64,6 +73,9 @@ export function createCandidatePracticeIntentRepository(client: CandidatePractic
                   source,
                   lifecycle_state,
                   consumed_candidate_practice_session_id,
+                  source_next_round_draft_id,
+                  source_next_round_draft_version,
+                  role_profile_id,
                   target_interview_id,
                   target_role,
                   setup_context_json,
@@ -137,6 +149,9 @@ export function toCandidatePracticeIntentRecord(
     const source = row.source;
     const lifecycleState = row.lifecycle_state;
     const consumedCandidatePracticeSessionId = readNullableString(row.consumed_candidate_practice_session_id);
+    const sourceNextRoundDraftId = readNullableString(row.source_next_round_draft_id);
+    const sourceNextRoundDraftVersion = readNullablePositiveInteger(row.source_next_round_draft_version);
+    const roleProfileId = readNullableString(row.role_profile_id);
     const targetInterviewId = readString(row.target_interview_id);
     const targetRole = readString(row.target_role);
     const setupContext = readObject(row.setup_context_json);
@@ -156,6 +171,7 @@ export function toCandidatePracticeIntentRecord(
         || items.length > 20
         || !createdAt
         || !updatedAt
+        || Boolean(sourceNextRoundDraftId) !== Boolean(sourceNextRoundDraftVersion)
     ) {
         return null;
     }
@@ -167,6 +183,10 @@ export function toCandidatePracticeIntentRecord(
         source,
         lifecycleState,
         consumedCandidatePracticeSessionId,
+        ...(sourceNextRoundDraftId && sourceNextRoundDraftVersion
+            ? { sourceNextRoundDraftId, sourceNextRoundDraftVersion }
+            : {}),
+        roleProfileId,
         targetInterviewId,
         targetRole,
         itemCount: items.length,
@@ -211,4 +231,13 @@ function readString(value: unknown) {
 
 function readNullableString(value: unknown) {
     return value === null || value === undefined ? null : readString(value);
+}
+
+function readNullablePositiveInteger(value: unknown) {
+    if (value === null || value === undefined) {
+        return null;
+    }
+
+    const parsed = typeof value === "number" ? value : Number(value);
+    return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }

@@ -57,6 +57,42 @@ describe("candidate QA evaluation export", () => {
         })).toEqual([]);
     });
 
+    it("gives each immutable answer attempt its own QA case identity", () => {
+        const session = createPracticeSessionFixture();
+        const firstAttempt = {
+            ...session.answerSubmissions["slot-1"],
+            answerAttemptId: "11111111-1111-4111-8111-111111111111",
+            attemptNumber: 1,
+            trigger: "initial_submit" as const,
+            supersedesAnswerAttemptId: null,
+        };
+        const secondAttempt = {
+            ...firstAttempt,
+            answerAttemptId: "22222222-2222-4222-8222-222222222222",
+            attemptNumber: 2,
+            trigger: "feedback_retry" as const,
+            supersedesAnswerAttemptId: firstAttempt.answerAttemptId,
+            text: "I clarified the damage, separated the materials, and documented the result for my lead.",
+        };
+
+        const [firstCase] = createCandidateQaEvalCasesFromPracticeSession({
+            ...session,
+            answerSubmissions: { "slot-1": firstAttempt },
+        });
+        const [secondCase] = createCandidateQaEvalCasesFromPracticeSession({
+            ...session,
+            answerSubmissions: { "slot-1": secondAttempt },
+        });
+
+        expect(firstCase.caseId).toBe(
+            "candidate-qa-case:practice-session-1:slot-1:11111111-1111-4111-8111-111111111111",
+        );
+        expect(secondCase.caseId).toBe(
+            "candidate-qa-case:practice-session-1:slot-1:22222222-2222-4222-8222-222222222222",
+        );
+        expect(firstCase.inputFingerprint).not.toBe(secondCase.inputFingerprint);
+    });
+
     it("builds model run snapshots from the same stable case input", () => {
         const [qaCase] = createCandidateQaEvalCasesFromPracticeSession(createPracticeSessionFixture());
         const run = createCandidateQaEvalRunSnapshot({

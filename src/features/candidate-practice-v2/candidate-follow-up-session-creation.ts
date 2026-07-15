@@ -20,6 +20,8 @@ export type CandidateFollowUpPracticeSessionMetadata = {
     status: "candidate_follow_up_practice_session";
     sourceIntentId: string;
     source: CandidatePracticeIntentRecord["source"];
+    sourceNextRoundDraftId?: string;
+    sourceNextRoundDraftVersion?: number;
     sessionAttemptNumber: number;
     itemCount: number;
     items: CandidateFollowUpPracticeSessionItemMetadata[];
@@ -32,11 +34,14 @@ export type CandidateFollowUpPracticeSessionItemMetadata = {
     questionKey: string;
     sourceCandidatePracticeSessionId: string;
     sourceQuestionKey: string;
+    rootSourceCandidatePracticeSessionId?: string;
+    rootSourceQuestionKey?: string;
     sourceQuestionNumber: number;
     sourceQuestionText: string;
     sourceCategory: string;
     questionAttemptNumber: number;
     practiceKind: CandidatePracticeIntentItem["kind"];
+    assembly?: NonNullable<CandidatePracticeIntentItem["assembly"]>;
 };
 
 export type CandidateFollowUpQuestionPlanSlot = CandidateQuestionPlanSlot & {
@@ -47,6 +52,8 @@ export type CandidateFollowUpQuestionPlan = CandidateQuestionPlan & {
     followUpPractice: {
         sourceIntentId: string;
         source: CandidatePracticeIntentRecord["source"];
+        sourceNextRoundDraftId?: string;
+        sourceNextRoundDraftVersion?: number;
         sessionAttemptNumber: number;
         itemCount: number;
     };
@@ -61,6 +68,8 @@ export type CandidateFollowUpQuestionWordingResult = CandidateQuestionWordingRes
     followUpPractice: {
         sourceIntentId: string;
         source: CandidatePracticeIntentRecord["source"];
+        sourceNextRoundDraftId?: string;
+        sourceNextRoundDraftVersion?: number;
         sessionAttemptNumber: number;
         itemCount: number;
     };
@@ -78,18 +87,44 @@ export function createCandidateFollowUpSessionInputFromIntent({
     existingPracticeSessions: CandidatePracticeSessionRecord[];
     now: Date;
 }): CreateCandidatePracticeSessionInput | null {
-    if (intent.lifecycleState !== "ready" || intent.items.length < 1) {
+    if (
+        intent.lifecycleState !== "ready"
+        || intent.candidateProfileId !== candidateProfileId
+        || intent.items.length < 1
+    ) {
         return null;
     }
 
-    const sourceSession = findSourceSession(intent.items[0], existingPracticeSessions);
-    if (!sourceSession || sourceSession.candidateProfileId !== candidateProfileId) {
+    const sourceSessions = intent.items.map((item) => findSourceSession(item, existingPracticeSessions));
+    if (sourceSessions.some((session) => !session || !sessionMatchesIntentContext({
+        session,
+        candidateProfileId,
+        intent,
+    }))) {
+        return null;
+    }
+    const sourceSession = sourceSessions[0];
+    if (!sourceSession) {
         return null;
     }
 
-    const sessionAttemptNumber = countPriorSessionsForTarget(intent.targetRole, existingPracticeSessions) + 1;
+    const sessionAttemptNumber = countPriorSessionsForContext(intent, existingPracticeSessions) + 1;
+    const nextRoundDraftSource = intent.sourceNextRoundDraftId && intent.sourceNextRoundDraftVersion
+        ? {
+            sourceNextRoundDraftId: intent.sourceNextRoundDraftId,
+            sourceNextRoundDraftVersion: intent.sourceNextRoundDraftVersion,
+        }
+        : {};
     const followUpItems = intent.items.map((item, index) => {
         const localSlotId = `slot-${index + 1}`;
+        const rootSource = resolveCandidateFollowUpQuestionRoot({
+            candidatePracticeSessionId: item.source.candidatePracticeSessionId,
+            questionKey: item.source.questionKey,
+            existingPracticeSessions,
+        });
+        if (!rootSource) {
+            return null;
+        }
         return {
             localSlotId,
             localQuestionNumber: index + 1,
@@ -97,20 +132,28 @@ export function createCandidateFollowUpSessionInputFromIntent({
             questionKey: item.source.questionKey,
             sourceCandidatePracticeSessionId: item.source.candidatePracticeSessionId,
             sourceQuestionKey: item.source.questionKey,
+            rootSourceCandidatePracticeSessionId: rootSource.candidatePracticeSessionId,
+            rootSourceQuestionKey: rootSource.questionKey,
             sourceQuestionNumber: item.source.questionNumber,
             sourceQuestionText: item.source.questionText,
             sourceCategory: item.source.category,
             questionAttemptNumber: countPriorQuestionAttempts(item, existingPracticeSessions) + 1,
             practiceKind: item.kind,
+            ...(item.assembly ? { assembly: item.assembly } : {}),
         };
     });
+    if (followUpItems.some((item) => !item)) {
+        return null;
+    }
+    const resolvedFollowUpItems = followUpItems as CandidateFollowUpPracticeSessionItemMetadata[];
     const followUpPractice: CandidateFollowUpPracticeSessionMetadata = {
         status: "candidate_follow_up_practice_session",
         sourceIntentId: intent.candidatePracticeIntentId,
         source: intent.source,
+        ...nextRoundDraftSource,
         sessionAttemptNumber,
         itemCount: intent.items.length,
-        items: followUpItems,
+        items: resolvedFollowUpItems,
     };
     const categoryCounts = createEmptyCategoryCounts();
     const slots = intent.items.map((item, index): CandidateFollowUpQuestionPlanSlot => {
@@ -123,7 +166,7 @@ export function createCandidateFollowUpSessionInputFromIntent({
             category,
             label: item.source.category,
             purpose: item.display.body,
-            sourceQuestion: followUpItems[index],
+            sourceQuestion: resolvedFollowUpItems[index],
         };
     });
     const questionPlanSnapshot: CandidateFollowUpQuestionPlan = {
@@ -134,6 +177,7 @@ export function createCandidateFollowUpSessionInputFromIntent({
         followUpPractice: {
             sourceIntentId: intent.candidatePracticeIntentId,
             source: intent.source,
+            ...nextRoundDraftSource,
             sessionAttemptNumber,
             itemCount: intent.items.length,
         },
@@ -145,14 +189,14 @@ export function createCandidateFollowUpSessionInputFromIntent({
             index,
             category: slots[index].category,
             questionText: item.source.questionText,
-            sourceQuestion: followUpItems[index],
+            sourceQuestion: resolvedFollowUpItems[index],
         })),
         followUpPractice: questionPlanSnapshot.followUpPractice,
     };
 
     return {
         candidateProfileId,
-        roleProfileId: sourceSession.roleProfileId,
+        roleProfileId: intent.roleProfileId,
         candidateLaunchSessionId: sourceSession.candidateLaunchSessionId,
         setupSnapshot: {
             targetRole: sourceSession.setupSnapshot.targetRole,
@@ -182,23 +226,60 @@ function findSourceSession(
     )) ?? null;
 }
 
-function countPriorSessionsForTarget(targetRole: string, existingPracticeSessions: CandidatePracticeSessionRecord[]) {
-    const normalizedTargetRole = normalizeTargetRole(targetRole);
+function countPriorSessionsForContext(
+    intent: CandidatePracticeIntentRecord,
+    existingPracticeSessions: CandidatePracticeSessionRecord[],
+) {
+    if (intent.roleProfileId) {
+        return existingPracticeSessions.filter((session) => session.roleProfileId === intent.roleProfileId).length;
+    }
+
+    const normalizedTargetRole = normalizeTargetRole(intent.targetRole);
     return existingPracticeSessions.filter((session) => (
-        normalizeTargetRole(session.setupSnapshot.targetRole) === normalizedTargetRole
+        !session.roleProfileId
+        && normalizeTargetRole(session.setupSnapshot.targetRole) === normalizedTargetRole
     )).length;
+}
+
+function sessionMatchesIntentContext({
+    session,
+    candidateProfileId,
+    intent,
+}: {
+    session: CandidatePracticeSessionRecord;
+    candidateProfileId: string;
+    intent: CandidatePracticeIntentRecord;
+}) {
+    if (session.candidateProfileId !== candidateProfileId) {
+        return false;
+    }
+    if (intent.roleProfileId) {
+        return session.roleProfileId === intent.roleProfileId;
+    }
+
+    return !session.roleProfileId
+        && normalizeTargetRole(session.setupSnapshot.targetRole) === normalizeTargetRole(intent.targetRole);
 }
 
 function countPriorQuestionAttempts(
     item: CandidatePracticeIntentItem,
     existingPracticeSessions: CandidatePracticeSessionRecord[],
 ) {
+    const targetRoot = resolveCandidateFollowUpQuestionRoot({
+        candidatePracticeSessionId: item.source.candidatePracticeSessionId,
+        questionKey: item.source.questionKey,
+        existingPracticeSessions,
+    });
+    if (!targetRoot) {
+        return 0;
+    }
+
     let count = 0;
 
     for (const session of existingPracticeSessions) {
         if (
-            session.candidatePracticeSessionId === item.source.candidatePracticeSessionId
-            && session.answerSubmissions[item.source.questionKey]
+            session.candidatePracticeSessionId === targetRoot.candidatePracticeSessionId
+            && session.answerSubmissions[targetRoot.questionKey]
         ) {
             count += 1;
         }
@@ -208,10 +289,11 @@ function countPriorQuestionAttempts(
             continue;
         }
 
-        const matchingItem = followUpPractice.items.find((followUpItem) => (
-            followUpItem.sourceCandidatePracticeSessionId === item.source.candidatePracticeSessionId
-            && followUpItem.sourceQuestionKey === item.source.questionKey
-        ));
+        const matchingItem = followUpPractice.items.find((followUpItem) => {
+            const followUpRoot = readFollowUpItemRoot(followUpItem, existingPracticeSessions);
+            return followUpRoot?.candidatePracticeSessionId === targetRoot.candidatePracticeSessionId
+                && followUpRoot.questionKey === targetRoot.questionKey;
+        });
 
         if (matchingItem) {
             count += 1;
@@ -219,6 +301,104 @@ function countPriorQuestionAttempts(
     }
 
     return count;
+}
+
+export function resolveCandidateFollowUpQuestionRoot({
+    candidatePracticeSessionId,
+    questionKey,
+    existingPracticeSessions,
+}: {
+    candidatePracticeSessionId: string;
+    questionKey: string;
+    existingPracticeSessions: CandidatePracticeSessionRecord[];
+}) {
+    let current = { candidatePracticeSessionId, questionKey };
+    const visited = new Set<string>();
+    const declaredRoots = new Set<string>();
+    let expectedCandidateProfileId: string | null = null;
+    let expectedRoleProfileId: string | null | undefined;
+
+    for (let depth = 0; depth <= existingPracticeSessions.length; depth += 1) {
+        const key = `${current.candidatePracticeSessionId}:${current.questionKey}`;
+        if (visited.has(key)) {
+            return null;
+        }
+        visited.add(key);
+
+        const session = existingPracticeSessions.find((candidateSession) => (
+            candidateSession.candidatePracticeSessionId === current.candidatePracticeSessionId
+        ));
+        if (!session?.questionWordingSnapshot?.questions.some((question) => question.slotId === current.questionKey)) {
+            return null;
+        }
+
+        if (expectedCandidateProfileId === null) {
+            expectedCandidateProfileId = session.candidateProfileId;
+            expectedRoleProfileId = session.roleProfileId;
+        } else if (
+            session.candidateProfileId !== expectedCandidateProfileId
+            || session.roleProfileId !== expectedRoleProfileId
+        ) {
+            return null;
+        }
+
+        const followUpPractice = readFollowUpPractice(session.setupSnapshot);
+        const sourceItem = followUpPractice?.items.find((followUpItem) => (
+            followUpItem.localSlotId === current.questionKey
+        ));
+        if (!sourceItem) {
+            const resolvedKey = `${current.candidatePracticeSessionId}:${current.questionKey}`;
+            return declaredRoots.size === 0 || (declaredRoots.size === 1 && declaredRoots.has(resolvedKey))
+                ? current
+                : null;
+        }
+
+        const declaredRootSessionId = readString(sourceItem.rootSourceCandidatePracticeSessionId);
+        const declaredRootQuestionKey = readString(sourceItem.rootSourceQuestionKey);
+        if (Boolean(declaredRootSessionId) !== Boolean(declaredRootQuestionKey)) {
+            return null;
+        }
+        if (declaredRootSessionId && declaredRootQuestionKey) {
+            declaredRoots.add(`${declaredRootSessionId}:${declaredRootQuestionKey}`);
+        }
+
+        const sourceSessionId = readString(sourceItem.sourceCandidatePracticeSessionId);
+        const sourceQuestionKey = readString(sourceItem.sourceQuestionKey);
+        if (!sourceSessionId || !sourceQuestionKey) {
+            return null;
+        }
+        current = {
+            candidatePracticeSessionId: sourceSessionId,
+            questionKey: sourceQuestionKey,
+        };
+    }
+
+    return null;
+}
+
+function readFollowUpItemRoot(
+    item: CandidateFollowUpPracticeSessionItemMetadata,
+    existingPracticeSessions: CandidatePracticeSessionRecord[],
+) {
+    const resolved = resolveCandidateFollowUpQuestionRoot({
+        candidatePracticeSessionId: item.sourceCandidatePracticeSessionId,
+        questionKey: item.sourceQuestionKey,
+        existingPracticeSessions,
+    });
+    const rootSessionId = readString(item.rootSourceCandidatePracticeSessionId);
+    const rootQuestionKey = readString(item.rootSourceQuestionKey);
+    if (
+        !resolved
+        || Boolean(rootSessionId) !== Boolean(rootQuestionKey)
+        || (rootSessionId && (
+            rootSessionId !== resolved.candidatePracticeSessionId
+            || rootQuestionKey !== resolved.questionKey
+        ))
+    ) {
+        return null;
+    }
+
+    return resolved;
 }
 
 function readFollowUpPractice(value: unknown): CandidateFollowUpPracticeSessionMetadata | null {
@@ -271,4 +451,8 @@ function createEmptyCategoryCounts(): Record<CandidateQuestionPlanCategory, numb
 
 function normalizeTargetRole(value: string) {
     return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function readString(value: unknown) {
+    return typeof value === "string" && value.trim() ? value.trim() : null;
 }

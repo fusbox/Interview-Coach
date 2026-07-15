@@ -14,14 +14,29 @@ import {
     type CandidateAnswerSubmission,
     type CandidateAnswerSubmissions,
 } from "@/features/candidate-session-v2/candidate-answer-lifecycle";
-import { createCandidatePracticeSessionRepository } from "@/features/candidate-session-v2/candidate-practice-session-repository";
+import {
+    createCandidateAnswerAttemptPayloadFingerprint,
+    toLatestCandidateAnswerSubmission,
+    type CandidateAnswerAttemptWriteResult,
+} from "@/features/candidate-session-v2/candidate-answer-history";
+import { createCandidateAnswerHistoryRepository } from "@/features/candidate-session-v2/candidate-answer-history-repository";
+import {
+    createCandidatePracticeSessionRepository,
+    type CandidatePracticeSessionRecord,
+} from "@/features/candidate-session-v2/candidate-practice-session-repository";
+import type { CandidateAnswerAnalysisProviderResult } from "@/features/candidate-session-v2/candidate-answer-analysis-adapter";
+import type { CandidateFeedbackActionEvent } from "@/features/candidate-session-v2/candidate-feedback-interaction";
 
 type CandidateSessionIdentity = {
     candidateProfileId: string;
 };
 
 type CandidateAnswerSubmitSession = {
+    status?: CandidatePracticeSessionRecord["status"];
     answerIdempotencyRecords?: CandidateAnswerIdempotencyRecords;
+    answerSubmissions?: CandidateAnswerSubmissions;
+    answerAnalysisSnapshots?: Record<string, CandidateAnswerAnalysisProviderResult>;
+    feedbackActionEvents?: Record<string, CandidateFeedbackActionEvent>;
 };
 
 type CandidateAnswerSubmitRepository = {
@@ -46,10 +61,27 @@ type CandidateAnswerSubmitRepository = {
     }) => Promise<CandidateAnswerIdempotencyRecords | null>;
 };
 
+type CandidateAnswerAttemptRepository = {
+    appendAnswerAttempt: (input: {
+        candidatePracticeSessionId: string;
+        candidateProfileId: string;
+        questionSlotId: string;
+        questionIndex: number;
+        mode: "text";
+        answerText: string;
+        submittedAt: string;
+        trigger: "initial_submit" | "feedback_retry";
+        supersedesCandidateAnswerAttemptId?: string | null;
+        idempotencyKey: string;
+        payloadFingerprint: string;
+    }) => Promise<CandidateAnswerAttemptWriteResult | null>;
+};
+
 export type CandidateAnswerSubmitRouteDependencies = {
     now: Date;
     resolveCandidateSessionIdentity?: (request: Request) => Promise<CandidateSessionIdentity | null>;
     practiceSessionRepository?: CandidateAnswerSubmitRepository;
+    answerAttemptRepository?: CandidateAnswerAttemptRepository;
 };
 
 export async function POST(
@@ -71,6 +103,7 @@ export async function handleCandidateAnswerSubmitRequest({
     now,
     resolveCandidateSessionIdentity,
     practiceSessionRepository,
+    answerAttemptRepository,
 }: CandidateAnswerSubmitRouteDependencies & {
     request: Request;
     sessionId: string;
@@ -102,6 +135,25 @@ export async function handleCandidateAnswerSubmitRequest({
         return Response.json({ error: "Candidate practice session was not found." }, { status: 404 });
     }
 
+    if (practiceSession.status === "completed" || practiceSession.status === "abandoned") {
+        return Response.json({
+            code: "SESSION_NOT_ACCEPTING_ANSWERS",
+            error: "This practice session is no longer accepting answers.",
+            retryable: false,
+        }, { status: 409 });
+    }
+
+    if (
+        parsedBody.trigger === "feedback_retry"
+        && !isAuthorizedFeedbackRetry(practiceSession, parsedBody)
+    ) {
+        return Response.json({
+            code: "FEEDBACK_RETRY_NOT_AUTHORIZED",
+            error: "This retry no longer matches the latest coached answer.",
+            retryable: false,
+        }, { status: 409 });
+    }
+
     const draftChange = createCandidateAnswerDraftChange({
         ...parsedBody,
         now,
@@ -109,6 +161,8 @@ export async function handleCandidateAnswerSubmitRequest({
     const submitRequest = createCandidateAnswerSubmitRequest({
         draft: draftChange.draft,
         requestedAt: now,
+        trigger: parsedBody.trigger,
+        supersedesAnswerAttemptId: parsedBody.supersedesAnswerAttemptId,
     });
     const idempotencyContract = createCandidateAnswerSubmitIdempotencyContract({
         candidatePracticeSessionId: sessionId,
@@ -142,63 +196,116 @@ export async function handleCandidateAnswerSubmitRequest({
         }, { status: idempotencyContract.replay.conflictHttpStatus });
     }
 
-    if (practiceSessionRepository.saveAnswerIdempotencyRecord) {
-        await practiceSessionRepository.saveAnswerIdempotencyRecord({
+    let completed = false;
+    try {
+        if (practiceSessionRepository.saveAnswerIdempotencyRecord) {
+            await practiceSessionRepository.saveAnswerIdempotencyRecord({
+                candidatePracticeSessionId: sessionId,
+                candidateProfileId: identity.candidateProfileId,
+                record: createCandidateAnswerIdempotencyPendingRecord({
+                    contract: idempotencyContract,
+                    requestedAt: now,
+                }),
+            });
+        }
+
+        let answerSubmission = createCandidateAnswerSubmission({
+            request: submitRequest,
+        });
+
+        if (answerAttemptRepository) {
+            const attemptWrite = await answerAttemptRepository.appendAnswerAttempt({
+                candidatePracticeSessionId: sessionId,
+                candidateProfileId: identity.candidateProfileId,
+                questionSlotId: submitRequest.draft.slotId,
+                questionIndex: submitRequest.draft.questionIndex,
+                mode: submitRequest.draft.mode,
+                answerText: submitRequest.draft.text,
+                submittedAt: submitRequest.requestedAt,
+                trigger: submitRequest.trigger ?? "initial_submit",
+                supersedesCandidateAnswerAttemptId: submitRequest.supersedesAnswerAttemptId ?? null,
+                idempotencyKey: idempotencyContract.key,
+                payloadFingerprint: createCandidateAnswerAttemptPayloadFingerprint({
+                    candidatePracticeSessionId: sessionId,
+                    questionSlotId: submitRequest.draft.slotId,
+                    questionIndex: submitRequest.draft.questionIndex,
+                    mode: submitRequest.draft.mode,
+                    answerText: submitRequest.draft.text,
+                    trigger: submitRequest.trigger ?? "initial_submit",
+                    supersedesCandidateAnswerAttemptId: submitRequest.supersedesAnswerAttemptId ?? null,
+                }),
+            });
+
+            if (!attemptWrite) {
+                return Response.json({
+                    code: "ANSWER_ATTEMPT_TRANSITION_INVALID",
+                    error: "This answer has already been submitted. Start a coach-guided retry before submitting another answer.",
+                    retryable: false,
+                }, { status: 409 });
+            }
+            if (attemptWrite.outcome === "idempotency_conflict") {
+                return Response.json({
+                    code: "IDEMPOTENCY_MISMATCH",
+                    error: "Idempotency key cannot be reused with a different answer submit payload.",
+                    retryable: false,
+                }, { status: 409 });
+            }
+
+            answerSubmission = toLatestCandidateAnswerSubmission(attemptWrite.attempt);
+        }
+
+        const answerSubmissions = await practiceSessionRepository.saveAnswerSubmission({
             candidatePracticeSessionId: sessionId,
             candidateProfileId: identity.candidateProfileId,
-            record: createCandidateAnswerIdempotencyPendingRecord({
-                contract: idempotencyContract,
-                requestedAt: now,
-            }),
+            answerSubmission,
         });
-    }
 
-    const answerSubmission = createCandidateAnswerSubmission({
-        request: submitRequest,
-    });
-    const answerSubmissions = await practiceSessionRepository.saveAnswerSubmission({
-        candidatePracticeSessionId: sessionId,
-        candidateProfileId: identity.candidateProfileId,
-        answerSubmission,
-    });
+        if (!answerSubmissions) {
+            return Response.json({ error: "Candidate answer submission could not be saved." }, { status: 404 });
+        }
 
-    if (!answerSubmissions) {
-        if (practiceSessionRepository.clearAnswerIdempotencyRecord) {
+        const responseBody = {
+            status: "answer_submit_saved",
+            answerSubmissions,
+            request: submitRequest,
+            next: "analysis_not_connected",
+        };
+
+        if (practiceSessionRepository.saveAnswerIdempotencyRecord) {
+            await practiceSessionRepository.saveAnswerIdempotencyRecord({
+                candidatePracticeSessionId: sessionId,
+                candidateProfileId: identity.candidateProfileId,
+                record: completeCandidateAnswerIdempotencyRecord({
+                    record: idempotencyDecision.record,
+                    completedAt: now,
+                    statusCode: 202,
+                    body: responseBody,
+                }),
+            });
+        }
+
+        completed = true;
+        return Response.json(responseBody, { status: 202 });
+    } catch {
+        return Response.json({
+            code: "ANSWER_SUBMIT_FAILED",
+            error: "Candidate answer could not be saved.",
+            retryable: true,
+        }, { status: 503 });
+    } finally {
+        if (!completed && practiceSessionRepository.clearAnswerIdempotencyRecord) {
             await practiceSessionRepository.clearAnswerIdempotencyRecord({
                 candidatePracticeSessionId: sessionId,
                 candidateProfileId: identity.candidateProfileId,
                 recordKey: idempotencyDecision.record.recordKey,
-            });
+            }).catch(() => undefined);
         }
-        return Response.json({ error: "Candidate answer submission could not be saved." }, { status: 404 });
     }
-
-    const responseBody = {
-        status: "answer_submit_saved",
-        answerSubmissions,
-        request: submitRequest,
-        next: "analysis_not_connected",
-    };
-
-    if (practiceSessionRepository.saveAnswerIdempotencyRecord) {
-        await practiceSessionRepository.saveAnswerIdempotencyRecord({
-            candidatePracticeSessionId: sessionId,
-            candidateProfileId: identity.candidateProfileId,
-            record: completeCandidateAnswerIdempotencyRecord({
-                record: idempotencyDecision.record,
-                completedAt: now,
-                statusCode: 202,
-                body: responseBody,
-            }),
-        });
-    }
-
-    return Response.json(responseBody, { status: 202 });
 }
 
 function createDefaultCandidateAnswerSubmitDependencies(): Pick<
     CandidateAnswerSubmitRouteDependencies,
-    "resolveCandidateSessionIdentity" | "practiceSessionRepository"
+    "resolveCandidateSessionIdentity" | "practiceSessionRepository" | "answerAttemptRepository"
 > {
     const databaseUrl = process.env[CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV]?.trim();
     if (!databaseUrl) {
@@ -213,6 +320,7 @@ function createDefaultCandidateAnswerSubmitDependencies(): Pick<
             return devIdentity ?? resolveCandidateSessionIdentityFromLaunchCookie(request, queryClient);
         },
         practiceSessionRepository: createCandidatePracticeSessionRepository(queryClient),
+        answerAttemptRepository: createCandidateAnswerHistoryRepository(queryClient),
     };
 }
 
@@ -284,12 +392,56 @@ function parseAnswerSubmitBody(value: unknown) {
         return null;
     }
 
+    const trigger: "initial_submit" | "feedback_retry" = body.trigger === "feedback_retry"
+        ? "feedback_retry"
+        : "initial_submit";
+    const supersedesAnswerAttemptId = readString(body.supersedesAnswerAttemptId);
+    if (
+        (typeof body.trigger !== "undefined" && body.trigger !== "initial_submit" && body.trigger !== "feedback_retry")
+        || (trigger === "feedback_retry" && !supersedesAnswerAttemptId)
+        || (trigger === "initial_submit" && supersedesAnswerAttemptId)
+    ) {
+        return null;
+    }
+
     return {
         slotId,
         questionIndex: body.questionIndex,
         mode: "text" as const,
         text: body.text,
+        trigger,
+        supersedesAnswerAttemptId: trigger === "feedback_retry" ? supersedesAnswerAttemptId! : null,
     };
+}
+
+function isAuthorizedFeedbackRetry(
+    session: CandidateAnswerSubmitSession,
+    retry: {
+        slotId: string;
+        questionIndex: number;
+        supersedesAnswerAttemptId: string | null;
+    },
+) {
+    const sourceAttemptId = retry.supersedesAnswerAttemptId;
+    const latestSubmission = session.answerSubmissions?.[retry.slotId];
+    const latestAnalysis = session.answerAnalysisSnapshots?.[retry.slotId];
+    const feedbackAction = session.feedbackActionEvents?.[retry.slotId];
+
+    return Boolean(
+        sourceAttemptId
+        && latestSubmission?.answerAttemptId === sourceAttemptId
+        && latestSubmission.questionIndex === retry.questionIndex
+        && latestAnalysis?.answer.answerAttemptId === sourceAttemptId
+        && latestAnalysis.answer.questionIndex === retry.questionIndex
+        && feedbackAction?.answer.answerAttemptId === sourceAttemptId
+        && feedbackAction.answer.questionIndex === retry.questionIndex
+        && feedbackAction.answer.attemptNumber === latestSubmission.attemptNumber
+        && feedbackAction.answer.attemptNumber === latestAnalysis.answer.attemptNumber
+        && feedbackAction.answer.trigger === latestSubmission.trigger
+        && feedbackAction.answer.trigger === latestAnalysis.answer.trigger
+        && feedbackAction.actionKind === "retry_answer"
+        && feedbackAction.transition === "retry_current_question"
+    );
 }
 
 function readCookieValue(cookieHeader: string | null, name: string) {

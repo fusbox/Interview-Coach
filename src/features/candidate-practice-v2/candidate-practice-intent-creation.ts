@@ -56,6 +56,7 @@ export async function createCandidatePracticeIntentFromResolvedItems({
         candidateProfileId,
         source,
         lifecycleState: "ready",
+        roleProfileId: intentRecord.roleProfileId,
         targetInterviewId: intentRecord.targetInterviewId,
         targetRole: intentRecord.targetRole,
         setupContext: intentRecord.setupContext,

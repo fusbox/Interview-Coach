@@ -26,6 +26,7 @@ it("renders a resolved single-question follow-up practice staging surface", asyn
         dependencies: {
             resolveFollowUpPracticeIntent: async () => ({
                 status: "candidate_follow_up_practice_intent_resolved",
+                roleProfileId: null,
                 kind: "practice_from_feedback",
                 source: {
                     kind: "coach_update_detail",
@@ -72,6 +73,7 @@ it("creates a durable practice intent and redirects when persistence dependencie
         dependencies: {
             resolveFollowUpPracticeIntent: async () => ({
                 status: "candidate_follow_up_practice_intent_resolved",
+                roleProfileId: null,
                 kind: "practice_from_feedback",
                 source: {
                     kind: "coach_update_detail",

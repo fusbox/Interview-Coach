@@ -1,0 +1,4 @@
+interface:
+  display_name: "Senior Slice Pass"
+  short_description: "Review one implementation slice before completion"
+  default_prompt: "Run the senior slice pass on the current work, fix in-scope findings, and report deferred risks."

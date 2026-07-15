@@ -1,7 +1,4 @@
-import type {
-    CandidatePostRoundReview,
-    CandidatePostRoundReviewQuestion,
-} from "@/features/candidate-session-v2/candidate-completed-round-read-model";
+import type { CandidateCoachUpdateArtifactRecord } from "./candidate-coach-update-artifact";
 
 export type CandidateCoachUpdateDetail = {
     status: "candidate_coach_update_detail_ready";
@@ -10,7 +7,9 @@ export type CandidateCoachUpdateDetail = {
     completedAt: string;
     answeredCount: number;
     questionCount: number;
-    reviewPosture: "fully_reviewable" | "partially_reviewable" | "missing_practice_evidence_only";
+    reviewPosture: "fully_reviewable";
+    summary: string;
+    primaryFocus: string;
     items: CandidateCoachUpdateQuestionDetail[];
 };
 
@@ -20,34 +19,37 @@ export type CandidateCoachUpdateQuestionDetail = {
     questionNumber: number;
     category: string;
     questionText: string;
-    evidenceStatus: "practiced" | "missing_practice_evidence";
-    answer?: CandidatePostRoundReviewQuestion["answer"];
-    coachRead?: CandidatePostRoundReviewQuestion["coaching"];
+    evidenceStatus: "practiced";
+    answer: {
+        mode: "text" | "voice" | "photo";
+        text: string;
+        submittedAt: string;
+    };
+    coachRead: {
+        acknowledgement: string;
+        observation: string;
+        nextPracticeFocus: string;
+        overallBand: "not_enough_evidence" | "emerging" | "clear" | "strong";
+    };
+    comparison: {
+        kind: "first_practice" | "repeat_practice";
+        priorComparableAttemptCount: number;
+        message: string;
+    };
     actionPosture: CandidateCoachUpdateActionPosture;
-    focusedPracticeAction?: CandidateFocusedPracticeAction;
+    focusedPracticeAction: CandidateFocusedPracticeAction;
 };
 
-export type CandidateCoachUpdateActionPosture =
-    | {
-        kind: "review_coaching";
-        label: "Review coach feedback";
-        reason: "This answer has coaching ready.";
-    }
-    | {
-        kind: "await_coaching";
-        label: "Coach feedback pending";
-        reason: "This answer does not have coaching ready yet.";
-    }
-    | {
-        kind: "practice_missing_evidence";
-        label: "Practice this question";
-        reason: "This planned question has not been answered yet.";
-    };
+export type CandidateCoachUpdateActionPosture = {
+    kind: "review_coaching";
+    label: "Review coach feedback";
+    reason: "This answer has accepted coaching ready.";
+};
 
 export type CandidateFocusedPracticeAction = {
     status: "candidate_focused_practice_action";
-    kind: "practice_from_feedback" | "practice_missing_evidence";
-    label: "Practice this focus" | "Practice this question";
+    kind: "practice_from_feedback";
+    label: "Practice this focus";
     href: string;
     source: {
         kind: "coach_update_detail";
@@ -60,26 +62,29 @@ export type CandidateFocusedPracticeAction = {
 };
 
 export function createCandidateCoachUpdateDetail(
-    postRoundReview: CandidatePostRoundReview | null,
+    artifact: CandidateCoachUpdateArtifactRecord | null,
 ): CandidateCoachUpdateDetail | null {
-    if (!postRoundReview) {
+    if (artifact?.lifecycleState !== "completed" || !artifact.candidateSafeContent || !artifact.completedAt) {
         return null;
     }
 
-    const items = postRoundReview.questions.map((question) => toQuestionDetail({
+    const content = artifact.candidateSafeContent;
+    const items = content.questions.map((question) => toQuestionDetail({
         question,
-        candidatePracticeSessionId: postRoundReview.candidatePracticeSessionId,
-        targetRole: postRoundReview.targetRole,
+        candidatePracticeSessionId: artifact.sourceCandidatePracticeSessionId,
+        targetRole: content.targetRole,
     }));
 
     return {
         status: "candidate_coach_update_detail_ready",
-        candidatePracticeSessionId: postRoundReview.candidatePracticeSessionId,
-        targetRole: postRoundReview.targetRole,
-        completedAt: postRoundReview.completedAt,
-        answeredCount: postRoundReview.answeredCount,
-        questionCount: postRoundReview.questionCount,
-        reviewPosture: getReviewPosture(items),
+        candidatePracticeSessionId: artifact.sourceCandidatePracticeSessionId,
+        targetRole: content.targetRole,
+        completedAt: artifact.completedAt,
+        answeredCount: items.length,
+        questionCount: items.length,
+        reviewPosture: "fully_reviewable",
+        summary: content.summary,
+        primaryFocus: content.primaryFocus,
         items,
     };
 }
@@ -89,12 +94,15 @@ function toQuestionDetail({
     candidatePracticeSessionId,
     targetRole,
 }: {
-    question: CandidatePostRoundReviewQuestion;
+    question: NonNullable<CandidateCoachUpdateArtifactRecord["candidateSafeContent"]>["questions"][number];
     candidatePracticeSessionId: string;
     targetRole: string;
 }): CandidateCoachUpdateQuestionDetail {
-    const isPracticed = question.status === "practiced";
-    const actionPosture = getActionPosture(question);
+    const actionPosture: CandidateCoachUpdateActionPosture = {
+        kind: "review_coaching",
+        label: "Review coach feedback",
+        reason: "This answer has accepted coaching ready.",
+    };
 
     return {
         status: "candidate_coach_update_question_detail",
@@ -102,12 +110,16 @@ function toQuestionDetail({
         questionNumber: question.questionNumber,
         category: question.category,
         questionText: question.questionText,
-        evidenceStatus: isPracticed ? "practiced" : "missing_practice_evidence",
-        ...(question.answer ? { answer: question.answer } : {}),
-        ...(question.coaching ? { coachRead: question.coaching } : {}),
+        evidenceStatus: "practiced",
+        answer: {
+            mode: question.answer.mode,
+            text: question.answer.text,
+            submittedAt: question.answer.submittedAt,
+        },
+        coachRead: question.coaching,
+        comparison: question.comparison,
         actionPosture,
-        ...getFocusedPracticeAction({
-            actionPosture,
+        focusedPracticeAction: getFocusedPracticeAction({
             candidatePracticeSessionId,
             targetRole,
             question,
@@ -115,66 +127,31 @@ function toQuestionDetail({
     };
 }
 
-function getActionPosture(question: CandidatePostRoundReviewQuestion): CandidateCoachUpdateActionPosture {
-    if (question.status !== "practiced") {
-        return {
-            kind: "practice_missing_evidence",
-            label: "Practice this question",
-            reason: "This planned question has not been answered yet.",
-        };
-    }
-
-    if (!question.coaching) {
-        return {
-            kind: "await_coaching",
-            label: "Coach feedback pending",
-            reason: "This answer does not have coaching ready yet.",
-        };
-    }
-
-    return {
-        kind: "review_coaching",
-        label: "Review coach feedback",
-        reason: "This answer has coaching ready.",
-    };
-}
-
 function getFocusedPracticeAction({
-    actionPosture,
     candidatePracticeSessionId,
     targetRole,
     question,
 }: {
-    actionPosture: CandidateCoachUpdateActionPosture;
     candidatePracticeSessionId: string;
     targetRole: string;
-    question: CandidatePostRoundReviewQuestion;
-}): { focusedPracticeAction: CandidateFocusedPracticeAction } | Record<string, never> {
-    if (actionPosture.kind === "await_coaching") {
-        return {};
-    }
-
-    const kind = actionPosture.kind === "review_coaching"
-        ? "practice_from_feedback"
-        : "practice_missing_evidence";
+    question: NonNullable<CandidateCoachUpdateArtifactRecord["candidateSafeContent"]>["questions"][number];
+}): CandidateFocusedPracticeAction {
     return {
-        focusedPracticeAction: {
-            status: "candidate_focused_practice_action",
-            kind,
-            label: kind === "practice_from_feedback" ? "Practice this focus" : "Practice this question",
-            href: createCandidateFocusedPracticeHref({
-                kind,
-                candidatePracticeSessionId,
-                questionKey: question.questionKey,
-            }),
-            source: {
-                kind: "coach_update_detail",
-                candidatePracticeSessionId,
-                questionKey: question.questionKey,
-                questionNumber: question.questionNumber,
-                category: question.category,
-                targetRole,
-            },
+        status: "candidate_focused_practice_action",
+        kind: "practice_from_feedback",
+        label: "Practice this focus",
+        href: createCandidateFocusedPracticeHref({
+            kind: "practice_from_feedback",
+            candidatePracticeSessionId,
+            questionKey: question.questionKey,
+        }),
+        source: {
+            kind: "coach_update_detail",
+            candidatePracticeSessionId,
+            questionKey: question.questionKey,
+            questionNumber: question.questionNumber,
+            category: question.category,
+            targetRole,
         },
     };
 }
@@ -197,15 +174,4 @@ export function createCandidateFocusedPracticeHref({
         questionKey,
     });
     return `/candidate/practice/ready?${searchParams.toString()}`;
-}
-
-function getReviewPosture(items: CandidateCoachUpdateQuestionDetail[]): CandidateCoachUpdateDetail["reviewPosture"] {
-    const practicedCount = items.filter((item) => item.evidenceStatus === "practiced").length;
-    const missingCount = items.length - practicedCount;
-
-    if (practicedCount === 0) {
-        return "missing_practice_evidence_only";
-    }
-
-    return missingCount > 0 ? "partially_reviewable" : "fully_reviewable";
 }

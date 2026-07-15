@@ -63,6 +63,47 @@ describe("SharedLivePracticeShell", () => {
             "/invited/session-1",
         );
     });
+
+    it("locks an accepted answer and exposes an analysis-only retry", () => {
+        const onRetryAnalysis = vi.fn();
+
+        render(
+            <SharedLivePracticeShell
+                facts={createFacts("candidate_led")}
+                answerMode="text"
+                draftText="My submitted answer"
+                answerMutationPhase="analysis_failed"
+                onDraftChange={vi.fn()}
+                onRetryAnalysis={onRetryAnalysis}
+                onSubmit={vi.fn()}
+            />,
+        );
+
+        expect(screen.getByRole("textbox", { name: "Type your answer" })).toHaveAttribute("readonly");
+        expect(screen.getByRole("alert")).toHaveTextContent(/answer is saved/i);
+        screen.getByRole("button", { name: "Try coaching again" }).click();
+        expect(onRetryAnalysis).toHaveBeenCalledOnce();
+    });
+
+    it("keeps a draft editable when its autosave needs a retry", () => {
+        const onRetryDraftSave = vi.fn();
+
+        render(
+            <SharedLivePracticeShell
+                facts={createFacts("candidate_led")}
+                answerMode="text"
+                draftText="My local draft"
+                answerMutationPhase="draft_save_failed"
+                onDraftChange={vi.fn()}
+                onRetryDraftSave={onRetryDraftSave}
+                onSubmit={vi.fn()}
+            />,
+        );
+
+        expect(screen.getByRole("textbox", { name: "Type your answer" })).not.toHaveAttribute("readonly");
+        screen.getByRole("button", { name: "Try saving again" }).click();
+        expect(onRetryDraftSave).toHaveBeenCalledOnce();
+    });
 });
 
 function createFacts(audience: "candidate_led" | "invited_candidate") {

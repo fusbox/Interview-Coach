@@ -17,6 +17,7 @@ it("renders the V2 dashboard read boundary when completed-round facts are availa
                 candidateProfileId: "candidate-1",
                 selectedTargetInterview: {
                     status: "candidate_dashboard_target_interview",
+                    roleProfileId: null,
                     id: "material handler i",
                     targetRole: "Material Handler I",
                     isSelected: true,
@@ -28,6 +29,7 @@ it("renders the V2 dashboard read boundary when completed-round facts are availa
                 },
                 targetInterviews: [{
                     status: "candidate_dashboard_target_interview",
+                    roleProfileId: null,
                     id: "material handler i",
                     targetRole: "Material Handler I",
                     isSelected: true,
@@ -142,6 +144,7 @@ it("renders the latest round review as a question-first coach update surface", a
                 candidateProfileId: "candidate-1",
                 selectedTargetInterview: {
                     status: "candidate_dashboard_target_interview",
+                    roleProfileId: null,
                     id: "material handler i",
                     targetRole: "Material Handler I",
                     isSelected: true,
@@ -153,6 +156,7 @@ it("renders the latest round review as a question-first coach update surface", a
                 },
                 targetInterviews: [{
                     status: "candidate_dashboard_target_interview",
+                    roleProfileId: null,
                     id: "material handler i",
                     targetRole: "Material Handler I",
                     isSelected: true,
@@ -302,6 +306,7 @@ it("opens a Coach Update detail section from the sparse feedback card", async ()
                 candidateProfileId: "candidate-1",
                 selectedTargetInterview: {
                     status: "candidate_dashboard_target_interview",
+                    roleProfileId: null,
                     id: "material handler i",
                     targetRole: "Material Handler I",
                     isSelected: true,
@@ -313,6 +318,7 @@ it("opens a Coach Update detail section from the sparse feedback card", async ()
                 },
                 targetInterviews: [{
                     status: "candidate_dashboard_target_interview",
+                    roleProfileId: null,
                     id: "material handler i",
                     targetRole: "Material Handler I",
                     isSelected: true,
@@ -353,7 +359,9 @@ it("opens a Coach Update detail section from the sparse feedback card", async ()
                     completedAt: "2026-07-11T12:00:00.000Z",
                     answeredCount: 1,
                     questionCount: 2,
-                    reviewPosture: "partially_reviewable",
+                    reviewPosture: "fully_reviewable",
+                    summary: "I reviewed your practiced answer.",
+                    primaryFocus: "Add the result of the inventory count.",
                     items: [
                         {
                             status: "candidate_coach_update_question_detail",
@@ -373,10 +381,15 @@ it("opens a Coach Update detail section from the sparse feedback card", async ()
                                 nextPracticeFocus: "Add the result of the inventory count.",
                                 overallBand: "clear",
                             },
+                            comparison: {
+                                kind: "first_practice",
+                                priorComparableAttemptCount: 0,
+                                message: "This is the first accepted practice evidence for this question.",
+                            },
                             actionPosture: {
                                 kind: "review_coaching",
                                 label: "Review coach feedback",
-                                reason: "This answer has coaching ready.",
+                                reason: "This answer has accepted coaching ready.",
                             },
                             focusedPracticeAction: {
                                 status: "candidate_focused_practice_action",
@@ -389,33 +402,6 @@ it("opens a Coach Update detail section from the sparse feedback card", async ()
                                     questionKey: "slot-1",
                                     questionNumber: 1,
                                     category: "Behavioral",
-                                    targetRole: "Material Handler I",
-                                },
-                            },
-                        },
-                        {
-                            status: "candidate_coach_update_question_detail",
-                            questionKey: "slot-2",
-                            questionNumber: 2,
-                            category: "Scenario",
-                            questionText: "How would you respond if a pallet label did not match the manifest?",
-                            evidenceStatus: "missing_practice_evidence",
-                            actionPosture: {
-                                kind: "practice_missing_evidence",
-                                label: "Practice this question",
-                                reason: "This planned question has not been answered yet.",
-                            },
-                            focusedPracticeAction: {
-                                status: "candidate_focused_practice_action",
-                                kind: "practice_missing_evidence",
-                                label: "Practice this question",
-                                href: "/candidate/practice/ready?intent=coach-update-missing-evidence&fromSession=session-1&questionKey=slot-2",
-                                source: {
-                                    kind: "coach_update_detail",
-                                    candidatePracticeSessionId: "session-1",
-                                    questionKey: "slot-2",
-                                    questionNumber: 2,
-                                    category: "Scenario",
                                     targetRole: "Material Handler I",
                                 },
                             },
@@ -490,16 +476,13 @@ it("opens a Coach Update detail section from the sparse feedback card", async ()
         "Your answer includes the task, but the result is still missing.",
     );
     expect(within(detail).getByText("Add the result of the inventory count.")).toBeInTheDocument();
-    expect(within(detail).getByText("Q2 - Scenario")).toBeInTheDocument();
-    expect(within(detail).getByText("Still needs practice evidence")).toBeInTheDocument();
+    expect(within(detail).queryByText("Q2 - Scenario")).not.toBeInTheDocument();
+    expect(within(detail).queryByText("Still needs practice evidence")).not.toBeInTheDocument();
     expect(within(detail).getByRole("link", { name: "Practice this focus" })).toHaveAttribute(
         "href",
         "/candidate/practice/ready?intent=coach-update-feedback-focus&fromSession=session-1&questionKey=slot-1",
     );
-    expect(within(detail).getByRole("link", { name: "Practice this question" })).toHaveAttribute(
-        "href",
-        "/candidate/practice/ready?intent=coach-update-missing-evidence&fromSession=session-1&questionKey=slot-2",
-    );
+    expect(within(detail).queryByRole("link", { name: "Practice this question" })).not.toBeInTheDocument();
     expect(JSON.stringify(detail.textContent)).not.toMatch(/score|oneBigUpgrade|percentile|pass|fail/i);
 });
 
@@ -511,6 +494,7 @@ it("renders selected target interview context and switch links", async () => {
                 candidateProfileId: "candidate-1",
                 selectedTargetInterview: {
                     status: "candidate_dashboard_target_interview",
+                    roleProfileId: null,
                     id: "csr",
                     targetRole: "CSR",
                     isSelected: true,
@@ -523,6 +507,7 @@ it("renders selected target interview context and switch links", async () => {
                 targetInterviews: [
                     {
                         status: "candidate_dashboard_target_interview",
+                        roleProfileId: null,
                         id: "csr",
                         targetRole: "CSR",
                         isSelected: true,
@@ -534,7 +519,8 @@ it("renders selected target interview context and switch links", async () => {
                     },
                     {
                         status: "candidate_dashboard_target_interview",
-                        id: "packaging associate",
+                        roleProfileId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+                        id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
                         targetRole: "Packaging Associate",
                         isSelected: false,
                         activeRoundCount: 1,
@@ -605,7 +591,7 @@ it("renders selected target interview context and switch links", async () => {
     expect(screen.getByRole("heading", { name: "CSR" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Packaging Associate/i })).toHaveAttribute(
         "href",
-        "/candidate/dashboard?targetRole=packaging+associate",
+        "/candidate/dashboard?prep=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
     );
 });
 
@@ -617,6 +603,7 @@ it("renders selected-context active round resume details", async () => {
                 candidateProfileId: "candidate-1",
                 selectedTargetInterview: {
                     status: "candidate_dashboard_target_interview",
+                    roleProfileId: null,
                     id: "packaging associate",
                     targetRole: "Packaging Associate",
                     isSelected: true,
@@ -628,6 +615,7 @@ it("renders selected-context active round resume details", async () => {
                 },
                 targetInterviews: [{
                     status: "candidate_dashboard_target_interview",
+                    roleProfileId: null,
                     id: "packaging associate",
                     targetRole: "Packaging Associate",
                     isSelected: true,
@@ -715,20 +703,24 @@ it("renders selected-context active round resume details", async () => {
     );
 });
 
-it("passes explicit target interview selection into the dashboard read boundary", async () => {
-    let capturedTargetInterviewId: string | null | undefined;
+it("passes explicit prep-context and bounded legacy selection into the dashboard read boundary", async () => {
+    let capturedRoleProfileId: string | null | undefined;
+    let capturedLegacyTargetRole: string | null | undefined;
 
     render(await renderCandidateDashboardPage({
-        selectedTargetInterviewId: "csr",
+        selectedRoleProfileId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        selectedLegacyTargetRole: "csr",
         dependencies: {
-            resolveDashboardModel: async ({ selectedTargetInterviewId }) => {
-                capturedTargetInterviewId = selectedTargetInterviewId;
+            resolveDashboardModel: async ({ selectedRoleProfileId, selectedLegacyTargetRole }) => {
+                capturedRoleProfileId = selectedRoleProfileId;
+                capturedLegacyTargetRole = selectedLegacyTargetRole;
                 return null;
             },
         },
     }));
 
-    expect(capturedTargetInterviewId).toBe("csr");
+    expect(capturedRoleProfileId).toBe("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+    expect(capturedLegacyTargetRole).toBe("csr");
     expect(screen.getByText(/Start with one practice round/i)).toBeInTheDocument();
 });
 

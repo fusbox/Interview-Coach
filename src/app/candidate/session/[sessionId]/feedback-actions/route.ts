@@ -3,11 +3,17 @@ import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidat
 import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-auth-v2/production-host-launch-runtime";
 import { createCandidatePracticeSessionRepository } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 import type { CandidateAnswerAnalysisProviderResult } from "@/features/candidate-session-v2/candidate-answer-analysis-adapter";
+import type { CandidateAnswerSubmissions } from "@/features/candidate-session-v2/candidate-answer-lifecycle";
+import type { CandidateQuestionWordingResult } from "@/features/candidate-session-v2/candidate-question-wording";
 import type {
     CandidateFeedbackActionEvent,
     CandidateFeedbackActionKind,
     CandidateFeedbackInteractionStageId,
     CandidateFeedbackTransition,
+} from "@/features/candidate-session-v2/candidate-feedback-interaction";
+import {
+    createCandidateFeedbackInteraction,
+    isCandidateFeedbackActionEventAllowed,
 } from "@/features/candidate-session-v2/candidate-feedback-interaction";
 
 type CandidateSessionIdentity = {
@@ -16,6 +22,8 @@ type CandidateSessionIdentity = {
 
 type CandidateFeedbackActionSession = {
     answerAnalysisSnapshots?: Record<string, CandidateAnswerAnalysisProviderResult>;
+    answerSubmissions?: CandidateAnswerSubmissions;
+    questionWordingSnapshot?: CandidateQuestionWordingResult | null;
 };
 
 type CandidateFeedbackActionRepository = {
@@ -117,6 +125,46 @@ export async function handleCandidateFeedbackActionRequest({
     ) {
         return Response.json(
             { error: "Feedback action does not match a saved analysis snapshot." },
+            { status: 409 },
+        );
+    }
+
+    const latestSubmission = session.answerSubmissions?.[feedbackActionEvent.answer.slotId];
+    if (
+        matchingAnalysis.answer.answerAttemptId !== feedbackActionEvent.answer.answerAttemptId
+        || matchingAnalysis.answer.attemptNumber !== feedbackActionEvent.answer.attemptNumber
+        || matchingAnalysis.answer.trigger !== feedbackActionEvent.answer.trigger
+        || (
+            feedbackActionEvent.answer.answerAttemptId
+            && (
+                latestSubmission?.answerAttemptId !== feedbackActionEvent.answer.answerAttemptId
+                || latestSubmission.attemptNumber !== feedbackActionEvent.answer.attemptNumber
+                || latestSubmission.trigger !== feedbackActionEvent.answer.trigger
+            )
+        )
+    ) {
+        return Response.json(
+            { error: "Feedback action does not match the latest analyzed answer attempt." },
+            { status: 409 },
+        );
+    }
+
+    if (feedbackActionEvent.actionKind === "retry_answer" && !feedbackActionEvent.answer.answerAttemptId) {
+        return Response.json(
+            { error: "A feedback retry requires immutable answer-attempt identity." },
+            { status: 409 },
+        );
+    }
+
+    const questionCount = session.questionWordingSnapshot?.questions.length ?? 0;
+    const interaction = createCandidateFeedbackInteraction({
+        analysisSnapshot: matchingAnalysis,
+        isLastQuestion: questionCount > 0
+            && feedbackActionEvent.answer.questionIndex === questionCount - 1,
+    });
+    if (!isCandidateFeedbackActionEventAllowed({ interaction, event: feedbackActionEvent })) {
+        return Response.json(
+            { error: "Feedback action is not available from this coaching stage." },
             { status: 409 },
         );
     }
@@ -259,9 +307,24 @@ function parseAnswerReference(value: unknown): CandidateFeedbackActionEvent["ans
         return null;
     }
 
+    const answerAttemptId = readString(answer.answerAttemptId);
+    const attemptNumber = readPositiveInteger(answer.attemptNumber);
+    const trigger = answer.trigger === "initial_submit" || answer.trigger === "feedback_retry"
+        ? answer.trigger
+        : null;
+    const hasAttemptMetadata = Boolean(answerAttemptId || attemptNumber || trigger);
+    if (hasAttemptMetadata && (!answerAttemptId || !attemptNumber || !trigger)) {
+        return null;
+    }
+
     return {
         slotId,
         questionIndex: answer.questionIndex,
+        ...(hasAttemptMetadata ? {
+            answerAttemptId: answerAttemptId!,
+            attemptNumber: attemptNumber!,
+            trigger: trigger!,
+        } : {}),
     };
 }
 
@@ -302,6 +365,10 @@ function readCookieValue(cookieHeader: string | null, name: string) {
 
 function readString(value: unknown) {
     return typeof value === "string" && value.trim() ? value : null;
+}
+
+function readPositiveInteger(value: unknown) {
+    return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
 }
 
 function getRuntimeSslConfig(databaseUrl: string) {

@@ -293,6 +293,9 @@ describe("candidate practice session repository", () => {
                 status: "pending_analysis",
             },
         ]);
+        expect(query).toHaveBeenCalledWith(expect.stringContaining(
+            "status = case when status = 'planned' then 'in_progress' else status end",
+        ), expect.any(Array));
     });
 
     it("persists one answer analysis snapshot by candidate-owned session and slot", async () => {

@@ -1,11 +1,15 @@
 "use client";
 
 import {
+    AlertCircle,
+    CheckCircle2,
     Keyboard,
+    Loader2,
     LogOut,
     Mic,
     Pause,
     Play,
+    RefreshCw,
     SendHorizontal,
     Volume2,
 } from "lucide-react";
@@ -17,13 +21,16 @@ import {
     type SessionQuestionAudioLifecycle,
 } from "./session-question-audio-contract";
 import type { SessionRuntimeFacts } from "./session-runtime-facts";
+import {
+    getSessionAnswerMutationPresentation,
+    type SessionAnswerMutationPhase,
+} from "./session-answer-mutation-contract";
 
 export type SharedLivePracticeShellProps = {
     facts: SessionRuntimeFacts;
     answerMode: "text" | "voice";
     draftText: string;
-    isSubmitting?: boolean;
-    statusMessage?: string | null;
+    answerMutationPhase?: SessionAnswerMutationPhase;
     feedbackContent?: ReactNode;
     exitHref?: string;
     exitLabel?: string;
@@ -35,6 +42,9 @@ export type SharedLivePracticeShellProps = {
     };
     onAnswerModeChange?: (mode: "text" | "voice") => void;
     onDraftChange: (text: string) => void;
+    onDraftBlur?: () => void;
+    onRetryDraftSave?: () => void;
+    onRetryAnalysis?: () => void;
     onSubmit: () => void;
 };
 
@@ -42,8 +52,7 @@ export function SharedLivePracticeShell({
     facts,
     answerMode,
     draftText,
-    isSubmitting = false,
-    statusMessage,
+    answerMutationPhase = "idle",
     feedbackContent,
     exitHref,
     exitLabel,
@@ -51,6 +60,9 @@ export function SharedLivePracticeShell({
     questionPlaybackControl,
     onAnswerModeChange,
     onDraftChange,
+    onDraftBlur,
+    onRetryDraftSave,
+    onRetryAnalysis,
     onSubmit,
 }: SharedLivePracticeShellProps) {
     const currentQuestion = facts.questions[facts.currentQuestionIndex] ?? null;
@@ -69,6 +81,10 @@ export function SharedLivePracticeShell({
             ? "Return to dashboard"
             : "Return to invitation"
     );
+    const answerPresentation = getSessionAnswerMutationPresentation(answerMutationPhase);
+    const answerPrimaryHandler = answerPresentation.primaryAction === "retry_analysis"
+        ? onRetryAnalysis
+        : onSubmit;
 
     useEffect(() => {
         window.scrollTo({ top: 0 });
@@ -189,24 +205,53 @@ export function SharedLivePracticeShell({
                         <textarea
                             value={draftText}
                             onChange={(event) => onDraftChange(event.target.value)}
+                            onBlur={answerPresentation.isAnswerLocked ? undefined : onDraftBlur}
+                            readOnly={answerPresentation.isAnswerLocked}
+                            aria-describedby="session-live-answer-status"
                             rows={8}
                             placeholder="Start your answer here."
                         />
                     </label>
 
                     <footer className="session-live-shell__answer-footer">
-                        <p aria-live="polite">
-                            {statusMessage ?? "Your draft saves as you write."}
-                        </p>
-                        <button
-                            className="candidate-button candidate-button--primary"
-                            type="button"
-                            disabled={!draftText.trim() || isSubmitting}
-                            onClick={onSubmit}
+                        <div
+                            id="session-live-answer-status"
+                            className="session-live-shell__answer-status"
+                            data-tone={answerPresentation.tone}
+                            role={answerPresentation.tone === "error" ? "alert" : "status"}
+                            aria-live={answerPresentation.tone === "error" ? "assertive" : "polite"}
                         >
-                            <SendHorizontal size={17} aria-hidden="true" />
-                            {isSubmitting ? "Submitting..." : "Submit answer"}
-                        </button>
+                            <span aria-hidden="true">
+                                {answerPresentation.tone === "progress" ? (
+                                    <Loader2 className="session-live-shell__status-spinner" size={16} />
+                                ) : answerPresentation.tone === "success" ? (
+                                    <CheckCircle2 size={16} />
+                                ) : answerPresentation.tone === "error" ? (
+                                    <AlertCircle size={16} />
+                                ) : null}
+                            </span>
+                            <p>{answerPresentation.message}</p>
+                            {answerPresentation.canRetryDraftSave && onRetryDraftSave ? (
+                                <button type="button" onClick={onRetryDraftSave}>
+                                    Try saving again
+                                </button>
+                            ) : null}
+                        </div>
+                        {answerPresentation.primaryAction ? (
+                            <button
+                                className="candidate-button candidate-button--primary"
+                                type="button"
+                                disabled={!draftText.trim() || answerPresentation.isBusy || !answerPrimaryHandler}
+                                onClick={answerPrimaryHandler}
+                            >
+                                {answerPresentation.primaryAction === "retry_analysis" ? (
+                                    <RefreshCw size={17} aria-hidden="true" />
+                                ) : (
+                                    <SendHorizontal size={17} aria-hidden="true" />
+                                )}
+                                {answerPresentation.primaryLabel}
+                            </button>
+                        ) : null}
                     </footer>
                 </section>
 

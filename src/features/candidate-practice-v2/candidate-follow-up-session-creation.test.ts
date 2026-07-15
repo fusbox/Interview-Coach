@@ -24,6 +24,7 @@ describe("candidate follow-up session creation", () => {
 
         expect(input).toMatchObject({
             candidateProfileId: "candidate-1",
+            roleProfileId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
             setupSnapshot: {
                 targetRole: "Material Handler I",
                 jobDescription: "Move materials safely.",
@@ -36,6 +37,8 @@ describe("candidate follow-up session creation", () => {
                     status: "candidate_follow_up_practice_session",
                     sourceIntentId: "intent-1",
                     source: "practice_builder",
+                    sourceNextRoundDraftId: "draft-1",
+                    sourceNextRoundDraftVersion: 4,
                     sessionAttemptNumber: 2,
                     itemCount: 2,
                 },
@@ -77,6 +80,14 @@ describe("candidate follow-up session creation", () => {
                     questionKey: "slot-1",
                     questionAttemptNumber: 2,
                     sourceQuestionNumber: 1,
+                    rootSourceCandidatePracticeSessionId: "source-session-1",
+                    rootSourceQuestionKey: "slot-1",
+                    assembly: {
+                        source: "next_round_draft",
+                        candidateNextRoundDraftItemId: "draft-item-1",
+                        provenance: "coach_update",
+                        displayPosition: 0,
+                    },
                 },
             },
             {
@@ -149,6 +160,43 @@ describe("candidate follow-up session creation", () => {
         });
     });
 
+    it("keeps a canonical question root when follow-up practice starts from a prior follow-up", () => {
+        const originalSession = createSourceSession({
+            candidatePracticeSessionId: "source-session-1",
+            answeredSlotIds: ["slot-1"],
+        });
+        const firstFollowUp = createSourceSession({
+            candidatePracticeSessionId: "follow-up-session-1",
+            answeredSlotIds: ["slot-1"],
+            followUpItems: [{
+                localSlotId: "slot-1",
+                sourceCandidatePracticeSessionId: "source-session-1",
+                sourceQuestionKey: "slot-1",
+                questionAttemptNumber: 2,
+            }],
+        });
+
+        const input = createCandidateFollowUpSessionInputFromIntent({
+            candidateProfileId: "candidate-1",
+            intent: createPracticeIntentRecord({
+                itemKeys: ["slot-1"],
+                sourceSessionId: "follow-up-session-1",
+            }),
+            existingPracticeSessions: [originalSession, firstFollowUp],
+            now: new Date("2026-07-12T17:00:00.000Z"),
+        });
+
+        expect(input?.questionPlanSnapshot.slots[0]).toMatchObject({
+            sourceQuestion: {
+                questionAttemptNumber: 3,
+                sourceCandidatePracticeSessionId: "follow-up-session-1",
+                sourceQuestionKey: "slot-1",
+                rootSourceCandidatePracticeSessionId: "source-session-1",
+                rootSourceQuestionKey: "slot-1",
+            },
+        });
+    });
+
     it("fails closed when the source session for inherited setup context is unavailable", () => {
         expect(createCandidateFollowUpSessionInputFromIntent({
             candidateProfileId: "candidate-1",
@@ -157,12 +205,27 @@ describe("candidate follow-up session creation", () => {
             now: new Date("2026-07-12T17:00:00.000Z"),
         })).toBeNull();
     });
+
+    it("fails closed when a same-title source belongs to another prep context", () => {
+        expect(createCandidateFollowUpSessionInputFromIntent({
+            candidateProfileId: "candidate-1",
+            intent: createPracticeIntentRecord({ itemKeys: ["slot-1"] }),
+            existingPracticeSessions: [createSourceSession({
+                candidatePracticeSessionId: "source-session-1",
+                roleProfileId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+                answeredSlotIds: ["slot-1"],
+            })],
+            now: new Date("2026-07-12T17:00:00.000Z"),
+        })).toBeNull();
+    });
 });
 
 function createPracticeIntentRecord({
     itemKeys = ["slot-1", "slot-2"],
+    sourceSessionId = "source-session-1",
 }: {
     itemKeys?: string[];
+    sourceSessionId?: string;
 } = {}): CandidatePracticeIntentRecord {
     const items = itemKeys.map((questionKey, index) => {
         const questionNumber = questionKey === "slot-1" ? 1 : 2;
@@ -175,7 +238,7 @@ function createPracticeIntentRecord({
             kind: questionKey === "slot-1" ? "practice_from_feedback" as const : "practice_missing_evidence" as const,
             source: {
                 kind: "coach_update_detail" as const,
-                candidatePracticeSessionId: "source-session-1",
+                candidatePracticeSessionId: sourceSessionId,
                 questionKey,
                 targetInterviewId: "material handler i",
                 targetRole: "Material Handler I",
@@ -188,6 +251,12 @@ function createPracticeIntentRecord({
                 label: questionKey === "slot-1" ? "Practice from coach feedback" as const : "Practice missing evidence" as const,
                 body: `Practice question ${questionNumber}.`,
             },
+            assembly: {
+                source: "next_round_draft" as const,
+                candidateNextRoundDraftItemId: `draft-item-${index + 1}`,
+                provenance: questionKey === "slot-1" ? "coach_update" as const : "coach_plan" as const,
+                displayPosition: index,
+            },
             sortKey: index,
         };
     });
@@ -198,6 +267,9 @@ function createPracticeIntentRecord({
         candidateProfileId: "candidate-1",
         source: "practice_builder",
         lifecycleState: "ready",
+        sourceNextRoundDraftId: "draft-1",
+        sourceNextRoundDraftVersion: 4,
+        roleProfileId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
         targetInterviewId: "material handler i",
         targetRole: "Material Handler I",
         itemCount: items.length,
@@ -216,10 +288,12 @@ function createPracticeIntentRecord({
 
 function createSourceSession({
     candidatePracticeSessionId,
+    roleProfileId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     answeredSlotIds = [],
     followUpItems = [],
 }: {
     candidatePracticeSessionId: string;
+    roleProfileId?: string | null;
     answeredSlotIds?: string[];
     followUpItems?: Array<{
         localSlotId: string;
@@ -247,7 +321,7 @@ function createSourceSession({
     return {
         candidatePracticeSessionId,
         candidateProfileId: "candidate-1",
-        roleProfileId: null,
+        roleProfileId,
         candidateLaunchSessionId: null,
         status: "completed",
         setupSnapshot: {

@@ -222,6 +222,7 @@ it("releases a routed follow-up transition over the already-mounted live questio
 
 it("recovers the exact live question and uses the dashboard as the candidate exit", async () => {
     const resolveDurableSession = vi.fn(async () => createSession({
+        roleProfileId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
         progress: {
             status: "live_question",
             currentQuestionIndex: 1,
@@ -236,11 +237,11 @@ it("recovers the exact live question and uses the dashboard as the candidate exi
         render(ui);
     });
 
-    expect(screen.getByRole("heading", { name: "Stored snapshot question for the second slot." })).toBeInTheDocument();
-    expect(screen.getByText("Question 2 of 3")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Stored snapshot question for the second slot." })).toBeInTheDocument();
+    expect(await screen.findByText("Question 2 of 3")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Return to dashboard" })).toHaveAttribute(
         "href",
-        "/candidate/dashboard?targetRole=customer+service+representative",
+        "/candidate/dashboard?prep=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     );
     expect(screen.queryByRole("button", { name: /resume session/i })).not.toBeInTheDocument();
 });
@@ -278,6 +279,7 @@ it("migrates recovered preview progress into the live question contract", async 
 });
 
 it("restores and saves the draft for the active durable question", async () => {
+    vi.useFakeTimers();
     const fetch = vi.fn(async () => new Response(JSON.stringify({ status: "answer_draft_saved" }), { status: 200 }));
     vi.stubGlobal("fetch", fetch);
     const ui = await renderCandidateSessionPage({
@@ -308,6 +310,14 @@ it("restores and saves the draft for the active durable question", async () => {
     const answer = screen.getByRole("textbox", { name: "Type your answer" });
     expect(answer).toHaveValue("My saved answer");
     fireEvent.change(answer, { target: { value: "My revised answer" } });
+    expect(screen.getByText("Changes waiting to save.")).toBeInTheDocument();
+    expect(fetch).not.toHaveBeenCalled();
+
+    await act(async () => {
+        vi.advanceTimersByTime(600);
+        await Promise.resolve();
+        await Promise.resolve();
+    });
 
     expect(fetch).toHaveBeenCalledWith(
         "/candidate/session/session-v2-1/answer-drafts",
@@ -321,9 +331,70 @@ it("restores and saves the draft for the active durable question", async () => {
             }),
         }),
     );
+    expect(screen.getByText("Draft saved.")).toBeInTheDocument();
 });
 
-it("submits a typed answer and keeps the explicit provider-unavailable state", async () => {
+it("serializes autosaves so an older request cannot overtake newer typing", async () => {
+    vi.useFakeTimers();
+    let resolveFirstDraftSave: ((response: Response) => void) | null = null;
+    const firstDraftSave = new Promise<Response>((resolve) => {
+        resolveFirstDraftSave = resolve;
+    });
+    let draftSaveCalls = 0;
+    const fetch = vi.fn((input: RequestInfo | URL, _init?: RequestInit) => {
+        void _init;
+        if (!String(input).endsWith("/answer-drafts")) {
+            return Promise.resolve(new Response(null, { status: 500 }));
+        }
+
+        draftSaveCalls += 1;
+        return draftSaveCalls === 1
+            ? firstDraftSave
+            : Promise.resolve(new Response(JSON.stringify({ status: "answer_draft_saved" }), { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetch);
+    render(
+        <CandidatePlannedSessionExperience
+            sessionId="session-v2-1"
+            dashboardHref="/candidate/dashboard"
+            initialSession={createSession({
+                progress: {
+                    status: "live_question",
+                    currentQuestionIndex: 0,
+                },
+            })}
+        />,
+    );
+
+    const answer = screen.getByRole("textbox", { name: "Type your answer" });
+    fireEvent.change(answer, { target: { value: "Older draft" } });
+    await act(async () => {
+        vi.advanceTimersByTime(600);
+    });
+    expect(draftSaveCalls).toBe(1);
+
+    fireEvent.change(answer, { target: { value: "Newest draft" } });
+    await act(async () => {
+        vi.advanceTimersByTime(600);
+    });
+    expect(draftSaveCalls).toBe(1);
+
+    await act(async () => {
+        resolveFirstDraftSave?.(new Response(JSON.stringify({ status: "answer_draft_saved" }), { status: 200 }));
+        await Promise.resolve();
+        await Promise.resolve();
+    });
+
+    expect(draftSaveCalls).toBe(2);
+    expect(fetch.mock.calls.map(([, request]) => JSON.parse(String(request?.body))).map((body) => body.text)).toEqual([
+        "Older draft",
+        "Newest draft",
+    ]);
+    expect(screen.getByText("Draft saved.")).toBeInTheDocument();
+});
+
+it("keeps a saved answer locked and retries only coaching after analysis fails", async () => {
+    let analysisAttempts = 0;
     const fetch = vi.fn(async (input: RequestInfo | URL) => {
         const url = String(input);
         if (url.endsWith("/answers")) {
@@ -342,6 +413,13 @@ it("submits a typed answer and keeps the explicit provider-unavailable state", a
             }), { status: 202 });
         }
         if (url.endsWith("/answers/slot-1/analysis")) {
+            analysisAttempts += 1;
+            if (analysisAttempts > 1) {
+                return new Response(JSON.stringify({
+                    status: "answer_analysis_saved",
+                    analysisSnapshot: createAnalysisSnapshot("slot-1", 0),
+                }), { status: 200 });
+            }
             return new Response(JSON.stringify({
                 status: "answer_analysis_unavailable",
                 reason: "provider_not_configured",
@@ -368,7 +446,8 @@ it("submits a typed answer and keeps the explicit provider-unavailable state", a
     });
     fireEvent.click(screen.getByRole("button", { name: "Submit answer" }));
 
-    expect(await screen.findByText(/Answer saved. Coaching is still being connected/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Your answer is saved. I couldn't prepare coaching just now/i)).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Type your answer" })).toHaveAttribute("readonly");
     expect(fetch).toHaveBeenCalledWith(
         "/candidate/session/session-v2-1/answers",
         expect.objectContaining({ method: "POST" }),
@@ -377,10 +456,122 @@ it("submits a typed answer and keeps the explicit provider-unavailable state", a
         "/candidate/session/session-v2-1/answers/slot-1/analysis",
         expect.objectContaining({ method: "POST" }),
     );
+
+    fireEvent.click(screen.getByRole("button", { name: "Try coaching again" }));
+
+    expect(await screen.findByRole("heading", { name: "First, here is what I heard." })).toBeInTheDocument();
+    expect(fetch.mock.calls.filter(([input]) => String(input).endsWith("/answers"))).toHaveLength(1);
+    expect(fetch.mock.calls.filter(([input]) => String(input).endsWith("/answers/slot-1/analysis"))).toHaveLength(2);
+});
+
+it("keeps a failed draft save editable and retries it in place", async () => {
+    let draftSaveAttempts = 0;
+    const fetch = vi.fn(async (input: RequestInfo | URL) => {
+        if (String(input).endsWith("/answer-drafts")) {
+            draftSaveAttempts += 1;
+            return draftSaveAttempts === 1
+                ? new Response(JSON.stringify({ error: "Draft save failed." }), { status: 503 })
+                : new Response(JSON.stringify({ status: "answer_draft_saved" }), { status: 200 });
+        }
+        return new Response(null, { status: 500 });
+    });
+    vi.stubGlobal("fetch", fetch);
+    render(
+        <CandidatePlannedSessionExperience
+            sessionId="session-v2-1"
+            dashboardHref="/candidate/dashboard"
+            initialSession={createSession({
+                progress: {
+                    status: "live_question",
+                    currentQuestionIndex: 0,
+                },
+            })}
+        />,
+    );
+
+    const answer = screen.getByRole("textbox", { name: "Type your answer" });
+    fireEvent.change(answer, { target: { value: "My answer is still here." } });
+    fireEvent.blur(answer);
+
+    expect(await screen.findByText("Your latest changes aren't saved yet.")).toBeInTheDocument();
+    expect(answer).not.toHaveAttribute("readonly");
+    fireEvent.click(screen.getByRole("button", { name: "Try saving again" }));
+
+    expect(await screen.findByText("Draft saved.")).toBeInTheDocument();
+    expect(draftSaveAttempts).toBe(2);
+});
+
+it("keeps the draft editable and retries submission when the answer was not accepted", async () => {
+    let submitAttempts = 0;
+    const fetch = vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.endsWith("/answer-drafts")) {
+            return new Response(JSON.stringify({ status: "answer_draft_saved" }), { status: 200 });
+        }
+        if (url.endsWith("/answers")) {
+            submitAttempts += 1;
+            if (submitAttempts === 1) {
+                return new Response(JSON.stringify({ error: "Answer save failed." }), { status: 503 });
+            }
+            return new Response(JSON.stringify({
+                status: "answer_submit_saved",
+                answerSubmissions: {
+                    "slot-1": {
+                        slotId: "slot-1",
+                        questionIndex: 0,
+                        mode: "text",
+                        text: "My answer stayed here.",
+                        submittedAt: "2026-07-14T18:00:00.000Z",
+                        status: "pending_analysis",
+                    },
+                },
+            }), { status: 202 });
+        }
+        if (url.endsWith("/answers/slot-1/analysis")) {
+            return new Response(JSON.stringify({
+                status: "answer_analysis_saved",
+                analysisSnapshot: createAnalysisSnapshot("slot-1", 0),
+            }), { status: 200 });
+        }
+        return new Response(null, { status: 500 });
+    });
+    vi.stubGlobal("fetch", fetch);
+    render(
+        <CandidatePlannedSessionExperience
+            sessionId="session-v2-1"
+            dashboardHref="/candidate/dashboard"
+            initialSession={createSession({
+                progress: {
+                    status: "live_question",
+                    currentQuestionIndex: 0,
+                },
+            })}
+        />,
+    );
+
+    const answer = screen.getByRole("textbox", { name: "Type your answer" });
+    fireEvent.change(answer, { target: { value: "My answer stayed here." } });
+    fireEvent.click(screen.getByRole("button", { name: "Submit answer" }));
+
+    expect(await screen.findByText(/I couldn't save your answer. Your draft is still here/i)).toBeInTheDocument();
+    expect(answer).not.toHaveAttribute("readonly");
+    fireEvent.click(screen.getByRole("button", { name: "Try submit again" }));
+
+    expect(await screen.findByRole("heading", { name: "First, here is what I heard." })).toBeInTheDocument();
+    expect(submitAttempts).toBe(2);
 });
 
 it("continues from saved coaching to the next live question", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify({ status: "progress_saved" }), { status: 200 }));
+    const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input).endsWith("/feedback-actions")) {
+            const event = JSON.parse(String(init?.body));
+            return new Response(JSON.stringify({
+                status: "feedback_action_saved",
+                feedbackActionEvents: { "slot-1": event },
+            }), { status: 200 });
+        }
+        return new Response(JSON.stringify({ status: "progress_saved" }), { status: 200 });
+    });
     vi.stubGlobal("fetch", fetch);
     render(
         <CandidatePlannedSessionExperience
@@ -394,15 +585,22 @@ it("continues from saved coaching to the next live question", async () => {
                 answerAnalysisSnapshots: {
                     "slot-1": createAnalysisSnapshot("slot-1", 0),
                 },
+                answerSubmissions: {
+                    "slot-1": createAnswerSubmission("slot-1", 0),
+                },
             })}
         />,
     );
 
-    expect(screen.getByRole("heading", { name: "Coach feedback" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "First, here is what I heard." })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Explore feedback" }));
+    expect(await screen.findByRole("heading", { name: "What to strengthen" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(await screen.findByRole("heading", { name: "What to do next" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Continue to next question" }));
 
-    expect(screen.getByRole("heading", { name: "Stored snapshot question for the second slot." })).toBeInTheDocument();
-    expect(screen.getByText("Question 2 of 3")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Stored snapshot question for the second slot." })).toBeInTheDocument();
+    expect(await screen.findByText("Question 2 of 3")).toBeInTheDocument();
     expect(fetch).toHaveBeenCalledWith(
         "/candidate/session/session-v2-1/progress",
         expect.objectContaining({
@@ -413,6 +611,123 @@ it("continues from saved coaching to the next live question", async () => {
             }),
         }),
     );
+});
+
+it("reopens a coached answer and submits the retry as a linked attempt", async () => {
+    const sourceAttemptId = "11111111-1111-4111-8111-111111111111";
+    const retryAttemptId = "22222222-2222-4222-8222-222222222222";
+    const answerRequestBodies: Array<Record<string, unknown>> = [];
+    const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.endsWith("/feedback-actions")) {
+            const event = JSON.parse(String(init?.body));
+            return new Response(JSON.stringify({
+                status: "feedback_action_saved",
+                feedbackActionEvents: { "slot-1": event },
+            }), { status: 200 });
+        }
+        if (url.endsWith("/answer-drafts")) {
+            return new Response(JSON.stringify({ status: "answer_draft_saved" }), { status: 200 });
+        }
+        if (url.endsWith("/answers")) {
+            answerRequestBodies.push(JSON.parse(String(init?.body)));
+            return new Response(JSON.stringify({
+                status: "answer_submit_saved",
+                answerSubmissions: {
+                    "slot-1": createAnswerSubmissionWithAttempt("slot-1", 0, retryAttemptId, 2),
+                },
+            }), { status: 202 });
+        }
+        if (url.endsWith("/answers/slot-1/analysis")) {
+            return new Response(JSON.stringify({
+                status: "answer_analysis_saved",
+                analysisSnapshot: createAnalysisSnapshotWithAttempt("slot-1", 0, retryAttemptId, 2),
+            }), { status: 200 });
+        }
+        return new Response(null, { status: 500 });
+    });
+    vi.stubGlobal("fetch", fetch);
+    render(
+        <CandidatePlannedSessionExperience
+            sessionId="session-v2-1"
+            dashboardHref="/candidate/dashboard"
+            initialSession={createSession({
+                progress: { status: "live_question", currentQuestionIndex: 0 },
+                answerSubmissions: {
+                    "slot-1": createAnswerSubmissionWithAttempt("slot-1", 0, sourceAttemptId, 1),
+                },
+                answerAnalysisSnapshots: {
+                    "slot-1": createAnalysisSnapshotWithAttempt("slot-1", 0, sourceAttemptId, 1),
+                },
+            })}
+        />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Explore feedback" }));
+    await screen.findByRole("heading", { name: "What to strengthen" });
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await screen.findByRole("heading", { name: "What to do next" });
+    fireEvent.click(screen.getByRole("button", { name: "Retry my answer" }));
+
+    const answer = await screen.findByRole("textbox", { name: "Type your answer" });
+    await waitFor(() => expect(answer).not.toHaveAttribute("readonly"));
+    fireEvent.change(answer, { target: { value: "A clearer answer with the result included." } });
+    fireEvent.click(screen.getByRole("button", { name: "Submit answer" }));
+
+    expect(await screen.findByRole("heading", { name: "First, here is what I heard." })).toBeInTheDocument();
+    expect(answerRequestBodies).toEqual([expect.objectContaining({
+        trigger: "feedback_retry",
+        supersedesAnswerAttemptId: sourceAttemptId,
+        text: "A clearer answer with the result included.",
+    })]);
+});
+
+it("recovers an unsubmitted feedback retry as an editable preserved draft", () => {
+    const sourceAttemptId = "11111111-1111-4111-8111-111111111111";
+    render(
+        <CandidatePlannedSessionExperience
+            sessionId="session-v2-1"
+            dashboardHref="/candidate/dashboard"
+            initialSession={createSession({
+                progress: { status: "live_question", currentQuestionIndex: 0 },
+                answerDrafts: {
+                    "slot-1": {
+                        slotId: "slot-1",
+                        questionIndex: 0,
+                        mode: "text",
+                        text: "My in-progress retry draft.",
+                        updatedAt: "2026-07-14T20:00:00.000Z",
+                    },
+                },
+                answerSubmissions: {
+                    "slot-1": createAnswerSubmissionWithAttempt("slot-1", 0, sourceAttemptId, 1),
+                },
+                answerAnalysisSnapshots: {
+                    "slot-1": createAnalysisSnapshotWithAttempt("slot-1", 0, sourceAttemptId, 1),
+                },
+                feedbackActionEvents: {
+                    "slot-1": {
+                        status: "feedback_action_selected",
+                        answer: {
+                            slotId: "slot-1",
+                            questionIndex: 0,
+                            answerAttemptId: sourceAttemptId,
+                            attemptNumber: 1,
+                            trigger: "initial_submit",
+                        },
+                        stageId: "next_step",
+                        actionKind: "retry_answer",
+                        transition: "retry_current_question",
+                        selectedAt: "2026-07-14T19:59:00.000Z",
+                    },
+                },
+            })}
+        />,
+    );
+
+    expect(screen.queryByText("Coach read")).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Type your answer" })).toHaveValue("My in-progress retry draft.");
+    expect(screen.getByRole("textbox", { name: "Type your answer" })).not.toHaveAttribute("readonly");
 });
 
 it("keeps completion unavailable before practice starts", () => {
@@ -427,7 +742,7 @@ it("keeps completion unavailable before practice starts", () => {
     expect(screen.queryByRole("button", { name: "Finish session" })).not.toBeInTheDocument();
 });
 
-it("uses the existing completion route while final finish CTA design remains deferred", async () => {
+it("finishes the session from the last staged coaching step", async () => {
     const assign = vi.fn();
     Object.defineProperty(window, "location", {
         configurable: true,
@@ -436,10 +751,19 @@ it("uses the existing completion route while final finish CTA design remains def
             assign,
         },
     });
-    const fetch = vi.fn(async () => new Response(JSON.stringify({
-        status: "candidate_session_completed",
-        nextRoute: "/candidate/dashboard",
-    }), { status: 200 }));
+    const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input).endsWith("/feedback-actions")) {
+            const event = JSON.parse(String(init?.body));
+            return new Response(JSON.stringify({
+                status: "feedback_action_saved",
+                feedbackActionEvents: { "slot-3": event },
+            }), { status: 200 });
+        }
+        return new Response(JSON.stringify({
+            status: "candidate_session_completed",
+            nextRoute: "/candidate/dashboard",
+        }), { status: 200 });
+    });
     vi.stubGlobal("fetch", fetch);
     render(
         <CandidatePlannedSessionExperience
@@ -453,10 +777,17 @@ it("uses the existing completion route while final finish CTA design remains def
                 answerAnalysisSnapshots: {
                     "slot-3": createAnalysisSnapshot("slot-3", 2),
                 },
+                answerSubmissions: {
+                    "slot-3": createAnswerSubmission("slot-3", 2),
+                },
             })}
         />,
     );
 
+    fireEvent.click(screen.getByRole("button", { name: "Explore feedback" }));
+    await screen.findByRole("heading", { name: "What to strengthen" });
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await screen.findByRole("heading", { name: "What to do next" });
     fireEvent.click(screen.getByRole("button", { name: "Finish session" }));
 
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(
@@ -599,5 +930,49 @@ function createAnalysisSnapshot(slotId: string, questionIndex: number): Candidat
                 score: 3,
             },
         ],
+    };
+}
+
+function createAnswerSubmission(slotId: string, questionIndex: number) {
+    return {
+        slotId,
+        questionIndex,
+        mode: "text" as const,
+        text: "A saved answer.",
+        submittedAt: "2026-07-13T18:02:00.000Z",
+        status: "pending_analysis" as const,
+    };
+}
+
+function createAnswerSubmissionWithAttempt(
+    slotId: string,
+    questionIndex: number,
+    answerAttemptId: string,
+    attemptNumber: number,
+) {
+    return {
+        ...createAnswerSubmission(slotId, questionIndex),
+        answerAttemptId,
+        attemptNumber,
+        trigger: attemptNumber === 1 ? "initial_submit" as const : "feedback_retry" as const,
+        supersedesAnswerAttemptId: attemptNumber === 1 ? null : "11111111-1111-4111-8111-111111111111",
+    };
+}
+
+function createAnalysisSnapshotWithAttempt(
+    slotId: string,
+    questionIndex: number,
+    answerAttemptId: string,
+    attemptNumber: number,
+): CandidateAnswerAnalysisProviderResult {
+    return {
+        ...createAnalysisSnapshot(slotId, questionIndex),
+        answer: {
+            slotId,
+            questionIndex,
+            answerAttemptId,
+            attemptNumber,
+            trigger: attemptNumber === 1 ? "initial_submit" : "feedback_retry",
+        },
     };
 }

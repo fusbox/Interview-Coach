@@ -1,0 +1,4 @@
+interface:
+  display_name: "Senior Milestone Pass"
+  short_description: "Audit an integrated multi-slice commit boundary"
+  default_prompt: "Run the senior milestone pass on the current milestone and identify integration gaps before commit."

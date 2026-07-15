@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createCandidateQuestionPlan } from "@/features/candidate-session-v2/candidate-question-plan";
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 
+import type { CandidateCoachUpdateArtifactRecord } from "./candidate-coach-update-artifact";
 import { createCandidateDashboardV2ReadModel } from "./candidate-dashboard-read-model";
 
 describe("candidate dashboard V2 read model", () => {
@@ -42,6 +43,8 @@ describe("candidate dashboard V2 read model", () => {
                 targetRole: "Material Handler I",
                 activeRoundCount: 1,
                 completedRoundCount: 2,
+                answeredQuestionCount: 3,
+                coachedAnswerCount: 3,
             },
             activeRound: {
                 status: "candidate_dashboard_active_round",
@@ -63,30 +66,11 @@ describe("candidate dashboard V2 read model", () => {
             stats: {
                 activeRoundCount: 1,
                 completedRoundCount: 2,
-                answeredQuestionCount: 2,
-                coachedAnswerCount: 2,
+                answeredQuestionCount: 3,
+                coachedAnswerCount: 3,
             },
-            latestCoachUpdate: {
-                candidatePracticeSessionId: "newer-session",
-                title: "Material Handler I practice complete",
-                completedAt: "2026-07-11T12:00:00.000Z",
-            },
-            coachUpdateDetail: {
-                status: "candidate_coach_update_detail_ready",
-                candidatePracticeSessionId: "newer-session",
-                targetRole: "Material Handler I",
-                reviewPosture: "fully_reviewable",
-                items: [
-                    {
-                        status: "candidate_coach_update_question_detail",
-                        questionKey: "slot-1",
-                        evidenceStatus: "practiced",
-                        actionPosture: {
-                            kind: "review_coaching",
-                        },
-                    },
-                ],
-            },
+            latestCoachUpdate: null,
+            coachUpdateDetail: null,
             practiceNext: {
                 source: "coaching_focus",
                 label: "Explain what changed after you escalated the damage.",
@@ -111,12 +95,7 @@ describe("candidate dashboard V2 read model", () => {
             coachingLoop: {
                 status: "candidate_dashboard_coaching_loop_ready",
                 principle: "Use what happened in practice to choose the next useful move.",
-                feedback: {
-                    status: "candidate_dashboard_feedback_ready",
-                    label: "Coach Update",
-                    title: "Material Handler I practice complete",
-                    observation: "The answer connects to the job, but it can use one sharper detail.",
-                },
+                feedback: null,
                 feedforward: {
                     status: "candidate_dashboard_feedforward_ready",
                     label: "Practice Next",
@@ -156,6 +135,8 @@ describe("candidate dashboard V2 read model", () => {
             targetRole: "Packaging Associate (2nd Shift)",
             activeRoundCount: 1,
             completedRoundCount: 0,
+            answeredQuestionCount: 1,
+            coachedAnswerCount: 1,
             isSelected: true,
         });
         expect(model.targetInterviews).toEqual([
@@ -164,6 +145,8 @@ describe("candidate dashboard V2 read model", () => {
                 targetRole: "Packaging Associate (2nd Shift)",
                 activeRoundCount: 1,
                 completedRoundCount: 0,
+                answeredQuestionCount: 1,
+                coachedAnswerCount: 1,
                 isSelected: true,
             }),
             expect.objectContaining({
@@ -177,8 +160,8 @@ describe("candidate dashboard V2 read model", () => {
         expect(model.stats).toEqual({
             activeRoundCount: 1,
             completedRoundCount: 0,
-            answeredQuestionCount: 0,
-            coachedAnswerCount: 0,
+            answeredQuestionCount: 1,
+            coachedAnswerCount: 1,
             attempts: {
                 sessionAttemptCount: 1,
                 followUpSessionAttemptCount: 0,
@@ -206,10 +189,94 @@ describe("candidate dashboard V2 read model", () => {
         expect(JSON.stringify(model)).not.toContain("Add the customer outcome");
     });
 
+    it("counts active-round question evidence without treating retries as extra answered questions", () => {
+        const session = createActiveSession({
+            candidatePracticeSessionId: "quality-control-active-session",
+            roleProfileId: "533906a2-8e9b-456e-9189-3daea92bebd3",
+            targetRole: "Quality Control Inspector",
+        });
+        session.questionPlanSnapshot = createCandidateQuestionPlan({
+            interviewStage: "screening",
+            questionCount: 3,
+        });
+        session.questionWordingSnapshot = {
+            status: "questions_worded",
+            questions: [
+                { slotId: "slot-1", index: 0, category: "screening", questionText: "Why does this role interest you?" },
+                { slotId: "slot-2", index: 1, category: "behavioral", questionText: "Tell me about a quality issue you found." },
+                { slotId: "slot-3", index: 2, category: "case_scenario", questionText: "How would you handle a failed inspection?" },
+            ],
+        };
+        session.progress = { status: "live_question", currentQuestionIndex: 2 };
+        session.answerSubmissions["slot-1"] = {
+            ...session.answerSubmissions["slot-1"],
+            answerAttemptId: "attempt-1-retry",
+            attemptNumber: 2,
+            trigger: "feedback_retry",
+            supersedesAnswerAttemptId: "attempt-1",
+        };
+        session.answerAnalysisSnapshots["slot-1"] = {
+            ...session.answerAnalysisSnapshots["slot-1"],
+            answer: {
+                slotId: "slot-1",
+                questionIndex: 0,
+                answerAttemptId: "attempt-1-retry",
+                attemptNumber: 2,
+                trigger: "feedback_retry",
+            },
+        };
+        session.answerSubmissions["slot-2"] = {
+            slotId: "slot-2",
+            questionIndex: 1,
+            mode: "text",
+            text: "I quarantined the item and documented the defect.",
+            submittedAt: "2026-07-15T14:53:14.451Z",
+            status: "pending_analysis",
+            answerAttemptId: "attempt-2",
+            attemptNumber: 1,
+            trigger: "initial_submit",
+            supersedesAnswerAttemptId: null,
+        };
+        session.answerAnalysisSnapshots["slot-2"] = {
+            ...session.answerAnalysisSnapshots["slot-1"],
+            analyzedAt: "2026-07-15T14:53:14.607Z",
+            answer: {
+                slotId: "slot-2",
+                questionIndex: 1,
+                answerAttemptId: "attempt-2",
+                attemptNumber: 1,
+                trigger: "initial_submit",
+            },
+        };
+
+        const model = createCandidateDashboardV2ReadModel({
+            candidateProfileId: "candidate-1",
+            selectedRoleProfileId: "533906a2-8e9b-456e-9189-3daea92bebd3",
+            practiceSessions: [session],
+        });
+
+        expect(model.stats).toMatchObject({
+            activeRoundCount: 1,
+            completedRoundCount: 0,
+            answeredQuestionCount: 2,
+            coachedAnswerCount: 2,
+        });
+        expect(model.selectedTargetInterview).toMatchObject({
+            answeredQuestionCount: 2,
+            coachedAnswerCount: 2,
+        });
+        expect(model.activeRound).toMatchObject({
+            sessionStatus: "in_progress",
+            answeredCount: 2,
+            questionCount: 3,
+            currentQuestionNumber: 3,
+        });
+    });
+
     it("can honor an explicit target interview selection instead of the default active context", () => {
         const model = createCandidateDashboardV2ReadModel({
             candidateProfileId: "candidate-1",
-            selectedTargetInterviewId: "csr",
+            selectedLegacyTargetRole: "csr",
             practiceSessions: [
                 createCompletedSession({
                     candidatePracticeSessionId: "csr-completed-session",
@@ -233,10 +300,7 @@ describe("candidate dashboard V2 read model", () => {
             completedRoundCount: 1,
             isSelected: true,
         });
-        expect(model.latestCoachUpdate).toMatchObject({
-            candidatePracticeSessionId: "csr-completed-session",
-            title: "CSR practice complete",
-        });
+        expect(model.latestCoachUpdate).toBeNull();
         expect(model.practiceDirection).toMatchObject({
             primaryAction: "practice_from_feedback",
             planProgress: {
@@ -247,6 +311,40 @@ describe("candidate dashboard V2 read model", () => {
                 title: "Add the customer outcome from your example.",
                 href: "/candidate/practice/ready?intent=coach-update-feedback-focus&fromSession=csr-completed-session&questionKey=slot-1",
             },
+        });
+    });
+
+    it("uses only a matching completed artifact for the latest profile-backed round", () => {
+        const roleProfileId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+        const session = createCompletedSession({
+            candidatePracticeSessionId: "profile-session",
+            completedAt: "2026-07-11T12:00:00.000Z",
+            roleProfileId,
+            answerText: "I like keeping materials organized.",
+            focus: "Add one concrete result.",
+        });
+        const model = createCandidateDashboardV2ReadModel({
+            candidateProfileId: "candidate-1",
+            selectedRoleProfileId: roleProfileId,
+            practiceSessions: [session],
+            coachUpdateArtifacts: [createCoachUpdateArtifact({
+                roleProfileId,
+                sourceSessionId: "profile-session",
+            })],
+        });
+
+        expect(model.latestCoachUpdate).toMatchObject({
+            candidatePracticeSessionId: "profile-session",
+            title: "Material Handler I practice update",
+        });
+        expect(model.coachUpdateDetail).toMatchObject({
+            candidatePracticeSessionId: "profile-session",
+            reviewPosture: "fully_reviewable",
+            items: [expect.objectContaining({ questionKey: "slot-1", evidenceStatus: "practiced" })],
+        });
+        expect(model.coachingLoop.feedback).toMatchObject({
+            label: "Coach Update",
+            title: "Material Handler I practice update",
         });
     });
 
@@ -285,6 +383,99 @@ describe("candidate dashboard V2 read model", () => {
                 href: "/candidate/practice/ready?intent=coach-update-feedback-focus&fromSession=partial-session&questionKey=slot-1",
             },
         });
+    });
+
+    it("keeps same-title preparation contexts separate by candidate-owned role profile id", () => {
+        const firstProfileId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+        const secondProfileId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+        const model = createCandidateDashboardV2ReadModel({
+            candidateProfileId: "candidate-1",
+            selectedRoleProfileId: firstProfileId,
+            practiceSessions: [
+                createCompletedSession({
+                    candidatePracticeSessionId: "first-warehouse-context",
+                    roleProfileId: firstProfileId,
+                    completedAt: "2026-07-11T12:00:00.000Z",
+                    targetRole: "Warehouse Associate",
+                    answerText: "I checked labels before moving stock.",
+                    focus: "Add the result of your checks.",
+                }),
+                createCompletedSession({
+                    candidatePracticeSessionId: "second-warehouse-context",
+                    roleProfileId: secondProfileId,
+                    completedAt: "2026-07-11T13:00:00.000Z",
+                    targetRole: "Warehouse Associate",
+                    answerText: "I organized outbound pallets.",
+                    focus: "Explain how you prioritized the work.",
+                }),
+            ],
+        });
+
+        expect(model.targetInterviews).toHaveLength(2);
+        expect(model.targetInterviews.map((context) => context.roleProfileId)).toEqual([
+            firstProfileId,
+            secondProfileId,
+        ]);
+        expect(model.selectedTargetInterview).toMatchObject({
+            id: firstProfileId,
+            roleProfileId: firstProfileId,
+            targetRole: "Warehouse Associate",
+        });
+        expect(model.completedRounds.map((round) => round.round.candidatePracticeSessionId)).toEqual([
+            "first-warehouse-context",
+        ]);
+        expect(JSON.stringify(model)).not.toContain("prioritized the work");
+    });
+
+    it("uses title fallback only for legacy records and canonical fallback for an invalid profile id", () => {
+        const roleProfileId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+        const legacySession = createCompletedSession({
+            candidatePracticeSessionId: "legacy-session",
+            completedAt: "2026-07-11T12:00:00.000Z",
+            targetRole: "CSR",
+            answerText: "I resolved the request.",
+            focus: "Add the customer outcome.",
+        });
+        const profiledSession = createActiveSession({
+            candidatePracticeSessionId: "profiled-session",
+            roleProfileId,
+            targetRole: "CSR",
+            createdAt: "2026-07-11T13:00:00.000Z",
+        });
+
+        const legacySelected = createCandidateDashboardV2ReadModel({
+            candidateProfileId: "candidate-1",
+            selectedLegacyTargetRole: "csr",
+            practiceSessions: [profiledSession, legacySession],
+        });
+        expect(legacySelected.selectedTargetInterview).toMatchObject({
+            roleProfileId: null,
+            id: "csr",
+        });
+        expect(legacySelected.activeRound).toBeNull();
+
+        const invalidProfileFallback = createCandidateDashboardV2ReadModel({
+            candidateProfileId: "candidate-1",
+            selectedRoleProfileId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+            practiceSessions: [profiledSession, legacySession],
+        });
+        expect(invalidProfileFallback.selectedTargetInterview).toMatchObject({
+            roleProfileId,
+            id: roleProfileId,
+        });
+        expect(invalidProfileFallback.activeRound?.candidatePracticeSessionId).toBe("profiled-session");
+
+        const invalidProfileDoesNotDowngradeToLegacy = createCandidateDashboardV2ReadModel({
+            candidateProfileId: "candidate-1",
+            selectedRoleProfileId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+            selectedLegacyTargetRole: "csr",
+            practiceSessions: [profiledSession, legacySession],
+        });
+        expect(invalidProfileDoesNotDowngradeToLegacy.selectedTargetInterview).toMatchObject({
+            roleProfileId,
+            id: roleProfileId,
+        });
+        expect(invalidProfileDoesNotDowngradeToLegacy.activeRound?.candidatePracticeSessionId).toBe("profiled-session");
     });
 
     it("rolls up repeated follow-up practice attempts without counting them as duplicated baseline coverage", () => {
@@ -401,16 +592,19 @@ describe("candidate dashboard V2 read model", () => {
 
 function createActiveSession({
     candidatePracticeSessionId = "active-session",
+    roleProfileId = null,
     targetRole = "Material Handler I",
     createdAt = "2026-07-11T11:00:00.000Z",
 }: {
     candidatePracticeSessionId?: string;
+    roleProfileId?: string | null;
     targetRole?: string;
     createdAt?: string;
 } = {}): CandidatePracticeSessionRecord {
     return {
         ...createCompletedSession({
             candidatePracticeSessionId,
+            roleProfileId,
             completedAt: "2026-07-11T10:00:00.000Z",
             targetRole,
             answerText: "Draft answer.",
@@ -431,6 +625,7 @@ function createCompletedSession({
     completedAt,
     answerText,
     focus,
+    roleProfileId = null,
     targetRole = "Material Handler I",
     createdAt = "2026-07-11T11:00:00.000Z",
     skippedQuestionCount = 0,
@@ -440,6 +635,7 @@ function createCompletedSession({
     completedAt: string;
     answerText: string;
     focus: string;
+    roleProfileId?: string | null;
     targetRole?: string;
     createdAt?: string;
     skippedQuestionCount?: number;
@@ -486,7 +682,7 @@ function createCompletedSession({
     return {
         candidatePracticeSessionId,
         candidateProfileId: "candidate-1",
-        roleProfileId: null,
+        roleProfileId,
         candidateLaunchSessionId: null,
         status: "completed",
         setupSnapshot: {
@@ -581,5 +777,70 @@ function createCompletedSession({
             skippedOrUnansweredQuestionKeys: questions.slice(1).map((question) => question.slotId),
             nextRoute: "/candidate/dashboard",
         },
+    };
+}
+
+function createCoachUpdateArtifact({
+    roleProfileId,
+    sourceSessionId,
+}: {
+    roleProfileId: string;
+    sourceSessionId: string;
+}): CandidateCoachUpdateArtifactRecord {
+    return {
+        candidateCoachUpdateArtifactId: "artifact-1",
+        candidateProfileId: "candidate-1",
+        roleProfileId,
+        sourceCandidatePracticeSessionId: sourceSessionId,
+        sourceCompletionFingerprint: "completion-1",
+        sourceAnswerAttemptIds: ["attempt-1"],
+        acceptedEvaluationRunIds: ["run-1"],
+        synthesisInputFingerprint: "input-1",
+        provider: "fixture",
+        modelName: "fixture-v1",
+        promptVersion: "prompt-v1",
+        evaluatorVersion: "evaluator-v1",
+        generationAttempt: 1,
+        lifecycleState: "completed",
+        candidateSafeContent: {
+            status: "candidate_coach_update_content_v1",
+            targetRole: "Material Handler I",
+            title: "Material Handler I practice update",
+            summary: "I reviewed your practiced answer.",
+            primaryFocus: "Add one concrete result.",
+            questions: [{
+                questionKey: "slot-1",
+                questionNumber: 1,
+                category: "Screening",
+                questionText: "What interests you about this role?",
+                answer: {
+                    candidateAnswerAttemptId: "attempt-1",
+                    mode: "text",
+                    text: "I like keeping materials organized.",
+                    submittedAt: "2026-07-11T12:01:00.000Z",
+                },
+                coaching: {
+                    acknowledgement: "You gave me a direct starting point.",
+                    observation: "Your answer connects to the role.",
+                    nextPracticeFocus: "Add one concrete result.",
+                    overallBand: "clear",
+                },
+                comparison: {
+                    kind: "first_practice",
+                    priorComparableAttemptCount: 0,
+                    message: "This is the first accepted practice evidence for this question.",
+                },
+                source: {
+                    candidatePracticeSessionId: sourceSessionId,
+                    questionKey: "slot-1",
+                },
+            }],
+        },
+        validation: { disposition: "accepted" },
+        errorCode: null,
+        requestedAt: "2026-07-11T12:00:01.000Z",
+        completedAt: "2026-07-11T12:00:02.000Z",
+        createdAt: "2026-07-11T12:00:01.000Z",
+        updatedAt: "2026-07-11T12:00:02.000Z",
     };
 }

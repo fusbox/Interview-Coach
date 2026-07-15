@@ -161,7 +161,8 @@ function createDefaultCandidatePracticeReadyPageDependencies(
                     intent,
                     candidateProfileId,
                     practiceSessions,
-                    selectedTargetInterviewId: readSearchParam(searchParams?.targetRole),
+                    selectedRoleProfileId: readSearchParam(searchParams?.prep),
+                    selectedLegacyTargetRole: readSearchParam(searchParams?.targetRole),
                 });
             } catch {
                 return null;

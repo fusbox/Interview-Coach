@@ -214,7 +214,8 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
         }) {
             const result = await client.query(`
                 update public.candidate_practice_sessions
-                set answer_submissions_json = jsonb_set(
+                set status = case when status = 'planned' then 'in_progress' else status end,
+                    answer_submissions_json = jsonb_set(
                   coalesce(answer_submissions_json, '{}'::jsonb),
                   $3::text[],
                   $4::jsonb,
@@ -370,13 +371,30 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
             completionSnapshot: CandidateLedSessionCompletionSnapshot;
         }) {
             const result = await client.query(`
-                update public.candidate_practice_sessions
-                set status = 'completed',
-                    completion_snapshot_json = $3::jsonb,
-                    progress_state_json = $4::jsonb
-                where candidate_practice_session_id = $1
-                  and candidate_profile_id = $2
-                returning completion_snapshot_json, progress_state_json
+                with completed as (
+                  update public.candidate_practice_sessions
+                  set status = 'completed',
+                      completion_snapshot_json = $3::jsonb,
+                      progress_state_json = $4::jsonb
+                  where candidate_practice_session_id = $1
+                    and candidate_profile_id = $2
+                    and status in ('planned', 'in_progress')
+                    and completion_snapshot_json is null
+                  returning completion_snapshot_json, progress_state_json
+                ),
+                replayed as (
+                  select completion_snapshot_json, progress_state_json
+                  from public.candidate_practice_sessions
+                  where candidate_practice_session_id = $1
+                    and candidate_profile_id = $2
+                    and status = 'completed'
+                    and completion_snapshot_json is not null
+                    and not exists (select 1 from completed)
+                )
+                select * from completed
+                union all
+                select * from replayed
+                limit 1
             `, [
                 input.candidatePracticeSessionId,
                 input.candidateProfileId,

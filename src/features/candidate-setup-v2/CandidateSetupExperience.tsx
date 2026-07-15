@@ -5,13 +5,15 @@ import {
     ArrowRight,
     BadgeCheck,
     Camera,
+    ChevronDown,
     FileText,
     Loader2,
     Upload,
     User,
     UserCheck,
+    X,
 } from "lucide-react";
-import { type ChangeEvent, type FormEvent, type MouseEvent, useEffect, useMemo, useState } from "react";
+import { type ChangeEvent, type FormEvent, type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import {
     CANDIDATE_SETUP_LIMITS,
@@ -22,6 +24,7 @@ import {
     type CandidateSetupTransition,
 } from "./candidate-setup-contract";
 import type { CandidateSetupSessionCreationResult } from "./candidate-setup-session-creation";
+import type { CandidateExistingPrepContextSummary } from "./candidate-setup-prep-context-repository";
 import { saveCandidateProvisionalSession } from "@/features/candidate-session-v2/candidate-provisional-session-store";
 import {
     clearCandidateSetupDraft,
@@ -38,9 +41,22 @@ const questionCountOptions = [3, 5, 7, 10];
 
 type CandidateSetupExperienceProps = {
     onSetupReady?: (transition: CandidateSetupTransition) => void;
-    createSession?: (transition: CandidateSetupTransition) => Promise<CandidateSetupSessionCreationResult>;
+    createSession?: (
+        transition: CandidateSetupTransition,
+        decision?: CandidateSetupPrepContextDecision,
+    ) => Promise<CandidateSetupStartResult>;
     draftOwnerKey?: string;
     draftStore?: CandidateSetupDraftStore;
+};
+
+type CandidateSetupPrepContextDecision = {
+    action: "create_separate_path";
+    matchingRoleProfileId: string;
+};
+
+type CandidateSetupStartResult = CandidateSetupSessionCreationResult | {
+    status: "existing_prep_context_found";
+    existingPrepContexts: CandidateExistingPrepContextSummary[];
 };
 
 export function CandidateSetupExperience({
@@ -67,6 +83,11 @@ export function CandidateSetupExperience({
     const [setupValidationMessage, setSetupValidationMessage] = useState("");
     const [setupValidationFields, setSetupValidationFields] = useState<Set<string>>(new Set());
     const [attemptedStart, setAttemptedStart] = useState(false);
+    const [existingPrepContexts, setExistingPrepContexts] = useState<CandidateExistingPrepContextSummary[]>([]);
+    const [selectedExistingRoleProfileId, setSelectedExistingRoleProfileId] = useState("");
+    const [pendingSetupTransition, setPendingSetupTransition] = useState<CandidateSetupTransition | null>(null);
+    const [existingContextError, setExistingContextError] = useState("");
+    const existingContextDialogRef = useRef<HTMLDialogElement | null>(null);
 
     const activeStage = useMemo(
         () => candidateSetupStageOptions.find((stage) => stage.id === selectedStage) ?? candidateSetupStageOptions[2],
@@ -93,6 +114,23 @@ export function CandidateSetupExperience({
         setSelectedStage(nextDraftState.interviewStage);
         setQuestionCount(nextDraftState.questionCount);
     }, [draftOwnerKey, draftStore]);
+
+    useEffect(() => {
+        const dialog = existingContextDialogRef.current;
+        if (!dialog) {
+            return;
+        }
+
+        if (existingPrepContexts.length > 0 && !dialog.open) {
+            try {
+                dialog.showModal();
+            } catch {
+                dialog.setAttribute("open", "");
+            }
+        } else if (existingPrepContexts.length === 0 && dialog.open) {
+            dialog.close();
+        }
+    }, [existingPrepContexts]);
 
     function chooseStage(stage: (typeof candidateSetupStageOptions)[number]) {
         setSelectedStage(stage.id);
@@ -139,6 +177,7 @@ export function CandidateSetupExperience({
         onSetupReady?.(transition);
         setIsPreparing(true);
         setSetupError("");
+        setExistingContextError("");
         setSetupValidationMessage("");
         setSetupValidationFields(new Set());
 
@@ -146,17 +185,75 @@ export function CandidateSetupExperience({
             return;
         }
 
+        await performSetupStart(transition);
+    }
+
+    async function performSetupStart(
+        transition: CandidateSetupTransition,
+        decision?: CandidateSetupPrepContextDecision,
+    ) {
+        setIsPreparing(true);
+        setSetupError("");
+
         try {
-            const result = await (createSession ?? createSessionViaSetupRoute)(transition);
-            saveCandidateProvisionalSession(window.sessionStorage, result);
-            if (activeDraftStore) {
-                clearCandidateSetupDraft(activeDraftStore, draftOwnerKey);
+            const sessionCreator = createSession ?? createSessionViaSetupRoute;
+            const result = decision
+                ? await sessionCreator(transition, decision)
+                : await sessionCreator(transition);
+            if (result.status === "existing_prep_context_found") {
+                if (result.existingPrepContexts.length === 0) {
+                    throw new Error("Existing preparation context facts were missing.");
+                }
+                setPendingSetupTransition(transition);
+                setExistingPrepContexts(result.existingPrepContexts);
+                setSelectedExistingRoleProfileId(result.existingPrepContexts[0].roleProfileId);
+                setIsPreparing(false);
+                return;
             }
+
+            saveCandidateProvisionalSession(window.sessionStorage, result);
+            clearSubmittedSetupDraft();
             window.location.assign(result.nextRoute);
         } catch {
             setIsPreparing(false);
-            setSetupError("I could not start this practice round. Try again.");
+            if (decision) {
+                setExistingContextError("I could not create the separate practice path. Your setup is still here, so you can try again.");
+            } else {
+                setSetupError("I could not start this practice round. Try again.");
+            }
         }
+    }
+
+    function clearSubmittedSetupDraft() {
+        if (activeDraftStore) {
+            clearCandidateSetupDraft(activeDraftStore, draftOwnerKey);
+        }
+    }
+
+    function closeExistingContextDialog() {
+        setExistingPrepContexts([]);
+        setSelectedExistingRoleProfileId("");
+        setPendingSetupTransition(null);
+        setExistingContextError("");
+    }
+
+    function viewExistingContext() {
+        if (!selectedExistingRoleProfileId) {
+            return;
+        }
+        clearSubmittedSetupDraft();
+        window.location.assign(`/candidate/dashboard?prep=${encodeURIComponent(selectedExistingRoleProfileId)}`);
+    }
+
+    async function createSeparatePracticePath() {
+        if (!pendingSetupTransition || !selectedExistingRoleProfileId) {
+            return;
+        }
+
+        await performSetupStart(pendingSetupTransition, {
+            action: "create_separate_path",
+            matchingRoleProfileId: selectedExistingRoleProfileId,
+        });
     }
 
     function handleStartPracticeClick(event: MouseEvent<HTMLButtonElement>) {
@@ -493,6 +590,133 @@ export function CandidateSetupExperience({
                     </button>
                 </aside>
             </form>
+
+            <dialog
+                ref={existingContextDialogRef}
+                className="setup-existing-dialog"
+                aria-labelledby="existing-prep-context-title"
+                onCancel={(event) => {
+                    event.preventDefault();
+                    closeExistingContextDialog();
+                }}
+            >
+                <div className="setup-existing-dialog__header">
+                    <div>
+                        <p className="type-eyebrow">Existing practice</p>
+                        <h2 id="existing-prep-context-title">You already have practice for this role.</h2>
+                        <p>View an existing path or keep this setup separate.</p>
+                    </div>
+                    <button
+                        type="button"
+                        className="setup-existing-dialog__close"
+                        aria-label="Close"
+                        title="Close"
+                        onClick={closeExistingContextDialog}
+                    >
+                        <X size={18} />
+                    </button>
+                </div>
+
+                <fieldset className="setup-existing-dialog__choices">
+                    <legend className="sr-only">Choose an existing practice path</legend>
+                    {existingPrepContexts.map((context) => (
+                        <label
+                            key={context.roleProfileId}
+                            className={
+                                selectedExistingRoleProfileId === context.roleProfileId
+                                    ? "setup-existing-choice is-selected"
+                                    : "setup-existing-choice"
+                            }
+                        >
+                            <input
+                                type="radio"
+                                name="existingPrepContext"
+                                value={context.roleProfileId}
+                                checked={selectedExistingRoleProfileId === context.roleProfileId}
+                                onChange={() => {
+                                    setSelectedExistingRoleProfileId(context.roleProfileId);
+                                    setExistingContextError("");
+                                }}
+                            />
+                            <div className="setup-existing-choice__content">
+                                <h3>{context.targetRole}</h3>
+                                <dl>
+                                    <div>
+                                        <dt>Created</dt>
+                                        <dd>{formatSetupDate(context.createdAt)}</dd>
+                                    </div>
+                                    <div>
+                                        <dt>Last practice</dt>
+                                        <dd>{context.lastPracticeActivityAt ? formatSetupDate(context.lastPracticeActivityAt) : "Not started"}</dd>
+                                    </div>
+                                    <div>
+                                        <dt>Stage</dt>
+                                        <dd>{toStageLabel(context.interviewStage)}</dd>
+                                    </div>
+                                    <div>
+                                        <dt>Questions</dt>
+                                        <dd>{context.questionCount ?? "Not available"}</dd>
+                                    </div>
+                                    <div>
+                                        <dt>Completed sessions</dt>
+                                        <dd>{context.completedSessionCount}</dd>
+                                    </div>
+                                    <div>
+                                        <dt>Completed questions</dt>
+                                        <dd>{context.completedQuestionCount}</dd>
+                                    </div>
+                                    {context.activeRound ? (
+                                        <div>
+                                            <dt>Active round</dt>
+                                            <dd>
+                                                {context.activeRound.completedQuestionCount} of {context.activeRound.totalQuestionCount} completed
+                                            </dd>
+                                        </div>
+                                    ) : null}
+                                </dl>
+
+                                <details className="setup-existing-choice__jd">
+                                    <summary>
+                                        <span>
+                                            <strong>Job description</strong>
+                                            <span>{context.jobDescription}</span>
+                                        </span>
+                                        <ChevronDown size={16} aria-hidden="true" />
+                                    </summary>
+                                    <p>{context.jobDescription}</p>
+                                </details>
+                            </div>
+                        </label>
+                    ))}
+                </fieldset>
+
+                {existingContextError ? (
+                    <p className="setup-existing-dialog__error" role="alert">
+                        <AlertCircle size={17} aria-hidden="true" />
+                        <span>{existingContextError}</span>
+                    </p>
+                ) : null}
+
+                <div className="setup-existing-dialog__actions">
+                    <button
+                        type="button"
+                        className="setup-existing-dialog__secondary"
+                        disabled={isPreparing || !selectedExistingRoleProfileId}
+                        onClick={createSeparatePracticePath}
+                    >
+                        {isPreparing ? "Creating separate path" : "Start a separate path"}
+                    </button>
+                    <button
+                        type="button"
+                        className="setup-existing-dialog__primary"
+                        disabled={isPreparing || !selectedExistingRoleProfileId}
+                        onClick={viewExistingContext}
+                    >
+                        View in dashboard
+                        <ArrowRight size={16} aria-hidden="true" />
+                    </button>
+                </div>
+            </dialog>
         </main>
     );
 }
@@ -511,18 +735,48 @@ function toSetupValidationMessage(fieldErrors: {
     ][0] ?? "Check the setup details and try again.";
 }
 
-async function createSessionViaSetupRoute(transition: CandidateSetupTransition) {
+async function createSessionViaSetupRoute(
+    transition: CandidateSetupTransition,
+    decision?: CandidateSetupPrepContextDecision,
+): Promise<CandidateSetupStartResult> {
     const response = await fetch("/candidate/setup/start", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify(transition.payload),
+        body: JSON.stringify({
+            ...transition.payload,
+            ...(decision ? { prepContextDecision: decision } : {}),
+        }),
     });
+
+    const result = await response.json() as CandidateSetupStartResult | { error?: unknown };
+
+    if (
+        response.status === 409
+        && result
+        && typeof result === "object"
+        && "status" in result
+        && result.status === "existing_prep_context_found"
+    ) {
+        return result;
+    }
 
     if (!response.ok) {
         throw new Error("Candidate setup session creation failed.");
     }
 
-    return await response.json() as CandidateSetupSessionCreationResult;
+    return result as CandidateSetupSessionCreationResult;
+}
+
+function formatSetupDate(value: string) {
+    return new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+    }).format(new Date(value));
+}
+
+function toStageLabel(stage: CandidateSetupStageId | null) {
+    return candidateSetupStageOptions.find((option) => option.id === stage)?.label ?? "Not available";
 }

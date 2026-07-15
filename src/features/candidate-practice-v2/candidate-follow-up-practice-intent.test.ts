@@ -90,9 +90,10 @@ describe("candidate follow-up practice intent", () => {
                 answeredSlotIds: ["slot-1"],
                 analyzedSlotIds: ["slot-1"],
             })],
-            selectedTargetInterviewId: "material handler i",
+            selectedLegacyTargetRole: "material handler i",
         })).toMatchObject({
             status: "candidate_follow_up_practice_intent_resolved",
+            roleProfileId: null,
             kind: "practice_from_feedback",
             source: {
                 kind: "coach_update_detail",
@@ -130,6 +131,7 @@ describe("candidate follow-up practice intent", () => {
             })],
         })).toMatchObject({
             status: "candidate_follow_up_practice_intent_resolved",
+            roleProfileId: null,
             kind: "practice_missing_evidence",
             source: {
                 questionKey: "slot-2",
@@ -165,7 +167,13 @@ describe("candidate follow-up practice intent", () => {
             intent: feedbackIntent,
             candidateProfileId: "candidate-2",
             practiceSessions: [sourceSession],
-            selectedTargetInterviewId: "customer service representative",
+            selectedLegacyTargetRole: "customer service representative",
+        })).toBeNull();
+        expect(resolveCandidateFollowUpPracticeIntent({
+            intent: feedbackIntent,
+            candidateProfileId: "candidate-2",
+            practiceSessions: [sourceSession],
+            selectedRoleProfileId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
         })).toBeNull();
         expect(resolveCandidateFollowUpPracticeIntent({
             intent: feedbackIntent,
@@ -218,6 +226,7 @@ describe("candidate follow-up practice intent", () => {
             candidateProfileId: "candidate-1",
             source: "practice_builder",
             lifecycleState: "ready",
+            roleProfileId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
             targetInterviewId: "material handler i",
             targetRole: "Material Handler I",
             itemCount: 2,
@@ -287,6 +296,7 @@ function createResolvedFollowUpPracticeIntent({
     questionText = "What interests you about this Material Handler role?",
     targetRole = "Material Handler I",
     targetInterviewId = "material handler i",
+    roleProfileId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
 }: {
     questionKey: string;
     questionNumber: number;
@@ -294,9 +304,11 @@ function createResolvedFollowUpPracticeIntent({
     questionText?: string;
     targetRole?: string;
     targetInterviewId?: string;
+    roleProfileId?: string | null;
 }) {
     return {
         status: "candidate_follow_up_practice_intent_resolved" as const,
+        roleProfileId,
         kind: "practice_from_feedback" as const,
         source: {
             kind: "coach_update_detail" as const,
@@ -326,11 +338,13 @@ function createResolvedFollowUpPracticeIntent({
 function createPracticeSession({
     candidatePracticeSessionId,
     candidateProfileId,
+    roleProfileId = null,
     answeredSlotIds = [],
     analyzedSlotIds = [],
 }: {
     candidatePracticeSessionId: string;
     candidateProfileId: string;
+    roleProfileId?: string | null;
     answeredSlotIds?: string[];
     analyzedSlotIds?: string[];
 }): CandidatePracticeSessionRecord {
@@ -355,7 +369,7 @@ function createPracticeSession({
     return {
         candidatePracticeSessionId,
         candidateProfileId,
-        roleProfileId: null,
+        roleProfileId,
         candidateLaunchSessionId: null,
         status: "completed",
         setupSnapshot,

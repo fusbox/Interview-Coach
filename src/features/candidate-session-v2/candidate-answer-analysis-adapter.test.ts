@@ -36,6 +36,8 @@ const setupSnapshot = {
     createdAt: "2026-07-10T14:55:00.000Z",
 };
 
+const inputFingerprint = "a".repeat(64);
+
 describe("candidate answer analysis adapter", () => {
     it("creates a provider request from the saved answer, question wording, and setup context", () => {
         expect(createCandidateAnswerAnalysisProviderRequest({
@@ -58,6 +60,7 @@ describe("candidate answer analysis adapter", () => {
                 questionIndex: 1,
                 category: "behavioral",
                 questionText: "Tell me about a time you had to prioritize similar work.",
+                plannedPurpose: "Real past examples that show what you personally did and what changed.",
             },
             setupContext: {
                 targetRole: "Material Handler I",
@@ -173,4 +176,112 @@ describe("candidate answer analysis adapter", () => {
             ],
         }, analysisRequest)).toBeNull();
     });
+
+    it("accepts a candidate-safe evidence-first projection for the exact answer attempt", () => {
+        const attemptRequest: CandidateAnswerAnalysisRequest = {
+            ...analysisRequest,
+            answerSubmission: {
+                ...analysisRequest.answerSubmission,
+                answerAttemptId: "11111111-1111-4111-8111-111111111111",
+                attemptNumber: 1,
+                trigger: "initial_submit",
+                supersedesAnswerAttemptId: null,
+            },
+        };
+        const result = parseCandidateAnswerAnalysisProviderResult(
+            createEvidenceFirstProviderResult(),
+            attemptRequest,
+        );
+
+        expect(result).toMatchObject({
+            answer: {
+                answerAttemptId: "11111111-1111-4111-8111-111111111111",
+                attemptNumber: 1,
+                trigger: "initial_submit",
+            },
+            evidenceFirst: {
+                contractVersion: "candidate_evidence_first_v1",
+                inputFingerprint,
+                candidateFeedback: {
+                    status: "candidate_safe_feedback",
+                    biggestUpgrade: "Add what changed after you set the priority.",
+                },
+            },
+        });
+    });
+
+    it("fails closed when evidence-first feedback has a different input fingerprint", () => {
+        const providerResult = createEvidenceFirstProviderResult();
+        providerResult.evidenceFirst.candidateFeedback.inputFingerprint = "b".repeat(64);
+
+        expect(parseCandidateAnswerAnalysisProviderResult(providerResult, {
+            ...analysisRequest,
+            answerSubmission: {
+                ...analysisRequest.answerSubmission,
+                answerAttemptId: "11111111-1111-4111-8111-111111111111",
+                attemptNumber: 1,
+                trigger: "initial_submit",
+                supersedesAnswerAttemptId: null,
+            },
+        })).toBeNull();
+    });
 });
+
+function createEvidenceFirstProviderResult() {
+    return {
+        status: "answer_analysis_provider_result",
+        provider: "candidate_v2_answer_evaluator",
+        analyzedAt: "2026-07-10T15:02:00.000Z",
+        answer: {
+            slotId: "slot-2",
+            questionIndex: 1,
+            answerAttemptId: "11111111-1111-4111-8111-111111111111",
+            attemptNumber: 1,
+            trigger: "initial_submit",
+        },
+        coachFeedback: {
+            acknowledgement: "You named a practical first step.",
+            observation: "The answer would be stronger with the result of your choice.",
+            nextPracticeFocus: "Add what changed after you set the priority.",
+        },
+        evidence: [],
+        evidenceFirst: {
+            contractVersion: "candidate_evidence_first_v1",
+            inputFingerprint,
+            feedbackPlan: {
+                centralRead: "The answer explains the action but not the result.",
+                signal: { valence: "mixed", detectability: "moderate" },
+                primaryAnchor: { kind: "pattern_gap", id: "missing_outcome" },
+                intervention: "revise_answer",
+            },
+            candidateFeedback: {
+                status: "candidate_safe_feedback",
+                schemaVersion: 1,
+                inputFingerprint,
+                acknowledgement: "You named a practical first step.",
+                primaryStrength: "You explained how you set the priority.",
+                biggestUpgrade: "Add what changed after you set the priority.",
+                redoPrompt: "Try it again and finish with the result.",
+                patternSuggestion: {
+                    patternName: "Action and result",
+                    steps: ["Name the action", "Name the result"],
+                },
+                deliveryNote: null,
+            },
+            criteria: [{
+                criterionId: "impact_judgment_takeaway",
+                applicability: "observed",
+                band: "emerging",
+                evidenceSpanIds: ["span-1"],
+                reasonCode: "result_not_named",
+            }],
+            patternGap: {
+                id: "missing_outcome",
+                severity: "medium",
+                upgrade: "Add the result of the priority decision.",
+                redoPattern: ["Name the action", "Name the result"],
+                source: "criterion_appraisal",
+            },
+        },
+    };
+}

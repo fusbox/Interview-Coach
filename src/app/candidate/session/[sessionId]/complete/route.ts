@@ -1,8 +1,19 @@
 import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidate-auth-v2/dev-host-launch-cookie-identity";
+import {
+    CANDIDATE_HOST_LAUNCH_DEV_MODE_ENV,
+    CANDIDATE_HOST_LAUNCH_DEV_SECRET_ENV,
+} from "@/features/candidate-auth-v2/dev-host-launch";
 import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-v2/host-launch-route";
 import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-auth-v2/production-host-launch-runtime";
+import { createCandidateCoachUpdateArtifactRepository } from "@/features/candidate-dashboard-v2/candidate-coach-update-artifact-repository";
+import { createCandidateCoachUpdateSynthesisInput } from "@/features/candidate-dashboard-v2/candidate-coach-update-artifact";
+import {
+    ensureCandidateCoachUpdateArtifact,
+    type CandidateCoachUpdateGenerationResult,
+} from "@/features/candidate-dashboard-v2/candidate-coach-update-generation";
 import { createCandidateDashboardHref } from "@/features/candidate-dashboard-v2/candidate-dashboard-route";
 import type { CandidateAnswerAnalysisProviderResult } from "@/features/candidate-session-v2/candidate-answer-analysis-adapter";
+import { createCandidateAnswerHistoryRepository } from "@/features/candidate-session-v2/candidate-answer-history-repository";
 import type { CandidateAnswerSubmissions } from "@/features/candidate-session-v2/candidate-answer-lifecycle";
 import { createCandidateAnswerCoachingFacts } from "@/features/candidate-session-v2/candidate-coaching-facts";
 import { createCandidatePracticeSessionRepository } from "@/features/candidate-session-v2/candidate-practice-session-repository";
@@ -21,6 +32,7 @@ type CandidateSessionIdentity = {
 type CandidateSessionCompleteRecord = {
     candidatePracticeSessionId?: string;
     candidateProfileId?: string;
+    roleProfileId?: string | null;
     setupSnapshot?: {
         targetRole?: string;
         interviewStage?: string;
@@ -30,6 +42,8 @@ type CandidateSessionCompleteRecord = {
     progress?: SessionRuntimeProgress;
     answerSubmissions?: CandidateAnswerSubmissions;
     answerAnalysisSnapshots?: Record<string, CandidateAnswerAnalysisProviderResult>;
+    status?: "planned" | "in_progress" | "completed" | "abandoned";
+    completionSnapshot?: CandidateLedSessionCompletionSnapshot | null;
 };
 
 type CandidateSessionCompleteRepository = {
@@ -51,6 +65,10 @@ export type CandidateSessionCompleteRouteDependencies = {
     now: Date;
     resolveCandidateSessionIdentity?: (request: Request) => Promise<CandidateSessionIdentity | null>;
     practiceSessionRepository?: CandidateSessionCompleteRepository;
+    ensureCoachUpdateArtifact?: (input: {
+        candidateProfileId: string;
+        sourceCandidatePracticeSessionId: string;
+    }) => Promise<CandidateCoachUpdateGenerationResult>;
 };
 
 export async function POST(
@@ -72,6 +90,7 @@ export async function handleCandidateSessionCompleteRequest({
     now,
     resolveCandidateSessionIdentity,
     practiceSessionRepository,
+    ensureCoachUpdateArtifact,
 }: CandidateSessionCompleteRouteDependencies & {
     request: Request;
     sessionId: string;
@@ -90,19 +109,20 @@ export async function handleCandidateSessionCompleteRequest({
     if (!session) {
         return Response.json({ error: "Candidate practice session was not found." }, { status: 404 });
     }
-    if (!session.questionWordingSnapshot?.questions?.length) {
+    const existingCompletion = session.status === "completed" ? session.completionSnapshot : null;
+    if (!existingCompletion && !session.questionWordingSnapshot?.questions?.length) {
         return Response.json({ error: "Question wording is required before completion." }, { status: 409 });
     }
 
-    const completionSnapshot = createCandidateLedSessionCompletion({
+    const completionSnapshot = existingCompletion ?? createCandidateLedSessionCompletion({
         facts: createSessionRuntimeFacts({
             audience: "candidate_led",
             sessionId,
             targetRole: session.setupSnapshot?.targetRole ?? "Practice session",
             interviewStage: session.setupSnapshot?.interviewStage ?? "unknown",
-            questionCount: session.setupSnapshot?.questionCount ?? session.questionWordingSnapshot.questions.length,
+            questionCount: session.setupSnapshot?.questionCount ?? session.questionWordingSnapshot!.questions.length,
             currentQuestionIndex: session.progress?.currentQuestionIndex ?? 0,
-            questions: session.questionWordingSnapshot.questions.map((question) => {
+            questions: session.questionWordingSnapshot!.questions.map((question) => {
                 const answerSubmission = session.answerSubmissions?.[question.slotId];
                 const analysisSnapshot = session.answerAnalysisSnapshots?.[question.slotId];
 
@@ -128,7 +148,11 @@ export async function handleCandidateSessionCompleteRequest({
             }),
             completionBehavior: {
                 kind: "candidate_dashboard",
-                dashboardHref: createCandidateDashboardHref(session.setupSnapshot?.targetRole),
+                dashboardHref: session.roleProfileId
+                    ? createCandidateDashboardHref({ roleProfileId: session.roleProfileId })
+                    : createCandidateDashboardHref(session.setupSnapshot?.targetRole
+                        ? { legacyTargetRole: session.setupSnapshot.targetRole }
+                        : undefined),
             },
         }),
         completedAt: now.toISOString(),
@@ -147,16 +171,27 @@ export async function handleCandidateSessionCompleteRequest({
         return Response.json({ error: "Candidate session completion could not be saved." }, { status: 404 });
     }
 
+    const coachUpdate = ensureCoachUpdateArtifact
+        ? await ensureCoachUpdateArtifact({
+            candidateProfileId: identity.candidateProfileId,
+            sourceCandidatePracticeSessionId: sessionId,
+        }).catch(() => ({
+            status: "coach_update_unavailable" as const,
+            reason: "generation_failed" as const,
+        }))
+        : null;
+
     return Response.json({
         status: "candidate_session_completed",
         completionSnapshot: completed.completionSnapshot,
         nextRoute: completed.completionSnapshot.nextRoute,
+        ...(coachUpdate ? { coachUpdateStatus: coachUpdate.status } : {}),
     });
 }
 
 function createDefaultCandidateSessionCompleteDependencies(): Pick<
     CandidateSessionCompleteRouteDependencies,
-    "resolveCandidateSessionIdentity" | "practiceSessionRepository"
+    "resolveCandidateSessionIdentity" | "practiceSessionRepository" | "ensureCoachUpdateArtifact"
 > {
     const databaseUrl = process.env[CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV]?.trim();
     if (!databaseUrl) {
@@ -165,13 +200,67 @@ function createDefaultCandidateSessionCompleteDependencies(): Pick<
 
     const queryClient = createLazyPostgresQueryClient(databaseUrl);
 
+    const practiceSessionRepository = createCandidatePracticeSessionRepository(queryClient);
+    const answerHistoryRepository = createCandidateAnswerHistoryRepository(queryClient);
+    const coachUpdateArtifactRepository = createCandidateCoachUpdateArtifactRepository(queryClient);
+
     return {
         resolveCandidateSessionIdentity: async (request) => {
             const devIdentity = resolveCandidateSessionCompleteIdentityFromDevLaunchCookie(request.headers.get("Cookie"));
             return devIdentity ?? resolveCandidateSessionIdentityFromLaunchCookie(request, queryClient);
         },
-        practiceSessionRepository: createCandidatePracticeSessionRepository(queryClient),
+        practiceSessionRepository,
+        ...(isExplicitLocalCoachUpdateFixtureMode() ? {
+            ensureCoachUpdateArtifact: async ({
+                candidateProfileId,
+                sourceCandidatePracticeSessionId,
+            }: {
+                candidateProfileId: string;
+                sourceCandidatePracticeSessionId: string;
+            }) => ensureCandidateCoachUpdateArtifact({
+                candidateProfileId,
+                sourceCandidatePracticeSessionId,
+                repository: coachUpdateArtifactRepository,
+                loadInput: async () => {
+                    const [sessions, attempts, evaluationRuns] = await Promise.all([
+                        practiceSessionRepository.listPracticeSessionsForCandidate({
+                            candidateProfileId,
+                            limit: 100,
+                        }),
+                        answerHistoryRepository.listAnswerAttemptsForCandidate({ candidateProfileId }),
+                        answerHistoryRepository.listEvaluationRunsForCandidate({
+                            candidateProfileId,
+                            purpose: "candidate_coaching",
+                        }),
+                    ]);
+                    const sourceSession = sessions.find((candidateSession) => (
+                        candidateSession.candidatePracticeSessionId === sourceCandidatePracticeSessionId
+                    ));
+                    if (!sourceSession) return null;
+                    return createCandidateCoachUpdateSynthesisInput({
+                        sourceSession,
+                        sessionEvidence: sessions.map((candidateSession) => ({
+                            session: candidateSession,
+                            answerAttempts: attempts.filter((attempt) => (
+                                attempt.candidatePracticeSessionId === candidateSession.candidatePracticeSessionId
+                            )),
+                            evaluationRuns: evaluationRuns.filter((run) => attempts.some((attempt) => (
+                                attempt.candidatePracticeSessionId === candidateSession.candidatePracticeSessionId
+                                && attempt.candidateAnswerAttemptId === run.candidateAnswerAttemptId
+                            ))),
+                        })),
+                    });
+                },
+                now: new Date(),
+            }),
+        } : {}),
     };
+}
+
+function isExplicitLocalCoachUpdateFixtureMode() {
+    return process.env.CANDIDATE_ANSWER_ANALYSIS_PROVIDER?.trim().toLowerCase() === "fixture"
+        && process.env[CANDIDATE_HOST_LAUNCH_DEV_MODE_ENV] === "true"
+        && Boolean(process.env[CANDIDATE_HOST_LAUNCH_DEV_SECRET_ENV]?.trim());
 }
 
 type CandidateSessionCompleteQueryClient = {

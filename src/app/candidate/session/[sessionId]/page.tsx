@@ -58,7 +58,11 @@ export async function renderCandidateSessionPage({
         sessionId: parsedSessionId,
         audience: "candidate_owned",
         candidateCompletionLinks: createCandidateSessionCompletionLinks(parsedSessionId, {
-            dashboardHref: createCandidateDashboardHref(initialSession?.setupSnapshot.targetRole),
+            dashboardHref: initialSession?.roleProfileId
+                ? createCandidateDashboardHref({ roleProfileId: initialSession.roleProfileId })
+                : createCandidateDashboardHref(initialSession?.setupSnapshot.targetRole
+                    ? { legacyTargetRole: initialSession.setupSnapshot.targetRole }
+                    : undefined),
         }),
     });
     const completionTarget = resolveSessionCompletionTarget(sessionContext);
@@ -183,6 +187,7 @@ export function toCandidateProvisionalSession(
         status: "session_created",
         sessionId: durableSession.candidatePracticeSessionId,
         nextRoute: `/candidate/session/${encodeURIComponent(durableSession.candidatePracticeSessionId)}`,
+        roleProfileId: durableSession.roleProfileId,
         setupSnapshot: durableSession.setupSnapshot,
         questionPlanSnapshot: durableSession.questionPlanSnapshot,
         ...(durableSession.questionWordingSnapshot

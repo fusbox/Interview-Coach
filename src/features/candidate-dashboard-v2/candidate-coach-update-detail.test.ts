@@ -1,101 +1,51 @@
 import { describe, expect, it } from "vitest";
 
-import type { CandidatePostRoundReview } from "@/features/candidate-session-v2/candidate-completed-round-read-model";
-
+import type { CandidateCoachUpdateArtifactRecord } from "./candidate-coach-update-artifact";
 import { createCandidateCoachUpdateDetail } from "./candidate-coach-update-detail";
 
 describe("candidate Coach Update detail contract", () => {
-    it("derives a question-first opened Coach Update detail from a post-round review", () => {
-        const detail = createCandidateCoachUpdateDetail(createPostRoundReview());
+    it("derives practiced-only detail from a completed candidate-safe artifact", () => {
+        const detail = createCandidateCoachUpdateDetail(createArtifact());
 
-        expect(detail).toEqual({
+        expect(detail).toMatchObject({
             status: "candidate_coach_update_detail_ready",
             candidatePracticeSessionId: "session-1",
             targetRole: "Material Handler I",
-            completedAt: "2026-07-11T12:00:00.000Z",
             answeredCount: 1,
-            questionCount: 2,
-            reviewPosture: "partially_reviewable",
-            items: [
-                {
-                    status: "candidate_coach_update_question_detail",
-                    questionKey: "slot-1",
-                    questionNumber: 1,
-                    category: "Behavioral",
-                    questionText: "Tell me about a time you handled an inventory issue.",
-                    evidenceStatus: "practiced",
-                    answer: {
-                        mode: "text",
-                        text: "I noticed the count was off and checked the shipment records before updating the inventory sheet.",
-                        submittedAt: "2026-07-11T12:01:00.000Z",
-                    },
-                    coachRead: {
-                        acknowledgement: "You chose a relevant work example.",
-                        observation: "Your answer includes the task, but the result is still missing.",
-                        nextPracticeFocus: "Add the result of the inventory count.",
-                        overallBand: "clear",
-                    },
-                    actionPosture: {
-                        kind: "review_coaching",
-                        label: "Review coach feedback",
-                        reason: "This answer has coaching ready.",
-                    },
-                    focusedPracticeAction: {
-                        status: "candidate_focused_practice_action",
-                        kind: "practice_from_feedback",
-                        label: "Practice this focus",
-                        href: "/candidate/practice/ready?intent=coach-update-feedback-focus&fromSession=session-1&questionKey=slot-1",
-                        source: {
-                            kind: "coach_update_detail",
-                            candidatePracticeSessionId: "session-1",
-                            questionKey: "slot-1",
-                            questionNumber: 1,
-                            category: "Behavioral",
-                            targetRole: "Material Handler I",
-                        },
-                    },
-                },
-                {
-                    status: "candidate_coach_update_question_detail",
-                    questionKey: "slot-2",
-                    questionNumber: 2,
-                    category: "Scenario",
-                    questionText: "How would you respond if a pallet label did not match the manifest?",
-                    evidenceStatus: "missing_practice_evidence",
-                    actionPosture: {
-                        kind: "practice_missing_evidence",
-                        label: "Practice this question",
-                        reason: "This planned question has not been answered yet.",
-                    },
-                    focusedPracticeAction: {
-                        status: "candidate_focused_practice_action",
-                        kind: "practice_missing_evidence",
-                        label: "Practice this question",
-                        href: "/candidate/practice/ready?intent=coach-update-missing-evidence&fromSession=session-1&questionKey=slot-2",
-                        source: {
-                            kind: "coach_update_detail",
-                            candidatePracticeSessionId: "session-1",
-                            questionKey: "slot-2",
-                            questionNumber: 2,
-                            category: "Scenario",
-                            targetRole: "Material Handler I",
-                        },
-                    },
-                },
-            ],
+            questionCount: 1,
+            reviewPosture: "fully_reviewable",
+            summary: "I reviewed your practiced answer.",
+            primaryFocus: "Add the result of the inventory count.",
         });
+        expect(detail?.items).toEqual([
+            expect.objectContaining({
+                questionKey: "slot-1",
+                evidenceStatus: "practiced",
+                answer: expect.objectContaining({ text: expect.stringContaining("shipment records") }),
+                coachRead: expect.objectContaining({
+                    nextPracticeFocus: "Add the result of the inventory count.",
+                }),
+                comparison: expect.objectContaining({ kind: "first_practice" }),
+                actionPosture: {
+                    kind: "review_coaching",
+                    label: "Review coach feedback",
+                    reason: "This answer has accepted coaching ready.",
+                },
+            }),
+        ]);
+        expect(JSON.stringify(detail)).not.toContain("slot-2");
     });
 
     it("does not expose raw scores, legacy fields, or durable dashboard conclusions", () => {
-        const detail = createCandidateCoachUpdateDetail(createPostRoundReview());
+        const detail = createCandidateCoachUpdateDetail(createArtifact());
 
         expect(JSON.stringify(detail)).not.toMatch(
             /score|averageScore|readinessLevel|oneBigUpgrade|feedback_json|summaryNarrative|pass|fail|percentile/i,
         );
     });
 
-    it("adds stable focused-practice actions without putting answer or coaching text in the URL", () => {
-        const detail = createCandidateCoachUpdateDetail(createPostRoundReview());
+    it("adds a stable focused-practice action without putting answer or coaching text in the URL", () => {
+        const detail = createCandidateCoachUpdateDetail(createArtifact());
 
         expect(detail?.items[0]?.focusedPracticeAction).toEqual({
             status: "candidate_focused_practice_action",
@@ -111,48 +61,52 @@ describe("candidate Coach Update detail contract", () => {
                 targetRole: "Material Handler I",
             },
         });
-        expect(detail?.items[1]?.focusedPracticeAction).toEqual({
-            status: "candidate_focused_practice_action",
-            kind: "practice_missing_evidence",
-            label: "Practice this question",
-            href: "/candidate/practice/ready?intent=coach-update-missing-evidence&fromSession=session-1&questionKey=slot-2",
-            source: {
-                kind: "coach_update_detail",
-                candidatePracticeSessionId: "session-1",
-                questionKey: "slot-2",
-                questionNumber: 2,
-                category: "Scenario",
-                targetRole: "Material Handler I",
-            },
-        });
-        expect(detail?.items[0]?.focusedPracticeAction?.href).not.toContain("shipment");
-        expect(detail?.items[0]?.focusedPracticeAction?.href).not.toContain("inventory");
-        expect(detail?.items[0]?.focusedPracticeAction?.href).not.toContain("result");
+        expect(detail?.items[0]?.focusedPracticeAction.href).not.toMatch(/shipment|inventory|result/);
     });
 
-    it("returns null when there is no post-round review to open", () => {
+    it("returns null for an absent or noncompleted artifact", () => {
         expect(createCandidateCoachUpdateDetail(null)).toBeNull();
+        expect(createCandidateCoachUpdateDetail({
+            ...createArtifact(),
+            lifecycleState: "requested",
+            candidateSafeContent: null,
+            validation: null,
+            completedAt: null,
+        })).toBeNull();
     });
 });
 
-function createPostRoundReview(): CandidatePostRoundReview {
+function createArtifact(): CandidateCoachUpdateArtifactRecord {
     return {
-        status: "candidate_post_round_review_ready",
-        candidatePracticeSessionId: "session-1",
-        targetRole: "Material Handler I",
-        completedAt: "2026-07-11T12:00:00.000Z",
-        answeredCount: 1,
-        questionCount: 2,
-        questions: [
-            {
+        candidateCoachUpdateArtifactId: "artifact-1",
+        candidateProfileId: "candidate-1",
+        roleProfileId: "10000000-0000-4000-8000-000000000001",
+        sourceCandidatePracticeSessionId: "session-1",
+        sourceCompletionFingerprint: "completion-1",
+        sourceAnswerAttemptIds: ["attempt-1"],
+        acceptedEvaluationRunIds: ["run-1"],
+        synthesisInputFingerprint: "input-1",
+        provider: "fixture",
+        modelName: "fixture-v1",
+        promptVersion: "prompt-v1",
+        evaluatorVersion: "evaluator-v1",
+        generationAttempt: 1,
+        lifecycleState: "completed",
+        candidateSafeContent: {
+            status: "candidate_coach_update_content_v1",
+            targetRole: "Material Handler I",
+            title: "Material Handler I practice update",
+            summary: "I reviewed your practiced answer.",
+            primaryFocus: "Add the result of the inventory count.",
+            questions: [{
                 questionKey: "slot-1",
                 questionNumber: 1,
                 category: "Behavioral",
                 questionText: "Tell me about a time you handled an inventory issue.",
-                status: "practiced",
                 answer: {
+                    candidateAnswerAttemptId: "attempt-1",
                     mode: "text",
-                    text: "I noticed the count was off and checked the shipment records before updating the inventory sheet.",
+                    text: "I checked the shipment records before updating the inventory sheet.",
                     submittedAt: "2026-07-11T12:01:00.000Z",
                 },
                 coaching: {
@@ -161,14 +115,22 @@ function createPostRoundReview(): CandidatePostRoundReview {
                     nextPracticeFocus: "Add the result of the inventory count.",
                     overallBand: "clear",
                 },
-            },
-            {
-                questionKey: "slot-2",
-                questionNumber: 2,
-                category: "Scenario",
-                questionText: "How would you respond if a pallet label did not match the manifest?",
-                status: "skipped_or_unanswered",
-            },
-        ],
+                comparison: {
+                    kind: "first_practice",
+                    priorComparableAttemptCount: 0,
+                    message: "This is the first accepted practice evidence for this question.",
+                },
+                source: {
+                    candidatePracticeSessionId: "session-1",
+                    questionKey: "slot-1",
+                },
+            }],
+        },
+        validation: { disposition: "accepted" },
+        errorCode: null,
+        requestedAt: "2026-07-11T12:00:01.000Z",
+        completedAt: "2026-07-11T12:00:02.000Z",
+        createdAt: "2026-07-11T12:00:01.000Z",
+        updatedAt: "2026-07-11T12:00:02.000Z",
     };
 }

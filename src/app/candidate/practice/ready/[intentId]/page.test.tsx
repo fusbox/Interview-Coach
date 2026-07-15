@@ -34,6 +34,10 @@ it("renders a durable one-question follow-up practice intent", async () => {
         "action",
         "/candidate/practice/ready/intent-1/start",
     );
+    expect(screen.getByRole("link", { name: "Return to Coach Plan" })).toHaveAttribute(
+        "href",
+        "/candidate/dashboard?prep=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    );
 });
 
 it("renders a durable multi-question follow-up practice intent without changing route shape", async () => {
@@ -67,6 +71,7 @@ function createPracticeIntentRecord(items: CandidatePracticeIntentRecord["items"
         candidateProfileId: "candidate-1",
         source: "practice_builder",
         lifecycleState: "ready",
+        roleProfileId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
         targetInterviewId: "material handler i",
         targetRole: "Material Handler I",
         itemCount: items.length,

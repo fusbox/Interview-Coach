@@ -13,6 +13,9 @@ const baseAnalysisSnapshot: CandidateAnswerAnalysisProviderResult = {
     answer: {
         slotId: "slot-1",
         questionIndex: 0,
+        answerAttemptId: "11111111-1111-4111-8111-111111111111",
+        attemptNumber: 1,
+        trigger: "initial_submit",
     },
     coachFeedback: {
         acknowledgement: "You gave a concrete example from your work.",
@@ -40,6 +43,9 @@ describe("candidate feedback interaction contract", () => {
             answer: {
                 slotId: "slot-1",
                 questionIndex: 0,
+                answerAttemptId: "11111111-1111-4111-8111-111111111111",
+                attemptNumber: 1,
+                trigger: "initial_submit",
             },
             stages: [
                 {
@@ -152,6 +158,22 @@ describe("candidate feedback interaction contract", () => {
         expect(interaction.stages[3].body).toBe("Try the answer once more with the result included.");
     });
 
+    it("does not offer retry when a legacy analysis lacks immutable attempt identity", () => {
+        const interaction = createCandidateFeedbackInteraction({
+            analysisSnapshot: {
+                ...baseAnalysisSnapshot,
+                answer: {
+                    slotId: "slot-1",
+                    questionIndex: 0,
+                },
+            },
+            isLastQuestion: false,
+        });
+
+        expect(interaction.stages.flatMap((stage) => stage.actions))
+            .not.toEqual(expect.arrayContaining([expect.objectContaining({ kind: "retry_answer" })]));
+    });
+
     it("makes retry primary only at the final next-step stage when coaching recommends revision", () => {
         const interaction = createCandidateFeedbackInteraction({
             analysisSnapshot: {
@@ -177,6 +199,88 @@ describe("candidate feedback interaction contract", () => {
                 transition: "advance_to_next_question",
             },
         ]);
+    });
+
+    it("renders only candidate-safe evidence-first coaching and carries immutable attempt identity", () => {
+        const interaction = createCandidateFeedbackInteraction({
+            analysisSnapshot: {
+                ...baseAnalysisSnapshot,
+                answer: {
+                    slotId: "slot-1",
+                    questionIndex: 0,
+                    answerAttemptId: "attempt-1",
+                    attemptNumber: 1,
+                    trigger: "initial_submit",
+                },
+                coachFeedback: {
+                    acknowledgement: "Legacy acknowledgement must not render.",
+                    observation: "Legacy score-shaped observation must not render.",
+                    nextPracticeFocus: "Legacy recommendation must not render.",
+                },
+                evidenceFirst: {
+                    contractVersion: "candidate_evidence_first_v1",
+                    inputFingerprint: "a".repeat(64),
+                    feedbackPlan: {
+                        centralRead: "Hidden plan read.",
+                        signal: { valence: "mixed", detectability: "moderate" },
+                        primaryAnchor: { kind: "pattern_gap", id: "missing_result" },
+                        intervention: "revise_answer",
+                    },
+                    candidateFeedback: {
+                        status: "candidate_safe_feedback",
+                        schemaVersion: 1,
+                        inputFingerprint: "a".repeat(64),
+                        acknowledgement: "You made your action easy to find.",
+                        primaryStrength: "Your answer clearly names what you did.",
+                        biggestUpgrade: "Add what changed because of your action.",
+                        redoPrompt: "Try it again and close with the result.",
+                        patternSuggestion: {
+                            patternName: "Action to result",
+                            steps: ["Name your action", "Close with the result"],
+                        },
+                        deliveryNote: null,
+                    },
+                    criteria: [{
+                        criterionId: "answer_focus",
+                        applicability: "observed",
+                        band: "clear",
+                        evidenceSpanIds: ["span-1"],
+                        reasonCode: "answer_focus_clear",
+                    }],
+                    patternGap: {
+                        id: "missing_result",
+                        severity: "medium",
+                        upgrade: "Add what changed because of your action.",
+                        redoPattern: ["action", "result"],
+                        source: "category_lens",
+                    },
+                },
+            },
+            isLastQuestion: false,
+        });
+
+        expect(interaction.answer.answerAttemptId).toBe("attempt-1");
+        expect(interaction.stages.map((stage) => stage.body)).toEqual([
+            "You made your action easy to find.",
+            "Your answer clearly names what you did.",
+            "Try it again and close with the result.",
+        ]);
+        expect(interaction.stages[1].guidance).toEqual([
+            {
+                label: "Try next",
+                body: "Add what changed because of your action.",
+            },
+            {
+                label: "Action to result",
+                body: "Use this structure when you try the answer again.",
+                steps: ["Name your action", "Close with the result"],
+            },
+        ]);
+        expect(interaction.stages.at(-1)?.actions[0]).toMatchObject({
+            kind: "retry_answer",
+            emphasis: "primary",
+        });
+        expect(JSON.stringify(interaction)).not.toContain("Legacy");
     });
 
     it("turns continue and skip actions into finish actions on the last question", () => {
@@ -219,6 +323,9 @@ describe("candidate feedback interaction contract", () => {
             answer: {
                 slotId: "slot-1",
                 questionIndex: 0,
+                answerAttemptId: "11111111-1111-4111-8111-111111111111",
+                attemptNumber: 1,
+                trigger: "initial_submit",
             },
             stageId: "next_step",
             actionKind: "retry_answer",

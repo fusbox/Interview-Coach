@@ -34,6 +34,7 @@ describe("candidate practice intent creation", () => {
             candidateProfileId: "candidate-1",
             source: "practice_builder",
             lifecycleState: "ready",
+            roleProfileId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
             targetInterviewId: "material handler i",
             targetRole: "Material Handler I",
             setupContext: {
@@ -75,6 +76,27 @@ describe("candidate practice intent creation", () => {
         expect(createPracticeIntent).not.toHaveBeenCalled();
     });
 
+    it("does not merge same-title items from different prep contexts", async () => {
+        const createPracticeIntent = vi.fn();
+
+        await expect(createCandidatePracticeIntentFromResolvedItems({
+            candidateProfileId: "candidate-1",
+            source: "practice_builder",
+            resolvedItems: [
+                createResolvedItem("slot-1", 1),
+                createResolvedItem("slot-2", 2, {
+                    roleProfileId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+                }),
+            ],
+            practiceIntentRepository: { createPracticeIntent },
+        })).resolves.toEqual({
+            status: "candidate_practice_intent_not_created",
+            reason: "invalid_intent_items",
+        });
+
+        expect(createPracticeIntent).not.toHaveBeenCalled();
+    });
+
     it("fails closed when durable practice intent persistence does not return an id", async () => {
         await expect(createCandidatePracticeIntentFromResolvedItems({
             candidateProfileId: "candidate-1",
@@ -96,13 +118,18 @@ function createResolvedItem(
     overrides: Partial<{
         targetRole: string;
         targetInterviewId: string;
+        roleProfileId: string | null;
     }> = {},
 ): CandidateResolvedFollowUpPracticeIntent {
     const targetRole = overrides.targetRole ?? "Material Handler I";
     const targetInterviewId = overrides.targetInterviewId ?? "material handler i";
+    const roleProfileId = overrides.roleProfileId === undefined
+        ? "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+        : overrides.roleProfileId;
 
     return {
         status: "candidate_follow_up_practice_intent_resolved",
+        roleProfileId,
         kind: "practice_from_feedback",
         source: {
             kind: "coach_update_detail",

@@ -23,6 +23,7 @@ describe("candidate practice intent repository", () => {
         await expect(repository.createPracticeIntent({
             candidateProfileId: "candidate-1",
             source: "practice_builder",
+            roleProfileId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
             targetInterviewId: "material handler i",
             targetRole: "Material Handler I",
             setupContext: {
@@ -39,22 +40,25 @@ describe("candidate practice intent repository", () => {
 
         expect(queries).toHaveLength(1);
         expect(normalizeSql(queries[0].sql)).toContain("insert into public.candidate_practice_intents");
-        expect(queries[0].values.slice(0, 5)).toEqual([
+        expect(queries[0].values.slice(0, 8)).toEqual([
             "candidate-1",
             "practice_builder",
             "ready",
+            null,
+            null,
+            "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
             "material handler i",
             "Material Handler I",
         ]);
-        expect(queries[0].values[5]).toEqual(JSON.stringify({
+        expect(queries[0].values[8]).toEqual(JSON.stringify({
             targetRole: "Material Handler I",
             jobDescription: "Move materials safely.",
             interviewStage: "first_interview",
             questionCount: 3,
             resumeIncluded: false,
         }));
-        expect(queries[0].values[6]).toEqual(expect.any(String));
-        expect(JSON.parse(queries[0].values[6] as string)).toMatchObject([
+        expect(queries[0].values[9]).toEqual(expect.any(String));
+        expect(JSON.parse(queries[0].values[9] as string)).toMatchObject([
             {
                 source: {
                     questionKey: "slot-1",
@@ -87,6 +91,7 @@ describe("candidate practice intent repository", () => {
             candidatePracticeIntentId: "intent-1",
             candidateProfileId: "candidate-1",
             lifecycleState: "ready",
+            roleProfileId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
             itemCount: 2,
             items: [
                 {
@@ -144,6 +149,23 @@ describe("candidate practice intent repository", () => {
             updated_at: "2026-07-12T12:00:00.000Z",
         })).toBeNull();
     });
+
+    it("normalizes complete next-round draft lineage and rejects partial lineage", () => {
+        expect(toCandidatePracticeIntentRecord({
+            ...createIntentRow(),
+            source_next_round_draft_id: "draft-1",
+            source_next_round_draft_version: "3",
+        })).toMatchObject({
+            sourceNextRoundDraftId: "draft-1",
+            sourceNextRoundDraftVersion: 3,
+        });
+
+        expect(toCandidatePracticeIntentRecord({
+            ...createIntentRow(),
+            source_next_round_draft_id: "draft-1",
+            source_next_round_draft_version: null,
+        })).toBeNull();
+    });
 });
 
 function createIntentItem(questionKey: string): CandidatePracticeIntentRecord["items"][number] {
@@ -178,6 +200,7 @@ function createIntentRow() {
         source: "practice_builder",
         lifecycle_state: "ready",
         consumed_candidate_practice_session_id: null,
+        role_profile_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
         target_interview_id: "material handler i",
         target_role: "Material Handler I",
         setup_context_json: {

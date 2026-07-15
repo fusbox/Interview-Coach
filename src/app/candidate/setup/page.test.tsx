@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { act } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -195,6 +195,169 @@ it("shows a setup-start error if the session boundary rejects the payload", asyn
     });
 });
 
+it("offers candidate-owned existing practice facts instead of silently reusing a matching context", async () => {
+    const assign = vi.fn();
+    Object.defineProperty(window, "location", {
+        configurable: true,
+        value: {
+            ...window.location,
+            assign,
+        },
+    });
+    const draftStore = createCandidateSetupMemoryDraftStore();
+    const createSession = vi.fn(async () => ({
+        status: "existing_prep_context_found" as const,
+        existingPrepContexts: [{
+            roleProfileId: "33333333-3333-4333-8333-333333333333",
+            targetRole: "Quality control inspector",
+            jobDescription: "Inspect finished goods and document production defects.",
+            interviewStage: "screening" as const,
+            questionCount: 5,
+            createdAt: "2026-07-01T12:00:00.000Z",
+            lastPracticeActivityAt: "2026-07-14T12:00:00.000Z",
+            completedSessionCount: 2,
+            completedQuestionCount: 9,
+            activeRound: {
+                completedQuestionCount: 2,
+                totalQuestionCount: 5,
+            },
+        }],
+    }));
+    render(<CandidateSetupExperience
+        createSession={createSession}
+        draftOwnerKey="candidate:demo"
+        draftStore={draftStore}
+    />);
+
+    fireEvent.change(screen.getByLabelText("Target role *"), {
+        target: { value: "Quality control inspector" },
+    });
+    fireEvent.change(screen.getByLabelText("Job description *"), {
+        target: { value: "Inspect finished goods and document production defects." },
+    });
+
+    await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /start practice/i }));
+    });
+
+    const dialog = screen.getByRole("dialog", { name: /already have practice for this role/i });
+    expect(dialog).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Quality control inspector" })).toBeInTheDocument();
+    expect(screen.getByText("Jul 1, 2026")).toBeInTheDocument();
+    expect(screen.getByText("Jul 14, 2026")).toBeInTheDocument();
+    expect(within(dialog).getByText("Screening call")).toBeInTheDocument();
+    expect(screen.getByText("2 of 5 completed")).toBeInTheDocument();
+    expect(screen.getByText("Completed sessions").nextSibling).toHaveTextContent("2");
+    expect(screen.getByText("Completed questions").nextSibling).toHaveTextContent("9");
+
+    fireEvent.click(screen.getByRole("button", { name: "View in dashboard" }));
+
+    expect(assign).toHaveBeenCalledWith(
+        "/candidate/dashboard?prep=33333333-3333-4333-8333-333333333333",
+    );
+    expect(draftStore.readDraft("candidate:demo")).toBeNull();
+});
+
+it("creates an independent prep profile only after the candidate chooses a separate path", async () => {
+    const assign = vi.fn();
+    Object.defineProperty(window, "location", {
+        configurable: true,
+        value: {
+            ...window.location,
+            assign,
+        },
+    });
+    const existingResult = {
+        status: "existing_prep_context_found" as const,
+        existingPrepContexts: [{
+            roleProfileId: "33333333-3333-4333-8333-333333333333",
+            targetRole: "Material handler",
+            jobDescription: "Move and label materials.",
+            interviewStage: "first_interview" as const,
+            questionCount: 7,
+            createdAt: "2026-07-01T12:00:00.000Z",
+            lastPracticeActivityAt: "2026-07-14T12:00:00.000Z",
+            completedSessionCount: 1,
+            completedQuestionCount: 7,
+            activeRound: null,
+        }],
+    };
+    const createdResult = setupSessionResult("new-separate-session");
+    const createSession = vi.fn()
+        .mockResolvedValueOnce(existingResult)
+        .mockResolvedValueOnce(createdResult);
+    render(<CandidateSetupExperience createSession={createSession} />);
+
+    fireEvent.change(screen.getByLabelText("Target role *"), {
+        target: { value: "Material handler" },
+    });
+    fireEvent.change(screen.getByLabelText("Job description *"), {
+        target: { value: "Move and label materials." },
+    });
+
+    await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /start practice/i }));
+    });
+    await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Start a separate path" }));
+    });
+
+    expect(createSession).toHaveBeenNthCalledWith(2, expect.objectContaining({
+        status: "ready_for_session_creation",
+    }), {
+        action: "create_separate_path",
+        matchingRoleProfileId: "33333333-3333-4333-8333-333333333333",
+    });
+    expect(assign).toHaveBeenCalledWith("/candidate/session/new-separate-session");
+});
+
+it("keeps the choice dialog and setup draft available when separate-path creation fails", async () => {
+    const draftStore = createCandidateSetupMemoryDraftStore();
+    const createSession = vi.fn()
+        .mockResolvedValueOnce({
+            status: "existing_prep_context_found" as const,
+            existingPrepContexts: [{
+                roleProfileId: "33333333-3333-4333-8333-333333333333",
+                targetRole: "Material handler",
+                jobDescription: "Move and label materials.",
+                interviewStage: "first_interview" as const,
+                questionCount: 7,
+                createdAt: "2026-07-01T12:00:00.000Z",
+                lastPracticeActivityAt: "2026-07-14T12:00:00.000Z",
+                completedSessionCount: 1,
+                completedQuestionCount: 7,
+                activeRound: null,
+            }],
+        })
+        .mockRejectedValueOnce(new Error("Database unavailable"));
+    render(<CandidateSetupExperience
+        createSession={createSession}
+        draftOwnerKey="candidate:demo"
+        draftStore={draftStore}
+    />);
+
+    fireEvent.change(screen.getByLabelText("Target role *"), {
+        target: { value: "Material handler" },
+    });
+    fireEvent.change(screen.getByLabelText("Job description *"), {
+        target: { value: "Move and label materials." },
+    });
+
+    await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /start practice/i }));
+    });
+    await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Start a separate path" }));
+    });
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Your setup is still here");
+    expect(draftStore.readDraft("candidate:demo")).toMatchObject({
+        targetRole: "Material handler",
+        jobDescription: "Move and label materials.",
+    });
+});
+
 it("clears the setup draft after a successful provisional session is created", async () => {
     const assign = vi.fn();
     Object.defineProperty(window, "location", {
@@ -336,3 +499,36 @@ it("does not hydrate with different ready-state markup when a browser draft exis
     expect(recoverableErrors).toHaveLength(0);
     document.body.removeChild(container);
 });
+
+function setupSessionResult(sessionId: string) {
+    return {
+        status: "session_created" as const,
+        sessionId,
+        nextRoute: `/candidate/session/${sessionId}` as const,
+        setupSnapshot: {
+            targetRole: "Material handler",
+            jobDescription: "Move and label materials.",
+            resumeText: null,
+            interviewStage: "first_interview" as const,
+            questionCount: 7,
+            resumeCaptureMode: "none" as const,
+            createdAt: "2026-07-15T15:00:00.000Z",
+        },
+        questionPlanSnapshot: {
+            interviewStage: "first_interview" as const,
+            questionCount: 7,
+            categoryCounts: {
+                screening: 2,
+                behavioral: 2,
+                culture_fit: 1,
+                case_scenario: 1,
+                technical_role_specific: 1,
+            },
+            slots: [],
+        },
+        questionWordingSnapshot: {
+            status: "questions_worded" as const,
+            questions: [],
+        },
+    };
+}

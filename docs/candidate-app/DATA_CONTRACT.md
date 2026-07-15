@@ -26,6 +26,7 @@ Candidate V2 is allowed to rebuild candidate-facing routes and read models witho
 V2 dashboard and session work should move toward:
 
 - raw answer/session facts as persisted truth;
+- immutable answer-attempt and evaluator-run lineage;
 - evidence extraction outputs;
 - criteria bands;
 - category pattern gaps;
@@ -33,6 +34,19 @@ V2 dashboard and session work should move toward:
 - derived dashboard read models that can explain every visible claim.
 
 If an evidence-first result is adapted into the old `AnalysisResult` shape, that adapter is a bridge for existing rendering or AI-quality review. It is not the durable V2 evaluation contract.
+
+### Answer Attempt And Evaluator Run
+
+V2 distinguishes four levels that legacy slot-keyed JSON collapsed:
+
+1. a planned question identity;
+2. a question occurrence in one practice session;
+3. one or more immutable answer attempts for that occurrence;
+4. one or more evaluator runs against one fixed answer attempt.
+
+Pre-submission edits are drafts and do not create attempts. The first accepted submit creates attempt one. A candidate-selected retry after feedback appends another attempt with `supersedesAnswerAttemptId` and `trigger: "feedback_retry"`. Provider retry, timeout recovery, and model/prompt A/B evaluation append evaluator runs for the same answer attempt instead of inflating candidate answer-attempt counts.
+
+The normalized durable target uses stable `candidateAnswerAttemptId` and `candidateAnswerEvaluationRunId` values, candidate/session/question ownership, per-occurrence attempt number, answer mode/content/submission time, retry lineage, provider/model/prompt/evaluator metadata, input fingerprint, lifecycle timestamps, validation facts, and candidate-safe result snapshots. Repository/domain records expose timestamps as ISO strings even when the PostgreSQL driver returns `timestamptz` columns as JavaScript `Date` objects. Migration `009_candidate_answer_attempts_schema.sql` implements this with `candidate_answer_attempts` and `candidate_answer_evaluation_runs`; `candidate-answer-history-repository.ts` provides ownership-scoped append, replay-safe idempotency, immutable retry lineage, and evaluator-run lifecycle operations. Existing `candidate_practice_sessions.answer_submissions_json` and `answer_analysis_snapshots_json` remain latest-attempt compatibility projections while session consumers migrate; they must not be treated as complete history.
 
 ### V2 Evaluation Evidence
 
@@ -101,7 +115,8 @@ Current backing:
 
 - `candidate_role_preparation_profiles`;
 - `candidate_practice_drafts.role_profile_id`;
-- `sessions.intakeData.roleProfileId`.
+- `candidate_practice_sessions.role_profile_id`;
+- setup resolver: `src/features/candidate-setup-v2/candidate-setup-prep-context-repository.ts`.
 
 Current contract:
 
@@ -111,8 +126,9 @@ type PrepProfile = {
     candidateProfileId: string;
     targetRole: string;
     jobDescriptionSnapshot: string;
+    practicePathNumber: number;
     resumeContextSnapshot?: unknown;
-    source: "practice_setup" | "host_platform" | "seed";
+    source: "manual" | "host_platform" | "dev_seed";
     launchContext?: {
         sourceSurface?: string;
         hostDomain?: string;
@@ -131,13 +147,32 @@ type PrepProfile = {
 };
 ```
 
-The dashboard may support multiple prep profiles later. Current work should first make one active target interview context reliable and explainable.
+Every newly persisted V2 setup session must have one candidate-owned prep-profile id. The current setup resolver supports these paths:
+
+- verify an explicitly supplied `role_profile_id` against candidate ownership and active/paused state;
+- in explicit local/dev manual setup, create path one when no active/paused exact match exists;
+- reuse an exact-match profile only when it has no session activity, as repair for a partial setup write;
+- return candidate-owned activity summaries without mutation when one or more exact matches have sessions;
+- after an explicit candidate decision tied to one returned exact match, create a new independent `role_profile_id` for the submitted setup.
+
+The manual resolver collapses inconsequential whitespace and keeps same-title contexts distinct when their job descriptions differ. `practice_path_number` is a private positive uniqueness ordinal under candidate + normalized role + normalized JD hash; it permits an intentional duplicate UUID while continuing to reject accidental same-path duplicates. It is not user-facing identity, lineage, ordering, or inherited progress. The exact-match response may expose only candidate-owned profile/session facts: opaque id, role, JD snapshot, created/latest-activity timestamps, original stage/count, completed session/question counts, and current active-round progress. The explicit separate-path request must carry one returned opaque id, and the repository revalidates candidate ownership, active/paused state, and the same normalized role/JD key before creating anything.
+
+The profile stores only resume inclusion/capture-mode metadata in its current resume-context JSON; full resume text remains in governed session/setup snapshots. A failed session insert may leave a reusable profile without practice activity; dashboard profile selectors must not imply practice evidence from profile existence alone. Selecting an existing path from the setup conflict clears the submitted setup draft and navigates to canonical `/candidate/dashboard?prep=<roleProfileId>`. Closing the choice preserves the draft. Creating a separate path produces a blank-slate profile and first session with no inherited sessions, answers, Coach Plan coverage, Coach Update, queue, or evaluator evidence.
+
+Future prep-context evolution rules:
+
+- a resume revision stays under the same `role_profile_id`, but every session preserves the exact staged resume version/label it consumed;
+- runtime hints, strong-response guidance, and feedback consume that session's resume snapshot;
+- existing questions are never silently reinterpreted after a resume change;
+- a later reconciliation service may compare a revised resume with current plan questions, propose slot/category-preserving one-for-one replacements, and version only candidate-accepted question replacements;
+- a candidate-initiated interview-stage change creates a new linked `role_profile_id` with blank evidence. Stage lineage and update UI are not yet implemented.
 
 Production identity rule:
 
 - Production `/practice` should require a trusted host-platform launch context.
 - Host-launched prep profiles should be found or created from candidate identity plus platform job identity, primarily `JobCollectionID` and `RequirementID` when available.
 - Manual role/JD profile creation remains a local-development behavior unless a future standalone mode is explicitly designed.
+- A production launch identity without a trusted candidate-owned `role_profile_id` fails setup start closed. Browser-supplied role/JD text cannot be labeled or resolved as host-platform identity.
 
 Reference: [Platform Launch PrepProfile Migration](./04-architecture/platform-launch-prepprofile-migration.md).
 
@@ -147,29 +182,39 @@ Question category reference: [Question Category Contract](./04-architecture/ques
 
 Instant-read dashboard reference: [Instant Read Surface Plan](./04-architecture/instant-read-surface-plan.md).
 
-Current dashboard scoping rule:
+Dashboard scoping transition:
 
-1. Prefer an unfinished candidate-owned session as the selected target interview context.
-2. Honor an explicit dashboard target-role selection when it matches one of the candidate's available target interview contexts.
-3. Otherwise use the latest practice activity as the selected target interview context.
-4. Keep dashboard stats, Coach Update, Plan Progress, Practice from Feedback, Previous Sessions, latest-round review, and Preparedness Map evidence scoped to that selected target interview title until the multi-profile manager is implemented.
+1. Resolve every new setup or host-launched context to an opaque candidate-owned `role_profile_id`.
+2. Honor an explicit opaque dashboard prep-context selection only after candidate ownership is proven.
+3. Without an explicit selection, prefer the prep context containing an unfinished candidate-owned session, otherwise the latest completed practice context.
+4. Keep active round, Coach Update, Coach Plan, Practice Next, history, and any derived coverage or attempt reads scoped to that selected id.
 
-This is a first guard against mixed-role dashboard pollution. The current prep-context switcher exposes the selected target interview, practiced/planned question coverage, qualitative prep state, and latest practice timestamp for each target role. The current route may carry the selected context in a query parameter so the browser can recover/share a selected dashboard view, but that parameter is not durable prep-profile identity. A later profile manager should tighten the selector to an opaque `prepProfileId` or `targetInterviewId` plus job-description or host-job snapshot when the UI supports switching between multiple active target interviews with the same role title.
+The current V2 read model uses candidate-owned `role_profile_id` for profile-backed contexts and isolates title-keyed grouping to historical sessions whose profile id is null. Normalized role title, job-description text, and readable URL metadata do not group profile-backed preparation contexts. Same-title contexts remain distinct. Canonical `/candidate/dashboard?prep=<roleProfileId>` navigation supports recovery and deep linking, but every read still resolves the id through candidate ownership.
 
 ### Follow-Up Practice Intent
 
-Coach Update detail actions may route the candidate to `/candidate/practice/ready` with stable source metadata only:
+Follow-up actions may route the candidate to `/candidate/practice/ready` with stable source metadata only. Feedback focus originates from a practiced Coach Update item; missing coverage originates from Coach Plan, Question Set, or Practice Next:
 
 ```ts
-type CandidateFollowUpPracticeIntent = {
-    status: "candidate_follow_up_practice_intent_ready";
-    kind: "practice_from_feedback" | "practice_missing_evidence";
-    source: {
-        kind: "coach_update_detail";
-        candidatePracticeSessionId: string;
-        questionKey: string;
+type CandidateFollowUpPracticeIntent =
+    | {
+        status: "candidate_follow_up_practice_intent_ready";
+        kind: "practice_from_feedback";
+        source: {
+            kind: "coach_update_detail";
+            candidatePracticeSessionId: string;
+            questionKey: string;
+        };
+    }
+    | {
+        status: "candidate_follow_up_practice_intent_ready";
+        kind: "practice_missing_evidence";
+        source: {
+            kind: "coach_plan";
+            candidatePracticeSessionId: string;
+            questionKey: string;
+        };
     };
-};
 ```
 
 Once candidate identity and durable session access are available, the parsed intent may resolve to candidate-owned source facts:
@@ -197,12 +242,19 @@ type CandidateResolvedFollowUpPracticeIntent = CandidateFollowUpPracticeIntent &
 
 Follow-up practice rounds should converge on a durable practice intent before session creation. That durable intent supports the same route and persistence contract whether the candidate chooses one question, a selected bundle, or a full queued set.
 
+An editable queue is not a practice intent. The durable target is one candidate-owned queue draft per `role_profile_id` plus normalized item rows. Queue items preserve a stable source-plan-question pointer, practice kind/reason, provenance, display position, and timestamps. The parent draft carries a version or equivalent optimistic concurrency value. The queue survives navigation, refresh, and later return, but it is never used as historical session lineage.
+
 Current backing:
 
 - `candidate_practice_intents`;
+- `candidate_next_round_drafts` and normalized `candidate_next_round_draft_items`;
 - repository adapter: `src/features/candidate-practice-v2/candidate-practice-intent-repository.ts`;
 - creation adapter: `src/features/candidate-practice-v2/candidate-practice-intent-creation.ts`;
-- migration: `db/migrations/008_candidate_practice_intents_schema.sql`;
+- editable-draft adapter: `src/features/candidate-practice-v2/candidate-next-round-draft-repository.ts`;
+- launch service and adapter: `src/features/candidate-practice-v2/candidate-next-round-draft-launch.ts` and `candidate-next-round-draft-launch-repository.ts`;
+- migrations: `db/migrations/008_candidate_practice_intents_schema.sql` and `db/migrations/013_candidate_next_round_drafts_schema.sql`;
+- atomic database boundary: `public.snapshot_candidate_next_round_draft_to_intent(...)`;
+- rollback-only validation: `db/validation/014_candidate_next_round_drafts_schema_smoke.sql`;
 - durable staging route: `/candidate/practice/ready/[intentId]`;
 - multi-item creation route: `/candidate/practice/ready/intents`.
 
@@ -216,6 +268,8 @@ type CandidatePracticeIntentRecord = {
     source: "coach_update_detail" | "practice_builder" | "plan_aware_queue" | "coach_bundle";
     lifecycleState: "ready" | "consumed" | "cancelled" | "expired";
     consumedCandidatePracticeSessionId?: string | null;
+    sourceNextRoundDraftId?: string | null;
+    sourceNextRoundDraftVersion?: number | null;
     targetInterviewId: string;
     targetRole: string;
     itemCount: number;
@@ -224,6 +278,12 @@ type CandidatePracticeIntentRecord = {
         kind: "practice_from_feedback" | "practice_missing_evidence";
         source: CandidateResolvedFollowUpPracticeIntent["source"];
         display: CandidateResolvedFollowUpPracticeIntent["display"];
+        assembly?: {
+            source: "next_round_draft";
+            candidateNextRoundDraftItemId: string;
+            provenance: "coach_update" | "coach_plan" | "practice_next" | "candidate_selection" | "coach_bundle";
+            displayPosition: number;
+        };
     }>;
     createdAt: string;
     updatedAt: string;
@@ -233,7 +293,7 @@ type CandidatePracticeIntentRecord = {
 Current accepted query values:
 
 - `intent=coach-update-feedback-focus` maps to `practice_from_feedback`;
-- `intent=coach-update-missing-evidence` maps to `practice_missing_evidence`;
+- `intent=coach-update-missing-evidence` maps to `practice_missing_evidence` only as a compatibility value; new Coach Update UI must not emit it, and the pointer source moves to Coach Plan/Practice Next;
 - `fromSession` carries the source `candidate_practice_sessions` id;
 - `questionKey` carries the source question slot/key.
 
@@ -244,16 +304,24 @@ Contract rules:
 - `/candidate/setup` remains the generic new-prep-context setup surface and should not render follow-up-practice intent UI;
 - `/candidate/practice/ready` is the temporary pointer-based follow-up pre-session staging surface and must suppress source details when durable validation fails;
 - `/candidate/practice/ready/[intentId]` is the durable follow-up pre-session staging surface and must resolve only candidate-owned `candidate_practice_intents` rows in `ready` state;
+- every new one-question or multi-question round assembled from an existing prep context must route through `/candidate/practice/ready/[intentId]` before session start. Direct intent creation is allowed; bypassing the landing is not. A consumed intent or already-started session may resume directly because it is recovery, not a new launch;
 - resolved intent requires current candidate ownership of the source `candidate_practice_sessions` row, an exact source question key in the source wording snapshot, optional selected target-interview context match, and intent-specific evidence semantics;
 - durable intent creation requires one to twenty resolved items, no duplicated source session/question keys, and one shared target interview/setup context across all selected items;
+- production queue and intent creation must use one candidate-owned opaque prep-context id; `candidate_practice_intents.role_profile_id` now carries that identity under a composite candidate/profile ownership constraint, while readable `target_interview_id` values remain display and bounded legacy compatibility metadata;
 - `practice_from_feedback` resolves only when the source question has both answer evidence and accepted coach analysis evidence;
+- `practice_from_feedback` uses `coach_update_detail` source posture; `practice_missing_evidence` uses Coach Plan/Practice Next source posture;
 - `practice_missing_evidence` resolves only when the source question has no answer submission;
 - `POST /candidate/practice/ready/intents` accepts one to twenty stable source pointers and returns a `redirectTo` route for the durable ready page after identity and source validation succeed;
+- `Start practice` from an editable queue validates its current version and source pointers, atomically creates the immutable intent snapshot, and clears or links the launched queue draft. A conflict returns without silently dropping newer selections;
+- the atomic database function locks the exact candidate-owned draft, revalidates every source question and latest answer/analysis relationship, compares the submitted ordered payload with every normalized draft item, inserts one immutable `practice_builder` intent, clears the item rows, and increments the draft version in one statement;
+- repeated launch of the same draft version recovers the same ready intent, or its already-consumed session, instead of creating another round. A stale version, stale evidence, malformed payload, or ownership mismatch leaves the editable draft unchanged;
+- the current intent builder requires every selected item to resolve to one opaque prep context and one matching staged setup snapshot, including interview stage and resume-inclusion posture. The product does not intentionally assemble mixed-profile/stage/resume rounds; mismatch is an integrity failure. Future resume revision work must explicitly stage one resume version before launch;
+- one-question and fixed coach-bundle fast paths may create immutable intents directly, but still route to the durable ready landing; `Customize` may instead seed or merge items into the durable queue draft;
 - the temporary query-pointer `/candidate/practice/ready` bridge may create a one-item durable intent and redirect to `/candidate/practice/ready/[intentId]` when persistence dependencies are available;
 - `POST /candidate/practice/ready/[intentId]/start` turns a ready durable intent into a normal candidate-owned `candidate_practice_sessions` row and redirects to `/candidate/session/[sessionId]`;
 - starting a durable intent marks that intent `consumed` with `consumedCandidatePracticeSessionId` only after the follow-up session is created, so repeated start submissions can recover or redirect to the already-created session rather than creating another round;
 - follow-up practice has no question-level attempt limit. The session input must carry follow-up lineage in setup, plan, and wording snapshots so downstream reads can show or aggregate: session attempt number for the selected target-interview context, question attempt number for each source question within that context, total question attempts, and total session attempts;
-- follow-up question lineage must include the source practice-session id, source question key, source question number, source question text, source category, local follow-up slot id/number, practice kind, and question attempt number. This keeps candidate dashboard trends, recruiter invited-session attempt counts, and company engagement rollups available without treating a repeated question as a duplicate baseline question.
+- follow-up question lineage must include the immediate source practice-session id and question key, canonical root source-session id and question key, source question number/text/category, local follow-up slot id/number, practice kind, and question attempt number. Root resolution walks and validates historical follow-up links so repeat practice launched from prior repeat practice does not reset the question-attempt sequence. One launched round rejects multiple selected occurrences that collapse to the same canonical root question. Queue-created rounds also carry source draft id/version plus each item's draft-item id, provenance, and display position into setup, plan, and wording snapshots. This keeps candidate dashboard trends, recruiter invited-session attempt counts, and company engagement rollups available without treating a repeated question as a duplicate baseline question.
 
 ### InterviewContext
 
@@ -271,7 +339,7 @@ Optional:
 - question count;
 - host-platform launch metadata when available.
 
-Current setup rule: candidate-led `/practice` requires a job description because production entry is expected to supply JD context and the practice model is role-specific.
+Current setup rule: candidate-led `/candidate/setup` requires a job description because production entry is expected to supply JD context and the practice model is role-specific.
 
 ### CandidatePracticeSession
 
@@ -320,8 +388,8 @@ type CandidatePracticeSession = {
     questionWordingStatus: "not_requested" | "provider_not_configured" | "worded" | "failed";
     progress: CandidatePracticeSessionProgress;
     answerDrafts: Record<string, CandidateAnswerDraft>;
-    answerSubmissions: Record<string, CandidateAnswerSubmission>;
-    answerAnalysisSnapshots: Record<string, CandidateAnswerAnalysisProviderResult>;
+    answerSubmissions: Record<string, CandidateAnswerSubmission>; // latest-attempt compatibility read
+    answerAnalysisSnapshots: Record<string, CandidateAnswerAnalysisProviderResult>; // latest-run compatibility read
     feedbackActionEvents: Record<string, CandidateFeedbackActionEvent>;
     completionSnapshot?: CandidateLedSessionCompletionSnapshot | null;
 };
@@ -329,7 +397,8 @@ type CandidatePracticeSession = {
 
 Rules:
 
-- `setupSnapshot`, `questionPlanSnapshot`, optional `questionWordingSnapshot`, `progress`, `answerDrafts`, and `answerSubmissions` are persisted as immutable or explicitly updated JSONB boundaries so the app can trace setup -> plan -> wording -> progress -> draft -> submitted answer without rebuilding from mutable UI state.
+- `setupSnapshot`, `questionPlanSnapshot`, optional `questionWordingSnapshot`, `progress`, and `answerDrafts` remain session JSONB boundaries. Slot-keyed `answerSubmissions` and `answerAnalysisSnapshots` are latest-result compatibility reads during migration to normalized immutable answer attempts and evaluator runs; they must not be treated as complete attempt history.
+- Session lifecycle follows accepted practice evidence: `planned` means no answer has been accepted, the first accepted answer projection promotes the durable session to `in_progress`, and it remains `in_progress` until explicit completion succeeds even when the final answer is awaiting feedback/Finish. Draft text and page entry do not promote lifecycle state. Completed or abandoned sessions reject new answer attempts before immutable attempt or compatibility-projection writes. Historical answered rows left as `planned` are backfilled idempotently.
 - The table is candidate-owned and may link to `prepProfile` through `role_profile_id` and to host launch through `candidate_launch_session_id`.
 - Follow-up practice sessions created from `candidate_practice_intents` use the same durable table as setup-created sessions. Their `setupSnapshot.followUpPractice`, `questionPlanSnapshot.followUpPractice`, and `questionWordingSnapshot.followUpPractice` metadata must preserve the source intent, source route, session attempt number, item count, and per-question attempt lineage. This is the current V2 home for attempt context until a later normalized analytics/projection table is justified.
 - `/candidate/setup/start` persists setup-created sessions into `candidate_practice_sessions` when candidate identity can be resolved from the route context. If identity cannot be resolved, the route may continue returning the browser-bridge provisional session result for local/dev continuity. If identity resolves but persistence fails, the route must fail closed.
@@ -338,24 +407,25 @@ Rules:
 - In explicit local dev host-launch mode, deterministic `dev-host-launch-*` cookies resolve directly to fixture `candidateProfileId` values for setup-start, durable session recovery, and answer-draft saves. These cookie values are not persisted into `candidate_practice_sessions.candidate_launch_session_id` because they are not UUID rows in `candidate_launch_sessions`.
 - `/candidate/session/[sessionId]/progress` may save the active session view state to `candidate_practice_sessions.progress_state_json` for candidate-owned durable sessions. Current progress states are `planned`, `question_preview`, `live_question`, and `completed`; question-surface and completed states must carry the current question index. This supports pause/resume, refresh, cross-tab recovery back to the active question surface, and final round completion state.
 - The answer-draft shell may save typed draft text to `candidate_practice_sessions.answer_drafts_json` through an ownership-scoped candidate session route when durable identity is available. Browser-bridge sessions keep answer draft text component-local only. Answer drafts must not write to `answers`, evaluator inputs, feedback, or dashboard read models until answer submission deliberately lands.
-- `/candidate/session/[sessionId]/answers` is the first candidate-owned answer-submit persistence boundary. It validates a nonblank typed draft payload, resolves the candidate identity, verifies ownership of the durable practice session, creates a typed `answer_submit_requested` event, saves a slot-scoped `pending_analysis` submission to `candidate_practice_sessions.answer_submissions_json`, and returns `answer_submit_saved` with `next: "analysis_not_connected"`. It must not write to legacy `answers`, evaluator inputs, feedback, or dashboard read models until the analysis lifecycle is deliberately connected.
-- `/candidate/session/[sessionId]/answers/[slotId]/analysis` is the first answer-analysis handoff boundary. It resolves candidate identity, verifies the durable practice session is owned by that candidate, reads the existing slot-scoped `pending_analysis` submission, creates an `answer_analysis_requested` request, and returns `answer_analysis_unavailable` with `provider_not_configured` when no valid provider dependency is configured. When an explicit route-level provider dependency is injected or assembled from safe runtime configuration, the route may assemble and send an `answer_analysis_provider_requested` payload from the saved pending answer, the exact slot-mapped worded question, and the setup snapshot. If that provider returns a valid `answer_analysis_provider_result`, the route may persist it to `candidate_practice_sessions.answer_analysis_snapshots_json` and return `answer_analysis_saved`. The local deterministic fixture provider is enabled only by `CANDIDATE_ANSWER_ANALYSIS_PROVIDER=fixture` plus explicit local dev host-launch mode; it is for browser validation and must not be treated as production coaching. The live question shell may show the snapshot's candidate-safe `coachFeedback` fields as a read-only current-answer surface. It must not create summaries, dashboard evidence, legacy `eval_results`, or legacy answer-analysis fields until those surfaces are deliberately wired.
+- `/candidate/session/[sessionId]/answers` is the candidate-owned answer-submit persistence boundary. It validates a nonblank typed draft payload, resolves candidate identity, verifies durable session ownership, and appends an immutable attempt to `candidate_answer_attempts` behind a slot-scoped database lock and idempotency key. Initial submit creates attempt one. Feedback retry is accepted only when the source attempt is the exact latest saved submission and analysis and a persisted feedback action authorizes `retry_current_question`; it appends the next attempt with `trigger: "feedback_retry"` and `supersedesAnswerAttemptId`. Concurrent or stale retry sources fail closed. The route writes the accepted attempt identity into the slot-scoped `pending_analysis` compatibility projection in `candidate_practice_sessions.answer_submissions_json`. If projection write fails after append, replay recovers the same attempt rather than duplicating history. Evaluator-run wiring remains a later explicit lifecycle step; this route must not write legacy `answers` or invent feedback/dashboard truth.
+- `/candidate/session/[sessionId]/answers/[slotId]/analysis` is the answer-analysis handoff boundary. It resolves candidate identity, verifies durable ownership, reads the exact slot-scoped `pending_analysis` submission, creates `answer_analysis_requested`, and returns `provider_not_configured` when no valid dependency exists. A configured provider request includes the saved attempt identity, exact slot-mapped worded question and planned purpose, and setup context. An accepted result must map back to the exact answer attempt before it can replace the latest analysis projection. The local deterministic fixture is enabled only by `CANDIDATE_ANSWER_ANALYSIS_PROVIDER=fixture` plus explicit local dev host-launch mode; it now exercises the ratified evidence-first case, exact-span extraction, deterministic appraisal/pattern gap, feedback validation, and candidate-safe projection boundary for browser validation, but is not production coaching. The route must not create summaries, dashboard evidence, legacy `eval_results`, or legacy answer-analysis fields.
 - `answer_analysis_provider_requested` is the V2 provider adapter input after `answer_analysis_requested`. It is created from one saved pending answer submission, one slot-mapped worded question, and the setup snapshot context. The adapter must fail if the question slot/index do not match the submitted answer.
-- `answer_analysis_provider_result` is the V2 provider adapter output shape. It must map back to the same answer slot/index, contain candidate-safe coach feedback fields, and carry evidence items that obey the V2 evaluation evidence contract. Numeric `score` values are allowed only for `observed` evidence. `not_elicited`, `insufficient_data`, and `unscoreable` evidence must not carry scores or contribute to candidate-facing evaluation bands.
+- `answer_analysis_provider_result` is the V2 provider adapter output shape. It must map back to the same answer slot/index and, when present, exact immutable attempt identity. The evidence-first extension must use the ratified contract version, one shared input fingerprint, validated hidden feedback plan, candidate-safe feedback projection, criterion appraisals, and selected pattern gap. Invalid or mismatched defined extensions fail closed. Legacy numeric evidence remains compatibility-only: numeric `score` values are allowed only for `observed` evidence, while `not_elicited`, `insufficient_data`, and `unscoreable` evidence must not carry scores or contribute to candidate-facing bands.
 - `candidate_answer_coaching_facts` is the candidate-safe derived read model from one accepted `answer_analysis_provider_result`. It carries answer identity, provider/analyzed time, the candidate-safe `coachFeedback`, qualitative `overallRead`, per-criterion qualitative facts, and coverage buckets for observed, not-elicited, insufficient-data, and unscoreable criteria. It must not expose raw `score`, `averageScore`, hidden numeric readiness, or legacy `oneBigUpgrade` as downstream product language. It is derived from the saved analysis snapshot and is not a separate persistence write yet.
 - `session_runtime_facts` is the shared candidate-led/invited-candidate runtime read model. It carries session id, audience, target role, interview stage, question count, current question index, normalized question key/index/category/text, submitted answer mode/text/submitted-at/lifecycle status, optional `candidate_answer_coaching_facts`, answered/coached counts, and completion behavior. It is designed so candidate-led and invited-candidate session surfaces can derive from the same runtime facts while keeping entry/auth differences outside the shared layer.
 - Candidate-only identity and launch details must not be pushed into `session_runtime_facts`. `candidateProfileId`, `candidateLaunchSessionId`, setup snapshots, resume content, setup draft state, browser-bridge state, and route persistence internals remain candidate-led boundary facts unless a later shared-runtime slice explicitly promotes one of them.
-- `feedback_interaction_ready` is the V2 candidate-facing action contract derived from one accepted `answer_analysis_provider_result`. Current stages are `acknowledgement`, `content_coaching`, optional `delivery_coaching`, and `next_step`. Current action kinds are `explore_feedback`, `show_next_feedback_stage`, `skip_to_next_question`, `skip_to_finish_session`, `continue_to_next_question`, `finish_session`, `retry_answer`, and `pause_session`. Stage transitions are explicit: show another feedback stage, advance to the next question, finish the session, retry the current question, or pause the session.
-- `feedback_action_selected` is the persistence event shape for the candidate's selected feedback action. It must carry the answer slot/index, current feedback stage id, selected action kind, transition, optional target stage, and selection timestamp. `candidate_practice_sessions.feedback_actions_json` stores the latest selected action per answer slot. `/candidate/session/[sessionId]/feedback-actions` may persist this event only after resolving candidate ownership and verifying that the selected answer slot/index maps to an existing saved `answer_analysis_provider_result`. Persisting this event does not execute the action or mutate session completion, summary, dashboard, or legacy answer state.
+- `feedback_interaction_ready` is the V2 candidate-facing action contract derived from one accepted `answer_analysis_provider_result`. It renders only `candidate_safe_feedback` when evidence-first facts exist; hidden central read, criterion facts, numeric evidence, and legacy coach prose do not cross that UI path. Current stages are `acknowledgement`, `content_coaching`, optional `delivery_coaching`, and `next_step`. Current action kinds are `explore_feedback`, `show_next_feedback_stage`, `skip_to_next_question`, `skip_to_finish_session`, `continue_to_next_question`, `finish_session`, `retry_answer`, and `pause_session`. Retry is omitted when immutable attempt identity is unavailable.
+- `feedback_action_selected` is the persistence event for one candidate-selected transition. It carries exact answer attempt identity, slot/index, current stage, action kind, transition, optional target stage, and timestamp. `candidate_practice_sessions.feedback_actions_json` stores only the latest event per slot as a recovery projection; it is not append-only interaction history and cannot by itself prove every feedback stage the candidate viewed. `/candidate/session/[sessionId]/feedback-actions` resolves candidate ownership, requires the event to match the exact latest saved submission and analysis attempt, derives the allowed interaction server-side, and rejects forged stage/action/transition/target combinations. The UI persists an event before executing its transition. A saved `retry_current_question` event authorizes only the next linked answer attempt from that exact source; it does not itself mutate answer history, completion, summary, dashboard, or legacy state. Add normalized feedback-interaction events only if product analytics, enterprise BI, or audit requirements need full Explore/Next/Skip/Retry history rather than recovery state.
 - `candidate_session_completed` is the candidate-led completion snapshot for one setup-created practice round. It is derived server-side from `session_runtime_facts`, not from browser-supplied completion totals. It carries the session id, completed timestamp, final `completed` progress state, total/answered/coached counts, answered question keys, coached question keys, skipped-or-unanswered question keys, and the candidate dashboard next route. `/candidate/session/[sessionId]/complete` may persist it to `candidate_practice_sessions.completion_snapshot_json` only after resolving candidate ownership and recovering slot-mapped question wording. This does not create dashboard evidence, summary/debrief content, QA export rows, or legacy `sessions` mutations.
 - `candidate_completed_round_read_models` is the first bridge from one completed V2 practice session into downstream candidate surfaces. It is derived from `candidate_practice_sessions` and produces:
   - `round`: target role, interview stage, completed timestamp, total/answered/coached counts, skipped-or-unanswered count, and optional follow-up session attempt context;
   - `dashboardUpdate`: a sparse Coach Update seed for the candidate dashboard, including the completion route, answered count, question count, and one candidate-safe coaching preview when coaching exists;
-  - `postRoundReview`: a question-first review model with question text, category, practiced versus skipped/unanswered status, submitted answer text, optional per-question follow-up attempt context, and candidate-safe coach observation/focus when available;
+  - `postRoundReview`: a source review model with question text, category, practiced versus skipped/unanswered status, submitted answer text, optional per-question follow-up attempt context, and candidate-safe coach observation/focus when available;
   - `practiceNext`: a next-practice seed that prioritizes skipped/unanswered questions before coaching focus and new-round fallback.
 - `candidate_completed_round_read_models` must not expose raw scores, averages, hidden readiness, `oneBigUpgrade`, legacy recruiter feedback JSON, dashboard lane claims, summary narrative, QA export data, or legacy `sessions` mutations. It is a derivation layer for surfaces, not a persistence write.
-- `candidate_dashboard_v2_read_model` is the first candidate dashboard consumption boundary for completed V2 practice rounds. It is a read-time projection over candidate-owned `candidate_practice_sessions`, not a new JSONB projection table or durable dashboard row. It must choose one selected target interview context before deriving candidate-facing dashboard claims. The default selection rule mirrors the V1 dashboard loader: honor an explicit target interview selection when valid, otherwise prefer an unfinished candidate-owned session, otherwise use the latest completed practice activity. The read model may expose target-interview context options from all candidate sessions, but active/completed counts, `activeRound`, completed-round read models, latest Coach Update, post-round review models, Practice Next, and `coachingLoop` must be scoped to the selected context. It may also expose selected-context attempt rollups for internal tracing and future UI/reporting: total session attempts, follow-up session attempts, total answered question attempts, and answered follow-up question attempts. `activeRound` is the selected-context unfinished practice summary: practice-session id, role, planned/in-progress status, href, question count, answered count, current question number, and progress label. The dashboard may render the latest `postRoundReviews[0].questions` directly as a question-first review surface, including practiced answer text, candidate-safe coach observation/focus, optional attempt context, and skipped/unanswered questions as missing practice evidence. Repeated follow-up practice should remain linked to the same source question or plan item and must not be treated as additional baseline coverage. Route-level selected-target metadata is currently an affordance for navigation/recovery and should not be treated as the durable identity of the prep profile. The loop is a presentation/read-model derivation for self-regulated learning support; it is not a persisted conclusion. It must not write dashboard evidence, copy legacy `eval_results.feedback_json`, persist hidden score/average fields, or treat summary narrative as dashboard truth. Add a separate persisted projection only if later query volume, multi-round aggregation, or cross-device dashboard latency makes read-time derivation inadequate.
-- `candidate_coach_update_detail` is the opened Coach Update content contract exposed through `candidate_dashboard_v2_read_model.coachUpdateDetail`. It is derived from the latest selected-context `postRoundReview`, not persisted as a dashboard conclusion. Each practiced item carries the planned question, category, candidate answer, coach observation/focus, qualitative band when available, and an action posture for reviewing or awaiting coaching. Each skipped or unanswered planned item carries `missing_practice_evidence` status and a practice-oriented action posture. Items may expose `candidate_focused_practice_action` when there is a valid follow-up practice intent: coached practiced answers use `practice_from_feedback`, while skipped/unanswered planned questions use `practice_missing_evidence`. The href should route to `/candidate/practice/ready` and carry only stable source identifiers such as intent, source session id, and question key; it must not place submitted answer text, coach observation text, JD text, resume text, or score-like data in query params. The detail may report whether the selected round is fully reviewable, partially reviewable, or missing-practice-evidence only. It must not include raw scores, averages, queue state, summary narrative, legacy `oneBigUpgrade`, recruiter feedback JSON, or durable preparedness conclusions.
+- `candidate_dashboard_v2_read_model` is the candidate dashboard consumption boundary over candidate-owned practice facts. It resolves one candidate-owned opaque `role_profile_id` before deriving claims, keeps same-title profile-backed contexts separate, and emits canonical `/candidate/dashboard?prep=<roleProfileId>` navigation only after candidate ownership is proven through scoped session facts. Title-keyed selection is restricted to historical records whose `role_profile_id` is null and cannot select or merge a profile-backed context. A malformed, stale, or unauthorized profile id falls back through the normal candidate-owned selection rule and is then canonicalized. Active round, completed-round sources, latest Coach Update, Coach Plan coverage, Practice Next, history, and attempt rollups must all use the selected prep context. `activeRound` is the selected-context unfinished practice summary. Headline and role-context answered/coached counts include active and completed question occurrences, count each latest slot submission once, and count coaching only when the latest analysis maps to that latest submission. Retry attempts, full-session attempts, and follow-up question attempts remain separate normalized lineage and do not inflate those question-evidence counts. Repeated follow-up practice remains linked to the same source question or plan item and does not increase baseline coverage. Dashboard composition is a read-time derivation for self-regulated learning support; it must not copy legacy `eval_results.feedback_json`, persist hidden score/average fields, or treat generated summary narrative as durable preparedness truth.
+- `candidate_coach_update_artifact` is the versioned post-session synthesis contract for one completed practice session. It is tied to candidate and opaque prep-context ownership, source session id, immutable first-write completion fingerprint, source immutable answer-attempt ids, accepted evaluator-run ids, synthesis input fingerprint, provider/model/prompt/evaluator versions, generation attempt, lifecycle, validation metadata, and candidate-safe rendered content. Eligible input includes only the latest attempt for each question recorded as answered in the completion snapshot and exactly one completed `candidate_coaching` run whose validation disposition is `accepted` and whose attempt/input fingerprint matches. Requested, failed, rejected, stale, cross-candidate, cross-context, superseded, skipped, or unanswered facts are excluded. It may summarize the round, acknowledge evidence-supported effort or strengths, identify one primary focus, and describe evidence-specific movement against comparable accepted prior attempts for the same candidate-owned prep context and source plan question. It must not infer improvement from repetition or regression from hidden score changes. The service claims generation under a source-session lock, replays an existing requested/completed same-input claim, expires an abandoned requested claim after its bounded lease, permits a new generation attempt after terminal failure, re-reads source facts before completion, and rejects changed fingerprints. A completed read requires an accepted validation disposition and exact versioned candidate-safe content with no undeclared or score-like fields. Completion remains successful when synthesis is unavailable, and a later replay may repair the unchanged source session. The artifact preserves stable replay and QA lineage but is not durable preparedness truth. A later source session may supersede which artifact is primary without deleting older source-linked artifacts.
+- `candidate_coach_update_detail` is the opened Coach Update read over the latest selected-context artifact and its practiced source items. Every item must have submitted practice evidence from the source session and may carry question text, category, candidate answer, accepted candidate-safe coach observation/focus, qualitative band when available, comparable-attempt context, and a `practice_from_feedback` action. Skipped or unanswered plan questions are excluded and remain in Coach Plan/Practice Next. Detail hrefs carry only stable source identifiers; they must not place submitted answer text, coach observation text, JD text, resume text, or score-like data in query params. The detail must not include raw scores, averages, mutable queue state, legacy `oneBigUpgrade`, recruiter feedback JSON, or durable preparedness conclusions.
 - `candidate_dashboard_practice_direction` is the dashboard read-model split for next-practice meaning. It should expose:
   - `planProgress`: unfinished or remaining Coach Plan work for the selected target interview context, sourced from an active setup-created round first, then skipped/unanswered planned questions, then completed-plan or first-round fallback;
   - `coachGuidedFocus`: feedback-based practice for the selected target interview context, sourced from candidate-safe coaching on a submitted answer.
@@ -807,7 +877,25 @@ Modality persistence rules:
 - dashboard read models may use `analysis.meta.modality` only as an older-row compatibility fallback, not as the normal correctness path.
 - migration `005_backfill_answer_modality_from_analysis.sql` repairs previously persisted answers where feedback analysis proves voice input but the answer row still has the default `text` modality.
 
-### AnalysisResult
+### V2 Evidence-First Evaluator
+
+The canonical V2 evaluator contract is [Evidence-First Evaluator Contract](./05-quality/evidence-first-evaluator-contract.md). Its fixed unit is one immutable answer attempt and exact question occurrence. The accepted pipeline is extraction -> code validation/applicability/bands/pattern gap -> conditional verification -> feedback composition -> code validation -> candidate-safe projection.
+
+The durable accepted record separates:
+
+- answer-attempt and input-fingerprint identity;
+- pipeline and per-stage provider/model/prompt/evaluator versions;
+- accepted exact answer spans and category signals;
+- universal criterion applicability plus qualitative band only when observed;
+- selected pattern gap and optional verifier result;
+- hidden feedback plan and candidate-safe coaching projection;
+- validation/error codes, lifecycle timestamps, latency, and token usage.
+
+No numeric score is part of the V2 evidence-first criterion contract. `not_elicited`, `insufficient_data`, and `unscoreable` never carry a qualitative band. Technical `supported` or `contradicted` claims require a versioned reference; otherwise technical role-skill evidence is `unscoreable`. Assembled prompts and unvalidated raw model responses are not persisted by default. Operational telemetry is metadata-only.
+
+The following `AnalysisResult`, score, `FeedbackPlan`, and `CoachSignal` sections document V1/compatibility data. They do not override the V2 contract or authorize new V2 writes in those shapes.
+
+### Legacy AnalysisResult
 
 Answer analysis is the strongest current source for preparedness evidence.
 
@@ -881,14 +969,14 @@ Contract invariants:
 
 Three release lanes contain dimensions with different observability profiles. Focus, specificity, structure, signposting, filler control, and conciseness are broadly observable in most answers. Outcome/impact, rationale/judgment, and resilience/ownership are more elicitation-dependent and require the question or follow-up to create the right evidence opportunity. A future follow-up coach should deliberately create those opportunities instead of letting the dashboard silently mark the candidate weak for evidence the session never elicited.
 
-### AI Capture AppName
+### Legacy AI Capture AppName
 
-Shared AI calls must record the correct app ownership:
+V1 AI capture distinguished app ownership:
 
 - `candidate_app` for candidate-led sessions with candidate/prepProfile context;
 - `recruiter_app` for recruiter-invited sessions.
 
-Candidate-only answer feedback fields such as `coachSignal` may be generated and rendered for candidate-led sessions. Recruiter-invited answer feedback should not request or render candidate-only coaching fields unless the recruiter-app experience is explicitly changed.
+That distinction remains relevant only to legacy capture and routing. V2 evaluator runs intentionally omit a candidate-app/recruiter-app source axis because candidate-led and invited sessions use the same evaluator job. Audience permissions and visibility belong to session ownership/access contracts, not model-response comparison. Candidate-only legacy fields such as `coachSignal` must not be copied into the V2 evaluator contract.
 
 ### FeedbackPlan
 

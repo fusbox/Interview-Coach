@@ -1,0 +1,13 @@
+COLUMN_NAME,DATA_TYPE,CHARACTER_MAXIMUM_LENGTH,IS_NULLABLE,ORDINAL_POSITION
+PortalID,int,,NO,1
+PortalName,varchar,50,NO,2
+PortalResumeID,varchar,250,YES,3
+CandidateID,int,,NO,4
+CreatedBy,int,,YES,5
+CreatedDate,datetime,,YES,6
+PortalNameID,int,,YES,7
+DateOfReferral,datetime,,YES,8
+ProfileUrl,nvarchar,500,YES,9
+CompanyID,tinyint,,NO,10
+WorkSpaceID,int,,YES,11
+LinkID,uniqueidentifier,,YES,12

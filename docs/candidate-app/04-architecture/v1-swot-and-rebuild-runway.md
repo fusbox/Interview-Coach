@@ -114,7 +114,7 @@ Original refactor plan:
 
 ## Slice 93 Integrated Read
 
-The original refactor plan still supplies the architectural test: one session experience, one answer lifecycle, one evidence-first evaluation engine, and two intentional completion destinations. The cleanroom rebuild has now established more of that foundation than the earlier runway recorded: durable candidate practice sessions, planned and worded questions, live progress, answer drafts and submissions, idempotent analysis boundaries, fixture coaching snapshots, feedback action events, completion snapshots, dashboard read models, durable follow-up intents, and attempt lineage all exist.
+The original refactor plan still supplies the architectural test: one session experience, one answer lifecycle, one evidence-first evaluation engine, and two intentional completion destinations. The cleanroom rebuild has now established more of that foundation than the earlier runway recorded: durable candidate practice sessions, planned and worded questions, live progress, answer drafts and submissions, idempotent analysis boundaries, fixture coaching snapshots, feedback action events, completion snapshots, dashboard read models, durable follow-up intents, and cross-session practice-attempt lineage all exist. Slot-keyed answer submissions and analysis snapshots still preserve only the latest in-session answer, so feedback-driven retry lineage is the next data gap to close before staged feedback can create it.
 
 What remains is not another plumbing-first detour. The next gap is turning those boundaries into the real candidate experience while keeping them capable of converging with the invited-candidate runtime.
 
@@ -130,16 +130,17 @@ What remains is not another plumbing-first detour. The next gap is turning those
 - V1 routes candidate-led completion through a standalone summary. V2 routes candidate-led completion to `/candidate/dashboard`; invited completion may remain summary/debrief-oriented.
 - V1's interaction cadence is useful, but its feedback content and score-derived dashboard conclusions are not the V2 source of truth.
 - The refactor pack preferred adapting the existing shared runtime. The cleanroom rebuild may establish newly factored shared modules instead, provided candidate-led and invited flows derive from the same runtime facts and answer lifecycle rather than creating a third path.
-- V2 already carries attempt lineage for repeated practice, recruiter engagement, and company reporting. Candidate-visible attempt treatment is deferred until a real trend or progress presentation is designed.
+- V2 already carries cross-session practice lineage for repeated questions, recruiter engagement, and company reporting. It must now add immutable answer-attempt lineage within a question occurrence and separate evaluator-run lineage so feedback retries and model A/B runs are not conflated. Candidate-visible attempt treatment is deferred until a real trend or progress presentation is designed.
 
 ## Recommended Runway
 
-Good next commit milestone: productize the candidate session arc over the landed V2 contracts, then return to final dashboard information architecture.
+Good next commit milestone: finish the candidate session arc over the landed landing, shared-shell, and typed-answer contracts, then return to final dashboard information architecture.
 
-1. Production-shaped pre-session landing for initial and follow-up rounds.
-2. Shared live-practice shell with narrow candidate-led/invited divergence.
-3. Candidate-ready typed answer capture, mutation states, recovery, and pause behavior.
-4. Staged evidence-first feedback using the useful V1 action cadence.
-5. End-to-end completion and recovery validation into the selected-context candidate dashboard.
+1. Immutable in-session answer-attempt and evaluator-run lineage, with latest-answer compatibility reads and atomic mutation claims.
+2. Production evidence-first evaluator contract, provider policy, validation, redaction, observability, and QA capture.
+3. Staged evidence-first feedback using the useful V1 action cadence and append-only feedback retry.
+4. End-to-end completion and recovery validation into the selected-context candidate dashboard.
 
-After that milestone, the next coherent arc is dashboard composition: Coach Update as the post-practice feedback read, Coach Plan as broader coverage context, and a plan-aware builder/queue as the flexible feedforward action surface. Attempt history, trend views, and analytics projections should follow only when those core surfaces make their product purpose clear.
+That candidate session milestone is now closed and opaque candidate-owned prep-context identity is authoritative through new setup sessions, follow-up intents/sessions, dashboard reads, and canonical navigation. Historical null-profile records retain an isolated title-keyed compatibility path; title text is no longer identity for profile-backed work.
+
+The current coherent arc is dashboard composition: first land the versioned Coach Update synthesis artifact, then the durable plan-aware builder/queue contract, and only then replace the scaffold with the stable dashboard shell. Attempt history, trend views, and analytics projections should follow only when those core surfaces make their product purpose clear.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Senior Release Pass"
+  short_description: "Assess production and rollout readiness"
+  default_prompt: "Run the senior release pass and provide a release, conditional release, or hold verdict with evidence."

@@ -1,0 +1,2005 @@
+TABLE_SCHEMA,TABLE_NAME,TABLE_TYPE
+dbo,AccomodationMaster,BASE TABLE
+dbo,ActionMaster,BASE TABLE
+dbo,ActualWorkOrder,BASE TABLE
+dbo,AdditionalCompensationMaster,BASE TABLE
+dbo,AddressMaster,BASE TABLE
+dbo,AdjustmentMaster,BASE TABLE
+dbo,AdminInvitation,BASE TABLE
+dbo,AdmittedToCrime,BASE TABLE
+dbo,adzuna_jobs,BASE TABLE
+dbo,AgeGroupSupportMaster,BASE TABLE
+dbo,AICandidateCertificates,BASE TABLE
+dbo,AICandidateEducationDetails,BASE TABLE
+dbo,AICandidateMaster,BASE TABLE
+dbo,AICandidateScore,BASE TABLE
+dbo,AIClientApiKey,BASE TABLE
+dbo,AIExceptionLog,BASE TABLE
+dbo,AIlocationMaster,BASE TABLE
+dbo,AIScoreActivity,BASE TABLE
+dbo,AIScoreWeightage,BASE TABLE
+dbo,AlternatePointOfContact,BASE TABLE
+dbo,AMInterviewLevelChecklist,BASE TABLE
+dbo,AMOfferAcceptedLevelChecklist,BASE TABLE
+dbo,AMSubmissionLevelChecklist,BASE TABLE
+dbo,AnnualIncentiveApprovedTxn,BASE TABLE
+dbo,AnonymousBotConversation,BASE TABLE
+dbo,AnonymousBotLogDetail,BASE TABLE
+dbo,AnotherUserFileTXN,BASE TABLE
+dbo,APIResponseLogTxn,BASE TABLE
+dbo,ApiTransactionLog,BASE TABLE
+dbo,AppConfig,BASE TABLE
+dbo,ApplicationConfiguration,BASE TABLE
+dbo,ApplicationUpdate,BASE TABLE
+dbo,AppRegistrationMaster,BASE TABLE
+dbo,AppStaticURLS,BASE TABLE
+dbo,APrev,BASE TABLE
+dbo,ARTIEEducationWeights,BASE TABLE
+dbo,ARTIEExperienceWeights,BASE TABLE
+dbo,ARTIEPriorityWeights,BASE TABLE
+dbo,ArtieRankingRequirementAttempts,BASE TABLE
+dbo,ArtieRequirementProssesLog,BASE TABLE
+dbo,ARTIESemanticsWeights,BASE TABLE
+dbo,ARTIESkillWeights,BASE TABLE
+dbo,ARTIETXN,BASE TABLE
+dbo,ARTIEWeights,BASE TABLE
+dbo,AssignJobsTypeMaster,BASE TABLE
+dbo,AssociatedEmployerStatusMaster,BASE TABLE
+dbo,AuditLog,BASE TABLE
+dbo,AuditModuleMaster,BASE TABLE
+dbo,AutismKeywords,BASE TABLE
+dbo,AutismVCrFair,BASE TABLE
+dbo,AutoApplyAgent,BASE TABLE
+dbo,AutoDialerCallLogs,BASE TABLE
+dbo,AutomationCampaignMaster,BASE TABLE
+dbo,AutomationCampaignSelection,BASE TABLE
+dbo,AutomationCampaignSteps,BASE TABLE
+dbo,AutomationMultipleSelectionCampaign,BASE TABLE
+dbo,AutomationSingleSelectionCampaign,BASE TABLE
+dbo,BeelineJobPostings,BASE TABLE
+dbo,BeelineJobPostingsJson,BASE TABLE
+dbo,Bender,BASE TABLE
+dbo,BenefitsDtlAtSubmissionChkl,BASE TABLE
+dbo,Beta_vw_ActiveSubmission,VIEW
+dbo,Beta_vw_AddressDetail,VIEW
+dbo,Beta_vw_Candidate_Address,VIEW
+dbo,Beta_vw_Candidate_All_Detail,VIEW
+dbo,Beta_Vw_Candidate_All_EmailCount,VIEW
+dbo,Beta_vw_Candidate_Flags,VIEW
+dbo,Beta_Vw_Candidate_RCare_EmailCount,VIEW
+dbo,Beta_Vw_Candidate_WithoutRCare_EmailCount,VIEW
+dbo,Beta_vw_CandidateEmploymentInfo,VIEW
+dbo,Beta_vw_CandidateJobTypes,VIEW
+dbo,Beta_Vw_CandidateSelfAppliedOnJobs,VIEW
+dbo,Beta_vw_CurrentHiredCandidateListFinance,VIEW
+dbo,Beta_vw_EmailReceiveFromSvcRequirement,VIEW
+dbo,Beta_vw_EmailToCandidate,VIEW
+dbo,Beta_vw_EmploymentExtensionReport,VIEW
+dbo,Beta_vw_FlagCandidateList,VIEW
+dbo,Beta_vw_HiredCandidateList,VIEW
+dbo,Beta_vw_ReadyToSubmit,VIEW
+dbo,Beta_vw_SickLeaveAct,VIEW
+dbo,Beta_Vw_TotalHiredCandidateList,VIEW
+dbo,Beta_vw_TotalRejected,VIEW
+dbo,Beta_vw_TotalSubmission,VIEW
+dbo,Beta_vw_User_Goals,VIEW
+dbo,Beta_vw_UserWiseRequirementActionTaken,VIEW
+dbo,Beta_vw_ZipcodeDetail,VIEW
+dbo,BrevoEventStage,BASE TABLE
+dbo,BulkImportFileProcessing,BASE TABLE
+dbo,BulkImportProfilePortalNameRules,BASE TABLE
+dbo,BulkImportTxnreport,BASE TABLE
+dbo,BulkUploadProfileEtagTxn,BASE TABLE
+dbo,BusinessTypeMaster,BASE TABLE
+dbo,CabApproveTxn,BASE TABLE
+dbo,Calendar,BASE TABLE
+dbo,CallConversation,BASE TABLE
+dbo,CallConversationMaster,BASE TABLE
+dbo,CallScriptMaster,BASE TABLE
+dbo,CallScriptScreenMaster,BASE TABLE
+dbo,CallScriptScreenSequence,BASE TABLE
+dbo,CallStatusMaster,BASE TABLE
+dbo,CamapignScheduleTxnForService,BASE TABLE
+dbo,CampaignActivityLog,BASE TABLE
+dbo,CampaignAttachmentTxn,BASE TABLE
+dbo,CampaignContactListTxn,BASE TABLE
+dbo,CampaignContactTxn,BASE TABLE
+dbo,CampaignEmailAttachmentTxn,BASE TABLE
+dbo,CampaignEmailSentMaster,BASE TABLE
+dbo,CampaignEmailToContact,BASE TABLE
+dbo,CampaignMaster,BASE TABLE
+dbo,CampaignScheduleTxn,BASE TABLE
+dbo,CampaignSentTxn,BASE TABLE
+dbo,CampaignStatusLog,BASE TABLE
+dbo,CampaignStatusMaster,BASE TABLE
+dbo,CampaignUnsubscribe,BASE TABLE
+dbo,CampaingByMarketingTeam,BASE TABLE
+dbo,CandiateOffBoardBeloging,BASE TABLE
+dbo,CandidateAccomodationTxn,BASE TABLE
+dbo,CandidateAdditionalEmail,BASE TABLE
+dbo,CandidateAdditionalInformation,BASE TABLE
+dbo,CandidateAIConsent,BASE TABLE
+dbo,CandidateAlternatePointOfContact,BASE TABLE
+dbo,CandidateAppliedBySupportProviderTxn,BASE TABLE
+dbo,CandidateAppVerification,BASE TABLE
+dbo,CandidateARTIEScore,BASE TABLE
+dbo,CandidateAssignTxn,BASE TABLE
+dbo,CandidateAttribute,BASE TABLE
+dbo,CandidateAuthentication,BASE TABLE
+dbo,CandidateAvailability,BASE TABLE
+dbo,CandidateAwardsAndCertificatesDocument,BASE TABLE
+dbo,CandidateAwardsAndCertificatesTxn,BASE TABLE
+dbo,CandidateBackGroundCheck,BASE TABLE
+dbo,CandidateBelongItems,BASE TABLE
+dbo,CandidateBelongItemTxn,BASE TABLE
+dbo,CandidateBenefitsDeclinationInfo,BASE TABLE
+dbo,CandidateBenifit,BASE TABLE
+dbo,CandidateBulkUploadRequestMaster,BASE TABLE
+dbo,CandidateBulkUploadRequestTxn,BASE TABLE
+dbo,CandidateCallConversationTxn,BASE TABLE
+dbo,CandidateCampaignEmail,BASE TABLE
+dbo,CandidateCampaignLog,BASE TABLE
+dbo,CandidateCareerAspiration,BASE TABLE
+dbo,CandidateCategory,BASE TABLE
+dbo,CandidateCategoryMaster,BASE TABLE
+dbo,CandidateCategoryTxn,BASE TABLE
+dbo,CandidateCertificateTxn,BASE TABLE
+dbo,CandidateChangeEmailTxn,BASE TABLE
+dbo,CandidateCommunityMappingTxn,BASE TABLE
+dbo,CandidateCompany,BASE TABLE
+dbo,CandidateCompanyContact,BASE TABLE
+dbo,CandidateCompanyMaster,BASE TABLE
+dbo,CandidateCompanyTxn,BASE TABLE
+dbo,CandidateConnectMaster,BASE TABLE
+dbo,CandidateContactTxn,BASE TABLE
+dbo,CandidateCRA,BASE TABLE
+dbo,CandidateCurrentFieldOfWorkTxn,BASE TABLE
+dbo,CandidateDesiredJobTitleTxn,BASE TABLE
+dbo,CandidateDigitalProfile,BASE TABLE
+dbo,CandidateDisabilityTxn,BASE TABLE
+dbo,CandidateDuplicateProfile,BASE TABLE
+dbo,CandidateEducationTxn,BASE TABLE
+dbo,CandidateEduHistoryQuestions,BASE TABLE
+dbo,CandidateEffectiveBillRate,BASE TABLE
+dbo,CandidateEffectiveBillRateCommentTxn,BASE TABLE
+dbo,CandidateEffectiveBillRateCommentTxnTemp,BASE TABLE
+dbo,CandidateEffectiveBillRateTemp,BASE TABLE
+dbo,CandidateEmailValidationTxn,BASE TABLE
+dbo,CandidateEmployment,BASE TABLE
+dbo,CandidateEngagement,BASE TABLE
+dbo,CandidateEngagementEntityValue,BASE TABLE
+dbo,CandidateEngagementEntityValueTxn,BASE TABLE
+dbo,CandidateEngagementProgram,BASE TABLE
+dbo,CandidateEngagementProgramTxn,BASE TABLE
+dbo,CandidateEngagementTrainingTxn,BASE TABLE
+dbo,CandidateEngagementTxn,BASE TABLE
+dbo,CandidateEnrollementConfirmationDocuments,BASE TABLE
+dbo,CandidateeShieldScreeningAuthorization,BASE TABLE
+dbo,CandidateEthnicityTxn,BASE TABLE
+dbo,CandidateExperience,BASE TABLE
+dbo,CandidateExperienceLevel,BASE TABLE
+dbo,CandidateExtentionDateUpdate,BASE TABLE
+dbo,CandidateFieldOfWorkToExploreTxn,BASE TABLE
+dbo,CandidateFlag,BASE TABLE
+dbo,CandidateFlagLog,BASE TABLE
+dbo,CandidateFollowUp,BASE TABLE
+dbo,CandidateGenderTxn,BASE TABLE
+dbo,CandidateHRNotes,BASE TABLE
+dbo,CandidateIndustryMapping,BASE TABLE
+dbo,CandidateInfoTracetxn,BASE TABLE
+dbo,CandidateIntakeTxn,BASE TABLE
+dbo,CandidateJobAlert,BASE TABLE
+dbo,CandidateJobAlertCategoryTxn,BASE TABLE
+dbo,CandidateJobAlertFrequencyTxn,BASE TABLE
+dbo,CandidateJobAlertJobtypeTxn,BASE TABLE
+dbo,CandidateJobAlertLocationTxn,BASE TABLE
+dbo,CandidateJobAlertRemoteOptionTypeTxn,BASE TABLE
+dbo,CandidateJobCoachTxn,BASE TABLE
+dbo,CandidateJobCollectionStatusTxn,BASE TABLE
+dbo,CandidateJobCollectionTxn,BASE TABLE
+dbo,CandidateJobHistory,BASE TABLE
+dbo,CandidateJobInterest,BASE TABLE
+dbo,CandidateJobLocation,BASE TABLE
+dbo,CandidateJobRecommendation,BASE TABLE
+dbo,CandidateJobRecommendationTemp,BASE TABLE
+dbo,CandidateJobSearchPriority,BASE TABLE
+dbo,CandidateJobtypeTxn,BASE TABLE
+dbo,CandidateKeySkillViewLog,BASE TABLE
+dbo,CandidateLanguageFluency,BASE TABLE
+dbo,CandidateLanguageFluencyTxn,BASE TABLE
+dbo,CandidateLastViewTxn,BASE TABLE
+dbo,CandidateLocalSettingsTxn,BASE TABLE
+dbo,CandidateLoginTxn,BASE TABLE
+dbo,CandidateLoginTypeTxn,BASE TABLE
+dbo,CandidateMarriageStatus,BASE TABLE
+dbo,CandidateMaster,BASE TABLE
+dbo,CandidateMergedDuplicateProfile,BASE TABLE
+dbo,CandidateMergeTxn,BASE TABLE
+dbo,CandidateMigrateTxn,BASE TABLE
+dbo,CandidateMigrationTracker,BASE TABLE
+dbo,CandidateMiscellaneousLinksTxn,BASE TABLE
+dbo,CandidateMostRecentFieldOfWorkTxn,BASE TABLE
+dbo,CandidateNotes,BASE TABLE
+dbo,CandidateNotificationLog_PA,BASE TABLE
+dbo,CandidateNotificationOnOff,BASE TABLE
+dbo,CandidateNotRehireable,BASE TABLE
+dbo,CandidateNotRehireableTxn,BASE TABLE
+dbo,CandidateOtherDegreesTxn,BASE TABLE
+dbo,CandidateOtherDocument,BASE TABLE
+dbo,CandidateParsedHTMLContentTxn,BASE TABLE
+dbo,CandidatePastEmployment,BASE TABLE
+dbo,CandidatePastEmploymentAddressTxn,BASE TABLE
+dbo,CandidatePlanActive,BASE TABLE
+dbo,CandidatePlanTxn,BASE TABLE
+dbo,CandidatePortal,BASE TABLE
+dbo,CandidatePreferedLocationTxn,BASE TABLE
+dbo,CandidatePreferredCommunication,BASE TABLE
+dbo,CandidatePreferredCommunicationTxn,BASE TABLE
+dbo,CandidatePrimaryPOCTxn,BASE TABLE
+dbo,CandidateProfessionalExperienceDetails,BASE TABLE
+dbo,CandidateProfessionalSummaryDetails,BASE TABLE
+dbo,CandidateProfileContactVerificationTxn,BASE TABLE
+dbo,CandidateProfileImage,BASE TABLE
+dbo,CandidateProfileStatusTxn,BASE TABLE
+dbo,CandidateProfileUpdateLogTxn,BASE TABLE
+dbo,CandidateProgramStatusMaster,BASE TABLE
+dbo,CandidateProgramStatusTxn,BASE TABLE
+dbo,CandidateProgramTeamNotes,BASE TABLE
+dbo,CandidateProjects,BASE TABLE
+dbo,CandidateQuestionAnswer,BASE TABLE
+dbo,CandidateQuestionCategoryMaster,BASE TABLE
+dbo,CandidateQuestionMaster,BASE TABLE
+dbo,CandidateQuestionTxn,BASE TABLE
+dbo,CandidateRaceTxn,BASE TABLE
+dbo,CandidateRangamworksTxn,BASE TABLE
+dbo,CandidateRateInfo,BASE TABLE
+dbo,CandidateRating,BASE TABLE
+dbo,CandidateRchilliDetailsTxn,BASE TABLE
+dbo,CandidateRchilliDetailsTypeMaster,BASE TABLE
+dbo,CandidateRecruiterData,BASE TABLE
+dbo,CandidateReference,BASE TABLE
+dbo,CandidateReferenceEmail,BASE TABLE
+dbo,CandidateReferenceRequest,BASE TABLE
+dbo,CandidateReferral,BASE TABLE
+dbo,CandidateReferralLog,BASE TABLE
+dbo,CandidateReferralTxn,BASE TABLE
+dbo,CandidateRegisterReferralTxn,BASE TABLE
+dbo,CandidateRegistrationCodeTxn,BASE TABLE
+dbo,CandidateRegistrationForm,BASE TABLE
+dbo,CandidateRegistrationSourceMaster,BASE TABLE
+dbo,CandidateRelocation,BASE TABLE
+dbo,CandidateRepliedWith,BASE TABLE
+dbo,CandidateReport,BASE TABLE
+dbo,CandidateRequirementActivityTxn,BASE TABLE
+dbo,CandidateResume,BASE TABLE
+dbo,CandidateResume_DeleteErrorLog,BASE TABLE
+dbo,CandidateResume_DeleteHistory,BASE TABLE
+dbo,CandidateResumeAIParsedTxn,BASE TABLE
+dbo,CandidateResumeFeedback,BASE TABLE
+dbo,CandidateResumeFeedbackHelpfulTxn,BASE TABLE
+dbo,CandidateResumeRequestTxn,BASE TABLE
+dbo,CandidateReviewInformation,BASE TABLE
+dbo,CandidateSalary,BASE TABLE
+dbo,CandidateScoreWeightage,BASE TABLE
+dbo,CandidateSearchHistory,BASE TABLE
+dbo,CandidateSearchString,BASE TABLE
+dbo,CandidateSelfApplied,BASE TABLE
+dbo,CandidateSelfFlagged,BASE TABLE
+dbo,CandidateSelfPerceivedAssessment,BASE TABLE
+dbo,CandidateSessionTxn,BASE TABLE
+dbo,CandidateSignatureTxn,BASE TABLE
+dbo,CandidateSkillAssessmentTxn,BASE TABLE
+dbo,CandidateSkillsMaster,BASE TABLE
+dbo,CandidateSocialSite,BASE TABLE
+dbo,CandidateSourceMaster,BASE TABLE
+dbo,CandidateSourceTxn,BASE TABLE
+dbo,CandidateSpouseInfo,BASE TABLE
+dbo,CandidateSSN,BASE TABLE
+dbo,CandidateSSNDiscrepancy,BASE TABLE
+dbo,CandidateSubscribeLog,BASE TABLE
+dbo,CandidateSubTypeMaster,BASE TABLE
+dbo,CandidateSubTypeTxn,BASE TABLE
+dbo,CandidateSupportContact,BASE TABLE
+dbo,CandidateSurveyCaseMasterTxn,BASE TABLE
+dbo,CandidateSurveyTxn,BASE TABLE
+dbo,CandidateTalentChannelTxn,BASE TABLE
+dbo,CandidateTalentShowCaseHistory,BASE TABLE
+dbo,CandidateTemplate,BASE TABLE
+dbo,CandidateTestResult,BASE TABLE
+dbo,CandidateTestResultKenexa,BASE TABLE
+dbo,CandidateTokenTxn,BASE TABLE
+dbo,CandidateTransportTxn,BASE TABLE
+dbo,CandidateTravel,BASE TABLE
+dbo,CandidateTwoFactorAuthentication,BASE TABLE
+dbo,CandidateTypeMaster,BASE TABLE
+dbo,CandidateTypeTxn,BASE TABLE
+dbo,CandidateUserNotes,BASE TABLE
+dbo,CandidateVerificationLogTxn,BASE TABLE
+dbo,CandidateVeteranServeTxn,BASE TABLE
+dbo,CandidateVideoResumeTxn,BASE TABLE
+dbo,CandidateVisa,BASE TABLE
+dbo,CandidateVisaLog,BASE TABLE
+dbo,CandidateVoluntaryDisclosureTxn,BASE TABLE
+dbo,CandidateWorkExperienceTxn,BASE TABLE
+dbo,CandidateWorkTypeTxn,BASE TABLE
+dbo,CapabilitiesForm,BASE TABLE
+dbo,CaptionMaster,BASE TABLE
+dbo,CareerBreakTypeMaster,BASE TABLE
+dbo,CareerBuilderAccountMaster,BASE TABLE
+dbo,CareerBuilderAPICallTXN,BASE TABLE
+dbo,CareerBuilderAPIClickTxn,BASE TABLE
+dbo,careerjet_jobs,BASE TABLE
+dbo,CareerStartMaster,BASE TABLE
+dbo,CareerStartTXN,BASE TABLE
+dbo,CaseManagementAcceptRequestUserTxn,BASE TABLE
+dbo,CaseManagementAdminUser,BASE TABLE
+dbo,CaseManagementClient,BASE TABLE
+dbo,CaseManagementClientEntity,BASE TABLE
+dbo,CaseManagementCompany,BASE TABLE
+dbo,CaseManagementCompanyEntity,BASE TABLE
+dbo,CaseManagementControlValidationRule,BASE TABLE
+dbo,CaseManagementEntityDatabaseSetup,BASE TABLE
+dbo,CaseManagementErrorLog,BASE TABLE
+dbo,CaseManagementLoginToken,BASE TABLE
+dbo,CaseManagementMasterList,BASE TABLE
+dbo,CaseManagementMasterListEmailTemplateTxn,BASE TABLE
+dbo,CaseManagementMasterListEntryType,BASE TABLE
+dbo,CaseManagementMasterListRequestTypeTxn,BASE TABLE
+dbo,CaseManagementPlatformMaster,BASE TABLE
+dbo,CaseManagementRequest,BASE TABLE
+dbo,CaseManagementRequestActivity,BASE TABLE
+dbo,CaseManagementRequestAlert,BASE TABLE
+dbo,CaseManagementRequestAttribute,BASE TABLE
+dbo,CaseManagementRequestCandidateTxn,BASE TABLE
+dbo,CaseManagementRequestDetail,BASE TABLE
+dbo,CaseManagementRequestDetailFile,BASE TABLE
+dbo,CaseManagementRequestForward,BASE TABLE
+dbo,CaseManagementRequestNote,BASE TABLE
+dbo,CaseManagementRequestNotification,BASE TABLE
+dbo,CaseManagementRequestReject,BASE TABLE
+dbo,CaseManagementRequestStatusHistory,BASE TABLE
+dbo,CaseManagementRequestType,BASE TABLE
+dbo,CaseManagementRequestTypeControl,BASE TABLE
+dbo,CaseManagementRequestTypeControlScreen,BASE TABLE
+dbo,CaseManagementRequestTypeTitle,BASE TABLE
+dbo,CaseManagementRole,BASE TABLE
+dbo,CaseManagementTicketCategoryMaster,BASE TABLE
+dbo,CaseManagementUserCompanyTransaction,BASE TABLE
+dbo,CaseManagementUserRequestTxn,BASE TABLE
+dbo,CaseManagementValidationRule,BASE TABLE
+dbo,CaseWorkerMessages,BASE TABLE
+dbo,CaseWorkerUploadedResume,BASE TABLE
+dbo,CategoryGroupMaster,BASE TABLE
+dbo,CategoryMaster,BASE TABLE
+dbo,CertificationsMaster,BASE TABLE
+dbo,ChatOriginMaster,BASE TABLE
+dbo,ChatReportActionsMaster,BASE TABLE
+dbo,CheckListAttachment,BASE TABLE
+dbo,CheckListProcessMaster,BASE TABLE
+dbo,CheckListProcessTXN,BASE TABLE
+dbo,CheckListSubProcessMaster,BASE TABLE
+dbo,CheckMaster,BASE TABLE
+dbo,CityMaster,BASE TABLE
+dbo,CivilianEducationMaster,BASE TABLE
+dbo,ClientAccountTxn,BASE TABLE
+dbo,ClientAccountType,BASE TABLE
+dbo,ClientAddressTxn,BASE TABLE
+dbo,ClientAmendment,BASE TABLE
+dbo,ClientAmendmentDocument,BASE TABLE
+dbo,ClientAPIConfig,BASE TABLE
+dbo,ClientAPICredential,BASE TABLE
+dbo,ClientApiKey,BASE TABLE
+dbo,ClientArtieConfiguration,BASE TABLE
+dbo,ClientAtsTxn,BASE TABLE
+dbo,ClientCallConversation,BASE TABLE
+dbo,ClientChecks,BASE TABLE
+dbo,ClientContactTxn,BASE TABLE
+dbo,ClientContractTypeDocument,BASE TABLE
+dbo,ClientCRA,BASE TABLE
+dbo,ClientDiscount,BASE TABLE
+dbo,ClientDivision,BASE TABLE
+dbo,ClientDoableAndDonts,BASE TABLE
+dbo,ClientDocument,BASE TABLE
+dbo,ClientDocumentMapping,BASE TABLE
+dbo,ClientDocumentOnContract,BASE TABLE
+dbo,ClientEnrollTxn,BASE TABLE
+dbo,ClientFromEmailTxn,BASE TABLE
+dbo,ClientGeneralDocument,BASE TABLE
+dbo,ClientGeneralDocumentHighlight,BASE TABLE
+dbo,ClientHiringDocument,BASE TABLE
+dbo,ClientHiringEmail,BASE TABLE
+dbo,ClientHiringManagerContactTxn,BASE TABLE
+dbo,ClientHiringManagerMaster,BASE TABLE
+dbo,ClientHolding,BASE TABLE
+dbo,ClientHoldingTxn,BASE TABLE
+dbo,ClientIndicatorScoringLog,BASE TABLE
+dbo,ClientIndustryData,BASE TABLE
+dbo,ClientIntakeCallTxn,BASE TABLE
+dbo,ClientIntegrationCredential,BASE TABLE
+dbo,ClientInteraction,BASE TABLE
+dbo,ClientInterviewTemplate,BASE TABLE
+dbo,ClientInvoiceConfigMaster,BASE TABLE
+dbo,ClientJobTitleTxn,BASE TABLE
+dbo,ClientLinkedInProfileTxn,BASE TABLE
+dbo,ClientLocationSalaryTxn,BASE TABLE
+dbo,ClientLogoTxn,BASE TABLE
+dbo,clientMappingCase,BASE TABLE
+dbo,ClientMappingWithSourcePros,BASE TABLE
+dbo,ClientMaptoScrapingCompany,BASE TABLE
+dbo,ClientMarkupMaster,BASE TABLE
+dbo,ClientMarkupTypeMaster,BASE TABLE
+dbo,ClientMaster,BASE TABLE
+dbo,ClientMaturity,BASE TABLE
+dbo,ClientMenu,BASE TABLE
+dbo,ClientMenuConfig,BASE TABLE
+dbo,ClientPartner,BASE TABLE
+dbo,ClientPartnerEmail,BASE TABLE
+dbo,ClientPayrollConfig,BASE TABLE
+dbo,ClientPortalMaster,BASE TABLE
+dbo,ClientPreferenceTxn,BASE TABLE
+dbo,ClientReferralDocumentTxn,BASE TABLE
+dbo,ClientReferralStatusTxn,BASE TABLE
+dbo,ClientReferralTxn,BASE TABLE
+dbo,ClientRegistrationSourceTxn,BASE TABLE
+dbo,ClientRejectionMaster,BASE TABLE
+dbo,ClientRejectionTxn,BASE TABLE
+dbo,ClientResumeTemplate,BASE TABLE
+dbo,ClientResumeTemplateDocument,BASE TABLE
+dbo,ClientScoreCard,BASE TABLE
+dbo,ClientSkillTxn,BASE TABLE
+dbo,ClientStatusMaster,BASE TABLE
+dbo,ClientStatusTxn,BASE TABLE
+dbo,ClientSubscriptionTxn,BASE TABLE
+dbo,ClientTalentChannelTxn,BASE TABLE
+dbo,ClientTimeSheetReminderConfig,BASE TABLE
+dbo,ClientTrainingRequiredTxn,BASE TABLE
+dbo,ClientTypeMaster,BASE TABLE
+dbo,ClientUserTxn,BASE TABLE
+dbo,ClientVideo,BASE TABLE
+dbo,ClientVmsTxn,BASE TABLE
+dbo,ClientWebsite,BASE TABLE
+dbo,ClientWorkplaceReadinessTxn,BASE TABLE
+dbo,CloudNotification,BASE TABLE
+dbo,CloudNotificationTypeMaster,BASE TABLE
+dbo,ClubMaster,BASE TABLE
+dbo,Cms_AudiencePreferences,BASE TABLE
+dbo,Cms_Campaign_Audience_Map,BASE TABLE
+dbo,Cms_Campaign_Templates_Map,BASE TABLE
+dbo,Cms_CampaignApproval,BASE TABLE
+dbo,Cms_CampaignAudience,BASE TABLE
+dbo,Cms_CampaignAuditTrail,BASE TABLE
+dbo,Cms_CampaignAutomationLogs,BASE TABLE
+dbo,Cms_CampaignEmailTemplates,BASE TABLE
+dbo,Cms_CampaignEmailTracking,BASE TABLE
+dbo,Cms_CampaignErrorLogs,BASE TABLE
+dbo,Cms_CampaignFileImportLogs,BASE TABLE
+dbo,Cms_CampaignRoles,BASE TABLE
+dbo,Cms_Campaigns,BASE TABLE
+dbo,Cms_CampaignSMSTemplates,BASE TABLE
+dbo,Cms_CampaignSMSTracking,BASE TABLE
+dbo,Cms_CampaignStateTemplates,BASE TABLE
+dbo,Cms_CampaignUsers,BASE TABLE
+dbo,Cms_ReceivedMessages,BASE TABLE
+dbo,CommunityAdminTxn,BASE TABLE
+dbo,CommunityAppVerification,BASE TABLE
+dbo,CommunityChat,BASE TABLE
+dbo,CommunityChatAttachment,BASE TABLE
+dbo,CommunityChatFlagTxn,BASE TABLE
+dbo,CommunityChatSeenBy,BASE TABLE
+dbo,CommunityClient,BASE TABLE
+dbo,CommunityClientLogo,BASE TABLE
+dbo,CommunityClientMemberTxn,BASE TABLE
+dbo,CommunityDepartmentMaster,BASE TABLE
+dbo,CommunityDepartmentTxn,BASE TABLE
+dbo,CommunityEnableModuleTxn,BASE TABLE
+dbo,CommunityEventAssignedSlot,BASE TABLE
+dbo,CommunityEventAttachment,BASE TABLE
+dbo,CommunityEventAttendeeStatus,BASE TABLE
+dbo,CommunityEventMaster,BASE TABLE
+dbo,CommunityEventParticipant,BASE TABLE
+dbo,CommunityEventParticipantAvailibility,BASE TABLE
+dbo,CommunityEventParticipantSlot,BASE TABLE
+dbo,CommunityEventQuestionAnswer,BASE TABLE
+dbo,CommunityEventReviewAttachment,BASE TABLE
+dbo,CommunityEventSlot,BASE TABLE
+dbo,CommunityEventStatusMaster,BASE TABLE
+dbo,CommunityEventTiming,BASE TABLE
+dbo,CommunityEventTypeMaster,BASE TABLE
+dbo,CommunityFileObjectMaster,BASE TABLE
+dbo,CommunityGroupConfiguration,BASE TABLE
+dbo,CommunityGroupMaster,BASE TABLE
+dbo,CommunityGroupMemberReference,BASE TABLE
+dbo,CommunityGroupMemberRoleTxn,BASE TABLE
+dbo,CommunityInvitation,BASE TABLE
+dbo,CommunityInvitationMemberMapping,BASE TABLE
+dbo,CommunityInvitationResponse,BASE TABLE
+dbo,CommunityInvitationStatusTxn,BASE TABLE
+dbo,CommunityInvitationTypeMaster,BASE TABLE
+dbo,CommunityInvitationUserTxn,BASE TABLE
+dbo,CommunityJobStatusMaster,BASE TABLE
+dbo,CommunityJobTitleMaster,BASE TABLE
+dbo,CommunityJoinRequest,BASE TABLE
+dbo,CommunityLocationMaster,BASE TABLE
+dbo,CommunityLocationTxn,BASE TABLE
+dbo,CommunityMemberActivation,BASE TABLE
+dbo,CommunityMemberBlockedMemberTxn,BASE TABLE
+dbo,CommunityMemberConfiguration,BASE TABLE
+dbo,CommunityMemberDepartment,BASE TABLE
+dbo,CommunityMemberGroup,BASE TABLE
+dbo,CommunityMemberInvitation,BASE TABLE
+dbo,CommunityMemberInvitationTxn,BASE TABLE
+dbo,CommunityMemberJobTitle,BASE TABLE
+dbo,CommunityMemberLocation,BASE TABLE
+dbo,CommunityMemberMaster,BASE TABLE
+dbo,CommunityMemberNotificationOnOff,BASE TABLE
+dbo,CommunityMemberNotificationPreferencesTxn,BASE TABLE
+dbo,CommunityMembeRoleOpenTo,BASE TABLE
+dbo,CommunityMemberProfile,BASE TABLE
+dbo,CommunityMemberProfilePic,BASE TABLE
+dbo,CommunityMemberReference,BASE TABLE
+dbo,CommunityMemberRegistration,BASE TABLE
+dbo,CommunityMemberRequest,BASE TABLE
+dbo,CommunityMemberRoleTxn,BASE TABLE
+dbo,CommunityMemberRSVP,BASE TABLE
+dbo,CommunityMemberSessionTxn,BASE TABLE
+dbo,CommunityMemberSettingsTxn,BASE TABLE
+dbo,CommunityMemberTypeMaster,BASE TABLE
+dbo,CommunityModuleMaster,BASE TABLE
+dbo,CommunityNotificationPreferencesMaster,BASE TABLE
+dbo,CommunityObjectTypeMaster,BASE TABLE
+dbo,CommunityPackageType,BASE TABLE
+dbo,CommunityRegistrationRequest,BASE TABLE
+dbo,CommunityReportPostMaster,BASE TABLE
+dbo,CommunityRequest,BASE TABLE
+dbo,CommunityRequestApproved,BASE TABLE
+dbo,CommunityRequestDetail,BASE TABLE
+dbo,CommunityRequestType,BASE TABLE
+dbo,CommunityRoleMaster,BASE TABLE
+dbo,CommunityRoleTxn,BASE TABLE
+dbo,CompanyAgeGroupSupportTxn,BASE TABLE
+dbo,CompanyAgreementFile,BASE TABLE
+dbo,CompanyBusinessTypeTxn,BASE TABLE
+dbo,CompanyCertificationTxn,BASE TABLE
+dbo,CompanyClientTxn,BASE TABLE
+dbo,CompanyContactTxn,BASE TABLE
+dbo,CompanyEngagementModuleEntry,BASE TABLE
+dbo,CompanyEngagementModuleEntryEntity,BASE TABLE
+dbo,CompanyEngagementProgram,BASE TABLE
+dbo,CompanyEngagementProgramModule,BASE TABLE
+dbo,CompanyLogo,BASE TABLE
+dbo,CompanyMarketingSignature,BASE TABLE
+dbo,CompanyMaster,BASE TABLE
+dbo,CompanyNotes,BASE TABLE
+dbo,CompanyNotesFileTxn,BASE TABLE
+dbo,CompanyPopulationSupportTxn,BASE TABLE
+dbo,CompanyPortalTxn,BASE TABLE
+dbo,CompanyServerMaster,BASE TABLE
+dbo,CompanyServiceProviderMapping,BASE TABLE
+dbo,CompanySupportServicesTXN,BASE TABLE
+dbo,CompanyTypeMaster,BASE TABLE
+dbo,CompanyUserTypeMaster,BASE TABLE
+dbo,CompanyWebsite,BASE TABLE
+dbo,ComplianceParamters,BASE TABLE
+dbo,ConditionMaster,BASE TABLE
+dbo,ConflictOfInterestQuestionnaire,BASE TABLE
+dbo,ConnectWithRecruiterMessage,BASE TABLE
+dbo,ConsultantCheckInTxn,BASE TABLE
+dbo,ConsultantResource,BASE TABLE
+dbo,ConsultantWorkDtl,BASE TABLE
+dbo,ContactAddressMaster,BASE TABLE
+dbo,ContactColumnTxn,BASE TABLE
+dbo,ContactColumnValueTxn,BASE TABLE
+dbo,ContactCreatedTypeMaster,BASE TABLE
+dbo,ContactListFilters,BASE TABLE
+dbo,ContactListMaster,BASE TABLE
+dbo,ContactMaster,BASE TABLE
+dbo,ContactPreferenceDtlAtSubmissionChkl,BASE TABLE
+dbo,ContactProjectMaster,BASE TABLE
+dbo,ContactSourceAbledTeam,BASE TABLE
+dbo,ContactUS,BASE TABLE
+dbo,ContactUSCandidateResume,BASE TABLE
+dbo,ContactUsCategory,BASE TABLE
+dbo,ContactUserTypeMaster,BASE TABLE
+dbo,ContactUsMaster,BASE TABLE
+dbo,ContactUsReason,BASE TABLE
+dbo,ContinentMaster,BASE TABLE
+dbo,ContractCompletionSendMail,BASE TABLE
+dbo,ContractMaster,BASE TABLE
+dbo,ContractorTerminationRequest,BASE TABLE
+dbo,ContractTypeMaster,BASE TABLE
+dbo,ControlValidationRule,BASE TABLE
+dbo,ControlValidationRuleMaster,BASE TABLE
+dbo,CoronaCommunication,BASE TABLE
+dbo,CostPerHireConfig,BASE TABLE
+dbo,CostPerHireType,BASE TABLE
+dbo,CostTypeMaster,BASE TABLE
+dbo,CountryMaster,BASE TABLE
+dbo,CountryTimeZone,BASE TABLE
+dbo,COVID19CategoryMaster,BASE TABLE
+dbo,COVID19NewsMaster,BASE TABLE
+dbo,COVID19PagesMaster,BASE TABLE
+dbo,COVID19Subscribe,BASE TABLE
+dbo,CreatedProfilesTxn,BASE TABLE
+dbo,CryptoLogsTxn,BASE TABLE
+dbo,CurrencyMaster,BASE TABLE
+dbo,CustomerComplainActionDetail,BASE TABLE
+dbo,CustomerComplainRegister,BASE TABLE
+dbo,CustomerComplainStatusMaster,BASE TABLE
+dbo,CustomerCreditPaymentInvoice,BASE TABLE
+dbo,CustomerPaymentDetail,BASE TABLE
+dbo,CustomerPaymentMaster,BASE TABLE
+dbo,DailyReportLog,BASE TABLE
+dbo,DailyStatistcs,BASE TABLE
+dbo,DaysPosibleCombination,BASE TABLE
+dbo,DeactivateReasonMaster,BASE TABLE
+dbo,DeactiveFeedbackMaster,BASE TABLE
+dbo,DEJobCityMaster,BASE TABLE
+dbo,DEJobCountryMaster,BASE TABLE
+dbo,DEJobScrapedCollection,BASE TABLE
+dbo,DEJobStateMaster,BASE TABLE
+dbo,DEJobZipcodeMaster,BASE TABLE
+dbo,DelegateUserDateTxn,BASE TABLE
+dbo,DepartmentClientTxn,BASE TABLE
+dbo,DepartmentMaster,BASE TABLE
+dbo,DevPermission,BASE TABLE
+dbo,DevRolePermission,BASE TABLE
+dbo,DirectJobStatusMaster,BASE TABLE
+dbo,DisabilityMaster,BASE TABLE
+dbo,DiscountTypeMaster,BASE TABLE
+dbo,DisplayCandidateResume,BASE TABLE
+dbo,DocumentMaster,BASE TABLE
+dbo,DocuSignClientTxn,BASE TABLE
+dbo,DocuSignDocumentStatusMaster,BASE TABLE
+dbo,DocuSignDocumentStatusTxn,BASE TABLE
+dbo,DocuSignDocumentTxn,BASE TABLE
+dbo,DocuSignEnvelopeStatusMaster,BASE TABLE
+dbo,DocuSignEnvelopeStatusTxn,BASE TABLE
+dbo,DomainExcludeMaster,BASE TABLE
+dbo,DomainMaster,BASE TABLE
+dbo,DrugTest,BASE TABLE
+dbo,DrugTestEndTxn,BASE TABLE
+dbo,DrugTestStartTxn,BASE TABLE
+dbo,DuplicateCity,BASE TABLE
+dbo,ECampaing,BASE TABLE
+dbo,EducationCategoryMaster,BASE TABLE
+dbo,EducationCategoryTxn,BASE TABLE
+dbo,EducationFieldConfiguration,BASE TABLE
+dbo,EducationHistoryQuestions,BASE TABLE
+dbo,EducationVerificationDtlAtSubmissionChkl,BASE TABLE
+dbo,EmailAlertsTemplate,BASE TABLE
+dbo,EmailClassifierClassTemplate,BASE TABLE
+dbo,EmailClassifierClassType,BASE TABLE
+dbo,EmailFolderMaster,BASE TABLE
+dbo,EmailForgotPasswordToken,BASE TABLE
+dbo,EmailForWotcTxn,BASE TABLE
+dbo,EmailNotificationToCandidate,BASE TABLE
+dbo,EmailNotificationToUser,BASE TABLE
+dbo,EmailNotificationToVendor,BASE TABLE
+dbo,EmailReadHistory,BASE TABLE
+dbo,EmailReceiveFromSvcACKFlag,BASE TABLE
+dbo,EmailReceiveFromSvcAttachment,BASE TABLE
+dbo,EmailReceiveFromSvcBCC,BASE TABLE
+dbo,EmailReceiveFromSvcCandidate,BASE TABLE
+dbo,EmailReceiveFromSvcCC,BASE TABLE
+dbo,EmailReceiveFromSvcClient,BASE TABLE
+dbo,EmailReceiveFromSvcFolderFilter,BASE TABLE
+dbo,EmailReceiveFromSvcFromEmailTxn,BASE TABLE
+dbo,EmailReceiveFromSvcHeader,BASE TABLE
+dbo,EmailReceiveFromSvcMaster,BASE TABLE
+dbo,EmailReceiveFromSvcMessage,BASE TABLE
+dbo,EmailReceiveFromSvcProcessFlag,BASE TABLE
+dbo,EmailReceiveFromSvcRequirement,BASE TABLE
+dbo,EmailReceiveFromSvcTextBody,BASE TABLE
+dbo,EmailReceiveFromSvcTitle,BASE TABLE
+dbo,EmailReceiveFromSvcUser,BASE TABLE
+dbo,EmailReceiveFromSvcVendor,BASE TABLE
+dbo,EmailReminderTxn,BASE TABLE
+dbo,EmailSendReceiveTxn,BASE TABLE
+dbo,EmailSendReceiveTxnTemp,BASE TABLE
+dbo,EmailSentAttachmentTxn,BASE TABLE
+dbo,EmailSentMaster,BASE TABLE
+dbo,EmailSentTypeMaster,BASE TABLE
+dbo,EmailStatusMaster,BASE TABLE
+dbo,EmailTemplateUrl,BASE TABLE
+dbo,EmailToAnonymousTxn,BASE TABLE
+dbo,EmailToCandidate,BASE TABLE
+dbo,EmailToCandidateAttachment,BASE TABLE
+dbo,EmailToCandidateBCC,BASE TABLE
+dbo,EmailToCandidateBounceFlag,BASE TABLE
+dbo,EmailToCandidateCC,BASE TABLE
+dbo,EmailToCandidateClientChecklist,BASE TABLE
+dbo,EmailToCandidateReadFlag,BASE TABLE
+dbo,EmailToCandidateResendFlag,BASE TABLE
+dbo,EmailToCandidateTemplateTracking,BASE TABLE
+dbo,EmailToCandidateTemplateTxn,BASE TABLE
+dbo,EmailToCandidateTenantTemplateTxn,BASE TABLE
+dbo,EmailToCandidateTxn,BASE TABLE
+dbo,EmailToClientReadFlag,BASE TABLE
+dbo,EmailToClientTxn,BASE TABLE
+dbo,EmailToNotificationAttachment,BASE TABLE
+dbo,EmailToVendor,BASE TABLE
+dbo,EmailToVendorACKFlag,BASE TABLE
+dbo,EmailToVendorAttachment,BASE TABLE
+dbo,EmailToVendorBCC,BASE TABLE
+dbo,EmailToVendorCC,BASE TABLE
+dbo,EmailToVendorTxn,BASE TABLE
+dbo,EmailVerification,BASE TABLE
+dbo,EmployeeDelayed,BASE TABLE
+dbo,EmployeeFurlough,BASE TABLE
+dbo,EmployeeStatiscticsWeights,BASE TABLE
+dbo,EmployeeTimeOff,BASE TABLE
+dbo,EmployeeVerificationMaster,BASE TABLE
+dbo,EmployerManageMaster,BASE TABLE
+dbo,EmployerStatusMaster,BASE TABLE
+dbo,Employment,BASE TABLE
+dbo,EmploymentCounselling,BASE TABLE
+dbo,EmploymentDentalAndVisionHlthIns,BASE TABLE
+dbo,EmploymentDetail,BASE TABLE
+dbo,EmploymentEnd,BASE TABLE
+dbo,EmploymentExtensionDetails,BASE TABLE
+dbo,EmploymentFollowUp,BASE TABLE
+dbo,EmploymentHealthInsurance,BASE TABLE
+dbo,EmploymentHealthInsuranceComment,BASE TABLE
+dbo,EmploymentHealthInsuranceCost,BASE TABLE
+dbo,EmploymentHealthInsuranceMembership,BASE TABLE
+dbo,EmploymentLeaveDetails,BASE TABLE
+dbo,EmploymentLog,BASE TABLE
+dbo,EmploymentMaster,BASE TABLE
+dbo,EmploymentMasterCandidateLogTxn,BASE TABLE
+dbo,EmploymentMedicalHlthIns,BASE TABLE
+dbo,EmploymentOfferAcceptedTXN,BASE TABLE
+dbo,EmploymentProjectStatusDetail,BASE TABLE
+dbo,EmploymentProjectStatusMaster,BASE TABLE
+dbo,EmploymentRate,BASE TABLE
+dbo,EmploymentReducedHoursDetails,BASE TABLE
+dbo,EmploymentRemoteDetails,BASE TABLE
+dbo,EmploymentRemoteDetailsComments,BASE TABLE
+dbo,EmploymentShiftChange,BASE TABLE
+dbo,EmploymentSponsorship,BASE TABLE
+dbo,EmploymentStart,BASE TABLE
+dbo,EmploymentSunshineAct,BASE TABLE
+dbo,EmploymentSupervisorDetail,BASE TABLE
+dbo,EmploymentTraining,BASE TABLE
+dbo,EmploymentTrainingPurposeMaster,BASE TABLE
+dbo,EmploymentVendorPay,BASE TABLE
+dbo,EmploymentVerification,BASE TABLE
+dbo,EmploymentVerificationPurposeMaster,BASE TABLE
+dbo,EmploymentWorkersCompORLiabilityIns,BASE TABLE
+dbo,EmploymentWorkersCompORLiabilityInsDocument,BASE TABLE
+dbo,EngagementConnectionToEmployerMaster,BASE TABLE
+dbo,EngagementEmployerMaster,BASE TABLE
+dbo,EngagementEntryEntity,BASE TABLE
+dbo,EngagementEntryType,BASE TABLE
+dbo,EngagementInterviewHelperMaster,BASE TABLE
+dbo,EngagementInterviewPrepTimeMaster,BASE TABLE
+dbo,EngagementInterviewTypeMaster,BASE TABLE
+dbo,EngagementJobOfferDecisionMaster,BASE TABLE
+dbo,EngagementJobSourceMaster,BASE TABLE
+dbo,EngagementJobTypeMaster,BASE TABLE
+dbo,EngagementModule,BASE TABLE
+dbo,EngagementModuleEntry,BASE TABLE
+dbo,EngagementPeriodicStatusTypeMaster,BASE TABLE
+dbo,EngagementProgramCohort,BASE TABLE
+dbo,EngagementProgramGroup,BASE TABLE
+dbo,EngagementRelevantChallengeMaster,BASE TABLE
+dbo,EngagementStatusMaster,BASE TABLE
+dbo,EngagementTrainingAssistantMaster,BASE TABLE
+dbo,EngagementTrainingTypeMaster,BASE TABLE
+dbo,EngagementTypeMaster,BASE TABLE
+dbo,EngagementWorkLocationMaster,BASE TABLE
+dbo,EngagementWorkProgressTypeMaster,BASE TABLE
+dbo,EngagementWorkStructureTypeMaster,BASE TABLE
+dbo,EquipmentTrackingInformation,BASE TABLE
+dbo,Erm_MedicaidActivityComplianceStatus,BASE TABLE
+dbo,Erm_MedicaidActivityLog,BASE TABLE
+dbo,Erm_MedicaidActivityLogDocument,BASE TABLE
+dbo,Erm_MedicaidActivityTypes,BASE TABLE
+dbo,Erm_MedicaidRoles,BASE TABLE
+dbo,Erm_MedicaidUsers,BASE TABLE
+dbo,ErrorHandling,BASE TABLE
+dbo,ErrorLog,BASE TABLE
+dbo,Errors,BASE TABLE
+dbo,ErrorService,BASE TABLE
+dbo,EthnicityMaster,BASE TABLE
+dbo,EventDetailTxn,BASE TABLE
+dbo,EventGalleryFileTxn,BASE TABLE
+dbo,EventLog,BASE TABLE
+dbo,EventOutlookMeetingRequestTxn,BASE TABLE
+dbo,EventsCalendar,BASE TABLE
+dbo,EventsFollowUp,BASE TABLE
+dbo,EventsInstance,BASE TABLE
+dbo,EventsInvitation,BASE TABLE
+dbo,EventsRecurringPattern,BASE TABLE
+dbo,EventsRecurringType,BASE TABLE
+dbo,EventSummitCandidateResume,BASE TABLE
+dbo,EventSummitRegistration,BASE TABLE
+dbo,ExecutiveSummary,BASE TABLE
+dbo,ExitInterviewInfo,BASE TABLE
+dbo,ExpenseDetail,BASE TABLE
+dbo,ExpenseFileAttachement,BASE TABLE
+dbo,ExpenseMaster,BASE TABLE
+dbo,ExpenseMasterApprovalTxn,BASE TABLE
+dbo,ExpenseStatusMaster,BASE TABLE
+dbo,ExpenseTypeAllowance,BASE TABLE
+dbo,ExpenseTypeMaster,BASE TABLE
+dbo,ExperienceDetail,BASE TABLE
+dbo,ExperienceJobTitle,BASE TABLE
+dbo,ExperienceLevelMaster,BASE TABLE
+dbo,FAQ,BASE TABLE
+dbo,FaqMaster,BASE TABLE
+dbo,Feedback,BASE TABLE
+dbo,FeedbackByAnotherUser,BASE TABLE
+dbo,FeedbackCabStatusLog,BASE TABLE
+dbo,FeedbackFileTxn,BASE TABLE
+dbo,FeedbackFromCandidate,BASE TABLE
+dbo,FeedbackFromClient,BASE TABLE
+dbo,FeedbackOld,BASE TABLE
+dbo,FeedbackStatus,BASE TABLE
+dbo,FeedbackTypeMaster,BASE TABLE
+dbo,FieldGlassJobPostings,BASE TABLE
+dbo,FieldGlassJobPostingsOne,BASE TABLE
+dbo,FieldGlassJobPostingsSecondary,BASE TABLE
+dbo,FieldGlassMaster,BASE TABLE
+dbo,FinanceClientMaster,BASE TABLE
+dbo,FinanceSourceProsClientMapping,BASE TABLE
+dbo,FinanceTimeSheetStatus,BASE TABLE
+dbo,FirstDayCheckListAssignTxn,BASE TABLE
+dbo,FirstDayCheckListMaster,BASE TABLE
+dbo,FirstDayTabMaster,BASE TABLE
+dbo,FirstDayTemplateCheckListMaster,BASE TABLE
+dbo,FirstDayTemplateMaster,BASE TABLE
+dbo,FlagMaster,BASE TABLE
+dbo,FluencyLevelMaster,BASE TABLE
+dbo,FollowUpStageMaster,BASE TABLE
+dbo,FollowUpTypeMaster,BASE TABLE
+dbo,FooterTemplateMaster,BASE TABLE
+dbo,FromEmailMaster,BASE TABLE
+dbo,FromEmailMasterBackUp,BASE TABLE
+dbo,FromEmailMasterForEmailSync,BASE TABLE
+dbo,FromEmailMasterPwd,BASE TABLE
+dbo,GapNotesTxn,BASE TABLE
+dbo,GenderMaster,BASE TABLE
+dbo,GeneralAttachmentDocument,BASE TABLE
+dbo,GeneralDocuments,BASE TABLE
+dbo,GeneralDocumentsTemp,BASE TABLE
+dbo,GetLatestRequirementAtDatetime,BASE TABLE
+dbo,GovtAgencyCategoryMaster,BASE TABLE
+dbo,GovtAgencyCategoryTxn,BASE TABLE
+dbo,GreenhouseJobs,BASE TABLE
+dbo,GrossProfitMarginHiredIncentiveMaster,BASE TABLE
+dbo,GrossProfitMarginIncentiveTypeMaster,BASE TABLE
+dbo,GroupProfileIcon,BASE TABLE
+dbo,HardwareRequestTxn,BASE TABLE
+dbo,HashTagMaster,BASE TABLE
+dbo,HashTagTxn,BASE TABLE
+dbo,HeaderTemplateMaster,BASE TABLE
+dbo,HealthInsuranceCoverageType,BASE TABLE
+dbo,HealthInsuranceMaster,BASE TABLE
+dbo,HearAboutMaster,BASE TABLE
+dbo,HighestDegreeMaster,BASE TABLE
+dbo,HiredCandidateCHKList,BASE TABLE
+dbo,HiredCandidateLog,BASE TABLE
+dbo,HiredCandidateReview,BASE TABLE
+dbo,HiredIncentiveQualifiedHours,BASE TABLE
+dbo,HiredPosCount,BASE TABLE
+dbo,HiringBackgroundAndDrugCheck,BASE TABLE
+dbo,HiringBackgroundAndDrugCheckEndTxn,BASE TABLE
+dbo,HiringBackgroundAndDrugCheckStartTxn,BASE TABLE
+dbo,HiringManagerTrainingAttachmentTxn,BASE TABLE
+dbo,HiringManagerTrainingTxn,BASE TABLE
+dbo,HiringStatusMaster,BASE TABLE
+dbo,HumanRaceMaster,BASE TABLE
+dbo,ImpactMaster,BASE TABLE
+dbo,ImportCandidatesFromExcel,BASE TABLE
+dbo,ImportCandidatesParsingLog,BASE TABLE
+dbo,ImportedRequirement,BASE TABLE
+dbo,ImportedRequirementMatchedCandidate,BASE TABLE
+dbo,ImportedRequirementScoreCollection,BASE TABLE
+dbo,ImportedRequirementsFile,BASE TABLE
+dbo,ImportedRequirementsFileTxn,BASE TABLE
+dbo,ImportRequirement,BASE TABLE
+dbo,IncentiveActionTxn,BASE TABLE
+dbo,IncentiveConfigMaster,BASE TABLE
+dbo,IncentiveConfirmation,BASE TABLE
+dbo,IncentiveConfirmationTxn,BASE TABLE
+dbo,IncentiveMaster,BASE TABLE
+dbo,IncentiveTypeMaster,BASE TABLE
+dbo,indeed_jobs,BASE TABLE
+dbo,IndexingAPITxn,BASE TABLE
+dbo,IndiaPinCodeInfo,BASE TABLE
+dbo,IndiaZipCodeMaster,BASE TABLE
+dbo,IndicatorAPIClientData,BASE TABLE
+dbo,IndicatorBoxMaster,BASE TABLE
+dbo,IndicatorBoxRoleTxn,BASE TABLE
+dbo,IndicatorScoreBreakdown,BASE TABLE
+dbo,IndicatorScoreInstance,BASE TABLE
+dbo,IndicatorScoreOutput,BASE TABLE
+dbo,IndicatorScoreTxn,BASE TABLE
+dbo,IndicatorSendReport,BASE TABLE
+dbo,IndicatorTypeMaster,BASE TABLE
+dbo,IndustryTypeMaster,BASE TABLE
+dbo,ingestion_logs,BASE TABLE
+dbo,InHouseConsultantHolidayTxn,BASE TABLE
+dbo,InstitutionMaster,BASE TABLE
+dbo,InsurancePlan,BASE TABLE
+dbo,InsurancePlanFileTxn,BASE TABLE
+dbo,InsurancePlanTxn,BASE TABLE
+dbo,InsuranceTypeMaster,BASE TABLE
+dbo,IntensityDetailSelection,BASE TABLE
+dbo,IntensityDetailSelectionLog,BASE TABLE
+dbo,IntensityMaster,BASE TABLE
+dbo,IntensityType,BASE TABLE
+dbo,InterviewAttendeesTxn,BASE TABLE
+dbo,InterviewDetail,BASE TABLE
+dbo,InterviewDressCode,BASE TABLE
+dbo,InterviewDtlAtSubmissionChkl,BASE TABLE
+dbo,InterviewFeedbackMaster,BASE TABLE
+dbo,InterviewFeedbackTxn,BASE TABLE
+dbo,InterviewLocation,BASE TABLE
+dbo,InterviewMaster,BASE TABLE
+dbo,InterviewMeetingPurposeMaster,BASE TABLE
+dbo,InterviewNotes,BASE TABLE
+dbo,InterviewPhoneTxn,BASE TABLE
+dbo,InterviewRCIUserTxn,BASE TABLE
+dbo,InterviewReferenceDocument,BASE TABLE
+dbo,InterviewReminder,BASE TABLE
+dbo,InterviewRequestTxn,BASE TABLE
+dbo,InterviewResultMaster,BASE TABLE
+dbo,InterviewTemplateVariableMaster,BASE TABLE
+dbo,InterviewTimeSlotTxn,BASE TABLE
+dbo,InterviewTXN,BASE TABLE
+dbo,IntranetSPUserTimeSheet,BASE TABLE
+dbo,InviteCommunityMembers,BASE TABLE
+dbo,InvoiceDeleteLog,BASE TABLE
+dbo,InvoiceDetail,BASE TABLE
+dbo,InvoiceDiscountMaster,BASE TABLE
+dbo,InvoiceMaster,BASE TABLE
+dbo,InvoiceModuleType,BASE TABLE
+dbo,InvoicePDFGenerate,BASE TABLE
+dbo,InvoicePDFGenerateAttachment,BASE TABLE
+dbo,InvoiceTermMaster,BASE TABLE
+dbo,InvoiceTypeMater,BASE TABLE
+dbo,IPAddress,BASE TABLE
+dbo,IPAddressMaster,BASE TABLE
+dbo,IPBlackListMaster,BASE TABLE
+dbo,IpBlockedRequestDataTxn,BASE TABLE
+dbo,IpRequestTxn,BASE TABLE
+dbo,ISOReport,BASE TABLE
+dbo,JAIExperienceScore,BASE TABLE
+dbo,JAIJobTraining,BASE TABLE
+dbo,JAIScoreConfiguration,BASE TABLE
+dbo,JDKResumeParse,BASE TABLE
+dbo,job_validation_log,BASE TABLE
+dbo,JobActivityType,BASE TABLE
+dbo,JobAlertLocationTxn,BASE TABLE
+dbo,JobAlertMaster,BASE TABLE
+dbo,JobAlertTxn,BASE TABLE
+dbo,JobChangeDtlAtSubmissionChkl,BASE TABLE
+dbo,JobCollection,BASE TABLE
+dbo,JobCollectionAIParsedTxn,BASE TABLE
+dbo,JobCollectionExperience,BASE TABLE
+dbo,JobCollectionExtension,BASE TABLE
+dbo,JobCollectionImportLog,BASE TABLE
+dbo,JobCollectionKeywordCount,BASE TABLE
+dbo,JobCollectionListTxn,BASE TABLE
+dbo,JobCollectionLog,BASE TABLE
+dbo,JobCollectionScore,BASE TABLE
+dbo,JobCollectionSourceMaster,BASE TABLE
+dbo,JobCollectionSurveyTxn,BASE TABLE
+dbo,JobcollectionVectorClosedJobs,BASE TABLE
+dbo,JobData,BASE TABLE
+dbo,JobEmailNotificationType,BASE TABLE
+dbo,JobHistoryOverview,BASE TABLE
+dbo,JobImportTxn,BASE TABLE
+dbo,JobIndustryMaster,BASE TABLE
+dbo,JobLevelMaster,BASE TABLE
+dbo,JobLevelTxn,BASE TABLE
+dbo,JobPostTxn,BASE TABLE
+dbo,jobs,BASE TABLE
+dbo,jobs_fidelity_com,BASE TABLE
+dbo,JobScrapingCompany,BASE TABLE
+dbo,JobSearchEducationExperience,BASE TABLE
+dbo,JobSearchPriorityMaster,BASE TABLE
+dbo,jobsfidelitynew,BASE TABLE
+dbo,jobswithscore,BASE TABLE
+dbo,JobTitleKeyWord,BASE TABLE
+dbo,JobTitleMaster,BASE TABLE
+dbo,JobTypeMaster,BASE TABLE
+dbo,JobTypeTimeMaster,BASE TABLE
+dbo,JobWorkMaster,BASE TABLE
+dbo,JoinCommunities,BASE TABLE
+dbo,JoinTheMovement,BASE TABLE
+dbo,jooble_jobs,BASE TABLE
+dbo,KeySkills,BASE TABLE
+dbo,KpiConfigMaster,BASE TABLE
+dbo,KPILabelTxn,BASE TABLE
+dbo,KpiLableMaster,BASE TABLE
+dbo,LAIDisabilityState,BASE TABLE
+dbo,LAIManualScoring,BASE TABLE
+dbo,LAIOrganizationTxn,BASE TABLE
+dbo,LAIOrganizationType,BASE TABLE
+dbo,LAIPopulationScore,BASE TABLE
+dbo,LAIScore,BASE TABLE
+dbo,LAIScoreConfiguration,BASE TABLE
+dbo,LAIScoreParameter,BASE TABLE
+dbo,LanguageMaster,BASE TABLE
+dbo,LeaveTypeMaster,BASE TABLE
+dbo,linkedin_jobs,BASE TABLE
+dbo,linkedin_skill,BASE TABLE
+dbo,LinkedServerMaster,BASE TABLE
+dbo,LiveJobList,BASE TABLE
+dbo,LocalSettings,BASE TABLE
+dbo,LocationMaster,BASE TABLE
+dbo,LocationSalaryTxn,BASE TABLE
+dbo,LogEmailSentBySvr,BASE TABLE
+dbo,LoginToken,BASE TABLE
+dbo,LoginTypeMaster,BASE TABLE
+dbo,MailboxSyncStatus,BASE TABLE
+dbo,MailProtocolMaster,BASE TABLE
+dbo,ManageUserRoleTxn,BASE TABLE
+dbo,MarketingEmail,BASE TABLE
+dbo,Marketingemail_TSC,BASE TABLE
+dbo,MarriageStatusTypeMaster,BASE TABLE
+dbo,MasterPassword,BASE TABLE
+dbo,MediaCategoryMappingTxn,BASE TABLE
+dbo,MediaCategoryMaster,BASE TABLE
+dbo,MediaFileTxn,BASE TABLE
+dbo,MediaGalleryMaster,BASE TABLE
+dbo,MediaMaster,BASE TABLE
+dbo,MediaMetaMaster,BASE TABLE
+dbo,MediaStatusMaster,BASE TABLE
+dbo,MediaThumbnailImagePath,BASE TABLE
+dbo,MediaTypeMaster,BASE TABLE
+dbo,Meeting,BASE TABLE
+dbo,MeetingFlagMaster,BASE TABLE
+dbo,MeetingParticipant,BASE TABLE
+dbo,MemberInvitation,BASE TABLE
+dbo,MemberNoteNotifiedUsers,BASE TABLE
+dbo,MemberNotes,BASE TABLE
+dbo,MemberPunchTxn,BASE TABLE
+dbo,MemberTypeMaster,BASE TABLE
+dbo,MenuActionMaster,BASE TABLE
+dbo,MenuMaster,BASE TABLE
+dbo,MergedCompanyLog,BASE TABLE
+dbo,MessageMaster,BASE TABLE
+dbo,MetaColumn,VIEW
+dbo,MetaForeignKeyConstraint,VIEW
+dbo,MetaTable,VIEW
+dbo,MetropolitanAreaMaster,BASE TABLE
+dbo,MetropolitanAreaZIPCode,BASE TABLE
+dbo,ML_SkillMaster,BASE TABLE
+dbo,MonthlyCostPerHired,BASE TABLE
+dbo,MonthlyStatistics,BASE TABLE
+dbo,MonthlyStatisticsSummary,BASE TABLE
+dbo,MSchange_tracking_history,BASE TABLE
+dbo,MSPMaster,BASE TABLE
+dbo,MultipleSelection,BASE TABLE
+dbo,MultipleSelectionLog,BASE TABLE
+dbo,Neurodivergent-Aligned_Job_Descriptions,BASE TABLE
+dbo,NewsMediaTypeMaster,BASE TABLE
+dbo,NewTextUsers,BASE TABLE
+dbo,nexiCandidateMatches,BASE TABLE
+dbo,nexiJobRequirementFetchLog,BASE TABLE
+dbo,nexiJobRequirements,BASE TABLE
+dbo,NoisyWordMaster,BASE TABLE
+dbo,NotificationNameMaster,BASE TABLE
+dbo,NotificationSetting,BASE TABLE
+dbo,NotSubmittedMaster,BASE TABLE
+dbo,NotUse_ReqSub,VIEW
+dbo,NullableCandidatelist_backup27Feb2024,BASE TABLE
+dbo,NursingInformation,BASE TABLE
+dbo,NYCCategoryMaster,BASE TABLE
+dbo,OAuth2Identity,BASE TABLE
+dbo,OffBoardingChecklistAttachment,BASE TABLE
+dbo,OffBoardingChecklistTxn,BASE TABLE
+dbo,OfferAcceptedChecklistDateTxn,BASE TABLE
+dbo,OfferAcceptedClientCommentEmailTxn,BASE TABLE
+dbo,OfferAcceptedClientCommentTxn,BASE TABLE
+dbo,OfferAcceptedClientUpdateTxn,BASE TABLE
+dbo,OfferAcceptedCommentTxn,BASE TABLE
+dbo,OfferAcceptedContractTXN,BASE TABLE
+dbo,OfferAcceptedMaster,BASE TABLE
+dbo,OfferacceptedmasterLog,BASE TABLE
+dbo,OfferAcceptedPerDiem,BASE TABLE
+dbo,OfferAcceptedTXN,BASE TABLE
+dbo,OfferByCandidateTxn,BASE TABLE
+dbo,OfferDecisionMaster,BASE TABLE
+dbo,OfferLetterMaster,BASE TABLE
+dbo,OfferLetterType,BASE TABLE
+dbo,OfferReceivedAdditionalCompensationTxn,BASE TABLE
+dbo,OfferReceivedCommentTxn,BASE TABLE
+dbo,OfferReceivedDocument,BASE TABLE
+dbo,OfferReceivedInformation,BASE TABLE
+dbo,OfferReceivedMaster,BASE TABLE
+dbo,OfferReceivedTXN,BASE TABLE
+dbo,OnboardingCheckList,BASE TABLE
+dbo,OnboardingCheckListClientMappingTxn,BASE TABLE
+dbo,OnboardingCheckListFieldOptions,BASE TABLE
+dbo,OnboardingCheckListMaster,BASE TABLE
+dbo,OnboardingChecklistRequestDetail,BASE TABLE
+dbo,OnboardingCommonChecklistHeadingMaster,BASE TABLE
+dbo,OnboardingCommonChecklistMappingTxn,BASE TABLE
+dbo,OnboardingCommonChecklistRequestDetail,BASE TABLE
+dbo,OnboardingCommonChecklistRequestDetailFile,BASE TABLE
+dbo,OnBoardingConfiguration,BASE TABLE
+dbo,OnBoardingExecutiveTxn,BASE TABLE
+dbo,OnboardingRequestMaster,BASE TABLE
+dbo,OnboardingResumeAndDataFormTxn,BASE TABLE
+dbo,OnBoardingStatusMaster,BASE TABLE
+dbo,OnBoardingStatusTxn,BASE TABLE
+dbo,OnboardJourneyMaster,BASE TABLE
+dbo,OnBoardJourneyTxn,BASE TABLE
+dbo,OnboardProcessToAdpTxn,BASE TABLE
+dbo,OnBoradingChecklistRequestDetailFile,BASE TABLE
+dbo,ONetJobCollectionTxn,BASE TABLE
+dbo,OrgData,BASE TABLE
+dbo,PackageMembership,BASE TABLE
+dbo,Paging_v,VIEW
+dbo,PassthroughDetail,BASE TABLE
+dbo,PaymentModeMaster,BASE TABLE
+dbo,PaypalSubscriberDetail,BASE TABLE
+dbo,PayRateTypeMaster,BASE TABLE
+dbo,PayTypeMaster,BASE TABLE
+dbo,PerformanceParameter,BASE TABLE
+dbo,PeriodTypeMaster,BASE TABLE
+dbo,Permission,BASE TABLE
+dbo,PhoneTypeMaster,BASE TABLE
+dbo,PlanStatusMaster,BASE TABLE
+dbo,PlatformMaster,BASE TABLE
+dbo,Plivo_Logs_MDR,BASE TABLE
+dbo,PopulationSupportMaster,BASE TABLE
+dbo,PopupAnnouncement,BASE TABLE
+dbo,portal_statistics,BASE TABLE
+dbo,PortalApiCandidate,BASE TABLE
+dbo,PortalDailyLimit,BASE TABLE
+dbo,PortalIDbyNameString,BASE TABLE
+dbo,PortalMaster,BASE TABLE
+dbo,PortalNameMaster,BASE TABLE
+dbo,PositionGroupMaster,BASE TABLE
+dbo,Post,BASE TABLE
+dbo,PostCommentBy,BASE TABLE
+dbo,PostCommentByMediaTxn,BASE TABLE
+dbo,PostCommentLikedBy,BASE TABLE
+dbo,PostLikedBy,BASE TABLE
+dbo,PostMedia,BASE TABLE
+dbo,PostParticipant,BASE TABLE
+dbo,PostTypeMaster,BASE TABLE
+dbo,PreferredCommunicationMaster,BASE TABLE
+dbo,PreferredCommunicationMasterHistory,BASE TABLE
+dbo,PresentStatusMaster,BASE TABLE
+dbo,PrimaryZipCodes,BASE TABLE
+dbo,PriorityCategoryMaster,BASE TABLE
+dbo,PriorityMaster,BASE TABLE
+dbo,PrivacyPolicyContactUs,BASE TABLE
+dbo,PrivacyPolicyQuestionMaster,BASE TABLE
+dbo,ProbabilityImpactMapping,BASE TABLE
+dbo,ProbabilityMaster,BASE TABLE
+dbo,ProcedureChangeLog,BASE TABLE
+dbo,ProcessLog,BASE TABLE
+dbo,ProficiencyMaster,BASE TABLE
+dbo,ProfileCreationFromAttachmentEmailRcvSvr,BASE TABLE
+dbo,ProfileCreationFromEmailRcvSvr,BASE TABLE
+dbo,ProgramMaster,BASE TABLE
+dbo,ProgramTeamTxn,BASE TABLE
+dbo,ProspectiveMaster,BASE TABLE
+dbo,ProspectiveMasterLog,BASE TABLE
+dbo,ProspectiveTXN,BASE TABLE
+dbo,ProspectiveTXNLog,BASE TABLE
+dbo,ProspectiveVendor,BASE TABLE
+dbo,ProspectiveVendorLog,BASE TABLE
+dbo,ProviderCategoryMaster,BASE TABLE
+dbo,ProviderCategoryTxn,BASE TABLE
+dbo,PunchTypeMaster,BASE TABLE
+dbo,QBTimesheet,BASE TABLE
+dbo,QBTimesheetApprovedTxn,BASE TABLE
+dbo,QBTimesheetPendingTxn,BASE TABLE
+dbo,QBTimesheetRejectTxn,BASE TABLE
+dbo,QBTimesheetWorkedHours,BASE TABLE
+dbo,QBTPayRollTypeMaster,BASE TABLE
+dbo,QueryRequirements,BASE TABLE
+dbo,QueryRole,BASE TABLE
+dbo,QuestionBank,BASE TABLE
+dbo,QuestionChoices,BASE TABLE
+dbo,QuestionJobTitleTxn,BASE TABLE
+dbo,QuickBookEmployeeMaster,BASE TABLE
+dbo,QuickBookTimesheetMaster,BASE TABLE
+dbo,RangamCaresNotificationAttempt,BASE TABLE
+dbo,RangamCaresSurveyAfterOrientationTxn,BASE TABLE
+dbo,RangamCaresSuveryEmailTxn,BASE TABLE
+dbo,RangamPress,BASE TABLE
+dbo,RateIncreaseRequest,BASE TABLE
+dbo,RCCaseDetail,BASE TABLE
+dbo,RCCaseMaster,BASE TABLE
+dbo,RCCaseStatusMaster,BASE TABLE
+dbo,RchilliAppConfig,BASE TABLE
+dbo,RchilliDetailsMaster,BASE TABLE
+dbo,RchilliProfileCreationNotParsedTxn,BASE TABLE
+dbo,RchilliSkillDetails,BASE TABLE
+dbo,RCICandidate,BASE TABLE
+dbo,RCICandidateTxn,BASE TABLE
+dbo,RCIJobSeeker,BASE TABLE
+dbo,ReasonForDeclinationMaster,BASE TABLE
+dbo,ReasonForNotHiredMaster,BASE TABLE
+dbo,ReasonForStagesMaster,BASE TABLE
+dbo,ReasonForTerminationMaster,BASE TABLE
+dbo,ReasonTypeMaster,BASE TABLE
+dbo,ReceiveEmailServerMaster,BASE TABLE
+dbo,RecommendationSourceMaster,BASE TABLE
+dbo,RedeploymentConnectedStatusTxn,BASE TABLE
+dbo,RedeploymentConsultantNote,BASE TABLE
+dbo,ReferralJobBoardMaster,BASE TABLE
+dbo,ReferralJobFairMaster,BASE TABLE
+dbo,ReferralSocialMediaMaster,BASE TABLE
+dbo,ReferralTalent,BASE TABLE
+dbo,ReferralTalentResume,BASE TABLE
+dbo,RefTypeMaster,BASE TABLE
+dbo,RegionMaster,BASE TABLE
+dbo,RegionServedMaster,BASE TABLE
+dbo,RegionServedTxn,BASE TABLE
+dbo,RegisterCode,BASE TABLE
+dbo,RegisterCodeCompanyMap,BASE TABLE
+dbo,RegisterCodeUserMap,BASE TABLE
+dbo,RegisterReferralMaster,BASE TABLE
+dbo,RegistrationSourceMaster,BASE TABLE
+dbo,RejectedMaster,BASE TABLE
+dbo,ReleaseNotes,BASE TABLE
+dbo,RemoteOptionTypeMaster,BASE TABLE
+dbo,RemoteUserLogin,BASE TABLE
+dbo,Replica_CampaignEmailAttachmentTxn,BASE TABLE
+dbo,Replica_CampaignEmailSentMaster,BASE TABLE
+dbo,Replica_CampaignSentTxn,BASE TABLE
+dbo,Replica_EmailToCandidate,BASE TABLE
+dbo,Replica_EmailToCandidate_EmailSendTest,BASE TABLE
+dbo,Replica_EmailToCandidateAttachment,BASE TABLE
+dbo,Replica_EmailToCandidateBCC,BASE TABLE
+dbo,Replica_EmailToCandidateCC,BASE TABLE
+dbo,Replica_EmailToCandidateTemp,BASE TABLE
+dbo,Replica_EmailToCandidateTxn,BASE TABLE
+dbo,Replica_Feedback,BASE TABLE
+dbo,Replica_FeedbackFileTxn,BASE TABLE
+dbo,ReportActionsMaster,BASE TABLE
+dbo,ReportActionTxn,BASE TABLE
+dbo,ReportChatTxn,BASE TABLE
+dbo,ReportCommentTxn,BASE TABLE
+dbo,ReportMemberTxn,BASE TABLE
+dbo,ReportPostTxn,BASE TABLE
+dbo,ReportSlaConfig,BASE TABLE
+dbo,ReqTestRecords,BASE TABLE
+dbo,RequestDetail,BASE TABLE
+dbo,RequestDetailFile,BASE TABLE
+dbo,RequestMasterList,BASE TABLE
+dbo,RequestTypeControl,BASE TABLE
+dbo,RequestTypeMaster,BASE TABLE
+dbo,RequirementAssignTxn,BASE TABLE
+dbo,RequirementAttachment,BASE TABLE
+dbo,RequirementAttemptDetail,BASE TABLE
+dbo,RequirementBelongItemTxn,BASE TABLE
+dbo,RequirementBusinessDevelopmentManagerUserTxn,BASE TABLE
+dbo,RequirementCallingScriptTxn,BASE TABLE
+dbo,RequirementCategory,BASE TABLE
+dbo,RequirementCategoryDetail,BASE TABLE
+dbo,RequirementCertification,BASE TABLE
+dbo,RequirementChangedLog,BASE TABLE
+dbo,RequirementCloseStatusMaster,BASE TABLE
+dbo,RequirementCollectionTxn,BASE TABLE
+dbo,RequirementComment,BASE TABLE
+dbo,RequirementCommunityTxn,BASE TABLE
+dbo,RequirementContractTypeTxn,BASE TABLE
+dbo,RequirementDailyStatusUpdate,BASE TABLE
+dbo,RequirementDates,BASE TABLE
+dbo,RequirementDescTxn,BASE TABLE
+dbo,RequirementDocument,BASE TABLE
+dbo,RequirementEAIQuestion,BASE TABLE
+dbo,RequirementEducation,BASE TABLE
+dbo,RequirementEmailLog,BASE TABLE
+dbo,RequirementEmailNotificationToHMLogTxn,BASE TABLE
+dbo,RequirementExperience,BASE TABLE
+dbo,RequirementFeedbackStatusMaster,BASE TABLE
+dbo,RequirementFeedbackStatusTxn,BASE TABLE
+dbo,RequirementHiringManagerTxn,BASE TABLE
+dbo,RequirementIndicator,BASE TABLE
+dbo,RequirementIntakeCallTxn,BASE TABLE
+dbo,RequirementInterviewDates,BASE TABLE
+dbo,RequirementJobDescOverWriteKeywords,BASE TABLE
+dbo,RequirementLocation,BASE TABLE
+dbo,RequirementMappingTxn,BASE TABLE
+dbo,RequirementMapToDev,BASE TABLE
+dbo,RequirementMarketingNote,BASE TABLE
+dbo,RequirementMaster,BASE TABLE
+dbo,RequirementMaster_History,BASE TABLE
+dbo,RequirementMatch,BASE TABLE
+dbo,RequirementModifiedBySALog,BASE TABLE
+dbo,RequirementOtherLocation,BASE TABLE
+dbo,RequirementParserTXN,BASE TABLE
+dbo,RequirementPayRateTXN,BASE TABLE
+dbo,RequirementPipeline,BASE TABLE
+dbo,RequirementPipelineTxn,BASE TABLE
+dbo,RequirementPointOfContatTxn,BASE TABLE
+dbo,RequirementPointsTxn,BASE TABLE
+dbo,RequirementPortalShareLog,BASE TABLE
+dbo,RequirementPortalVisitLog,BASE TABLE
+dbo,RequirementPostedOnPortalTxn,BASE TABLE
+dbo,RequirementPriorityLocationMaster,BASE TABLE
+dbo,RequirementPriorityStartDate,BASE TABLE
+dbo,RequirementPriorityTxn,BASE TABLE
+dbo,RequirementProcessTxn,BASE TABLE
+dbo,RequirementQuestion,BASE TABLE
+dbo,RequirementQuestionCategoryMaster,BASE TABLE
+dbo,RequirementQuestionMaster,BASE TABLE
+dbo,RequirementQuestionTxn,BASE TABLE
+dbo,RequirementQuestionTxn_backup,BASE TABLE
+dbo,RequirementRate,BASE TABLE
+dbo,RequirementRemoteWork,BASE TABLE
+dbo,RequirementSAToTSCTxn,BASE TABLE
+dbo,RequirementSDMLogTXN,BASE TABLE
+dbo,RequirementSearchString,BASE TABLE
+dbo,RequirementSecondaryUserTxn,BASE TABLE
+dbo,RequirementShiftTimings,BASE TABLE
+dbo,RequirementSkill,BASE TABLE
+dbo,RequirementSkillAPITxn,BASE TABLE
+dbo,RequirementSkills,BASE TABLE
+dbo,RequirementSkillSet,BASE TABLE
+dbo,RequirementSocialShare,BASE TABLE
+dbo,RequirementSocialShareVisit,BASE TABLE
+dbo,RequirementSource,BASE TABLE
+dbo,RequirementSourceMaster,BASE TABLE
+dbo,RequirementSourceTxn,BASE TABLE
+dbo,RequirementStatusCommentTxn,BASE TABLE
+dbo,RequirementStatusTxn,BASE TABLE
+dbo,RequirementStatusUpdate,BASE TABLE
+dbo,RequirementSubClientTxn,BASE TABLE
+dbo,RequirementSubmission,VIEW
+dbo,RequirementSurveyTxn,BASE TABLE
+dbo,RequirementTalentChannelTxn,BASE TABLE
+dbo,RequirementThresholdConfigLog,BASE TABLE
+dbo,RequirementThresholdConfigMaster,BASE TABLE
+dbo,RequirementTypeTxn,BASE TABLE
+dbo,RequirementUpdateClient,BASE TABLE
+dbo,RequirementUserLog,BASE TABLE
+dbo,RequirementUserTxn,BASE TABLE
+dbo,RequirementVisa,BASE TABLE
+dbo,RequirementVisibilityTxn,BASE TABLE
+dbo,RequirementVMSManager,BASE TABLE
+dbo,RequirementVoiceNoteTxn,BASE TABLE
+dbo,ResumeEducation,BASE TABLE
+dbo,ResumeExperiences,BASE TABLE
+dbo,ResumeMatch,BASE TABLE
+dbo,ResumeMatchRAG,BASE TABLE
+dbo,ResumeMatchRAGLog,BASE TABLE
+dbo,ResumeMatchTmp,BASE TABLE
+dbo,ResumeParserJSONMaster,BASE TABLE
+dbo,ResumeParserLog,BASE TABLE
+dbo,ResumeSkills,BASE TABLE
+dbo,RiskAnalysis,BASE TABLE
+dbo,RiskAnalysisFileTxn,BASE TABLE
+dbo,RiskMitigationPlanTxn,BASE TABLE
+dbo,RiskRegisterStatusMaster,BASE TABLE
+dbo,RiskStrategyMaster,BASE TABLE
+dbo,RoleMaster,BASE TABLE
+dbo,RolePermission,BASE TABLE
+dbo,RoleWiseSalaryMaster,BASE TABLE
+dbo,RTNCloudNotification,BASE TABLE
+dbo,SACandidateJourny,BASE TABLE
+dbo,SAjobswithscore,BASE TABLE
+dbo,SAResource,BASE TABLE
+dbo,SAToday,BASE TABLE
+dbo,SaveLog,BASE TABLE
+dbo,ScannedViewJob,BASE TABLE
+dbo,Schedule,BASE TABLE
+dbo,ScheduleDay,BASE TABLE
+dbo,ScheduleEmail,BASE TABLE
+dbo,ScheduleJob,BASE TABLE
+dbo,ScheduleJobHistory,BASE TABLE
+dbo,ScheduleMonth,BASE TABLE
+dbo,ScheduleWeek,BASE TABLE
+dbo,SchoolRegistrationCode,BASE TABLE
+dbo,ScopeOfWork,BASE TABLE
+dbo,ScoreCardCalculation,BASE TABLE
+dbo,ScoreCardCategory,BASE TABLE
+dbo,Scotlandpostcodes,BASE TABLE
+dbo,ScrapJobs,BASE TABLE
+dbo,ScrapJobsToJobCollectionTxn,BASE TABLE
+dbo,SDMTeamWorkSummary,BASE TABLE
+dbo,SearchQueryLog,BASE TABLE
+dbo,SearchRegionMapping,BASE TABLE
+dbo,SecureEmailNewUser,BASE TABLE
+dbo,SecureMailServiceHistory,BASE TABLE
+dbo,Selection,BASE TABLE
+dbo,SelectionCandidateLogTxn,BASE TABLE
+dbo,SelectionEmailToCandidateTxn,BASE TABLE
+dbo,SelectionResumeTxn,BASE TABLE
+dbo,SelectionResumeTxnLog,BASE TABLE
+dbo,SelectionUserLogTxn,BASE TABLE
+dbo,SelectionUserLogTxnLog,BASE TABLE
+dbo,SendCodeExpiry,BASE TABLE
+dbo,SendEmailServerMaster,BASE TABLE
+dbo,SenderMaster,BASE TABLE
+dbo,SendInvitationToUser,BASE TABLE
+dbo,SendRateUpdateEmailNotificationTxn,BASE TABLE
+dbo,SendRequestForCandidate,BASE TABLE
+dbo,SenseToVecRecommendation,BASE TABLE
+dbo,SEOConfigurationMaster,BASE TABLE
+dbo,ServiceBranchMaster,BASE TABLE
+dbo,ServiceOfferMaster,BASE TABLE
+dbo,ServiceRunLog,BASE TABLE
+dbo,SeverityTypeMaster,BASE TABLE
+dbo,SharedDocumentMaster,BASE TABLE
+dbo,SharedRequirementsTxn,BASE TABLE
+dbo,SheetAgencyCode,BASE TABLE
+dbo,ShortlistedMaster,BASE TABLE
+dbo,SiaCwsTshirtOrderMaster,BASE TABLE
+dbo,SiaCwsTshirtOrderTxn,BASE TABLE
+dbo,SIAEventContactMaster,BASE TABLE
+dbo,SingleSelection,BASE TABLE
+dbo,SingleSelectionLog,BASE TABLE
+dbo,SkillAddedTxn,BASE TABLE
+dbo,SkillCatMaster,BASE TABLE
+dbo,SkillDetail,BASE TABLE
+dbo,SkillDetailPriorityLevel,BASE TABLE
+dbo,SkillDetailPriorityLevelTracking,BASE TABLE
+dbo,SkillDetailWaySkillUsed,BASE TABLE
+dbo,SkillGridTxn,BASE TABLE
+dbo,SkillGroupMaster,BASE TABLE
+dbo,SkillGroupTxn,BASE TABLE
+dbo,SkillLevelMaster,BASE TABLE
+dbo,SkillMaster,BASE TABLE
+dbo,SkillMasterDataRefined,BASE TABLE
+dbo,SkillMasterDataRefinedNew,BASE TABLE
+dbo,SkillParsedTxn,BASE TABLE
+dbo,SkillRecommendation,BASE TABLE
+dbo,SkillSet,BASE TABLE
+dbo,SkillSetTxn,BASE TABLE
+dbo,SkillSource,BASE TABLE
+dbo,SkillSourceCleanup,BASE TABLE
+dbo,SkillSourcenew,BASE TABLE
+dbo,SkillSourceTxn,BASE TABLE
+dbo,SkillSubTypeMaster,BASE TABLE
+dbo,SkillTypeMaster,BASE TABLE
+dbo,SKillUpdatedList,BASE TABLE
+dbo,SmartUserRankOnRequirement,BASE TABLE
+dbo,SMSMaster,BASE TABLE
+dbo,SMSMasterTest,BASE TABLE
+dbo,SMTPMaster,BASE TABLE
+dbo,SocialSiteMaster,BASE TABLE
+dbo,SourceAbledApiTokenTxn,BASE TABLE
+dbo,SourceHiringMaster,BASE TABLE
+dbo,SourceMaster,BASE TABLE
+dbo,SPCandidateBillRate,BASE TABLE
+dbo,SPCandidateDetails,BASE TABLE
+dbo,SPCandidateJourny,BASE TABLE
+dbo,SplitSkill,BASE TABLE
+dbo,SponsershipDtlAtSubmissionChkl,BASE TABLE
+dbo,SponsorshipEmploymentStatus,BASE TABLE
+dbo,SponsorshipTypeMaster,BASE TABLE
+dbo,SProList,BASE TABLE
+dbo,SPUserIntranetTimeSheet,BASE TABLE
+dbo,SRVAnswerMaster,BASE TABLE
+dbo,SRVQuestionMaster,BASE TABLE
+dbo,StateMaster,BASE TABLE
+dbo,StateMasterTemp,BASE TABLE
+dbo,StatusMaster,BASE TABLE
+dbo,SubClient,BASE TABLE
+dbo,SubmissionAccountManagerComment,BASE TABLE
+dbo,SubmissionByUser,BASE TABLE
+dbo,SubmissionClientDetailTxn,BASE TABLE
+dbo,SubmissionComment,BASE TABLE
+dbo,SubmissionConfirmationChecklistTxn,BASE TABLE
+dbo,SubmissionConfirmedDetail,BASE TABLE
+dbo,SubmissionConfirmedDetailLog,BASE TABLE
+dbo,SubmissionCRATxn,BASE TABLE
+dbo,SubmissionMaster,BASE TABLE
+dbo,SubmissionMasterLog,BASE TABLE
+dbo,SubmissionRateComments,BASE TABLE
+dbo,SubmissionResume,BASE TABLE
+dbo,SubmissionResumeTxn,BASE TABLE
+dbo,SubmissionTXN,BASE TABLE
+dbo,SubscribeScore,BASE TABLE
+dbo,SubscribeScoreEmailSentDetail,BASE TABLE
+dbo,SubscribeScoreScheduleTxn,BASE TABLE
+dbo,SubscriptionBillingCycle,BASE TABLE
+dbo,SubscriptionContactSale,BASE TABLE
+dbo,SubscriptionEmployerTxn,BASE TABLE
+dbo,SubscriptionEmployerTxnHistory,BASE TABLE
+dbo,SubscriptionEmployerTxnReference,BASE TABLE
+dbo,SubscriptionEmployerTxnReferenceManual,BASE TABLE
+dbo,SubscriptionPaypalResponse,BASE TABLE
+dbo,SubscriptionPlan,BASE TABLE
+dbo,SubscriptionPlanPriceTxn,BASE TABLE
+dbo,SubscriptionPlanTxn,BASE TABLE
+dbo,SubscriptionReviseTxn,BASE TABLE
+dbo,SubscriptionRiskManagement,BASE TABLE
+dbo,SubscriptionSentmail,BASE TABLE
+dbo,SubscriptionStatus,BASE TABLE
+dbo,SuperMenuActionRoleTxn,BASE TABLE
+dbo,SuperMenuActionTxn,BASE TABLE
+dbo,SuperMenuActionUserTxn,BASE TABLE
+dbo,SuperMenuTxn,BASE TABLE
+dbo,SupportLevelMaster,BASE TABLE
+dbo,SupportLevelTxn,BASE TABLE
+dbo,SupportProviderAddressTxn,BASE TABLE
+dbo,SupportProviderAgeGroupSupportTxn,BASE TABLE
+dbo,SupportProviderAgreementFile,BASE TABLE
+dbo,SupportProviderBusinessTypeTxn,BASE TABLE
+dbo,SupportProviderCandidate,BASE TABLE
+dbo,SupportProviderCandidateAssignTxn,BASE TABLE
+dbo,SupportProviderCandidateConnection,BASE TABLE
+dbo,SupportProviderCandidateConnectionTxn,BASE TABLE
+dbo,SupportProviderCandidateTxn,BASE TABLE
+dbo,SupportProviderCandidateUpload,BASE TABLE
+dbo,SupportProviderCategoryTxn,BASE TABLE
+dbo,SupportProviderCertificationTxn,BASE TABLE
+dbo,SupportProviderCompanyMaster,BASE TABLE
+dbo,SupportProviderContactTxn,BASE TABLE
+dbo,SupportProviderEducationCategoryTxn,BASE TABLE
+dbo,SupportProviderEngagementModuleEntry,BASE TABLE
+dbo,SupportProviderEngagementModuleEntryEntity,BASE TABLE
+dbo,SupportProviderEngagementProgram,BASE TABLE
+dbo,SupportProviderEngagementProgramModule,BASE TABLE
+dbo,SupportProviderGovtAgencyCategoryTxn,BASE TABLE
+dbo,SupportProviderJobAlert,BASE TABLE
+dbo,SupportProviderJobAlertCategoryTxn,BASE TABLE
+dbo,SupportProviderJobAlertFrequencyTxn,BASE TABLE
+dbo,SupportProviderJobAlertJobtypeTxn,BASE TABLE
+dbo,SupportProviderJobAlertLocationTxn,BASE TABLE
+dbo,SupportProviderJobAlertRemoteOptionTypeTxn,BASE TABLE
+dbo,SupportProviderMaster,BASE TABLE
+dbo,SupportProviderNotes,BASE TABLE
+dbo,SupportProviderNotesFileTxn,BASE TABLE
+dbo,SupportProviderPopulationSupportTxn,BASE TABLE
+dbo,SupportProviderPortalTxn,BASE TABLE
+dbo,SupportProviderRegionServedTxn,BASE TABLE
+dbo,SupportProviderServicesTxn,BASE TABLE
+dbo,SupportProviderSupportLevelTxn,BASE TABLE
+dbo,SupportProviderUserFileTxn,BASE TABLE
+dbo,SupportProviderUserTxn,BASE TABLE
+dbo,SupportProviderWebsite,BASE TABLE
+dbo,SupportServicesMaster,BASE TABLE
+dbo,SurveyAnswerMaster,BASE TABLE
+dbo,SurveyInputTypes,BASE TABLE
+dbo,SurveyMaster,BASE TABLE
+dbo,SurveyMemberType,BASE TABLE
+dbo,SurveyOfferedAnswer,BASE TABLE
+dbo,SurveyProgramHiringManager,BASE TABLE
+dbo,SurveyProgramSupportTeam,BASE TABLE
+dbo,SurveyQuestion,BASE TABLE
+dbo,SurveyQuestionAction,BASE TABLE
+dbo,SurveyQuestionMaster,BASE TABLE
+dbo,SurveyResponse,BASE TABLE
+dbo,SurveyResponseTxn,BASE TABLE
+dbo,SurveyReviewPeriod,BASE TABLE
+dbo,SurveySectionMaster,BASE TABLE
+dbo,SurveySelectionTxn,BASE TABLE
+dbo,SurveySubOfferAnswer,BASE TABLE
+dbo,SurveyTypeMaster,BASE TABLE
+dbo,SurveyTypeMaster_SP,BASE TABLE
+dbo,sysdiagrams,BASE TABLE
+dbo,TableLog,BASE TABLE
+dbo,taconfig,BASE TABLE
+dbo,TagMemberInPostOrCommentTxn,BASE TABLE
+dbo,TalentChannel,BASE TABLE
+dbo,TalentPoolContactMaster,BASE TABLE
+dbo,TalentShowCaseReasonMaster,BASE TABLE
+dbo,TAMenuMaster,BASE TABLE
+dbo,TAPermission,BASE TABLE
+dbo,TARolePermission,BASE TABLE
+dbo,TAUserCompanyTxn,BASE TABLE
+dbo,TAUserPermission,BASE TABLE
+dbo,TAUserPermissionTxn,BASE TABLE
+dbo,TAUserRoles,BASE TABLE
+dbo,TempAccMgrRequirement,BASE TABLE
+dbo,tempconfig,BASE TABLE
+dbo,TempCostPerHireConfig,BASE TABLE
+dbo,tempFT,BASE TABLE
+dbo,TempInterviewdetail,BASE TABLE
+dbo,TemplateMaster,BASE TABLE
+dbo,TemplateMaster_Backup_LinkedinURL,BASE TABLE
+dbo,TemplateMasterTemp,BASE TABLE
+dbo,TemplateTableType,BASE TABLE
+dbo,TemplateTypeMaster,BASE TABLE
+dbo,TempProjectStatusChanged,BASE TABLE
+dbo,TempRequirementPerformance,BASE TABLE
+dbo,TempRequirementPerformance24hrs,BASE TABLE
+dbo,TempRequirementPerformanceSummary,BASE TABLE
+dbo,TempResumeMatch,BASE TABLE
+dbo,TempSurveySectionMaster,BASE TABLE
+dbo,tempUsers,BASE TABLE
+dbo,Tenant,BASE TABLE
+dbo,TenantControlType,BASE TABLE
+dbo,TenantDataSectionMaster,BASE TABLE
+dbo,TenantDetailType,BASE TABLE
+dbo,TenantDetailTypeTxn,BASE TABLE
+dbo,TenantDynamicContent,BASE TABLE
+dbo,TenantFooter,BASE TABLE
+dbo,TenantHeader,BASE TABLE
+dbo,TenantLayout,BASE TABLE
+dbo,TenantMaster,BASE TABLE
+dbo,TenantMasterMenuTxn,BASE TABLE
+dbo,TenantPasscode,BASE TABLE
+dbo,TenantSectionHistoryTxn,BASE TABLE
+dbo,TenantSectionMaster,BASE TABLE
+dbo,TenantSectionTxn,BASE TABLE
+dbo,TenantSeoManager,BASE TABLE
+dbo,TenantSiteSetting,BASE TABLE
+dbo,TenantTemplateCategoryMaster,BASE TABLE
+dbo,TenantTemplateHistoryTxn,BASE TABLE
+dbo,TenantTemplateLayoutTxn,BASE TABLE
+dbo,TenantTemplateMaster,BASE TABLE
+dbo,TenantTemplateTxn,BASE TABLE
+dbo,TenantTemplateTXn_Backup_LinkedinURL,BASE TABLE
+dbo,TenantTemplateType,BASE TABLE
+dbo,TenantThemeDataTxn,BASE TABLE
+dbo,TerminateProcessToAdpTxn,BASE TABLE
+dbo,TerminationContractLetterTxn,BASE TABLE
+dbo,TermsAndCondsFileVersion,BASE TABLE
+dbo,TestimonialsSurveyTxn,BASE TABLE
+dbo,testtable,BASE TABLE
+dbo,themuse_jobs,BASE TABLE
+dbo,TimeCardClient,BASE TABLE
+dbo,TimeCardMaster,BASE TABLE
+dbo,TimeDurationMaster,BASE TABLE
+dbo,TimesheetDelegateUserTxn,BASE TABLE
+dbo,Timezone,BASE TABLE
+dbo,TimezoneAdjustmentRule,BASE TABLE
+dbo,TimezoneW,BASE TABLE
+dbo,tmpClient,BASE TABLE
+dbo,TokenManagerTxn,BASE TABLE
+dbo,tracker,BASE TABLE
+dbo,TrainingCertificate,BASE TABLE
+dbo,TrainingTypeMaster,BASE TABLE
+dbo,TransactionTypeMaster,BASE TABLE
+dbo,TransferredCandidateTxn,BASE TABLE
+dbo,TravelMaster,BASE TABLE
+dbo,Trn_Ignore_QB_Emp,BASE TABLE
+dbo,TSCJobCollection,BASE TABLE
+dbo,TSCProfile,BASE TABLE
+dbo,TsInterviewFeedback,BASE TABLE
+dbo,TsOtp,BASE TABLE
+dbo,TsRoleMaster,BASE TABLE
+dbo,TsUserLoginLog,BASE TABLE
+dbo,TsUserMaster,BASE TABLE
+dbo,TsUserSessionTxn,BASE TABLE
+dbo,TurnOffNotificationTxn,BASE TABLE
+dbo,TypesOfChecks,BASE TABLE
+dbo,UkUniversities,BASE TABLE
+dbo,UkUniversitiesLatLong,BASE TABLE
+dbo,UMPhoneNumberUpdate,BASE TABLE
+dbo,Undelivered_SMS,BASE TABLE
+dbo,UrlMappings,BASE TABLE
+dbo,usajobs_job,BASE TABLE
+dbo,USAJobs_ZIPCache,BASE TABLE
+dbo,UserActiveFrom,BASE TABLE
+dbo,UserActiveTo,BASE TABLE
+dbo,UserAlerts,BASE TABLE
+dbo,UserApiAccess,BASE TABLE
+dbo,UserApprovalTxn,BASE TABLE
+dbo,UserAttendance,BASE TABLE
+dbo,UserBreakTime,BASE TABLE
+dbo,UserCategory,BASE TABLE
+dbo,UserClientChecks,BASE TABLE
+dbo,UserCommunityMappingTxn,BASE TABLE
+dbo,UserCompanyTxn,BASE TABLE
+dbo,UserContactTxn,BASE TABLE
+dbo,UserEmailLocationNotification,BASE TABLE
+dbo,UserEmailNotificationHistorytxn,BASE TABLE
+dbo,UserEmailSyncTxn,BASE TABLE
+dbo,UserFavouriteTxn,BASE TABLE
+dbo,UserGoalDurationMaster,BASE TABLE
+dbo,UserIncentive,BASE TABLE
+dbo,UserInvite,BASE TABLE
+dbo,UserJobsNotificationSettings,BASE TABLE
+dbo,UserLockInformation,BASE TABLE
+dbo,UserMarketingSignature,BASE TABLE
+dbo,UserMaster,BASE TABLE
+dbo,UserMasterHistory,BASE TABLE
+dbo,UserMasterLog,BASE TABLE
+dbo,UserMemberTxn,BASE TABLE
+dbo,UserPerformanceGoals,BASE TABLE
+dbo,UserPermission,BASE TABLE
+dbo,UserPermissionTxn,BASE TABLE
+dbo,UserPreferenceTxn,BASE TABLE
+dbo,UserPreferredCommunication,BASE TABLE
+dbo,UserPreferredCommunicationTxn,BASE TABLE
+dbo,UserProfileImage,BASE TABLE
+dbo,UserRegistrationVerification,BASE TABLE
+dbo,UserRepliedWith,BASE TABLE
+dbo,UserReportAuthority,BASE TABLE
+dbo,UserRequirementActivityTxn,BASE TABLE
+dbo,UserRoles,BASE TABLE
+dbo,UserSessionTxn,BASE TABLE
+dbo,UserSMSAccess,BASE TABLE
+dbo,UserSocialSite,BASE TABLE
+dbo,UserStateTxn,BASE TABLE
+dbo,UserSubscription,BASE TABLE
+dbo,UserSupportProviderTxn,BASE TABLE
+dbo,UserSurveyOfferedAnswer,BASE TABLE
+dbo,UserSurveyQuestion,BASE TABLE
+dbo,UserSurveyTxn,BASE TABLE
+dbo,UserTokenTxn,BASE TABLE
+dbo,UserTypeMaster,BASE TABLE
+dbo,VendorAddressTxn,BASE TABLE
+dbo,VendorAliasName,BASE TABLE
+dbo,VendorAsSubContractor,BASE TABLE
+dbo,VendorCallConversationTxn,BASE TABLE
+dbo,VendorDocument,BASE TABLE
+dbo,VendorMailManage,BASE TABLE
+dbo,VendorMailSent,BASE TABLE
+dbo,VendorMaster,BASE TABLE
+dbo,VendorTIN,BASE TABLE
+dbo,VendorTypeMaster,BASE TABLE
+dbo,VendorWebsite,BASE TABLE
+dbo,VerificationCode,BASE TABLE
+dbo,VeteranDisclosureAtSubmissionChecklist,BASE TABLE
+dbo,VeteranDisclosureMaster,BASE TABLE
+dbo,VeteranSecurityClearance,BASE TABLE
+dbo,VeteranServeMaster,BASE TABLE
+dbo,VeteranServiceMaster,BASE TABLE
+dbo,VeteranStatusMaster,BASE TABLE
+dbo,VeteranUserAdditionalAreaOfInterest,BASE TABLE
+dbo,VeteranUserAdditionalSkill,BASE TABLE
+dbo,VeteranUserAdditionalSkillDetail,BASE TABLE
+dbo,VeteranUserAdditionalSkillForeignLang,BASE TABLE
+dbo,VeteranUserAdditionalSkillMemberOfOrg,BASE TABLE
+dbo,VeteranUserAddress,BASE TABLE
+dbo,VeteranUserCareerInterest,BASE TABLE
+dbo,VeteranUserCareerInterestFindEmployment,BASE TABLE
+dbo,VeteranUserCareerInterestFormOfEmployment,BASE TABLE
+dbo,VeteranUserCareerInterestJobRequire,BASE TABLE
+dbo,VeteranUserCareerInterestNotWillingToMove,BASE TABLE
+dbo,VeteranUserCareerInterestRightPosition,BASE TABLE
+dbo,VeteranUserEducation,BASE TABLE
+dbo,VeteranUserEducationFutureStudy,BASE TABLE
+dbo,VeteranUserEducationPresentStudying,BASE TABLE
+dbo,VeteranUserEducationSpecialty,BASE TABLE
+dbo,VeteranUserFamilyBackground,BASE TABLE
+dbo,VeteranUserFormalMilitarySchool,BASE TABLE
+dbo,VeteranUserMaster,BASE TABLE
+dbo,VeteranUserMilitaryCertificates,BASE TABLE
+dbo,VeteranUserMilitaryDD214Form,BASE TABLE
+dbo,VeteranUserMilitaryService,BASE TABLE
+dbo,VeteranUserMilitaryServiceBillet,BASE TABLE
+dbo,VeteranUserMilitaryServiceTypeMaster,BASE TABLE
+dbo,VeteranUserPastCivilianEmployment,BASE TABLE
+dbo,VeteranUserPastCivilianEmploymentDetail,BASE TABLE
+dbo,VeteranUserProfessionalMilitarySchool,BASE TABLE
+dbo,VeteranUserResume,BASE TABLE
+dbo,VideoAppFeedback,BASE TABLE
+dbo,View_Candidate_Address,VIEW
+dbo,View_SC_SA_Candidate_Address,VIEW
+dbo,ViewControlTypeMaster,BASE TABLE
+dbo,ViewMaster,BASE TABLE
+dbo,ViewMaster_Backup_linkedinURL,BASE TABLE
+dbo,Views,BASE TABLE
+dbo,VirtualJobFairEvent,BASE TABLE
+dbo,VirtualJobFairVideoTypeMaster,BASE TABLE
+dbo,VisaDetails,BASE TABLE
+dbo,VisaMaster,BASE TABLE
+dbo,VMSClientNameTxn,BASE TABLE
+dbo,VmsXmlTxn,BASE TABLE
+dbo,VmsXmlTxnRequirementTxn,BASE TABLE
+dbo,VoluntaryDisclosureAtSubmissionChecklist,BASE TABLE
+dbo,vv_EmailToCandidateTxn_EmailSentTypeID,VIEW
+dbo,VW_ActiveConsultant,VIEW
+dbo,VW_ActiveHeadCount,VIEW
+dbo,VW_ActiveHiredCandidates,VIEW
+dbo,vw_ActiveSubmission,VIEW
+dbo,vw_AddressDetail,VIEW
+dbo,VW_AllStagesinDateRange,VIEW
+dbo,VW_AssignmentCompleted,VIEW
+dbo,VW_AssignmentCompletedCount,VIEW
+dbo,VW_AvgOfferAcseptedtoHired,VIEW
+dbo,VW_AvgTimeOfHiredOnJobtitle,VIEW
+dbo,Vw_Beta_User_Goals,VIEW
+dbo,vw_CandidateActionStatus,VIEW
+dbo,vw_CandidateAlreadySubmitted,VIEW
+dbo,vw_CandidateBasicDetail,VIEW
+dbo,vw_CandidateBasicSearch,VIEW
+dbo,vw_CandidateCurrentStageIfSIOH,VIEW
+dbo,vw_CandidateCurrentStageIfSSIOH,VIEW
+dbo,vw_CandidateCycle,VIEW
+dbo,VW_CandidateDiversityMatrix,VIEW
+dbo,vw_CandidateDocuSignDocumentStatus,VIEW
+dbo,vw_CandidateDocuSignEnvelopeStatus,VIEW
+dbo,VW_CandidateEducation,VIEW
+dbo,vw_CandidateEmployementDetail,VIEW
+dbo,VW_CandidateExperience,VIEW
+dbo,vw_CandidateJobTypes,VIEW
+dbo,VW_CandidateMedalist,VIEW
+dbo,vw_CandidateOfOtherSupplierForTLTR,VIEW
+dbo,vw_CandidatePortal,VIEW
+dbo,vw_CandidatePortalV1,VIEW
+dbo,VW_CandidateProfessionalExperience,VIEW
+dbo,VW_CandidateProfileMatrix,VIEW
+dbo,VW_CandidateProfileUpdateAfterCampaign,VIEW
+dbo,VW_CandidateProMatrix,VIEW
+dbo,VW_CandidatesInactiveMartix,VIEW
+dbo,vw_CandidateSkills,VIEW
+dbo,vw_CandidateSkills_FullTextSearch,VIEW
+dbo,vw_CandidateSkills_new,VIEW
+dbo,VW_CandidatesUnverified,VIEW
+dbo,vw_CandidateWithResume,VIEW
+dbo,vw_ClientAllInvoiceDetail,VIEW
+dbo,Vw_ClientCostPerHired,VIEW
+dbo,vw_ClientInvoiceAmount,VIEW
+dbo,VW_ClientRequirementSummary,VIEW
+dbo,vw_ClientWiseResourcesDetail,VIEW
+dbo,vw_CompanyEngagementProgramDetails,VIEW
+dbo,VW_Concluded,VIEW
+dbo,VW_ConcludedCandidates,VIEW
+dbo,Vw_ConsultantInsuranceEnrollmentSummary,VIEW
+dbo,vw_ConsultantPendingDocument,VIEW
+dbo,VW_ContingentHired,VIEW
+dbo,VW_ContractorResignationORTermination,VIEW
+dbo,Vw_CostPerHiredConfig,VIEW
+dbo,vw_CurrentHiredCandidateListFinance,VIEW
+dbo,VW_DirectHire,VIEW
+dbo,VW_DIrectHired,VIEW
+dbo,VW_DirectHiredCount,VIEW
+dbo,vw_DirectHiredOrConvertToPermCandidateList,VIEW
+dbo,vw_DocuSignEnvelopeStatus,VIEW
+dbo,vw_EmailReceiveFromSvcRequirement,VIEW
+dbo,vw_EmailRecvMiscellaneous,VIEW
+dbo,vw_EmailRecvMiscellaneous_Count,VIEW
+dbo,vw_EmailRecvMiscellaneousV,VIEW
+dbo,vw_EmailToCandidate,VIEW
+dbo,vw_EmployeeQBWorkHours,VIEW
+dbo,vw_FlagCandidateList,VIEW
+dbo,VW_GeneralisedAdminHeader,VIEW
+dbo,vw_Getall_JobCollectionIDs,VIEW
+dbo,vw_GetAll_RWMemberTAActivities,VIEW
+dbo,VW_GetAllHiringManagers,VIEW
+dbo,VW_GetRequirementStatusLog,VIEW
+dbo,vw_GetRWMemberTAActivities,VIEW
+dbo,VW_Hired,VIEW
+dbo,vw_HiredCandidateList,VIEW
+dbo,VW_HiredCount,VIEW
+dbo,VW_HiredList,VIEW
+dbo,VW_HiredStagesCount,VIEW
+dbo,VW_HotJobsBase,VIEW
+dbo,Vw_InProgress,VIEW
+dbo,VW_Interview,VIEW
+dbo,vw_InterviewReference,VIEW
+dbo,VW_InterviewStages,VIEW
+dbo,vw_InvoiceDetail,VIEW
+dbo,vw_JobCollectionWithCityStateLocationIndexed,VIEW
+dbo,vw_JobCollectionWithLocationIndexed,VIEW
+dbo,vw_JobCollectionWithLocationValueIndexed,VIEW
+dbo,VW_NewReqTotHired,VIEW
+dbo,vw_NoofCallByRecruiter,VIEW
+dbo,VW_NotHired,VIEW
+dbo,vw_NotSpecialNeedsCandidates,VIEW
+dbo,VW_OfferAccepted,VIEW
+dbo,VW_OfferReceived,VIEW
+dbo,VW_OnBorading,VIEW
+dbo,VW_OpenJobs,VIEW
+dbo,vw_PBI_AutoDialerCallReport,VIEW
+dbo,vw_PBI_CandidateSubmissions,VIEW
+dbo,vw_PBI_Dim_Client,VIEW
+dbo,vw_PBI_Dim_Date,VIEW
+dbo,vw_PBI_Dim_Requirement,VIEW
+dbo,vw_PBI_Fact_ClientEngagement,VIEW
+dbo,vw_PBI_Fact_ClientSatisfaction,VIEW
+dbo,vw_PBI_Fact_Interviews,VIEW
+dbo,vw_PBI_Fact_OffBoarding,VIEW
+dbo,vw_PBI_Fact_Placements,VIEW
+dbo,vw_PBI_Fact_Redeployment,VIEW
+dbo,vw_PBI_Fact_RequirementPipeline,VIEW
+dbo,vw_PBI_Fact_Submissions,VIEW
+dbo,VW_PipelinedJob,VIEW
+dbo,VW_Prospective,VIEW
+dbo,VW_QBTimesheetWorkedHours,VIEW
+dbo,vw_QualityCheck,VIEW
+dbo,vw_ReadyToSubmit,VIEW
+dbo,vw_ReceivedEmailAttachementSize,VIEW
+dbo,vw_ReferredCandidates,VIEW
+dbo,VW_RejectedCandidates,VIEW
+dbo,VW_Rejection,VIEW
+dbo,VW_Requirement,VIEW
+dbo,vw_RequirementActionStatus,VIEW
+dbo,Vw_RequirementAssingToSDMTeam,VIEW
+dbo,VW_RequirementCandidateMatch,VIEW
+dbo,vw_RequirementDetail,VIEW
+dbo,vw_RequirementDetailforforecast,VIEW
+dbo,vw_RequirementDetailforHeatMap,VIEW
+dbo,vw_RequirementHiringManager,VIEW
+dbo,vw_RequirementLocation,VIEW
+dbo,VW_RequirementPosition,VIEW
+dbo,VW_RequirementRejectionSummary,VIEW
+dbo,vw_RequirementShiftPreferencesWithTimings,VIEW
+dbo,vw_RequirementStatusDetail,VIEW
+dbo,vw_RequirementTAT,VIEW
+dbo,vw_RestrictReferredCandidatesToSubmitOnOtherClients,VIEW
+dbo,vw_RW_ValidCandidates,VIEW
+dbo,vw_RW_ValidCandidates_WithInEligible,VIEW
+dbo,vw_SA_JPMC_OnBoarding,VIEW
+dbo,vw_SC_ActiveSubmission,VIEW
+dbo,vw_SC_AddressDetail,VIEW
+dbo,VW_SC_AdminHeader_ActiveConsultant,VIEW
+dbo,VW_SC_AdminHeader_AssignmentCompletedCount,VIEW
+dbo,VW_SC_AdminHeader_ConcludedCandidates,VIEW
+dbo,VW_SC_AdminHeader_ContractorResignationORTermination,VIEW
+dbo,VW_SC_AdminHeader_DirectHire,VIEW
+dbo,VW_SC_AdminHeader_DirectHired,VIEW
+dbo,Vw_SC_AdminHeader_Hired,VIEW
+dbo,VW_SC_AdminHeader_HiredStagesCount,VIEW
+dbo,VW_SC_AdminHeader_Interview,VIEW
+dbo,vw_SC_AdminHeader_RequirementLocation,VIEW
+dbo,VW_SC_AdminHeader_RequirementPosition,VIEW
+dbo,VW_SC_AdminHeader_ScheduledInterview,VIEW
+dbo,VW_SC_AdminHeader_SUBMISSION,VIEW
+dbo,VW_SC_AdminHeader_WithoutDateHired,VIEW
+dbo,vw_SC_App_MergedEmailTemplate,VIEW
+dbo,vw_SC_Beta_AddressDetail,VIEW
+dbo,vw_SC_Candidate_Address,VIEW
+dbo,vw_SC_CandidateBasicDetail,VIEW
+dbo,vw_SC_CandidateCurrentStageIfSSIOH,VIEW
+dbo,VW_SC_CandidateEducation,VIEW
+dbo,VW_SC_CandidateExperience,VIEW
+dbo,vw_SC_CandidateJobTypes,VIEW
+dbo,vw_SC_CandidateSkills,VIEW
+dbo,vw_SC_ClientAllInvoiceDetail,VIEW
+dbo,vw_SC_ClientInvoiceAmount,VIEW
+dbo,vw_SC_ClientJobCount,VIEW
+dbo,vw_SC_CurrentHiredCandidateList,VIEW
+dbo,vw_SC_CurrentHiredCandidateListFinance,VIEW
+dbo,vw_SC_DirectHiredOrConvertToPermCandidateList,VIEW
+dbo,vw_SC_EmailToCandidate,VIEW
+dbo,vw_SC_FlagCandidateList,VIEW
+dbo,VW_SC_GeneralisedAdminHeader,VIEW
+dbo,VW_SC_GetRequirementStatusLog,VIEW
+dbo,vw_SC_Hired,VIEW
+dbo,vw_SC_HiredCandidateList,VIEW
+dbo,vw_SC_LinkedServer_AddressDetail,VIEW
+dbo,vw_SC_LinkedServer_SupportProvider_Candidate_Status,VIEW
+dbo,vw_SC_LinkedServer_SupportProvider_CandidateStatus,VIEW
+dbo,vw_SC_LinkedServer_SupportProvider_CandidateStatus_Optimized,VIEW
+dbo,vw_SC_NotSpecialNeedsCandidates,VIEW
+dbo,vw_SC_QualifiedSubmission,VIEW
+dbo,vw_SC_ReadyToSubmit,VIEW
+dbo,vw_SC_ReferredCandidates,VIEW
+dbo,vw_SC_RequirementLocation,VIEW
+dbo,VW_SC_SA_CandidateEducation,VIEW
+dbo,VW_SC_SA_CandidateExperience,VIEW
+dbo,vw_SC_SupportProvider_Candidate_Status,VIEW
+dbo,vw_SC_SupportProviderCandidate_WithInEligible,VIEW
+dbo,vw_SC_TotalRejected,VIEW
+dbo,vw_SC_TotalSubmission,VIEW
+dbo,vw_SC_UserRoleInfo,VIEW
+dbo,vw_SC_ZIPCodeMasterDetail,VIEW
+dbo,VW_ScheduledInterview,VIEW
+dbo,VW_Shortlist,VIEW
+dbo,vw_SickLeaveAct,VIEW
+dbo,VW_StateWiseHiredSummary,VIEW
+dbo,VW_Submission,VIEW
+dbo,vw_SubmissionByUser,VIEW
+dbo,vw_SubmissionTAT,VIEW
+dbo,VW_TotalAssignmentCompleted,VIEW
+dbo,vw_TotalRejected,VIEW
+dbo,vw_TotalSubmission,VIEW
+dbo,VW_TotHired,VIEW
+dbo,VW_TotTransferred,VIEW
+dbo,vw_UclaCompanyID,VIEW
+dbo,VW_UnderReview,VIEW
+dbo,vw_UserGoals,VIEW
+dbo,VW_UserInOutLog,VIEW
+dbo,vw_UserRoleInfo,VIEW
+dbo,vw_VeteranBasicDetail,VIEW
+dbo,vw_ViewLimit1,VIEW
+dbo,VW_WithoutDateHired,VIEW
+dbo,vw_ZIPCodeMasterDetail,VIEW
+dbo,WebsiteURL,BASE TABLE
+dbo,WinAppUtilityLogs,BASE TABLE
+dbo,WithdrawMaster,BASE TABLE
+dbo,WithdrawMasterLog,BASE TABLE
+dbo,WorkedforClientDtlAtSubmissionChkl,BASE TABLE
+dbo,WorkFieldMaster,BASE TABLE
+dbo,WorkplaceReadinessMaster,BASE TABLE
+dbo,WOTC,BASE TABLE
+dbo,XLTimeSheetTemp,BASE TABLE
+dbo,ZeroBounceCandidate,BASE TABLE
+dbo,ZeroBounceStatusMaster,BASE TABLE
+dbo,ZeroSubmissionWithin4Hrs,BASE TABLE
+dbo,ZipcodeAddTXnHistory,BASE TABLE
+dbo,ZipCodeByCandidate,BASE TABLE
+dbo,ZipCodeDetail,BASE TABLE
+dbo,ZipCodeLableMaster,BASE TABLE
+dbo,ZIPCodeMaster,BASE TABLE

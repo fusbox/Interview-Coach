@@ -1,0 +1,11 @@
+COLUMN_NAME,DATA_TYPE,CHARACTER_MAXIMUM_LENGTH,IS_NULLABLE,ORDINAL_POSITION
+CandidateAuthenticationID,int,,NO,1
+CandidateID,int,,YES,2
+AuthToken,varchar,1024,NO,3
+Email,varchar,255,NO,4
+FirstName,varchar,255,YES,5
+LastName,varchar,255,YES,6
+IsActive,bit,,NO,7
+CreatedDate,datetime,,NO,8
+ModifiedDate,datetime,,YES,9
+LinkID,uniqueidentifier,,YES,10

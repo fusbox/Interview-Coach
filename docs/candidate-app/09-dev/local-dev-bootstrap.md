@@ -1,13 +1,13 @@
 # Local Dev Bootstrap
 
 Status: Active cleanroom V2 bootstrap
-Last updated: 2026-07-10
+Last updated: 2026-07-15
 
 ## Purpose
 
 This is the current local setup path for the candidate V2 rebuild in this repo.
 
-Older candidate docs and SQL helpers may still describe the V1 `/practice` -> `/session` -> `/summary` app. Treat those as reference material only. Current V2 work uses canonical `/candidate/*` routes and the `candidate_practice_sessions` persistence boundary.
+Older candidate docs and SQL helpers may still describe the V1 `/practice` -> `/session` -> `/summary` app. Treat those as reference material only. Current V2 work uses canonical `/candidate/*` routes, `candidate_practice_sessions` for durable rounds, and normalized answer-attempt/evaluator-run tables for immutable answer history.
 
 ## The Commands You Usually Need
 
@@ -33,16 +33,27 @@ npm run db:smoke-candidate-readiness
 
 ### After This Branch Changes Practice Persistence Migrations
 
-Use this when you already have the smoke DB running and only need the latest V2 practice-session or practice-intent table shape:
+Use this when you already have the smoke DB running and only need the latest V2 practice-session, practice-intent, or answer-history shape:
 
 ```powershell
 npm run db:apply-candidate-practice-sessions-schema
 npm run db:smoke-candidate-practice-sessions-schema
 npm run db:apply-candidate-practice-intents-schema
 npm run db:smoke-candidate-practice-intents-schema
+npm run db:apply-candidate-answer-attempts-schema
+npm run db:smoke-candidate-answer-attempts-schema
+npm run db:apply-candidate-prep-context-propagation-schema
+npm run db:smoke-candidate-prep-context-propagation-schema
+npm run db:apply-candidate-coach-update-artifacts-schema
+npm run db:smoke-candidate-coach-update-artifacts-schema
+npm run db:apply-candidate-practice-session-status-backfill
+npm run db:apply-candidate-next-round-drafts-schema
+npm run db:smoke-candidate-next-round-drafts-schema
+npm run db:apply-candidate-prep-context-practice-paths-schema
+npm run db:smoke-candidate-prep-context-practice-paths-schema
 ```
 
-For the current follow-up practice slices, `candidate_practice_sessions` remains the durable session boundary and `candidate_practice_intents` is the durable ready-round boundary for one-question or multi-question follow-up practice selections.
+`candidate_practice_sessions` remains the durable session boundary, `candidate_practice_intents` is the durable ready-round boundary for one-question or multi-question follow-up selections, `candidate_answer_attempts` plus `candidate_answer_evaluation_runs` preserve immutable submission and evaluator lineage, migration 010 propagates candidate-owned prep-context identity into intents and canonical dashboard/follow-up reads, migration 011 stores only versioned candidate-safe Coach Update artifacts over those source facts, and migration 012 idempotently repairs answered sessions that historical writes left in `planned` status.
 
 ### Full Candidate Quality Check
 
@@ -77,10 +88,21 @@ Current candidate V2 local development depends on these scripts:
 | Apply only host-launch schema | `npm run db:apply-candidate-host-launch-schema` |
 | Apply only V2 practice-session schema | `npm run db:apply-candidate-practice-sessions-schema` |
 | Apply only V2 practice-intent schema | `npm run db:apply-candidate-practice-intents-schema` |
+| Apply only V2 answer-attempt/evaluator-run schema | `npm run db:apply-candidate-answer-attempts-schema` |
+| Apply only V2 prep-context propagation schema | `npm run db:apply-candidate-prep-context-propagation-schema` |
+| Apply only V2 Coach Update artifact schema | `npm run db:apply-candidate-coach-update-artifacts-schema` |
+| Repair historical answered sessions left `planned` | `npm run db:apply-candidate-practice-session-status-backfill` |
+| Apply durable next-round draft schema | `npm run db:apply-candidate-next-round-drafts-schema` |
+| Apply intentional same-role/JD practice-path schema | `npm run db:apply-candidate-prep-context-practice-paths-schema` |
 | Seed local primary/alternate candidates | `npm run db:seed-candidate-dev` |
 | Validate host-launch schema | `npm run db:smoke-candidate-host-launch-schema` |
 | Validate V2 practice-session schema | `npm run db:smoke-candidate-practice-sessions-schema` |
 | Validate V2 practice-intent schema | `npm run db:smoke-candidate-practice-intents-schema` |
+| Validate V2 answer-attempt/evaluator-run schema | `npm run db:smoke-candidate-answer-attempts-schema` |
+| Validate V2 prep-context propagation and ownership | `npm run db:smoke-candidate-prep-context-propagation-schema` |
+| Validate V2 Coach Update artifact lifecycle and ownership | `npm run db:smoke-candidate-coach-update-artifacts-schema` |
+| Validate durable next-round draft launch | `npm run db:smoke-candidate-next-round-drafts-schema` |
+| Validate intentional same-role/JD practice paths | `npm run db:smoke-candidate-prep-context-practice-paths-schema` |
 | Validate local candidate fixtures | `npm run db:smoke-candidate-dev-seed` |
 | Run current candidate DB readiness chain | `npm run db:smoke-candidate-readiness` |
 
@@ -175,6 +197,17 @@ npm run db:apply-candidate-practice-sessions-schema
 npm run db:smoke-candidate-practice-sessions-schema
 npm run db:apply-candidate-practice-intents-schema
 npm run db:smoke-candidate-practice-intents-schema
+npm run db:apply-candidate-answer-attempts-schema
+npm run db:smoke-candidate-answer-attempts-schema
+npm run db:apply-candidate-prep-context-propagation-schema
+npm run db:smoke-candidate-prep-context-propagation-schema
+npm run db:apply-candidate-coach-update-artifacts-schema
+npm run db:smoke-candidate-coach-update-artifacts-schema
+npm run db:apply-candidate-practice-session-status-backfill
+npm run db:apply-candidate-next-round-drafts-schema
+npm run db:smoke-candidate-next-round-drafts-schema
+npm run db:apply-candidate-prep-context-practice-paths-schema
+npm run db:smoke-candidate-prep-context-practice-paths-schema
 ```
 
 ### Browser Opens The Session But Data Does Not Recover
@@ -199,7 +232,7 @@ Use those files when comparing against V1 behavior. Do not treat them as current
 For current V2 local development:
 
 - smoke Postgres is running;
-- `db:migrate` has applied through `008_candidate_practice_intents_schema.sql`;
+- `db:migrate` has applied through `014_candidate_prep_context_practice_paths_schema.sql`;
 - local candidate dev seed is present;
 - `db:smoke-candidate-readiness` passes;
 - the app is launched with `npm run dev`;
