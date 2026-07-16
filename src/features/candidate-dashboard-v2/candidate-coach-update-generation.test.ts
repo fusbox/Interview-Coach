@@ -5,21 +5,40 @@ import type {
     CandidateCoachUpdateSynthesisInput,
 } from "./candidate-coach-update-artifact";
 import { ensureCandidateCoachUpdateArtifact } from "./candidate-coach-update-generation";
+import {
+    CandidateCoachUpdateRuntimeError,
+    type CandidateCoachUpdateSynthesisRuntime,
+} from "./candidate-coach-update-runtime";
 
 describe("candidate Coach Update generation", () => {
     it("replays a completed same-input artifact without calling the synthesizer", async () => {
         const artifact = createArtifact({ lifecycleState: "completed" });
-        const requestCoachUpdate = vi.fn();
+        const runtime = createRuntime(vi.fn());
         const result = await ensureCandidateCoachUpdateArtifact({
             candidateProfileId: "candidate-1",
             sourceCandidatePracticeSessionId: "session-1",
             loadInput: async () => createInput(),
             repository: createRepository({ outcome: "replayed", artifact }),
-            requestCoachUpdate,
+            runtime,
         });
 
         expect(result).toEqual({ status: "coach_update_completed", artifact });
-        expect(requestCoachUpdate).not.toHaveBeenCalled();
+        expect(runtime.synthesize).not.toHaveBeenCalled();
+    });
+
+    it("returns the existing pending claim without starting concurrent provider work", async () => {
+        const artifact = createArtifact({ lifecycleState: "requested" });
+        const runtime = createRuntime(vi.fn());
+        const result = await ensureCandidateCoachUpdateArtifact({
+            candidateProfileId: "candidate-1",
+            sourceCandidatePracticeSessionId: "session-1",
+            loadInput: async () => createInput(),
+            repository: createRepository({ outcome: "replayed", artifact }),
+            runtime,
+        });
+
+        expect(result).toEqual({ status: "coach_update_pending", artifact });
+        expect(runtime.synthesize).not.toHaveBeenCalled();
     });
 
     it("rejects generated content when the durable source fingerprint changes before completion", async () => {
@@ -37,7 +56,7 @@ describe("candidate Coach Update generation", () => {
                 failArtifact,
                 completeArtifact,
             },
-            requestCoachUpdate: async () => createValidContent(),
+            runtime: createRuntime(),
         });
 
         expect(result).toEqual({ status: "coach_update_unavailable", reason: "stale_source" });
@@ -59,6 +78,81 @@ describe("candidate Coach Update generation", () => {
 
         expect(result).toEqual({ status: "coach_update_unavailable", reason: "source_not_ready" });
         expect(repository.claimArtifact).not.toHaveBeenCalled();
+    });
+
+    it("records a retryable timeout as a failed artifact attempt without weakening session completion", async () => {
+        const failArtifact = vi.fn(async () => createArtifact({ lifecycleState: "failed" }));
+        const result = await ensureCandidateCoachUpdateArtifact({
+            candidateProfileId: "candidate-1",
+            sourceCandidatePracticeSessionId: "session-1",
+            loadInput: async () => createInput(),
+            repository: {
+                ...createRepository(),
+                failArtifact,
+            },
+            runtime: createRuntime(vi.fn(async () => {
+                throw new CandidateCoachUpdateRuntimeError("timeout");
+            })),
+        });
+
+        expect(result).toEqual({ status: "coach_update_unavailable", reason: "generation_failed" });
+        expect(failArtifact).toHaveBeenCalledWith(expect.objectContaining({
+            lifecycleState: "failed",
+            errorCode: "COACH_UPDATE_PROVIDER_TIMEOUT",
+            validation: expect.objectContaining({
+                disposition: "failed",
+                retryable: true,
+                transportAttemptCount: 1,
+                rawOutputStored: false,
+            }),
+        }));
+    });
+
+    it("records malformed provider output as rejected and allows a later artifact attempt to repair it", async () => {
+        const failArtifact = vi.fn(async () => createArtifact({ lifecycleState: "rejected" }));
+        const result = await ensureCandidateCoachUpdateArtifact({
+            candidateProfileId: "candidate-1",
+            sourceCandidatePracticeSessionId: "session-1",
+            loadInput: async () => createInput(),
+            repository: {
+                ...createRepository(),
+                failArtifact,
+            },
+            runtime: createRuntime(vi.fn(async () => {
+                throw new CandidateCoachUpdateRuntimeError("invalid_schema");
+            })),
+        });
+
+        expect(result).toEqual({ status: "coach_update_unavailable", reason: "invalid_content" });
+        expect(failArtifact).toHaveBeenCalledWith(expect.objectContaining({
+            lifecycleState: "rejected",
+            errorCode: "COACH_UPDATE_PROVIDER_INVALID_SCHEMA",
+            validation: expect.objectContaining({ retryable: true }),
+        }));
+    });
+
+    it("claims and completes the artifact with the exact runtime version metadata", async () => {
+        const repository = createRepository();
+        const runtime = createRuntime();
+        const result = await ensureCandidateCoachUpdateArtifact({
+            candidateProfileId: "candidate-1",
+            sourceCandidatePracticeSessionId: "session-1",
+            loadInput: async () => createInput(),
+            repository,
+            runtime,
+        });
+
+        expect(result.status).toBe("coach_update_completed");
+        expect(repository.claimArtifact).toHaveBeenCalledWith(expect.objectContaining(runtime.metadata));
+        expect(repository.completeArtifact).toHaveBeenCalledWith(expect.objectContaining({
+            validation: expect.objectContaining({
+                disposition: "accepted",
+                provider: runtime.metadata.provider,
+                providerRequestVersion: "candidate_coach_update_provider_request_v1",
+                rawOutputStored: false,
+                promptStored: false,
+            }),
+        }));
     });
 });
 
@@ -123,6 +217,33 @@ function createValidContent() {
                 questionKey: "slot-1",
             },
         }],
+    };
+}
+
+function createRuntime(
+    synthesize = vi.fn(async () => ({
+        content: createValidContent(),
+        validation: {
+            providerRequestVersion: "candidate_coach_update_provider_request_v1" as const,
+            providerOutputVersion: "candidate_coach_update_provider_output_v1" as const,
+            timeoutMs: 12_000,
+            transportAttemptCount: 1 as const,
+            latencyMs: 10,
+            tokenUsage: { inputTokens: 20, outputTokens: 10 },
+            rawOutputStored: false as const,
+            promptStored: false as const,
+        },
+    })),
+): CandidateCoachUpdateSynthesisRuntime {
+    return {
+        metadata: {
+            provider: "test_provider",
+            modelName: "test_model",
+            promptVersion: "test_prompt_v1",
+            evaluatorVersion: "evidence_first_v1",
+        },
+        timeoutMs: 12_000,
+        synthesize,
     };
 }
 

@@ -1,7 +1,7 @@
 # Local Dev Bootstrap
 
 Status: Active cleanroom V2 bootstrap
-Last updated: 2026-07-15
+Last updated: 2026-07-16
 
 ## Purpose
 
@@ -126,6 +126,15 @@ CANDIDATE_ANSWER_ANALYSIS_PROVIDER=fixture
 ```
 
 The fixture provider is accepted only with explicit local dev host-launch mode. If the variable is missing, answer analysis remains fail-closed with provider-not-configured behavior.
+
+Coach Update synthesis also uses its typed deterministic fixture in this explicit local mode. To exercise its production-shaped failure boundary without live credentials, temporarily add:
+
+```text
+CANDIDATE_COACH_UPDATE_PROVIDER=fault
+CANDIDATE_COACH_UPDATE_FAULT_MODE=provider_5xx
+```
+
+Allowlisted fault modes are `timeout`, `rate_limited`, `provider_5xx`, `provider_unavailable`, `misconfigured`, `invalid_json`, `invalid_schema`, `fingerprint_mismatch`, `question_mapping_mismatch`, `unsafe_candidate_language`, and `success`. The controls are read only from server environment, are never accepted through a URL or request payload, and are disabled when `NODE_ENV=production`. A fault must not block round completion or dashboard return; it should create a classified terminal artifact attempt and leave the dashboard in its existing truthful unavailable state. Remove both Coach Update variables to return to the fixture inherited from `CANDIDATE_ANSWER_ANALYSIS_PROVIDER=fixture`.
 
 Then start the app:
 

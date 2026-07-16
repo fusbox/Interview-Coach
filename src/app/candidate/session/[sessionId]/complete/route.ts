@@ -11,6 +11,9 @@ import {
     ensureCandidateCoachUpdateArtifact,
     type CandidateCoachUpdateGenerationResult,
 } from "@/features/candidate-dashboard-v2/candidate-coach-update-generation";
+import {
+    createCandidateCoachUpdateRuntimeFromEnvironment,
+} from "@/features/candidate-dashboard-v2/candidate-coach-update-runtime";
 import { createCandidateDashboardHref } from "@/features/candidate-dashboard-v2/candidate-dashboard-route";
 import type { CandidateAnswerAnalysisProviderResult } from "@/features/candidate-session-v2/candidate-answer-analysis-adapter";
 import { createCandidateAnswerHistoryRepository } from "@/features/candidate-session-v2/candidate-answer-history-repository";
@@ -189,7 +192,7 @@ export async function handleCandidateSessionCompleteRequest({
     });
 }
 
-function createDefaultCandidateSessionCompleteDependencies(): Pick<
+export function createDefaultCandidateSessionCompleteDependencies(): Pick<
     CandidateSessionCompleteRouteDependencies,
     "resolveCandidateSessionIdentity" | "practiceSessionRepository" | "ensureCoachUpdateArtifact"
 > {
@@ -203,6 +206,10 @@ function createDefaultCandidateSessionCompleteDependencies(): Pick<
     const practiceSessionRepository = createCandidatePracticeSessionRepository(queryClient);
     const answerHistoryRepository = createCandidateAnswerHistoryRepository(queryClient);
     const coachUpdateArtifactRepository = createCandidateCoachUpdateArtifactRepository(queryClient);
+    const coachUpdateRuntime = createCandidateCoachUpdateRuntimeFromEnvironment({
+        env: process.env,
+        explicitLocalDev: isExplicitLocalCandidateDevMode(),
+    });
 
     return {
         resolveCandidateSessionIdentity: async (request) => {
@@ -210,7 +217,7 @@ function createDefaultCandidateSessionCompleteDependencies(): Pick<
             return devIdentity ?? resolveCandidateSessionIdentityFromLaunchCookie(request, queryClient);
         },
         practiceSessionRepository,
-        ...(isExplicitLocalCoachUpdateFixtureMode() ? {
+        ...(coachUpdateRuntime ? {
             ensureCoachUpdateArtifact: async ({
                 candidateProfileId,
                 sourceCandidatePracticeSessionId,
@@ -221,12 +228,10 @@ function createDefaultCandidateSessionCompleteDependencies(): Pick<
                 candidateProfileId,
                 sourceCandidatePracticeSessionId,
                 repository: coachUpdateArtifactRepository,
+                runtime: coachUpdateRuntime,
                 loadInput: async () => {
                     const [sessions, attempts, evaluationRuns] = await Promise.all([
-                        practiceSessionRepository.listPracticeSessionsForCandidate({
-                            candidateProfileId,
-                            limit: 100,
-                        }),
+                        practiceSessionRepository.listAllPracticeSessionsForCandidate({ candidateProfileId }),
                         answerHistoryRepository.listAnswerAttemptsForCandidate({ candidateProfileId }),
                         answerHistoryRepository.listEvaluationRunsForCandidate({
                             candidateProfileId,
@@ -257,9 +262,8 @@ function createDefaultCandidateSessionCompleteDependencies(): Pick<
     };
 }
 
-function isExplicitLocalCoachUpdateFixtureMode() {
-    return process.env.CANDIDATE_ANSWER_ANALYSIS_PROVIDER?.trim().toLowerCase() === "fixture"
-        && process.env[CANDIDATE_HOST_LAUNCH_DEV_MODE_ENV] === "true"
+function isExplicitLocalCandidateDevMode() {
+    return process.env[CANDIDATE_HOST_LAUNCH_DEV_MODE_ENV] === "true"
         && Boolean(process.env[CANDIDATE_HOST_LAUNCH_DEV_SECRET_ENV]?.trim());
 }
 

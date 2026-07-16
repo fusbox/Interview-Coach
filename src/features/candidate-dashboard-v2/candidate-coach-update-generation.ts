@@ -1,6 +1,4 @@
 import {
-    candidateCoachUpdateFixtureMetadata,
-    createFixtureCandidateCoachUpdateContent,
     validateCandidateCoachUpdateContent,
     type CandidateCoachUpdateArtifactRecord,
     type CandidateCoachUpdateContent,
@@ -10,6 +8,12 @@ import type {
     CandidateCoachUpdateArtifactWriteResult,
     ClaimCandidateCoachUpdateArtifactInput,
 } from "./candidate-coach-update-artifact-repository";
+import {
+    CANDIDATE_COACH_UPDATE_CLAIM_LEASE_MS,
+    CandidateCoachUpdateRuntimeError,
+    createFixtureCandidateCoachUpdateRuntime,
+    type CandidateCoachUpdateSynthesisRuntime,
+} from "./candidate-coach-update-runtime";
 
 type CandidateCoachUpdateGenerationRepository = {
     claimArtifact: (input: ClaimCandidateCoachUpdateArtifactInput) => Promise<CandidateCoachUpdateArtifactWriteResult | null>;
@@ -43,14 +47,14 @@ export async function ensureCandidateCoachUpdateArtifact({
     sourceCandidatePracticeSessionId,
     loadInput,
     repository,
-    requestCoachUpdate = async (input) => createFixtureCandidateCoachUpdateContent(input),
+    runtime = createFixtureCandidateCoachUpdateRuntime(),
     now = new Date(),
 }: {
     candidateProfileId: string;
     sourceCandidatePracticeSessionId: string;
     loadInput: () => Promise<CandidateCoachUpdateSynthesisInput | null>;
     repository: CandidateCoachUpdateGenerationRepository;
-    requestCoachUpdate?: (input: CandidateCoachUpdateSynthesisInput) => Promise<CandidateCoachUpdateContent>;
+    runtime?: CandidateCoachUpdateSynthesisRuntime;
     now?: Date;
 }): Promise<CandidateCoachUpdateGenerationResult> {
     const input = await loadInput();
@@ -70,9 +74,9 @@ export async function ensureCandidateCoachUpdateArtifact({
         sourceAnswerAttemptIds: input.questions.map((question) => question.answerAttempt.candidateAnswerAttemptId),
         acceptedEvaluationRunIds: input.questions.map((question) => question.acceptedEvaluationRun.candidateAnswerEvaluationRunId),
         synthesisInputFingerprint: input.synthesisInputFingerprint,
-        ...candidateCoachUpdateFixtureMetadata,
+        ...runtime.metadata,
         requestedAt: now.toISOString(),
-        staleRequestedBefore: new Date(now.getTime() - 120_000).toISOString(),
+        staleRequestedBefore: new Date(now.getTime() - CANDIDATE_COACH_UPDATE_CLAIM_LEASE_MS).toISOString(),
     });
     if (!claim) {
         return { status: "coach_update_unavailable", reason: "claim_rejected" };
@@ -84,21 +88,40 @@ export async function ensureCandidateCoachUpdateArtifact({
         return { status: "coach_update_pending", artifact: claim.artifact };
     }
 
-    let content: CandidateCoachUpdateContent;
+    let synthesis: Awaited<ReturnType<CandidateCoachUpdateSynthesisRuntime["synthesize"]>>;
     try {
-        content = await requestCoachUpdate(input);
-    } catch {
+        synthesis = await runtime.synthesize(input);
+    } catch (error) {
+        const runtimeError = error instanceof CandidateCoachUpdateRuntimeError ? error : null;
+        const lifecycleState = runtimeError?.lifecycleState ?? "failed";
+        const errorCode = runtimeError?.errorCode ?? "COACH_UPDATE_GENERATION_FAILED";
         await repository.failArtifact({
             candidateCoachUpdateArtifactId: claim.artifact.candidateCoachUpdateArtifactId,
             candidateProfileId,
-            lifecycleState: "failed",
-            errorCode: "COACH_UPDATE_GENERATION_FAILED",
+            lifecycleState,
+            errorCode,
+            validation: {
+                disposition: lifecycleState,
+                retryable: runtimeError?.retryable ?? true,
+                synthesisInputFingerprint: input.synthesisInputFingerprint,
+                provider: runtime.metadata.provider,
+                modelName: runtime.metadata.modelName,
+                promptVersion: runtime.metadata.promptVersion,
+                evaluatorVersion: runtime.metadata.evaluatorVersion,
+                timeoutMs: runtime.timeoutMs,
+                transportAttemptCount: 1,
+                rawOutputStored: false,
+                promptStored: false,
+            },
             completedAt: now.toISOString(),
         }).catch(() => undefined);
-        return { status: "coach_update_unavailable", reason: "generation_failed" };
+        return {
+            status: "coach_update_unavailable",
+            reason: lifecycleState === "rejected" ? "invalid_content" : "generation_failed",
+        };
     }
 
-    if (!validateCandidateCoachUpdateContent({ input, content })) {
+    if (!validateCandidateCoachUpdateContent({ input, content: synthesis.content })) {
         await repository.failArtifact({
             candidateCoachUpdateArtifactId: claim.artifact.candidateCoachUpdateArtifactId,
             candidateProfileId,
@@ -137,13 +160,18 @@ export async function ensureCandidateCoachUpdateArtifact({
         sourceCandidatePracticeSessionId,
         sourceCompletionFingerprint: input.sourceCompletionFingerprint,
         synthesisInputFingerprint: input.synthesisInputFingerprint,
-        candidateSafeContent: content,
+        candidateSafeContent: synthesis.content,
         validation: {
             disposition: "accepted",
             sourceCompletionFingerprint: input.sourceCompletionFingerprint,
             synthesisInputFingerprint: input.synthesisInputFingerprint,
             practicedQuestionCount: input.questions.length,
             skippedQuestionCount: input.questionCount - input.questions.length,
+            provider: runtime.metadata.provider,
+            modelName: runtime.metadata.modelName,
+            promptVersion: runtime.metadata.promptVersion,
+            evaluatorVersion: runtime.metadata.evaluatorVersion,
+            ...synthesis.validation,
         },
         completedAt: now.toISOString(),
     });

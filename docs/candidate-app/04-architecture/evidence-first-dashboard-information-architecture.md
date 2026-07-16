@@ -86,6 +86,16 @@ Repeat-practice comparisons must match the same prep context and source plan que
 
 The exact generated Coach Update should be stored as a versioned operational coaching artifact tied to its source session, answer attempts, accepted evaluator runs, input fingerprint, prompt/evaluator versions, and creation time. This preserves stable replay and QA lineage without turning the artifact into durable preparedness truth. New practice may supersede which update is primary without deleting older source-linked artifacts.
 
+### Coach Update Synthesis Runtime
+
+The provider boundary receives one bounded, versioned synthesis request assembled from accepted candidate-safe coaching facts. It may receive the target role, practiced question text and category, response mode, accepted coaching projection, and a bounded set of comparable prior accepted projections. It must not receive current or prior raw answer text, candidate identity, launch/session credentials, recruiter data, database ownership ids, raw evaluator output, hidden evaluator plans, or any identifier that code can reattach after generation.
+
+The provider writes synthesis language only: a round title, summary, primary focus, and one comparison message per practiced question. Code owns the input fingerprint, question order, answer/source identity, accepted coaching fields, comparison kind/count, and final artifact hydration. Provider output must match an exact schema and fingerprint, preserve question order and cardinality, and pass score/rank/safety-language checks before code can create candidate-safe content. Raw provider output and assembled prompts are not persisted or emitted to normal telemetry.
+
+One durable artifact claim owns one provider transport attempt with a 12-second timeout. The runtime performs no hidden transport retry. A timeout, rate limit, provider failure, or invalid output moves that artifact attempt to a classified terminal state; a later explicit completion replay or repair pass may claim a new generation attempt against the same unchanged source fingerprint. The existing 120-second claim lease recovers work abandoned before a terminal transition. A provider result arriving after the runtime timeout has no repository capability and therefore cannot complete or overwrite an artifact.
+
+Operational telemetry is metadata-only: provider/model/prompt/evaluator versions, synthesis fingerprint, outcome/error code, elapsed time, transport-attempt count, and optional token counts. Development fault injection is server-controlled and available only in explicit local dev mode. It is selected through an allowlisted environment value, never a request/query parameter, and must be disabled by construction in preview and production.
+
 ### Coach Plan And Practice Next
 
 Unanswered planned questions are missing coverage, not feedback and not poor performance. They belong to Coach Plan and Practice Next. Feedback-driven practice and unfinished plan coverage can both be visible, but their sources and meanings remain distinct.

@@ -308,6 +308,7 @@ export function validateCandidateCoachUpdateContent({
     return isCandidateCoachUpdateContent(content)
         && content.targetRole === input.targetRole
         && content.questions.length === input.questions.length
+        && !containsProhibitedGeneratedLanguage(content)
         && content.questions.every((question, index) => {
             const source = input.questions[index];
             return question.questionKey === source.questionKey
@@ -315,6 +316,24 @@ export function validateCandidateCoachUpdateContent({
                 && question.source.candidatePracticeSessionId === source.source.candidatePracticeSessionId
                 && question.source.questionKey === source.source.questionKey;
         });
+}
+
+function containsProhibitedGeneratedLanguage(content: CandidateCoachUpdateContent) {
+    const generatedText = [
+        content.title,
+        content.summary,
+        content.primaryFocus,
+        ...content.questions.flatMap((question) => [
+            question.coaching.acknowledgement,
+            question.coaching.observation,
+            question.coaching.nextPracticeFocus,
+            question.comparison.message,
+        ]),
+    ];
+    return generatedText.some((value) => (
+        /\b(score|scored|scoring|grade|graded|grading|percentile|rank|ranked|ranking|pass|passed|passing|fail|failed|failing)\b/i.test(value)
+        || /\b\d{1,3}\s*%\b/.test(value)
+    ));
 }
 
 export function normalizeCandidateCoachUpdateArtifactRecord(value: unknown): CandidateCoachUpdateArtifactRecord | null {
@@ -463,7 +482,7 @@ function labelForCategory(category: string) {
 }
 
 function readCandidateSafeContent(value: unknown): CandidateCoachUpdateContent | null {
-    return isCandidateCoachUpdateContent(value) ? value : null;
+    return isCandidateCoachUpdateContent(value) && !containsProhibitedGeneratedLanguage(value) ? value : null;
 }
 
 function isCandidateCoachUpdateContent(value: unknown): value is CandidateCoachUpdateContent {

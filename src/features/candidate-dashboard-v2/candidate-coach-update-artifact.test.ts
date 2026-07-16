@@ -142,7 +142,36 @@ describe("candidate Coach Update artifact input", () => {
         expect(validateCandidateCoachUpdateContent({ input, content: unsafeContent })).toBe(false);
     });
 
-    it("rejects a completed artifact whose validation was not accepted", () => {
+    it("rejects score-like generated prose without rejecting the candidate's own quoted answer", () => {
+        const session = createCompletedSession();
+        const attempt = createAttempt({ id: "attempt-1", attemptNumber: 1, submittedAt: "2026-07-15T12:01:00.000Z" });
+        const input = createCandidateCoachUpdateSynthesisInput({
+            sourceSession: session,
+            sessionEvidence: [{
+                session,
+                answerAttempts: [attempt],
+                evaluationRuns: [createRun({ id: "run-1", attemptId: "attempt-1" })],
+            }],
+        })!;
+        const content = createFixtureCandidateCoachUpdateContent(input);
+
+        expect(validateCandidateCoachUpdateContent({
+            input,
+            content: { ...content, summary: "You scored 90% in this round." },
+        })).toBe(false);
+        expect(validateCandidateCoachUpdateContent({
+            input,
+            content: {
+                ...content,
+                questions: content.questions.map((question, index) => index === 0 ? {
+                    ...question,
+                    answer: { ...question.answer, text: "I scored 95% on the safety audit." },
+                } : question),
+            },
+        })).toBe(true);
+    });
+
+    it("rejects a completed artifact whose validation or candidate-safe content is not acceptable", () => {
         const session = createCompletedSession();
         const attempt = createAttempt({ id: "attempt-1", attemptNumber: 1, submittedAt: "2026-07-15T12:01:00.000Z" });
         const input = createCandidateCoachUpdateSynthesisInput({
@@ -154,7 +183,8 @@ describe("candidate Coach Update artifact input", () => {
             }],
         })!;
 
-        expect(normalizeCandidateCoachUpdateArtifactRecord({
+        const content = createFixtureCandidateCoachUpdateContent(input);
+        const artifact = {
             candidateCoachUpdateArtifactId: "artifact-1",
             candidateProfileId: "candidate-1",
             roleProfileId: "10000000-0000-4000-8000-000000000001",
@@ -169,13 +199,22 @@ describe("candidate Coach Update artifact input", () => {
             evaluatorVersion: "evaluator-v1",
             generationAttempt: 1,
             lifecycleState: "completed",
-            candidateSafeContent: createFixtureCandidateCoachUpdateContent(input),
-            validation: { disposition: "rejected" },
+            candidateSafeContent: content,
+            validation: { disposition: "accepted" },
             errorCode: null,
             requestedAt: "2026-07-15T12:05:01.000Z",
             completedAt: "2026-07-15T12:05:02.000Z",
             createdAt: "2026-07-15T12:05:01.000Z",
             updatedAt: "2026-07-15T12:05:02.000Z",
+        };
+
+        expect(normalizeCandidateCoachUpdateArtifactRecord({
+            ...artifact,
+            validation: { disposition: "rejected" },
+        })).toBeNull();
+        expect(normalizeCandidateCoachUpdateArtifactRecord({
+            ...artifact,
+            candidateSafeContent: { ...content, primaryFocus: "Raise your score next time." },
         })).toBeNull();
     });
 });

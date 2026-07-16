@@ -1,6 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { handleCandidateSessionCompleteRequest } from "./route";
+import {
+    createDefaultCandidateSessionCompleteDependencies,
+    handleCandidateSessionCompleteRequest,
+} from "./route";
 
 const analysisSnapshot = {
     status: "answer_analysis_provider_result" as const,
@@ -25,6 +28,27 @@ const analysisSnapshot = {
 };
 
 describe("/candidate/session/[sessionId]/complete route", () => {
+    afterEach(() => {
+        vi.unstubAllEnvs();
+    });
+
+    it("assembles Coach Update fixture and fault runtimes only inside explicit local development", () => {
+        vi.stubEnv("DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:5432/interviewcoach_smoke");
+        vi.stubEnv("CANDIDATE_HOST_LAUNCH_DEV_MODE", "true");
+        vi.stubEnv("CANDIDATE_HOST_LAUNCH_DEV_SECRET", "test-secret");
+        vi.stubEnv("CANDIDATE_ANSWER_ANALYSIS_PROVIDER", "fixture");
+        vi.stubEnv("NODE_ENV", "test");
+
+        expect(createDefaultCandidateSessionCompleteDependencies().ensureCoachUpdateArtifact).toEqual(expect.any(Function));
+
+        vi.stubEnv("CANDIDATE_COACH_UPDATE_PROVIDER", "fault");
+        vi.stubEnv("CANDIDATE_COACH_UPDATE_FAULT_MODE", "provider_5xx");
+        expect(createDefaultCandidateSessionCompleteDependencies().ensureCoachUpdateArtifact).toEqual(expect.any(Function));
+
+        vi.stubEnv("NODE_ENV", "production");
+        expect(createDefaultCandidateSessionCompleteDependencies().ensureCoachUpdateArtifact).toBeUndefined();
+    });
+
     it("persists candidate-led completion from the durable session facts and returns the dashboard transition", async () => {
         const completeSession = vi.fn(async (input) => ({
             completionSnapshot: input.completionSnapshot,
@@ -194,6 +218,9 @@ describe("/candidate/session/[sessionId]/complete route", () => {
             completionSnapshot,
             progress: completionSnapshot.finalProgress,
         }));
+        const ensureCoachUpdateArtifact = vi.fn(async () => {
+            throw new Error("provider detail must not block completion");
+        });
         const response = await handleCandidateSessionCompleteRequest({
             request: new Request("https://interviewcoach.talentarbor.com/candidate/session/session-1/complete", {
                 method: "POST",
@@ -209,6 +236,7 @@ describe("/candidate/session/[sessionId]/complete route", () => {
                 })),
                 completeSession,
             },
+            ensureCoachUpdateArtifact,
         });
 
         expect(response.status).toBe(200);
@@ -217,7 +245,9 @@ describe("/candidate/session/[sessionId]/complete route", () => {
             completionSnapshot: {
                 completedAt: "2026-07-09T20:05:00.000Z",
             },
+            coachUpdateStatus: "coach_update_unavailable",
         });
         expect(completeSession).toHaveBeenCalledWith(expect.objectContaining({ completionSnapshot }));
+        expect(ensureCoachUpdateArtifact).toHaveBeenCalledTimes(1);
     });
 });
