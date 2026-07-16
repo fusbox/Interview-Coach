@@ -218,14 +218,8 @@ describe("candidate feedback interaction contract", () => {
                     nextPracticeFocus: "Legacy recommendation must not render.",
                 },
                 evidenceFirst: {
-                    contractVersion: "candidate_evidence_first_v1",
+                    contractVersion: "candidate_evidence_first_v2",
                     inputFingerprint: "a".repeat(64),
-                    feedbackPlan: {
-                        centralRead: "Hidden plan read.",
-                        signal: { valence: "mixed", detectability: "moderate" },
-                        primaryAnchor: { kind: "pattern_gap", id: "missing_result" },
-                        intervention: "revise_answer",
-                    },
                     candidateFeedback: {
                         status: "candidate_safe_feedback",
                         schemaVersion: 1,
@@ -240,19 +234,8 @@ describe("candidate feedback interaction contract", () => {
                         },
                         deliveryNote: null,
                     },
-                    criteria: [{
-                        criterionId: "answer_focus",
-                        applicability: "observed",
-                        band: "clear",
-                        evidenceSpanIds: ["span-1"],
-                        reasonCode: "answer_focus_clear",
-                    }],
-                    patternGap: {
-                        id: "missing_result",
-                        severity: "medium",
-                        upgrade: "Add what changed because of your action.",
-                        redoPattern: ["action", "result"],
-                        source: "category_lens",
+                    interaction: {
+                        intervention: "revise_answer",
                     },
                 },
             },

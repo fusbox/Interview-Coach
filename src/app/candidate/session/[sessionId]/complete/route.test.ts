@@ -41,6 +41,9 @@ describe("/candidate/session/[sessionId]/complete route", () => {
 
         expect(createDefaultCandidateSessionCompleteDependencies().ensureCoachUpdateArtifact).toEqual(expect.any(Function));
 
+        vi.stubEnv("CANDIDATE_ANSWER_ANALYSIS_PROVIDER", "google_genai");
+        expect(createDefaultCandidateSessionCompleteDependencies().ensureCoachUpdateArtifact).toEqual(expect.any(Function));
+
         vi.stubEnv("CANDIDATE_COACH_UPDATE_PROVIDER", "fault");
         vi.stubEnv("CANDIDATE_COACH_UPDATE_FAULT_MODE", "provider_5xx");
         expect(createDefaultCandidateSessionCompleteDependencies().ensureCoachUpdateArtifact).toEqual(expect.any(Function));

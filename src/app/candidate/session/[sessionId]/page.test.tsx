@@ -6,6 +6,8 @@ import { CandidatePlannedSessionExperience } from "@/features/candidate-session-
 import { CandidatePreSessionLanding } from "@/features/candidate-session-v2/CandidatePreSessionLanding";
 import type { CandidateAnswerAnalysisProviderResult } from "@/features/candidate-session-v2/candidate-answer-analysis-adapter";
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
+import { candidateAnswerAnalysisFixtureRunMetadata } from "@/features/candidate-session-v2/candidate-answer-analysis-fixture";
+import type { CandidateAnswerEvaluationRunRecord } from "@/features/candidate-session-v2/candidate-answer-history";
 import type { CandidateProvisionalSessionRecord } from "@/features/candidate-session-v2/candidate-provisional-session-store";
 import { saveCandidateProvisionalSession } from "@/features/candidate-session-v2/candidate-provisional-session-store";
 import { createCandidateQuestionPlan } from "@/features/candidate-session-v2/candidate-question-plan";
@@ -126,7 +128,11 @@ it("renders the production pre-session landing without scaffold preview controls
 
 it("preserves the entering-practice transition before opening the shared live shell", async () => {
     vi.useFakeTimers();
-    const fetch = vi.fn(async () => new Response(JSON.stringify({ status: "progress_saved" }), { status: 200 }));
+    const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        void input;
+        void init;
+        return new Response(JSON.stringify({ status: "progress_saved" }), { status: 200 });
+    });
     vi.stubGlobal("fetch", fetch);
     render(
         <CandidatePlannedSessionExperience
@@ -421,8 +427,14 @@ it("keeps a saved answer locked and retries only coaching after analysis fails",
                 }), { status: 200 });
             }
             return new Response(JSON.stringify({
-                status: "answer_analysis_unavailable",
-                reason: "provider_not_configured",
+                code: "ANSWER_ANALYSIS_FAILED",
+                retryable: true,
+                analysisRecovery: {
+                    status: "answer_analysis_recovery",
+                    state: "retryable",
+                    canRetryAnalysis: true,
+                    canContinueWithoutCoaching: true,
+                },
             }), { status: 503 });
         }
         return new Response(JSON.stringify({ status: "answer_draft_saved" }), { status: 200 });
@@ -462,6 +474,47 @@ it("keeps a saved answer locked and retries only coaching after analysis fails",
     expect(await screen.findByRole("heading", { name: "First, here is what I heard." })).toBeInTheDocument();
     expect(fetch.mock.calls.filter(([input]) => String(input).endsWith("/answers"))).toHaveLength(1);
     expect(fetch.mock.calls.filter(([input]) => String(input).endsWith("/answers/slot-1/analysis"))).toHaveLength(2);
+});
+
+it("recovers a persisted answer after reload as analysis-only work", async () => {
+    const answerAttemptId = "33333333-3333-4333-8333-333333333333";
+    const fetch = vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.endsWith("/answers/slot-1/analysis")) {
+            return new Response(JSON.stringify({
+                status: "answer_analysis_saved",
+                analysisSnapshot: createAnalysisSnapshotWithAttempt("slot-1", 0, answerAttemptId, 1),
+            }), { status: 200 });
+        }
+        return new Response(null, { status: 500 });
+    });
+    vi.stubGlobal("fetch", fetch);
+    render(
+        <CandidatePlannedSessionExperience
+            sessionId="session-v2-1"
+            dashboardHref="/candidate/dashboard"
+            initialSession={createSession({
+                progress: {
+                    status: "live_question",
+                    currentQuestionIndex: 0,
+                },
+                answerSubmissions: {
+                    "slot-1": createAnswerSubmissionWithAttempt("slot-1", 0, answerAttemptId, 1),
+                },
+            })}
+        />,
+    );
+
+    expect(screen.getByText(/Your answer is saved. I couldn't prepare coaching just now/i)).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Type your answer" })).toHaveValue("A saved answer.");
+    expect(screen.getByRole("textbox", { name: "Type your answer" })).toHaveAttribute("readonly");
+    expect(fetch).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Try coaching again" }));
+
+    expect(await screen.findByRole("heading", { name: "First, here is what I heard." })).toBeInTheDocument();
+    expect(fetch.mock.calls.filter(([input]) => String(input).endsWith("/answers"))).toHaveLength(0);
+    expect(fetch.mock.calls.filter(([input]) => String(input).endsWith("/answers/slot-1/analysis"))).toHaveLength(1);
 });
 
 it("keeps a failed draft save editable and retries it in place", async () => {
@@ -611,6 +664,91 @@ it("continues from saved coaching to the next live question", async () => {
             }),
         }),
     );
+});
+
+it("recovers a terminal analysis state in a new tab and continues without coaching", async () => {
+    const answerAttemptId = "77777777-7777-4777-8777-777777777777";
+    const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        void input;
+        void init;
+        return new Response(JSON.stringify({ status: "progress_saved" }), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetch);
+    render(
+        <CandidatePlannedSessionExperience
+            sessionId="session-v2-1"
+            dashboardHref="/candidate/dashboard"
+            initialSession={createSession({
+                progress: { status: "live_question", currentQuestionIndex: 0 },
+                answerSubmissions: {
+                    "slot-1": createAnswerSubmissionWithAttempt("slot-1", 0, answerAttemptId, 1),
+                },
+                answerAnalysisRecoveries: {
+                    "slot-1": {
+                        status: "answer_analysis_recovery",
+                        state: "unavailable",
+                        canRetryAnalysis: false,
+                        canContinueWithoutCoaching: true,
+                    },
+                },
+            })}
+        />,
+    );
+
+    expect(screen.queryByRole("button", { name: "Try coaching again" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Continue without coaching" }));
+
+    expect(await screen.findByRole("heading", { name: "Stored snapshot question for the second slot." })).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledWith(
+        "/candidate/session/session-v2-1/progress",
+        expect.objectContaining({
+            method: "PUT",
+            body: JSON.stringify({ status: "live_question", currentQuestionIndex: 1 }),
+        }),
+    );
+    expect(fetch.mock.calls.some(([input]) => String(input).includes("/analysis"))).toBe(false);
+});
+
+it("finishes the last answered question without coaching and returns to the dashboard", async () => {
+    const assign = vi.fn();
+    Object.defineProperty(window, "location", {
+        configurable: true,
+        value: { ...window.location, assign },
+    });
+    const fetch = vi.fn(async () => new Response(JSON.stringify({
+        status: "candidate_session_completed",
+        nextRoute: "/candidate/dashboard?prep=profile-1",
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", fetch);
+    const answerAttemptId = "88888888-8888-4888-8888-888888888888";
+    render(
+        <CandidatePlannedSessionExperience
+            sessionId="session-v2-1"
+            dashboardHref="/candidate/dashboard"
+            initialSession={createSession({
+                progress: { status: "live_question", currentQuestionIndex: 2 },
+                answerSubmissions: {
+                    "slot-3": createAnswerSubmissionWithAttempt("slot-3", 2, answerAttemptId, 1),
+                },
+                answerAnalysisRecoveries: {
+                    "slot-3": {
+                        status: "answer_analysis_recovery",
+                        state: "unavailable",
+                        canRetryAnalysis: false,
+                        canContinueWithoutCoaching: true,
+                    },
+                },
+            })}
+        />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Finish without coaching" }));
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(
+        "/candidate/session/session-v2-1/complete",
+        expect.objectContaining({ method: "POST" }),
+    ));
+    expect(assign).toHaveBeenCalledWith("/candidate/dashboard?prep=profile-1");
 });
 
 it("reopens a coached answer and submits the retry as a linked attempt", async () => {
@@ -790,6 +928,8 @@ it("finishes the session from the last staged coaching step", async () => {
     await screen.findByRole("heading", { name: "What to do next" });
     fireEvent.click(screen.getByRole("button", { name: "Finish session" }));
 
+    expect(await screen.findByRole("heading", { name: "Preparing your Coach Plan" })).toBeInTheDocument();
+
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(
         "/candidate/session/session-v2-1/complete",
         expect.objectContaining({ method: "POST" }),
@@ -798,6 +938,7 @@ it("finishes the session from the last staged coaching step", async () => {
 });
 
 it("maps durable answer and feedback state into recovered candidate session facts", () => {
+    const answerAttemptId = "99999999-9999-4999-8999-999999999999";
     const durableSession = {
         candidatePracticeSessionId: "session-v2-1",
         candidateProfileId: "candidate-1",
@@ -821,6 +962,10 @@ it("maps durable answer and feedback state into recovered candidate session fact
                 text: "Saved answer",
                 submittedAt: "2026-07-13T18:00:00.000Z",
                 status: "pending_analysis",
+                answerAttemptId,
+                attemptNumber: 1,
+                trigger: "initial_submit",
+                supersedesAnswerAttemptId: null,
             },
         },
         answerIdempotencyRecords: {},
@@ -829,7 +974,15 @@ it("maps durable answer and feedback state into recovered candidate session fact
         completionSnapshot: null,
     } satisfies CandidatePracticeSessionRecord;
 
-    expect(toCandidateProvisionalSession(durableSession)).toMatchObject({
+    expect(toCandidateProvisionalSession(durableSession, {
+        evaluationRuns: [createEvaluationRun({
+            candidateAnswerAttemptId: answerAttemptId,
+            lifecycleState: "rejected",
+            validation: { retryableByNewRun: false },
+            errorCode: "PROVIDER_SAFETY_BLOCKED",
+        })],
+        now: new Date("2026-07-13T18:01:00.000Z"),
+    })).toMatchObject({
         sessionId: "session-v2-1",
         progress: {
             status: "live_question",
@@ -838,6 +991,13 @@ it("maps durable answer and feedback state into recovered candidate session fact
         answerSubmissions: {
             "slot-1": {
                 text: "Saved answer",
+            },
+        },
+        answerAnalysisRecoveries: {
+            "slot-1": {
+                state: "unavailable",
+                canRetryAnalysis: false,
+                canContinueWithoutCoaching: true,
             },
         },
     });
@@ -974,5 +1134,37 @@ function createAnalysisSnapshotWithAttempt(
             attemptNumber,
             trigger: attemptNumber === 1 ? "initial_submit" : "feedback_retry",
         },
+    };
+}
+
+function createEvaluationRun(
+    overrides: Partial<CandidateAnswerEvaluationRunRecord>,
+): CandidateAnswerEvaluationRunRecord {
+    const lifecycleState = overrides.lifecycleState ?? "failed";
+    return {
+        candidateAnswerEvaluationRunId: "evaluation-run-1",
+        candidateAnswerAttemptId: overrides.candidateAnswerAttemptId ?? "answer-attempt-1",
+        purpose: "candidate_coaching",
+        provider: candidateAnswerAnalysisFixtureRunMetadata.provider,
+        modelName: candidateAnswerAnalysisFixtureRunMetadata.modelName,
+        promptVersion: candidateAnswerAnalysisFixtureRunMetadata.promptVersion,
+        evaluatorVersion: candidateAnswerAnalysisFixtureRunMetadata.evaluatorVersion,
+        configurationManifest: candidateAnswerAnalysisFixtureRunMetadata.configurationManifest,
+        configurationFingerprint: candidateAnswerAnalysisFixtureRunMetadata.configurationFingerprint,
+        inputFingerprint: "input-fingerprint-1",
+        idempotencyKey: "analysis-key-1",
+        generationAttempt: 1,
+        lifecycleState,
+        result: lifecycleState === "completed" ? { status: "accepted" } : null,
+        validation: overrides.validation ?? null,
+        errorCode: lifecycleState === "failed" || lifecycleState === "rejected"
+            ? overrides.errorCode ?? "TEST_FAILURE"
+            : null,
+        requestedAt: "2026-07-13T18:00:00.000Z",
+        claimExpiresAt: "2026-07-13T18:01:00.000Z",
+        completedAt: lifecycleState === "requested" ? null : "2026-07-13T18:00:30.000Z",
+        createdAt: "2026-07-13T18:00:00.000Z",
+        updatedAt: "2026-07-13T18:00:30.000Z",
+        ...overrides,
     };
 }

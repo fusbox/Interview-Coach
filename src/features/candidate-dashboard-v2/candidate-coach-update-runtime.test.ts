@@ -170,13 +170,15 @@ describe("candidate Coach Update synthesis runtime", () => {
             kind: "provider_5xx",
         });
 
-        const fixtureRuntime = createCandidateCoachUpdateRuntimeFromEnvironment({
-            env: { NODE_ENV: "development", CANDIDATE_ANSWER_ANALYSIS_PROVIDER: "fixture" },
-            explicitLocalDev: true,
-        });
-        await expect(fixtureRuntime?.synthesize(createInput())).resolves.toMatchObject({
-            content: { status: "candidate_coach_update_content_v1" },
-        });
+        for (const answerAnalysisProvider of ["fixture", "google_genai", "fault"]) {
+            const fixtureRuntime = createCandidateCoachUpdateRuntimeFromEnvironment({
+                env: { NODE_ENV: "development", CANDIDATE_ANSWER_ANALYSIS_PROVIDER: answerAnalysisProvider },
+                explicitLocalDev: true,
+            });
+            await expect(fixtureRuntime?.synthesize(createInput())).resolves.toMatchObject({
+                content: { status: "candidate_coach_update_content_v1" },
+            });
+        }
     });
 
     it("normalizes unexpected adapter exceptions to a candidate-safe provider-unavailable failure", async () => {

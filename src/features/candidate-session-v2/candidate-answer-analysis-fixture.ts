@@ -1,25 +1,62 @@
 import {
-    createEvidenceFirstEvaluationCase,
+    EVIDENCE_FIRST_EVALUATOR_CONTRACT_VERSION,
+    EVIDENCE_FIRST_PROMPT_BUNDLE_VERSION,
+    createEvaluatorRunDescriptor,
     type EvidenceExtractionOutput,
+    type EvidenceFirstEvaluatorProfile,
     type FeedbackCompositionOutput,
     type PatternGap,
 } from "@/features/evaluation-v2/evidence-first-evaluator-contract";
 import {
-    validateAndAppraiseEvidence,
-    validateFeedbackComposition,
-} from "@/features/evaluation-v2/evidence-first-evaluator";
+    runEvidenceFirstEvaluator,
+    type AcceptedEvidenceFirstEvaluatorRun,
+    type EvidenceFirstEvaluatorRuntimeAdapters,
+} from "@/features/evaluation-v2/evidence-first-evaluator-runtime";
 
-import type {
-    CandidateAnswerAnalysisProviderRequest,
-    CandidateAnswerAnalysisProviderResult,
+import {
+    createCandidateAnswerAnalysisProjectionFromEvaluatorRun,
+    createCandidateAnswerEvidenceFirstEvaluationCase,
+    type CandidateAnswerAnalysisProviderRequest,
+    type CandidateAnswerAnalysisProviderResult,
 } from "./candidate-answer-analysis-adapter";
 
-export const candidateAnswerAnalysisFixtureRunMetadata = {
-    provider: "candidate_v2_answer_evaluator",
-    modelName: "deterministic_local_fixture",
-    promptVersion: "evidence_first_fixture_v1",
-    evaluatorVersion: "evidence_first_v1",
+const deterministicFixtureGeneration = {
+    mode: "deterministic",
+    structuredOutput: true,
 } as const;
+
+export const candidateAnswerAnalysisFixtureProfile: EvidenceFirstEvaluatorProfile = {
+    profileId: "deterministic_local_fixture_v1",
+    evaluatorVersion: EVIDENCE_FIRST_EVALUATOR_CONTRACT_VERSION,
+    promptBundleVersion: EVIDENCE_FIRST_PROMPT_BUNDLE_VERSION,
+    serviceMode: "local_fixture",
+    adapterVersion: "candidate_answer_analysis_fixture_v1",
+    evidenceExtractor: {
+        provider: "deterministic_local_fixture",
+        model: "fixture_evidence_extractor_v1",
+        promptVersion: "fixture_evidence_extractor_prompt_v1",
+        responseSchemaVersion: "evidence_extraction_output_v1",
+        generation: deterministicFixtureGeneration,
+    },
+    verifier: {
+        provider: "deterministic_local_fixture",
+        model: "fixture_evidence_verifier_v1",
+        promptVersion: "fixture_evidence_verifier_prompt_v1",
+        responseSchemaVersion: "evidence_verification_output_v1",
+        generation: deterministicFixtureGeneration,
+    },
+    feedbackComposer: {
+        provider: "deterministic_local_fixture",
+        model: "fixture_feedback_composer_v1",
+        promptVersion: "fixture_feedback_composer_prompt_v1",
+        responseSchemaVersion: "feedback_composition_output_v1",
+        generation: deterministicFixtureGeneration,
+    },
+} as const;
+
+export const candidateAnswerAnalysisFixtureRunMetadata = createEvaluatorRunDescriptor(
+    candidateAnswerAnalysisFixtureProfile,
+);
 
 const categorySignalIds = {
     behavioral: ["has_context", "has_personal_action", "has_result", "has_learning", "has_constraint"],
@@ -54,87 +91,76 @@ const categorySignalIds = {
     ],
 } as const;
 
-export function createFixtureEvidenceFirstAnswerAnalysis(
+export async function createFixtureEvidenceFirstAnswerAnalysis(
     request: CandidateAnswerAnalysisProviderRequest,
-): CandidateAnswerAnalysisProviderResult {
-    const evaluationCase = createFixtureEvidenceFirstEvaluationCase(request);
-    const extraction = createFixtureExtraction(evaluationCase.inputFingerprint, request);
-    const appraisal = validateAndAppraiseEvidence({ evaluationCase, value: extraction });
-    if (appraisal.disposition !== "accepted") {
-        throw new Error("Fixture evidence did not pass the evidence-first appraisal boundary.");
-    }
-
-    const feedbackDraft = createFixtureFeedback(evaluationCase.inputFingerprint, appraisal.patternGap);
-    const feedback = validateFeedbackComposition({
-        evaluationCase,
-        appraisal,
-        value: feedbackDraft,
+    input?: { evaluationRunId?: string },
+): Promise<CandidateAnswerAnalysisProviderResult> {
+    const run = await runFixtureEvidenceFirstEvaluator(request, input);
+    return createCandidateAnswerAnalysisProjectionFromEvaluatorRun({
+        run,
+        answer: createAnswerReference(request),
     });
-    if (feedback.status !== "feedback_accepted") {
-        throw new Error("Fixture feedback did not pass the evidence-first coaching boundary.");
-    }
+}
 
-    const candidateFeedback = feedback.candidateProjection;
-    return {
-        status: "answer_analysis_provider_result",
-        provider: candidateAnswerAnalysisFixtureRunMetadata.provider,
-        analyzedAt: request.requestedAt,
-        answer: {
-            slotId: request.answer.slotId,
-            questionIndex: request.answer.questionIndex,
-            answerAttemptId: request.answer.answerAttemptId,
-            attemptNumber: request.answer.attemptNumber,
-            trigger: request.answer.trigger,
+export async function runFixtureEvidenceFirstEvaluator(
+    request: CandidateAnswerAnalysisProviderRequest,
+    input?: { evaluationRunId?: string },
+): Promise<AcceptedEvidenceFirstEvaluatorRun> {
+    const { evaluationCase, adapters } = createFixtureEvidenceFirstEvaluatorAdapters(request);
+
+    return runEvidenceFirstEvaluator({
+        evaluationRunId: input?.evaluationRunId
+            ?? `fixture:${request.answer.answerAttemptId ?? request.answer.slotId}`,
+        evaluationCase,
+        profile: candidateAnswerAnalysisFixtureProfile,
+        adapters,
+        requestedAt: request.requestedAt,
+    });
+}
+
+export function createFixtureEvidenceFirstEvaluatorAdapters(
+    request: CandidateAnswerAnalysisProviderRequest,
+    profile: EvidenceFirstEvaluatorProfile = candidateAnswerAnalysisFixtureProfile,
+) {
+    const evaluationCase = createFixtureEvidenceFirstEvaluationCase(request);
+    const adapters: EvidenceFirstEvaluatorRuntimeAdapters = {
+        evidenceExtractor: {
+            descriptor: profile.evidenceExtractor,
+            invoke: async () => ({
+                value: createFixtureExtraction(evaluationCase.inputFingerprint, request),
+            }),
         },
-        coachFeedback: {
-            acknowledgement: candidateFeedback.acknowledgement,
-            observation: candidateFeedback.primaryStrength
-                ?? candidateFeedback.biggestUpgrade
-                ?? candidateFeedback.acknowledgement,
-            nextPracticeFocus: candidateFeedback.redoPrompt
-                ?? candidateFeedback.biggestUpgrade
-                ?? "Carry the same clear structure into the next answer.",
+        verifier: {
+            descriptor: profile.verifier!,
+            invoke: async () => ({
+                value: {
+                    status: "evidence_verification_output",
+                    schemaVersion: 1,
+                    inputFingerprint: evaluationCase.inputFingerprint,
+                    supported: true,
+                    issueCodes: [],
+                    recommendedAction: "accept",
+                },
+            }),
         },
-        evidence: [],
-        evidenceFirst: {
-            contractVersion: evaluationCase.contractVersion,
-            inputFingerprint: evaluationCase.inputFingerprint,
-            feedbackPlan: feedback.feedback.feedbackPlan,
-            candidateFeedback,
-            criteria: appraisal.criteria,
-            patternGap: appraisal.patternGap,
+        feedbackComposer: {
+            descriptor: profile.feedbackComposer,
+            invoke: async ({ task }) => ({
+                value: createFixtureFeedback(
+                    evaluationCase.inputFingerprint,
+                    task.input.patternGap,
+                ),
+            }),
         },
     };
+
+    return { evaluationCase, adapters };
 }
 
 export function createFixtureEvidenceFirstEvaluationCase(
     request: CandidateAnswerAnalysisProviderRequest,
 ) {
-    if (!request.answer.answerAttemptId || !request.answer.attemptNumber || !request.answer.trigger) {
-        throw new Error("Evidence-first fixture analysis requires immutable answer-attempt identity.");
-    }
-
-    return createEvidenceFirstEvaluationCase({
-        answerAttemptId: request.answer.answerAttemptId,
-        question: {
-            slotId: request.question.slotId,
-            questionIndex: request.question.questionIndex,
-            category: request.question.category,
-            questionText: request.question.questionText,
-            plannedPurpose: request.question.plannedPurpose,
-        },
-        answer: {
-            mode: request.answer.mode,
-            text: request.answer.text,
-            submittedAt: request.answer.submittedAt,
-        },
-        roleContext: {
-            targetRole: request.setupContext.targetRole,
-            interviewStage: request.setupContext.interviewStage,
-            jobDescription: request.setupContext.jobDescription,
-            resumeText: request.setupContext.resumeText?.trim() || null,
-        },
-    });
+    return createCandidateAnswerEvidenceFirstEvaluationCase(request);
 }
 
 function createFixtureExtraction(
@@ -228,5 +254,19 @@ function createFixtureFeedback(
             acknowledgementSpanIds: ["fixture-direct-answer"],
             primaryStrengthSpanIds: ["fixture-direct-answer"],
         },
+    };
+}
+
+function createAnswerReference(
+    request: CandidateAnswerAnalysisProviderRequest,
+): CandidateAnswerAnalysisProviderResult["answer"] {
+    return {
+        slotId: request.answer.slotId,
+        questionIndex: request.answer.questionIndex,
+        ...(request.answer.answerAttemptId && request.answer.attemptNumber && request.answer.trigger ? {
+            answerAttemptId: request.answer.answerAttemptId,
+            attemptNumber: request.answer.attemptNumber,
+            trigger: request.answer.trigger,
+        } : {}),
     };
 }

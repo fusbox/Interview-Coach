@@ -7,7 +7,10 @@ export type SessionAnswerMutationPhase =
     | "submitting"
     | "submit_failed"
     | "analyzing"
+    | "analysis_pending"
+    | "analysis_recoverable"
     | "analysis_failed"
+    | "analysis_unavailable"
     | "analysis_ready";
 
 export type SessionAnswerMutationPresentation = {
@@ -15,8 +18,16 @@ export type SessionAnswerMutationPresentation = {
     tone: "neutral" | "progress" | "success" | "error";
     isAnswerLocked: boolean;
     isBusy: boolean;
-    primaryAction: "submit" | "retry_submit" | "retry_analysis" | null;
+    primaryAction:
+        | "submit"
+        | "retry_submit"
+        | "check_analysis"
+        | "restore_analysis"
+        | "retry_analysis"
+        | "continue_without_coaching"
+        | null;
     primaryLabel: string | null;
+    secondaryAction: "continue_without_coaching" | null;
     canRetryDraftSave: boolean;
 };
 
@@ -76,6 +87,23 @@ export function getSessionAnswerMutationPresentation(
                 isBusy: true,
                 primaryLabel: "Preparing coaching...",
             });
+        case "analysis_pending":
+            return createPresentation({
+                message: "Your answer is saved. I'm still preparing your coaching.",
+                tone: "progress",
+                isAnswerLocked: true,
+                primaryAction: "check_analysis",
+                primaryLabel: "Check coaching status",
+            });
+        case "analysis_recoverable":
+            return createPresentation({
+                message: "Your answer is saved. Your coaching is ready to reconnect.",
+                tone: "progress",
+                isAnswerLocked: true,
+                primaryAction: "restore_analysis",
+                primaryLabel: "Restore coaching",
+                secondaryAction: "continue_without_coaching",
+            });
         case "analysis_failed":
             return createPresentation({
                 message: "Your answer is saved. I couldn't prepare coaching just now.",
@@ -83,6 +111,15 @@ export function getSessionAnswerMutationPresentation(
                 isAnswerLocked: true,
                 primaryAction: "retry_analysis",
                 primaryLabel: "Try coaching again",
+                secondaryAction: "continue_without_coaching",
+            });
+        case "analysis_unavailable":
+            return createPresentation({
+                message: "Your answer is saved. Coaching isn't available for this answer, but you can keep going.",
+                tone: "neutral",
+                isAnswerLocked: true,
+                primaryAction: "continue_without_coaching",
+                primaryLabel: "Continue without coaching",
             });
         case "analysis_ready":
             return createPresentation({
@@ -110,6 +147,7 @@ function createPresentation(
         isBusy: overrides.isBusy ?? false,
         primaryAction: overrides.primaryAction ?? null,
         primaryLabel: overrides.primaryLabel ?? null,
+        secondaryAction: overrides.secondaryAction ?? null,
         canRetryDraftSave: overrides.canRetryDraftSave ?? false,
     };
 }

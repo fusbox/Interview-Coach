@@ -75,20 +75,27 @@ values (
 insert into public.candidate_answer_evaluation_runs (
   candidate_answer_evaluation_run_id, candidate_answer_attempt_id, purpose,
   provider, model_name, prompt_version, evaluator_version,
-  input_fingerprint, idempotency_key, requested_at
+  configuration_manifest_json, configuration_fingerprint,
+  input_fingerprint, idempotency_key, generation_attempt, requested_at, claim_expires_at
 )
 values
   (
     'a4000000-0000-4000-8000-000000000001',
     'a3000000-0000-4000-8000-000000000002',
     'candidate_coaching', 'fixture', 'fixture-v1', 'prompt-v1', 'evaluator-v1',
-    'fixed-input-2', 'analysis-key-1', '2026-07-14T18:04:00.000Z'
+    '{"schemaVersion":1,"configurationStatus":"resolved","profileId":"fixture-v1","pipelineProvider":"fixture","serviceMode":"validation_fixture","adapterVersion":"validation_fixture_v1","promptBundleVersion":"prompt-v1","evaluatorVersion":"evaluator-v1","stages":[{"stage":"evidence_extraction","provider":"fixture","model":"fixture-v1","promptVersion":"prompt-v1","responseSchemaVersion":"extract-v1","generation":{"mode":"deterministic","structuredOutput":true}},{"stage":"feedback_composition","provider":"fixture","model":"fixture-v1","promptVersion":"prompt-v1","responseSchemaVersion":"compose-v1","generation":{"mode":"deterministic","structuredOutput":true}}]}'::jsonb,
+    repeat('a', 64),
+    'fixed-input-2', 'analysis-key-1', 1,
+    '2026-07-14T18:04:00.000Z', '2026-07-14T18:05:00.000Z'
   ),
   (
     'a4000000-0000-4000-8000-000000000002',
     'a3000000-0000-4000-8000-000000000002',
     'qa_comparison', 'fixture', 'fixture-v2', 'prompt-v2', 'evaluator-v2',
-    'fixed-input-2', 'analysis-key-2', '2026-07-14T18:05:00.000Z'
+    '{"schemaVersion":1,"configurationStatus":"resolved","profileId":"fixture-v2","pipelineProvider":"fixture","serviceMode":"validation_fixture","adapterVersion":"validation_fixture_v2","promptBundleVersion":"prompt-v2","evaluatorVersion":"evaluator-v2","stages":[{"stage":"evidence_extraction","provider":"fixture","model":"fixture-v2","promptVersion":"prompt-v2","responseSchemaVersion":"extract-v2","generation":{"mode":"deterministic","structuredOutput":true}},{"stage":"feedback_composition","provider":"fixture","model":"fixture-v2","promptVersion":"prompt-v2","responseSchemaVersion":"compose-v2","generation":{"mode":"deterministic","structuredOutput":true}}]}'::jsonb,
+    repeat('b', 64),
+    'fixed-input-2', 'analysis-key-2', 1,
+    '2026-07-14T18:05:00.000Z', '2026-07-14T18:06:00.000Z'
   );
 
 update public.candidate_answer_evaluation_runs
@@ -170,11 +177,16 @@ do $$
 begin
   insert into public.candidate_answer_evaluation_runs (
     candidate_answer_attempt_id, purpose, provider, model_name, prompt_version,
-    evaluator_version, input_fingerprint, idempotency_key, lifecycle_state, requested_at, completed_at
+    evaluator_version, configuration_manifest_json, configuration_fingerprint,
+    input_fingerprint, idempotency_key, generation_attempt,
+    lifecycle_state, requested_at, claim_expires_at, completed_at
   ) values (
     'a3000000-0000-4000-8000-000000000002',
     'candidate_coaching', 'fixture', 'fixture-v1', 'prompt-v1',
-    'evaluator-v1', 'fixed-input-2', 'bad-completion', 'completed', now(), now()
+    'evaluator-v1',
+    '{"schemaVersion":1,"configurationStatus":"resolved","profileId":"fixture-v1","pipelineProvider":"fixture","serviceMode":"validation_fixture","adapterVersion":"validation_fixture_v1","promptBundleVersion":"prompt-v1","evaluatorVersion":"evaluator-v1","stages":[{"stage":"evidence_extraction","provider":"fixture","model":"fixture-v1","promptVersion":"prompt-v1","responseSchemaVersion":"extract-v1","generation":{"mode":"deterministic","structuredOutput":true}},{"stage":"feedback_composition","provider":"fixture","model":"fixture-v1","promptVersion":"prompt-v1","responseSchemaVersion":"compose-v1","generation":{"mode":"deterministic","structuredOutput":true}}]}'::jsonb,
+    repeat('c', 64), 'different-input', 'bad-completion', 2,
+    'completed', now(), now() + interval '60 seconds', now()
   );
 
   raise exception 'expected completed evaluator run without a result to fail';

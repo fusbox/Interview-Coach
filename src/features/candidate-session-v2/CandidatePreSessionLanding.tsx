@@ -266,8 +266,10 @@ export function CandidatePreSessionLanding({
 
 export function CandidatePracticeEntryTransitionOverlay({
     isReleasing,
+    mode = "entry",
 }: {
     isReleasing: boolean;
+    mode?: "entry" | "completion";
 }) {
     return (
         <div
@@ -275,20 +277,25 @@ export function CandidatePracticeEntryTransitionOverlay({
             aria-live="polite"
             aria-busy={!isReleasing}
         >
-            <CandidatePracticeEntryTransitionContent />
+            <CandidatePracticeEntryTransitionContent mode={mode} />
         </div>
     );
 }
 
-function CandidatePracticeEntryTransitionContent() {
+function CandidatePracticeEntryTransitionContent({ mode }: { mode: "entry" | "completion" }) {
+    const isCompletion = mode === "completion";
     return (
         <section className="candidate-pre-session__transition">
             <span className="candidate-pre-session__loader" aria-hidden="true">
                 <Sparkles size={24} />
             </span>
-            <p className="type-eyebrow">Practice round</p>
-            <h1>Entering practice space</h1>
-            <p>Your first question is ready. You&apos;ll begin in a moment.</p>
+            <p className="type-eyebrow">{isCompletion ? "Practice complete" : "Practice round"}</p>
+            <h1>{isCompletion ? "Preparing your Coach Plan" : "Entering practice space"}</h1>
+            <p>
+                {isCompletion
+                    ? <>I&apos;m connecting this round to your latest coaching and next practice steps.</>
+                    : <>Your first question is ready. You&apos;ll begin in a moment.</>}
+            </p>
         </section>
     );
 }

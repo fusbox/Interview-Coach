@@ -43,6 +43,8 @@ import {
     parseCandidateQuestionWordingResult,
 } from "./candidate-question-wording";
 import { useCandidateTypedAnswerMutations } from "./useCandidateTypedAnswerMutations";
+import type { CandidateAnswerAnalysisRecovery } from "./candidate-answer-analysis-recovery";
+import type { SessionAnswerMutationPhase } from "@/features/interview-session-v2/session-answer-mutation-contract";
 
 type CandidatePlannedSessionExperienceProps = {
     sessionId: string;
@@ -327,6 +329,9 @@ export function CandidatePlannedSessionExperience({
     const entryTransition = entryTransitionPhase ? (
         <CandidatePracticeEntryTransitionOverlay isReleasing={entryTransitionPhase === "releasing"} />
     ) : null;
+    const completionTransition = isCompletingSession ? (
+        <CandidatePracticeEntryTransitionOverlay isReleasing={false} mode="completion" />
+    ) : null;
 
     if (!hasCheckedStorage) {
         return (
@@ -366,6 +371,7 @@ export function CandidatePlannedSessionExperience({
         const activeQuestionIndex = runtimeFacts.currentQuestionIndex;
         const activeQuestion = questionWordingPreview.questions[activeQuestionIndex];
         const activeAnswerSubmission = answerSubmissions[activeQuestion.slotId] ?? null;
+        const activeAnalysisRecovery = session.answerAnalysisRecoveries?.[activeQuestion.slotId] ?? null;
         const activeDraftText = answerDrafts[activeQuestion.slotId]?.text ?? activeAnswerSubmission?.text ?? "";
         const activeRetrySource = feedbackRetrySources[activeQuestion.slotId] ?? null;
         const activeAnalysisSnapshot = activeRetrySource
@@ -380,7 +386,9 @@ export function CandidatePlannedSessionExperience({
                 : activeAnalysisSnapshot
                 ? "analysis_ready"
                 : activeAnswerSubmission
-                    ? "analysis_failed"
+                    ? activeAnalysisRecovery
+                        ? toRecoveredAnswerMutationPhase(activeAnalysisRecovery)
+                        : "analysis_failed"
                     : activeDraftText
                         ? "draft_saved"
                         : "idle");
@@ -446,6 +454,21 @@ export function CandidatePlannedSessionExperience({
                         text: activeDraftText,
                     })}
                     onRetryAnalysis={() => retryAnswerAnalysis(activeQuestion.slotId)}
+                    onContinueWithoutCoaching={() => {
+                        if (isLastQuestion) {
+                            void finishSession();
+                            return;
+                        }
+                        updateProgress({
+                            status: "live_question",
+                            currentQuestionIndex: activeQuestionIndex + 1,
+                        });
+                    }}
+                    continueWithoutCoachingLabel={isLastQuestion
+                        ? "Finish without coaching"
+                        : "Continue without coaching"}
+                    isContinuingWithoutCoaching={isLastQuestion && isCompletingSession}
+                    continueWithoutCoachingError={isLastQuestion ? sessionCompletionMessage : null}
                     onSubmit={() => submitAnswerDraft({
                         slotId: activeQuestion.slotId,
                         questionIndex: activeQuestion.index,
@@ -455,6 +478,7 @@ export function CandidatePlannedSessionExperience({
                     })}
                 />
                 {entryTransition}
+                {completionTransition}
             </>
         );
     }
@@ -558,6 +582,7 @@ export function CandidatePlannedSessionExperience({
         setIsCompletingSession(true);
         setSessionCompletionMessage(null);
 
+        let navigationStarted = false;
         try {
             const response = await fetch(`/candidate/session/${encodeURIComponent(sessionId)}/complete`, {
                 method: "POST",
@@ -572,6 +597,7 @@ export function CandidatePlannedSessionExperience({
             } | null;
 
             if (response.ok && result?.status === "candidate_session_completed") {
+                navigationStarted = true;
                 window.location.assign(result.nextRoute ?? dashboardHref);
                 return;
             }
@@ -580,8 +606,26 @@ export function CandidatePlannedSessionExperience({
         } catch {
             setSessionCompletionMessage("I could not finish this session yet. Try again.");
         } finally {
-            setIsCompletingSession(false);
+            if (!navigationStarted) {
+                setIsCompletingSession(false);
+            }
         }
+    }
+}
+
+function toRecoveredAnswerMutationPhase(
+    recovery: CandidateAnswerAnalysisRecovery,
+): SessionAnswerMutationPhase {
+    switch (recovery.state) {
+        case "pending":
+            return "analysis_pending";
+        case "recoverable":
+            return "analysis_recoverable";
+        case "unavailable":
+            return "analysis_unavailable";
+        case "retryable":
+        default:
+            return "analysis_failed";
     }
 }
 

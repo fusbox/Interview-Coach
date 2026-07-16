@@ -16,6 +16,12 @@ describe("session answer mutation presentation", () => {
         expect(getSessionAnswerMutationPresentation("analysis_failed")).toMatchObject({
             isAnswerLocked: true,
             primaryAction: "retry_analysis",
+            secondaryAction: "continue_without_coaching",
+        });
+        expect(getSessionAnswerMutationPresentation("analysis_unavailable")).toMatchObject({
+            isAnswerLocked: true,
+            primaryAction: "continue_without_coaching",
+            secondaryAction: null,
         });
     });
 
@@ -28,6 +34,19 @@ describe("session answer mutation presentation", () => {
             isAnswerLocked: true,
             isBusy: false,
             primaryAction: null,
+        });
+    });
+
+    it("distinguishes pending checks from completed-run restoration", () => {
+        expect(getSessionAnswerMutationPresentation("analysis_pending")).toMatchObject({
+            isAnswerLocked: true,
+            primaryAction: "check_analysis",
+            secondaryAction: null,
+        });
+        expect(getSessionAnswerMutationPresentation("analysis_recoverable")).toMatchObject({
+            isAnswerLocked: true,
+            primaryAction: "restore_analysis",
+            secondaryAction: "continue_without_coaching",
         });
     });
 });

@@ -1,12 +1,16 @@
 import { createHash } from "node:crypto";
 
-import type { CandidateAnswerAnalysisProviderResult } from "@/features/candidate-session-v2/candidate-answer-analysis-adapter";
+import {
+    createCandidateAnswerAnalysisProjectionFromEvaluatorRun,
+    type CandidateAnswerAnalysisProviderResult,
+} from "@/features/candidate-session-v2/candidate-answer-analysis-adapter";
 import type {
     CandidateAnswerAttemptRecord,
     CandidateAnswerEvaluationRunRecord,
 } from "@/features/candidate-session-v2/candidate-answer-history";
 import { createCandidateAnswerCoachingFacts } from "@/features/candidate-session-v2/candidate-coaching-facts";
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
+import { parseAcceptedEvidenceFirstEvaluatorRun } from "@/features/evaluation-v2/evidence-first-evaluator-runtime";
 
 export const candidateCoachUpdateFixtureMetadata = {
     provider: "candidate_v2_coach_update_synthesizer",
@@ -406,7 +410,12 @@ function findAcceptedCandidateCoachingRun(
             && run.validation?.inputFingerprint === run.inputFingerprint
         ))
         .flatMap((run) => {
-            const analysis = readAcceptedAnalysis(run.result, attempt, run.inputFingerprint);
+            const analysis = readAcceptedAnalysis(
+                run.result,
+                attempt,
+                run.inputFingerprint,
+                run.candidateAnswerEvaluationRunId,
+            );
             return analysis ? [{ run, analysis }] : [];
         })
         .sort((left, right) => (right.run.completedAt ?? "").localeCompare(left.run.completedAt ?? ""));
@@ -417,7 +426,26 @@ function readAcceptedAnalysis(
     value: Record<string, unknown> | null,
     attempt: CandidateAnswerAttemptRecord,
     inputFingerprint: string,
+    evaluationRunId: string,
 ): CandidateAnswerAnalysisProviderResult | null {
+    const acceptedRun = parseAcceptedEvidenceFirstEvaluatorRun(value);
+    if (
+        acceptedRun
+        && acceptedRun.inputFingerprint === inputFingerprint
+        && acceptedRun.evaluationRunId === evaluationRunId
+    ) {
+        return createCandidateAnswerAnalysisProjectionFromEvaluatorRun({
+            run: acceptedRun,
+            answer: {
+                slotId: attempt.questionSlotId,
+                questionIndex: attempt.questionIndex,
+                answerAttemptId: attempt.candidateAnswerAttemptId,
+                attemptNumber: attempt.attemptNumber,
+                trigger: attempt.trigger,
+            },
+        });
+    }
+
     if (!isRecord(value) || value.status !== "answer_analysis_provider_result") return null;
     const answer = value.answer;
     const coachFeedback = value.coachFeedback;

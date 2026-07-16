@@ -66,6 +66,7 @@ describe("SharedLivePracticeShell", () => {
 
     it("locks an accepted answer and exposes an analysis-only retry", () => {
         const onRetryAnalysis = vi.fn();
+        const onContinueWithoutCoaching = vi.fn();
 
         render(
             <SharedLivePracticeShell
@@ -75,6 +76,7 @@ describe("SharedLivePracticeShell", () => {
                 answerMutationPhase="analysis_failed"
                 onDraftChange={vi.fn()}
                 onRetryAnalysis={onRetryAnalysis}
+                onContinueWithoutCoaching={onContinueWithoutCoaching}
                 onSubmit={vi.fn()}
             />,
         );
@@ -83,6 +85,29 @@ describe("SharedLivePracticeShell", () => {
         expect(screen.getByRole("alert")).toHaveTextContent(/answer is saved/i);
         screen.getByRole("button", { name: "Try coaching again" }).click();
         expect(onRetryAnalysis).toHaveBeenCalledOnce();
+        screen.getByRole("button", { name: "Continue without coaching" }).click();
+        expect(onContinueWithoutCoaching).toHaveBeenCalledOnce();
+    });
+
+    it("makes continuation primary when coaching is terminally unavailable", () => {
+        const onContinueWithoutCoaching = vi.fn();
+
+        render(
+            <SharedLivePracticeShell
+                facts={createFacts("candidate_led")}
+                answerMode="text"
+                draftText="My submitted answer"
+                answerMutationPhase="analysis_unavailable"
+                onDraftChange={vi.fn()}
+                onContinueWithoutCoaching={onContinueWithoutCoaching}
+                continueWithoutCoachingLabel="Finish without coaching"
+                onSubmit={vi.fn()}
+            />,
+        );
+
+        expect(screen.queryByRole("button", { name: "Try coaching again" })).not.toBeInTheDocument();
+        screen.getByRole("button", { name: "Finish without coaching" }).click();
+        expect(onContinueWithoutCoaching).toHaveBeenCalledOnce();
     });
 
     it("keeps a draft editable when its autosave needs a retry", () => {

@@ -12,6 +12,10 @@ import {
 import type { CandidateQuestionWordingResult } from "./candidate-question-wording";
 import type { CandidateAnswerAnalysisProviderResult } from "./candidate-answer-analysis-adapter";
 import type { CandidateFeedbackActionEvent } from "./candidate-feedback-interaction";
+import {
+    normalizeCandidateAnswerAnalysisRecoveries,
+    type CandidateAnswerAnalysisRecoveries,
+} from "./candidate-answer-analysis-recovery";
 
 export const CANDIDATE_PROVISIONAL_SESSION_STORAGE_KEY = "interview-coach:candidate-provisional-sessions:v1";
 
@@ -27,6 +31,7 @@ export type CandidateProvisionalSessionRecord = (CandidateSetupSessionCreationRe
     answerDrafts?: CandidateAnswerDrafts;
     answerSubmissions?: CandidateAnswerSubmissions;
     answerAnalysisSnapshots?: CandidateAnswerAnalysisSnapshots;
+    answerAnalysisRecoveries?: CandidateAnswerAnalysisRecoveries;
     feedbackActionEvents?: CandidateFeedbackActionEvents;
 };
 
@@ -45,6 +50,7 @@ export function saveCandidateProvisionalSession(
         answerDrafts: normalizeCandidateAnswerDrafts(session.answerDrafts),
         answerSubmissions: normalizeCandidateAnswerSubmissions(session.answerSubmissions),
         answerAnalysisSnapshots: normalizeCandidateAnswerAnalysisSnapshots(session.answerAnalysisSnapshots),
+        answerAnalysisRecoveries: normalizeCandidateAnswerAnalysisRecoveries(session.answerAnalysisRecoveries),
         feedbackActionEvents: normalizeCandidateFeedbackActionEvents(session.feedbackActionEvents),
     };
     storage.setItem(CANDIDATE_PROVISIONAL_SESSION_STORAGE_KEY, JSON.stringify(sessions));
@@ -154,6 +160,7 @@ function readCandidateProvisionalSessionMap(storage: Pick<Storage, "getItem">): 
                     answerDrafts: normalizeCandidateAnswerDrafts(session.answerDrafts),
                     answerSubmissions: normalizeCandidateAnswerSubmissions(session.answerSubmissions),
                     answerAnalysisSnapshots: normalizeCandidateAnswerAnalysisSnapshots(session.answerAnalysisSnapshots),
+                    answerAnalysisRecoveries: normalizeCandidateAnswerAnalysisRecoveries(session.answerAnalysisRecoveries),
                     feedbackActionEvents: normalizeCandidateFeedbackActionEvents(session.feedbackActionEvents),
                 },
             ]),

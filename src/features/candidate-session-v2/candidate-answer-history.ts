@@ -1,5 +1,10 @@
 import { createHash } from "node:crypto";
 
+import {
+    createEvaluatorFingerprint,
+    evidenceFirstEvaluatorConfigurationManifestSchema,
+    type EvidenceFirstEvaluatorConfigurationManifest,
+} from "@/features/evaluation-v2/evidence-first-evaluator-contract";
 import type { CandidateAnswerSubmission } from "./candidate-answer-lifecycle";
 
 export type CandidateAnswerAttemptMode = "text" | "voice" | "photo";
@@ -30,6 +35,8 @@ export type CandidateAnswerAttemptWriteResult = {
 export type CandidateAnswerEvaluationPurpose = "candidate_coaching" | "qa_comparison";
 export type CandidateAnswerEvaluationLifecycleState = "requested" | "completed" | "failed" | "rejected";
 
+export const CANDIDATE_ANSWER_EVALUATION_CLAIM_LEASE_MS = 60_000;
+
 export type CandidateAnswerEvaluationRunRecord = {
     candidateAnswerEvaluationRunId: string;
     candidateAnswerAttemptId: string;
@@ -38,13 +45,17 @@ export type CandidateAnswerEvaluationRunRecord = {
     modelName: string;
     promptVersion: string;
     evaluatorVersion: string;
+    configurationManifest: EvidenceFirstEvaluatorConfigurationManifest;
+    configurationFingerprint: string;
     inputFingerprint: string;
     idempotencyKey: string;
+    generationAttempt: number;
     lifecycleState: CandidateAnswerEvaluationLifecycleState;
     result: Record<string, unknown> | null;
     validation: Record<string, unknown> | null;
     errorCode: string | null;
     requestedAt: string;
+    claimExpiresAt: string;
     completedAt: string | null;
     createdAt: string;
     updatedAt: string;
@@ -53,6 +64,11 @@ export type CandidateAnswerEvaluationRunRecord = {
 export type CandidateAnswerEvaluationRunWriteResult = {
     outcome: "created" | "replayed" | "idempotency_conflict";
     run: CandidateAnswerEvaluationRunRecord;
+    recentGenerationCount?: number;
+} | {
+    outcome: "generation_limit" | "generation_unavailable";
+    run: CandidateAnswerEvaluationRunRecord;
+    recentGenerationCount: number;
 };
 
 export function createCandidateAnswerAttemptPayloadFingerprint(input: {
@@ -67,6 +83,15 @@ export function createCandidateAnswerAttemptPayloadFingerprint(input: {
     return createHash("sha256")
         .update(JSON.stringify(input))
         .digest("hex");
+}
+
+export function createCandidateAnswerEvaluationClaimExpiresAt(requestedAt: Date) {
+    if (Number.isNaN(requestedAt.getTime())) {
+        throw new Error("A valid evaluator-run request time is required.");
+    }
+    return new Date(
+        requestedAt.getTime() + CANDIDATE_ANSWER_EVALUATION_CLAIM_LEASE_MS,
+    ).toISOString();
 }
 
 export function toLatestCandidateAnswerSubmission(
@@ -167,10 +192,18 @@ export function normalizeCandidateAnswerEvaluationRunRecord(
     const modelName = readString(value.model_name ?? value.modelName);
     const promptVersion = readString(value.prompt_version ?? value.promptVersion);
     const evaluatorVersion = readString(value.evaluator_version ?? value.evaluatorVersion);
+    const configurationManifestResult = evidenceFirstEvaluatorConfigurationManifestSchema.safeParse(
+        value.configuration_manifest_json ?? value.configurationManifest,
+    );
+    const configurationFingerprint = readSha256(
+        value.configuration_fingerprint ?? value.configurationFingerprint,
+    );
     const inputFingerprint = readString(value.input_fingerprint ?? value.inputFingerprint);
     const idempotencyKey = readString(value.idempotency_key ?? value.idempotencyKey);
+    const generationAttempt = readPositiveInteger(value.generation_attempt ?? value.generationAttempt);
     const lifecycleState = readEvaluationLifecycleState(value.lifecycle_state ?? value.lifecycleState);
     const requestedAt = readTimestamp(value.requested_at ?? value.requestedAt);
+    const claimExpiresAt = readTimestamp(value.claim_expires_at ?? value.claimExpiresAt);
     const createdAt = readTimestamp(value.created_at ?? value.createdAt);
     const updatedAt = readTimestamp(value.updated_at ?? value.updatedAt);
 
@@ -182,12 +215,31 @@ export function normalizeCandidateAnswerEvaluationRunRecord(
         || !modelName
         || !promptVersion
         || !evaluatorVersion
+        || !configurationManifestResult.success
+        || !configurationFingerprint
         || !inputFingerprint
         || !idempotencyKey
+        || generationAttempt === null
         || !lifecycleState
         || !requestedAt
+        || !claimExpiresAt
+        || !isTimestampAfter(claimExpiresAt, requestedAt)
         || !createdAt
         || !updatedAt
+    ) {
+        return null;
+    }
+
+    const configurationManifest = configurationManifestResult.data;
+    if (
+        configurationManifest.profileId !== modelName
+        || configurationManifest.pipelineProvider !== provider
+        || configurationManifest.promptBundleVersion !== promptVersion
+        || configurationManifest.evaluatorVersion !== evaluatorVersion
+        || (
+        configurationManifest.configurationStatus === "resolved"
+        && createEvaluatorFingerprint(configurationManifest) !== configurationFingerprint
+        )
     ) {
         return null;
     }
@@ -214,13 +266,17 @@ export function normalizeCandidateAnswerEvaluationRunRecord(
         modelName,
         promptVersion,
         evaluatorVersion,
+        configurationManifest,
+        configurationFingerprint,
         inputFingerprint,
         idempotencyKey,
+        generationAttempt,
         lifecycleState,
         result,
         validation,
         errorCode,
         requestedAt,
+        claimExpiresAt,
         completedAt,
         createdAt,
         updatedAt,
@@ -249,6 +305,12 @@ function readNullableTimestamp(value: unknown) {
     return value === null || typeof value === "undefined" ? null : readTimestamp(value);
 }
 
+function isTimestampAfter(value: string, boundary: string) {
+    const valueTime = Date.parse(value);
+    const boundaryTime = Date.parse(boundary);
+    return Number.isFinite(valueTime) && Number.isFinite(boundaryTime) && valueTime > boundaryTime;
+}
+
 function readNullableRecord(value: unknown) {
     return value === null || typeof value === "undefined" ? null : isRecord(value) ? value : null;
 }
@@ -259,6 +321,11 @@ function readNonNegativeInteger(value: unknown) {
 
 function readPositiveInteger(value: unknown) {
     return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
+}
+
+function readSha256(value: unknown) {
+    const fingerprint = readString(value);
+    return fingerprint && /^[a-f0-9]{64}$/.test(fingerprint) ? fingerprint : null;
 }
 
 function readAnswerAttemptTrigger(value: unknown): CandidateAnswerAttemptTrigger | null {

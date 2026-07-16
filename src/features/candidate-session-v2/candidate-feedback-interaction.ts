@@ -375,7 +375,7 @@ function createRetryAction(emphasis: CandidateFeedbackAction["emphasis"]): Candi
 }
 
 function shouldRetryBePrimary(analysis: CandidateFeedbackInteractionAnalysis) {
-    const evidenceFirstIntervention = analysis.evidenceFirst?.feedbackPlan.intervention;
+    const evidenceFirstIntervention = analysis.evidenceFirst?.interaction.intervention;
     if (evidenceFirstIntervention && retryPrimaryInterventions.has(evidenceFirstIntervention)) {
         return true;
     }

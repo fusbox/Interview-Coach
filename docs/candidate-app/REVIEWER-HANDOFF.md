@@ -1,44 +1,21 @@
-# Candidate Integration Reviewer Handoff
+# Candidate V2 Reviewer Handoff
 
-Date: 2026-05-15
-Status: Reviewer quick-start handoff
+Date: 2026-07-16
+Status: Cleanroom rebuild reviewer quick start; not a release or merge approval
 
 ## Purpose
 
-This is the short path for a reviewer or integration teammate who needs to get the candidate branch running, validate the current work, and understand what is safe to merge.
+This is the short path for a teammate who needs the current candidate V2 branch running, wants to exercise the candidate-owned practice loop, or needs to inspect the evaluator milestone. The canonical product, data, and execution truth remains in [SPEC](./SPEC.md), [DATA_CONTRACT](./DATA_CONTRACT.md), and [HANDOFF](./HANDOFF.md).
 
-Use the deeper docs only when a specific route, auth, data, security, or product question comes up.
+## Branch And Scope
 
-## Do This First
+```powershell
+git fetch fusbox feature/candidate-v2-rebuild
+git switch feature/candidate-v2-rebuild
+git pull --ff-only fusbox feature/candidate-v2-rebuild
+```
 
-1. Clone or open the company Azure repo:
-
-   ```powershell
-   git clone https://dev.azure.com/RangamDevTeam/Interview_Coach_AI/_git/Interview_Coach_AI
-   cd Interview_Coach_AI
-   ```
-
-2. Fetch the integration branches:
-
-   ```powershell
-   git fetch origin feature/postgres-integration feature/candidate-app-integration
-   ```
-
-3. Check out the candidate branch:
-
-   ```powershell
-   git switch feature/candidate-app-integration
-   git pull --ff-only origin feature/candidate-app-integration
-   ```
-
-4. Confirm the PR target before reviewing:
-
-   ```text
-   Source: feature/candidate-app-integration
-   Target: feature/postgres-integration
-   ```
-
-   Do not complete the candidate PR into `main`, `dev-Fu`, or `staging` unless the integration team intentionally retargets the branch after the Postgres baseline is accepted.
+Current development pushes this branch to `fusbox` only. Do not infer Azure merge, deployment, pilot, or production readiness from this handoff. V1-created app data has no V2 migration or runtime compatibility requirement.
 
 ## Local Setup
 
@@ -48,200 +25,86 @@ Use the deeper docs only when a specific route, auth, data, security, or product
    npm install
    ```
 
-2. Create `.env.local` for local review:
-
-   ```powershell
-   Copy-Item .env.example .env.local
-   ```
-
-   Use local-only placeholders like these:
+2. Put the local launch controls in `.env.local`:
 
    ```text
-   DATABASE_URL=postgresql://postgres:interviewcoach-local-smoke-password@127.0.0.1:5434/interviewcoach_smoke
-   CANDIDATE_DATA_BACKEND=postgres
-   CANDIDATE_AUTH_MODE=dev
-   NEXT_PUBLIC_BASE_URL=http://127.0.0.1:3000
-   NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000
-   ENCRYPTION_SECRET=local-review-placeholder-secret-32-chars
-   GEMINI_API_KEY=local-review-placeholder
-   SMTP_USERNAME=local-review@example.invalid
-   SMTP_PASSWORD=local-review-placeholder-password
+   CANDIDATE_HOST_LAUNCH_DEV_MODE=true
+   CANDIDATE_HOST_LAUNCH_DEV_SECRET=local-only-shared-secret
    ```
 
-3. Start the local smoke Postgres database, apply recruiter plus candidate migrations, and seed candidate fixtures:
+3. Choose one answer-analysis provider:
+
+   ```text
+   CANDIDATE_ANSWER_ANALYSIS_PROVIDER=fixture
+   ```
+
+   For the deliberately credentialed Gemini path, follow [Local Dev Bootstrap](./09-dev/local-dev-bootstrap.md) and the [Live Evaluator Validation Runbook](./05-quality/live-evaluator-validation-runbook.md). Never commit `.env.local` or expose provider credentials through `NEXT_PUBLIC_*` variables.
+
+4. Prepare the disposable database and start the app:
 
    ```powershell
    npm run db:setup
+   npm run db:smoke-candidate-readiness
+   npm run dev
    ```
 
-4. Start the app:
-
-   ```powershell
-   npm run dev:candidate
-   ```
-
-5. Open:
+5. Launch the primary candidate:
 
    ```text
-   http://localhost:3000
+   http://localhost:3000/candidate/dev/launch?candidate=primary&next=/candidate/setup
    ```
 
-## Environment Notes
-
-For local candidate validation, use the seeded candidate identity:
-
-```text
-CANDIDATE_AUTH_MODE=dev
-```
-
-`dev` mode resolves the primary seeded candidate automatically and bypasses the external TalentArbor login route for local browser review. Use `password` mode only when you need to override the local candidate identity with explicit `CANDIDATE_DEV_*` values.
-
-The smoke setup uses the disposable local Postgres configuration. The placeholder values above are for local compile and smoke validation only. Do not use Fu-Lab mirror pipeline placeholder secrets or local placeholders as production or staging values.
+   Use `candidate=alternate` to validate ownership isolation with the alternate fixture identity.
 
 ## Automated Validation
 
-Run this first:
+Default candidate checks:
 
 ```powershell
-npm run ci:candidate
+npm run test:candidate
+npm run test:candidate:evaluator-configuration
+npm run test:candidate:coach-update
+npm run test:candidate:next-round
+npm run typecheck
+npm run lint
 ```
 
-That runs:
-
-- `npm run lint`
-- `npm run typecheck`
-- `npm run test:candidate`
-- `npm run build`
-
-If the smoke Postgres container is available, also run:
-
-```powershell
-npm run db:smoke-candidate-readiness
-npm run test:e2e:candidate-seeded
-```
-
-Or run the combined local chain:
+The integrated chain is:
 
 ```powershell
 npm run ci:candidate:with-db
 ```
 
-Expected result: lint, typecheck, candidate tests, build, DB readiness, and seeded setup-to-summary browser smoke pass.
+That adds the production build, DB readiness chain, and seeded browser smoke. Do not run `next build` against the same `.next` directory while a dev server is active.
 
-## Manual Validation Pass
+## Manual Candidate Journey
 
-After `npm run db:setup` and `npm run dev`, use this quick manual pass.
+1. Launch the primary candidate and create a new prep context under `/candidate/setup`.
+2. Confirm the pre-session landing and `Entering practice space` transition before the live session.
+3. Submit an answer and confirm feedback or a candidate-safe unavailable/recovery state.
+4. Refresh on the answer and feedback surfaces; confirm the exact question, draft, accepted answer, and feedback state recover.
+5. Use a feedback-triggered retry and confirm it appends a new answer attempt instead of overwriting the prior attempt.
+6. Exit to the dashboard mid-round, resume the active round, and confirm the meaningful session position recovers.
+7. Finish the round and confirm return to `/candidate/dashboard?prep=<opaque-role-profile-id>`.
+8. Confirm Coach Update, Coach Plan, Practice Next, and active-round content stay scoped to the selected prep context.
+9. Launch one-question and multi-question follow-up practice through their ready landing, then confirm attempt/root-question lineage remains intact.
 
-### Public Candidate Page
+## Evaluator Milestone Evidence
 
-Open:
+The current candidate-serving baseline is the pinned `google_gemini_2_5_flash_v1` profile under evaluator contract `candidate_evidence_first_v2`. Two credentialed seven-case artifacts passed the automated gate under the same immutable configuration fingerprint, and a durable candidate-route run proved accepted evaluator persistence plus candidate-safe projection and recovery. These are conformance results, not a human serving-profile promotion.
 
-```text
-http://localhost:3000/
-```
+Review these before changing the evaluator boundary:
 
-Check:
+- [Evidence-First Evaluator Contract](./05-quality/evidence-first-evaluator-contract.md)
+- [Production Evaluator Integration Contract](./05-quality/production-evaluator-integration-contract.md)
+- [Live Evaluator Validation Runbook](./05-quality/live-evaluator-validation-runbook.md)
 
-- TalentArbor logo and candidate landing page render.
-- `Start practicing` points to `/auth/talentarbor/start?next=/practice`.
-- `Review dashboard` points to `/auth/talentarbor/start?next=/dashboard`.
-- No recruiter dashboard data appears on `/`.
+Technical correctness remains `not_assessed` when no trusted technical reference is supplied. Coaching should still be composed from other accepted evidence. Local Coach Update synthesis uses its deterministic fixture independently of whether answer analysis uses the fixture or Gemini; a live Coach Update provider is not yet wired.
 
-### Candidate Protected Routes
+## Known Non-Release Boundaries
 
-Open in an unauthenticated browser:
-
-```text
-http://localhost:3000/practice
-http://localhost:3000/dashboard
-```
-
-Check:
-
-- Both routes redirect through `/auth/talentarbor/start`.
-- Unsafe external redirect targets are not accepted.
-
-For local authenticated candidate validation, use `dev` candidate mode from the environment notes, then check:
-
-```text
-http://localhost:3000/practice
-http://localhost:3000/dashboard
-```
-
-Check:
-
-- `/practice` loads the candidate setup form.
-- Seeded data can generate a session.
-- `/dashboard` shows candidate-owned active/completed practice state.
-- `/summary/[sessionId]` shows candidate-owned summary content after a completed session.
-
-### Candidate Setup To Summary
-
-Use `/practice` and walk the seeded happy path:
-
-1. Confirm the target role is restored.
-2. Start generating questions.
-3. Enter the generated session.
-4. Submit an answer.
-5. Get coaching.
-6. Continue through the questions.
-7. Finish the session.
-8. Open the summary.
-
-Expected result: the session and summary stay candidate-owned and do not require recruiter invite-token access.
-
-### Recruiter Route Preservation
-
-Open as an unauthenticated user:
-
-```text
-http://localhost:3000/recruiter/dashboard
-http://localhost:3000/recruiter/templates
-http://localhost:3000/recruiter/settings
-http://localhost:3000/admin/feedback
-http://localhost:3000/qa/ai-quality
-```
-
-Check:
-
-- Each route remains protected and redirects to recruiter login.
-- `/recruiter` remains the ATS/create landing alias.
-- `/recruiter/dashboard` remains the recruiter dashboard route, not the candidate dashboard.
-
-## Merge Map
-
-Current intended stack:
-
-```text
-main
-  -> dev-Fu
-      -> feature/postgres-integration
-          -> feature/candidate-app-integration
-```
-
-Reviewer order:
-
-1. Validate `feature/postgres-integration` as the migrated recruiter Postgres baseline.
-2. Review `feature/candidate-app-integration` as the candidate delta on top of that baseline.
-3. Keep the candidate PR in draft until the open blockers below are accepted or explicitly deferred.
-
-## Open Blockers
-
-Do not treat the candidate branch as production-ready until these are answered:
-
-- Does TalentArbor `LoginWithType/2` preserve return URL, callback, state, or equivalent intent?
-- What identity handoff will Interview Coach receive after TalentArbor/RangamWorks login?
-- Which team owns company Azure branch policy, build validation, staging deploy, and production deploy?
-- Which exact host/path deployment flow will be used for `interviewcoach.talentarbor.com`?
-
-## Deep Reference
-
-Use these only when needed:
-
-- [Shared Host Routing Contract](04-architecture/shared-host-routing-contract.md)
-- [Candidate Login Redirect Contract](02-requirements/candidate-login-redirect-contract.md)
-- [Postgres Candidate Data Contract](reference-archive/architecture/postgres-candidate-data-contract.md)
-- [Storage And Resume Ingestion](04-architecture/storage-and-resume-ingestion.md)
-- [Recruiter Regression Checklist For Candidate PRs](05-quality/recruiter-regression-checklist.md)
-- [Candidate Integration PR Policy](07-ops/candidate-integration-pr-policy.md)
-- [Working Backlog](00-working-backlog.md)
+- Production TA/RW host-launch context resolution and final token/cookie guarantees are not implemented.
+- Production question wording, technical-reference retrieval, Coach Update provider wiring, TTS, resume ingestion/OCR, and invited-route persistence remain incomplete.
+- Human qualitative review and explicit evaluator serving-profile promotion remain pending.
+- Post-completion evaluator repair, request-level idempotency at setup/direct-intent boundaries, async Coach Update polling/retry, privacy masking, observability, accessibility, and deployment hardening remain release work.
+- Recruiter/admin V2 rebuild decisions are outside this candidate milestone.

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+    ArrowRight,
     AlertCircle,
     CheckCircle2,
     Keyboard,
@@ -45,6 +46,10 @@ export type SharedLivePracticeShellProps = {
     onDraftBlur?: () => void;
     onRetryDraftSave?: () => void;
     onRetryAnalysis?: () => void;
+    onContinueWithoutCoaching?: () => void;
+    continueWithoutCoachingLabel?: string;
+    isContinuingWithoutCoaching?: boolean;
+    continueWithoutCoachingError?: string | null;
     onSubmit: () => void;
 };
 
@@ -63,6 +68,10 @@ export function SharedLivePracticeShell({
     onDraftBlur,
     onRetryDraftSave,
     onRetryAnalysis,
+    onContinueWithoutCoaching,
+    continueWithoutCoachingLabel = "Continue without coaching",
+    isContinuingWithoutCoaching = false,
+    continueWithoutCoachingError = null,
     onSubmit,
 }: SharedLivePracticeShellProps) {
     const currentQuestion = facts.questions[facts.currentQuestionIndex] ?? null;
@@ -82,9 +91,20 @@ export function SharedLivePracticeShell({
             : "Return to invitation"
     );
     const answerPresentation = getSessionAnswerMutationPresentation(answerMutationPhase);
-    const answerPrimaryHandler = answerPresentation.primaryAction === "retry_analysis"
-        ? onRetryAnalysis
-        : onSubmit;
+    const answerPrimaryHandler = answerPresentation.primaryAction === "continue_without_coaching"
+        ? onContinueWithoutCoaching
+        : answerPresentation.primaryAction === "retry_analysis"
+            || answerPresentation.primaryAction === "check_analysis"
+            || answerPresentation.primaryAction === "restore_analysis"
+            ? onRetryAnalysis
+            : onSubmit;
+    const answerPrimaryLabel = answerPresentation.primaryAction === "continue_without_coaching"
+        ? continueWithoutCoachingLabel
+        : answerPresentation.primaryLabel;
+    const primaryRequiresDraft = answerPresentation.primaryAction === "submit"
+        || answerPresentation.primaryAction === "retry_submit";
+    const answerStatusTone = continueWithoutCoachingError ? "error" : answerPresentation.tone;
+    const answerStatusMessage = continueWithoutCoachingError ?? answerPresentation.message;
 
     useEffect(() => {
         window.scrollTo({ top: 0 });
@@ -217,40 +237,67 @@ export function SharedLivePracticeShell({
                         <div
                             id="session-live-answer-status"
                             className="session-live-shell__answer-status"
-                            data-tone={answerPresentation.tone}
-                            role={answerPresentation.tone === "error" ? "alert" : "status"}
-                            aria-live={answerPresentation.tone === "error" ? "assertive" : "polite"}
+                            data-tone={answerStatusTone}
+                            role={answerStatusTone === "error" ? "alert" : "status"}
+                            aria-live={answerStatusTone === "error" ? "assertive" : "polite"}
                         >
                             <span aria-hidden="true">
-                                {answerPresentation.tone === "progress" ? (
+                                {answerStatusTone === "progress" ? (
                                     <Loader2 className="session-live-shell__status-spinner" size={16} />
-                                ) : answerPresentation.tone === "success" ? (
+                                ) : answerStatusTone === "success" ? (
                                     <CheckCircle2 size={16} />
-                                ) : answerPresentation.tone === "error" ? (
+                                ) : answerStatusTone === "error" ? (
                                     <AlertCircle size={16} />
                                 ) : null}
                             </span>
-                            <p>{answerPresentation.message}</p>
+                            <p>{answerStatusMessage}</p>
                             {answerPresentation.canRetryDraftSave && onRetryDraftSave ? (
                                 <button type="button" onClick={onRetryDraftSave}>
                                     Try saving again
                                 </button>
                             ) : null}
                         </div>
-                        {answerPresentation.primaryAction ? (
-                            <button
-                                className="candidate-button candidate-button--primary"
-                                type="button"
-                                disabled={!draftText.trim() || answerPresentation.isBusy || !answerPrimaryHandler}
-                                onClick={answerPrimaryHandler}
-                            >
-                                {answerPresentation.primaryAction === "retry_analysis" ? (
-                                    <RefreshCw size={17} aria-hidden="true" />
-                                ) : (
-                                    <SendHorizontal size={17} aria-hidden="true" />
-                                )}
-                                {answerPresentation.primaryLabel}
-                            </button>
+                        {answerPresentation.primaryAction || answerPresentation.secondaryAction ? (
+                            <div className="session-live-shell__answer-actions">
+                                {answerPresentation.secondaryAction === "continue_without_coaching" ? (
+                                    <button
+                                        className="candidate-button candidate-button--secondary"
+                                        type="button"
+                                        disabled={!onContinueWithoutCoaching || isContinuingWithoutCoaching}
+                                        onClick={onContinueWithoutCoaching}
+                                    >
+                                        <ArrowRight size={17} aria-hidden="true" />
+                                        {isContinuingWithoutCoaching ? "Finishing practice..." : continueWithoutCoachingLabel}
+                                    </button>
+                                ) : null}
+                                {answerPresentation.primaryAction ? (
+                                    <button
+                                        className="candidate-button candidate-button--primary"
+                                        type="button"
+                                        disabled={
+                                            (primaryRequiresDraft && !draftText.trim())
+                                            || answerPresentation.isBusy
+                                            || isContinuingWithoutCoaching
+                                            || !answerPrimaryHandler
+                                        }
+                                        onClick={answerPrimaryHandler}
+                                    >
+                                        {answerPresentation.primaryAction === "retry_analysis"
+                                            || answerPresentation.primaryAction === "check_analysis"
+                                            || answerPresentation.primaryAction === "restore_analysis" ? (
+                                            <RefreshCw size={17} aria-hidden="true" />
+                                        ) : answerPresentation.primaryAction === "continue_without_coaching" ? (
+                                            <ArrowRight size={17} aria-hidden="true" />
+                                        ) : (
+                                            <SendHorizontal size={17} aria-hidden="true" />
+                                        )}
+                                        {answerPresentation.primaryAction === "continue_without_coaching"
+                                            && isContinuingWithoutCoaching
+                                            ? "Finishing practice..."
+                                            : answerPrimaryLabel}
+                                    </button>
+                                ) : null}
+                            </div>
                         ) : null}
                     </footer>
                 </section>

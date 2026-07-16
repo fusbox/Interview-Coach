@@ -323,8 +323,7 @@ export function createCandidateCoachUpdateRuntimeFromEnvironment({
     if (!explicitLocalDev || env.NODE_ENV === "production") return null;
 
     const configuredProvider = env[CANDIDATE_COACH_UPDATE_PROVIDER_ENV]?.trim().toLowerCase();
-    const provider = configuredProvider
-        || (env.CANDIDATE_ANSWER_ANALYSIS_PROVIDER?.trim().toLowerCase() === "fixture" ? "fixture" : "");
+    const provider = configuredProvider || "fixture";
     if (provider === "fixture") return createFixtureCandidateCoachUpdateRuntime();
     if (provider !== "fault") return null;
 

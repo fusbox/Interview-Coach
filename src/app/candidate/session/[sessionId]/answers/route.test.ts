@@ -507,6 +507,32 @@ describe("/candidate/session/[sessionId]/answers route", () => {
         });
     });
 
+    it("rejects answer text above the evaluator input ceiling before persistence", async () => {
+        const findSetupSession = vi.fn();
+        const saveAnswerSubmission = vi.fn();
+        const response = await handleCandidateAnswerSubmitRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/session/session-1/answers", {
+                method: "POST",
+                body: JSON.stringify({
+                    slotId: "slot-1",
+                    questionIndex: 0,
+                    mode: "text",
+                    text: "a".repeat(20_001),
+                }),
+            }),
+            sessionId: "session-1",
+            now: new Date("2026-07-09T20:01:00.000Z"),
+            resolveCandidateSessionIdentity: vi.fn(async () => ({
+                candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            })),
+            practiceSessionRepository: { findSetupSession, saveAnswerSubmission },
+        });
+
+        expect(response.status).toBe(400);
+        expect(findSetupSession).not.toHaveBeenCalled();
+        expect(saveAnswerSubmission).not.toHaveBeenCalled();
+    });
+
     it("rejects answer submissions after the durable session is completed", async () => {
         const appendAnswerAttempt = vi.fn();
         const saveAnswerSubmission = vi.fn();

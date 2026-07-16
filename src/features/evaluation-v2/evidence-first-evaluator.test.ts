@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
     createEvidenceFirstEvaluationCase,
     createEvidenceExtractorTask,
+    createEvaluatorRunDescriptor,
     createSafeEvaluatorTelemetryEvent,
     type EvidenceExtractionOutput,
     type EvidenceFirstEvaluationCase,
@@ -18,6 +19,35 @@ import {
 } from "./evidence-first-evaluator";
 
 describe("evidence-first evaluator contract", () => {
+    it("fingerprints the complete resolved stage configuration without content or credentials", () => {
+        const profile = createModelProfile();
+        const descriptor = createEvaluatorRunDescriptor(profile);
+        const changedDescriptor = createEvaluatorRunDescriptor({
+            ...profile,
+            feedbackComposer: {
+                ...profile.feedbackComposer,
+                generation: {
+                    ...profile.feedbackComposer.generation,
+                    temperature: 0.3,
+                },
+            },
+        });
+
+        expect(descriptor.configurationManifest).toMatchObject({
+            configurationStatus: "resolved",
+            profileId: "google_gemini_2_5_flash_v1",
+            serviceMode: "gemini_api",
+            stages: [
+                { stage: "evidence_extraction", responseSchemaVersion: "evidence_extraction_output_v1" },
+                { stage: "verification", responseSchemaVersion: "evidence_verification_output_v1" },
+                { stage: "feedback_composition", responseSchemaVersion: "feedback_composition_output_v1" },
+            ],
+        });
+        expect(descriptor.configurationFingerprint).toMatch(/^[a-f0-9]{64}$/);
+        expect(changedDescriptor.configurationFingerprint).not.toBe(descriptor.configurationFingerprint);
+        expect(JSON.stringify(descriptor.configurationManifest)).not.toMatch(/apiKey|secret|answerText|resumeText/i);
+    });
+
     it("fixes one immutable answer-attempt input while excluding identity from the provider task", () => {
         const evaluationCase = createCase({
             answerText: "I can start two weeks after an offer.",
@@ -30,6 +60,12 @@ describe("evidence-first evaluator contract", () => {
         expect(evaluationCase.inputFingerprint).toMatch(/^[a-f0-9]{64}$/);
         expect(JSON.stringify(task.input)).not.toContain("attempt-1");
         expect(JSON.stringify(task.input)).not.toMatch(/candidateProfileId|email|displayName|token|cookie/i);
+        expect(task.input.allowedCategorySignalIds).toEqual([
+            "has_role_connection",
+            "has_next_step_readiness",
+            "has_logistics_clarity",
+            "has_professional_boundary",
+        ]);
     });
 
     it("validates nonblank source text without mutating exact answer offsets", () => {
@@ -130,7 +166,11 @@ describe("evidence-first evaluator contract", () => {
         const direct = createSpan(answerText, answerText, "direct_answer", "direct");
         const recommendation = createSpan(answerText, "ask the team to move faster", "recommendation", "recommendation");
         const extraction = createExtraction(evaluationCase, {
-            observableMarkers: { answeredQuestion: true, hasDirectAnswer: true },
+            observableMarkers: {
+                answeredQuestion: true,
+                hasDirectAnswer: true,
+                hasRoleRelevantSkillSignal: true,
+            },
             evidenceSpans: [direct, recommendation],
             categorySignals: [
                 { id: "has_problem_framing", status: "not_observed", evidenceSpanIds: [] },
@@ -347,7 +387,13 @@ describe("evidence-first evaluator contract", () => {
             inputFingerprint: "a".repeat(64),
             stage: "evidence_extraction",
             outcome: "completed",
-            descriptor: { provider: "provider", model: "model", promptVersion: "prompt-v1" },
+            descriptor: {
+                provider: "provider",
+                model: "model",
+                promptVersion: "prompt-v1",
+                responseSchemaVersion: "extract-schema-v1",
+                generation: { mode: "deterministic", structuredOutput: true },
+            },
             latencyMs: 420,
             tokenUsage: { inputTokens: 100, outputTokens: 50, totalTokens: 150 },
         });
@@ -381,10 +427,24 @@ describe("evidence-first evaluator contract", () => {
             qaCase,
             profile: {
                 profileId: "pipeline-a",
-                evaluatorVersion: "candidate_evidence_first_v1",
-                promptBundleVersion: "candidate_evidence_first_prompts_v1",
-                evidenceExtractor: { provider: "provider", model: "extractor", promptVersion: "extract-v1" },
-                feedbackComposer: { provider: "provider", model: "composer", promptVersion: "compose-v1" },
+                evaluatorVersion: "candidate_evidence_first_v2",
+                promptBundleVersion: "candidate_evidence_first_prompts_v6",
+                serviceMode: "test",
+                adapterVersion: "test_adapter_v1",
+                evidenceExtractor: {
+                    provider: "provider",
+                    model: "extractor",
+                    promptVersion: "extract-v1",
+                    responseSchemaVersion: "extract-schema-v1",
+                    generation: { mode: "deterministic", structuredOutput: true },
+                },
+                feedbackComposer: {
+                    provider: "provider",
+                    model: "composer",
+                    promptVersion: "compose-v1",
+                    responseSchemaVersion: "compose-schema-v1",
+                    generation: { mode: "deterministic", structuredOutput: true },
+                },
             },
             appraisal,
             feedback: validatedFeedback,
@@ -399,9 +459,77 @@ describe("evidence-first evaluator contract", () => {
             containsResumeText: false,
         });
         expect(run.retention).toEqual({ assembledPrompt: "not_captured", rawProviderOutput: "not_captured" });
+        expect(run.configurationManifest).toMatchObject({
+            configurationStatus: "resolved",
+            profileId: "pipeline-a",
+        });
+        expect(run.configurationFingerprint).toMatch(/^[a-f0-9]{64}$/);
         expect(JSON.stringify(run)).not.toMatch(/sourceApp|appName|candidateProfileId|email|displayName/);
     });
 });
+
+function createModelProfile() {
+    const model = "gemini-2.5-flash";
+    const provider = "google_genai";
+    return {
+        profileId: "google_gemini_2_5_flash_v1",
+        evaluatorVersion: "candidate_evidence_first_v2" as const,
+        promptBundleVersion: "candidate_evidence_first_prompts_v6" as const,
+        serviceMode: "gemini_api",
+        adapterVersion: "google_genai_evidence_first_adapter_v1",
+        evidenceExtractor: {
+            provider,
+            model,
+            promptVersion: "candidate_evidence_extraction_google_v1",
+            responseSchemaVersion: "evidence_extraction_output_v1",
+            generation: {
+                mode: "model" as const,
+                reasoningPosture: "low" as const,
+                thinkingBudget: 512,
+                includeThoughts: false as const,
+                temperature: 0,
+                maxOutputTokens: 4096,
+                candidateCount: 1 as const,
+                seed: 0,
+                structuredOutput: true as const,
+            },
+        },
+        verifier: {
+            provider,
+            model,
+            promptVersion: "candidate_evidence_verification_google_v1",
+            responseSchemaVersion: "evidence_verification_output_v1",
+            generation: {
+                mode: "model" as const,
+                reasoningPosture: "medium" as const,
+                thinkingBudget: 1024,
+                includeThoughts: false as const,
+                temperature: 0,
+                maxOutputTokens: 1536,
+                candidateCount: 1 as const,
+                seed: 0,
+                structuredOutput: true as const,
+            },
+        },
+        feedbackComposer: {
+            provider,
+            model,
+            promptVersion: "candidate_feedback_composition_google_v1",
+            responseSchemaVersion: "feedback_composition_output_v1",
+            generation: {
+                mode: "model" as const,
+                reasoningPosture: "low" as const,
+                thinkingBudget: 512,
+                includeThoughts: false as const,
+                temperature: 0.2,
+                maxOutputTokens: 2048,
+                candidateCount: 1 as const,
+                seed: 0,
+                structuredOutput: true as const,
+            },
+        },
+    };
+}
 
 function createCase(input: {
     answerText: string;

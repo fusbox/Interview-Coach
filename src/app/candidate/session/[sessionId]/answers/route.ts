@@ -26,6 +26,7 @@ import {
 } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 import type { CandidateAnswerAnalysisProviderResult } from "@/features/candidate-session-v2/candidate-answer-analysis-adapter";
 import type { CandidateFeedbackActionEvent } from "@/features/candidate-session-v2/candidate-feedback-interaction";
+import { EVIDENCE_FIRST_INPUT_LIMITS } from "@/features/evaluation-v2/evidence-first-evaluator-contract";
 
 type CandidateSessionIdentity = {
     candidateProfileId: string;
@@ -385,6 +386,7 @@ function parseAnswerSubmitBody(value: unknown) {
         || body.mode !== "text"
         || typeof body.text !== "string"
         || !body.text.trim()
+        || body.text.length > EVIDENCE_FIRST_INPUT_LIMITS.answerText
         || typeof body.questionIndex !== "number"
         || !Number.isInteger(body.questionIndex)
         || body.questionIndex < 0

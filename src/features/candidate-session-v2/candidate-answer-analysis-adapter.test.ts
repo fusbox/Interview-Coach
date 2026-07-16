@@ -200,7 +200,7 @@ describe("candidate answer analysis adapter", () => {
                 trigger: "initial_submit",
             },
             evidenceFirst: {
-                contractVersion: "candidate_evidence_first_v1",
+                contractVersion: "candidate_evidence_first_v2",
                 inputFingerprint,
                 candidateFeedback: {
                     status: "candidate_safe_feedback",
@@ -208,6 +208,12 @@ describe("candidate answer analysis adapter", () => {
                 },
             },
         });
+        expect(result?.evidenceFirst).toMatchObject({
+            interaction: { intervention: "revise_answer" },
+        });
+        expect(result?.evidenceFirst).not.toHaveProperty("feedbackPlan");
+        expect(result?.evidenceFirst).not.toHaveProperty("criteria");
+        expect(result?.evidenceFirst).not.toHaveProperty("patternGap");
     });
 
     it("fails closed when evidence-first feedback has a different input fingerprint", () => {
@@ -246,7 +252,7 @@ function createEvidenceFirstProviderResult() {
         },
         evidence: [],
         evidenceFirst: {
-            contractVersion: "candidate_evidence_first_v1",
+            contractVersion: "candidate_evidence_first_v2",
             inputFingerprint,
             feedbackPlan: {
                 centralRead: "The answer explains the action but not the result.",

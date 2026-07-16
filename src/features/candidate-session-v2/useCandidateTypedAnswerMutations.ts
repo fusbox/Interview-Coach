@@ -10,6 +10,10 @@ import type {
     CandidateAnswerSubmissions,
 } from "./candidate-answer-lifecycle";
 import type { CandidateAnswerAnalysisSnapshots } from "./candidate-provisional-session-store";
+import {
+    parseCandidateAnswerAnalysisRecovery,
+    type CandidateAnswerAnalysisRecovery,
+} from "./candidate-answer-analysis-recovery";
 
 const CANDIDATE_ANSWER_DRAFT_SAVE_DELAY_MS = 600;
 
@@ -242,6 +246,8 @@ export function useCandidateTypedAnswerMutations({
             const result = await response.json().catch(() => null) as {
                 status?: string;
                 analysisSnapshot?: CandidateAnswerAnalysisSnapshots[string];
+                analysisRecovery?: unknown;
+                retryable?: boolean;
             } | null;
             if (result?.status === "answer_analysis_saved" && result.analysisSnapshot) {
                 setAnswerAnalysisSnapshots((currentSnapshots) => ({
@@ -252,7 +258,15 @@ export function useCandidateTypedAnswerMutations({
                 return true;
             }
 
-            setAnswerMutationPhase(slotId, "analysis_failed");
+            const recovery = parseCandidateAnswerAnalysisRecovery(result?.analysisRecovery);
+            setAnswerMutationPhase(
+                slotId,
+                recovery
+                    ? toAnswerMutationPhase(recovery)
+                    : result?.retryable === false || result?.status === "answer_analysis_unavailable"
+                        ? "analysis_unavailable"
+                        : "analysis_failed",
+            );
             return false;
         } catch {
             setAnswerMutationPhase(slotId, "analysis_failed");
@@ -281,6 +295,22 @@ export function useCandidateTypedAnswerMutations({
         submitAnswerDraft,
         updateAnswerDraft,
     };
+}
+
+function toAnswerMutationPhase(
+    recovery: CandidateAnswerAnalysisRecovery,
+): SessionAnswerMutationPhase {
+    switch (recovery.state) {
+        case "pending":
+            return "analysis_pending";
+        case "recoverable":
+            return "analysis_recoverable";
+        case "unavailable":
+            return "analysis_unavailable";
+        case "retryable":
+        default:
+            return "analysis_failed";
+    }
 }
 
 function createDraft({ slotId, questionIndex, text }: CandidateAnswerTarget): CandidateAnswerDraft {

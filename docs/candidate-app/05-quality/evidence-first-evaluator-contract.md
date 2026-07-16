@@ -1,9 +1,9 @@
 # Evidence-First Evaluator Contract
 
 Status: Ratified executable contract
-Contract version: `candidate_evidence_first_v1`
-Prompt bundle version: `candidate_evidence_first_prompts_v1`
-Last updated: 2026-07-14
+Contract version: `candidate_evidence_first_v2`
+Prompt bundle version: `candidate_evidence_first_prompts_v6`
+Last updated: 2026-07-16
 
 ## Purpose
 
@@ -12,7 +12,9 @@ This contract turns one immutable submitted answer attempt into candidate-safe c
 - `src/features/evaluation-v2/evidence-first-evaluator-contract.ts`;
 - `src/features/evaluation-v2/evidence-first-evaluator.ts`.
 
-This contract was ratified on 2026-07-14. The local fixture now exercises the same typed evaluation case, exact-span extraction, deterministic validation/appraisal, feedback-validation, and candidate-safe projection boundary so session behavior can be tested without presenting fixture logic as a production model. Production model adapters, prompt rendering, durable evaluator-run claim/orchestration, technical-reference sourcing, and provider observability remain separate fail-closed integration work.
+This contract was ratified on 2026-07-14. The provider-neutral runtime and local fixture exercise the same typed evaluation case, extractor task, deterministic validation/appraisal, conditional verifier task, feedback-composer task, retry budget, and candidate-safe projection boundary. The fixture supplies deterministic stage adapters; it is not a production model. The code-owned Google Gen AI adapter and pinned Gemini profile have now passed mocked conformance, two credentialed synthetic gates, same-profile repeatability comparison, and one disposable-DB candidate-route reconciliation. The candidate answer-analysis route selects that runtime only from the exact server provider/profile/key contract and only after ownership and durable evaluator-run claim authorization. Technical-reference sourcing beyond the synthetic supplied-reference case, production observability, organizational deployment readiness, and serving-profile promotion remain separate fail-closed work.
+
+Live-model quality validation is a separate explicit operation governed by the [Live Evaluator Validation Runbook](./live-evaluator-validation-runbook.md). It uses synthetic fixed inputs and emits only redacted review facts; it does not read candidate data or weaken the runtime's no-prompt/no-raw-output retention contract.
 
 ## Pipeline
 
@@ -65,7 +67,7 @@ Provider input is bounded before invocation: target role 120 characters, questio
 
 ## Evidence Extraction
 
-The extractor returns structured facts only:
+The accepted extraction contract contains structured facts only:
 
 - input fingerprint and question category;
 - answer usability;
@@ -77,7 +79,9 @@ The extractor returns structured facts only:
 - sensitive-disclosure flags;
 - unsafe-inference flags.
 
-Every cited span must satisfy `answer.slice(start, end) === quote`. Unknown, duplicate, mismatched, or unsupported references reject the extraction before it can drive coaching.
+The provider supplies exact quote strings, usability status, allowlisted category signals, reference-bounded technical status, and safety flags. Code reattaches immutable schema/input/category identity, derives bounded reason codes, locates every quote in the submitted answer to attach zero-based offsets, clears evidence references from signals the provider marked unobserved, derives observable markers from grounded spans/signals, and derives missing-evidence codes from not-observed signals. The model does not author those deterministic fields.
+
+Every hydrated span must satisfy `answer.slice(start, end) === quote`. A quote that cannot be located exactly, plus unknown, duplicate, mismatched, or unsupported references, rejects the extraction before it can drive coaching.
 
 Unsafe inference is distinct from sensitive disclosure:
 
@@ -111,7 +115,7 @@ Category lenses interpret those same criteria for behavioral, screening, culture
 
 ## Technical Correctness
 
-The evaluator may emit `supported` or `contradicted` technical accuracy only when the case supplies a versioned technical reference with known concept ids. Otherwise technical accuracy is `not_assessed`, and `role_skill_signal` is `unscoreable` rather than low.
+The evaluator may emit `supported` or `contradicted` technical accuracy only when the case supplies a versioned technical reference with known concept ids. Otherwise technical accuracy is `not_assessed`, and `role_skill_signal` is `unscoreable` rather than low. The provider adapter enforces this boundary after generation by replacing any provider-authored technical verdict and references with `not_assessed` and empty reference/evidence ids when the request carried no trusted technical reference.
 
 Contradicted technical claims require verification before feedback composition. Partial concept coverage also triggers verification. The future technical-reference adapter must define source ownership, versioning, role-family coverage, expiry, and what happens when references disagree. This remains a production integration decision.
 
@@ -124,13 +128,13 @@ Verification is required when accepted structured evidence would otherwise suppo
 - three or more criteria are marked strong from fewer than two evidence spans;
 - an off-topic answer somehow receives a strong appraisal.
 
-The verifier can accept, request re-extraction, or declare insufficient signal. Candidate feedback cannot be composed from a pending or rejected appraisal.
+The verifier can accept, request re-extraction, or declare insufficient signal. Provider tasks call the reasons for independent review `reviewTriggers`, and provider output calls actual problems `unsupportedConclusionReasons`; a trigger must not be copied into an unsupported-reason field. A correctly extracted contradiction means the extractor conclusion is supported even though the candidate's technical claim is not. Candidate feedback cannot be composed from a pending or rejected appraisal.
 
 ## Feedback Composition And Projection
 
 The feedback composer receives accepted spans, criterion appraisals, one selected pattern gap, missing-evidence facts, privacy flags, and approved voice markers. It does not receive candidate identity or the full raw answer again.
 
-The hidden feedback plan carries the central read, signal posture, primary anchor, and intervention. Candidate feedback may carry:
+The hidden feedback plan carries the central read, signal posture, primary anchor, and intervention. For a usable answer, application code normalizes the internally contradictory combination of `affirm_and_continue` plus a non-empty biggest upgrade to `polish_then_continue`; candidate-facing wording and evidence references are unchanged. Provider prose is bounded in the prompt and sentence/word-clipped by the adapter before strict schema validation so deterministic retries do not repeat an otherwise valid over-length response. Other missing or incompatible intervention content remains fail-closed. Candidate feedback may carry:
 
 - acknowledgement;
 - one grounded strength when evidence supports it;
@@ -145,7 +149,7 @@ Validation rejects:
 - an unknown criterion, pattern-gap, or span anchor;
 - missing upgrade/redo content for the selected intervention;
 - a delivery note without voice evidence;
-- scores, grades, pass/fail language, numeric ratings, ranking, other-candidate comparison, or protected/style-based judgments.
+- coach-owned scores, grades, pass/fail results, numeric ratings, ranking, other-candidate comparison, or protected/style-based judgments. Grounded candidate-owned outcomes such as a school grade, a percentage improvement, or a passed inspection are not coach scoring and may be referenced when supported by accepted evidence.
 
 Only `candidate_safe_feedback` crosses the candidate UI boundary. The hidden feedback plan, extractor output, criterion facts, and verifier facts remain internal evaluator/QA data. Downstream dashboard reads may derive qualitative coaching facts from accepted appraisals, but they must not parse evaluator prose as evidence truth.
 
@@ -161,9 +165,17 @@ The initial runtime policy reserves a 45-second server budget:
 
 The 45-second budget is a hard ceiling over all attempts; a stage must use the remaining budget rather than assuming every listed timeout is still available. The verifier has one attempt and therefore no stage-local transport retry. A failed verifier may be retried only through a new explicit evaluator run.
 
-Policy/safety rejection, unsupported evidence, and fingerprint mismatch are not transport retries. They terminate without candidate feedback unless a deliberately bounded safe re-extraction path applies.
+Each stage adapter performs exactly one transport attempt when invoked. The runtime, not an SDK or adapter, owns attempt counting, timeouts, retry eligibility, aggregate-budget enforcement, and terminal classification. An adapter receives the structured task, current attempt number, bounded timeout, and abort signal. It returns an untrusted structured value plus optional token counts; provider-specific prompt assembly and transport details stay behind that port. Hidden SDK retries must be disabled for future live adapters so persisted attempt metadata remains truthful.
 
-The production route must begin or claim a durable evaluator run before calling a provider. Client replay of the same logical analysis request must recover the same run. An explicit analysis retry after a terminal failure must create a new evaluator run against the same answer attempt; it must not reuse a failed run's unique idempotency key or create a new answer attempt. Concurrent claims, abandoned pending work, and late provider success require repository-level state transitions before provider wiring lands.
+Policy/safety rejection, unsupported evidence, and fingerprint mismatch are not transport retries. A provider safety block is recorded as a nonretryable rejected stage with a bounded safe code. It terminates without candidate feedback unless a deliberately bounded safe re-extraction path applies to a different validation failure.
+
+The production route must begin or claim a durable evaluator run before calling a provider. Client replay of the same logical analysis request must recover the same fresh requested run or its accepted completed result. Each immutable answer attempt and evaluation purpose has sequential evaluator generations. An explicit analysis retry after a retryable terminal failure creates the next generation against the same answer attempt and input fingerprint; it may retain the logical request key, but it must never reuse the failed run id or create a new answer attempt. A nonretryable terminal result blocks a later generation at the claim boundary rather than relying on UI suppression.
+
+Candidate coaching claims use a 60-second durable lease, which exceeds the 45-second aggregate runtime budget and leaves a bounded completion margin. Claiming serializes on the answer attempt and evaluation purpose. It expires abandoned requested generations before creating the next one, permits at most one fresh requested candidate-coaching generation per answer attempt and input fingerprint, permits at most one accepted completed candidate-coaching result for that same unit, and caps candidate coaching at three generations for one answer attempt in a rolling ten-minute window. The evaluator-run id is the completion fence. A run made terminal by failure, rejection, or lease expiry cannot later complete, and a late result from it cannot overwrite or compete with a newer accepted generation. QA-comparison runs retain independent provider/model/prompt variants and do not inherit the candidate-serving cap or single-accepted constraint.
+
+Relational columns own run identity, purpose, generation, provider/model/prompt/evaluator versions, input fingerprint, lease and lifecycle timestamps, and terminal error classification. Accepted versioned stage artifacts and validation metadata remain bounded JSON objects because they are immutable aggregate outputs read together. They should not be normalized into stage tables until a demonstrated query, reporting, or retention requirement justifies that additional write and migration complexity.
+
+An accepted evaluator-run result is the internal record. It contains accepted extraction, deterministic criteria and pattern gap, conditional verifier result, accepted feedback composition, candidate-safe feedback, stage-attempt metadata, aggregate latency/token totals, and explicit no-prompt/no-raw-output retention markers. The session compatibility snapshot is a separate candidate-safe projection containing answer identity, candidate-facing coaching, and the minimal interaction directive needed to render retry/continue behavior. Extractor facts, criterion appraisals, pattern gaps, verifier facts, and the hidden feedback plan must not be copied into session/browser state.
 
 ### Production Provider Failure Validation Gate
 
@@ -179,6 +191,8 @@ The fixture-backed candidate session proves the presentation contract through au
 | Concurrent retry or client replay | Resolve to one valid run claim or a replay of its result; do not create duplicate answer attempts or conflicting accepted coaching. |
 | Provider succeeds after the client or route times out | Accept the result only through a valid evaluator-run transition; a stale late result must not overwrite a newer accepted run. |
 | Missing credentials or provider misconfiguration | Return candidate-safe unavailable behavior and diagnosable metadata without leaking configuration details. |
+| Completed accepted internal result while provider is unavailable or changed | Repair the candidate-safe session projection from the immutable accepted result without another provider call. |
+| Nonretryable terminal result or three generations inside ten minutes | Keep the answer locked, refuse a new generation at the claim boundary, and let the candidate continue or finish without coaching. |
 
 Verification order:
 
@@ -188,6 +202,10 @@ Verification order:
 
 The fault injector should be added with the production provider adapter and removed or disabled by construction in preview/production builds. Do not simulate this gate by deleting ordinary developer credentials or corrupting the shared database state.
 
+The pre-provider development harness uses the same typed fixture adapters and runtime as ordinary local coaching. It is selected only by `CANDIDATE_ANSWER_ANALYSIS_PROVIDER=fault` plus an allowlisted `CANDIDATE_ANSWER_ANALYSIS_FAULT_MODE`, requires explicit local host-launch mode, and is unavailable when `NODE_ENV=production`. Each non-success mode fails the first evaluator run for one fixed input fingerprint and then permits a new explicit evaluator generation to traverse the normal successful fixture path. This makes analysis-only recovery deterministic without request/query controls or mutable shared database corruption. Allowlisted provider/runtime modes cover timeout, rate limit, provider 5xx/unavailable, misconfiguration, invalid extraction schema, input-fingerprint mismatch, exact-span mismatch, unsafe inference, verifier rejection, and invalid feedback schema. Stale claims, concurrency, and late completion are evaluator-run repository/route states rather than provider outputs and must be proven at that boundary.
+
+Slice 121 closes the candidate-serving recovery contract. Server and client share a bounded `pending | recoverable | retryable | unavailable` capability shape with no provider details. The durable claim query enforces the three-generation window and nonretryable terminal policy under the existing answer/purpose advisory lock. Refresh and second-tab reads derive recovery from candidate-owned evaluator history plus current runtime availability; only completed rows with accepted candidate-safe validation markers are restorable. Accepted internal results can repair the session projection without a currently configured provider. Candidate UI keeps the submitted answer read-only and offers continue or finish without coaching whenever retry is unavailable; that path creates no evaluator result, candidate-safe analysis snapshot, or coached-answer fact.
+
 ## Persistence, Redaction, And Observability
 
 Persist by default:
@@ -196,6 +214,7 @@ Persist by default:
 - pipeline profile plus provider/model/prompt/evaluator versions for every stage;
 - lifecycle status and timestamps;
 - parsed accepted extraction, appraisal, pattern gap, verifier result when used, and candidate-safe feedback;
+- bounded per-stage attempt outcomes plus aggregate latency/token totals;
 - validation flags, reason/error codes, latency, and token usage.
 
 Do not persist by default:
@@ -229,7 +248,7 @@ Raw provider-output retention remains opt-in and should require a defined access
 - Preserve: exact question/answer/context assembly, staged candidate-controlled feedback cadence, modality-aware delivery notes, retries, and QA metadata.
 - Reinterpret: hidden numeric score truth becomes applicability-first evidence and qualitative bands; feedback is composed only after code accepts evidence.
 - Retire: a model directly judging the whole answer, score averages as candidate truth, missing evidence mapped to low performance, app-source distinctions for the shared evaluator job, and legacy feedback prose as durable evidence.
-- Defer: production model/provider choice, technical-reference service, raw-output retention, media evaluator input, route/run orchestration, QA review UI, and final dashboard aggregation.
+- Defer: production model/provider choice, technical-reference service, raw-output retention, media evaluator input, development fault-injection/browser recovery integration, QA review UI, and final dashboard aggregation.
 
 ## Review Decisions
 

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import type { CandidateAnswerAnalysisProviderResult } from "@/features/candidate-session-v2/candidate-answer-analysis-adapter";
+import {
+    candidateAnswerAnalysisFixtureRunMetadata,
+    runFixtureEvidenceFirstEvaluator,
+} from "@/features/candidate-session-v2/candidate-answer-analysis-fixture";
 import type {
     CandidateAnswerAttemptRecord,
     CandidateAnswerEvaluationRunRecord,
@@ -72,6 +76,63 @@ describe("candidate Coach Update artifact input", () => {
                 evaluationRuns: [createRun({ id: "run-1", attemptId: "attempt-1", disposition: "rejected" })],
             }],
         })).toBeNull();
+    });
+
+    it("derives Coach Update input from the internal accepted evaluator run without session-hidden facts", async () => {
+        const session = createCompletedSession();
+        const attempt = createAttempt({
+            id: "attempt-1",
+            attemptNumber: 1,
+            submittedAt: "2026-07-15T12:01:00.000Z",
+        });
+        const accepted = await runFixtureEvidenceFirstEvaluator({
+            status: "answer_analysis_provider_requested",
+            provider: "candidate_v2_answer_evaluator",
+            requestedAt: "2026-07-15T12:02:00.000Z",
+            answer: {
+                slotId: "slot-1",
+                questionIndex: 0,
+                mode: "text",
+                text: attempt.answerText,
+                submittedAt: attempt.submittedAt,
+                answerAttemptId: attempt.candidateAnswerAttemptId,
+                attemptNumber: attempt.attemptNumber,
+                trigger: attempt.trigger,
+            },
+            question: {
+                slotId: "slot-1",
+                questionIndex: 0,
+                category: "screening",
+                questionText: "What interests you about this role?",
+                plannedPurpose: "Basic fit, interest, background, availability, and role alignment.",
+            },
+            setupContext: {
+                targetRole: session.setupSnapshot.targetRole,
+                jobDescription: session.setupSnapshot.jobDescription,
+                resumeText: null,
+                interviewStage: session.setupSnapshot.interviewStage,
+                questionCount: session.setupSnapshot.questionCount,
+            },
+        }, { evaluationRunId: "run-internal" });
+        const run: CandidateAnswerEvaluationRunRecord = {
+            ...createRun({ id: "run-internal", attemptId: "attempt-1" }),
+            inputFingerprint: accepted.inputFingerprint,
+            result: JSON.parse(JSON.stringify(accepted)) as Record<string, unknown>,
+            validation: { disposition: "accepted", inputFingerprint: accepted.inputFingerprint },
+        };
+
+        const input = createCandidateCoachUpdateSynthesisInput({
+            sourceSession: session,
+            sessionEvidence: [{ session, answerAttempts: [attempt], evaluationRuns: [run] }],
+        });
+
+        expect(input?.questions[0]).toMatchObject({
+            acceptedEvaluationRun: { candidateAnswerEvaluationRunId: "run-internal" },
+            acceptedAnalysis: {
+                coachFeedback: { acknowledgement: "You gave me a direct starting point to work with." },
+            },
+        });
+        expect(input?.questions[0]?.acceptedAnalysis.evidenceFirst).not.toHaveProperty("feedbackPlan");
     });
 
     it("compares only prior accepted attempts with the same prep context and source plan question", () => {
@@ -355,17 +416,21 @@ function createRun({
         candidateAnswerEvaluationRunId: id,
         candidateAnswerAttemptId: attemptId,
         purpose: "candidate_coaching",
-        provider: "fixture",
-        modelName: "fixture-v1",
-        promptVersion: "prompt-v1",
-        evaluatorVersion: "evaluator-v1",
+        provider: candidateAnswerAnalysisFixtureRunMetadata.provider,
+        modelName: candidateAnswerAnalysisFixtureRunMetadata.modelName,
+        promptVersion: candidateAnswerAnalysisFixtureRunMetadata.promptVersion,
+        evaluatorVersion: candidateAnswerAnalysisFixtureRunMetadata.evaluatorVersion,
+        configurationManifest: candidateAnswerAnalysisFixtureRunMetadata.configurationManifest,
+        configurationFingerprint: candidateAnswerAnalysisFixtureRunMetadata.configurationFingerprint,
         inputFingerprint,
         idempotencyKey: `run-key-${id}`,
+        generationAttempt: 1,
         lifecycleState,
         result: lifecycleState === "completed" ? createAnalysis(attemptId, inputFingerprint) as unknown as Record<string, unknown> : null,
         validation: lifecycleState === "completed" ? { disposition, inputFingerprint } : disposition === "rejected" ? { disposition } : null,
         errorCode: lifecycleState === "failed" || lifecycleState === "rejected" ? "TEST_FAILURE" : null,
         requestedAt: "2026-07-15T12:02:00.000Z",
+        claimExpiresAt: "2026-07-15T12:03:00.000Z",
         completedAt: lifecycleState === "requested" ? null : "2026-07-15T12:02:01.000Z",
         createdAt: "2026-07-15T12:02:00.000Z",
         updatedAt: "2026-07-15T12:02:01.000Z",
@@ -391,14 +456,8 @@ function createAnalysis(attemptId: string, inputFingerprint: string): CandidateA
         },
         evidence: [],
         evidenceFirst: {
-            contractVersion: "candidate_evidence_first_v1",
+            contractVersion: "candidate_evidence_first_v2",
             inputFingerprint,
-            feedbackPlan: {
-                centralRead: "The answer needs one clearer support pattern.",
-                signal: { valence: "mixed", detectability: "moderate" },
-                primaryAnchor: { kind: "pattern_gap", id: "specific_support" },
-                intervention: "revise_answer",
-            },
             candidateFeedback: {
                 status: "candidate_safe_feedback",
                 schemaVersion: 1,
@@ -410,13 +469,8 @@ function createAnalysis(attemptId: string, inputFingerprint: string): CandidateA
                 patternSuggestion: null,
                 deliveryNote: null,
             },
-            criteria: [],
-            patternGap: {
-                id: "specific_support",
-                severity: "medium",
-                upgrade: "Add one concrete detail.",
-                redoPattern: ["context", "action", "result"],
-                source: "criterion_appraisal",
+            interaction: {
+                intervention: "revise_answer",
             },
         },
     };

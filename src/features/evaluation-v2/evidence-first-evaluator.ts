@@ -1,8 +1,10 @@
 import {
     EVIDENCE_FIRST_EVALUATOR_CONTRACT_VERSION,
     EVIDENCE_FIRST_PROMPT_BUNDLE_VERSION,
+    EVIDENCE_CATEGORY_SIGNAL_IDS,
     FEEDBACK_COMPOSER_SYSTEM_POLICY,
     UNIVERSAL_CRITERION_IDS,
+    createEvaluatorRunDescriptor,
     evidenceExtractionOutputSchema,
     evidenceVerificationOutputSchema,
     feedbackCompositionOutputSchema,
@@ -11,58 +13,22 @@ import {
     type EvidenceExtractionOutput,
     type EvidenceFirstEvaluationCase,
     type EvidenceFirstEvaluatorProfile,
+    type EvidenceFirstEvaluatorResolvedConfigurationManifest,
     type EvidenceVerificationOutput,
     type FeedbackCompositionOutput,
     type PatternGap,
     type UniversalCriterionId,
 } from "./evidence-first-evaluator-contract";
 
-const CATEGORY_SIGNAL_IDS = {
-    behavioral: [
-        "has_context",
-        "has_personal_action",
-        "has_result",
-        "has_learning",
-        "has_constraint",
-    ],
-    technical_role_specific: [
-        "has_direct_technical_answer",
-        "has_correct_concept",
-        "has_reasoning",
-        "has_practical_application",
-        "has_tradeoff",
-    ],
-    case_scenario: [
-        "has_problem_framing",
-        "has_priority",
-        "has_stakeholder_awareness",
-        "has_tradeoff",
-        "has_recommendation",
-        "has_next_step",
-    ],
-    culture_fit: [
-        "has_motivation",
-        "has_specific_example",
-        "has_role_connection",
-        "has_self_awareness",
-        "has_growth_orientation",
-        "has_constructive_framing",
-    ],
-    screening: [
-        "has_role_connection",
-        "has_next_step_readiness",
-        "has_logistics_clarity",
-        "has_professional_boundary",
-    ],
-} as const;
-
 export const EVIDENCE_FIRST_FEEDBACK_FORBIDDEN_PATTERNS = [
-    /\bscore(?:d|s|ing)?\b/i,
-    /\bgrade(?:d|s|ing)?\b/i,
-    /\bpass(?:ed|es|ing)?\b|\bfail(?:ed|s|ing)?\b/i,
-    /\bweak(?:ness|er|est)?\b|\bbad\b/i,
+    /\b(?:i|we|the coach)\s+(?:would\s+)?(?:score|grade|rate|rank)(?:d|s|ing)?\b/i,
+    /\b(?:your|this|the)\s+(?:answer|response)\s+(?:(?:is|was|would be)\s+)?(?:scored|graded|rated|ranked|passes?|passed|fails?|failed)\b/i,
+    /\b(?:score|grade|rating)\s*(?:of|:|=)\s*\d+(?:\.\d+)?\s*(?:\/\s*\d+|%|points?)?\b/i,
+    /\b\d+(?:\.\d+)?\s*\/\s*(?:5|10|100)\b/i,
+    /\b(?:pass|fail)(?:ed|s|ing)?\s+(?:the\s+)?(?:answer|response|interview)\b/i,
+    /\b(?:your|this|the)\s+(?:answer|response)\s+(?:(?:is|was|seems|felt)\s+)?(?:weak|bad)\b|\b(?:weak|bad)\s+(?:answer|response)\b|\bweakness(?:es)?\b/i,
     /\bmost candidates\b|\bother candidates\b|\bcompared (?:with|to)\b/i,
-    /\bpercentile\b|\b\d+(?:\.\d+)?\s*(?:\/\s*5|%)/i,
+    /\bpercentile\b/i,
     /\baccent\b|\bnative fluency\b|\bnative speaker\b|\benglish proficiency\b/i,
     /\bpersonality\b|\bcharisma\b|\bappearance\b/i,
     /\brace\b|\breligion\b|\bnational origin\b|\bgender expression\b|\bfamily status\b|\bage\b/i,
@@ -137,6 +103,8 @@ export type EvidenceFirstQaRunCapture = {
     caseId: string;
     inputFingerprint: string;
     profile: EvidenceFirstEvaluatorProfile;
+    configurationManifest: EvidenceFirstEvaluatorResolvedConfigurationManifest;
+    configurationFingerprint: string;
     requestedAt: string;
     completedAt: string;
     accepted: {
@@ -192,6 +160,7 @@ export function createEvidenceFirstQaRunCapture(input: {
 }): EvidenceFirstQaRunCapture {
     assertMatchingFingerprint(input.qaCase.inputFingerprint, input.appraisal.inputFingerprint);
     assertMatchingFingerprint(input.qaCase.inputFingerprint, input.feedback.feedback.inputFingerprint);
+    const descriptor = createEvaluatorRunDescriptor(input.profile);
 
     return {
         status: "evidence_first_qa_run",
@@ -200,6 +169,8 @@ export function createEvidenceFirstQaRunCapture(input: {
         caseId: input.qaCase.caseId,
         inputFingerprint: input.qaCase.inputFingerprint,
         profile: input.profile,
+        configurationManifest: descriptor.configurationManifest,
+        configurationFingerprint: descriptor.configurationFingerprint,
         requestedAt: input.requestedAt,
         completedAt: input.completedAt,
         accepted: {
@@ -226,13 +197,17 @@ export function validateAndAppraiseEvidence(input: {
 }): EvidenceFirstAppraisalResult {
     const parsed = evidenceExtractionOutputSchema.safeParse(input.value);
     if (!parsed.success) {
-        return rejectEvidence(input.evaluationCase.inputFingerprint, [{ code: "invalid_extraction_schema" }]);
+        return rejectEvidence(input.evaluationCase.inputFingerprint, [{ code: "invalid_extraction_schema" }], true);
     }
 
     const evidence = parsed.data;
     const issues = validateEvidenceFacts(input.evaluationCase, evidence);
     if (issues.length > 0) {
-        return rejectEvidence(input.evaluationCase.inputFingerprint, issues);
+        return rejectEvidence(
+            input.evaluationCase.inputFingerprint,
+            issues,
+            issues.every((issue) => RE_EXTRACTABLE_EVIDENCE_ISSUES.has(issue.code)),
+        );
     }
 
     if (evidence.unsafeInferenceFlags.length > 0) {
@@ -242,6 +217,7 @@ export function validateAndAppraiseEvidence(input: {
                 code: "unsafe_inference",
                 path: flag,
             })),
+            false,
         );
     }
 
@@ -418,7 +394,7 @@ function validateEvidenceFacts(
     }
     validateObservableMarkerGrounding(evidence, issues);
 
-    const allowedSignalIds = new Set<string>(CATEGORY_SIGNAL_IDS[evidence.questionCategory]);
+    const allowedSignalIds = new Set<string>(EVIDENCE_CATEGORY_SIGNAL_IDS[evidence.questionCategory]);
     const categorySignalIds = new Set<string>();
     for (const signal of evidence.categorySignals) {
         if (!allowedSignalIds.has(signal.id)) {
@@ -823,6 +799,12 @@ function validateFeedbackAnchor(
     if (anchor.kind === "privacy_reframe" && anchor.id !== "privacy_reframe") {
         issues.push({ code: "invalid_privacy_reframe_anchor", path: anchor.id });
     }
+    if (
+        appraisal.evidence.answerUsability.status === "sensitive_disclosure"
+        && (anchor.kind !== "privacy_reframe" || anchor.id !== "privacy_reframe")
+    ) {
+        issues.push({ code: "sensitive_disclosure_requires_privacy_reframe" });
+    }
 }
 
 function validateInterventionCompleteness(
@@ -1012,7 +994,8 @@ function validateObservableMarkerGrounding(
     ];
 
     for (const requirement of requirements) {
-        const marked = evidence.evidenceSpans.some((span) => requirement.markers.includes(span.marker));
+        const marked = evidence.evidenceSpans.some((span) => requirement.markers.includes(span.marker))
+            || hasCategorySignalGrounding(evidence, requirement.field);
         const observed = evidence.observableMarkers[requirement.field];
         if (observed && !marked) {
             issues.push({ code: "observable_marker_missing_span", path: requirement.field });
@@ -1023,10 +1006,45 @@ function validateObservableMarkerGrounding(
     }
 }
 
+function hasCategorySignalGrounding(
+    evidence: EvidenceExtractionOutput,
+    field: keyof EvidenceExtractionOutput["observableMarkers"],
+) {
+    const observed = (id: string) => hasObservedSignal(evidence, id);
+    switch (field) {
+        case "hasDirectAnswer":
+            return observed("has_direct_technical_answer");
+        case "hasExample":
+            return (evidence.questionCategory === "behavioral" && observed("has_context"))
+                || (evidence.questionCategory === "culture_fit" && observed("has_specific_example"));
+        case "hasPersonalAction":
+            return observed("has_personal_action");
+        case "hasOutcomeOrTakeaway":
+            return observed("has_result") || observed("has_learning");
+        case "hasTradeoffOrConstraint":
+            return observed("has_tradeoff") || observed("has_constraint");
+        case "hasRoleRelevantSkillSignal":
+            switch (evidence.questionCategory) {
+                case "behavioral":
+                    return observed("has_personal_action");
+                case "technical_role_specific":
+                    return observed("has_correct_concept") || observed("has_practical_application");
+                case "case_scenario":
+                    return observed("has_recommendation") || observed("has_next_step");
+                case "culture_fit":
+                    return observed("has_role_connection") || observed("has_specific_example");
+                case "screening":
+                    return observed("has_role_connection");
+            }
+        default:
+            return false;
+    }
+}
+
 function rejectEvidence(
     inputFingerprint: string,
     issues: EvidenceValidationIssue[],
-    reExtractable = true,
+    reExtractable = false,
 ): Extract<EvidenceFirstAppraisalResult, { disposition: "rejected" }> {
     return {
         status: "evidence_first_appraisal_rejected",
@@ -1037,6 +1055,21 @@ function rejectEvidence(
         issues: dedupeIssues(issues),
     };
 }
+
+const RE_EXTRACTABLE_EVIDENCE_ISSUES = new Set([
+    "duplicate_evidence_span_id",
+    "evidence_span_not_exact",
+    "observable_marker_missing_span",
+    "evidence_span_marker_mismatch",
+    "category_signal_not_allowed",
+    "duplicate_category_signal_id",
+    "observed_signal_requires_evidence",
+    "unobserved_signal_has_evidence",
+    "unknown_evidence_span",
+    "unknown_technical_reference_concept",
+    "technical_claim_missing_support",
+    "unassessed_technical_claim_has_evidence",
+]);
 
 function dedupeIssues(issues: EvidenceValidationIssue[]) {
     return Array.from(

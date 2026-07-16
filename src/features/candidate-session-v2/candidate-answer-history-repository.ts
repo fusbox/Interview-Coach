@@ -1,4 +1,8 @@
 import {
+    CANDIDATE_ANSWER_ANALYSIS_GENERATION_LIMIT,
+    CANDIDATE_ANSWER_ANALYSIS_GENERATION_WINDOW_MS,
+} from "./candidate-answer-analysis-recovery";
+import {
     normalizeCandidateAnswerAttemptRecord,
     normalizeCandidateAnswerEvaluationRunRecord,
     type CandidateAnswerAttemptMode,
@@ -8,6 +12,10 @@ import {
     type CandidateAnswerEvaluationRunRecord,
     type CandidateAnswerEvaluationRunWriteResult,
 } from "./candidate-answer-history";
+import {
+    createEvaluatorFingerprint,
+    type EvidenceFirstEvaluatorResolvedConfigurationManifest,
+} from "@/features/evaluation-v2/evidence-first-evaluator-contract";
 
 export type CandidateAnswerHistoryQueryClient = {
     query: (sql: string, values: unknown[]) => Promise<{
@@ -29,7 +37,7 @@ export type AppendCandidateAnswerAttemptInput = {
     payloadFingerprint: string;
 };
 
-export type StartCandidateAnswerEvaluationRunInput = {
+export type ClaimCandidateAnswerEvaluationRunInput = {
     candidateAnswerAttemptId: string;
     candidatePracticeSessionId: string;
     candidateProfileId: string;
@@ -38,9 +46,12 @@ export type StartCandidateAnswerEvaluationRunInput = {
     modelName: string;
     promptVersion: string;
     evaluatorVersion: string;
+    configurationManifest: EvidenceFirstEvaluatorResolvedConfigurationManifest;
+    configurationFingerprint: string;
     inputFingerprint: string;
     idempotencyKey: string;
     requestedAt: string;
+    claimExpiresAt: string;
 };
 
 export function createCandidateAnswerHistoryRepository(client: CandidateAnswerHistoryQueryClient) {
@@ -174,7 +185,8 @@ export function createCandidateAnswerHistoryRepository(client: CandidateAnswerHi
             });
         },
 
-        async startEvaluationRun(input: StartCandidateAnswerEvaluationRunInput): Promise<CandidateAnswerEvaluationRunWriteResult | null> {
+        async claimEvaluationRun(input: ClaimCandidateAnswerEvaluationRunInput): Promise<CandidateAnswerEvaluationRunWriteResult | null> {
+            assertResolvedEvaluationConfiguration(input);
             const result = await client.query(`
                 with owned_attempt as materialized (
                   select attempt.candidate_answer_attempt_id
@@ -182,6 +194,99 @@ export function createCandidateAnswerHistoryRepository(client: CandidateAnswerHi
                   where attempt.candidate_answer_attempt_id = $1
                     and attempt.candidate_practice_session_id = $2
                     and attempt.candidate_profile_id = $3
+                ),
+                claim_lock as materialized (
+                  select pg_advisory_xact_lock(hashtextextended($1::text || ':' || $4::text, 0))
+                  from owned_attempt
+                ),
+                expired_requested as (
+                  update public.candidate_answer_evaluation_runs run
+                  set lifecycle_state = 'failed',
+                      result_json = null,
+                      validation_json = jsonb_build_object(
+                        'disposition', 'failed',
+                        'reason', 'stale_evaluation_claim'
+                      ),
+                      error_code = 'STALE_EVALUATION_CLAIM',
+                      completed_at = $13
+                  from claim_lock
+                  where run.candidate_answer_attempt_id = $1
+                    and run.purpose = $4
+                    and run.lifecycle_state = 'requested'
+                    and run.claim_expires_at <= $13
+                  returning run.candidate_answer_evaluation_run_id
+                ),
+                recent_generation_count as materialized (
+                  select count(*)::integer as generation_window_count
+                  from public.candidate_answer_evaluation_runs run
+                  cross join claim_lock
+                  where run.candidate_answer_attempt_id = $1
+                    and run.purpose = 'candidate_coaching'
+                    and run.requested_at >= $13::timestamptz - ($15::integer * interval '1 millisecond')
+                ),
+                existing as materialized (
+                  select
+                    case when run.purpose = $4
+                              and run.input_fingerprint = $11
+                              and (
+                                $4 = 'candidate_coaching'
+                                or (
+                                  run.provider = $5
+                                  and run.model_name = $6
+                                  and run.prompt_version = $7
+                                  and run.evaluator_version = $8
+                                  and run.configuration_fingerprint = $9
+                                  and run.configuration_manifest_json = $10::jsonb
+                                  and run.idempotency_key = $12
+                                )
+                              )
+                         then 'replayed'
+                         else 'idempotency_conflict'
+                    end as write_outcome,
+                    recent_generation_count.generation_window_count,
+                    run.*
+                  from public.candidate_answer_evaluation_runs run
+                  cross join claim_lock
+                  cross join recent_generation_count
+                  where run.candidate_answer_attempt_id = $1
+                    and run.purpose = $4
+                    and run.lifecycle_state in ('requested', 'completed')
+                    and (
+                      ($4 = 'candidate_coaching' and run.input_fingerprint = $11)
+                      or
+                      ($4 = 'qa_comparison' and run.idempotency_key = $12)
+                    )
+                    and run.candidate_answer_evaluation_run_id not in (
+                      select candidate_answer_evaluation_run_id from expired_requested
+                    )
+                  order by run.generation_attempt desc
+                  limit 1
+                ),
+                latest_any as materialized (
+                  select run.*
+                  from public.candidate_answer_evaluation_runs run
+                  cross join claim_lock
+                  where run.candidate_answer_attempt_id = $1
+                    and run.purpose = $4
+                  order by run.generation_attempt desc
+                  limit 1
+                ),
+                terminal_retry_block as materialized (
+                  select run.*
+                  from latest_any run
+                  where run.lifecycle_state in ('failed', 'rejected')
+                    and run.error_code is distinct from 'STALE_EVALUATION_CLAIM'
+                    and not coalesce(
+                      run.validation_json @> '{"retryableByNewRun": true}'::jsonb,
+                      false
+                    )
+                ),
+                next_generation as materialized (
+                  select coalesce(max(run.generation_attempt), 0) + 1 as generation_attempt
+                  from public.candidate_answer_evaluation_runs run
+                  cross join claim_lock
+                  where run.candidate_answer_attempt_id = $1
+                    and run.purpose = $4
                 ),
                 inserted as (
                   insert into public.candidate_answer_evaluation_runs (
@@ -191,38 +296,54 @@ export function createCandidateAnswerHistoryRepository(client: CandidateAnswerHi
                     model_name,
                     prompt_version,
                     evaluator_version,
+                    configuration_fingerprint,
+                    configuration_manifest_json,
                     input_fingerprint,
                     idempotency_key,
+                    generation_attempt,
                     lifecycle_state,
-                    requested_at
+                    requested_at,
+                    claim_expires_at
                   )
-                  select $1, $4, $5, $6, $7, $8, $9, $10, 'requested', $11
+                  select $1, $4, $5, $6, $7, $8, $9, $10::jsonb, $11, $12,
+                         next_generation.generation_attempt, 'requested', $13, $14
                   from owned_attempt
-                  on conflict (candidate_answer_attempt_id, idempotency_key) do nothing
+                  cross join claim_lock
+                  cross join next_generation
+                  cross join recent_generation_count
+                  where not exists (select 1 from existing)
+                    and not exists (select 1 from terminal_retry_block)
+                    and (
+                      $4 <> 'candidate_coaching'
+                      or recent_generation_count.generation_window_count < $16
+                    )
                   returning *
-                ),
-                existing as (
-                  select run.*
-                  from public.candidate_answer_evaluation_runs run
-                  where run.candidate_answer_attempt_id = $1
-                    and run.idempotency_key = $10
                 )
-                select 'created'::text as write_outcome, inserted.*
+                select 'created'::text as write_outcome,
+                       recent_generation_count.generation_window_count + 1 as generation_window_count,
+                       inserted.*
                 from inserted
+                cross join recent_generation_count
                 union all
-                select
-                  case when existing.purpose = $4
-                         and existing.provider = $5
-                         and existing.model_name = $6
-                         and existing.prompt_version = $7
-                         and existing.evaluator_version = $8
-                         and existing.input_fingerprint = $9
-                    then 'replayed'
-                    else 'idempotency_conflict'
-                  end as write_outcome,
-                  existing.*
+                select existing.*
                 from existing
-                where not exists (select 1 from inserted)
+                union all
+                select 'generation_unavailable'::text as write_outcome,
+                       recent_generation_count.generation_window_count,
+                       terminal_retry_block.*
+                from terminal_retry_block
+                cross join recent_generation_count
+                where not exists (select 1 from existing)
+                union all
+                select 'generation_limit'::text as write_outcome,
+                       recent_generation_count.generation_window_count,
+                       latest_any.*
+                from latest_any
+                cross join recent_generation_count
+                where not exists (select 1 from existing)
+                  and not exists (select 1 from terminal_retry_block)
+                  and $4 = 'candidate_coaching'
+                  and recent_generation_count.generation_window_count >= $16
                 limit 1
             `, [
                 input.candidateAnswerAttemptId,
@@ -233,9 +354,14 @@ export function createCandidateAnswerHistoryRepository(client: CandidateAnswerHi
                 input.modelName,
                 input.promptVersion,
                 input.evaluatorVersion,
+                input.configurationFingerprint,
+                JSON.stringify(input.configurationManifest),
                 input.inputFingerprint,
                 input.idempotencyKey,
                 input.requestedAt,
+                input.claimExpiresAt,
+                CANDIDATE_ANSWER_ANALYSIS_GENERATION_WINDOW_MS,
+                CANDIDATE_ANSWER_ANALYSIS_GENERATION_LIMIT,
             ]);
 
             return normalizeEvaluationRunWriteResult(result.rows[0]);
@@ -305,6 +431,8 @@ export function createCandidateAnswerHistoryRepository(client: CandidateAnswerHi
                   where candidate_answer_evaluation_run_id = $1
                     and candidate_answer_attempt_id = $2
                     and lifecycle_state = 'requested'
+                    and claim_expires_at > $5
+                    and claim_expires_at > clock_timestamp()
                   returning *
                 ),
                 replayed as (
@@ -381,6 +509,20 @@ export function createCandidateAnswerHistoryRepository(client: CandidateAnswerHi
     };
 }
 
+function assertResolvedEvaluationConfiguration(input: ClaimCandidateAnswerEvaluationRunInput) {
+    const manifest = input.configurationManifest;
+    if (
+        manifest.configurationStatus !== "resolved"
+        || manifest.pipelineProvider !== input.provider
+        || manifest.profileId !== input.modelName
+        || manifest.promptBundleVersion !== input.promptVersion
+        || manifest.evaluatorVersion !== input.evaluatorVersion
+        || createEvaluatorFingerprint(manifest) !== input.configurationFingerprint
+    ) {
+        throw new Error("Evaluator-run configuration identity is inconsistent.");
+    }
+}
+
 function normalizeAttemptWriteResult(value: unknown): CandidateAnswerAttemptWriteResult | null {
     if (!isRecord(value)) return null;
     const outcome = value.write_outcome;
@@ -398,15 +540,34 @@ function normalizeEvaluationRunWriteResult(value: unknown): CandidateAnswerEvalu
     if (!isRecord(value)) return null;
     const outcome = value.write_outcome;
     const run = normalizeCandidateAnswerEvaluationRunRecord(value);
+    const recentGenerationCount = readNonNegativeInteger(value.generation_window_count);
     if (
-        (outcome !== "created" && outcome !== "replayed" && outcome !== "idempotency_conflict")
+        (
+            outcome !== "created"
+            && outcome !== "replayed"
+            && outcome !== "idempotency_conflict"
+            && outcome !== "generation_limit"
+            && outcome !== "generation_unavailable"
+        )
         || !run
+        || (
+            (outcome === "generation_limit" || outcome === "generation_unavailable")
+            && recentGenerationCount === null
+        )
     ) {
         return null;
     }
-    return { outcome, run };
+    return {
+        outcome,
+        run,
+        ...(recentGenerationCount === null ? {} : { recentGenerationCount }),
+    } as CandidateAnswerEvaluationRunWriteResult;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function readNonNegativeInteger(value: unknown) {
+    return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : null;
 }

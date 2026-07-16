@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
+import { candidateAnswerAnalysisFixtureRunMetadata } from "./candidate-answer-analysis-fixture";
 import {
+    CANDIDATE_ANSWER_EVALUATION_CLAIM_LEASE_MS,
     createCandidateAnswerAttemptPayloadFingerprint,
+    createCandidateAnswerEvaluationClaimExpiresAt,
     normalizeCandidateAnswerAttemptRecord,
     normalizeCandidateAnswerEvaluationRunRecord,
     toLatestCandidateAnswerSubmission,
@@ -25,6 +28,16 @@ const attemptRow = {
 };
 
 describe("candidate answer history", () => {
+    it("derives the evaluator claim lease from the fixed runtime budget margin", () => {
+        expect(CANDIDATE_ANSWER_EVALUATION_CLAIM_LEASE_MS).toBe(60_000);
+        expect(createCandidateAnswerEvaluationClaimExpiresAt(
+            new Date("2026-07-14T18:01:00.000Z"),
+        )).toBe("2026-07-14T18:02:00.000Z");
+        expect(() => createCandidateAnswerEvaluationClaimExpiresAt(new Date("invalid"))).toThrow(
+            "A valid evaluator-run request time is required.",
+        );
+    });
+
     it("creates a stable payload fingerprint that changes with the answer", () => {
         const input = {
             candidatePracticeSessionId: "session-1",
@@ -84,31 +97,45 @@ describe("candidate answer history", () => {
     });
 
     it("keeps evaluator-run lifecycle separate from answer attempts", () => {
-        expect(normalizeCandidateAnswerEvaluationRunRecord({
+        const evaluationRunRow = {
             candidate_answer_evaluation_run_id: "44444444-4444-4444-8444-444444444444",
             candidate_answer_attempt_id: attemptRow.candidate_answer_attempt_id,
             purpose: "qa_comparison",
-            provider: "openai",
-            model_name: "model-a",
-            prompt_version: "prompt-v1",
-            evaluator_version: "evaluator-v2",
+            provider: candidateAnswerAnalysisFixtureRunMetadata.provider,
+            model_name: candidateAnswerAnalysisFixtureRunMetadata.modelName,
+            prompt_version: candidateAnswerAnalysisFixtureRunMetadata.promptVersion,
+            evaluator_version: candidateAnswerAnalysisFixtureRunMetadata.evaluatorVersion,
+            configuration_manifest_json: candidateAnswerAnalysisFixtureRunMetadata.configurationManifest,
+            configuration_fingerprint: candidateAnswerAnalysisFixtureRunMetadata.configurationFingerprint,
             input_fingerprint: "input-1",
             idempotency_key: "run-key-1",
+            generation_attempt: 2,
             lifecycle_state: "requested",
             result_json: null,
             validation_json: null,
             error_code: null,
             requested_at: new Date("2026-07-14T18:01:00.000Z"),
+            claim_expires_at: new Date("2026-07-14T18:02:00.000Z"),
             completed_at: null,
             created_at: new Date("2026-07-14T18:01:00.000Z"),
             updated_at: new Date("2026-07-14T18:01:00.000Z"),
-        })).toMatchObject({
+        };
+
+        expect(normalizeCandidateAnswerEvaluationRunRecord(evaluationRunRow)).toMatchObject({
             candidateAnswerAttemptId: attemptRow.candidate_answer_attempt_id,
             purpose: "qa_comparison",
+            generationAttempt: 2,
             lifecycleState: "requested",
+            configurationManifest: candidateAnswerAnalysisFixtureRunMetadata.configurationManifest,
+            configurationFingerprint: candidateAnswerAnalysisFixtureRunMetadata.configurationFingerprint,
             requestedAt: "2026-07-14T18:01:00.000Z",
+            claimExpiresAt: "2026-07-14T18:02:00.000Z",
             createdAt: "2026-07-14T18:01:00.000Z",
             updatedAt: "2026-07-14T18:01:00.000Z",
         });
+        expect(normalizeCandidateAnswerEvaluationRunRecord({
+            ...evaluationRunRow,
+            configuration_fingerprint: "0".repeat(64),
+        })).toBeNull();
     });
 });

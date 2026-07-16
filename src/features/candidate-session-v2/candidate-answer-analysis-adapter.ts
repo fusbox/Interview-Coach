@@ -3,14 +3,13 @@ import type { EvaluationEvidenceItem } from "@/features/evaluation-v2/evaluation
 import {
     EVIDENCE_FIRST_EVALUATOR_CONTRACT_VERSION,
     candidateSafeFeedbackProjectionSchema,
-    criterionAppraisalSchema,
+    createEvidenceFirstEvaluationCase,
     feedbackCompositionOutputSchema,
-    patternGapSchema,
     type CandidateSafeFeedbackProjection,
-    type CriterionAppraisal,
+    type EvidenceFirstEvaluationCase,
     type FeedbackCompositionOutput,
-    type PatternGap,
 } from "@/features/evaluation-v2/evidence-first-evaluator-contract";
+import type { AcceptedEvidenceFirstEvaluatorRun } from "@/features/evaluation-v2/evidence-first-evaluator-runtime";
 
 import type { CandidateAnswerAnalysisRequest, CandidateAnswerMode } from "./candidate-answer-lifecycle";
 import {
@@ -71,10 +70,10 @@ export type CandidateAnswerAnalysisCoachFeedback = {
 export type CandidateEvidenceFirstAnalysisSnapshot = {
     contractVersion: typeof EVIDENCE_FIRST_EVALUATOR_CONTRACT_VERSION;
     inputFingerprint: string;
-    feedbackPlan: FeedbackCompositionOutput["feedbackPlan"];
     candidateFeedback: CandidateSafeFeedbackProjection;
-    criteria: CriterionAppraisal[];
-    patternGap: PatternGap;
+    interaction: {
+        intervention: FeedbackCompositionOutput["feedbackPlan"]["intervention"];
+    };
 };
 
 export type CandidateAnswerAnalysisProviderResult = {
@@ -148,6 +147,36 @@ export function createCandidateAnswerAnalysisProviderRequest({
     };
 }
 
+export function createCandidateAnswerEvidenceFirstEvaluationCase(
+    request: CandidateAnswerAnalysisProviderRequest,
+): EvidenceFirstEvaluationCase {
+    if (!request.answer.answerAttemptId || !request.answer.attemptNumber || !request.answer.trigger) {
+        throw new Error("Evidence-first analysis requires immutable answer-attempt identity.");
+    }
+
+    return createEvidenceFirstEvaluationCase({
+        answerAttemptId: request.answer.answerAttemptId,
+        question: {
+            slotId: request.question.slotId,
+            questionIndex: request.question.questionIndex,
+            category: request.question.category,
+            questionText: request.question.questionText,
+            plannedPurpose: request.question.plannedPurpose,
+        },
+        answer: {
+            mode: request.answer.mode,
+            text: request.answer.text,
+            submittedAt: request.answer.submittedAt,
+        },
+        roleContext: {
+            targetRole: request.setupContext.targetRole,
+            interviewStage: request.setupContext.interviewStage,
+            jobDescription: request.setupContext.jobDescription,
+            resumeText: request.setupContext.resumeText?.trim() || null,
+        },
+    });
+}
+
 export function parseCandidateAnswerAnalysisProviderResult(
     value: unknown,
     request: CandidateAnswerAnalysisRequest,
@@ -196,6 +225,37 @@ export function parseCandidateAnswerAnalysisProviderResult(
     };
 }
 
+export function createCandidateAnswerAnalysisProjectionFromEvaluatorRun(input: {
+    run: AcceptedEvidenceFirstEvaluatorRun;
+    answer: CandidateAnswerAnalysisProviderResult["answer"];
+}): CandidateAnswerAnalysisProviderResult {
+    const candidateFeedback = input.run.accepted.candidateProjection;
+    return {
+        status: "answer_analysis_provider_result",
+        provider: providerName,
+        analyzedAt: input.run.completedAt,
+        answer: input.answer,
+        coachFeedback: {
+            acknowledgement: candidateFeedback.acknowledgement,
+            observation: candidateFeedback.primaryStrength
+                ?? candidateFeedback.biggestUpgrade
+                ?? candidateFeedback.acknowledgement,
+            nextPracticeFocus: candidateFeedback.redoPrompt
+                ?? candidateFeedback.biggestUpgrade
+                ?? "Carry the same clear structure into the next answer.",
+        },
+        evidence: [],
+        evidenceFirst: {
+            contractVersion: input.run.contractVersion,
+            inputFingerprint: input.run.inputFingerprint,
+            candidateFeedback,
+            interaction: {
+                intervention: input.run.accepted.feedback.feedbackPlan.intervention,
+            },
+        },
+    };
+}
+
 function parseAnswerReference(value: unknown): CandidateAnswerAnalysisProviderResult["answer"] | null {
     if (!isObject(value)) {
         return null;
@@ -238,19 +298,22 @@ function parseEvidenceFirstSnapshot(value: unknown): CandidateEvidenceFirstAnaly
     }
 
     const inputFingerprint = readNonEmptyString(value.inputFingerprint);
-    const feedbackPlan = feedbackCompositionOutputSchema.shape.feedbackPlan.safeParse(value.feedbackPlan);
     const candidateFeedback = candidateSafeFeedbackProjectionSchema.safeParse(value.candidateFeedback);
-    const criteria = Array.isArray(value.criteria)
-        ? value.criteria.map((criterion) => criterionAppraisalSchema.safeParse(criterion))
-        : [];
-    const patternGap = patternGapSchema.safeParse(value.patternGap);
+    const explicitInteraction = isObject(value.interaction)
+        ? feedbackCompositionOutputSchema.shape.feedbackPlan.shape.intervention.safeParse(value.interaction.intervention)
+        : null;
+    const legacyInteraction = isObject(value.feedbackPlan)
+        ? feedbackCompositionOutputSchema.shape.feedbackPlan.shape.intervention.safeParse(value.feedbackPlan.intervention)
+        : null;
+    const intervention = explicitInteraction?.success
+        ? explicitInteraction.data
+        : legacyInteraction?.success
+            ? legacyInteraction.data
+            : null;
     if (
         !inputFingerprint
-        || !feedbackPlan.success
         || !candidateFeedback.success
-        || criteria.length === 0
-        || criteria.some((criterion) => !criterion.success)
-        || !patternGap.success
+        || !intervention
         || candidateFeedback.data.inputFingerprint !== inputFingerprint
     ) {
         return null;
@@ -259,10 +322,8 @@ function parseEvidenceFirstSnapshot(value: unknown): CandidateEvidenceFirstAnaly
     return {
         contractVersion: EVIDENCE_FIRST_EVALUATOR_CONTRACT_VERSION,
         inputFingerprint,
-        feedbackPlan: feedbackPlan.data,
         candidateFeedback: candidateFeedback.data,
-        criteria: criteria.map((criterion) => criterion.data!),
-        patternGap: patternGap.data,
+        interaction: { intervention },
     };
 }
 

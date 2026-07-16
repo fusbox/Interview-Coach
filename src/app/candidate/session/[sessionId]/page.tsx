@@ -8,6 +8,13 @@ import {
     createCandidatePracticeSessionRepository,
     type CandidatePracticeSessionRecord,
 } from "@/features/candidate-session-v2/candidate-practice-session-repository";
+import { createCandidateAnswerHistoryRepository } from "@/features/candidate-session-v2/candidate-answer-history-repository";
+import type { CandidateAnswerEvaluationRunRecord } from "@/features/candidate-session-v2/candidate-answer-history";
+import {
+    resolveCandidateAnswerAnalysisRecovery,
+    type CandidateAnswerAnalysisRecoveries,
+} from "@/features/candidate-session-v2/candidate-answer-analysis-recovery";
+import { isCandidateAnswerAnalysisRuntimeAvailable } from "@/features/candidate-session-v2/candidate-answer-analysis-runtime-selection";
 import {
     createCandidateSessionCompletionLinks,
     createSharedSessionContext,
@@ -89,6 +96,8 @@ function createDefaultCandidateSessionPageDependencies(): CandidateSessionPageDe
 
     const queryClient = createLazyPostgresQueryClient(databaseUrl);
     const practiceSessionRepository = createCandidatePracticeSessionRepository(queryClient);
+    const answerHistoryRepository = createCandidateAnswerHistoryRepository(queryClient);
+    const answerAnalysisRuntimeAvailable = isCandidateAnswerAnalysisRuntimeAvailable(process.env);
 
     return {
         async resolveDurableSession({ sessionId }) {
@@ -106,7 +115,15 @@ function createDefaultCandidateSessionPageDependencies(): CandidateSessionPageDe
                         candidateProfileId: devIdentity.candidateProfileId,
                     });
 
-                    return durableSession ? toCandidateProvisionalSession(durableSession) : null;
+                    return durableSession ? toCandidateProvisionalSession(durableSession, {
+                        evaluationRuns: await answerHistoryRepository.listEvaluationRuns({
+                            candidatePracticeSessionId: sessionId,
+                            candidateProfileId: devIdentity.candidateProfileId,
+                            purpose: "candidate_coaching",
+                        }),
+                        now: new Date(),
+                        runtimeAvailable: answerAnalysisRuntimeAvailable,
+                    }) : null;
                 }
 
                 if (!candidateLaunchSessionId) {
@@ -126,7 +143,15 @@ function createDefaultCandidateSessionPageDependencies(): CandidateSessionPageDe
                     candidateProfileId: identity.candidateProfileId,
                 });
 
-                return durableSession ? toCandidateProvisionalSession(durableSession) : null;
+                return durableSession ? toCandidateProvisionalSession(durableSession, {
+                    evaluationRuns: await answerHistoryRepository.listEvaluationRuns({
+                        candidatePracticeSessionId: sessionId,
+                        candidateProfileId: identity.candidateProfileId,
+                        purpose: "candidate_coaching",
+                    }),
+                    now: new Date(),
+                    runtimeAvailable: answerAnalysisRuntimeAvailable,
+                }) : null;
             } catch {
                 return null;
             }
@@ -182,6 +207,11 @@ async function resolveCandidateProfileIdFromLaunchSession(
 
 export function toCandidateProvisionalSession(
     durableSession: CandidatePracticeSessionRecord,
+    recoveryInput?: {
+        evaluationRuns: CandidateAnswerEvaluationRunRecord[];
+        now: Date;
+        runtimeAvailable?: boolean;
+    },
 ): CandidateProvisionalSessionRecord {
     return {
         status: "session_created",
@@ -197,8 +227,40 @@ export function toCandidateProvisionalSession(
         answerDrafts: durableSession.answerDrafts,
         answerSubmissions: durableSession.answerSubmissions,
         answerAnalysisSnapshots: durableSession.answerAnalysisSnapshots,
+        ...(recoveryInput ? {
+            answerAnalysisRecoveries: createCandidateSessionAnswerAnalysisRecoveries({
+                session: durableSession,
+                ...recoveryInput,
+            }),
+        } : {}),
         feedbackActionEvents: durableSession.feedbackActionEvents,
     };
+}
+
+export function createCandidateSessionAnswerAnalysisRecoveries(input: {
+    session: Pick<CandidatePracticeSessionRecord, "answerSubmissions" | "answerAnalysisSnapshots">;
+    evaluationRuns: CandidateAnswerEvaluationRunRecord[];
+    now: Date;
+    runtimeAvailable?: boolean;
+}): CandidateAnswerAnalysisRecoveries {
+    return Object.fromEntries(
+        Object.entries(input.session.answerSubmissions).flatMap(([slotId, submission]) => {
+            if (
+                !submission.answerAttemptId
+                || input.session.answerAnalysisSnapshots[slotId]?.answer.answerAttemptId === submission.answerAttemptId
+            ) {
+                return [];
+            }
+
+            return [[slotId, resolveCandidateAnswerAnalysisRecovery({
+                runs: input.evaluationRuns.filter((run) => (
+                    run.candidateAnswerAttemptId === submission.answerAttemptId
+                )),
+                now: input.now,
+                runtimeAvailable: input.runtimeAvailable,
+            })]];
+        }),
+    );
 }
 
 function readCookieValue(cookieHeader: string | null, name: string) {

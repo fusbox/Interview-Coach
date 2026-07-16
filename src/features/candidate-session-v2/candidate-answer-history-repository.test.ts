@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { createEvaluatorFingerprint } from "@/features/evaluation-v2/evidence-first-evaluator-contract";
+import {
+    CANDIDATE_ANSWER_ANALYSIS_GENERATION_LIMIT,
+    CANDIDATE_ANSWER_ANALYSIS_GENERATION_WINDOW_MS,
+} from "./candidate-answer-analysis-recovery";
+import { candidateAnswerAnalysisFixtureRunMetadata } from "./candidate-answer-analysis-fixture";
 import { createCandidateAnswerHistoryRepository } from "./candidate-answer-history-repository";
 
 const attemptRow = {
@@ -23,17 +29,21 @@ const evaluationRunRow = {
     candidate_answer_evaluation_run_id: "44444444-4444-4444-8444-444444444444",
     candidate_answer_attempt_id: attemptRow.candidate_answer_attempt_id,
     purpose: "candidate_coaching",
-    provider: "fixture",
-    model_name: "fixture-v1",
-    prompt_version: "prompt-v1",
-    evaluator_version: "evaluator-v1",
+    provider: candidateAnswerAnalysisFixtureRunMetadata.provider,
+    model_name: candidateAnswerAnalysisFixtureRunMetadata.modelName,
+    prompt_version: candidateAnswerAnalysisFixtureRunMetadata.promptVersion,
+    evaluator_version: candidateAnswerAnalysisFixtureRunMetadata.evaluatorVersion,
+    configuration_manifest_json: candidateAnswerAnalysisFixtureRunMetadata.configurationManifest,
+    configuration_fingerprint: candidateAnswerAnalysisFixtureRunMetadata.configurationFingerprint,
     input_fingerprint: "input-1",
     idempotency_key: "analysis-key-1",
+    generation_attempt: 1,
     lifecycle_state: "requested",
     result_json: null,
     validation_json: null,
     error_code: null,
     requested_at: "2026-07-14T18:01:00.000Z",
+    claim_expires_at: "2026-07-14T18:02:00.000Z",
     completed_at: null,
     created_at: "2026-07-14T18:01:00.000Z",
     updated_at: "2026-07-14T18:01:00.000Z",
@@ -143,46 +153,261 @@ describe("candidate answer history repository", () => {
         );
     });
 
-    it("starts an evaluator run only for a candidate-owned answer attempt", async () => {
+    it("claims an evaluator generation only for a candidate-owned answer attempt", async () => {
         const query = vi.fn(async () => ({ rows: [{ write_outcome: "created", ...evaluationRunRow }] }));
         const repository = createCandidateAnswerHistoryRepository({ query });
 
-        await expect(repository.startEvaluationRun({
+        await expect(repository.claimEvaluationRun({
             candidateAnswerAttemptId: attemptRow.candidate_answer_attempt_id,
             candidatePracticeSessionId: attemptRow.candidate_practice_session_id,
             candidateProfileId: attemptRow.candidate_profile_id,
             purpose: "candidate_coaching",
-            provider: "fixture",
-            modelName: "fixture-v1",
-            promptVersion: "prompt-v1",
-            evaluatorVersion: "evaluator-v1",
+            provider: candidateAnswerAnalysisFixtureRunMetadata.provider,
+            modelName: candidateAnswerAnalysisFixtureRunMetadata.modelName,
+            promptVersion: candidateAnswerAnalysisFixtureRunMetadata.promptVersion,
+            evaluatorVersion: candidateAnswerAnalysisFixtureRunMetadata.evaluatorVersion,
+            configurationManifest: candidateAnswerAnalysisFixtureRunMetadata.configurationManifest,
+            configurationFingerprint: candidateAnswerAnalysisFixtureRunMetadata.configurationFingerprint,
             inputFingerprint: "input-1",
             idempotencyKey: "analysis-key-1",
             requestedAt: "2026-07-14T18:01:00.000Z",
+            claimExpiresAt: "2026-07-14T18:02:00.000Z",
         })).resolves.toMatchObject({
             outcome: "created",
             run: {
                 candidateAnswerAttemptId: attemptRow.candidate_answer_attempt_id,
+                generationAttempt: 1,
                 lifecycleState: "requested",
             },
         });
 
         expect(query).toHaveBeenCalledWith(
-            expect.stringContaining("from public.candidate_answer_attempts attempt"),
+            expect.stringMatching(/from public\.candidate_answer_attempts attempt[\s\S]+pg_advisory_xact_lock[\s\S]+expired_requested as[\s\S]+next_generation as/),
             [
                 attemptRow.candidate_answer_attempt_id,
                 attemptRow.candidate_practice_session_id,
                 attemptRow.candidate_profile_id,
                 "candidate_coaching",
-                "fixture",
-                "fixture-v1",
-                "prompt-v1",
-                "evaluator-v1",
+                candidateAnswerAnalysisFixtureRunMetadata.provider,
+                candidateAnswerAnalysisFixtureRunMetadata.modelName,
+                candidateAnswerAnalysisFixtureRunMetadata.promptVersion,
+                candidateAnswerAnalysisFixtureRunMetadata.evaluatorVersion,
+                candidateAnswerAnalysisFixtureRunMetadata.configurationFingerprint,
+                JSON.stringify(candidateAnswerAnalysisFixtureRunMetadata.configurationManifest),
                 "input-1",
                 "analysis-key-1",
                 "2026-07-14T18:01:00.000Z",
+                "2026-07-14T18:02:00.000Z",
+                CANDIDATE_ANSWER_ANALYSIS_GENERATION_WINDOW_MS,
+                CANDIDATE_ANSWER_ANALYSIS_GENERATION_LIMIT,
             ],
         );
+    });
+
+    it("expires stale claims before allocating a later generation with the same logical key", async () => {
+        const generationTwo = {
+            ...evaluationRunRow,
+            candidate_answer_evaluation_run_id: "55555555-5555-4555-8555-555555555555",
+            generation_attempt: 2,
+            requested_at: "2026-07-14T18:03:00.000Z",
+            claim_expires_at: "2026-07-14T18:04:00.000Z",
+            created_at: "2026-07-14T18:03:00.000Z",
+            updated_at: "2026-07-14T18:03:00.000Z",
+        };
+        const query = vi.fn(async (sql: string, values: unknown[]) => {
+            void sql;
+            void values;
+            return { rows: [{ write_outcome: "created", ...generationTwo }] };
+        });
+        const repository = createCandidateAnswerHistoryRepository({ query });
+
+        await expect(repository.claimEvaluationRun({
+            candidateAnswerAttemptId: attemptRow.candidate_answer_attempt_id,
+            candidatePracticeSessionId: attemptRow.candidate_practice_session_id,
+            candidateProfileId: attemptRow.candidate_profile_id,
+            purpose: "candidate_coaching",
+            provider: candidateAnswerAnalysisFixtureRunMetadata.provider,
+            modelName: candidateAnswerAnalysisFixtureRunMetadata.modelName,
+            promptVersion: candidateAnswerAnalysisFixtureRunMetadata.promptVersion,
+            evaluatorVersion: candidateAnswerAnalysisFixtureRunMetadata.evaluatorVersion,
+            configurationManifest: candidateAnswerAnalysisFixtureRunMetadata.configurationManifest,
+            configurationFingerprint: candidateAnswerAnalysisFixtureRunMetadata.configurationFingerprint,
+            inputFingerprint: "input-1",
+            idempotencyKey: "analysis-key-1",
+            requestedAt: "2026-07-14T18:03:00.000Z",
+            claimExpiresAt: "2026-07-14T18:04:00.000Z",
+        })).resolves.toMatchObject({
+            outcome: "created",
+            run: { generationAttempt: 2 },
+        });
+
+        const sql = query.mock.calls[0]?.[0] ?? "";
+        expect(sql).toContain("error_code = 'STALE_EVALUATION_CLAIM'");
+        expect(sql).toContain("run.claim_expires_at <= $13");
+        expect(sql).toContain("coalesce(max(run.generation_attempt), 0) + 1");
+    });
+
+    it("returns the latest terminal run instead of creating a fourth candidate-coaching generation in ten minutes", async () => {
+        const latestFailedRun = {
+            ...evaluationRunRow,
+            candidate_answer_evaluation_run_id: "66666666-6666-4666-8666-666666666666",
+            generation_attempt: 3,
+            lifecycle_state: "failed",
+            validation_json: { retryableByNewRun: true },
+            error_code: "GOOGLE_PROVIDER_UNAVAILABLE",
+            completed_at: "2026-07-14T18:03:10.000Z",
+            updated_at: "2026-07-14T18:03:10.000Z",
+        };
+        const query = vi.fn(async (sql: string, values: unknown[]) => {
+            void sql;
+            void values;
+            return {
+                rows: [{
+                    write_outcome: "generation_limit",
+                    generation_window_count: 3,
+                    ...latestFailedRun,
+                }],
+            };
+        });
+        const repository = createCandidateAnswerHistoryRepository({ query });
+
+        await expect(repository.claimEvaluationRun({
+            candidateAnswerAttemptId: attemptRow.candidate_answer_attempt_id,
+            candidatePracticeSessionId: attemptRow.candidate_practice_session_id,
+            candidateProfileId: attemptRow.candidate_profile_id,
+            purpose: "candidate_coaching",
+            provider: candidateAnswerAnalysisFixtureRunMetadata.provider,
+            modelName: candidateAnswerAnalysisFixtureRunMetadata.modelName,
+            promptVersion: candidateAnswerAnalysisFixtureRunMetadata.promptVersion,
+            evaluatorVersion: candidateAnswerAnalysisFixtureRunMetadata.evaluatorVersion,
+            configurationManifest: candidateAnswerAnalysisFixtureRunMetadata.configurationManifest,
+            configurationFingerprint: candidateAnswerAnalysisFixtureRunMetadata.configurationFingerprint,
+            inputFingerprint: "input-1",
+            idempotencyKey: "analysis-key-1",
+            requestedAt: "2026-07-14T18:04:00.000Z",
+            claimExpiresAt: "2026-07-14T18:05:00.000Z",
+        })).resolves.toMatchObject({
+            outcome: "generation_limit",
+            recentGenerationCount: 3,
+            run: { generationAttempt: 3, lifecycleState: "failed" },
+        });
+
+        const sql = query.mock.calls[0]?.[0] ?? "";
+        expect(sql).toContain("recent_generation_count as materialized");
+        expect(sql).toContain("recent_generation_count.generation_window_count < $16");
+        expect(sql).toContain("'generation_limit'::text as write_outcome");
+    });
+
+    it("blocks a new generation after a terminal nonretryable result", async () => {
+        const latestRejectedRun = {
+            ...evaluationRunRow,
+            lifecycle_state: "rejected",
+            validation_json: { retryableByNewRun: false },
+            error_code: "PROVIDER_SAFETY_BLOCKED",
+            completed_at: "2026-07-14T18:01:10.000Z",
+        };
+        const query = vi.fn(async (sql: string, values: unknown[]) => {
+            void sql;
+            void values;
+            return {
+                rows: [{
+                    write_outcome: "generation_unavailable",
+                    generation_window_count: 1,
+                    ...latestRejectedRun,
+                }],
+            };
+        });
+        const repository = createCandidateAnswerHistoryRepository({ query });
+
+        await expect(repository.claimEvaluationRun({
+            candidateAnswerAttemptId: attemptRow.candidate_answer_attempt_id,
+            candidatePracticeSessionId: attemptRow.candidate_practice_session_id,
+            candidateProfileId: attemptRow.candidate_profile_id,
+            purpose: "candidate_coaching",
+            provider: candidateAnswerAnalysisFixtureRunMetadata.provider,
+            modelName: candidateAnswerAnalysisFixtureRunMetadata.modelName,
+            promptVersion: candidateAnswerAnalysisFixtureRunMetadata.promptVersion,
+            evaluatorVersion: candidateAnswerAnalysisFixtureRunMetadata.evaluatorVersion,
+            configurationManifest: candidateAnswerAnalysisFixtureRunMetadata.configurationManifest,
+            configurationFingerprint: candidateAnswerAnalysisFixtureRunMetadata.configurationFingerprint,
+            inputFingerprint: "input-1",
+            idempotencyKey: "analysis-key-2",
+            requestedAt: "2026-07-14T18:02:00.000Z",
+            claimExpiresAt: "2026-07-14T18:03:00.000Z",
+        })).resolves.toMatchObject({
+            outcome: "generation_unavailable",
+            recentGenerationCount: 1,
+            run: { lifecycleState: "rejected" },
+        });
+
+        const sql = query.mock.calls[0]?.[0] ?? "";
+        expect(sql).toContain("terminal_retry_block as materialized");
+        expect(sql).toContain("validation_json @> '{\"retryableByNewRun\": true}'::jsonb");
+        expect(sql).toContain("'generation_unavailable'::text as write_outcome");
+        expect(sql).toContain("$4 = 'candidate_coaching'");
+    });
+
+    it("rejects inconsistent resolved configuration before querying Postgres", async () => {
+        const query = vi.fn();
+        const repository = createCandidateAnswerHistoryRepository({ query });
+
+        await expect(repository.claimEvaluationRun({
+            candidateAnswerAttemptId: attemptRow.candidate_answer_attempt_id,
+            candidatePracticeSessionId: attemptRow.candidate_practice_session_id,
+            candidateProfileId: attemptRow.candidate_profile_id,
+            purpose: "candidate_coaching",
+            provider: candidateAnswerAnalysisFixtureRunMetadata.provider,
+            modelName: candidateAnswerAnalysisFixtureRunMetadata.modelName,
+            promptVersion: candidateAnswerAnalysisFixtureRunMetadata.promptVersion,
+            evaluatorVersion: candidateAnswerAnalysisFixtureRunMetadata.evaluatorVersion,
+            configurationManifest: candidateAnswerAnalysisFixtureRunMetadata.configurationManifest,
+            configurationFingerprint: "0".repeat(64),
+            inputFingerprint: "input-1",
+            idempotencyKey: "analysis-key-1",
+            requestedAt: "2026-07-14T18:03:00.000Z",
+            claimExpiresAt: "2026-07-14T18:04:00.000Z",
+        })).rejects.toThrow("Evaluator-run configuration identity is inconsistent.");
+        expect(query).not.toHaveBeenCalled();
+    });
+
+    it("returns a conflict when candidate coaching already has mismatched active work for the same answer input", async () => {
+        const query = vi.fn(async (sql: string, values: unknown[]) => {
+            void sql;
+            void values;
+            return { rows: [{ write_outcome: "idempotency_conflict", ...evaluationRunRow }] };
+        });
+        const repository = createCandidateAnswerHistoryRepository({ query });
+        const differentConfigurationManifest = {
+            ...candidateAnswerAnalysisFixtureRunMetadata.configurationManifest,
+            pipelineProvider: "different-provider",
+        };
+
+        await expect(repository.claimEvaluationRun({
+            candidateAnswerAttemptId: attemptRow.candidate_answer_attempt_id,
+            candidatePracticeSessionId: attemptRow.candidate_practice_session_id,
+            candidateProfileId: attemptRow.candidate_profile_id,
+            purpose: "candidate_coaching",
+            provider: "different-provider",
+            modelName: candidateAnswerAnalysisFixtureRunMetadata.modelName,
+            promptVersion: candidateAnswerAnalysisFixtureRunMetadata.promptVersion,
+            evaluatorVersion: candidateAnswerAnalysisFixtureRunMetadata.evaluatorVersion,
+            configurationManifest: differentConfigurationManifest,
+            configurationFingerprint: createEvaluatorFingerprint(differentConfigurationManifest),
+            inputFingerprint: "input-1",
+            idempotencyKey: "different-key",
+            requestedAt: "2026-07-14T18:01:10.000Z",
+            claimExpiresAt: "2026-07-14T18:02:10.000Z",
+        })).resolves.toMatchObject({
+            outcome: "idempotency_conflict",
+            run: { generationAttempt: 1 },
+        });
+
+        const sql = query.mock.calls[0]?.[0] ?? "";
+        expect(sql).toContain("$4 = 'candidate_coaching' and run.input_fingerprint = $11");
+        expect(sql).toContain("run.configuration_fingerprint = $9");
+        expect(sql).toContain("run.configuration_manifest_json = $10::jsonb");
+        expect(sql).toContain("then 'replayed'");
+        expect(sql).toContain("else 'idempotency_conflict'");
     });
 
     it("completes an evaluator run without mutating its answer attempt", async () => {
@@ -209,7 +434,7 @@ describe("candidate answer history repository", () => {
         });
 
         expect(query).toHaveBeenCalledWith(
-            expect.stringMatching(/with completed as[\s\S]+run\.lifecycle_state = 'completed'/),
+            expect.stringMatching(/with completed as[\s\S]+claim_expires_at > \$5[\s\S]+claim_expires_at > clock_timestamp\(\)[\s\S]+run\.lifecycle_state = 'completed'/),
             [
                 evaluationRunRow.candidate_answer_evaluation_run_id,
                 attemptRow.candidate_answer_attempt_id,

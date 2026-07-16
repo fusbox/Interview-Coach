@@ -2,7 +2,7 @@
 
 > [!NOTE]
 > ### Current Product Scope
-> This repo is the candidate-led Interview Coach incubation workspace. The deployment target is now the shared `interviewcoach.talentarbor.com` app in the existing Azure project, with candidate slices ported through the branch strategy in [ADR-0006](08-decisions/ADR-0006-shared-host-and-azure-branch-integration.md).
+> This repo contains the cleanroom candidate V2 rebuild on `feature/candidate-v2-rebuild`. During rebuild development, push this branch to `fusbox` only. Azure integration and deployment remain later release work governed by [ADR-0006](08-decisions/ADR-0006-shared-host-and-azure-branch-integration.md).
 
 This folder is organized to keep reviewer handoff, product requirements, UX/design rules, and architecture contracts separate but aligned.
 
@@ -36,27 +36,24 @@ That doc starts with:
 Minimum local command path:
 
 ```powershell
-git fetch origin feature/postgres-integration feature/candidate-app-integration
-git switch feature/candidate-app-integration
-git pull --ff-only origin feature/candidate-app-integration
+git fetch fusbox feature/candidate-v2-rebuild
+git switch feature/candidate-v2-rebuild
+git pull --ff-only fusbox feature/candidate-v2-rebuild
 npm install
-Copy-Item .env.example .env.local
 npm run db:setup
-npm run ci:candidate
-npm run test:e2e:candidate-seeded
+npm run db:smoke-candidate-readiness
+npm run test:candidate
+npm run typecheck
 npm run dev
 ```
 
-Use [Candidate Integration Reviewer Handoff](REVIEWER-HANDOFF.md) for the `.env.local` values and the full manual validation pass.
+Use [Local Dev Bootstrap](09-dev/local-dev-bootstrap.md) for `.env.local`, Gemini, failure-injection, and LAN/mobile details. Use [Candidate Integration Reviewer Handoff](REVIEWER-HANDOFF.md) for the current manual validation pass.
 
 Then open:
 
 ```text
 http://localhost:3000/
-http://localhost:3000/practice
-http://localhost:3000/dashboard
-http://localhost:3000/recruiter
-http://localhost:3000/recruiter/dashboard
+http://localhost:3000/candidate/dev/launch?candidate=primary&next=/candidate/setup
 ```
 
 ### Continuing Implementation
@@ -64,7 +61,7 @@ http://localhost:3000/recruiter/dashboard
 - [Handoff](HANDOFF.md): current execution state and immediate next slice
 - [Parallel V2 Rebuild Implementation Plan](../superpowers/plans/2026-07-06-parallel-v2-rebuild.md): accepted first task sequence for the candidate V2 rebuild
 - [Working Backlog](00-working-backlog.md): retired project artifact with historical work items and sequence
-- [Candidate Integration Work Pass Checklist](START-WORK-PASS.md): repeatable work-pass process
+- [Candidate V2 Work Pass Checklist](START-WORK-PASS.md): repeatable work-pass process
 
 Repository-local senior review skills provide the quality gates around implementation:
 
@@ -121,18 +118,20 @@ Use the reference map below.
 15. [Accessibility Baseline](05-quality/accessibility-baseline.md)
 16. [Recruiter Regression Checklist For Candidate PRs](05-quality/recruiter-regression-checklist.md)
 17. [Evidence-First Evaluator Contract](05-quality/evidence-first-evaluator-contract.md)
-18. [Security And Privacy Docs](06-security/README.md)
-19. [Candidate App Threat Model](06-security/threat-model.md)
-20. [Privacy, Disclosures, And Consent Requirements](06-security/privacy-disclosures-and-consent-requirements.md)
-21. [Azure DevOps Operating Model](07-ops/azure-devops-operating-model.md)
-22. [Candidate Observability Plan](07-ops/candidate-observability-plan.md)
-23. [Candidate Incident Runbook](07-ops/candidate-incident-runbook.md)
-24. [Candidate Integration PR Policy](07-ops/candidate-integration-pr-policy.md)
+18. [Production Evaluator Integration Contract](05-quality/production-evaluator-integration-contract.md)
+19. [Live Evaluator Validation Runbook](05-quality/live-evaluator-validation-runbook.md)
+20. [Security And Privacy Docs](06-security/README.md)
+21. [Candidate App Threat Model](06-security/threat-model.md)
+22. [Privacy, Disclosures, And Consent Requirements](06-security/privacy-disclosures-and-consent-requirements.md)
+23. [Azure DevOps Operating Model](07-ops/azure-devops-operating-model.md)
+24. [Candidate Observability Plan](07-ops/candidate-observability-plan.md)
+25. [Candidate Incident Runbook](07-ops/candidate-incident-runbook.md)
+26. [Candidate Integration PR Policy](07-ops/candidate-integration-pr-policy.md)
 
 ### Decisions and developer setup
 
-25. [Decision Records](08-decisions/README.md)
-26. [Local Dev Bootstrap](09-dev/local-dev-bootstrap.md)
+27. [Decision Records](08-decisions/README.md)
+28. [Local Dev Bootstrap](09-dev/local-dev-bootstrap.md)
 
 ## Document Rules
 
