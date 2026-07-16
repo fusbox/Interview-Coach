@@ -284,7 +284,7 @@ function countPriorQuestionAttempts(
             count += 1;
         }
 
-        const followUpPractice = readFollowUpPractice(session.setupSnapshot);
+        const followUpPractice = readCandidateFollowUpPracticeSessionMetadata(session.setupSnapshot);
         if (!followUpPractice) {
             continue;
         }
@@ -342,7 +342,7 @@ export function resolveCandidateFollowUpQuestionRoot({
             return null;
         }
 
-        const followUpPractice = readFollowUpPractice(session.setupSnapshot);
+        const followUpPractice = readCandidateFollowUpPracticeSessionMetadata(session.setupSnapshot);
         const sourceItem = followUpPractice?.items.find((followUpItem) => (
             followUpItem.localSlotId === current.questionKey
         ));
@@ -401,7 +401,9 @@ function readFollowUpItemRoot(
     return resolved;
 }
 
-function readFollowUpPractice(value: unknown): CandidateFollowUpPracticeSessionMetadata | null {
+export function readCandidateFollowUpPracticeSessionMetadata(
+    value: unknown,
+): CandidateFollowUpPracticeSessionMetadata | null {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
         return null;
     }

@@ -25,26 +25,79 @@ export type CandidateQuestionPlan = {
 export const candidateQuestionPlanCategoryDetails: Record<CandidateQuestionPlanCategory, {
     label: string;
     purpose: string;
+    definition: string;
+    answerShape: string[];
+    watchFor: string[];
 }> = {
     screening: {
         label: "Screening",
         purpose: "Basic fit, interest, background, availability, and role alignment.",
+        definition: "Screening questions establish the practical and motivational fit for moving forward.",
+        answerShape: [
+            "Answer the question directly and keep the main point easy to follow.",
+            "Connect your background or interest to this role.",
+            "Add one specific detail when it makes the answer more credible.",
+        ],
+        watchFor: [
+            "Generic interest that could apply to any job.",
+            "Long background detail before answering the question.",
+        ],
     },
     behavioral: {
         label: "Behavioral",
         purpose: "Real past examples that show what you personally did and what changed.",
+        definition: "Behavioral questions use past experience to understand how you have handled similar work.",
+        answerShape: [
+            "Set the situation briefly.",
+            "Describe the action you personally took.",
+            "Close with the result or what you learned.",
+        ],
+        watchFor: [
+            "A hypothetical answer instead of a real example.",
+            "Only describing what the team did without clarifying your part.",
+        ],
     },
     culture_fit: {
         label: "Culture / Fit",
         purpose: "Motivation, work style, values alignment, and self-awareness.",
+        definition: "Culture and fit questions explore the conditions, values, and motivations that help you do good work.",
+        answerShape: [
+            "Name the work condition, value, or motivation that matters.",
+            "Explain how it shows up in the way you work.",
+            "Connect it to the role or organization without overclaiming.",
+        ],
+        watchFor: [
+            "Saying only what you think the interviewer wants to hear.",
+            "Broad fit claims without a concrete work example or reason.",
+        ],
     },
     case_scenario: {
         label: "Scenario",
         purpose: "How you would reason through a realistic work situation or tradeoff.",
+        definition: "Scenario questions reveal how you set priorities, make decisions, and respond to realistic constraints.",
+        answerShape: [
+            "Clarify the goal and the most important constraint.",
+            "Walk through the actions you would take in order.",
+            "Explain the reasoning, tradeoff, or check that guides your choice.",
+        ],
+        watchFor: [
+            "Jumping to an answer without showing how you reached it.",
+            "Ignoring safety, people, policy, or role-specific constraints.",
+        ],
     },
     technical_role_specific: {
         label: "Technical / Role-Specific",
         purpose: "Role knowledge, tools, processes, and job-specific judgment.",
+        definition: "Role-specific questions test the knowledge and judgment needed to perform this kind of work.",
+        answerShape: [
+            "State the relevant knowledge, tool, or process accurately.",
+            "Explain how you have applied it or would apply it in practice.",
+            "Be clear about limits and how you would verify what you do not know.",
+        ],
+        watchFor: [
+            "Vague familiarity without a practical example.",
+            "Claiming expertise you cannot explain or support.",
+        ],
     },
 };
 

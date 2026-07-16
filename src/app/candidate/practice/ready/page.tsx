@@ -152,15 +152,15 @@ function createDefaultCandidatePracticeReadyPageDependencies(
                     return null;
                 }
 
-                const practiceSessions = await practiceSessionRepository.listPracticeSessionsForCandidate({
+                const sourceSession = await practiceSessionRepository.findSetupSession({
                     candidateProfileId,
-                    limit: 50,
+                    candidatePracticeSessionId: intent.source.candidatePracticeSessionId,
                 });
 
                 return resolveCandidateFollowUpPracticeIntent({
                     intent,
                     candidateProfileId,
-                    practiceSessions,
+                    practiceSessions: sourceSession ? [sourceSession] : [],
                     selectedRoleProfileId: readSearchParam(searchParams?.prep),
                     selectedLegacyTargetRole: readSearchParam(searchParams?.targetRole),
                 });

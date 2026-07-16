@@ -244,13 +244,15 @@ export function createCandidateCoachUpdateArtifactRepository(
             return normalizeCandidateCoachUpdateArtifactRecord(result.rows[0]);
         },
 
-        async listCompletedArtifacts(input: { candidateProfileId: string }) {
+        async listLatestArtifactAttempts(input: { candidateProfileId: string }) {
             const result = await client.query(`
-                select artifact.*
+                select distinct on (artifact.source_candidate_practice_session_id)
+                       artifact.*
                 from public.candidate_coach_update_artifacts artifact
                 where artifact.candidate_profile_id = $1
-                  and artifact.lifecycle_state = 'completed'
-                order by artifact.completed_at desc, artifact.generation_attempt desc
+                order by artifact.source_candidate_practice_session_id,
+                         artifact.generation_attempt desc,
+                         artifact.updated_at desc
             `, [input.candidateProfileId]);
             return result.rows.flatMap((row) => {
                 const artifact = normalizeCandidateCoachUpdateArtifactRecord(row);

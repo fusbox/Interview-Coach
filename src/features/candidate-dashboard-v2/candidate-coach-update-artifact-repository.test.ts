@@ -37,4 +37,24 @@ describe("candidate Coach Update artifact repository", () => {
         expect(values?.[11]).toBe("2026-07-15T12:05:00.000Z");
         expect(values?.[12]).toBe("2026-07-15T12:03:00.000Z");
     });
+
+    it("lists only the newest lifecycle attempt per source round for candidate-owned dashboard projection", async () => {
+        const calls: Array<{ sql: string; values: unknown[] }> = [];
+        const query = vi.fn(async (sql: string, values: unknown[]) => {
+            calls.push({ sql, values });
+            return { rows: [] };
+        });
+        const repository = createCandidateCoachUpdateArtifactRepository({ query });
+
+        await repository.listLatestArtifactAttempts({ candidateProfileId: "candidate-1" });
+
+        const { sql, values } = calls[0] ?? { sql: "", values: [] };
+        const normalizedSql = String(sql).replace(/\s+/g, " ").toLowerCase();
+        expect(normalizedSql).toContain("select distinct on (artifact.source_candidate_practice_session_id)");
+        expect(normalizedSql).toContain("where artifact.candidate_profile_id = $1");
+        expect(normalizedSql).not.toContain("artifact.lifecycle_state = 'completed'");
+        expect(normalizedSql).toContain("artifact.generation_attempt desc");
+        expect(normalizedSql).toContain("artifact.updated_at desc");
+        expect(values).toEqual(["candidate-1"]);
+    });
 });

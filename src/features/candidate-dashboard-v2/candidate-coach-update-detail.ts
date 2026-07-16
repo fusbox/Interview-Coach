@@ -1,7 +1,9 @@
 import type { CandidateCoachUpdateArtifactRecord } from "./candidate-coach-update-artifact";
+import type { CandidateFollowUpPracticeIntentKind } from "@/features/candidate-practice-v2/candidate-follow-up-practice-intent";
 
 export type CandidateCoachUpdateDetail = {
     status: "candidate_coach_update_detail_ready";
+    presentationKey: string;
     candidatePracticeSessionId: string;
     targetRole: string;
     completedAt: string;
@@ -77,6 +79,7 @@ export function createCandidateCoachUpdateDetail(
 
     return {
         status: "candidate_coach_update_detail_ready",
+        presentationKey: artifact.candidateCoachUpdateArtifactId,
         candidatePracticeSessionId: artifact.sourceCandidatePracticeSessionId,
         targetRole: content.targetRole,
         completedAt: artifact.completedAt,
@@ -161,7 +164,7 @@ export function createCandidateFocusedPracticeHref({
     candidatePracticeSessionId,
     questionKey,
 }: {
-    kind: CandidateFocusedPracticeAction["kind"];
+    kind: CandidateFollowUpPracticeIntentKind;
     candidatePracticeSessionId: string;
     questionKey: string;
 }) {

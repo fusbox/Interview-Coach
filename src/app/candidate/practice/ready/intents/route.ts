@@ -110,9 +110,10 @@ function createDefaultCandidatePracticeIntentCreateDependencies(): CandidatePrac
             return candidateProfileId ? { candidateProfileId } : null;
         },
         async createPracticeIntentFromPointers({ candidateProfileId, source, pointers }) {
-            const practiceSessions = await practiceSessionRepository.listPracticeSessionsForCandidate({
+            const practiceSessions = await loadCandidatePracticeIntentSourceSessions({
                 candidateProfileId,
-                limit: 50,
+                pointers,
+                findSetupSession: practiceSessionRepository.findSetupSession,
             });
             const resolvedItems = pointers
                 .map((pointer) => parseCandidateFollowUpPracticeIntent({
@@ -141,6 +142,22 @@ function createDefaultCandidatePracticeIntentCreateDependencies(): CandidatePrac
             });
         },
     };
+}
+
+export async function loadCandidatePracticeIntentSourceSessions({
+    candidateProfileId,
+    pointers,
+    findSetupSession,
+}: {
+    candidateProfileId: string;
+    pointers: CandidatePracticeIntentPointer[];
+    findSetupSession: ReturnType<typeof createCandidatePracticeSessionRepository>["findSetupSession"];
+}) {
+    const sourceSessionIds = Array.from(new Set(pointers.map((pointer) => pointer.fromSession)));
+    const sessions = await Promise.all(sourceSessionIds.map((candidatePracticeSessionId) => (
+        findSetupSession({ candidateProfileId, candidatePracticeSessionId })
+    )));
+    return sessions.filter((session): session is NonNullable<typeof session> => Boolean(session));
 }
 
 function parsePracticeIntentCreatePayload(payload: unknown): {

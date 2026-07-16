@@ -60,6 +60,8 @@ The shell changes emphasis without changing the meaning of its regions:
 
 Opening Coach Update is not currently a durable product fact. The first `New` treatment may compare the latest update fingerprint with browser-held seen state. It may reappear on another device without affecting correctness. Add durable cross-device review state only if notification semantics, engagement analytics, or another product requirement justifies it.
 
+The selector must not silently lose an older profile-backed prep context behind a recent-session window. Until a deliberate summary projection exists, cross-role inventory and the selected context derive from complete candidate-owned session history. Query pressure or hydration cost should trigger a versioned projection with explicit invalidation, not a correctness-reducing cap.
+
 ## Feedback Boundaries
 
 ### In-Session Feedback
@@ -102,12 +104,16 @@ Normalized rows are preferred for the mutable queue because the app must add, re
 
 - `Practice this now` creates a one-item immutable practice intent directly.
 - A fixed `Practice this bundle` action may create a multi-item immutable intent directly.
-- `Customize` may seed or merge a coach bundle into the durable queue draft.
+- `Customize round` opens the selected-context builder; a future trusted coach-bundle producer may seed or merge eligible bundle items into that draft.
 - `Add to next round` mutates the selected prep context's queue draft.
 - `Start practice` validates and snapshots the current queue draft into `candidate_practice_intents`.
 - Snapshot creation and queue clearing/linking occur atomically.
 - The ready intent remains recoverable if navigation or session creation fails.
 - Session creation consumes the intent idempotently and preserves exact item, source, prep-context, and attempt lineage.
+
+Direct one-question and fixed-set creation actions claim activation immediately in the client. Before production retry acceptance, those creation routes also need a request-level idempotency key that replays one user action while still allowing the candidate to intentionally practice the same content again later. Builder launch already uses the draft id and version as its atomic replay boundary.
+
+The interaction language is shared across Practice Next, Coach Update, and Coach Plan. Immediate actions never mutate the builder. Queue toggles never create a session or navigate away. Fixed-set actions never silently merge with the candidate's editable draft. Builder counts and per-question queued state come from the same authoritative draft model, and a surface with no server-resolved eligible choice does not invent a local queued state. The `coach_bundle` source remains an executable persistence contract, but candidate-facing coach bundles require a separate trusted recommendation producer and are not fabricated by the dashboard.
 
 The mutable queue must never be used later to explain what an existing session contained. Historical session meaning comes from the immutable intent and session snapshots.
 

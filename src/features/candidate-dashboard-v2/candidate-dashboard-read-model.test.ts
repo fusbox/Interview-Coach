@@ -10,6 +10,10 @@ describe("candidate dashboard V2 read model", () => {
     it("derives dashboard state from completed candidate practice sessions at read time", () => {
         const model = createCandidateDashboardV2ReadModel({
             candidateProfileId: "candidate-1",
+            candidateIdentity: {
+                displayName: "Candidate One",
+                email: "candidate.one@example.com",
+            },
             practiceSessions: [
                 createCompletedSession({
                     candidatePracticeSessionId: "older-session",
@@ -38,6 +42,10 @@ describe("candidate dashboard V2 read model", () => {
 
         expect(model).toMatchObject({
             status: "candidate_dashboard_v2_read_model",
+            candidate: {
+                displayName: "Candidate One",
+                email: "candidate.one@example.com",
+            },
             selectedTargetInterview: {
                 id: "material handler i",
                 targetRole: "Material Handler I",
@@ -90,6 +98,7 @@ describe("candidate dashboard V2 read model", () => {
                     label: "Practice from feedback",
                     source: "coach_feedback",
                     title: "Explain what changed after you escalated the damage.",
+                    candidatePracticeSessionId: "newer-session",
                 },
             },
             coachingLoop: {
@@ -306,6 +315,7 @@ describe("candidate dashboard V2 read model", () => {
             planProgress: {
                 source: "completed_plan",
                 title: "The latest round is complete.",
+                href: null,
             },
             coachGuidedFocus: {
                 title: "Add the customer outcome from your example.",
@@ -337,7 +347,16 @@ describe("candidate dashboard V2 read model", () => {
             candidatePracticeSessionId: "profile-session",
             title: "Material Handler I practice update",
         });
+        expect(model.coachUpdateState).toEqual({
+            status: "candidate_coach_update_ready",
+            candidatePracticeSessionId: "profile-session",
+            presentationKey: "artifact-1",
+            completedAt: "2026-07-11T12:00:02.000Z",
+            answeredCount: 1,
+            questionCount: 1,
+        });
         expect(model.coachUpdateDetail).toMatchObject({
+            presentationKey: "artifact-1",
             candidatePracticeSessionId: "profile-session",
             reviewPosture: "fully_reviewable",
             items: [expect.objectContaining({ questionKey: "slot-1", evidenceStatus: "practiced" })],
@@ -346,6 +365,98 @@ describe("candidate dashboard V2 read model", () => {
             label: "Coach Update",
             title: "Material Handler I practice update",
         });
+    });
+
+    it("shows the newest requested Coach Update attempt as pending without falling back to older prose", () => {
+        const roleProfileId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+        const session = createCompletedSession({
+            candidatePracticeSessionId: "profile-session",
+            completedAt: "2026-07-11T12:00:00.000Z",
+            roleProfileId,
+            answerText: "I like keeping materials organized.",
+            focus: "Add one concrete result.",
+        });
+        const model = createCandidateDashboardV2ReadModel({
+            candidateProfileId: "candidate-1",
+            selectedRoleProfileId: roleProfileId,
+            practiceSessions: [session],
+            coachUpdateArtifacts: [
+                createCoachUpdateArtifact({ roleProfileId, sourceSessionId: "profile-session" }),
+                createCoachUpdateArtifact({
+                    roleProfileId,
+                    sourceSessionId: "profile-session",
+                    artifactId: "artifact-2",
+                    generationAttempt: 2,
+                    lifecycleState: "requested",
+                }),
+            ],
+        });
+
+        expect(model.coachUpdateState).toEqual({
+            status: "candidate_coach_update_pending",
+            candidatePracticeSessionId: "profile-session",
+            requestedAt: "2026-07-11T12:00:01.000Z",
+        });
+        expect(model.latestCoachUpdate).toBeNull();
+        expect(model.coachUpdateDetail).toBeNull();
+    });
+
+    it("shows a failed newest Coach Update attempt as unavailable without exposing its error code", () => {
+        const roleProfileId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+        const session = createCompletedSession({
+            candidatePracticeSessionId: "profile-session",
+            completedAt: "2026-07-11T12:00:00.000Z",
+            roleProfileId,
+            answerText: "I like keeping materials organized.",
+            focus: "Add one concrete result.",
+        });
+        const model = createCandidateDashboardV2ReadModel({
+            candidateProfileId: "candidate-1",
+            selectedRoleProfileId: roleProfileId,
+            practiceSessions: [session],
+            coachUpdateArtifacts: [
+                createCoachUpdateArtifact({ roleProfileId, sourceSessionId: "profile-session" }),
+                createCoachUpdateArtifact({
+                    roleProfileId,
+                    sourceSessionId: "profile-session",
+                    artifactId: "artifact-2",
+                    generationAttempt: 2,
+                    lifecycleState: "failed",
+                }),
+            ],
+        });
+
+        expect(model.coachUpdateState).toEqual({
+            status: "candidate_coach_update_unavailable",
+            candidatePracticeSessionId: "profile-session",
+            reason: "generation_failed",
+        });
+        expect(model.latestCoachUpdate).toBeNull();
+        expect(model.coachUpdateDetail).toBeNull();
+        expect(JSON.stringify(model)).not.toContain("TEST_COACH_UPDATE_FAILURE");
+    });
+
+    it("shows a completed round with no Coach Update artifact as unavailable", () => {
+        const roleProfileId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+        const model = createCandidateDashboardV2ReadModel({
+            candidateProfileId: "candidate-1",
+            selectedRoleProfileId: roleProfileId,
+            practiceSessions: [createCompletedSession({
+                candidatePracticeSessionId: "profile-session",
+                completedAt: "2026-07-11T12:00:00.000Z",
+                roleProfileId,
+                answerText: "I like keeping materials organized.",
+                focus: "Add one concrete result.",
+            })],
+        });
+
+        expect(model.coachUpdateState).toEqual({
+            status: "candidate_coach_update_unavailable",
+            candidatePracticeSessionId: "profile-session",
+            reason: "artifact_missing",
+        });
+        expect(model.latestCoachUpdate).toBeNull();
+        expect(model.coachUpdateDetail).toBeNull();
     });
 
     it("keeps unfinished plan coverage separate from feedback-based practice guidance", () => {
@@ -783,12 +894,18 @@ function createCompletedSession({
 function createCoachUpdateArtifact({
     roleProfileId,
     sourceSessionId,
+    artifactId = "artifact-1",
+    generationAttempt = 1,
+    lifecycleState = "completed",
 }: {
     roleProfileId: string;
     sourceSessionId: string;
+    artifactId?: string;
+    generationAttempt?: number;
+    lifecycleState?: CandidateCoachUpdateArtifactRecord["lifecycleState"];
 }): CandidateCoachUpdateArtifactRecord {
-    return {
-        candidateCoachUpdateArtifactId: "artifact-1",
+    const completedArtifact: CandidateCoachUpdateArtifactRecord = {
+        candidateCoachUpdateArtifactId: artifactId,
         candidateProfileId: "candidate-1",
         roleProfileId,
         sourceCandidatePracticeSessionId: sourceSessionId,
@@ -800,7 +917,7 @@ function createCoachUpdateArtifact({
         modelName: "fixture-v1",
         promptVersion: "prompt-v1",
         evaluatorVersion: "evaluator-v1",
-        generationAttempt: 1,
+        generationAttempt,
         lifecycleState: "completed",
         candidateSafeContent: {
             status: "candidate_coach_update_content_v1",
@@ -843,4 +960,27 @@ function createCoachUpdateArtifact({
         createdAt: "2026-07-11T12:00:01.000Z",
         updatedAt: "2026-07-11T12:00:02.000Z",
     };
+
+    if (lifecycleState === "requested") {
+        return {
+            ...completedArtifact,
+            lifecycleState,
+            candidateSafeContent: null,
+            validation: null,
+            completedAt: null,
+            updatedAt: completedArtifact.requestedAt,
+        };
+    }
+
+    if (lifecycleState === "failed" || lifecycleState === "rejected") {
+        return {
+            ...completedArtifact,
+            lifecycleState,
+            candidateSafeContent: null,
+            validation: { disposition: lifecycleState },
+            errorCode: "TEST_COACH_UPDATE_FAILURE",
+        };
+    }
+
+    return completedArtifact;
 }

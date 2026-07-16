@@ -1,8 +1,36 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { handleCandidatePracticeIntentCreateRequest } from "./route";
+import {
+    handleCandidatePracticeIntentCreateRequest,
+    loadCandidatePracticeIntentSourceSessions,
+} from "./route";
 
 describe("/candidate/practice/ready/intents route", () => {
+    it("loads every unique source session by candidate ownership instead of a recency window", async () => {
+        const findSetupSession = vi.fn(async () => null);
+
+        const sessions = await loadCandidatePracticeIntentSourceSessions({
+            candidateProfileId: "candidate-1",
+            pointers: [
+                { intent: "coach-update-feedback-focus", fromSession: "old-session", questionKey: "slot-1" },
+                { intent: "coach-update-missing-evidence", fromSession: "old-session", questionKey: "slot-2" },
+                { intent: "coach-update-feedback-focus", fromSession: "new-session", questionKey: "slot-1" },
+            ],
+            findSetupSession,
+        });
+
+        expect(sessions).toEqual([]);
+        expect(findSetupSession).toHaveBeenCalledTimes(2);
+        expect(findSetupSession).toHaveBeenNthCalledWith(1, {
+            candidateProfileId: "candidate-1",
+            candidatePracticeSessionId: "old-session",
+        });
+        expect(findSetupSession).toHaveBeenNthCalledWith(2, {
+            candidateProfileId: "candidate-1",
+            candidatePracticeSessionId: "new-session",
+        });
+    });
+
     it("creates a durable practice intent from one or many stable source pointers", async () => {
         const createPracticeIntentFromPointers = vi.fn(async () => ({
             status: "candidate_practice_intent_created" as const,

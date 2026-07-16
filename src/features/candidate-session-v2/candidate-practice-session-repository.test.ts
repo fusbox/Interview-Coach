@@ -191,6 +191,46 @@ describe("candidate practice session repository", () => {
         ]);
     });
 
+    it("lists the complete candidate-owned session history for cross-role dashboard inventory", async () => {
+        const query = vi.fn(async (sql: string, values: unknown[]) => {
+            void sql;
+            void values;
+            return { rows: [] };
+        });
+        const repository = createCandidatePracticeSessionRepository({ query });
+
+        await expect(repository.listAllPracticeSessionsForCandidate({
+            candidateProfileId: "22222222-2222-4222-8222-222222222222",
+        })).resolves.toEqual([]);
+
+        expect(query).toHaveBeenCalledWith(expect.stringContaining("where candidate_profile_id = $1"), [
+            "22222222-2222-4222-8222-222222222222",
+        ]);
+        expect(query.mock.calls[0]?.[0]).toContain("order by created_at asc, candidate_practice_session_id asc");
+        expect(query.mock.calls[0]?.[0]).not.toContain("limit");
+    });
+
+    it("lists the complete candidate-owned session history for one prep context", async () => {
+        const query = vi.fn(async (sql: string, values: unknown[]) => {
+            void sql;
+            void values;
+            return { rows: [] };
+        });
+        const repository = createCandidatePracticeSessionRepository({ query });
+
+        await expect(repository.listPracticeSessionsForCandidateRoleProfile({
+            candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            roleProfileId: "33333333-3333-4333-8333-333333333333",
+        })).resolves.toEqual([]);
+
+        expect(query).toHaveBeenCalledWith(expect.stringContaining("and role_profile_id = $2"), [
+            "22222222-2222-4222-8222-222222222222",
+            "33333333-3333-4333-8333-333333333333",
+        ]);
+        expect(query.mock.calls[0]?.[0]).toContain("order by created_at asc, candidate_practice_session_id asc");
+        expect(query.mock.calls[0]?.[0]).not.toContain("limit");
+    });
+
     it("persists one answer draft by candidate-owned session and slot", async () => {
         const query = vi.fn(async () => ({
             rows: [{

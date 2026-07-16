@@ -6,6 +6,10 @@ import {
     type CandidatePracticeNext,
 } from "@/features/candidate-session-v2/candidate-completed-round-read-model";
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
+import {
+    createCandidateCoachPlanReference,
+    type CandidateCoachPlanReference,
+} from "./candidate-coach-plan-reference";
 import type { CandidateCoachUpdateArtifactRecord } from "./candidate-coach-update-artifact";
 import {
     createCandidateCoachUpdateDetail,
@@ -20,6 +24,7 @@ import {
 export type CandidateDashboardV2ReadModel = {
     status: "candidate_dashboard_v2_read_model";
     candidateProfileId: string;
+    candidate: CandidateDashboardIdentity;
     selectedTargetInterview: CandidateDashboardTargetInterview | null;
     targetInterviews: CandidateDashboardTargetInterview[];
     source: {
@@ -38,11 +43,18 @@ export type CandidateDashboardV2ReadModel = {
     activeRound: CandidateDashboardActiveRound | null;
     completedRounds: CandidateCompletedRoundReadModels[];
     latestCoachUpdate: CandidateDashboardCoachUpdate | null;
+    coachUpdateState: CandidateDashboardCoachUpdateState;
     coachUpdateDetail: CandidateCoachUpdateDetail | null;
     coachingLoop: CandidateDashboardCoachingLoop;
     postRoundReviews: CandidatePostRoundReview[];
     practiceNext: CandidatePracticeNext;
     practiceDirection: CandidateDashboardPracticeDirection;
+    coachPlan: CandidateCoachPlanReference | null;
+};
+
+export type CandidateDashboardIdentity = {
+    displayName: string | null;
+    email: string | null;
 };
 
 export type CandidateDashboardTargetInterview = {
@@ -85,6 +97,29 @@ export type CandidateDashboardCoachingLoop = {
     feedforward: CandidateDashboardFeedforwardIndicator;
 };
 
+export type CandidateDashboardCoachUpdateState =
+    | {
+        status: "candidate_coach_update_awaiting_practice";
+      }
+    | {
+        status: "candidate_coach_update_pending";
+        candidatePracticeSessionId: string;
+        requestedAt: string;
+      }
+    | {
+        status: "candidate_coach_update_ready";
+        candidatePracticeSessionId: string;
+        presentationKey: string;
+        completedAt: string;
+        answeredCount: number;
+        questionCount: number;
+      }
+    | {
+        status: "candidate_coach_update_unavailable";
+        candidatePracticeSessionId: string;
+        reason: "generation_failed" | "generation_rejected" | "artifact_missing";
+      };
+
 export type CandidateDashboardFeedbackIndicator = {
     status: "candidate_dashboard_feedback_ready";
     label: "Coach Update";
@@ -121,7 +156,7 @@ export type CandidateDashboardPlanProgressIndicator = {
     source: "active_round" | "unanswered_planned_questions" | "completed_plan" | "first_round";
     title: string;
     body: string;
-    href: string;
+    href: string | null;
     questionKeys: string[];
     candidatePracticeSessionId?: string;
 };
@@ -133,6 +168,7 @@ export type CandidateDashboardCoachGuidedFocusIndicator = {
     title: string;
     body: string;
     href: string;
+    candidatePracticeSessionId: string;
     questionKeys: string[];
 };
 
@@ -142,12 +178,14 @@ export function createCandidateDashboardV2ReadModel({
     selectedRoleProfileId,
     selectedLegacyTargetRole,
     coachUpdateArtifacts = [],
+    candidateIdentity,
 }: {
     candidateProfileId: string;
     practiceSessions: CandidatePracticeSessionRecord[];
     selectedRoleProfileId?: string | null;
     selectedLegacyTargetRole?: string | null;
     coachUpdateArtifacts?: CandidateCoachUpdateArtifactRecord[];
+    candidateIdentity?: Partial<CandidateDashboardIdentity> | null;
 }): CandidateDashboardV2ReadModel {
     const candidateSessions = practiceSessions.filter((session) => session.candidateProfileId === candidateProfileId);
     const selectedContextKey = selectTargetInterviewContextKey({
@@ -175,18 +213,28 @@ export function createCandidateDashboardV2ReadModel({
     const questionEvidence = createQuestionEvidenceRollup(scopedCandidateSessions);
     const latestCompletedRound = completedRounds[0] ?? null;
     const latestCoachUpdateArtifact = latestCompletedRound
-        ? coachUpdateArtifacts.find((artifact) => (
-            artifact.lifecycleState === "completed"
-            && artifact.candidateProfileId === candidateProfileId
-            && artifact.roleProfileId === selectedRoleProfileIdFromKey(selectedContextKey)
-            && artifact.sourceCandidatePracticeSessionId === latestCompletedRound.round.candidatePracticeSessionId
-        )) ?? null
+        ? selectLatestCoachUpdateArtifact({
+            artifacts: coachUpdateArtifacts,
+            candidateProfileId,
+            roleProfileId: selectedRoleProfileIdFromKey(selectedContextKey),
+            sourceCandidatePracticeSessionId: latestCompletedRound.round.candidatePracticeSessionId,
+        })
         : null;
     const latestCoachUpdate = createDashboardCoachUpdateFromArtifact(latestCoachUpdateArtifact, latestCompletedRound);
+    const coachUpdateDetail = createCandidateCoachUpdateDetail(latestCoachUpdateArtifact);
+    const coachPlan = createCandidateCoachPlanReference({
+        candidateProfileId,
+        roleProfileId: selectedRoleProfileIdFromKey(selectedContextKey),
+        practiceSessions: scopedCandidateSessions,
+    });
 
     return {
         status: "candidate_dashboard_v2_read_model",
         candidateProfileId,
+        candidate: {
+            displayName: normalizeCandidateIdentityText(candidateIdentity?.displayName),
+            email: normalizeCandidateIdentityText(candidateIdentity?.email),
+        },
         selectedTargetInterview: targetInterviews.find((targetInterview) => targetInterview.isSelected) ?? null,
         targetInterviews,
         source: {
@@ -205,7 +253,12 @@ export function createCandidateDashboardV2ReadModel({
         activeRound: createActiveRound(activeSession),
         completedRounds,
         latestCoachUpdate,
-        coachUpdateDetail: createCandidateCoachUpdateDetail(latestCoachUpdateArtifact),
+        coachUpdateState: createCoachUpdateState({
+            latestCompletedRound,
+            latestArtifact: latestCoachUpdateArtifact,
+            detail: coachUpdateDetail,
+        }),
+        coachUpdateDetail,
         coachingLoop: createCoachingLoop({
             latestCoachUpdate,
             practiceNext: latestPracticeNext,
@@ -217,7 +270,96 @@ export function createCandidateDashboardV2ReadModel({
             latestCompletedRound: completedRounds[0] ?? null,
             practiceNext: latestPracticeNext,
         }),
+        coachPlan,
     };
+}
+
+function selectLatestCoachUpdateArtifact({
+    artifacts,
+    candidateProfileId,
+    roleProfileId,
+    sourceCandidatePracticeSessionId,
+}: {
+    artifacts: CandidateCoachUpdateArtifactRecord[];
+    candidateProfileId: string;
+    roleProfileId: string | null;
+    sourceCandidatePracticeSessionId: string;
+}) {
+    if (!roleProfileId) {
+        return null;
+    }
+
+    return artifacts
+        .filter((artifact) => (
+            artifact.candidateProfileId === candidateProfileId
+            && artifact.roleProfileId === roleProfileId
+            && artifact.sourceCandidatePracticeSessionId === sourceCandidatePracticeSessionId
+        ))
+        .sort((left, right) => (
+            right.generationAttempt - left.generationAttempt
+            || right.updatedAt.localeCompare(left.updatedAt)
+        ))[0] ?? null;
+}
+
+function createCoachUpdateState({
+    latestCompletedRound,
+    latestArtifact,
+    detail,
+}: {
+    latestCompletedRound: CandidateCompletedRoundReadModels | null;
+    latestArtifact: CandidateCoachUpdateArtifactRecord | null;
+    detail: CandidateCoachUpdateDetail | null;
+}): CandidateDashboardCoachUpdateState {
+    if (!latestCompletedRound) {
+        return { status: "candidate_coach_update_awaiting_practice" };
+    }
+
+    const candidatePracticeSessionId = latestCompletedRound.round.candidatePracticeSessionId;
+    if (!latestArtifact) {
+        return {
+            status: "candidate_coach_update_unavailable",
+            candidatePracticeSessionId,
+            reason: "artifact_missing",
+        };
+    }
+
+    if (latestArtifact.lifecycleState === "requested") {
+        return {
+            status: "candidate_coach_update_pending",
+            candidatePracticeSessionId,
+            requestedAt: latestArtifact.requestedAt,
+        };
+    }
+
+    if (latestArtifact.lifecycleState === "failed" || latestArtifact.lifecycleState === "rejected") {
+        return {
+            status: "candidate_coach_update_unavailable",
+            candidatePracticeSessionId,
+            reason: latestArtifact.lifecycleState === "rejected" ? "generation_rejected" : "generation_failed",
+        };
+    }
+
+    if (!detail || !latestArtifact.completedAt) {
+        return {
+            status: "candidate_coach_update_unavailable",
+            candidatePracticeSessionId,
+            reason: "generation_rejected",
+        };
+    }
+
+    return {
+        status: "candidate_coach_update_ready",
+        candidatePracticeSessionId,
+        presentationKey: detail.presentationKey,
+        completedAt: latestArtifact.completedAt,
+        answeredCount: detail.answeredCount,
+        questionCount: latestCompletedRound.round.questionCount,
+    };
+}
+
+function normalizeCandidateIdentityText(value: string | null | undefined) {
+    const normalized = value?.trim();
+    return normalized || null;
 }
 
 function createDashboardCoachUpdateFromArtifact(
@@ -645,7 +787,7 @@ function createPlanProgress({
             source: "completed_plan",
             title: "The latest round is complete.",
             body: "You answered every planned question in this round. Feedback-based practice can build on what I noticed.",
-            href: "/candidate/setup",
+            href: null,
             questionKeys: [],
         };
     }
@@ -684,6 +826,7 @@ function createCoachGuidedFocus(
             candidatePracticeSessionId: latestCompletedRound.round.candidatePracticeSessionId,
             questionKey: firstCoachedQuestion.questionKey,
         }),
+        candidatePracticeSessionId: latestCompletedRound.round.candidatePracticeSessionId,
         questionKeys: [firstCoachedQuestion.questionKey],
     };
 }

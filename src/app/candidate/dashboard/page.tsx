@@ -1,4 +1,4 @@
-import { ArrowRight, BadgeCheck, CircleDashed, MessageSquareQuote } from "lucide-react";
+import { ArrowRight, ChevronDown, ClipboardList, Plus } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-v2/host-launch-route";
@@ -9,7 +9,11 @@ import {
     type CandidateDashboardV2ReadModel,
 } from "@/features/candidate-dashboard-v2/candidate-dashboard-read-model";
 import { createCandidateCoachUpdateArtifactRepository } from "@/features/candidate-dashboard-v2/candidate-coach-update-artifact-repository";
-import { CandidatePlanProgressAction } from "@/features/candidate-dashboard-v2/CandidatePlanProgressAction";
+import { CandidateDashboardPriorityExperience } from "@/features/candidate-dashboard-v2/CandidateDashboardPriorityExperience";
+import {
+    CandidateNextRoundBuilderExperience,
+    CandidateNextRoundBuilderTrigger,
+} from "@/features/candidate-dashboard-v2/CandidateNextRoundBuilderExperience";
 import {
     createCandidateDashboardHref,
     normalizeCandidateRoleProfileId,
@@ -18,6 +22,8 @@ import {
 import {
     createCandidatePracticeSessionRepository,
 } from "@/features/candidate-session-v2/candidate-practice-session-repository";
+import type { CandidateNextRoundBuilderModel } from "@/features/candidate-practice-v2/candidate-next-round-builder";
+import { createCandidateNextRoundRuntime } from "@/features/candidate-practice-v2/candidate-next-round-runtime";
 
 type CandidateDashboardPageProps = {
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -39,6 +45,10 @@ type CandidateDashboardPageDependencies = {
         selectedRoleProfileId?: string | null;
         selectedLegacyTargetRole?: string | null;
     }) => Promise<CandidateDashboardV2ReadModel | null>;
+    resolveNextRoundBuilder?: (input: {
+        candidateProfileId: string;
+        roleProfileId: string;
+    }) => Promise<CandidateNextRoundBuilderModel | null>;
 };
 
 export async function renderCandidateDashboardPage({
@@ -67,23 +77,35 @@ export async function renderCandidateDashboardPage({
         }
     }
 
-    return <CandidateDashboardHome dashboard={dashboard} />;
+    let nextRoundBuilder: CandidateNextRoundBuilderModel | null = null;
+    const roleProfileId = dashboard?.selectedTargetInterview?.roleProfileId ?? null;
+    if (dashboard && roleProfileId && dependencies.resolveNextRoundBuilder) {
+        try {
+            nextRoundBuilder = await dependencies.resolveNextRoundBuilder({
+                candidateProfileId: dashboard.candidateProfileId,
+                roleProfileId,
+            });
+        } catch {
+            nextRoundBuilder = null;
+        }
+    }
+
+    return <CandidateDashboardHome dashboard={dashboard} nextRoundBuilder={nextRoundBuilder} />;
 }
 
-function CandidateDashboardHome({ dashboard }: { dashboard: CandidateDashboardV2ReadModel | null }) {
-    return (
+function CandidateDashboardHome({
+    dashboard,
+    nextRoundBuilder,
+}: {
+    dashboard: CandidateDashboardV2ReadModel | null;
+    nextRoundBuilder: CandidateNextRoundBuilderModel | null;
+}) {
+    const hasSelectedContext = Boolean(dashboard?.selectedTargetInterview);
+    const page = (
         <main className="candidate-design-system candidate-dashboard-page">
+            <CandidateDashboardShellHeader dashboard={dashboard} hasNextRoundBuilder={Boolean(nextRoundBuilder)} />
             <section className="candidate-dashboard-shell">
-                <header className="candidate-dashboard-hero">
-                    <div className="candidate-dashboard-hero__copy">
-                        <h1>Coach Plan</h1>
-                        <p>
-                            Review what happened in practice, then choose the next useful move.
-                        </p>
-                    </div>
-                    <DashboardEvidenceStrip dashboard={dashboard} />
-                </header>
-                {dashboard ? (
+                {dashboard && hasSelectedContext ? (
                     <CandidateDashboardLearningLoop dashboard={dashboard} />
                 ) : (
                     <CandidateDashboardEmptyState />
@@ -91,359 +113,102 @@ function CandidateDashboardHome({ dashboard }: { dashboard: CandidateDashboardV2
             </section>
         </main>
     );
+
+    return nextRoundBuilder ? (
+        <CandidateNextRoundBuilderExperience initialBuilder={nextRoundBuilder}>
+            {page}
+        </CandidateNextRoundBuilderExperience>
+    ) : page;
 }
 
-function DashboardEvidenceStrip({ dashboard }: { dashboard: CandidateDashboardV2ReadModel | null }) {
-    const stats = dashboard?.stats ?? {
-        activeRoundCount: 0,
-        completedRoundCount: 0,
-        answeredQuestionCount: 0,
-        coachedAnswerCount: 0,
-    };
+function CandidateDashboardShellHeader({
+    dashboard,
+    hasNextRoundBuilder,
+}: {
+    dashboard: CandidateDashboardV2ReadModel | null;
+    hasNextRoundBuilder: boolean;
+}) {
+    const displayName = dashboard?.candidate.displayName;
+    const email = dashboard?.candidate.email;
+    const selectedTargetInterview = dashboard?.selectedTargetInterview ?? null;
+    const alternateTargetInterviews = dashboard?.targetInterviews.filter((targetInterview) => !targetInterview.isSelected) ?? [];
 
     return (
-        <div className="candidate-dashboard-evidence" aria-label="Practice evidence">
-            <DashboardStat label="Completed rounds" value={stats.completedRoundCount} />
-            <DashboardStat label="Answered questions" value={stats.answeredQuestionCount} />
-            <DashboardStat label="Coached answers" value={stats.coachedAnswerCount} />
-        </div>
+        <header className="candidate-dashboard-topbar" aria-label="Dashboard header">
+            <div className="candidate-dashboard-topbar__inner app-grid">
+                <div
+                    className="candidate-dashboard-identity"
+                    role="img"
+                    aria-label={`Signed in as ${displayName || email || "candidate"}`}
+                >
+                    {getCandidateInitials(displayName, email)}
+                </div>
+
+                {selectedTargetInterview ? (
+                    <details className="candidate-dashboard-context-menu">
+                        <summary>
+                            <span>
+                                <span className="candidate-dashboard-context-menu__label">Preparing for</span>
+                                <strong>{selectedTargetInterview.targetRole}</strong>
+                            </span>
+                            <ChevronDown size={18} aria-hidden="true" />
+                        </summary>
+                        <div className="candidate-dashboard-context-menu__popover">
+                            <p className="type-eyebrow">Your prep contexts</p>
+                            <div className="candidate-dashboard-context-menu__current" aria-current="page">
+                                <strong>{selectedTargetInterview.targetRole}</strong>
+                                <span>{formatTargetInterviewProgress(selectedTargetInterview)}</span>
+                            </div>
+                            {alternateTargetInterviews.map((targetInterview) => (
+                                <a
+                                    key={targetInterview.id}
+                                    href={createCandidateDashboardTargetInterviewHref(targetInterview)}
+                                >
+                                    <strong>{targetInterview.targetRole}</strong>
+                                    <span>{formatTargetInterviewProgress(targetInterview)}</span>
+                                </a>
+                            ))}
+                            <a className="candidate-dashboard-context-menu__new" href="/candidate/setup">
+                                <Plus size={17} aria-hidden="true" />
+                                <span>Prep for a new role</span>
+                            </a>
+                        </div>
+                    </details>
+                ) : <span className="candidate-dashboard-topbar__spacer" />}
+
+                {hasNextRoundBuilder ? (
+                    <CandidateNextRoundBuilderTrigger />
+                ) : (
+                    <a
+                        className="candidate-dashboard-next-link"
+                        href={selectedTargetInterview ? "#practice-next" : "/candidate/setup"}
+                    >
+                        {selectedTargetInterview
+                            ? <ClipboardList size={18} aria-hidden="true" />
+                            : <Plus size={18} aria-hidden="true" />}
+                        <span>{selectedTargetInterview ? "Practice next" : "Set up practice"}</span>
+                    </a>
+                )}
+            </div>
+        </header>
     );
 }
 
 function CandidateDashboardLearningLoop({ dashboard }: { dashboard: CandidateDashboardV2ReadModel }) {
-    const latestReview = dashboard.postRoundReviews[0] ?? null;
-    const practicedQuestions = latestReview?.questions.filter((question) => question.status === "practiced") ?? [];
-    const { planProgress, coachGuidedFocus, primaryAction } = dashboard.practiceDirection;
+    const selectedTargetInterview = dashboard.selectedTargetInterview;
 
     return (
         <div className="candidate-dashboard-content">
-            <CandidateDashboardTargetContext dashboard={dashboard} />
-            <CandidateDashboardActiveRound activeRound={dashboard.activeRound} />
+            <header className="candidate-dashboard-intro">
+                <p className="type-eyebrow">Coach Plan</p>
+                <h1>Your interview practice, connected.</h1>
+                <p>
+                    See what your latest practice showed, what remains in the plan, and the next useful move for {selectedTargetInterview?.targetRole ?? "this role"}.
+                </p>
+            </header>
 
-            <section className="candidate-learning-loop" aria-labelledby="learning-loop-title">
-                <div className="candidate-learning-loop__header">
-                    <div>
-                        <p className="type-eyebrow">Reflect and choose</p>
-                        <h2 id="learning-loop-title">Use practice as your next plan.</h2>
-                    </div>
-                    <p>{dashboard.coachingLoop.principle}</p>
-                </div>
-
-                <div className="candidate-learning-loop__panels">
-                    <CandidateDashboardCoachUpdatePanel dashboard={dashboard} />
-
-                    <article className="candidate-loop-panel candidate-loop-panel--plan">
-                        <p className="candidate-loop-panel__meta">Coach Plan</p>
-                        <h3>{planProgress.label}</h3>
-                        <p className="candidate-loop-panel__title">{planProgress.title}</p>
-                        <p>{planProgress.body}</p>
-                        {primaryAction !== "practice_from_feedback" ? (
-                            <CandidatePlanProgressAction
-                                planProgress={planProgress}
-                                label={getPlanProgressActionLabel(planProgress.source)}
-                            />
-                        ) : null}
-                    </article>
-
-                    <article className="candidate-loop-panel candidate-loop-panel--coach-focus">
-                        <p className="candidate-loop-panel__meta">Coach guidance</p>
-                        <h3>{coachGuidedFocus?.label ?? "Practice from feedback"}</h3>
-                        {coachGuidedFocus ? (
-                            <>
-                                <p className="candidate-loop-panel__title">{coachGuidedFocus.title}</p>
-                                <p>{coachGuidedFocus.body}</p>
-                            </>
-                        ) : (
-                            <>
-                                <p className="candidate-loop-panel__title">Feedback-based practice comes after coaching.</p>
-                                <p>Finish a practice round and I will separate what still belongs to the plan from what your answers suggest practicing next.</p>
-                            </>
-                        )}
-                        {coachGuidedFocus && primaryAction === "practice_from_feedback" ? (
-                            <a className="candidate-dashboard-action" href={coachGuidedFocus.href}>
-                                Set up focused practice
-                                <ArrowRight size={16} aria-hidden="true" />
-                            </a>
-                        ) : null}
-                    </article>
-                </div>
-            </section>
-
-            <CandidateDashboardCoachUpdateDetail detail={dashboard.coachUpdateDetail} />
-
-            <section className="candidate-dashboard-review" id="latest-round-review" aria-labelledby="latest-review-title">
-                <div className="candidate-dashboard-review__header">
-                    <div>
-                        <p className="type-eyebrow">Latest round</p>
-                        <h2 id="latest-review-title">{latestReview?.targetRole ?? "Practice evidence"}</h2>
-                    </div>
-                    {latestReview ? (
-                        <p>{latestReview.answeredCount} of {latestReview.questionCount} answered</p>
-                    ) : null}
-                </div>
-
-                {latestReview && latestReview.questions.length > 0 ? (
-                    <ol className="candidate-dashboard-question-list">
-                        {latestReview.questions.map((question) => (
-                            <CandidateDashboardReviewQuestion key={question.questionKey} question={question} />
-                        ))}
-                    </ol>
-                ) : practicedQuestions.length > 0 ? (
-                    <ol className="candidate-dashboard-question-list">
-                        {practicedQuestions.slice(0, 3).map((question) => (
-                            <li key={question.questionKey}>
-                                <span className="candidate-dashboard-question-list__icon" aria-hidden="true">
-                                    <BadgeCheck size={16} />
-                                </span>
-                                <div>
-                                    <p className="candidate-dashboard-question-list__label">
-                                        Q{question.questionNumber} · {question.category}
-                                    </p>
-                                    <h3>{question.questionText}</h3>
-                                    {question.coaching ? <p>{question.coaching.nextPracticeFocus}</p> : null}
-                                </div>
-                            </li>
-                        ))}
-                    </ol>
-                ) : (
-                    <p className="candidate-dashboard-muted">Your practiced questions will appear here after your first completed round.</p>
-                )}
-            </section>
+            <CandidateDashboardPriorityExperience dashboard={dashboard} />
         </div>
-    );
-}
-
-function CandidateDashboardCoachUpdatePanel({ dashboard }: { dashboard: CandidateDashboardV2ReadModel }) {
-    const feedback = dashboard.coachingLoop.feedback;
-    const detailHref = dashboard.coachUpdateDetail
-        ? "#coach-update-detail"
-        : dashboard.postRoundReviews.length > 0
-            ? "#latest-round-review"
-            : null;
-
-    const content = (
-        <>
-            <p className="candidate-loop-panel__meta">Feedback</p>
-            <h3>{feedback?.label ?? "Coach Update"}</h3>
-            {feedback ? (
-                <>
-                    <p className="candidate-loop-panel__title">{feedback.title}</p>
-                    <p>{feedback.body}</p>
-                    {detailHref ? (
-                        <p className="candidate-loop-panel__context">
-                            Open the coach read
-                            <ArrowRight size={15} aria-hidden="true" />
-                        </p>
-                    ) : null}
-                </>
-            ) : (
-                <p>Finish a practice round and I will reflect back what your answer shows.</p>
-            )}
-        </>
-    );
-
-    if (!detailHref) {
-        return (
-            <article className="candidate-loop-panel candidate-loop-panel--feedback">
-                {content}
-            </article>
-        );
-    }
-
-    return (
-        <a className="candidate-loop-panel candidate-loop-panel--feedback candidate-loop-panel--link" href={detailHref}>
-            {content}
-        </a>
-    );
-}
-
-function CandidateDashboardCoachUpdateDetail({
-    detail,
-}: {
-    detail: CandidateDashboardV2ReadModel["coachUpdateDetail"];
-}) {
-    if (!detail) {
-        return null;
-    }
-
-    return (
-        <section
-            className="candidate-dashboard-coach-update-detail"
-            id="coach-update-detail"
-            aria-label="Coach Update detail"
-        >
-            <div className="candidate-dashboard-coach-update-detail__header">
-                <div className="candidate-dashboard-coach-update-detail__mark" aria-hidden="true">
-                    <MessageSquareQuote size={20} />
-                </div>
-                <div>
-                    <p className="type-eyebrow">Coach Update</p>
-                    <h2>{detail.targetRole} Coach Update</h2>
-                </div>
-                <p>
-                    {detail.answeredCount} of {detail.questionCount} answered
-                </p>
-            </div>
-
-            <ol className="candidate-dashboard-coach-update-detail__items">
-                {detail.items.map((item) => (
-                    <CandidateDashboardCoachUpdateDetailItem key={item.questionKey} item={item} />
-                ))}
-            </ol>
-        </section>
-    );
-}
-
-function CandidateDashboardCoachUpdateDetailItem({
-    item,
-}: {
-    item: NonNullable<CandidateDashboardV2ReadModel["coachUpdateDetail"]>["items"][number];
-}) {
-    const isPracticed = item.evidenceStatus === "practiced";
-
-    return (
-        <li className={isPracticed ? "is-practiced" : "is-missing-evidence"}>
-            <div className="candidate-dashboard-coach-update-detail__item-header">
-                <p className="candidate-dashboard-question-list__label">
-                    Q{item.questionNumber} - {item.category}
-                </p>
-                <p className="candidate-dashboard-coach-update-detail__status">
-                    {isPracticed ? item.actionPosture.label : "Still needs practice evidence"}
-                </p>
-            </div>
-
-            <h3>{item.questionText}</h3>
-
-            {item.answer ? (
-                <blockquote className="candidate-dashboard-coach-update-detail__answer">
-                    {item.answer.text}
-                </blockquote>
-            ) : null}
-
-            {item.coachRead ? (
-                <div className="candidate-dashboard-coach-update-detail__coach" role="region" aria-label="Coach observation">
-                    <p>{item.coachRead.observation}</p>
-                    <p>{item.coachRead.nextPracticeFocus}</p>
-                    {item.comparison.kind === "repeat_practice" ? <p>{item.comparison.message}</p> : null}
-                </div>
-            ) : null}
-
-            {!isPracticed ? (
-                <p className="candidate-dashboard-coach-update-detail__missing">
-                    {item.actionPosture.reason} I will treat it as missing practice evidence, not as a weak answer.
-                </p>
-            ) : null}
-
-            {item.focusedPracticeAction ? (
-                <a
-                    className="candidate-dashboard-coach-update-detail__action"
-                    href={item.focusedPracticeAction.href}
-                >
-                    {item.focusedPracticeAction.label}
-                    <ArrowRight size={16} aria-hidden="true" />
-                </a>
-            ) : null}
-        </li>
-    );
-}
-
-function CandidateDashboardReviewQuestion({
-    question,
-}: {
-    question: CandidateDashboardV2ReadModel["postRoundReviews"][number]["questions"][number];
-}) {
-    const isPracticed = question.status === "practiced";
-
-    return (
-        <li className={isPracticed ? "is-practiced" : "is-missing-evidence"}>
-            <span className="candidate-dashboard-question-list__icon" aria-hidden="true">
-                {isPracticed ? <BadgeCheck size={16} /> : <CircleDashed size={16} />}
-            </span>
-            <div className="candidate-dashboard-question-list__content">
-                <div className="candidate-dashboard-question-list__topline">
-                    <p className="candidate-dashboard-question-list__label">
-                        Q{question.questionNumber} - {question.category}
-                    </p>
-                    {!isPracticed ? (
-                        <p className="candidate-dashboard-question-list__status">Needs practice evidence</p>
-                    ) : null}
-                </div>
-                <h3>{question.questionText}</h3>
-                {question.answer ? (
-                    <blockquote className="candidate-dashboard-question-list__answer">
-                        {question.answer.text}
-                    </blockquote>
-                ) : null}
-                {question.coaching ? (
-                    <div className="candidate-dashboard-question-list__coach">
-                        <p>{question.coaching.observation}</p>
-                        <p>{question.coaching.nextPracticeFocus}</p>
-                    </div>
-                ) : null}
-                {!isPracticed ? (
-                    <p className="candidate-dashboard-question-list__missing">
-                        This planned question has not been answered yet. I will treat it as missing practice evidence, not as a weak answer.
-                    </p>
-                ) : null}
-            </div>
-        </li>
-    );
-}
-
-function CandidateDashboardActiveRound({ activeRound }: { activeRound: CandidateDashboardV2ReadModel["activeRound"] }) {
-    if (!activeRound) {
-        return null;
-    }
-
-    return (
-        <section className="candidate-dashboard-active-round" aria-label="Active round">
-            <div>
-                <p className="type-eyebrow">Active round</p>
-                <h2>{activeRound.targetRole}</h2>
-                <p>
-                    {activeRound.progressLabel} · Question {activeRound.currentQuestionNumber} of {activeRound.questionCount}
-                </p>
-            </div>
-            <a className="candidate-dashboard-action" href={activeRound.href}>
-                Resume round
-                <ArrowRight size={16} aria-hidden="true" />
-            </a>
-        </section>
-    );
-}
-
-function CandidateDashboardTargetContext({ dashboard }: { dashboard: CandidateDashboardV2ReadModel }) {
-    if (!dashboard.selectedTargetInterview) {
-        return null;
-    }
-
-    const selectedTargetInterview = dashboard.selectedTargetInterview;
-    const alternateTargetInterviews = dashboard.targetInterviews.filter((targetInterview) => !targetInterview.isSelected);
-
-    return (
-        <nav className="candidate-dashboard-context" aria-label="Interview prep context">
-            <div className="candidate-dashboard-context__current">
-                <p className="type-eyebrow">Current focus</p>
-                <h2>{selectedTargetInterview.targetRole}</h2>
-                <p>
-                    {formatTargetInterviewProgress(selectedTargetInterview)}
-                </p>
-            </div>
-
-            {alternateTargetInterviews.length > 0 ? (
-                <div className="candidate-dashboard-context__switcher" aria-label="Switch role context">
-                    {alternateTargetInterviews.map((targetInterview) => (
-                        <a
-                            key={targetInterview.id}
-                            href={createCandidateDashboardTargetInterviewHref(targetInterview)}
-                        >
-                            <span>{targetInterview.targetRole}</span>
-                            <span>{formatTargetInterviewProgress(targetInterview)}</span>
-                        </a>
-                    ))}
-                </div>
-            ) : null}
-        </nav>
     );
 }
 
@@ -480,45 +245,37 @@ function formatTargetInterviewProgress(targetInterview: CandidateDashboardV2Read
         ? `${targetInterview.activeRoundCount} active`
         : `${targetInterview.completedRoundCount} completed`;
     const answerLabel = `${targetInterview.answeredQuestionCount} answered`;
-    return `${roundLabel} · ${answerLabel}`;
+    return `${roundLabel} - ${answerLabel}`;
 }
 
-function getPlanProgressActionLabel(source: CandidateDashboardV2ReadModel["practiceDirection"]["planProgress"]["source"]) {
-    switch (source) {
-        case "active_round":
-            return "Resume round";
-        case "unanswered_planned_questions":
-            return "Finish planned practice";
-        case "first_round":
-            return "Set up practice";
-        case "completed_plan":
-        default:
-            return "Set up next practice";
+function getCandidateInitials(displayName?: string | null, email?: string | null) {
+    const source = displayName?.trim() || email?.trim() || "Candidate";
+    const nameParts = source
+        .replace(/@.*/, "")
+        .split(/\s+/)
+        .map((part) => part.replace(/[^a-zA-Z0-9]/g, ""))
+        .filter(Boolean);
+
+    if (nameParts.length >= 2) {
+        return `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase();
     }
+
+    return (nameParts[0] || "C").slice(0, 2).toUpperCase();
 }
 
 function CandidateDashboardEmptyState() {
     return (
         <section className="candidate-dashboard-empty" aria-label="No completed practice rounds">
-            <p className="type-eyebrow">Practice evidence</p>
-            <h2>Start with one practice round.</h2>
+            <p className="type-eyebrow">Coach Plan</p>
+            <h1>Build your first practice plan.</h1>
             <p>
-                Once you finish, this page will connect what I noticed in your answers with what would be useful to practice next.
+                Start with the role and interview you are preparing for. I will use that context to shape your first round and what comes next.
             </p>
             <a className="candidate-dashboard-action" href="/candidate/setup">
                 Set up practice
                 <ArrowRight size={16} aria-hidden="true" />
             </a>
         </section>
-    );
-}
-
-function DashboardStat({ label, value }: { label: string; value: number }) {
-    return (
-        <div className="candidate-dashboard-stat">
-            <p className="type-eyebrow">{label}</p>
-            <p className="type-metric-value">{value}</p>
-        </div>
     );
 }
 
@@ -531,6 +288,7 @@ function createDefaultCandidateDashboardPageDependencies(): CandidateDashboardPa
     const queryClient = createLazyPostgresQueryClient(databaseUrl);
     const practiceSessionRepository = createCandidatePracticeSessionRepository(queryClient);
     const coachUpdateArtifactRepository = createCandidateCoachUpdateArtifactRepository(queryClient);
+    const nextRoundRuntime = createCandidateNextRoundRuntime(databaseUrl);
 
     return {
         async resolveDashboardModel({ selectedRoleProfileId, selectedLegacyTargetRole }) {
@@ -546,18 +304,28 @@ function createDefaultCandidateDashboardPageDependencies(): CandidateDashboardPa
                     return null;
                 }
 
-                const [practiceSessions, coachUpdateArtifacts] = await Promise.all([
-                    practiceSessionRepository.listPracticeSessionsForCandidate({
-                        candidateProfileId,
-                        limit: 50,
-                    }),
-                    coachUpdateArtifactRepository.listCompletedArtifacts({ candidateProfileId }),
+                const normalizedSelectedRoleProfileId = normalizeCandidateRoleProfileId(selectedRoleProfileId);
+                const [candidatePracticeSessions, selectedContextSessions, coachUpdateArtifacts, candidateIdentity] = await Promise.all([
+                    practiceSessionRepository.listAllPracticeSessionsForCandidate({ candidateProfileId }),
+                    normalizedSelectedRoleProfileId
+                        ? practiceSessionRepository.listPracticeSessionsForCandidateRoleProfile({
+                            candidateProfileId,
+                            roleProfileId: normalizedSelectedRoleProfileId,
+                        })
+                        : Promise.resolve([]),
+                    coachUpdateArtifactRepository.listLatestArtifactAttempts({ candidateProfileId }),
+                    readCandidateDashboardIdentity(queryClient, candidateProfileId),
                 ]);
+                const practiceSessions = mergeCandidatePracticeSessions(
+                    candidatePracticeSessions,
+                    selectedContextSessions,
+                );
 
                 return createCandidateDashboardV2ReadModel({
                     candidateProfileId,
                     practiceSessions,
                     coachUpdateArtifacts,
+                    candidateIdentity,
                     selectedRoleProfileId,
                     selectedLegacyTargetRole,
                 });
@@ -565,6 +333,36 @@ function createDefaultCandidateDashboardPageDependencies(): CandidateDashboardPa
                 return null;
             }
         },
+        resolveNextRoundBuilder: nextRoundRuntime.loadBuilder,
+    };
+}
+
+function mergeCandidatePracticeSessions(
+    candidateSessions: Awaited<ReturnType<ReturnType<typeof createCandidatePracticeSessionRepository>["listAllPracticeSessionsForCandidate"]>>,
+    selectedContextSessions: Awaited<ReturnType<ReturnType<typeof createCandidatePracticeSessionRepository>["listPracticeSessionsForCandidateRoleProfile"]>>,
+) {
+    const sessionsById = new Map(candidateSessions.map((session) => [session.candidatePracticeSessionId, session]));
+    for (const session of selectedContextSessions) {
+        sessionsById.set(session.candidatePracticeSessionId, session);
+    }
+    return Array.from(sessionsById.values());
+}
+
+async function readCandidateDashboardIdentity(
+    client: CandidateDashboardQueryClient,
+    candidateProfileId: string,
+) {
+    const result = await client.query(`
+        select display_name, email
+        from public.candidate_profiles
+        where candidate_profile_id = $1
+          and status = 'active'
+        limit 1
+    `, [candidateProfileId]);
+
+    return {
+        displayName: readString(result.rows[0]?.display_name),
+        email: readString(result.rows[0]?.email),
     };
 }
 

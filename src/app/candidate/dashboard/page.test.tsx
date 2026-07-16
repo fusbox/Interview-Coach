@@ -1,12 +1,18 @@
-import { render, screen, within } from "@testing-library/react";
-import { expect, it } from "vitest";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { beforeEach, expect, it, vi } from "vitest";
+import type { CandidateDashboardV2ReadModel } from "@/features/candidate-dashboard-v2/candidate-dashboard-read-model";
 import CandidateDashboardPage, { getCandidateDashboardRuntimeSslConfig, renderCandidateDashboardPage } from "./page";
+
+beforeEach(() => {
+    window.localStorage.clear();
+});
 
 it("renders the candidate dashboard route shell", async () => {
     render(await CandidateDashboardPage());
 
-    expect(screen.getByRole("heading", { name: "Coach Plan" })).toBeInTheDocument();
-    expect(screen.getByText(/Start with one practice round/i)).toBeInTheDocument();
+    expect(screen.getByRole("banner", { name: "Dashboard header" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Build your first practice plan." })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Set up practice" })).toHaveLength(2);
 });
 
 it("renders the V2 dashboard read boundary when completed-round facts are available", async () => {
@@ -15,6 +21,10 @@ it("renders the V2 dashboard read boundary when completed-round facts are availa
             resolveDashboardModel: async () => ({
                 status: "candidate_dashboard_v2_read_model",
                 candidateProfileId: "candidate-1",
+                candidate: {
+                    displayName: "Candidate One",
+                    email: "candidate.one@example.com",
+                },
                 selectedTargetInterview: {
                     status: "candidate_dashboard_target_interview",
                     roleProfileId: null,
@@ -63,6 +73,11 @@ it("renders the V2 dashboard read boundary when completed-round facts are availa
                     answeredCount: 2,
                     questionCount: 3,
                 },
+                coachUpdateState: {
+                    status: "candidate_coach_update_unavailable",
+                    candidatePracticeSessionId: "session-1",
+                    reason: "artifact_missing",
+                },
                 coachUpdateDetail: null,
                 coachingLoop: {
                     status: "candidate_dashboard_coaching_loop_ready",
@@ -107,7 +122,7 @@ it("renders the V2 dashboard read boundary when completed-round facts are availa
                         source: "completed_plan",
                         title: "The latest round is complete.",
                         body: "You answered every planned question in this round.",
-                        href: "/candidate/setup",
+                        href: null,
                         questionKeys: [],
                     },
                     coachGuidedFocus: {
@@ -117,31 +132,38 @@ it("renders the V2 dashboard read boundary when completed-round facts are availa
                         title: "Add one result from the inventory count.",
                         body: "Use the latest coach feedback to choose one focused answer pattern to practice next.",
                         href: "/candidate/setup",
+                        candidatePracticeSessionId: "session-1",
                         questionKeys: ["slot-1"],
                     },
                 },
+                coachPlan: null,
             }),
         },
     }));
 
-    expect(screen.getByRole("heading", { name: "Coach Plan" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Your interview practice, connected." })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Signed in as Candidate One" })).toHaveTextContent("CO");
     expect(screen.getByText("Coach Update")).toBeInTheDocument();
-    expect(screen.getByText("Plan progress")).toBeInTheDocument();
-    expect(screen.getByText("Practice from feedback")).toBeInTheDocument();
-    expect(screen.getByText("Use what happened in practice to choose the next useful move.")).toBeInTheDocument();
-    expect(screen.getByText("Completed rounds")).toBeInTheDocument();
-    expect(screen.getByText("Answered questions")).toBeInTheDocument();
-    expect(screen.getByText("Coached answers")).toBeInTheDocument();
+    expect(screen.getByText("The latest round is complete.")).toBeInTheDocument();
+    expect(screen.queryByText("Use what happened in practice to choose the next useful move.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Completed rounds")).not.toBeInTheDocument();
+    expect(screen.queryByText("Answered questions")).not.toBeInTheDocument();
+    expect(screen.queryByText("Coached answers")).not.toBeInTheDocument();
     expect(screen.getByText("Add one result from the inventory count.")).toBeInTheDocument();
-    expect(screen.getByText("Material Handler I practice complete")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Your practice is saved." })).toBeInTheDocument();
+    expect(screen.queryByText("Material Handler I practice complete")).not.toBeInTheDocument();
 });
 
-it("renders the latest round review as a question-first coach update surface", async () => {
+it("does not render the legacy latest-round transcript without a synthesized Coach Update detail", async () => {
     render(await renderCandidateDashboardPage({
         dependencies: {
             resolveDashboardModel: async () => ({
                 status: "candidate_dashboard_v2_read_model",
                 candidateProfileId: "candidate-1",
+                candidate: {
+                    displayName: "Candidate One",
+                    email: "candidate.one@example.com",
+                },
                 selectedTargetInterview: {
                     status: "candidate_dashboard_target_interview",
                     roleProfileId: null,
@@ -189,6 +211,11 @@ it("renders the latest round review as a question-first coach update surface", a
                     completedAt: "2026-07-11T12:00:00.000Z",
                     answeredCount: 1,
                     questionCount: 2,
+                },
+                coachUpdateState: {
+                    status: "candidate_coach_update_unavailable",
+                    candidatePracticeSessionId: "session-1",
+                    reason: "artifact_missing",
                 },
                 coachUpdateDetail: null,
                 coachingLoop: {
@@ -268,7 +295,7 @@ it("renders the latest round review as a question-first coach update surface", a
                         source: "completed_plan",
                         title: "The latest round is complete.",
                         body: "You answered every planned question in this round.",
-                        href: "/candidate/setup",
+                        href: null,
                         questionKeys: [],
                     },
                     coachGuidedFocus: {
@@ -278,32 +305,33 @@ it("renders the latest round review as a question-first coach update surface", a
                         title: "Add the result of the inventory count.",
                         body: "Use the latest coach feedback to choose one focused answer pattern to practice next.",
                         href: "/candidate/setup",
+                        candidatePracticeSessionId: "session-1",
                         questionKeys: ["slot-1"],
                     },
                 },
+                coachPlan: null,
             }),
         },
     }));
 
-    expect(screen.getByRole("link", { name: /Coach Update/i })).toHaveAttribute(
-        "href",
-        "#latest-round-review",
-    );
-    expect(screen.getByText("Q1 - Behavioral")).toBeInTheDocument();
-    expect(screen.getByText(/I noticed the count was off/i)).toBeInTheDocument();
-    expect(screen.getAllByText("Your answer includes the task, but the result is still missing.").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Add the result of the inventory count.").length).toBeGreaterThan(0);
-    expect(screen.getByText("Q2 - Scenario")).toBeInTheDocument();
-    expect(screen.getByText("Needs practice evidence")).toBeInTheDocument();
-    expect(screen.getByText(/pallet label did not match/i)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Coach Update/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Your practice is saved." })).toBeInTheDocument();
+    expect(screen.queryByText("Q1 - Behavioral")).not.toBeInTheDocument();
+    expect(screen.queryByText(/I noticed the count was off/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("Q2 - Scenario")).not.toBeInTheDocument();
+    expect(screen.queryByText("Needs practice evidence")).not.toBeInTheDocument();
 });
 
-it("opens a Coach Update detail section from the sparse feedback card", async () => {
+it("opens the exact Coach Update artifact from the sparse feedback card", async () => {
     render(await renderCandidateDashboardPage({
         dependencies: {
             resolveDashboardModel: async () => ({
                 status: "candidate_dashboard_v2_read_model",
                 candidateProfileId: "candidate-1",
+                candidate: {
+                    displayName: "Candidate One",
+                    email: "candidate.one@example.com",
+                },
                 selectedTargetInterview: {
                     status: "candidate_dashboard_target_interview",
                     roleProfileId: null,
@@ -352,8 +380,17 @@ it("opens a Coach Update detail section from the sparse feedback card", async ()
                     answeredCount: 1,
                     questionCount: 2,
                 },
+                coachUpdateState: {
+                    status: "candidate_coach_update_ready",
+                    candidatePracticeSessionId: "session-1",
+                    presentationKey: "artifact-1",
+                    completedAt: "2026-07-11T12:00:00.000Z",
+                    answeredCount: 1,
+                    questionCount: 2,
+                },
                 coachUpdateDetail: {
                     status: "candidate_coach_update_detail_ready",
+                    presentationKey: "artifact-1",
                     candidatePracticeSessionId: "session-1",
                     targetRole: "Material Handler I",
                     completedAt: "2026-07-11T12:00:00.000Z",
@@ -449,7 +486,7 @@ it("opens a Coach Update detail section from the sparse feedback card", async ()
                         source: "completed_plan",
                         title: "The latest round is complete.",
                         body: "You answered every planned question in this round.",
-                        href: "/candidate/setup",
+                        href: null,
                         questionKeys: [],
                     },
                     coachGuidedFocus: {
@@ -459,31 +496,41 @@ it("opens a Coach Update detail section from the sparse feedback card", async ()
                         title: "Add the result of the inventory count.",
                         body: "Use the latest coach feedback to choose one focused answer pattern to practice next.",
                         href: "/candidate/setup",
+                        candidatePracticeSessionId: "session-1",
                         questionKeys: ["slot-1"],
                     },
                 },
+                coachPlan: null,
             }),
         },
     }));
 
-    expect(screen.getByRole("link", { name: /Coach Update/i })).toHaveAttribute("href", "#coach-update-detail");
+    expect(screen.getByText("New")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Open Coach Update" }));
 
-    const detail = screen.getByRole("region", { name: "Coach Update detail" });
-    expect(within(detail).getByRole("heading", { name: "Material Handler I Coach Update" })).toBeInTheDocument();
-    expect(within(detail).getByText("Q1 - Behavioral")).toBeInTheDocument();
+    expect(screen.queryByText("New")).not.toBeInTheDocument();
+    expect(window.localStorage.getItem("candidate-v2:coach-update-seen:candidate-1:session-1")).toBe("artifact-1");
+
+    const detail = screen.getByRole("dialog", { name: "Let's review your latest practice." });
+    expect(within(detail).getByText("Q1")).toBeInTheDocument();
+    expect(within(detail).getByText("Behavioral")).toBeInTheDocument();
     expect(within(detail).getByText("I checked the shipment records before updating the inventory sheet.")).toBeInTheDocument();
     expect(within(detail).getByRole("region", { name: "Coach observation" })).toHaveTextContent(
         "Your answer includes the task, but the result is still missing.",
     );
     expect(within(detail).getByText("Add the result of the inventory count.")).toBeInTheDocument();
-    expect(within(detail).queryByText("Q2 - Scenario")).not.toBeInTheDocument();
+    expect(within(detail).queryByText("Q2")).not.toBeInTheDocument();
     expect(within(detail).queryByText("Still needs practice evidence")).not.toBeInTheDocument();
-    expect(within(detail).getByRole("link", { name: "Practice this focus" })).toHaveAttribute(
+    expect(within(detail).getByRole("link", { name: "Practice this now" })).toHaveAttribute(
         "href",
         "/candidate/practice/ready?intent=coach-update-feedback-focus&fromSession=session-1&questionKey=slot-1",
     );
     expect(within(detail).queryByRole("link", { name: "Practice this question" })).not.toBeInTheDocument();
     expect(JSON.stringify(detail.textContent)).not.toMatch(/score|oneBigUpgrade|percentile|pass|fail/i);
+
+    const priorities = screen.getByRole("region", { name: "Coach Plan priorities" });
+    expect(within(priorities).getByRole("heading", { name: "Add the result of the inventory count." }).closest("article"))
+        .toHaveClass("is-primary");
 });
 
 it("renders selected target interview context and switch links", async () => {
@@ -492,6 +539,10 @@ it("renders selected target interview context and switch links", async () => {
             resolveDashboardModel: async () => ({
                 status: "candidate_dashboard_v2_read_model",
                 candidateProfileId: "candidate-1",
+                candidate: {
+                    displayName: "Candidate One",
+                    email: "candidate.one@example.com",
+                },
                 selectedTargetInterview: {
                     status: "candidate_dashboard_target_interview",
                     roleProfileId: null,
@@ -545,6 +596,9 @@ it("renders selected target interview context and switch links", async () => {
                 activeRound: null,
                 completedRounds: [],
                 latestCoachUpdate: null,
+                coachUpdateState: {
+                    status: "candidate_coach_update_awaiting_practice",
+                },
                 coachUpdateDetail: null,
                 coachingLoop: {
                     status: "candidate_dashboard_coaching_loop_ready",
@@ -578,21 +632,133 @@ it("renders selected target interview context and switch links", async () => {
                         source: "completed_plan",
                         title: "The latest round is complete.",
                         body: "You answered every planned question in this round.",
-                        href: "/candidate/setup",
+                        href: null,
                         questionKeys: [],
                     },
                     coachGuidedFocus: null,
                 },
+                coachPlan: null,
             }),
         },
     }));
 
-    expect(screen.getByRole("navigation", { name: "Interview prep context" })).toHaveTextContent("Current focus");
-    expect(screen.getByRole("heading", { name: "CSR" })).toBeInTheDocument();
+    expect(screen.getByText("Preparing for")).toBeInTheDocument();
+    expect(screen.getAllByText("CSR")).toHaveLength(2);
     expect(screen.getByRole("link", { name: /Packaging Associate/i })).toHaveAttribute(
         "href",
         "/candidate/dashboard?prep=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
     );
+    expect(screen.getByRole("link", { name: /Prep for a new role/i })).toHaveAttribute("href", "/candidate/setup");
+    expect(screen.getByRole("link", { name: "Practice next" })).toHaveAttribute("href", "#practice-next");
+    expect(screen.queryByRole("link", { name: "Open practice builder" })).not.toBeInTheDocument();
+});
+
+it("loads the durable builder only for the selected opaque prep context", async () => {
+    const roleProfileId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    const resolveNextRoundBuilder = vi.fn(async () => ({
+        status: "candidate_next_round_builder_ready" as const,
+        candidateProfileId: "candidate-1",
+        roleProfileId,
+        targetRole: "Quality Inspector",
+        candidateNextRoundDraftId: "draft-1",
+        version: 3,
+        itemCount: 1,
+        capacity: 20,
+        items: [{
+            candidateNextRoundDraftItemId: "item-1",
+            sourceCandidatePracticeSessionId: "session-1",
+            sourceQuestionKey: "slot-1",
+            rootCandidatePracticeSessionId: "session-1",
+            rootQuestionKey: "slot-1",
+            practiceKind: "practice_from_feedback" as const,
+            provenance: "coach_update" as const,
+            displayPosition: 0,
+            questionNumber: 1,
+            category: "Screening",
+            questionText: "Why this role?",
+            evidenceLabel: "Coach feedback" as const,
+        }],
+        choices: [],
+    }));
+    const dashboard = {
+        status: "candidate_dashboard_v2_read_model",
+        candidateProfileId: "candidate-1",
+        candidate: { displayName: "Candidate One", email: "candidate.one@example.com" },
+        selectedTargetInterview: {
+            status: "candidate_dashboard_target_interview",
+            roleProfileId,
+            id: roleProfileId,
+            targetRole: "Quality Inspector",
+            isSelected: true,
+            activeRoundCount: 0,
+            completedRoundCount: 1,
+            answeredQuestionCount: 2,
+            coachedAnswerCount: 2,
+            lastActivityAt: "2026-07-15T12:00:00.000Z",
+        },
+        targetInterviews: [],
+        source: {
+            kind: "derived_from_candidate_practice_sessions",
+            durableSource: "candidate_practice_sessions",
+            persistence: "read_time_projection",
+            shouldPersistDashboardProjection: false,
+        },
+        stats: { activeRoundCount: 0, completedRoundCount: 1, answeredQuestionCount: 2, coachedAnswerCount: 2 },
+        activeRound: null,
+        completedRounds: [],
+        latestCoachUpdate: null,
+        coachUpdateState: { status: "candidate_coach_update_awaiting_practice" },
+        coachUpdateDetail: null,
+        coachingLoop: {
+            status: "candidate_dashboard_coaching_loop_ready",
+            principle: "Use what happened in practice to choose the next useful move.",
+            feedback: null,
+            feedforward: {
+                status: "candidate_dashboard_feedforward_ready",
+                label: "Practice Next",
+                title: "Choose what to practice next.",
+                body: "Build a focused round from your Coach Plan.",
+                href: "#practice-next",
+                source: "new_round",
+                questionKeys: [],
+            },
+        },
+        postRoundReviews: [],
+        practiceNext: {
+            status: "candidate_practice_next_ready",
+            source: "new_round",
+            label: "Choose what to practice next.",
+            reason: "Build a focused round from your Coach Plan.",
+            href: "#practice-next",
+            questionKeys: [],
+        },
+        practiceDirection: {
+            status: "candidate_dashboard_practice_direction_ready",
+            primaryAction: "start_new_round",
+            planProgress: {
+                status: "candidate_dashboard_plan_progress_ready",
+                label: "Plan progress",
+                source: "completed_plan",
+                title: "Your planned coverage is complete.",
+                body: "Choose a focus for your next round.",
+                href: null,
+                questionKeys: [],
+            },
+            coachGuidedFocus: null,
+        },
+        coachPlan: null,
+    } as CandidateDashboardV2ReadModel;
+
+    render(await renderCandidateDashboardPage({
+        dependencies: {
+            resolveDashboardModel: async () => dashboard,
+            resolveNextRoundBuilder,
+        },
+    }));
+
+    expect(resolveNextRoundBuilder).toHaveBeenCalledWith({ candidateProfileId: "candidate-1", roleProfileId });
+    expect(screen.getByRole("button", { name: "Next practice round, 1 queued" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open practice builder" })).toBeInTheDocument();
 });
 
 it("renders selected-context active round resume details", async () => {
@@ -601,6 +767,10 @@ it("renders selected-context active round resume details", async () => {
             resolveDashboardModel: async () => ({
                 status: "candidate_dashboard_v2_read_model",
                 candidateProfileId: "candidate-1",
+                candidate: {
+                    displayName: "Candidate One",
+                    email: "candidate.one@example.com",
+                },
                 selectedTargetInterview: {
                     status: "candidate_dashboard_target_interview",
                     roleProfileId: null,
@@ -650,6 +820,9 @@ it("renders selected-context active round resume details", async () => {
                 },
                 completedRounds: [],
                 latestCoachUpdate: null,
+                coachUpdateState: {
+                    status: "candidate_coach_update_awaiting_practice",
+                },
                 coachUpdateDetail: null,
                 coachingLoop: {
                     status: "candidate_dashboard_coaching_loop_ready",
@@ -689,6 +862,7 @@ it("renders selected-context active round resume details", async () => {
                     },
                     coachGuidedFocus: null,
                 },
+                coachPlan: null,
             }),
         },
     }));
@@ -721,7 +895,7 @@ it("passes explicit prep-context and bounded legacy selection into the dashboard
 
     expect(capturedRoleProfileId).toBe("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
     expect(capturedLegacyTargetRole).toBe("csr");
-    expect(screen.getByText(/Start with one practice round/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Build your first practice plan." })).toBeInTheDocument();
 });
 
 it("does not force SSL for the plain local smoke database URL", () => {

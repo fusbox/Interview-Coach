@@ -179,6 +179,73 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
                 .filter((record): record is CandidatePracticeSessionRecord => Boolean(record));
         },
 
+        async listAllPracticeSessionsForCandidate(input: {
+            candidateProfileId: string;
+        }) {
+            const result = await client.query(`
+                select
+                  candidate_practice_session_id,
+                  candidate_profile_id,
+                  role_profile_id,
+                  candidate_launch_session_id,
+                  status,
+                  setup_snapshot_json,
+                  question_plan_snapshot_json,
+                  question_wording_snapshot_json,
+                  question_wording_status,
+                  progress_state_json,
+                  answer_drafts_json,
+                  answer_submissions_json,
+                  answer_idempotency_json,
+                  answer_analysis_snapshots_json,
+                  feedback_actions_json,
+                  completion_snapshot_json
+                from public.candidate_practice_sessions
+                where candidate_profile_id = $1
+                order by created_at asc, candidate_practice_session_id asc
+            `, [input.candidateProfileId]);
+
+            return result.rows
+                .map(toCandidatePracticeSessionRecord)
+                .filter((record): record is CandidatePracticeSessionRecord => Boolean(record));
+        },
+
+        async listPracticeSessionsForCandidateRoleProfile(input: {
+            candidateProfileId: string;
+            roleProfileId: string;
+        }) {
+            const result = await client.query(`
+                select
+                  candidate_practice_session_id,
+                  candidate_profile_id,
+                  role_profile_id,
+                  candidate_launch_session_id,
+                  status,
+                  setup_snapshot_json,
+                  question_plan_snapshot_json,
+                  question_wording_snapshot_json,
+                  question_wording_status,
+                  progress_state_json,
+                  answer_drafts_json,
+                  answer_submissions_json,
+                  answer_idempotency_json,
+                  answer_analysis_snapshots_json,
+                  feedback_actions_json,
+                  completion_snapshot_json
+                from public.candidate_practice_sessions
+                where candidate_profile_id = $1
+                  and role_profile_id = $2
+                order by created_at asc, candidate_practice_session_id asc
+            `, [
+                input.candidateProfileId,
+                input.roleProfileId,
+            ]);
+
+            return result.rows
+                .map(toCandidatePracticeSessionRecord)
+                .filter((record): record is CandidatePracticeSessionRecord => Boolean(record));
+        },
+
         async saveAnswerDraft(input: {
             candidatePracticeSessionId: string;
             candidateProfileId: string;
