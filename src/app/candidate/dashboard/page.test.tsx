@@ -526,10 +526,8 @@ it("opens the exact Coach Update artifact from the sparse feedback card", async 
     expect(within(detail).getByText("Add the result of the inventory count.")).toBeInTheDocument();
     expect(within(detail).queryByText("Q2")).not.toBeInTheDocument();
     expect(within(detail).queryByText("Still needs practice evidence")).not.toBeInTheDocument();
-    expect(within(detail).getByRole("link", { name: "Practice this now" })).toHaveAttribute(
-        "href",
-        "/candidate/practice/ready?intent=coach-update-feedback-focus&fromSession=session-1&questionKey=slot-1",
-    );
+    expect(within(detail).getByRole("button", { name: "Practice this now" })).toBeEnabled();
+    expect(within(detail).queryByRole("link", { name: "Practice this now" })).not.toBeInTheDocument();
     expect(within(detail).queryByRole("link", { name: "Practice this question" })).not.toBeInTheDocument();
     expect(JSON.stringify(detail.textContent)).not.toMatch(/score|oneBigUpgrade|percentile|pass|fail/i);
 

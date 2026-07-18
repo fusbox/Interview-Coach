@@ -30,6 +30,7 @@ import { saveCandidateProvisionalSession } from "@/features/candidate-session-v2
 import {
     clearCandidateSetupDraft,
     createCandidateSetupBrowserDraftStore,
+    getOrCreateCandidateSetupStartRequest,
     restoreCandidateSetupDraft,
     saveCandidateSetupDraft,
     toCandidateSetupDraftFormState,
@@ -64,6 +65,16 @@ type CandidateSetupStartResult = CandidateSetupSessionCreationResult | {
     nextRoute: string;
 };
 
+class CandidateSetupStartRequestError extends Error {
+    readonly candidateMessage: string;
+
+    constructor(candidateMessage: string) {
+        super("Candidate setup session creation failed.");
+        this.name = "CandidateSetupStartRequestError";
+        this.candidateMessage = candidateMessage;
+    }
+}
+
 export function CandidateSetupExperience({
     onSetupReady,
     createSession,
@@ -96,6 +107,7 @@ export function CandidateSetupExperience({
     const [pendingSetupTransition, setPendingSetupTransition] = useState<CandidateSetupTransition | null>(null);
     const [existingContextError, setExistingContextError] = useState("");
     const existingContextDialogRef = useRef<HTMLDialogElement | null>(null);
+    const setupStartRequestRef = useRef<{ requestSignature: string; idempotencyKey: string } | null>(null);
 
     const activeStage = useMemo(
         () => candidateSetupStageOptions.find((stage) => stage.id === selectedStage) ?? candidateSetupStageOptions[2],
@@ -204,16 +216,43 @@ export function CandidateSetupExperience({
         setSetupError("");
 
         try {
-            const sessionCreator = createSession ?? ((nextTransition, nextDecision) => (
-                createSessionViaSetupRoute(
-                    nextTransition,
-                    nextDecision,
-                    trustedSetupContext ? "trusted_host_job" : null,
-                )
-            ));
-            const result = decision
-                ? await sessionCreator(transition, decision)
-                : await sessionCreator(transition);
+            let result: CandidateSetupStartResult;
+            if (createSession) {
+                result = decision
+                    ? await createSession(transition, decision)
+                    : await createSession(transition);
+            } else {
+                const setupEntryMode = trustedSetupContext ? "trusted_host_job" : null;
+                const requestSignature = await createSetupStartRequestSignature(
+                    transition,
+                    decision,
+                    setupEntryMode,
+                );
+                if (activeDraftStore) {
+                    saveCandidateSetupDraft(activeDraftStore, draftOwnerKey, transition.payload);
+                }
+                const persistedRequest = activeDraftStore
+                    ? getOrCreateCandidateSetupStartRequest(
+                        activeDraftStore,
+                        draftOwnerKey,
+                        requestSignature,
+                        createSetupStartIdempotencyKey,
+                    )
+                    : null;
+                const fallbackRequest = setupStartRequestRef.current?.requestSignature === requestSignature
+                    ? setupStartRequestRef.current
+                    : {
+                        requestSignature,
+                        idempotencyKey: createSetupStartIdempotencyKey(),
+                    };
+                setupStartRequestRef.current = persistedRequest ?? fallbackRequest;
+                result = await createSessionViaSetupRoute(
+                    transition,
+                    decision,
+                    setupEntryMode,
+                    setupStartRequestRef.current.idempotencyKey,
+                );
+            }
             if (result.status === "existing_prep_context_found") {
                 if (result.existingPrepContexts.length === 0) {
                     throw new Error("Existing preparation context facts were missing.");
@@ -233,12 +272,14 @@ export function CandidateSetupExperience({
             saveCandidateProvisionalSession(window.sessionStorage, result);
             clearSubmittedSetupDraft();
             window.location.assign(result.nextRoute);
-        } catch {
+        } catch (error) {
             setIsPreparing(false);
             if (decision) {
                 setExistingContextError("I could not create the separate practice path. Your setup is still here, so you can try again.");
             } else {
-                setSetupError("I could not start this practice round. Try again.");
+                setSetupError(error instanceof CandidateSetupStartRequestError
+                    ? error.candidateMessage
+                    : "I could not start this practice round. Try again.");
             }
         }
     }
@@ -796,11 +837,13 @@ async function createSessionViaSetupRoute(
     transition: CandidateSetupTransition,
     decision?: CandidateSetupPrepContextDecision,
     setupEntryMode: "trusted_host_job" | null = null,
+    idempotencyKey?: string,
 ): Promise<CandidateSetupStartResult> {
     const response = await fetch("/candidate/setup/start", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
+            ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
         },
         body: JSON.stringify({
             ...transition.payload,
@@ -809,7 +852,10 @@ async function createSessionViaSetupRoute(
         }),
     });
 
-    const result = await response.json() as CandidateSetupStartResult | { error?: unknown };
+    const result = await response.json() as CandidateSetupStartResult | {
+        error?: unknown;
+        code?: unknown;
+    };
 
     if (
         response.status === 409
@@ -822,10 +868,65 @@ async function createSessionViaSetupRoute(
     }
 
     if (!response.ok) {
-        throw new Error("Candidate setup session creation failed.");
+        const responseCode = result
+            && typeof result === "object"
+            && "code" in result
+            && typeof result.code === "string"
+            ? result.code
+            : null;
+        const isCandidateSafeFailure = responseCode?.startsWith("QUESTION_WORDING_PROVIDER_")
+            || responseCode === "SETUP_START_IDEMPOTENCY_KEY_REQUIRED"
+            || responseCode === "SETUP_START_IDEMPOTENCY_CONFLICT"
+            || responseCode === "SETUP_START_IN_PROGRESS"
+            || responseCode === "SETUP_START_CLAIM_LOST";
+        const candidateMessage = isCandidateSafeFailure
+            && typeof result === "object"
+            && "error" in result
+            && typeof result.error === "string"
+            && result.error.trim()
+            ? result.error.trim()
+            : "I could not start this practice round. Try again.";
+        throw new CandidateSetupStartRequestError(candidateMessage);
     }
 
     return result as CandidateSetupSessionCreationResult;
+}
+
+async function createSetupStartRequestSignature(
+    transition: CandidateSetupTransition,
+    decision: CandidateSetupPrepContextDecision | undefined,
+    setupEntryMode: "trusted_host_job" | null,
+) {
+    const canonicalRequest = JSON.stringify({
+        setup: transition.payload,
+        setupEntryMode,
+        prepContextDecision: decision ?? null,
+    });
+    if (typeof window !== "undefined" && window.crypto?.subtle) {
+        try {
+            const digest = await window.crypto.subtle.digest(
+                "SHA-256",
+                new TextEncoder().encode(canonicalRequest),
+            );
+            return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+        } catch {
+            // The server fingerprint remains authoritative; this fallback only rotates browser retry keys.
+        }
+    }
+
+    let fallbackHash = 0x811c9dc5;
+    for (let index = 0; index < canonicalRequest.length; index += 1) {
+        fallbackHash ^= canonicalRequest.charCodeAt(index);
+        fallbackHash = Math.imul(fallbackHash, 0x01000193);
+    }
+    return `fallback-${(fallbackHash >>> 0).toString(16).padStart(8, "0")}-${canonicalRequest.length}`;
+}
+
+function createSetupStartIdempotencyKey() {
+    if (typeof window !== "undefined" && typeof window.crypto?.randomUUID === "function") {
+        return window.crypto.randomUUID();
+    }
+    return `setup-${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
 }
 
 function formatSetupDate(value: string) {

@@ -4,15 +4,20 @@ import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-aut
 import {
     createCandidatePracticeIntentRepository,
 } from "@/features/candidate-practice-v2/candidate-practice-intent-repository";
+import {
+    createCandidatePracticeIntentLaunchRepository,
+    type CandidatePracticeIntentLaunchResult,
+    type StartCandidatePracticeIntentSessionInput,
+} from "@/features/candidate-practice-v2/candidate-practice-intent-launch-repository";
 import type {
     CandidatePracticeIntentRecord,
 } from "@/features/candidate-practice-v2/candidate-follow-up-practice-intent";
 import {
+    countCandidatePriorPracticeSessionsForIntent,
     createCandidateFollowUpSessionInputFromIntent,
 } from "@/features/candidate-practice-v2/candidate-follow-up-session-creation";
 import {
     createCandidatePracticeSessionRepository,
-    type CreateCandidatePracticeSessionInput,
     type CandidatePracticeSessionRecord,
 } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 
@@ -27,24 +32,16 @@ type CandidatePracticeIntentStartDependencies = {
             candidatePracticeIntentId: string;
             candidateProfileId: string;
         }) => Promise<CandidatePracticeIntentRecord | null>;
-        markPracticeIntentConsumed: (input: {
-            candidatePracticeIntentId: string;
-            candidateProfileId: string;
-            consumedCandidatePracticeSessionId: string;
-        }) => Promise<{
-            candidatePracticeIntentId: string;
-            lifecycleState: "consumed";
-            consumedCandidatePracticeSessionId: string;
-        } | null>;
     };
     practiceSessionRepository: {
-        listPracticeSessionsForCandidate: (input: {
+        listAllPracticeSessionsForCandidate: (input: {
             candidateProfileId: string;
-            limit?: number;
         }) => Promise<CandidatePracticeSessionRecord[]>;
-        createSetupSession: (input: CreateCandidatePracticeSessionInput) => Promise<{
-            candidatePracticeSessionId: string;
-        } | null>;
+    };
+    practiceIntentLaunchRepository: {
+        startPracticeIntentSession: (
+            input: StartCandidatePracticeIntentSessionInput,
+        ) => Promise<CandidatePracticeIntentLaunchResult | null>;
     };
     createFollowUpSessionInput: typeof createCandidateFollowUpSessionInputFromIntent;
 };
@@ -70,72 +67,152 @@ export async function handleCandidatePracticeIntentStartRequest({
     resolveCandidatePracticeIntentStartIdentity,
     practiceIntentRepository,
     practiceSessionRepository,
+    practiceIntentLaunchRepository,
     createFollowUpSessionInput,
 }: {
     request: Request;
     intentId: string;
     now: Date;
 } & CandidatePracticeIntentStartDependencies) {
-    const identity = await resolveCandidatePracticeIntentStartIdentity();
-    if (!identity) {
-        return jsonResponse({
-            error: "Candidate identity could not be confirmed.",
-        }, 401);
-    }
+    try {
+        const identity = await resolveCandidatePracticeIntentStartIdentity();
+        if (!identity) {
+            return jsonResponse({
+                error: "Candidate identity could not be confirmed.",
+            }, 401);
+        }
 
-    const intent = await practiceIntentRepository.findPracticeIntent({
-        candidatePracticeIntentId: intentId,
-        candidateProfileId: identity.candidateProfileId,
-    });
-    if (!intent) {
+        const intent = await practiceIntentRepository.findPracticeIntent({
+            candidatePracticeIntentId: intentId,
+            candidateProfileId: identity.candidateProfileId,
+        });
+        if (!intent) {
+            return jsonResponse({
+                error: "Practice intent could not be confirmed.",
+            }, 404);
+        }
+
+        if (intent.lifecycleState === "cancelled" || intent.lifecycleState === "expired") {
+            return practiceIntentStateResponse(intent.lifecycleState);
+        }
+
+        if (intent.lifecycleState === "consumed" || Date.parse(intent.expiresAt) <= now.getTime()) {
+            const launchResult = await practiceIntentLaunchRepository.startPracticeIntentSession({
+                candidatePracticeIntentId: intent.candidatePracticeIntentId,
+                candidateProfileId: identity.candidateProfileId,
+                expectedLaunchVersion: intent.launchVersion,
+                expectedPriorSessionCount: 0,
+                sessionInput: null,
+            });
+            return practiceIntentLaunchResponse(request, launchResult);
+        }
+
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+            const existingPracticeSessions = await practiceSessionRepository.listAllPracticeSessionsForCandidate({
+                candidateProfileId: identity.candidateProfileId,
+            });
+            const followUpSessionInput = createFollowUpSessionInput({
+                candidateProfileId: identity.candidateProfileId,
+                intent,
+                existingPracticeSessions,
+                now,
+            });
+            if (!followUpSessionInput) {
+                return jsonResponse({
+                    error: "Follow-up practice session could not be prepared from this intent.",
+                    code: "PRACTICE_INTENT_INVALID_SESSION",
+                    retryable: false,
+                }, 409);
+            }
+
+            const launchResult = await practiceIntentLaunchRepository.startPracticeIntentSession({
+                candidatePracticeIntentId: intent.candidatePracticeIntentId,
+                candidateProfileId: identity.candidateProfileId,
+                expectedLaunchVersion: intent.launchVersion,
+                expectedPriorSessionCount: countCandidatePriorPracticeSessionsForIntent(
+                    intent,
+                    existingPracticeSessions,
+                ),
+                sessionInput: followUpSessionInput,
+            });
+
+            if (launchResult?.outcome === "stale_context" && attempt === 0) {
+                continue;
+            }
+
+            return practiceIntentLaunchResponse(request, launchResult);
+        }
+
+        return jsonResponse({
+            error: "Practice context changed while the round was starting. Try again.",
+            code: "PRACTICE_INTENT_STALE_CONTEXT",
+            retryable: true,
+        }, 409);
+    } catch {
+        return jsonResponse({
+            error: "Focused practice could not be started. Try again.",
+            code: "PRACTICE_INTENT_START_UNAVAILABLE",
+            retryable: true,
+        }, 503);
+    }
+}
+
+function practiceIntentLaunchResponse(
+    request: Request,
+    result: CandidatePracticeIntentLaunchResult | null,
+) {
+    if (result?.outcome === "created" || result?.outcome === "replayed") {
+        return redirectToSession(request, result.candidatePracticeSessionId);
+    }
+    if (result?.outcome === "not_found") {
         return jsonResponse({
             error: "Practice intent could not be confirmed.",
+            code: "PRACTICE_INTENT_NOT_FOUND",
+            retryable: false,
         }, 404);
     }
-    if (intent.lifecycleState === "consumed" && intent.consumedCandidatePracticeSessionId) {
-        return redirectToSession(request, intent.consumedCandidatePracticeSessionId);
+    if (result?.outcome === "expired" || result?.outcome === "cancelled") {
+        return practiceIntentStateResponse(result.outcome);
     }
-    if (intent.lifecycleState !== "ready") {
+    if (result?.outcome === "mismatched") {
         return jsonResponse({
-            error: "Practice intent is not ready.",
+            error: "This practice round changed before it could start. Return to your Coach Plan and try again.",
+            code: "PRACTICE_INTENT_MISMATCHED",
+            retryable: false,
+        }, 409);
+    }
+    if (result?.outcome === "consumed_mismatch") {
+        return jsonResponse({
+            error: "This practice round could not be safely resumed.",
+            code: "PRACTICE_INTENT_CONSUMED_MISMATCH",
+            retryable: false,
+        }, 409);
+    }
+    if (result?.outcome === "stale_context") {
+        return jsonResponse({
+            error: "Practice context changed while the round was starting. Try again.",
+            code: "PRACTICE_INTENT_STALE_CONTEXT",
+            retryable: true,
         }, 409);
     }
 
-    const existingPracticeSessions = await practiceSessionRepository.listPracticeSessionsForCandidate({
-        candidateProfileId: identity.candidateProfileId,
-        limit: 100,
-    });
-    const followUpSessionInput = createFollowUpSessionInput({
-        candidateProfileId: identity.candidateProfileId,
-        intent,
-        existingPracticeSessions,
-        now,
-    });
-    if (!followUpSessionInput) {
-        return jsonResponse({
-            error: "Follow-up practice session could not be created.",
-        }, 422);
-    }
+    return jsonResponse({
+        error: "Focused practice could not be started. Try again.",
+        code: result?.outcome === "invalid_session"
+            ? "PRACTICE_INTENT_INVALID_SESSION"
+            : "PRACTICE_INTENT_START_UNAVAILABLE",
+        retryable: result?.outcome !== "invalid_session",
+    }, 503);
+}
 
-    const createdSession = await practiceSessionRepository.createSetupSession(followUpSessionInput);
-    if (!createdSession) {
-        return jsonResponse({
-            error: "Follow-up practice session could not be saved.",
-        }, 503);
-    }
-
-    const consumedIntent = await practiceIntentRepository.markPracticeIntentConsumed({
-        candidatePracticeIntentId: intent.candidatePracticeIntentId,
-        candidateProfileId: identity.candidateProfileId,
-        consumedCandidatePracticeSessionId: createdSession.candidatePracticeSessionId,
-    });
-    if (!consumedIntent) {
-        return jsonResponse({
-            error: "Practice intent could not be marked consumed.",
-        }, 503);
-    }
-
-    return redirectToSession(request, createdSession.candidatePracticeSessionId);
+function practiceIntentStateResponse(state: "cancelled" | "expired") {
+    return jsonResponse({
+        error: state === "expired"
+            ? "This practice-ready link has expired. Return to your Coach Plan to set it up again."
+            : "This practice round is no longer available.",
+        code: state === "expired" ? "PRACTICE_INTENT_EXPIRED" : "PRACTICE_INTENT_CANCELLED",
+        retryable: false,
+    }, 409);
 }
 
 function createDefaultCandidatePracticeIntentStartDependencies(): CandidatePracticeIntentStartDependencies {
@@ -145,11 +222,12 @@ function createDefaultCandidatePracticeIntentStartDependencies(): CandidatePract
             resolveCandidatePracticeIntentStartIdentity: async () => null,
             practiceIntentRepository: {
                 findPracticeIntent: async () => null,
-                markPracticeIntentConsumed: async () => null,
             },
             practiceSessionRepository: {
-                listPracticeSessionsForCandidate: async () => [],
-                createSetupSession: async () => null,
+                listAllPracticeSessionsForCandidate: async () => [],
+            },
+            practiceIntentLaunchRepository: {
+                startPracticeIntentSession: async () => null,
             },
             createFollowUpSessionInput: createCandidateFollowUpSessionInputFromIntent,
         };
@@ -158,6 +236,7 @@ function createDefaultCandidatePracticeIntentStartDependencies(): CandidatePract
     const queryClient = createLazyPostgresQueryClient(databaseUrl);
     const practiceIntentRepository = createCandidatePracticeIntentRepository(queryClient);
     const practiceSessionRepository = createCandidatePracticeSessionRepository(queryClient);
+    const practiceIntentLaunchRepository = createCandidatePracticeIntentLaunchRepository(queryClient);
 
     return {
         async resolveCandidatePracticeIntentStartIdentity() {
@@ -172,6 +251,7 @@ function createDefaultCandidatePracticeIntentStartDependencies(): CandidatePract
         },
         practiceIntentRepository,
         practiceSessionRepository,
+        practiceIntentLaunchRepository,
         createFollowUpSessionInput: createCandidateFollowUpSessionInputFromIntent,
     };
 }

@@ -1,10 +1,15 @@
 import { randomUUID } from "crypto";
 
-import { createCandidateSetupSessionTransition } from "@/features/candidate-setup-v2/candidate-setup-session-creation";
+import {
+    completeCandidateSetupSessionTransition,
+    createCandidateSetupSessionPlan,
+    type CandidateSetupSessionPlanResult,
+} from "@/features/candidate-setup-v2/candidate-setup-session-creation";
 import { safeParseCandidateSetupInput } from "@/features/candidate-setup-v2/candidate-setup-contract";
 import type { CandidateProvisionalSessionProgress } from "@/features/candidate-session-v2/candidate-provisional-session-store";
 import {
     createCandidatePracticeSessionRepository,
+    type CandidatePracticeSessionRecord,
     type CreateCandidatePracticeSessionInput,
 } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-auth-v2/production-host-launch-runtime";
@@ -21,14 +26,39 @@ import {
     createCandidateSetupEntryRepository,
     type CandidateTrustedSetupContext,
 } from "@/features/candidate-setup-v2/candidate-setup-entry-context";
+import {
+    createCandidateQuestionWordingRequest,
+} from "@/features/candidate-session-v2/candidate-question-wording";
+import {
+    CandidateQuestionWordingRuntimeError,
+    createFixtureCandidateQuestionWordingRuntime,
+    type CandidateQuestionWordingRuntime,
+    type CandidateQuestionWordingRuntimeTelemetry,
+} from "@/features/candidate-session-v2/candidate-question-wording-runtime";
+import { createCandidateQuestionWordingRuntimeFromEnvironment } from "@/features/candidate-session-v2/candidate-question-wording-runtime-selection";
+import {
+    CANDIDATE_SETUP_START_IDEMPOTENCY_HEADER,
+    createCandidateSetupStartClaimTimes,
+    createCandidateSetupStartRequestFingerprint,
+    hashCandidateSetupStartIdempotencyKey,
+    normalizeCandidateSetupStartIdempotencyKey,
+    type CandidateSetupStartClaim,
+} from "@/features/candidate-setup-v2/candidate-setup-start-request";
+import {
+    createCandidateSetupStartRequestRepository,
+} from "@/features/candidate-setup-v2/candidate-setup-start-request-repository";
 
 export async function POST(request: Request) {
-    return handleCandidateSetupStartRequest({
-        request,
-        now: new Date(),
-        createSessionId: () => randomUUID(),
-        ...createDefaultCandidateSetupStartDependencies(),
-    });
+    try {
+        return await handleCandidateSetupStartRequest({
+            request,
+            now: new Date(),
+            createSessionId: () => randomUUID(),
+            ...createDefaultCandidateSetupStartDependencies(),
+        });
+    } catch (error) {
+        return createCandidateSetupStartFailureResponse(error);
+    }
 }
 
 type CandidateSetupIdentity = {
@@ -44,7 +74,16 @@ type CandidateSetupStartPracticeSessionRepository = {
     createSetupSession: (input: CreateCandidatePracticeSessionInput) => Promise<{
         candidatePracticeSessionId: string;
     } | null>;
+    findSetupSession?: (input: {
+        candidatePracticeSessionId: string;
+        candidateProfileId: string;
+    }) => Promise<CandidatePracticeSessionRecord | null>;
 };
+
+type CandidateSetupStartRequestRepository = Pick<
+    ReturnType<typeof createCandidateSetupStartRequestRepository>,
+    "claimSetupStart" | "failSetupStart"
+>;
 
 type CandidateSetupEntryRepository = Pick<
     ReturnType<typeof createCandidateSetupEntryRepository>,
@@ -59,6 +98,8 @@ export type CandidateSetupStartDependencies = {
     prepContextResolver?: CandidateSetupPrepContextResolver;
     setupEntryRepository?: CandidateSetupEntryRepository;
     practiceSessionRepository?: CandidateSetupStartPracticeSessionRepository;
+    setupStartRequestRepository?: CandidateSetupStartRequestRepository;
+    questionWordingRuntime?: CandidateQuestionWordingRuntime | null;
 };
 
 export async function handleCandidateSetupStartRequest({
@@ -70,6 +111,8 @@ export async function handleCandidateSetupStartRequest({
     prepContextResolver,
     setupEntryRepository,
     practiceSessionRepository,
+    setupStartRequestRepository,
+    questionWordingRuntime = createFixtureCandidateQuestionWordingRuntime(),
 }: CandidateSetupStartDependencies & {
     request: Request;
 }) {
@@ -119,7 +162,7 @@ export async function handleCandidateSetupStartRequest({
                 error: "Trusted job context changed before setup was submitted.",
             }, { status: 409 });
         }
-        const result = createCandidateSetupSessionTransition({
+        const plan = createCandidateSetupSessionPlan({
             payload: canonicalSetup,
             now,
             createSessionId,
@@ -154,70 +197,176 @@ export async function handleCandidateSetupStartRequest({
         }
 
         if (identity && practiceSessionRepository) {
-            if (!prepContextResolver) {
+            if (!prepContextResolver || !setupStartRequestRepository) {
                 return Response.json({
-                    error: "Candidate preparation context could not be resolved.",
+                    error: "Candidate setup is temporarily unavailable.",
                 }, { status: 503 });
             }
 
-            const prepContext = await prepContextResolver.resolveSetupPrepContext({
-                candidateProfileId: identity.candidateProfileId,
-                requestedRoleProfileId: identity.roleProfileId ?? null,
-                createSeparateFromRoleProfileId: prepContextDecision?.action === "create_separate_path"
-                    ? prepContextDecision.matchingRoleProfileId
-                    : null,
-                allowManualCreation: identity.allowManualPrepContextCreation === true,
-                trustedLaunchContext: identity.trustedSetupContext ?? null,
-                trustedLaunchSessionId: identity.trustedSetupContext
-                    ? identity.candidateLaunchSessionId ?? null
-                    : null,
-                setupSnapshot: result.setupSnapshot,
-            });
-            if (!prepContext) {
+            const idempotencyKey = normalizeCandidateSetupStartIdempotencyKey(
+                request.headers.get(CANDIDATE_SETUP_START_IDEMPOTENCY_HEADER),
+            );
+            if (!idempotencyKey) {
                 return Response.json({
-                    error: "Candidate preparation context could not be resolved.",
+                    error: "This setup request needs a fresh request key. Reload setup and try again.",
+                    code: "SETUP_START_IDEMPOTENCY_KEY_REQUIRED",
+                    retryable: true,
+                }, { status: 400 });
+            }
+
+            const idempotencyKeyHash = hashCandidateSetupStartIdempotencyKey(idempotencyKey);
+            const requestFingerprint = createCandidateSetupStartRequestFingerprint({
+                setup: canonicalSetup,
+                setupEntryMode,
+                prepContextAnchor: {
+                    requestedRoleProfileId: identity.roleProfileId ?? null,
+                    candidateLaunchSessionId: identity.candidateLaunchSessionId ?? null,
+                    sourcePlatform: identity.trustedSetupContext?.sourcePlatform ?? null,
+                    jobCollectionId: identity.trustedSetupContext?.jobCollectionId ?? null,
+                    requirementId: identity.trustedSetupContext?.requirementId ?? null,
+                },
+                prepContextDecision: prepContextDecision?.action === "create_separate_path"
+                    ? {
+                        action: "create_separate_path",
+                        matchingRoleProfileId: prepContextDecision.matchingRoleProfileId,
+                    }
+                    : null,
+            });
+            const claimTimes = createCandidateSetupStartClaimTimes(now);
+            const claimResult = await setupStartRequestRepository.claimSetupStart({
+                candidateProfileId: identity.candidateProfileId,
+                idempotencyKeyHash,
+                requestFingerprint,
+                ...claimTimes,
+            });
+            if (!claimResult) {
+                return Response.json({
+                    error: "Candidate setup could not be reserved.",
                 }, { status: 503 });
             }
 
-            if (prepContext.status === "existing_paths") {
+            if (claimResult.outcome === "conflict") {
                 return Response.json({
-                    status: "existing_prep_context_found",
-                    existingPrepContexts: prepContext.existingPrepContexts,
+                    error: "This setup changed after the request began. Review it and try again.",
+                    code: "SETUP_START_IDEMPOTENCY_CONFLICT",
+                    retryable: true,
                 }, { status: 409 });
             }
 
-            if (prepContext.status === "decision_invalid") {
+            if (claimResult.outcome === "in_progress") {
                 return Response.json({
-                    error: "That existing practice path is no longer available. Review the current choices and try again.",
+                    error: "I am still preparing this practice round. Try again in a moment.",
+                    code: "SETUP_START_IN_PROGRESS",
+                    retryable: true,
+                }, {
+                    status: 409,
+                    headers: { "Retry-After": "2" },
+                });
+            }
+
+            if (claimResult.outcome === "replayed") {
+                const replayedSession = practiceSessionRepository.findSetupSession
+                    ? await practiceSessionRepository.findSetupSession({
+                        candidatePracticeSessionId: claimResult.candidatePracticeSessionId,
+                        candidateProfileId: identity.candidateProfileId,
+                    })
+                    : null;
+                const replayedResult = replayedSession
+                    ? toCandidateSetupSessionResult(replayedSession)
+                    : null;
+                if (!replayedResult) {
+                    return Response.json({
+                        error: "The saved practice round could not be recovered.",
+                    }, { status: 503 });
+                }
+                return Response.json(replayedResult, { status: 200 });
+            }
+
+            const activeClaim: CandidateSetupStartClaim = claimResult;
+            try {
+                const prepContext = await prepContextResolver.resolveSetupPrepContext({
+                    candidateProfileId: identity.candidateProfileId,
+                    requestedRoleProfileId: identity.roleProfileId ?? null,
+                    createSeparateFromRoleProfileId: prepContextDecision?.action === "create_separate_path"
+                        ? prepContextDecision.matchingRoleProfileId
+                        : null,
+                    allowManualCreation: identity.allowManualPrepContextCreation === true,
+                    trustedLaunchContext: identity.trustedSetupContext ?? null,
+                    trustedLaunchSessionId: identity.trustedSetupContext
+                        ? identity.candidateLaunchSessionId ?? null
+                        : null,
+                    setupSnapshot: plan.setupSnapshot,
+                });
+                if (!prepContext) {
+                    await failSetupStartClaimSafely(setupStartRequestRepository, identity.candidateProfileId, activeClaim, now, "PREP_CONTEXT_UNAVAILABLE");
+                    return Response.json({
+                        error: "Candidate preparation context could not be resolved.",
+                    }, { status: 503 });
+                }
+
+                if (prepContext.status === "existing_paths") {
+                    await failSetupStartClaimSafely(setupStartRequestRepository, identity.candidateProfileId, activeClaim, now, "PREP_CONTEXT_DECISION_REQUIRED");
+                    return Response.json({
+                        status: "existing_prep_context_found",
+                        existingPrepContexts: prepContext.existingPrepContexts,
+                    }, { status: 409 });
+                }
+
+                if (prepContext.status === "decision_invalid") {
+                    await failSetupStartClaimSafely(setupStartRequestRepository, identity.candidateProfileId, activeClaim, now, "PREP_CONTEXT_DECISION_INVALID");
+                    return Response.json({
+                        error: "That existing practice path is no longer available. Review the current choices and try again.",
+                    }, { status: 409 });
+                }
+
+                const result = await createWordedSetupTransition({
+                    plan,
+                    runtime: questionWordingRuntime,
+                    now,
+                });
+
+                const progress: CandidateProvisionalSessionProgress = {
+                    status: "planned",
+                    currentQuestionIndex: 0,
+                };
+                const durableSession = await practiceSessionRepository.createSetupSession({
+                    candidateProfileId: identity.candidateProfileId,
+                    roleProfileId: prepContext.roleProfileId,
+                    candidateLaunchSessionId: identity.candidateLaunchSessionId ?? null,
+                    consumeTrustedLaunchSetupContext: Boolean(identity.trustedSetupContext),
+                    setupSnapshot: result.setupSnapshot,
+                    questionPlanSnapshot: result.questionPlanSnapshot,
+                    questionWordingSnapshot: result.questionWordingSnapshot,
+                    progress,
+                    setupStartClaim: activeClaim,
+                });
+
+                if (durableSession) {
+                    return Response.json({
+                        ...result,
+                        sessionId: durableSession.candidatePracticeSessionId,
+                        nextRoute: `/candidate/session/${encodeURIComponent(durableSession.candidatePracticeSessionId)}`,
+                    }, { status: 201 });
+                }
+
+                await failSetupStartClaimSafely(setupStartRequestRepository, identity.candidateProfileId, activeClaim, now, "SETUP_START_CLAIM_LOST");
+                return Response.json({
+                    error: "This setup request could not be completed. Your setup is still available, so you can try again.",
+                    code: "SETUP_START_CLAIM_LOST",
+                    retryable: true,
                 }, { status: 409 });
+            } catch (error) {
+                await failSetupStartClaimSafely(
+                    setupStartRequestRepository,
+                    identity.candidateProfileId,
+                    activeClaim,
+                    now,
+                    error instanceof CandidateQuestionWordingRuntimeError
+                        ? error.errorCode
+                        : "SETUP_START_FAILED",
+                );
+                throw error;
             }
-
-            const progress: CandidateProvisionalSessionProgress = {
-                status: "planned",
-                currentQuestionIndex: 0,
-            };
-            const durableSession = await practiceSessionRepository.createSetupSession({
-                candidateProfileId: identity.candidateProfileId,
-                roleProfileId: prepContext.roleProfileId,
-                candidateLaunchSessionId: identity.candidateLaunchSessionId ?? null,
-                consumeTrustedLaunchSetupContext: Boolean(identity.trustedSetupContext),
-                setupSnapshot: result.setupSnapshot,
-                questionPlanSnapshot: result.questionPlanSnapshot,
-                questionWordingSnapshot: result.questionWordingSnapshot,
-                progress,
-            });
-
-            if (durableSession) {
-                return Response.json({
-                    ...result,
-                    sessionId: durableSession.candidatePracticeSessionId,
-                    nextRoute: `/candidate/session/${encodeURIComponent(durableSession.candidatePracticeSessionId)}`,
-                }, { status: 201 });
-            }
-
-            return Response.json({
-                error: "Candidate practice session could not be saved.",
-            }, { status: 503 });
         }
 
         if (identity && !identity.allowBrowserBridgeFallback) {
@@ -232,15 +381,22 @@ export async function handleCandidateSetupStartRequest({
             }, { status: 401 });
         }
 
+
+        const result = await createWordedSetupTransition({
+            plan,
+            runtime: questionWordingRuntime,
+            now,
+        });
+
         return Response.json(result, { status: 201 });
-    } catch {
-        return Response.json({ error: "Candidate setup could not be started." }, { status: 503 });
+    } catch (error) {
+        return createCandidateSetupStartFailureResponse(error);
     }
 }
 
 function createDefaultCandidateSetupStartDependencies(): Pick<
     CandidateSetupStartDependencies,
-    "allowBrowserBridgeWithoutIdentity" | "resolveCandidateSetupIdentity" | "prepContextResolver" | "setupEntryRepository" | "practiceSessionRepository"
+    "allowBrowserBridgeWithoutIdentity" | "resolveCandidateSetupIdentity" | "prepContextResolver" | "setupEntryRepository" | "practiceSessionRepository" | "setupStartRequestRepository" | "questionWordingRuntime"
 > {
     const databaseUrl = process.env[CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV]?.trim();
     const allowBrowserBridgeWithoutIdentity = process.env.NODE_ENV !== "production";
@@ -249,8 +405,12 @@ function createDefaultCandidateSetupStartDependencies(): Pick<
             ? {
                 allowBrowserBridgeWithoutIdentity,
                 resolveCandidateSetupIdentity: resolveCandidateSetupIdentityFromDevLaunchCookie,
+                questionWordingRuntime: createDefaultQuestionWordingRuntime(),
             }
-            : { allowBrowserBridgeWithoutIdentity };
+            : {
+                allowBrowserBridgeWithoutIdentity,
+                questionWordingRuntime: createDefaultQuestionWordingRuntime(),
+            };
     }
 
     const queryClient = createCandidatePostgresQueryClient(databaseUrl);
@@ -265,7 +425,88 @@ function createDefaultCandidateSetupStartDependencies(): Pick<
         prepContextResolver: createCandidateSetupPrepContextRepository(queryClient),
         setupEntryRepository,
         practiceSessionRepository: createCandidatePracticeSessionRepository(queryClient),
+        setupStartRequestRepository: createCandidateSetupStartRequestRepository(queryClient),
+        questionWordingRuntime: createDefaultQuestionWordingRuntime(),
     };
+}
+
+async function createWordedSetupTransition({
+    plan,
+    runtime,
+    now,
+}: {
+    plan: CandidateSetupSessionPlanResult;
+    runtime: CandidateQuestionWordingRuntime | null;
+    now: Date;
+}) {
+    if (!runtime) {
+        throw new CandidateQuestionWordingRuntimeError("misconfigured");
+    }
+    const request = createCandidateQuestionWordingRequest({
+        setupSnapshot: plan.setupSnapshot,
+        questionPlanSnapshot: plan.questionPlanSnapshot,
+        now,
+    });
+    const questionWordingSnapshot = await runtime.wordQuestions(request);
+    return completeCandidateSetupSessionTransition({ plan, questionWordingSnapshot });
+}
+
+function toCandidateSetupSessionResult(session: CandidatePracticeSessionRecord) {
+    if (!session.questionWordingSnapshot) {
+        return null;
+    }
+    return {
+        status: "session_created" as const,
+        sessionId: session.candidatePracticeSessionId,
+        nextRoute: `/candidate/session/${encodeURIComponent(session.candidatePracticeSessionId)}` as const,
+        setupSnapshot: session.setupSnapshot,
+        questionPlanSnapshot: session.questionPlanSnapshot,
+        questionWordingSnapshot: session.questionWordingSnapshot,
+    };
+}
+
+async function failSetupStartClaimSafely(
+    repository: CandidateSetupStartRequestRepository,
+    candidateProfileId: string,
+    claim: CandidateSetupStartClaim,
+    now: Date,
+    errorCode: string,
+) {
+    try {
+        await repository.failSetupStart({
+            candidateProfileId,
+            ...claim,
+            failedAt: now.toISOString(),
+            errorCode,
+        });
+    } catch (error) {
+        console.warn("candidate_setup_start_claim_release_failed", {
+            errorCode,
+            errorName: error instanceof Error ? error.name : "unknown",
+        });
+    }
+}
+
+function createDefaultQuestionWordingRuntime() {
+    return createCandidateQuestionWordingRuntimeFromEnvironment({
+        env: { ...process.env },
+        recordTelemetry: recordCandidateQuestionWordingTelemetry,
+    });
+}
+
+function recordCandidateQuestionWordingTelemetry(event: CandidateQuestionWordingRuntimeTelemetry) {
+    console.info("candidate_question_wording_runtime", event);
+}
+
+function createCandidateSetupStartFailureResponse(error: unknown) {
+    if (error instanceof CandidateQuestionWordingRuntimeError) {
+        return Response.json({
+            error: "Practice questions could not be prepared. Your setup is still available, so you can try again.",
+            code: error.errorCode,
+            retryable: error.retryable,
+        }, { status: 503 });
+    }
+    return Response.json({ error: "Candidate setup could not be started." }, { status: 503 });
 }
 
 async function resolveCandidateSetupIdentityFromLaunchCookie(

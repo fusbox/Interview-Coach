@@ -1,10 +1,11 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
     CANDIDATE_SETUP_DRAFT_STORAGE_KEY,
     clearCandidateSetupDraft,
     createCandidateSetupBrowserDraftStore,
     createCandidateSetupMemoryDraftStore,
+    getOrCreateCandidateSetupStartRequest,
     restoreCandidateSetupDraft,
     saveCandidateSetupDraft,
 } from "./candidate-setup-draft-store";
@@ -125,5 +126,51 @@ describe("candidate setup draft store", () => {
         expect(restoreCandidateSetupDraft(store, "candidate:other")).toMatchObject({
             targetRole: "Warehouse lead",
         });
+    });
+
+    it("keeps one setup-start key for the same request signature and rotates it after setup changes", () => {
+        const store = createCandidateSetupMemoryDraftStore();
+        const createIdempotencyKey = vi.fn()
+            .mockReturnValueOnce("setup-request-key-0001")
+            .mockReturnValueOnce("setup-request-key-0002");
+        saveCandidateSetupDraft(store, ownerKey, {
+            targetRole: "Medical assistant",
+            jobDescription: "Support patients and clinical staff.",
+        });
+
+        expect(getOrCreateCandidateSetupStartRequest(
+            store,
+            ownerKey,
+            "signature-one",
+            createIdempotencyKey,
+        )).toEqual({
+            requestSignature: "signature-one",
+            idempotencyKey: "setup-request-key-0001",
+        });
+        expect(getOrCreateCandidateSetupStartRequest(
+            store,
+            ownerKey,
+            "signature-one",
+            createIdempotencyKey,
+        )).toEqual({
+            requestSignature: "signature-one",
+            idempotencyKey: "setup-request-key-0001",
+        });
+
+        saveCandidateSetupDraft(store, ownerKey, {
+            targetRole: "Medical assistant",
+            jobDescription: "Support patients, clinical staff, and scheduling.",
+        });
+
+        expect(getOrCreateCandidateSetupStartRequest(
+            store,
+            ownerKey,
+            "signature-two",
+            createIdempotencyKey,
+        )).toEqual({
+            requestSignature: "signature-two",
+            idempotencyKey: "setup-request-key-0002",
+        });
+        expect(createIdempotencyKey).toHaveBeenCalledTimes(2);
     });
 });

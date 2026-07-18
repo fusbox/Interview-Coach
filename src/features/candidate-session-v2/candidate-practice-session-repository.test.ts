@@ -59,7 +59,48 @@ describe("candidate practice session repository", () => {
             },
             {},
             false,
+            false,
+            null,
+            null,
+            null,
         ]);
+    });
+
+    it("completes only the currently leased setup-start generation with the inserted session", async () => {
+        const query = vi.fn(async () => ({
+            rows: [{ candidate_practice_session_id: "11111111-1111-4111-8111-111111111111" }],
+        }));
+        const repository = createCandidatePracticeSessionRepository({ query });
+        const setupSnapshot = {
+            targetRole: "Warehouse lead",
+            jobDescription: "Coordinate safety workflows.",
+            resumeText: null,
+            interviewStage: "screening" as const,
+            questionCount: 5,
+            resumeCaptureMode: "none" as const,
+            createdAt: "2026-07-18T12:00:00.000Z",
+        };
+        const questionPlanSnapshot = createCandidateQuestionPlan({
+            interviewStage: "screening",
+            questionCount: 5,
+        });
+
+        await repository.createSetupSession({
+            candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            roleProfileId: "33333333-3333-4333-8333-333333333333",
+            setupSnapshot,
+            questionPlanSnapshot,
+            setupStartClaim: {
+                idempotencyKeyHash: "a".repeat(64),
+                requestFingerprint: "b".repeat(64),
+                claimGeneration: 3,
+            },
+        });
+
+        expect(query).toHaveBeenCalledWith(
+            expect.stringContaining("completed_setup_start_request"),
+            expect.arrayContaining([true, "a".repeat(64), "b".repeat(64), 3]),
+        );
     });
 
     it("consumes a trusted launch setup context in the same statement as session creation", async () => {

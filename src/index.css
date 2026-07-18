@@ -1413,7 +1413,7 @@ select {
 }
 
 .candidate-pre-session__summary-label h2 {
-    max-width: 24ch;
+    width: 100%;
     margin: 0;
     color: rgb(var(--candidate-primary-deep));
     font-family: var(--font-display);

@@ -1,11 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+    createCandidateDirectPracticeIntentFromResolvedItems,
     createCandidatePracticeIntentFromResolvedItems,
 } from "./candidate-practice-intent-creation";
 import type {
     CandidateResolvedFollowUpPracticeIntent,
 } from "./candidate-follow-up-practice-intent";
+import type { CandidateDirectPracticeIntentCreationRecord } from "./candidate-practice-intent-repository";
 
 describe("candidate practice intent creation", () => {
     it("creates one durable ready intent from one or many resolved follow-up items", async () => {
@@ -108,6 +110,51 @@ describe("candidate practice intent creation", () => {
         })).resolves.toEqual({
             status: "candidate_practice_intent_not_created",
             reason: "persistence_failed",
+        });
+    });
+
+    it("replays one direct candidate action and conflicts changed content before another intent", async () => {
+        const createDirectPracticeIntent = vi.fn(async (): Promise<CandidateDirectPracticeIntentCreationRecord> => ({
+            outcome: "replayed",
+            candidatePracticeIntentId: "intent-1",
+            lifecycleState: "ready",
+            consumedCandidatePracticeSessionId: null,
+        }));
+
+        await expect(createCandidateDirectPracticeIntentFromResolvedItems({
+            candidateProfileId: "candidate-1",
+            source: "coach_update_detail",
+            resolvedItems: [createResolvedItem("slot-1", 1)],
+            idempotencyKeyHash: "a".repeat(64),
+            practiceIntentRepository: { createDirectPracticeIntent },
+        })).resolves.toMatchObject({
+            status: "candidate_practice_intent_created",
+            candidatePracticeIntentId: "intent-1",
+            redirectTo: "/candidate/practice/ready/intent-1",
+            requestDisposition: "replayed",
+        });
+        expect(createDirectPracticeIntent).toHaveBeenCalledWith(expect.objectContaining({
+            idempotencyKeyHash: "a".repeat(64),
+            requestFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+            source: "coach_update_detail",
+            items: [expect.objectContaining({ source: expect.objectContaining({ questionKey: "slot-1" }) })],
+        }));
+
+        createDirectPracticeIntent.mockResolvedValueOnce({
+            outcome: "conflict",
+            candidatePracticeIntentId: "intent-1",
+            lifecycleState: "ready",
+            consumedCandidatePracticeSessionId: null,
+        });
+        await expect(createCandidateDirectPracticeIntentFromResolvedItems({
+            candidateProfileId: "candidate-1",
+            source: "coach_update_detail",
+            resolvedItems: [createResolvedItem("slot-2", 2)],
+            idempotencyKeyHash: "a".repeat(64),
+            practiceIntentRepository: { createDirectPracticeIntent },
+        })).resolves.toEqual({
+            status: "candidate_practice_intent_not_created",
+            reason: "idempotency_conflict",
         });
     });
 });

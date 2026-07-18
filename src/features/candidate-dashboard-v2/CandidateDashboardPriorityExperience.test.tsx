@@ -35,7 +35,7 @@ describe("CandidateDashboardPriorityExperience", () => {
         const priorities = screen.getByRole("region", { name: "Coach Plan priorities" });
         expect(within(priorities).getByRole("heading", { name: "Practice one clearer result." }).closest("article"))
             .toHaveClass("is-primary");
-        expect(within(priorities).getByRole("link", { name: "Practice this now" })).toBeInTheDocument();
+        expect(within(priorities).getByRole("button", { name: "Practice this now" })).toBeInTheDocument();
 
         fireEvent.click(within(priorities).getByRole("button", { name: "Open Coach Update" }));
         expect(screen.getByRole("dialog", { name: "Let's review your latest practice." })).toBeInTheDocument();
@@ -106,7 +106,7 @@ describe("CandidateDashboardPriorityExperience", () => {
 
         const dialog = screen.getByRole("dialog", { name: "Let's review your latest practice." });
         expect(within(dialog).getByRole("tab", { name: "Current feedback: question 1" })).toHaveAttribute("aria-selected", "true");
-        const focusLinks = within(dialog).getAllByRole("link", { name: "Practice this now", hidden: true });
+        const focusLinks = within(dialog).getAllByRole("button", { name: "Practice this now", hidden: true });
         expect(focusLinks[0]).not.toHaveAttribute("tabindex", "-1");
         expect(focusLinks[1]).toHaveAttribute("tabindex", "-1");
 

@@ -18,6 +18,7 @@ it("renders a recovery state when the durable follow-up practice intent cannot b
 it("renders a durable one-question follow-up practice intent", async () => {
     render(await renderCandidatePracticeIntentReadyPage({
         intentId: "intent-1",
+        now: new Date("2026-07-12T13:00:00.000Z"),
         dependencies: {
             resolvePracticeIntent: async () => createPracticeIntentRecord([createIntentItem("slot-1")]),
         },
@@ -43,6 +44,7 @@ it("renders a durable one-question follow-up practice intent", async () => {
 it("renders a durable multi-question follow-up practice intent without changing route shape", async () => {
     render(await renderCandidatePracticeIntentReadyPage({
         intentId: "intent-1",
+        now: new Date("2026-07-12T13:00:00.000Z"),
         dependencies: {
             resolvePracticeIntent: async () => createPracticeIntentRecord([
                 createIntentItem("slot-1"),
@@ -64,6 +66,43 @@ it("renders a durable multi-question follow-up practice intent without changing 
     expect(within(list).getByText("What work environment helps you do your best work?")).toBeInTheDocument();
 });
 
+it("suppresses an expired ready intent before the candidate can submit it", async () => {
+    render(await renderCandidatePracticeIntentReadyPage({
+        intentId: "intent-1",
+        now: new Date("2026-07-13T12:00:00.001Z"),
+        dependencies: {
+            resolvePracticeIntent: async () => createPracticeIntentRecord([createIntentItem("slot-1")]),
+        },
+    }));
+
+    expect(screen.getByRole("heading", { name: "Practice round is not ready yet." })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Start practice" })).not.toBeInTheDocument();
+});
+
+it("keeps a consumed intent actionable so a response-lost start can replay its owned session", async () => {
+    const consumedIntent = {
+        ...createPracticeIntentRecord([createIntentItem("slot-1")]),
+        lifecycleState: "consumed" as const,
+        launchVersion: 2,
+        consumedCandidatePracticeSessionId: "session-2",
+        consumedAt: "2026-07-12T13:00:00.000Z",
+    };
+
+    render(await renderCandidatePracticeIntentReadyPage({
+        intentId: "intent-1",
+        now: new Date("2026-07-14T12:00:00.000Z"),
+        dependencies: {
+            resolvePracticeIntent: async () => consumedIntent,
+        },
+    }));
+
+    expect(screen.getByRole("button", { name: "Start practice" })).toBeEnabled();
+    expect(screen.getByRole("form", { name: "Start follow-up practice" })).toHaveAttribute(
+        "action",
+        "/candidate/practice/ready/intent-1/start",
+    );
+});
+
 function createPracticeIntentRecord(items: CandidatePracticeIntentRecord["items"]): CandidatePracticeIntentRecord {
     return {
         status: "candidate_practice_intent_record",
@@ -71,6 +110,9 @@ function createPracticeIntentRecord(items: CandidatePracticeIntentRecord["items"
         candidateProfileId: "candidate-1",
         source: "practice_builder",
         lifecycleState: "ready",
+        launchVersion: 1,
+        consumedCandidatePracticeSessionId: null,
+        consumedAt: null,
         roleProfileId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
         targetInterviewId: "material handler i",
         targetRole: "Material Handler I",
@@ -85,6 +127,7 @@ function createPracticeIntentRecord(items: CandidatePracticeIntentRecord["items"
         items,
         createdAt: "2026-07-12T12:00:00.000Z",
         updatedAt: "2026-07-12T12:01:00.000Z",
+        expiresAt: "2026-07-13T12:00:00.000Z",
     };
 }
 

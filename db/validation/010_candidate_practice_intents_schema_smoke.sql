@@ -56,7 +56,7 @@ values (
   '93939393-9393-4393-8393-939393939393',
   '91919191-9191-4191-8191-919191919191',
   'planned',
-  '{"targetRole":"Material Handler I","jobDescription":"Move materials safely.","interviewStage":"first_interview","questionCount":2,"resumeCaptureMode":"none","createdAt":"2026-07-12T17:00:00.000Z"}'::jsonb,
+  '{"targetRole":"Material Handler I","jobDescription":"Move materials safely.","interviewStage":"first_interview","questionCount":2,"resumeCaptureMode":"none","createdAt":"2026-07-12T17:00:00.000Z","followUpPractice":{"status":"candidate_follow_up_practice_session","sourceIntentId":"92929292-9292-4292-8292-929292929292","source":"practice_builder","sessionAttemptNumber":1,"itemCount":2,"items":[]}}'::jsonb,
   '{"interviewStage":"first_interview","questionCount":2,"categoryCounts":{"screening":1,"behavioral":1,"culture_fit":0,"case_scenario":0,"technical_role_specific":0},"slots":[{"id":"slot-1","index":0,"category":"screening","label":"Screening","purpose":"Basic fit."},{"id":"slot-2","index":1,"category":"behavioral","label":"Behavioral","purpose":"Past examples."}]}'::jsonb,
   '{"status":"questions_worded","questions":[{"slotId":"slot-1","index":0,"category":"screening","questionText":"What interests you about this Material Handler role?"},{"slotId":"slot-2","index":1,"category":"behavioral","questionText":"Tell me about a time you handled an inventory issue."}]}'::jsonb,
   'worded',
@@ -65,7 +65,9 @@ values (
 
 update public.candidate_practice_intents
 set lifecycle_state = 'consumed',
-    consumed_candidate_practice_session_id = '93939393-9393-4393-8393-939393939393'
+    consumed_candidate_practice_session_id = '93939393-9393-4393-8393-939393939393',
+    consumed_at = now(),
+    launch_version = launch_version + 1
 where candidate_practice_intent_id = '92929292-9292-4292-8292-929292929292';
 
 do $$

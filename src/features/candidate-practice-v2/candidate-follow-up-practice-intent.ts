@@ -81,7 +81,9 @@ export type CandidatePracticeIntentRecord = {
     candidateProfileId: string;
     source: CandidatePracticeIntentSource;
     lifecycleState: CandidatePracticeIntentLifecycleState;
+    launchVersion: number;
     consumedCandidatePracticeSessionId?: string | null;
+    consumedAt?: string | null;
     sourceNextRoundDraftId?: string | null;
     sourceNextRoundDraftVersion?: number | null;
     roleProfileId: string | null;
@@ -92,6 +94,7 @@ export type CandidatePracticeIntentRecord = {
     items: CandidatePracticeIntentItem[];
     createdAt: string;
     updatedAt: string;
+    expiresAt: string;
 };
 
 export type CreateCandidateFollowUpPracticeIntentRecordInput = {
@@ -102,7 +105,10 @@ export type CreateCandidateFollowUpPracticeIntentRecordInput = {
     items: CandidateResolvedFollowUpPracticeIntent[];
     createdAt: string;
     updatedAt?: string;
+    expiresAt?: string;
 };
+
+export const CANDIDATE_PRACTICE_INTENT_READY_WINDOW_MS = 24 * 60 * 60 * 1_000;
 
 export type CandidateFollowUpPracticeIntentState =
     | CandidateFollowUpPracticeIntent
@@ -229,12 +235,26 @@ export function createCandidateFollowUpPracticeIntentRecord({
     items,
     createdAt,
     updatedAt,
+    expiresAt,
 }: CreateCandidateFollowUpPracticeIntentRecordInput): CandidatePracticeIntentRecord | null {
     const firstItem = items[0];
     if (!readString(candidatePracticeIntentId) || !readString(candidateProfileId) || !firstItem) {
         return null;
     }
-    if (!isCandidatePracticeIntentSource(source) || !isCandidatePracticeIntentLifecycleState(lifecycleState)) {
+    if (
+        !isCandidatePracticeIntentSource(source)
+        || !isCandidatePracticeIntentLifecycleState(lifecycleState)
+        || lifecycleState === "consumed"
+    ) {
+        return null;
+    }
+    const createdAtTime = Date.parse(createdAt);
+    if (!Number.isFinite(createdAtTime)) {
+        return null;
+    }
+    const resolvedExpiresAt = expiresAt ?? new Date(createdAtTime + CANDIDATE_PRACTICE_INTENT_READY_WINDOW_MS).toISOString();
+    const expiresAtTime = Date.parse(resolvedExpiresAt);
+    if (!Number.isFinite(expiresAtTime) || expiresAtTime <= createdAtTime) {
         return null;
     }
     if (items.length > 20) {
@@ -280,6 +300,9 @@ export function createCandidateFollowUpPracticeIntentRecord({
         candidateProfileId,
         source,
         lifecycleState,
+        launchVersion: 1,
+        consumedCandidatePracticeSessionId: null,
+        consumedAt: null,
         roleProfileId,
         targetInterviewId,
         targetRole,
@@ -288,7 +311,18 @@ export function createCandidateFollowUpPracticeIntentRecord({
         items: normalizedItems,
         createdAt,
         updatedAt: updatedAt ?? createdAt,
+        expiresAt: resolvedExpiresAt,
     };
+}
+
+export function isCandidatePracticeIntentLaunchable(
+    intent: CandidatePracticeIntentRecord,
+    now: Date,
+) {
+    const expiresAt = Date.parse(intent.expiresAt);
+    return intent.lifecycleState === "ready"
+        && Number.isFinite(expiresAt)
+        && expiresAt > now.getTime();
 }
 
 function readSingleSearchParam(searchParams: CandidatePracticeReadySearchParams | null | undefined, key: string) {

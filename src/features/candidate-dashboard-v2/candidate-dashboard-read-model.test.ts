@@ -198,6 +198,22 @@ describe("candidate dashboard V2 read model", () => {
         expect(JSON.stringify(model)).not.toContain("Add the customer outcome");
     });
 
+    it("treats a session entered before its first answer as resumable practice", () => {
+        const enteredSession = createActiveSession();
+        enteredSession.status = "planned";
+
+        const model = createCandidateDashboardV2ReadModel({
+            candidateProfileId: "candidate-1",
+            practiceSessions: [enteredSession],
+        });
+
+        expect(model.practiceDirection.planProgress).toMatchObject({
+            source: "active_round",
+            title: "Resume your current practice round.",
+            href: "/candidate/session/active-session",
+        });
+    });
+
     it("counts active-round question evidence without treating retries as extra answered questions", () => {
         const session = createActiveSession({
             candidatePracticeSessionId: "quality-control-active-session",

@@ -20,6 +20,7 @@ import type {
 import type { CandidateAnswerAnalysisProviderResult } from "./candidate-answer-analysis-adapter";
 import type { CandidateFeedbackActionEvent } from "./candidate-feedback-interaction";
 import type { CandidateLedSessionCompletionSnapshot } from "@/features/interview-session-v2/session-completion-contract";
+import type { CandidateSetupStartClaim } from "@/features/candidate-setup-v2/candidate-setup-start-request";
 
 export type CandidatePracticeSessionQueryClient = {
     query: (sql: string, values: unknown[]) => Promise<{
@@ -66,22 +67,62 @@ export type CreateCandidatePracticeSessionInput = {
     progress?: CandidateProvisionalSessionProgress;
     answerDrafts?: CandidateAnswerDrafts;
     answerSubmissions?: CandidateAnswerSubmissions;
+    setupStartClaim?: CandidateSetupStartClaim;
 };
+
+export type CandidatePracticeSessionPersistenceInput = {
+    candidateProfileId: string;
+    roleProfileId: string | null;
+    candidateLaunchSessionId: string | null;
+    setupSnapshot: CandidateSetupSessionCreationResult["setupSnapshot"];
+    questionPlanSnapshot: CandidateQuestionPlan;
+    questionWordingSnapshot: CandidateQuestionWordingResult | null;
+    questionWordingStatus: CandidatePracticeSessionWordingStatus;
+    progress: CandidateProvisionalSessionProgress;
+    answerDrafts: CandidateAnswerDrafts;
+};
+
+export function createCandidatePracticeSessionPersistenceInput(
+    input: CreateCandidatePracticeSessionInput,
+): CandidatePracticeSessionPersistenceInput {
+    return {
+        candidateProfileId: input.candidateProfileId,
+        roleProfileId: input.roleProfileId ?? null,
+        candidateLaunchSessionId: input.candidateLaunchSessionId ?? null,
+        setupSnapshot: input.setupSnapshot,
+        questionPlanSnapshot: input.questionPlanSnapshot,
+        questionWordingSnapshot: input.questionWordingSnapshot?.status === "questions_worded"
+            ? input.questionWordingSnapshot
+            : null,
+        questionWordingStatus: toQuestionWordingStatus(input.questionWordingSnapshot),
+        progress: normalizeProgress(input.progress),
+        answerDrafts: input.answerDrafts ?? {},
+    };
+}
 
 export function createCandidatePracticeSessionRepository(client: CandidatePracticeSessionQueryClient) {
     return {
         async createSetupSession(input: CreateCandidatePracticeSessionInput) {
-            const questionWordingStatus = toQuestionWordingStatus(input.questionWordingSnapshot);
-            const questionWordingSnapshot = input.questionWordingSnapshot?.status === "questions_worded"
-                ? input.questionWordingSnapshot
-                : null;
-            const progress = normalizeProgress(input.progress);
+            const persistence = createCandidatePracticeSessionPersistenceInput(input);
 
             const result = await client.query(`
-                with consumed_setup_context as (
+                with eligible_setup_start_request as materialized (
+                  select request.candidate_setup_start_request_id
+                  from public.candidate_setup_start_requests request
+                  where $12::boolean
+                    and request.candidate_profile_id = $1
+                    and request.idempotency_key_hash = $13
+                    and request.request_fingerprint = $14
+                    and request.claim_generation = $15
+                    and request.lifecycle_state = 'pending'
+                    and request.claim_expires_at > now()
+                    and request.expires_at > now()
+                  for update
+                ), consumed_setup_context as (
                   delete from public.candidate_launch_setup_contexts setup
                   using public.candidate_launch_sessions launch
                   where $11::boolean
+                    and (not $12::boolean or exists (select 1 from eligible_setup_start_request))
                     and setup.candidate_launch_session_id = $3
                     and setup.candidate_profile_id = $1
                     and setup.expires_at > now()
@@ -114,24 +155,47 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
                     answer_drafts_json
                   )
                   select $1, $2, $3, $4, $5::jsonb, $6::jsonb, $7::jsonb, $8, $9::jsonb, $10::jsonb
-                  where not $11::boolean
-                     or exists (select 1 from consumed_launch_session)
+                  where (not $12::boolean or exists (select 1 from eligible_setup_start_request))
+                    and (
+                      not $11::boolean
+                      or exists (select 1 from consumed_launch_session)
+                    )
                   returning candidate_practice_session_id
+                ), completed_setup_start_request as (
+                  update public.candidate_setup_start_requests request
+                  set lifecycle_state = 'completed',
+                      candidate_practice_session_id = inserted.candidate_practice_session_id,
+                      completed_at = now(),
+                      failed_at = null,
+                      last_error_code = null
+                  from inserted_practice_session inserted
+                  where $12::boolean
+                    and request.candidate_setup_start_request_id in (
+                      select candidate_setup_start_request_id
+                      from eligible_setup_start_request
+                    )
+                  returning request.candidate_practice_session_id
                 )
-                select candidate_practice_session_id
-                from inserted_practice_session
+                select inserted.candidate_practice_session_id
+                from inserted_practice_session inserted
+                where not $12::boolean
+                   or exists (select 1 from completed_setup_start_request)
             `, [
                 input.candidateProfileId,
-                input.roleProfileId ?? null,
-                input.candidateLaunchSessionId ?? null,
+                persistence.roleProfileId,
+                persistence.candidateLaunchSessionId,
                 "planned",
-                input.setupSnapshot,
-                input.questionPlanSnapshot,
-                questionWordingSnapshot,
-                questionWordingStatus,
-                progress,
-                input.answerDrafts ?? {},
+                persistence.setupSnapshot,
+                persistence.questionPlanSnapshot,
+                persistence.questionWordingSnapshot,
+                persistence.questionWordingStatus,
+                persistence.progress,
+                persistence.answerDrafts,
                 input.consumeTrustedLaunchSetupContext === true,
+                Boolean(input.setupStartClaim),
+                input.setupStartClaim?.idempotencyKeyHash ?? null,
+                input.setupStartClaim?.requestFingerprint ?? null,
+                input.setupStartClaim?.claimGeneration ?? null,
             ]);
 
             const candidatePracticeSessionId = readString(result.rows[0]?.candidate_practice_session_id);

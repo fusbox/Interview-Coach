@@ -72,6 +72,57 @@ describe("candidate practice intent repository", () => {
         ]);
     });
 
+    it("delegates direct creation to the atomic candidate-owned request boundary", async () => {
+        const queries: Array<{ sql: string; values: unknown[] }> = [];
+        const repository = createCandidatePracticeIntentRepository({
+            async query(sql, values) {
+                queries.push({ sql, values });
+                return {
+                    rows: [{
+                        creation_outcome: "replayed",
+                        candidate_practice_intent_id: "intent-1",
+                        intent_lifecycle_state: "consumed",
+                        consumed_candidate_practice_session_id: "session-2",
+                    }],
+                };
+            },
+        });
+
+        await expect(repository.createDirectPracticeIntent({
+            candidateProfileId: "candidate-1",
+            source: "coach_update_detail",
+            roleProfileId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            targetInterviewId: "material handler i",
+            targetRole: "Material Handler I",
+            setupContext: {
+                targetRole: "Material Handler I",
+                jobDescription: "Move materials safely.",
+                interviewStage: "first_interview",
+                questionCount: 1,
+                resumeIncluded: false,
+            },
+            items: [createIntentItem("slot-1")],
+            idempotencyKeyHash: "a".repeat(64),
+            requestFingerprint: "b".repeat(64),
+        })).resolves.toEqual({
+            outcome: "replayed",
+            candidatePracticeIntentId: "intent-1",
+            lifecycleState: "consumed",
+            consumedCandidatePracticeSessionId: "session-2",
+        });
+
+        expect(normalizeSql(queries[0].sql)).toContain(
+            "from public.create_candidate_direct_practice_intent(",
+        );
+        expect(queries[0].values.slice(0, 5)).toEqual([
+            "candidate-1",
+            "a".repeat(64),
+            "b".repeat(64),
+            "coach_update_detail",
+            "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        ]);
+    });
+
     it("finds a candidate-owned practice intent by id and candidate", async () => {
         const repository = createCandidatePracticeIntentRepository({
             async query(sql, values) {
@@ -91,6 +142,8 @@ describe("candidate practice intent repository", () => {
             candidatePracticeIntentId: "intent-1",
             candidateProfileId: "candidate-1",
             lifecycleState: "ready",
+            launchVersion: 1,
+            expiresAt: "2026-07-13T12:00:00.000Z",
             roleProfileId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
             itemCount: 2,
             items: [
@@ -108,30 +161,27 @@ describe("candidate practice intent repository", () => {
         });
     });
 
-    it("marks a ready practice intent consumed with the created follow-up session id", async () => {
-        const repository = createCandidatePracticeIntentRepository({
-            async query(sql, values) {
-                expect(normalizeSql(sql)).toContain("update public.candidate_practice_intents");
-                expect(values).toEqual(["intent-1", "candidate-1", "session-2"]);
-                return {
-                    rows: [{
-                        candidate_practice_intent_id: "intent-1",
-                        lifecycle_state: "consumed",
-                        consumed_candidate_practice_session_id: "session-2",
-                    }],
-                };
-            },
+    it("normalizes a consumed intent only with complete launch lineage", () => {
+        expect(toCandidatePracticeIntentRecord({
+            ...createIntentRow(),
+            lifecycle_state: "consumed",
+            launch_version: 2,
+            consumed_candidate_practice_session_id: "session-2",
+            consumed_at: "2026-07-12T12:05:00.000Z",
+        })).toMatchObject({
+            lifecycleState: "consumed",
+            launchVersion: 2,
+            consumedCandidatePracticeSessionId: "session-2",
+            consumedAt: "2026-07-12T12:05:00.000Z",
         });
 
-        await expect(repository.markPracticeIntentConsumed({
-            candidatePracticeIntentId: "intent-1",
-            candidateProfileId: "candidate-1",
-            consumedCandidatePracticeSessionId: "session-2",
-        })).resolves.toEqual({
-            candidatePracticeIntentId: "intent-1",
-            lifecycleState: "consumed",
-            consumedCandidatePracticeSessionId: "session-2",
-        });
+        expect(toCandidatePracticeIntentRecord({
+            ...createIntentRow(),
+            lifecycle_state: "consumed",
+            launch_version: 2,
+            consumed_candidate_practice_session_id: "session-2",
+            consumed_at: null,
+        })).toBeNull();
     });
 
     it("normalizes malformed rows closed instead of leaking partial practice intents", () => {
@@ -147,6 +197,10 @@ describe("candidate practice intent repository", () => {
             items_json: [],
             created_at: "2026-07-12T12:00:00.000Z",
             updated_at: "2026-07-12T12:00:00.000Z",
+        })).toBeNull();
+        expect(toCandidatePracticeIntentRecord({
+            ...createIntentRow(),
+            expires_at: "not-a-date",
         })).toBeNull();
     });
 
@@ -199,7 +253,9 @@ function createIntentRow() {
         candidate_profile_id: "candidate-1",
         source: "practice_builder",
         lifecycle_state: "ready",
+        launch_version: 1,
         consumed_candidate_practice_session_id: null,
+        consumed_at: null,
         role_profile_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
         target_interview_id: "material handler i",
         target_role: "Material Handler I",
@@ -213,6 +269,7 @@ function createIntentRow() {
         items_json: [createIntentItem("slot-1"), createIntentItem("slot-2")],
         created_at: "2026-07-12T12:00:00.000Z",
         updated_at: "2026-07-12T12:01:00.000Z",
+        expires_at: "2026-07-13T12:00:00.000Z",
     };
 }
 

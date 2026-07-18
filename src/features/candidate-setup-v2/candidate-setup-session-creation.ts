@@ -28,11 +28,32 @@ export type CandidateSetupSessionCreationResult = {
     questionWordingSnapshot: CandidateQuestionWordingResult;
 };
 
+export type CandidateSetupSessionPlanResult = Omit<
+    CandidateSetupSessionCreationResult,
+    "questionWordingSnapshot"
+>;
+
 export function createCandidateSetupSessionTransition({
     payload,
     now,
     createSessionId,
 }: CandidateSetupSessionCreationInput): CandidateSetupSessionCreationResult {
+    const plan = createCandidateSetupSessionPlan({ payload, now, createSessionId });
+
+    return completeCandidateSetupSessionTransition({
+        plan,
+        questionWordingSnapshot: createFixtureCandidateQuestionWordingResult({
+            setupSnapshot: plan.setupSnapshot,
+            questionPlanSnapshot: plan.questionPlanSnapshot,
+        }),
+    });
+}
+
+export function createCandidateSetupSessionPlan({
+    payload,
+    now,
+    createSessionId,
+}: CandidateSetupSessionCreationInput): CandidateSetupSessionPlanResult {
     const setupPayload = parseCandidateSetupInput(payload);
     const sessionId = normalizeSessionId(createSessionId());
     const setupSnapshot = {
@@ -50,10 +71,19 @@ export function createCandidateSetupSessionTransition({
         nextRoute: `/candidate/session/${encodeURIComponent(sessionId)}`,
         setupSnapshot,
         questionPlanSnapshot,
-        questionWordingSnapshot: createFixtureCandidateQuestionWordingResult({
-            setupSnapshot,
-            questionPlanSnapshot,
-        }),
+    };
+}
+
+export function completeCandidateSetupSessionTransition({
+    plan,
+    questionWordingSnapshot,
+}: {
+    plan: CandidateSetupSessionPlanResult;
+    questionWordingSnapshot: CandidateQuestionWordingResult;
+}): CandidateSetupSessionCreationResult {
+    return {
+        ...plan,
+        questionWordingSnapshot,
     };
 }
 

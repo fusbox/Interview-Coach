@@ -267,6 +267,9 @@ function createPracticeIntentRecord({
         candidateProfileId: "candidate-1",
         source: "practice_builder",
         lifecycleState: "ready",
+        launchVersion: 1,
+        consumedCandidatePracticeSessionId: null,
+        consumedAt: null,
         sourceNextRoundDraftId: "draft-1",
         sourceNextRoundDraftVersion: 4,
         roleProfileId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -283,6 +286,7 @@ function createPracticeIntentRecord({
         items,
         createdAt: "2026-07-12T16:00:00.000Z",
         updatedAt: "2026-07-12T16:00:00.000Z",
+        expiresAt: "2026-07-13T16:00:00.000Z",
     };
 }
 

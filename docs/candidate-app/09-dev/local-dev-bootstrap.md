@@ -1,7 +1,7 @@
 # Local Dev Bootstrap
 
 Status: Active cleanroom V2 bootstrap
-Last updated: 2026-07-17
+Last updated: 2026-07-18
 
 ## Purpose
 
@@ -40,6 +40,8 @@ npm run db:apply-candidate-practice-sessions-schema
 npm run db:smoke-candidate-practice-sessions-schema
 npm run db:apply-candidate-practice-intents-schema
 npm run db:smoke-candidate-practice-intents-schema
+npm run db:apply-candidate-fixed-intent-launch
+npm run db:smoke-candidate-fixed-intent-launch
 npm run db:apply-candidate-answer-attempts-schema
 npm run db:apply-candidate-answer-evaluator-run-claims-schema
 npm run db:apply-candidate-answer-evaluator-configuration-schema
@@ -59,9 +61,16 @@ npm run db:apply-candidate-prep-context-practice-paths-schema
 npm run db:smoke-candidate-prep-context-practice-paths-schema
 npm run db:apply-candidate-host-launch-setup-context
 npm run db:smoke-candidate-host-launch-setup-context
+npm run db:apply-candidate-setup-start-idempotency
+npm run db:smoke-candidate-setup-start-idempotency
+npm run db:apply-candidate-fixed-intent-launch
+npm run db:smoke-candidate-fixed-intent-launch
+npm run db:apply-candidate-direct-intent-idempotency
+npm run db:smoke-candidate-direct-intent-idempotency
+npm run db:smoke-candidate-direct-intent-concurrency
 ```
 
-`candidate_practice_sessions` remains the durable session boundary, `candidate_practice_intents` is the durable ready-round boundary for one-question or multi-question follow-up selections, and `candidate_answer_attempts` plus `candidate_answer_evaluation_runs` preserve immutable submission and evaluator lineage. Migration 015 adds sequential evaluator generations, 60-second claim leases, stale-claim recovery, and candidate-coaching completion fences. Migration 016 adds immutable evaluator configuration manifests/fingerprints; earlier V2 development rows become `pre_manifest_v2`, while new rows must carry resolved configuration. Migration 010 propagates candidate-owned prep-context identity into intents and canonical dashboard/follow-up reads, migration 011 stores only versioned candidate-safe Coach Update artifacts over those source facts, migration 019 adds exact profile/configuration identity to new Coach Update claims and replay matching without inventing metadata for earlier V2 development rows, and migration 012 idempotently repairs answered sessions that historical writes left in `planned` status.
+`candidate_practice_sessions` remains the durable session boundary, `candidate_practice_intents` is the durable ready-round boundary for one-question or multi-question follow-up selections, and `candidate_answer_attempts` plus `candidate_answer_evaluation_runs` preserve immutable submission and evaluator lineage. Migration 021 makes a ready intent a 24-hour, versioned one-use launch identity and atomically creates exactly one owned follow-up session while consuming that intent; duplicate or response-lost starts replay the same session. Migration 022 gives direct one-question and fixed-set creation its own candidate-owned 24-hour replay ledger: exact keyed replay returns one immutable intent, changed content conflicts before mutation, and concurrent submissions serialize to one row. Migration 015 adds sequential evaluator generations, 60-second claim leases, stale-claim recovery, and candidate-coaching completion fences. Migration 016 adds immutable evaluator configuration manifests/fingerprints; earlier V2 development rows become `pre_manifest_v2`, while new rows must carry resolved configuration. Migration 010 propagates candidate-owned prep-context identity into intents and canonical dashboard/follow-up reads, migration 011 stores only versioned candidate-safe Coach Update artifacts over those source facts, migration 019 adds exact profile/configuration identity to new Coach Update claims and replay matching without inventing metadata for earlier V2 development rows, and migration 012 idempotently repairs answered sessions that historical writes left in `planned` status.
 
 ### Full Candidate Quality Check
 
@@ -98,6 +107,8 @@ Current candidate V2 local development depends on these scripts:
 | Apply host-launch setup staging and host prep identity | `npm run db:apply-candidate-host-launch-setup-context` |
 | Apply only V2 practice-session schema | `npm run db:apply-candidate-practice-sessions-schema` |
 | Apply only V2 practice-intent schema | `npm run db:apply-candidate-practice-intents-schema` |
+| Apply atomic fixed-intent session launch | `npm run db:apply-candidate-fixed-intent-launch` |
+| Apply direct-intent creation idempotency | `npm run db:apply-candidate-direct-intent-idempotency` |
 | Apply only V2 answer-attempt/evaluator-run schema | `npm run db:apply-candidate-answer-attempts-schema` |
 | Apply evaluator-run generations and claim fencing | `npm run db:apply-candidate-answer-evaluator-run-claims-schema` |
 | Apply immutable evaluator configuration manifests | `npm run db:apply-candidate-answer-evaluator-configuration-schema` |
@@ -113,6 +124,9 @@ Current candidate V2 local development depends on these scripts:
 | Validate host-launch setup staging and host prep identity | `npm run db:smoke-candidate-host-launch-setup-context` |
 | Validate V2 practice-session schema | `npm run db:smoke-candidate-practice-sessions-schema` |
 | Validate V2 practice-intent schema | `npm run db:smoke-candidate-practice-intents-schema` |
+| Validate fixed-intent ownership, expiry, replay, and atomicity | `npm run db:smoke-candidate-fixed-intent-launch` |
+| Validate direct-intent replay, conflict, rollback, cross-candidate isolation, and intentional repractice | `npm run db:smoke-candidate-direct-intent-idempotency` |
+| Validate direct-intent serialization with concurrent database connections | `npm run db:smoke-candidate-direct-intent-concurrency` |
 | Validate V2 answer-attempt/evaluator-run schema | `npm run db:smoke-candidate-answer-attempts-schema` |
 | Validate evaluator-run generation, lease, and completion fencing | `npm run db:smoke-candidate-answer-evaluator-run-claims-schema` |
 | Validate evaluator configuration manifest, fingerprint, and immutability | `npm run db:smoke-candidate-answer-evaluator-configuration-schema` |
@@ -123,8 +137,18 @@ Current candidate V2 local development depends on these scripts:
 | Validate intentional same-role/JD practice paths | `npm run db:smoke-candidate-prep-context-practice-paths-schema` |
 | Validate local candidate fixtures | `npm run db:smoke-candidate-dev-seed` |
 | Run current candidate DB readiness chain | `npm run db:smoke-candidate-readiness` |
+| Reconcile question wording across setup, persistence, recovery, trusted failure, and follow-up reuse | `npm run db:reconcile-candidate-question-wording` |
+| Apply setup-start request idempotency to an existing local DB | `npm run db:apply-candidate-setup-start-idempotency` |
+| Run rollback-only setup-start lease/fence/staging smoke | `npm run db:smoke-candidate-setup-start-idempotency` |
+| Run focused setup-start idempotency tests | `npm run test:candidate:setup-idempotency` |
+| Run focused fixed-intent launch tests | `npm run test:candidate:fixed-intent-launch` |
+| Run focused direct-intent creation idempotency tests | `npm run test:candidate:direct-intent-idempotency` |
+| Run the integrated question-generation/follow-up milestone tests | `npm run test:candidate:question-follow-up-milestone` |
+| Run the integrated database readiness and wording reconciliation gate | `npm run db:smoke-candidate-question-follow-up-milestone` |
 
 The V1-style `postgres:smoke:*` product scripts still exist because the repo also contains recruiter and mature shared-session surfaces. Do not use them as the default validation path for the cleanroom candidate V2 rebuild unless a slice explicitly says to compare or validate against V1 behavior.
+
+For the manual setup-to-follow-up milestone protocol, use the [Question Generation And Follow-Up Launch Runbook](../05-quality/question-generation-and-follow-up-launch-milestone-runbook.md).
 
 ## Local Dev Host Launch
 
@@ -156,6 +180,17 @@ CANDIDATE_ANSWER_ANALYSIS_PROVIDER=fixture
 ```
 
 The fixture provider is accepted only with explicit local dev host-launch mode. If the variable is missing, answer analysis remains fail-closed with provider-not-configured behavior.
+
+Initial-round question wording is selected independently. Ordinary local development uses the deterministic wording fixture when explicit dev host-launch mode is enabled. To exercise the pinned production profile through setup, the pre-session landing, durable session recovery, and the first live question, use the guarded disposable-DB browser reconciliation instead of leaving live configuration in `.env.local`:
+
+```powershell
+npm run db:smoke-candidate-readiness
+$env:CANDIDATE_QUESTION_WORDING_BROWSER_TEST="true"
+cmd /c npm run qa:candidate:question-wording-browser -- --confirm-live-provider
+Remove-Item Env:CANDIDATE_QUESTION_WORDING_BROWSER_TEST
+```
+
+The runner loads `GEMINI_API_KEY` from `.env.local`, pins the approved `google_gemini_2_5_flash_question_wording_v1` profile, starts an isolated dev server on a free port, uses the seeded primary candidate, and cleans up its session and prep context. It refuses to run without the explicit flag and confirmation argument. The companion `db:reconcile-candidate-question-wording` command uses a rolled-back transaction and no live provider call to prove accepted configuration persistence, immutable recovery, accepted setup replay without another provider call, changed-request conflict, failed-claim retry generation, fail-closed trusted staging, and exact follow-up source-wording reuse.
 
 To deliberately browser-validate real candidate-serving coaching with the pinned Gemini profile, replace the fixture selection and restart the dev server:
 

@@ -194,6 +194,59 @@ it("shows a setup-start error if the session boundary rejects the payload", asyn
     });
 });
 
+it("shows the safe provider failure and preserves the setup draft for an explicit retry", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        expect(input).toBe("/candidate/setup/start");
+        expect(init?.method).toBe("POST");
+
+        return new Response(JSON.stringify({
+            error: "Practice questions could not be prepared. Your setup is still available, so you can try again.",
+            code: "QUESTION_WORDING_PROVIDER_PROVIDER_UNAVAILABLE",
+            retryable: true,
+        }), {
+            status: 503,
+            headers: { "content-type": "application/json" },
+        });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const draftStore = createCandidateSetupMemoryDraftStore();
+    render(<CandidateSetupExperience draftOwnerKey="candidate:demo" draftStore={draftStore} />);
+
+    fireEvent.change(screen.getByLabelText("Target role *"), {
+        target: { value: "Warehouse quality inspector" },
+    });
+    fireEvent.change(screen.getByLabelText("Job description *"), {
+        target: { value: "Inspect finished goods, record defects, and follow safety procedures." },
+    });
+
+    await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /start practice/i }));
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+        "Practice questions could not be prepared. Your setup is still available, so you can try again.",
+    );
+    expect(screen.getByRole("button", { name: /start practice/i })).toBeEnabled();
+    expect(draftStore.readDraft("candidate:demo")).toMatchObject({
+        targetRole: "Warehouse quality inspector",
+        jobDescription: "Inspect finished goods, record defects, and follow safety procedures.",
+        setupStartRequest: {
+            requestSignature: expect.any(String),
+            idempotencyKey: expect.any(String),
+        },
+    });
+
+    const firstHeaders = fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>;
+    expect(firstHeaders["Idempotency-Key"]).toEqual(expect.any(String));
+
+    await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /start practice/i }));
+    });
+
+    const secondHeaders = fetchMock.mock.calls[1]?.[1]?.headers as Record<string, string>;
+    expect(secondHeaders["Idempotency-Key"]).toBe(firstHeaders["Idempotency-Key"]);
+});
+
 it("offers candidate-owned existing practice facts instead of silently reusing a matching context", async () => {
     const assign = vi.fn();
     Object.defineProperty(window, "location", {

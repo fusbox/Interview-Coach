@@ -108,7 +108,7 @@ export function createCandidateFollowUpSessionInputFromIntent({
         return null;
     }
 
-    const sessionAttemptNumber = countPriorSessionsForContext(intent, existingPracticeSessions) + 1;
+    const sessionAttemptNumber = countCandidatePriorPracticeSessionsForIntent(intent, existingPracticeSessions) + 1;
     const nextRoundDraftSource = intent.sourceNextRoundDraftId && intent.sourceNextRoundDraftVersion
         ? {
             sourceNextRoundDraftId: intent.sourceNextRoundDraftId,
@@ -226,7 +226,7 @@ function findSourceSession(
     )) ?? null;
 }
 
-function countPriorSessionsForContext(
+export function countCandidatePriorPracticeSessionsForIntent(
     intent: CandidatePracticeIntentRecord,
     existingPracticeSessions: CandidatePracticeSessionRecord[],
 ) {

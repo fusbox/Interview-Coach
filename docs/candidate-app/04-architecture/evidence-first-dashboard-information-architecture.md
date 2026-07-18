@@ -123,7 +123,7 @@ Normalized rows are preferred for the mutable queue because the app must add, re
 - The ready intent remains recoverable if navigation or session creation fails.
 - Session creation consumes the intent idempotently and preserves exact item, source, prep-context, and attempt lineage.
 
-Direct one-question and fixed-set creation actions claim activation immediately in the client. Before production retry acceptance, those creation routes also need a request-level idempotency key that replays one user action while still allowing the candidate to intentionally practice the same content again later. Builder launch already uses the draft id and version as its atomic replay boundary.
+Direct one-question and fixed-set creation actions claim activation immediately in the client and use a candidate-owned request key plus exact server-resolved snapshot fingerprint. Exact concurrent or response-lost replay recovers one immutable intent, changed content under the same key conflicts before mutation, and a new key preserves intentional repractice. Builder launch remains a separate atomic boundary using the draft id and version.
 
 The interaction language is shared across Practice Next, Coach Update, and Coach Plan. Immediate actions never mutate the builder. Queue toggles never create a session or navigate away. Fixed-set actions never silently merge with the candidate's editable draft. Builder counts and per-question queued state come from the same authoritative draft model, and a surface with no server-resolved eligible choice does not invent a local queued state. The `coach_bundle` source remains an executable persistence contract, but candidate-facing coach bundles require a separate trusted recommendation producer and are not fabricated by the dashboard.
 

@@ -26,6 +26,18 @@ export type CreateCandidatePracticeIntentInput = {
     items: CandidatePracticeIntentItem[];
 };
 
+export type CreateCandidateDirectPracticeIntentInput = CreateCandidatePracticeIntentInput & {
+    idempotencyKeyHash: string;
+    requestFingerprint: string;
+};
+
+export type CandidateDirectPracticeIntentCreationRecord = {
+    outcome: "created" | "replayed" | "conflict";
+    candidatePracticeIntentId: string;
+    lifecycleState: CandidatePracticeIntentLifecycleState;
+    consumedCandidatePracticeSessionId: string | null;
+};
+
 export function createCandidatePracticeIntentRepository(client: CandidatePracticeIntentQueryClient) {
     return {
         async createPracticeIntent(input: CreateCandidatePracticeIntentInput) {
@@ -62,6 +74,37 @@ export function createCandidatePracticeIntentRepository(client: CandidatePractic
             return candidatePracticeIntentId ? { candidatePracticeIntentId } : null;
         },
 
+        async createDirectPracticeIntent(
+            input: CreateCandidateDirectPracticeIntentInput,
+        ): Promise<CandidateDirectPracticeIntentCreationRecord | null> {
+            const result = await client.query(`
+                select *
+                from public.create_candidate_direct_practice_intent(
+                  $1::uuid,
+                  $2::text,
+                  $3::text,
+                  $4::text,
+                  $5::uuid,
+                  $6::text,
+                  $7::text,
+                  $8::jsonb,
+                  $9::jsonb
+                )
+            `, [
+                input.candidateProfileId,
+                input.idempotencyKeyHash,
+                input.requestFingerprint,
+                input.source,
+                input.roleProfileId,
+                input.targetInterviewId,
+                input.targetRole,
+                JSON.stringify(input.setupContext),
+                JSON.stringify(input.items),
+            ]);
+
+            return toCandidateDirectPracticeIntentCreationRecord(result.rows[0]);
+        },
+
         async findPracticeIntent(input: {
             candidatePracticeIntentId: string;
             candidateProfileId: string;
@@ -72,7 +115,9 @@ export function createCandidatePracticeIntentRepository(client: CandidatePractic
                   candidate_profile_id,
                   source,
                   lifecycle_state,
+                  launch_version,
                   consumed_candidate_practice_session_id,
+                  consumed_at,
                   source_next_round_draft_id,
                   source_next_round_draft_version,
                   role_profile_id,
@@ -81,7 +126,8 @@ export function createCandidatePracticeIntentRepository(client: CandidatePractic
                   setup_context_json,
                   items_json,
                   created_at,
-                  updated_at
+                  updated_at,
+                  expires_at
                 from public.candidate_practice_intents
                 where candidate_practice_intent_id = $1
                   and candidate_profile_id = $2
@@ -94,46 +140,31 @@ export function createCandidatePracticeIntentRepository(client: CandidatePractic
             return toCandidatePracticeIntentRecord(result.rows[0]);
         },
 
-        async markPracticeIntentConsumed(input: {
-            candidatePracticeIntentId: string;
-            candidateProfileId: string;
-            consumedCandidatePracticeSessionId: string;
-        }) {
-            const result = await client.query(`
-                update public.candidate_practice_intents
-                set lifecycle_state = 'consumed',
-                    consumed_candidate_practice_session_id = $3
-                where candidate_practice_intent_id = $1
-                  and candidate_profile_id = $2
-                  and lifecycle_state = 'ready'
-                returning
-                  candidate_practice_intent_id,
-                  lifecycle_state,
-                  consumed_candidate_practice_session_id
-            `, [
-                input.candidatePracticeIntentId,
-                input.candidateProfileId,
-                input.consumedCandidatePracticeSessionId,
-            ]);
+    };
+}
 
-            const row = result.rows[0];
-            const candidatePracticeIntentId = readString(row?.candidate_practice_intent_id);
-            const lifecycleState = row?.lifecycle_state;
-            const consumedCandidatePracticeSessionId = readString(row?.consumed_candidate_practice_session_id);
-            if (
-                !candidatePracticeIntentId
-                || lifecycleState !== "consumed"
-                || !consumedCandidatePracticeSessionId
-            ) {
-                return null;
-            }
-
-            return {
-                candidatePracticeIntentId,
-                lifecycleState: "consumed" as const,
-                consumedCandidatePracticeSessionId,
-            };
-        },
+function toCandidateDirectPracticeIntentCreationRecord(
+    row: Record<string, unknown> | undefined,
+): CandidateDirectPracticeIntentCreationRecord | null {
+    const outcome = row?.creation_outcome;
+    const candidatePracticeIntentId = readString(row?.candidate_practice_intent_id);
+    const lifecycleState = row?.intent_lifecycle_state;
+    const consumedCandidatePracticeSessionId = readNullableString(
+        row?.consumed_candidate_practice_session_id,
+    );
+    if (
+        (outcome !== "created" && outcome !== "replayed" && outcome !== "conflict")
+        || !candidatePracticeIntentId
+        || !isCandidatePracticeIntentLifecycleState(lifecycleState)
+        || (lifecycleState === "consumed") !== Boolean(consumedCandidatePracticeSessionId)
+    ) {
+        return null;
+    }
+    return {
+        outcome,
+        candidatePracticeIntentId,
+        lifecycleState,
+        consumedCandidatePracticeSessionId,
     };
 }
 
@@ -148,7 +179,9 @@ export function toCandidatePracticeIntentRecord(
     const candidateProfileId = readString(row.candidate_profile_id);
     const source = row.source;
     const lifecycleState = row.lifecycle_state;
+    const launchVersion = readPositiveInteger(row.launch_version);
     const consumedCandidatePracticeSessionId = readNullableString(row.consumed_candidate_practice_session_id);
+    const consumedAt = readNullableDateString(row.consumed_at);
     const sourceNextRoundDraftId = readNullableString(row.source_next_round_draft_id);
     const sourceNextRoundDraftVersion = readNullablePositiveInteger(row.source_next_round_draft_version);
     const roleProfileId = readNullableString(row.role_profile_id);
@@ -158,12 +191,17 @@ export function toCandidatePracticeIntentRecord(
     const items = readItems(row.items_json);
     const createdAt = readDateString(row.created_at);
     const updatedAt = readDateString(row.updated_at);
+    const expiresAt = readDateString(row.expires_at);
+    const createdAtTime = createdAt ? Date.parse(createdAt) : Number.NaN;
+    const updatedAtTime = updatedAt ? Date.parse(updatedAt) : Number.NaN;
+    const expiresAtTime = expiresAt ? Date.parse(expiresAt) : Number.NaN;
 
     if (
         !candidatePracticeIntentId
         || !candidateProfileId
         || !isCandidatePracticeIntentSource(source)
         || !isCandidatePracticeIntentLifecycleState(lifecycleState)
+        || !launchVersion
         || !targetInterviewId
         || !targetRole
         || !setupContext
@@ -171,7 +209,14 @@ export function toCandidatePracticeIntentRecord(
         || items.length > 20
         || !createdAt
         || !updatedAt
+        || !expiresAt
+        || !Number.isFinite(createdAtTime)
+        || !Number.isFinite(updatedAtTime)
+        || !Number.isFinite(expiresAtTime)
+        || expiresAtTime <= createdAtTime
         || Boolean(sourceNextRoundDraftId) !== Boolean(sourceNextRoundDraftVersion)
+        || (lifecycleState === "consumed") !== Boolean(consumedCandidatePracticeSessionId && consumedAt)
+        || (lifecycleState !== "consumed" && Boolean(consumedCandidatePracticeSessionId || consumedAt))
     ) {
         return null;
     }
@@ -182,7 +227,9 @@ export function toCandidatePracticeIntentRecord(
         candidateProfileId,
         source,
         lifecycleState,
+        launchVersion,
         consumedCandidatePracticeSessionId,
+        consumedAt,
         ...(sourceNextRoundDraftId && sourceNextRoundDraftVersion
             ? { sourceNextRoundDraftId, sourceNextRoundDraftVersion }
             : {}),
@@ -194,6 +241,7 @@ export function toCandidatePracticeIntentRecord(
         items,
         createdAt,
         updatedAt,
+        expiresAt,
     };
 }
 
@@ -225,6 +273,10 @@ function readDateString(value: unknown) {
     return readString(value);
 }
 
+function readNullableDateString(value: unknown) {
+    return value === null || value === undefined ? null : readDateString(value);
+}
+
 function readString(value: unknown) {
     return typeof value === "string" && value.trim() ? value.trim() : null;
 }
@@ -238,6 +290,11 @@ function readNullablePositiveInteger(value: unknown) {
         return null;
     }
 
+    const parsed = typeof value === "number" ? value : Number(value);
+    return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function readPositiveInteger(value: unknown) {
     const parsed = typeof value === "number" ? value : Number(value);
     return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }

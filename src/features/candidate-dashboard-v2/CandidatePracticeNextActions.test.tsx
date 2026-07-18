@@ -35,10 +35,7 @@ describe("CandidateQuestionPracticeActions", () => {
             </CandidateNextRoundBuilderExperience>,
         );
 
-        expect(screen.getByRole("link", { name: "Practice this now" })).toHaveAttribute(
-            "href",
-            "/candidate/practice/ready?intent=coach-update-feedback-focus&fromSession=latest-session&questionKey=slot-1",
-        );
+        expect(screen.getByRole("button", { name: "Practice this now" })).toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Next practice round" })).toBeInTheDocument();
 
         await user.click(screen.getByRole("switch", { name: "Add to next round" }));
@@ -77,8 +74,45 @@ describe("CandidateQuestionPracticeActions", () => {
             </CandidateNextRoundBuilderExperience>,
         );
 
-        expect(screen.getByRole("link", { name: "Practice this now" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Practice this now" })).toBeInTheDocument();
         expect(screen.queryByRole("switch")).not.toBeInTheDocument();
+    });
+
+    it("reuses one action key after an ambiguous failure", async () => {
+        const user = userEvent.setup();
+        const createPracticeIntent = vi.fn()
+            .mockResolvedValueOnce(null)
+            .mockResolvedValueOnce("/candidate/practice/ready/intent-1");
+        const navigate = vi.fn();
+
+        render(
+            <CandidateQuestionPracticeActions
+                pointer={{
+                    sourceCandidatePracticeSessionId: "session-1",
+                    sourceQuestionKey: "slot-1",
+                }}
+                practiceNowHref="/candidate/practice/ready?intent=coach-update-feedback-focus&fromSession=session-1&questionKey=slot-1"
+                createPracticeIntent={createPracticeIntent}
+                navigate={navigate}
+            />,
+        );
+
+        await user.click(screen.getByRole("button", { name: "Practice this now" }));
+        expect(await screen.findByRole("alert")).toHaveTextContent("Try again");
+        await user.click(screen.getByRole("button", { name: "Practice this now" }));
+
+        await waitFor(() => expect(navigate).toHaveBeenCalledWith("/candidate/practice/ready/intent-1"));
+        expect(createPracticeIntent).toHaveBeenCalledTimes(2);
+        expect(createPracticeIntent.mock.calls[0]?.[0].idempotencyKey)
+            .toBe(createPracticeIntent.mock.calls[1]?.[0].idempotencyKey);
+        expect(createPracticeIntent.mock.calls[0]?.[0]).toMatchObject({
+            source: "coach_update_detail",
+            items: [{
+                intent: "coach-update-feedback-focus",
+                fromSession: "session-1",
+                questionKey: "slot-1",
+            }],
+        });
     });
 
     it("loads authoritative state and explains a stale cross-tab mutation", async () => {

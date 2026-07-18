@@ -1,12 +1,18 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+    CANDIDATE_DIRECT_PRACTICE_INTENT_CONFLICT,
     CandidateFixedPracticeAction,
     CandidatePlanProgressAction,
+    createCandidateFixedPracticeIntent,
 } from "./CandidatePlanProgressAction";
 
 describe("CandidatePlanProgressAction", () => {
+    beforeEach(() => {
+        window.sessionStorage.clear();
+    });
+
     it("posts every missing question to the plan-aware queue boundary", async () => {
         const fetch = vi.fn(async () => new Response(JSON.stringify({
             redirectTo: "/candidate/practice/ready/intent-1",
@@ -37,6 +43,9 @@ describe("CandidatePlanProgressAction", () => {
             "/candidate/practice/ready/intents",
             expect.objectContaining({
                 method: "POST",
+                headers: expect.objectContaining({
+                    "Idempotency-Key": expect.any(String),
+                }),
                 body: JSON.stringify({
                     source: "plan_aware_queue",
                     items: [
@@ -85,6 +94,7 @@ describe("CandidatePlanProgressAction", () => {
         await waitFor(() => expect(createPracticeIntent).toHaveBeenCalledWith({
             candidatePracticeSessionId: "session-1",
             questionKeys: ["slot-2", "slot-3"],
+            idempotencyKey: expect.any(String),
         }));
         expect(navigate).toHaveBeenCalledWith("/candidate/practice/ready/intent-1");
     });
@@ -176,6 +186,7 @@ describe("CandidatePlanProgressAction", () => {
 
         await waitFor(() => expect(createPracticeIntent).toHaveBeenCalledWith({
             source: "coach_bundle",
+            idempotencyKey: expect.any(String),
             items: [
                 { intent: "coach-update-feedback-focus", fromSession: "session-1", questionKey: "slot-1" },
                 { intent: "coach-update-missing-evidence", fromSession: "session-1", questionKey: "slot-2" },
@@ -205,5 +216,77 @@ describe("CandidatePlanProgressAction", () => {
 
         fireEvent.click(screen.getByRole("button", { name: "Customize round" }));
         expect(onCustomize).toHaveBeenCalledOnce();
+    });
+
+    it("reuses one pending action key after an ambiguous failure and remount", async () => {
+        const createPracticeIntent = vi.fn()
+            .mockResolvedValueOnce(null)
+            .mockResolvedValueOnce("/candidate/practice/ready/intent-1");
+        const first = render(
+            <CandidateFixedPracticeAction
+                source="coach_update_detail"
+                label="Practice this now"
+                items={[{ intent: "coach-update-feedback-focus", fromSession: "session-1", questionKey: "slot-1" }]}
+                createPracticeIntent={createPracticeIntent}
+                navigate={vi.fn()}
+            />,
+        );
+
+        fireEvent.click(screen.getByRole("button", { name: "Practice this now" }));
+        expect(await screen.findByRole("alert")).toHaveTextContent("Try again");
+        const firstKey = createPracticeIntent.mock.calls[0]?.[0].idempotencyKey;
+        first.unmount();
+
+        const navigate = vi.fn();
+        render(
+            <CandidateFixedPracticeAction
+                source="coach_update_detail"
+                label="Practice this now"
+                items={[{ intent: "coach-update-feedback-focus", fromSession: "session-1", questionKey: "slot-1" }]}
+                createPracticeIntent={createPracticeIntent}
+                navigate={navigate}
+            />,
+        );
+        fireEvent.click(screen.getByRole("button", { name: "Practice this now" }));
+
+        await waitFor(() => expect(navigate).toHaveBeenCalledWith("/candidate/practice/ready/intent-1"));
+        expect(createPracticeIntent.mock.calls[1]?.[0].idempotencyKey).toBe(firstKey);
+        expect(window.sessionStorage.length).toBe(0);
+    });
+
+    it("rotates the action key after a truthful fingerprint conflict", async () => {
+        const createPracticeIntent = vi.fn()
+            .mockResolvedValueOnce(CANDIDATE_DIRECT_PRACTICE_INTENT_CONFLICT)
+            .mockResolvedValueOnce("/candidate/practice/ready/intent-2");
+        const navigate = vi.fn();
+        render(
+            <CandidateFixedPracticeAction
+                source="coach_update_detail"
+                label="Practice this now"
+                items={[{ intent: "coach-update-feedback-focus", fromSession: "session-1", questionKey: "slot-1" }]}
+                createPracticeIntent={createPracticeIntent}
+                navigate={navigate}
+            />,
+        );
+
+        fireEvent.click(screen.getByRole("button", { name: "Practice this now" }));
+        expect(await screen.findByRole("alert")).toHaveTextContent("choice changed");
+        fireEvent.click(screen.getByRole("button", { name: "Practice this now" }));
+
+        await waitFor(() => expect(navigate).toHaveBeenCalledWith("/candidate/practice/ready/intent-2"));
+        expect(createPracticeIntent.mock.calls[0]?.[0].idempotencyKey)
+            .not.toBe(createPracticeIntent.mock.calls[1]?.[0].idempotencyKey);
+    });
+
+    it("maps an HTTP fingerprint conflict without treating it as a network retry", async () => {
+        vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+            reason: "idempotency_conflict",
+        }), { status: 409 })));
+
+        await expect(createCandidateFixedPracticeIntent({
+            source: "coach_update_detail",
+            items: [{ intent: "coach-update-feedback-focus", fromSession: "session-1", questionKey: "slot-1" }],
+            idempotencyKey: "candidate-action-conflict-1",
+        })).resolves.toBe(CANDIDATE_DIRECT_PRACTICE_INTENT_CONFLICT);
     });
 });

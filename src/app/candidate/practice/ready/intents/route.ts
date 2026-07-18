@@ -5,9 +5,14 @@ import {
     createCandidatePracticeIntentRepository,
 } from "@/features/candidate-practice-v2/candidate-practice-intent-repository";
 import {
-    createCandidatePracticeIntentFromResolvedItems,
+    createCandidateDirectPracticeIntentFromResolvedItems,
     type CandidatePracticeIntentCreationResult,
 } from "@/features/candidate-practice-v2/candidate-practice-intent-creation";
+import {
+    CANDIDATE_DIRECT_PRACTICE_INTENT_IDEMPOTENCY_HEADER,
+    hashCandidateDirectPracticeIntentIdempotencyKey,
+    normalizeCandidateDirectPracticeIntentIdempotencyKey,
+} from "@/features/candidate-practice-v2/candidate-direct-practice-intent-request";
 import {
     isCandidatePracticeIntentSource,
     parseCandidateFollowUpPracticeIntent,
@@ -24,6 +29,8 @@ type CandidatePracticeIntentPointer = {
     questionKey: string;
 };
 
+type CandidateDirectPracticeIntentSource = Exclude<CandidatePracticeIntentSource, "practice_builder">;
+
 type CandidatePracticeIntentCreateIdentity = {
     candidateProfileId: string;
 };
@@ -32,8 +39,9 @@ type CandidatePracticeIntentCreateDependencies = {
     resolveCandidatePracticeIntentIdentity: () => Promise<CandidatePracticeIntentCreateIdentity | null>;
     createPracticeIntentFromPointers: (input: {
         candidateProfileId: string;
-        source: CandidatePracticeIntentSource;
+        source: CandidateDirectPracticeIntentSource;
         pointers: CandidatePracticeIntentPointer[];
+        idempotencyKeyHash: string;
     }) => Promise<CandidatePracticeIntentCreationResult>;
 };
 
@@ -53,7 +61,10 @@ export async function handleCandidatePracticeIntentCreateRequest({
 } & CandidatePracticeIntentCreateDependencies) {
     const payload = await readJson(request);
     const parsedPayload = parsePracticeIntentCreatePayload(payload);
-    if (!parsedPayload) {
+    const idempotencyKey = normalizeCandidateDirectPracticeIntentIdempotencyKey(
+        request.headers.get(CANDIDATE_DIRECT_PRACTICE_INTENT_IDEMPOTENCY_HEADER),
+    );
+    if (!parsedPayload || !idempotencyKey) {
         return jsonResponse({
             error: "Invalid practice intent request.",
         }, 400);
@@ -66,20 +77,34 @@ export async function handleCandidatePracticeIntentCreateRequest({
         }, 401);
     }
 
-    const result = await createPracticeIntentFromPointers({
-        candidateProfileId: identity.candidateProfileId,
-        source: parsedPayload.source,
-        pointers: parsedPayload.pointers,
-    });
+    let result: CandidatePracticeIntentCreationResult;
+    try {
+        result = await createPracticeIntentFromPointers({
+            candidateProfileId: identity.candidateProfileId,
+            source: parsedPayload.source,
+            pointers: parsedPayload.pointers,
+            idempotencyKeyHash: hashCandidateDirectPracticeIntentIdempotencyKey(idempotencyKey),
+        });
+    } catch {
+        return jsonResponse({
+            error: "Practice intent could not be created.",
+            reason: "persistence_failed",
+        }, 503);
+    }
 
     if (result.status !== "candidate_practice_intent_created") {
+        const status = result.reason === "idempotency_conflict"
+            ? 409
+            : result.reason === "persistence_failed"
+                ? 503
+                : 422;
         return jsonResponse({
             error: "Practice intent could not be created.",
             reason: result.reason,
-        }, 422);
+        }, status);
     }
 
-    return jsonResponse(result, 201);
+    return jsonResponse(result, result.requestDisposition === "replayed" ? 200 : 201);
 }
 
 function createDefaultCandidatePracticeIntentCreateDependencies(): CandidatePracticeIntentCreateDependencies {
@@ -109,7 +134,7 @@ function createDefaultCandidatePracticeIntentCreateDependencies(): CandidatePrac
 
             return candidateProfileId ? { candidateProfileId } : null;
         },
-        async createPracticeIntentFromPointers({ candidateProfileId, source, pointers }) {
+        async createPracticeIntentFromPointers({ candidateProfileId, source, pointers, idempotencyKeyHash }) {
             const practiceSessions = await loadCandidatePracticeIntentSourceSessions({
                 candidateProfileId,
                 pointers,
@@ -134,10 +159,11 @@ function createDefaultCandidatePracticeIntentCreateDependencies(): CandidatePrac
                 };
             }
 
-            return createCandidatePracticeIntentFromResolvedItems({
+            return createCandidateDirectPracticeIntentFromResolvedItems({
                 candidateProfileId,
                 source,
                 resolvedItems: resolvedItems.filter((item): item is NonNullable<typeof item> => Boolean(item)),
+                idempotencyKeyHash,
                 practiceIntentRepository,
             });
         },
@@ -161,7 +187,7 @@ export async function loadCandidatePracticeIntentSourceSessions({
 }
 
 function parsePracticeIntentCreatePayload(payload: unknown): {
-    source: CandidatePracticeIntentSource;
+    source: CandidateDirectPracticeIntentSource;
     pointers: CandidatePracticeIntentPointer[];
 } | null {
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
@@ -169,8 +195,8 @@ function parsePracticeIntentCreatePayload(payload: unknown): {
     }
 
     const body = payload as Record<string, unknown>;
-    const source = body.source ?? "practice_builder";
-    if (!isCandidatePracticeIntentSource(source)) {
+    const source = body.source;
+    if (!isCandidatePracticeIntentSource(source) || source === "practice_builder") {
         return null;
     }
 

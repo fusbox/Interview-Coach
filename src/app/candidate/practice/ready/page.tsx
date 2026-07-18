@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ArrowLeft, ListChecks, Play } from "lucide-react";
 
 import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-v2/host-launch-route";
@@ -8,13 +7,6 @@ import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-aut
 import {
     createCandidatePracticeSessionRepository,
 } from "@/features/candidate-session-v2/candidate-practice-session-repository";
-import {
-    createCandidatePracticeIntentRepository,
-} from "@/features/candidate-practice-v2/candidate-practice-intent-repository";
-import {
-    createCandidatePracticeIntentFromResolvedItems,
-    type CandidatePracticeIntentCreationResult,
-} from "@/features/candidate-practice-v2/candidate-practice-intent-creation";
 import {
     parseCandidateFollowUpPracticeIntent,
     resolveCandidateFollowUpPracticeIntent,
@@ -39,9 +31,6 @@ type CandidatePracticeReadyPageDependencies = {
     resolveFollowUpPracticeIntent?: (
         intent: CandidateFollowUpPracticeIntent,
     ) => Promise<CandidateResolvedFollowUpPracticeIntent | null>;
-    createPracticeIntent?: (
-        intent: CandidateResolvedFollowUpPracticeIntent,
-    ) => Promise<CandidatePracticeIntentCreationResult>;
 };
 
 export async function renderCandidatePracticeReadyPage({
@@ -57,15 +46,6 @@ export async function renderCandidatePracticeReadyPage({
         : null;
 
     if (!resolvedIntent) {
-        return <PracticeReadyRecoveryState />;
-    }
-
-    if (dependencies.createPracticeIntent) {
-        const createdIntent = await dependencies.createPracticeIntent(resolvedIntent);
-        if (createdIntent.status === "candidate_practice_intent_created") {
-            redirect(createdIntent.redirectTo);
-        }
-
         return <PracticeReadyRecoveryState />;
     }
 
@@ -136,7 +116,6 @@ function createDefaultCandidatePracticeReadyPageDependencies(
 
     const queryClient = createLazyPostgresQueryClient(databaseUrl);
     const practiceSessionRepository = createCandidatePracticeSessionRepository(queryClient);
-    const practiceIntentRepository = createCandidatePracticeIntentRepository(queryClient);
 
     return {
         async resolveFollowUpPracticeIntent(intent) {
@@ -166,35 +145,6 @@ function createDefaultCandidatePracticeReadyPageDependencies(
                 });
             } catch {
                 return null;
-            }
-        },
-        async createPracticeIntent(intent) {
-            try {
-                const { headers } = await import("next/headers");
-                const requestHeaders = await headers();
-                const candidateProfileId = await resolveCandidateProfileIdFromRequestHeaders(
-                    requestHeaders.get("cookie"),
-                    queryClient,
-                );
-
-                if (!candidateProfileId) {
-                    return {
-                        status: "candidate_practice_intent_not_created",
-                        reason: "persistence_failed",
-                    };
-                }
-
-                return createCandidatePracticeIntentFromResolvedItems({
-                    candidateProfileId,
-                    source: "coach_update_detail",
-                    resolvedItems: [intent],
-                    practiceIntentRepository,
-                });
-            } catch {
-                return {
-                    status: "candidate_practice_intent_not_created",
-                    reason: "persistence_failed",
-                };
             }
         },
     };

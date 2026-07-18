@@ -184,7 +184,9 @@ function createExistingIntent({
         candidateProfileId: "candidate-1",
         source: "practice_builder",
         lifecycleState,
+        launchVersion: lifecycleState === "consumed" ? 2 : 1,
         consumedCandidatePracticeSessionId,
+        consumedAt: lifecycleState === "consumed" ? "2026-07-15T12:01:00.000Z" : null,
         sourceNextRoundDraftId: "draft-1",
         sourceNextRoundDraftVersion: 4,
         roleProfileId: "role-1",
@@ -221,6 +223,7 @@ function createExistingIntent({
         }],
         createdAt: "2026-07-15T12:00:00.000Z",
         updatedAt: "2026-07-15T12:00:00.000Z",
+        expiresAt: "2026-07-16T12:00:00.000Z",
     };
 }
 

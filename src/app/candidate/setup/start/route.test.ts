@@ -1,6 +1,29 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { handleCandidateSetupStartRequest, resolveCandidateSetupIdentityFromDevLaunchCookie, POST } from "./route";
+import {
+    createFaultInjectionCandidateQuestionWordingRuntime,
+    createFixtureCandidateQuestionWordingRuntime,
+} from "@/features/candidate-session-v2/candidate-question-wording-runtime";
+import { createCandidateQuestionPlan } from "@/features/candidate-session-v2/candidate-question-plan";
+import { createFixtureCandidateQuestionWordingResult } from "@/features/candidate-session-v2/candidate-question-wording";
+
+const setupStartIdempotencyKey = "setup-start-route-test-key";
+
+function createAcquiredSetupStartRequestRepository() {
+    return {
+        claimSetupStart: vi.fn(async (input: {
+            idempotencyKeyHash: string;
+            requestFingerprint: string;
+        }) => ({
+            outcome: "acquired" as const,
+            idempotencyKeyHash: input.idempotencyKeyHash,
+            requestFingerprint: input.requestFingerprint,
+            claimGeneration: 1,
+        })),
+        failSetupStart: vi.fn(async () => true),
+    };
+}
 
 describe("/candidate/setup/start route", () => {
     it("resolves explicit dev host-launch fixture cookies without candidate launch-session storage", async () => {
@@ -137,6 +160,7 @@ describe("/candidate/setup/start route", () => {
                 method: "POST",
                 headers: {
                     Cookie: "ic_candidate_launch_session=launch-session-123",
+                    "Idempotency-Key": setupStartIdempotencyKey,
                 },
                 body: JSON.stringify({
                     targetRole: "Customer service representative",
@@ -159,6 +183,7 @@ describe("/candidate/setup/start route", () => {
             practiceSessionRepository: {
                 createSetupSession,
             },
+            setupStartRequestRepository: createAcquiredSetupStartRequestRepository(),
         });
 
         await expect(response.json()).resolves.toMatchObject({
@@ -204,6 +229,140 @@ describe("/candidate/setup/start route", () => {
         }));
     });
 
+    it("replays one accepted candidate-owned session without prep resolution or another provider call", async () => {
+        const candidateProfileId = "22222222-2222-4222-8222-222222222222";
+        const candidatePracticeSessionId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+        const setupSnapshot = {
+            targetRole: "Customer service representative",
+            jobDescription: "Help customers resolve service questions.",
+            resumeText: null,
+            interviewStage: "first_interview" as const,
+            questionCount: 7,
+            resumeCaptureMode: "none" as const,
+            createdAt: "2026-07-18T16:00:00.000Z",
+        };
+        const questionPlanSnapshot = createCandidateQuestionPlan({
+            interviewStage: setupSnapshot.interviewStage,
+            questionCount: setupSnapshot.questionCount,
+        });
+        const questionWordingSnapshot = createFixtureCandidateQuestionWordingResult({
+            setupSnapshot,
+            questionPlanSnapshot,
+        });
+        const resolveSetupPrepContext = vi.fn();
+        const wordQuestions = vi.fn();
+
+        const response = await handleCandidateSetupStartRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
+                method: "POST",
+                headers: { "Idempotency-Key": setupStartIdempotencyKey },
+                body: JSON.stringify({
+                    targetRole: setupSnapshot.targetRole,
+                    jobDescription: setupSnapshot.jobDescription,
+                    interviewStage: setupSnapshot.interviewStage,
+                    questionCount: setupSnapshot.questionCount,
+                }),
+            }),
+            now: new Date("2026-07-18T16:05:00.000Z"),
+            createSessionId: () => "unused-session-id",
+            resolveCandidateSetupIdentity: vi.fn(async () => ({
+                candidateProfileId,
+                allowManualPrepContextCreation: true,
+            })),
+            prepContextResolver: { resolveSetupPrepContext },
+            setupStartRequestRepository: {
+                claimSetupStart: vi.fn(async (input) => ({
+                    outcome: "replayed" as const,
+                    idempotencyKeyHash: input.idempotencyKeyHash,
+                    requestFingerprint: input.requestFingerprint,
+                    claimGeneration: 1,
+                    candidatePracticeSessionId,
+                })),
+                failSetupStart: vi.fn(async () => true),
+            },
+            practiceSessionRepository: {
+                createSetupSession: vi.fn(),
+                findSetupSession: vi.fn(async () => ({
+                    candidatePracticeSessionId,
+                    candidateProfileId,
+                    roleProfileId: "33333333-3333-4333-8333-333333333333",
+                    candidateLaunchSessionId: null,
+                    status: "planned" as const,
+                    setupSnapshot,
+                    questionPlanSnapshot,
+                    questionWordingSnapshot,
+                    questionWordingStatus: "worded" as const,
+                    progress: { status: "planned" as const, currentQuestionIndex: 0 },
+                    answerDrafts: {},
+                    answerSubmissions: {},
+                    answerIdempotencyRecords: {},
+                    answerAnalysisSnapshots: {},
+                    feedbackActionEvents: {},
+                    completionSnapshot: null,
+                })),
+            },
+            questionWordingRuntime: {
+                ...createFixtureCandidateQuestionWordingRuntime(),
+                wordQuestions,
+            },
+        });
+
+        expect(response.status).toBe(200);
+        await expect(response.json()).resolves.toMatchObject({
+            status: "session_created",
+            sessionId: candidatePracticeSessionId,
+            nextRoute: `/candidate/session/${candidatePracticeSessionId}`,
+        });
+        expect(resolveSetupPrepContext).not.toHaveBeenCalled();
+        expect(wordQuestions).not.toHaveBeenCalled();
+    });
+
+    it.each([
+        ["in_progress", "SETUP_START_IN_PROGRESS"],
+        ["conflict", "SETUP_START_IDEMPOTENCY_CONFLICT"],
+    ] as const)("fails the %s duplicate before prep resolution and provider work", async (outcome, code) => {
+        const resolveSetupPrepContext = vi.fn();
+        const wordQuestions = vi.fn();
+        const response = await handleCandidateSetupStartRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
+                method: "POST",
+                headers: { "Idempotency-Key": setupStartIdempotencyKey },
+                body: JSON.stringify({
+                    targetRole: "Material handler",
+                    jobDescription: "Move and label materials.",
+                    interviewStage: "first_interview",
+                    questionCount: 7,
+                }),
+            }),
+            now: new Date("2026-07-18T16:00:00.000Z"),
+            createSessionId: () => "unused-session-id",
+            resolveCandidateSetupIdentity: vi.fn(async () => ({
+                candidateProfileId: "22222222-2222-4222-8222-222222222222",
+                allowManualPrepContextCreation: true,
+            })),
+            prepContextResolver: { resolveSetupPrepContext },
+            setupStartRequestRepository: {
+                claimSetupStart: vi.fn(async (input) => ({
+                    outcome,
+                    idempotencyKeyHash: input.idempotencyKeyHash,
+                    requestFingerprint: input.requestFingerprint,
+                    claimGeneration: 1,
+                })),
+                failSetupStart: vi.fn(async () => true),
+            },
+            practiceSessionRepository: { createSetupSession: vi.fn() },
+            questionWordingRuntime: {
+                ...createFixtureCandidateQuestionWordingRuntime(),
+                wordQuestions,
+            },
+        });
+
+        expect(response.status).toBe(409);
+        await expect(response.json()).resolves.toMatchObject({ code, retryable: true });
+        expect(resolveSetupPrepContext).not.toHaveBeenCalled();
+        expect(wordQuestions).not.toHaveBeenCalled();
+    });
+
     it("returns candidate-owned exact-match facts without creating a session", async () => {
         const createSetupSession = vi.fn();
         const resolveSetupPrepContext = vi.fn(async () => ({
@@ -228,6 +387,7 @@ describe("/candidate/setup/start route", () => {
         const response = await handleCandidateSetupStartRequest({
             request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
                 method: "POST",
+                headers: { "Idempotency-Key": setupStartIdempotencyKey },
                 body: JSON.stringify({
                     targetRole: "Customer service representative",
                     jobDescription: "Help customers resolve service questions.",
@@ -243,6 +403,7 @@ describe("/candidate/setup/start route", () => {
             })),
             prepContextResolver: { resolveSetupPrepContext },
             practiceSessionRepository: { createSetupSession },
+            setupStartRequestRepository: createAcquiredSetupStartRequestRepository(),
         });
 
         await expect(response.json()).resolves.toEqual({
@@ -282,7 +443,10 @@ describe("/candidate/setup/start route", () => {
         const response = await handleCandidateSetupStartRequest({
             request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "Idempotency-Key": setupStartIdempotencyKey,
+                },
                 body: JSON.stringify({
                     targetRole: "Warehouse Associate",
                     jobDescription: "Pick, pack, and prepare shipments safely.",
@@ -302,6 +466,7 @@ describe("/candidate/setup/start route", () => {
             })),
             prepContextResolver: { resolveSetupPrepContext },
             practiceSessionRepository: { createSetupSession },
+            setupStartRequestRepository: createAcquiredSetupStartRequestRepository(),
         });
 
         expect(response.status).toBe(201);
@@ -450,6 +615,7 @@ describe("/candidate/setup/start route", () => {
         const response = await handleCandidateSetupStartRequest({
             request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
                 method: "POST",
+                headers: { "Idempotency-Key": setupStartIdempotencyKey },
                 body: JSON.stringify({
                     targetRole: "Customer service representative",
                     jobDescription: "Help customers resolve service questions.",
@@ -469,6 +635,7 @@ describe("/candidate/setup/start route", () => {
             })),
             prepContextResolver: { resolveSetupPrepContext },
             practiceSessionRepository: { createSetupSession },
+            setupStartRequestRepository: createAcquiredSetupStartRequestRepository(),
         });
 
         expect(response.status).toBe(201);
@@ -485,6 +652,7 @@ describe("/candidate/setup/start route", () => {
         const response = await handleCandidateSetupStartRequest({
             request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
                 method: "POST",
+                headers: { "Idempotency-Key": setupStartIdempotencyKey },
                 body: JSON.stringify({
                     targetRole: "Material handler",
                     jobDescription: "Move and label materials.",
@@ -513,6 +681,7 @@ describe("/candidate/setup/start route", () => {
         const response = await handleCandidateSetupStartRequest({
             request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
                 method: "POST",
+                headers: { "Idempotency-Key": setupStartIdempotencyKey },
                 body: JSON.stringify({
                     targetRole: "Customer service representative",
                     jobDescription: "Help customers resolve service questions.",
@@ -565,6 +734,7 @@ describe("/candidate/setup/start route", () => {
         const response = await handleCandidateSetupStartRequest({
             request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
                 method: "POST",
+                headers: { "Idempotency-Key": setupStartIdempotencyKey },
                 body: JSON.stringify({
                     targetRole: "Customer service representative",
                     jobDescription: "Help customers resolve service questions.",
@@ -588,12 +758,56 @@ describe("/candidate/setup/start route", () => {
             practiceSessionRepository: {
                 createSetupSession: vi.fn(async () => null),
             },
+            setupStartRequestRepository: createAcquiredSetupStartRequestRepository(),
         });
 
         await expect(response.json()).resolves.toEqual({
-            error: "Candidate practice session could not be saved.",
+            error: "This setup request could not be completed. Your setup is still available, so you can try again.",
+            code: "SETUP_START_CLAIM_LOST",
+            retryable: true,
+        });
+        expect(response.status).toBe(409);
+    });
+
+    it("preserves setup for retry when question wording fails before session creation", async () => {
+        const createSetupSession = vi.fn();
+        const resolveSetupPrepContext = vi.fn(async () => ({
+            status: "resolved" as const,
+            roleProfileId: "33333333-3333-4333-8333-333333333333",
+            resolution: "reused_empty" as const,
+        }));
+
+        const response = await handleCandidateSetupStartRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
+                method: "POST",
+                headers: { "Idempotency-Key": setupStartIdempotencyKey },
+                body: JSON.stringify({
+                    targetRole: "Material handler",
+                    jobDescription: "Move and label materials.",
+                    interviewStage: "first_interview",
+                    questionCount: 7,
+                }),
+            }),
+            now: new Date("2026-07-18T20:00:00.000Z"),
+            createSessionId: () => "browser-bridge-session-id",
+            resolveCandidateSetupIdentity: vi.fn(async () => ({
+                candidateProfileId: "22222222-2222-4222-8222-222222222222",
+                allowManualPrepContextCreation: true,
+            })),
+            prepContextResolver: { resolveSetupPrepContext },
+            practiceSessionRepository: { createSetupSession },
+            setupStartRequestRepository: createAcquiredSetupStartRequestRepository(),
+            questionWordingRuntime: createFaultInjectionCandidateQuestionWordingRuntime("provider_unavailable"),
+        });
+
+        await expect(response.json()).resolves.toEqual({
+            error: "Practice questions could not be prepared. Your setup is still available, so you can try again.",
+            code: "QUESTION_WORDING_PROVIDER_PROVIDER_UNAVAILABLE",
+            retryable: true,
         });
         expect(response.status).toBe(503);
+        expect(resolveSetupPrepContext).toHaveBeenCalledTimes(1);
+        expect(createSetupSession).not.toHaveBeenCalled();
     });
 
     it("fails closed before session creation when no candidate-owned prep context resolves", async () => {
@@ -603,6 +817,7 @@ describe("/candidate/setup/start route", () => {
         const response = await handleCandidateSetupStartRequest({
             request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
                 method: "POST",
+                headers: { "Idempotency-Key": setupStartIdempotencyKey },
                 body: JSON.stringify({
                     targetRole: "Material handler",
                     jobDescription: "Move and label materials.",
@@ -623,6 +838,7 @@ describe("/candidate/setup/start route", () => {
             practiceSessionRepository: {
                 createSetupSession,
             },
+            setupStartRequestRepository: createAcquiredSetupStartRequestRepository(),
         });
 
         await expect(response.json()).resolves.toEqual({
@@ -711,6 +927,29 @@ describe("/candidate/setup/start route", () => {
 
         await expect(response.json()).resolves.toEqual({
             error: "Candidate setup could not be started.",
+        });
+        expect(response.status).toBe(503);
+    });
+
+    it("returns a bounded setup failure when the environment-selected wording profile is invalid", async () => {
+        vi.stubEnv("CANDIDATE_QUESTION_WORDING_PROVIDER", "google_genai");
+        vi.stubEnv("CANDIDATE_QUESTION_WORDING_PROFILE", "wrong-profile");
+        vi.stubEnv("GEMINI_API_KEY", "server-only-test-key");
+
+        const response = await POST(new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
+            method: "POST",
+            body: JSON.stringify({
+                targetRole: "Customer service representative",
+                jobDescription: "Help customers resolve service questions.",
+                interviewStage: "first_interview",
+                questionCount: 7,
+            }),
+        }));
+
+        await expect(response.json()).resolves.toEqual({
+            error: "Practice questions could not be prepared. Your setup is still available, so you can try again.",
+            code: "QUESTION_WORDING_PROVIDER_MISCONFIGURED",
+            retryable: false,
         });
         expect(response.status).toBe(503);
     });

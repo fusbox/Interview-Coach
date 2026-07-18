@@ -1,7 +1,7 @@
 # Candidate App Data Contract
 
 Status: Canonical system truth
-Last updated: 2026-07-17
+Last updated: 2026-07-18
 
 ## Purpose
 
@@ -180,6 +180,24 @@ Production identity rule:
 
 Reference: [Platform Launch PrepProfile Migration](./04-architecture/platform-launch-prepprofile-migration.md).
 
+### Initial Setup Start Request
+
+Initial durable setup and production question generation use a candidate-owned request claim before prep-context mutation or provider work. Migration `020_candidate_setup_start_idempotency.sql` creates `candidate_setup_start_requests`; the typed runtime contract lives in `candidate-setup-start-request.ts` and its Postgres repository.
+
+The claim stores only:
+
+- candidate profile id;
+- SHA-256 idempotency-key hash;
+- SHA-256 canonical request fingerprint;
+- `pending`, `failed`, or `completed` lifecycle;
+- positive claim generation and lease/expiry timestamps;
+- the one accepted candidate practice-session id;
+- bounded terminal error metadata.
+
+It does not duplicate setup, JD, resume, generated questions, or an HTTP response body. Those remain in the candidate-owned immutable session snapshots. The request fingerprint covers canonical setup, entry mode, explicit prep-path decision, and the candidate-owned prep-context/host-launch anchor. A composite database constraint keeps the terminal session pointer owned by the same candidate as the claim. A 60-second lease fences synchronous provider work inside a 24-hour replay window. Same-fingerprint failure or stale-lease recovery increments generation; only the currently leased generation may atomically insert the session, complete the claim, and consume trusted setup staging. Completed replay loads the owned session pointer and skips prep resolution and provider generation. An unexpired key used with a changed setup/decision/context fingerprint is a conflict. Expired rows are indexed for a later bounded operational-retention job.
+
+Browser setup drafts retain the raw opaque request key only for same-attempt retry/recovery and clear it with the successfully submitted draft. The raw key is never persisted in the claim table. See [Candidate Setup Start Idempotency](./04-architecture/candidate-setup-start-idempotency.md).
+
 Signal mapping reference: [Preparedness Signal Map](./04-architecture/preparedness-signal-map.md).
 
 Question category reference: [Question Category Contract](./04-architecture/question-category-contract.md).
@@ -315,15 +333,19 @@ Contract rules:
 - `practice_from_feedback` resolves only when the source question has both answer evidence and accepted coach analysis evidence;
 - `practice_from_feedback` uses `coach_update_detail` source posture; `practice_missing_evidence` uses Coach Plan/Practice Next source posture;
 - `practice_missing_evidence` resolves only when the source question has no answer submission;
-- `POST /candidate/practice/ready/intents` accepts one to twenty stable source pointers and returns a `redirectTo` route for the durable ready page after identity and source validation succeed;
+- `POST /candidate/practice/ready/intents` accepts one to twenty stable source pointers plus a per-activation `Idempotency-Key`, and returns a `redirectTo` route for the durable ready page after identity and source validation succeed. It stores only the SHA-256 key hash and a fingerprint of the exact canonical server-resolved snapshot;
+- `candidate_practice_intent_creation_requests` is the bounded candidate-owned replay ledger for direct one-question and fixed-set creation. Its unique candidate-plus-key hash points to one immutable intent for 24 hours. Exact replay returns that intent, changed source/order/items/prep context/snapshot content conflicts before mutation, and a new key permits intentional repractice of identical content;
+- the browser retains at most one exact pending direct action in tab-scoped session storage. Refresh or an ambiguous transport failure reuses its key; an accepted destination clears it; a fingerprint conflict clears it before the next user activation receives a new key. The browser record contains only action source, opaque source session/question pointers, key, and timestamp and is not durable candidate history;
+- `public.create_candidate_direct_practice_intent(...)` serializes candidate-plus-key requests and inserts the ready intent and request pointer in one transaction. It has no pending or lease state because no external provider work occurs; statement failure leaves neither row committed, so the same key can retry safely;
 - `Start practice` from an editable queue validates its current version and source pointers, atomically creates the immutable intent snapshot, and clears or links the launched queue draft. A conflict returns without silently dropping newer selections;
 - the atomic database function locks the exact candidate-owned draft, revalidates every source question and latest answer/analysis relationship, compares the submitted ordered payload with every normalized draft item, inserts one immutable `practice_builder` intent, clears the item rows, and increments the draft version in one statement;
 - repeated launch of the same draft version recovers the same ready intent, or its already-consumed session, instead of creating another round. A stale version, stale evidence, malformed payload, or ownership mismatch leaves the editable draft unchanged;
 - the current intent builder requires every selected item to resolve to one opaque prep context and one matching staged setup snapshot, including interview stage and resume-inclusion posture. The product does not intentionally assemble mixed-profile/stage/resume rounds; mismatch is an integrity failure. Future resume revision work must explicitly stage one resume version before launch;
 - one-question and fixed coach-bundle fast paths may create immutable intents directly, but still route to the durable ready landing; `Customize` may instead seed or merge items into the durable queue draft;
-- the temporary query-pointer `/candidate/practice/ready` bridge may create a one-item durable intent and redirect to `/candidate/practice/ready/[intentId]` when persistence dependencies are available;
-- `POST /candidate/practice/ready/[intentId]/start` turns a ready durable intent into a normal candidate-owned `candidate_practice_sessions` row and redirects to `/candidate/session/[sessionId]`;
-- starting a durable intent marks that intent `consumed` with `consumedCandidatePracticeSessionId` only after the follow-up session is created, so repeated start submissions can recover or redirect to the already-created session rather than creating another round;
+- the temporary query-pointer `/candidate/practice/ready` bridge is read-only compatibility UI. It may resolve and explain candidate-owned source context, but it never creates a durable intent or redirects as a side effect of GET rendering;
+- `POST /candidate/practice/ready/[intentId]/start` accepts the immutable candidate-owned intent id as its one-use launch identity and no mutable round payload. A ready intent expires 24 hours after creation; cancelled, expired, unowned, changed, or malformed intents fail before session mutation;
+- `public.start_candidate_practice_intent_session(...)` locks the exact intent, serializes candidate prep-context launch, validates its expected version and ordered source/session snapshots, rejects stale attempt-count inputs, inserts one normal `candidate_practice_sessions` row, and marks the intent `consumed` with `consumedCandidatePracticeSessionId` and `consumedAt` in one transaction;
+- repeated or response-lost start submissions replay only the already-attached candidate-owned session whose immutable setup snapshot declares the same source intent. A same-candidate but unrelated session pointer is `consumed_mismatch`, not a valid replay;
 - follow-up practice has no question-level attempt limit. The session input must carry follow-up lineage in setup, plan, and wording snapshots so downstream reads can show or aggregate: session attempt number for the selected target-interview context, question attempt number for each source question within that context, total question attempts, and total session attempts;
 - follow-up question lineage must include the immediate source practice-session id and question key, canonical root source-session id and question key, source question number/text/category, local follow-up slot id/number, practice kind, and question attempt number. Root resolution walks and validates historical follow-up links so repeat practice launched from prior repeat practice does not reset the question-attempt sequence. One launched round rejects multiple selected occurrences that collapse to the same canonical root question. Queue-created rounds also carry source draft id/version plus each item's draft-item id, provenance, and display position into setup, plan, and wording snapshots. This keeps candidate dashboard trends, recruiter invited-session attempt counts, and company engagement rollups available without treating a repeated question as a duplicate baseline question.
 
@@ -434,6 +456,38 @@ type CandidateAnswerSubmission = {
     status: "pending_analysis";
 };
 
+type CandidateQuestionWordingGeneration = {
+    status: "candidate_question_wording_generation_v1";
+    provider: string;
+    modelName: string;
+    promptVersion: string;
+    profileId: string;
+    configurationFingerprint: string; // sha256
+    requestFingerprint: string; // sha256 of bounded setup + exact ordered plan
+    generatedAt: string;
+    validation: {
+        providerRequestVersion: string;
+        providerOutputVersion: string;
+        timeoutMs: number;
+        transportAttemptCount: 1;
+        latencyMs: number;
+        tokenUsage: { inputTokens: number | null; outputTokens: number | null };
+        rawOutputStored: false;
+        promptStored: false;
+    };
+};
+
+type QuestionWordingResult = {
+    status: "questions_worded";
+    questions: Array<{
+        slotId: string;
+        index: number;
+        category: QuestionPlan["slots"][number]["category"];
+        questionText: string;
+    }>;
+    generation?: CandidateQuestionWordingGeneration; // absent only on pre-provider V2 fixtures/follow-up compatibility snapshots
+};
+
 type CandidatePracticeSession = {
     candidatePracticeSessionId: string;
     candidateProfileId: string;
@@ -460,6 +514,8 @@ Rules:
 - The table is candidate-owned and may link to `prepProfile` through `role_profile_id` and to host launch through `candidate_launch_session_id`.
 - Follow-up practice sessions created from `candidate_practice_intents` use the same durable table as setup-created sessions. Their `setupSnapshot.followUpPractice`, `questionPlanSnapshot.followUpPractice`, and `questionWordingSnapshot.followUpPractice` metadata must preserve the source intent, source route, session attempt number, item count, and per-question attempt lineage. This is the current V2 home for attempt context until a later normalized analytics/projection table is justified.
 - `/candidate/setup/start` persists setup-created sessions into `candidate_practice_sessions` when candidate identity can be resolved from the route context. If identity cannot be resolved, the route may continue returning the browser-bridge provisional session result for local/dev continuity. If identity resolves but persistence fails, the route must fail closed.
+- Initial setup-created rounds resolve ownership and prep context, create the deterministic plan, and then invoke the selected question-wording runtime exactly once before session insertion. Only an accepted exact slot/order/category mapping may be stored as `questionWordingSnapshot`; its immutable generation identity is part of that same session JSONB snapshot. Provider failure creates no session and consumes no trusted host setup staging. A prep context with no session may be reused by an explicit retry as partial-write repair. Follow-up practice snapshots exact selected source questions and must not invoke the wording provider.
+- Production question wording is selected only by `CANDIDATE_QUESTION_WORDING_PROVIDER=google_genai`, exact profile `google_gemini_2_5_flash_question_wording_v1`, and a nonblank server-only `GEMINI_API_KEY`. The provider receives bounded role/JD/optional-resume/stage and exact plan-slot context inside an untrusted envelope; it receives no candidate identity, database ids, host token data, answers, evaluation, Coach Update, or dashboard facts. Runtime telemetry is metadata-only. Fixture and fault profiles are restricted to explicit local host-launch development mode and are unavailable in production.
 - `/candidate/setup/start` returns `400` with setup `fieldErrors` only for invalid setup payloads. Candidate identity lookup, database schema, or durable session startup failures should return a fail-closed startup error, currently `503`, so local/dev database drift is not misreported as a candidate input problem.
 - `/candidate/session/[sessionId]` may recover a setup-created practice round from `candidate_practice_sessions` only after the launch-session cookie resolves to the owning `candidateProfileId`. Recovered sessions hydrate the planned-session shell before browser storage is consulted. If durable recovery is unavailable, browser session storage remains the local/dev fallback.
 - In explicit local dev host-launch mode, deterministic `dev-host-launch-*` cookies resolve directly to fixture `candidateProfileId` values for setup-start, durable session recovery, and answer-draft saves. These cookie values are not persisted into `candidate_practice_sessions.candidate_launch_session_id` because they are not UUID rows in `candidate_launch_sessions`.

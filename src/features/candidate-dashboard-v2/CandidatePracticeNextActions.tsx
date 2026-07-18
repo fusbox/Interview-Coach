@@ -1,48 +1,61 @@
 "use client";
 
-import { ArrowRight, Check, Loader2, Plus } from "lucide-react";
+import { Check, Loader2, Plus } from "lucide-react";
 import { useState } from "react";
 
-import { createCandidateFocusedPracticeHref } from "./candidate-coach-update-detail";
 import {
     useCandidateNextRoundBuilder,
     type CandidateNextRoundChoicePointer,
 } from "./CandidateNextRoundBuilderExperience";
+import {
+    CandidateFixedPracticeAction,
+    type CandidateFixedPracticeIntentCreateInput,
+    type CandidateFixedPracticeIntentCreateResult,
+    type CandidateFixedPracticeIntentPointer,
+} from "./CandidatePlanProgressAction";
+import type { CandidateFollowUpPracticeIntentKind } from "@/features/candidate-practice-v2/candidate-follow-up-practice-intent";
 
 export function CandidateQuestionPracticeActions({
     pointer,
     practiceNowHref,
     isCurrent = true,
+    createPracticeIntent,
+    navigate,
 }: {
     pointer: CandidateNextRoundChoicePointer;
     practiceNowHref?: string | null;
     isCurrent?: boolean;
+    createPracticeIntent?: (
+        input: CandidateFixedPracticeIntentCreateInput
+    ) => Promise<CandidateFixedPracticeIntentCreateResult>;
+    navigate?: (href: string) => void;
 }) {
     const controller = useCandidateNextRoundBuilder();
     const choiceState = controller?.resolveChoice(pointer) ?? null;
-    const resolvedPracticeNowHref = practiceNowHref ?? (choiceState
-        ? createCandidateFocusedPracticeHref({
-            kind: choiceState.choice.practiceKind,
+    const immediatePointer = choiceState
+        ? toFixedPracticeIntentPointer({
+            practiceKind: choiceState.choice.practiceKind,
             candidatePracticeSessionId: choiceState.choice.sourceCandidatePracticeSessionId,
             questionKey: choiceState.choice.sourceQuestionKey,
         })
-        : null);
+        : parseFixedPracticeIntentPointer(practiceNowHref);
 
-    if (!resolvedPracticeNowHref && !choiceState) {
+    if (!immediatePointer && !choiceState) {
         return null;
     }
 
     return (
         <div className="candidate-practice-next-actions">
-            {resolvedPracticeNowHref ? (
-                <a
+            {immediatePointer ? (
+                <CandidateFixedPracticeAction
+                    source="coach_update_detail"
+                    items={[immediatePointer]}
+                    label="Practice this now"
                     className="candidate-practice-next-actions__now"
-                    href={resolvedPracticeNowHref}
                     tabIndex={isCurrent ? undefined : -1}
-                >
-                    Practice this now
-                    <ArrowRight size={16} aria-hidden="true" />
-                </a>
+                    createPracticeIntent={createPracticeIntent}
+                    navigate={navigate}
+                />
             ) : null}
             {choiceState && controller ? (
                 <CandidateNextRoundQueueAction
@@ -55,6 +68,44 @@ export function CandidateQuestionPracticeActions({
             ) : null}
         </div>
     );
+}
+
+function toFixedPracticeIntentPointer({
+    practiceKind,
+    candidatePracticeSessionId,
+    questionKey,
+}: {
+    practiceKind: CandidateFollowUpPracticeIntentKind;
+    candidatePracticeSessionId: string;
+    questionKey: string;
+}): CandidateFixedPracticeIntentPointer {
+    return {
+        intent: practiceKind === "practice_from_feedback"
+            ? "coach-update-feedback-focus"
+            : "coach-update-missing-evidence",
+        fromSession: candidatePracticeSessionId,
+        questionKey,
+    };
+}
+
+function parseFixedPracticeIntentPointer(
+    href: string | null | undefined,
+): CandidateFixedPracticeIntentPointer | null {
+    if (!href?.startsWith("/candidate/practice/ready?")) {
+        return null;
+    }
+    const searchParams = new URL(href, "https://interviewcoach.invalid").searchParams;
+    const intent = searchParams.get("intent");
+    const fromSession = searchParams.get("fromSession");
+    const questionKey = searchParams.get("questionKey");
+    if (
+        (intent !== "coach-update-feedback-focus" && intent !== "coach-update-missing-evidence")
+        || !fromSession
+        || !questionKey
+    ) {
+        return null;
+    }
+    return { intent, fromSession, questionKey };
 }
 
 function CandidateNextRoundQueueAction({

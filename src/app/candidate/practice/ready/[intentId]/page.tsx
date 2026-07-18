@@ -8,8 +8,9 @@ import {
     createCandidatePracticeIntentRepository,
 } from "@/features/candidate-practice-v2/candidate-practice-intent-repository";
 import { createCandidateDashboardHref } from "@/features/candidate-dashboard-v2/candidate-dashboard-route";
-import type {
-    CandidatePracticeIntentRecord,
+import {
+    isCandidatePracticeIntentLaunchable,
+    type CandidatePracticeIntentRecord,
 } from "@/features/candidate-practice-v2/candidate-follow-up-practice-intent";
 import { CandidatePreSessionLanding } from "@/features/candidate-session-v2/CandidatePreSessionLanding";
 import { candidateSetupStageOptions } from "@/features/candidate-setup-v2/candidate-setup-contract";
@@ -34,16 +35,23 @@ type CandidatePracticeIntentReadyPageDependencies = {
 
 export async function renderCandidatePracticeIntentReadyPage({
     intentId,
+    now = new Date(),
     dependencies = {},
 }: {
     intentId: string;
+    now?: Date;
     dependencies?: CandidatePracticeIntentReadyPageDependencies;
 }) {
     const practiceIntent = dependencies.resolvePracticeIntent
         ? await dependencies.resolvePracticeIntent(intentId)
         : null;
 
-    if (!practiceIntent || practiceIntent.lifecycleState !== "ready") {
+    const canReplayConsumedIntent = practiceIntent?.lifecycleState === "consumed"
+        && Boolean(practiceIntent.consumedCandidatePracticeSessionId);
+    if (
+        !practiceIntent
+        || (!isCandidatePracticeIntentLaunchable(practiceIntent, now) && !canReplayConsumedIntent)
+    ) {
         return <PracticeIntentReadyRecoveryState />;
     }
 

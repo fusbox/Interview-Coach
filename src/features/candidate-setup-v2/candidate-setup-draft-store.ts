@@ -16,6 +16,12 @@ export type CandidateSetupDraft = CandidateSetupPayload & {
     resumeTargetScreen: CandidateSetupResumeTargetScreen;
     createdAt: string;
     updatedAt: string;
+    setupStartRequest?: CandidateSetupStartRequestMarker;
+};
+
+export type CandidateSetupStartRequestMarker = {
+    requestSignature: string;
+    idempotencyKey: string;
 };
 
 export type CandidateSetupDraftInput = {
@@ -102,10 +108,42 @@ export function saveCandidateSetupDraft(
         resumeTargetScreen: "candidate_setup",
         createdAt: previousDraft?.createdAt ?? timestamp,
         updatedAt: timestamp,
+        ...(previousDraft && hasSameSetupPayload(previousDraft, payload) && previousDraft.setupStartRequest
+            ? { setupStartRequest: previousDraft.setupStartRequest }
+            : {}),
     };
 
     store.writeDraft(draft);
     return draft;
+}
+
+export function getOrCreateCandidateSetupStartRequest(
+    store: CandidateSetupDraftStore,
+    ownerKey: string,
+    requestSignature: string,
+    createIdempotencyKey: () => string,
+): CandidateSetupStartRequestMarker | null {
+    const draft = store.readDraft(ownerKey);
+    if (!draft) {
+        return null;
+    }
+    if (
+        draft.setupStartRequest?.requestSignature === requestSignature
+        && isValidSetupStartIdempotencyKey(draft.setupStartRequest.idempotencyKey)
+    ) {
+        return draft.setupStartRequest;
+    }
+
+    const setupStartRequest = {
+        requestSignature,
+        idempotencyKey: createIdempotencyKey(),
+    };
+    store.writeDraft({
+        ...draft,
+        setupStartRequest,
+        updatedAt: new Date().toISOString(),
+    });
+    return setupStartRequest;
 }
 
 export function toCandidateSetupDraftFormState(draft: CandidateSetupDraft | null): {
@@ -132,6 +170,21 @@ function createCandidateSetupDraftId(ownerKey: string) {
         .replace(/^-+|-+$/g, "");
 
     return `setup-draft-${safeOwnerKey || "local-candidate"}`;
+}
+
+function hasSameSetupPayload(left: CandidateSetupPayload, right: CandidateSetupPayload) {
+    return left.targetRole === right.targetRole
+        && left.jobDescription === right.jobDescription
+        && left.resumeText === right.resumeText
+        && left.interviewStage === right.interviewStage
+        && left.questionCount === right.questionCount
+        && left.resumeCaptureMode === right.resumeCaptureMode;
+}
+
+function isValidSetupStartIdempotencyKey(value: string) {
+    return value.length >= 16
+        && value.length <= 128
+        && /^[A-Za-z0-9._:-]+$/.test(value);
 }
 
 function readBrowserDrafts(storage: Storage): Record<string, CandidateSetupDraft> {

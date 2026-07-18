@@ -753,7 +753,9 @@ function createPlanProgress({
     practiceNext: CandidatePracticeNext;
 }): CandidateDashboardPlanProgressIndicator {
     if (activeSession) {
-        const isStarted = activeSession.status === "in_progress";
+        const isStarted = activeSession.status === "in_progress"
+            || activeSession.progress.status === "question_preview"
+            || activeSession.progress.status === "live_question";
 
         return {
             status: "candidate_dashboard_plan_progress_ready",
