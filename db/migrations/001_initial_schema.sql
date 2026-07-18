@@ -1,10 +1,10 @@
 -- Interview Coach Recruiter - neutral Postgres initial schema
 -- Target: phase-1 standalone app without Supabase Auth, Supabase RLS, or Supabase service-role access.
 -- Source inputs:
---   - docs/04-architecture/postgres-migration/db_schema.md
+--   - docs/reference-archive/recruiter-v1/04-architecture/postgres-migration/db_schema.md
 --   - supabase/schema.sql
 --   - supabase/migrations/*.sql
---   - docs/04-architecture/postgres-migration/target_schema_reconciliation.md
+--   - docs/reference-archive/recruiter-v1/04-architecture/postgres-migration/target_schema_reconciliation.md
 --
 -- This migration is intended for a fresh target database. Historical Supabase data migration
 -- is out of scope for phase 1 unless explicitly reintroduced.

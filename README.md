@@ -1,81 +1,94 @@
-# Interview Coach for Recruiters
+# Interview Coach
 
-AI-powered interview practice platform for staffing recruiters and their candidates.
+AI-assisted interview practice for candidate-led preparation and recruiter-invited sessions.
 
-## Status
+## Repository Status
 
-This repository contains an active Next.js application, not a pre-development placeholder. The quality remediation program through Phase 6 has been executed, with final production sign-off still tracked separately in the quality docs.
+This repository contains two important product generations:
 
-Current characteristics:
-- Recruiter-authenticated invite creation and email delivery
-- Magic-link candidate practice sessions with token-bound API access
-- Structured API errors, rate limiting, idempotency, and baseline observability
-- CI quality gates for lint, typecheck, coverage, and stability
+- the recruiter-led V1 application, including recruiter-created invitations and invited candidate practice; and
+- the cleanroom candidate V2 rebuild on `feature/candidate-v2-rebuild`, with host-authenticated setup, evidence-first coaching, Coach Update, follow-up practice, and a candidate dashboard.
+
+V2 intentionally reuses proven V1 behavior only after review. Current candidate implementation truth lives in [docs/candidate-app/HANDOFF.md](docs/candidate-app/HANDOFF.md).
 
 ## Stack
 
 | Layer | Technology |
-|---|---|
+| --- | --- |
 | App framework | Next.js 15 App Router |
 | UI | React 18, TypeScript, Tailwind CSS, Framer Motion |
-| Auth + data | Supabase |
-| AI | Google Gemini |
-| Email | Resend |
-| Testing | Vitest, Testing Library |
+| Primary app data | PostgreSQL |
+| Host context | TalentArbor MSSQL adapter for candidate V2 |
+| AI | Google Gemini through the Google Gen AI SDK |
+| Email | Nodemailer transport boundary |
+| Testing | Vitest, Testing Library, Playwright, SQL smoke validation |
 
 ## Local Setup
 
 1. Install dependencies:
 
-```bash
+```powershell
 npm install
 ```
 
-2. Configure environment variables in `.env.local` using [Environment Variable Matrix](docs/05-quality/environment_variable_matrix.md).
+2. Configure `.env.local` and the disposable PostgreSQL database using [Local Dev Bootstrap](docs/candidate-app/09-dev/local-dev-bootstrap.md).
 
 3. Start the app:
 
-```bash
+```powershell
 npm run dev
 ```
 
-4. Open `http://localhost:3000`.
+4. For candidate V2 development, launch a local fixture identity:
 
-## Quality Commands
+```text
+http://localhost:3000/candidate/dev/launch?candidate=primary&next=/candidate/setup
+```
 
-```bash
+## Candidate V2 Checks
+
+```powershell
+npm run db:smoke-candidate-readiness
+npm run test:candidate
+npm run test:candidate:host-launch
+npm run test:candidate:host-setup
+npm run test:candidate:evaluator-configuration
+npm run test:candidate:coach-update
+npm run test:candidate:next-round
+npm run typecheck
+```
+
+Use focused tests for the touched boundary first. Migration milestones must also pass against both an empty disposable database and the existing upgrade database.
+
+## General Quality Commands
+
+```powershell
 npm run lint
 npm run typecheck
-npm run test
 npm run test:run
 npm run test:coverage
 npm run test:stability
 npm run ci:quality
 ```
 
-What they do:
-- `npm run lint`: ESLint with warnings treated as failures
-- `npm run typecheck`: TypeScript no-emit validation
-- `npm run test`: default Vitest command
-- `npm run test:run`: single-pass Vitest run
-- `npm run test:coverage`: coverage-gated Vitest run
-- `npm run test:stability`: repeated concurrency/stability suite
-- `npm run ci:quality`: local combined quality gate
+Full-repository checks can include unrelated V1 or local prototype debt. Do not hide those failures; distinguish them from the scoped candidate gate in the handoff.
 
-## Repo Guide
+## Documentation
 
-- [Remediation Execution Plan](docs/05-quality/remediation_execution_plan.md)
-- [Comprehensive Code Review](docs/05-quality/comprehensive_code_review.md)
-- [Security Endpoint Matrix](docs/05-quality/security_endpoint_matrix.md)
-- [Environment Variable Matrix](docs/05-quality/environment_variable_matrix.md)
-- [QA Checklist](docs/05-quality/QA-checklist.md)
-- [Contributing Guide](CONTRIBUTING.md)
+- [Documentation index and cleanup roadmap](docs/README.md)
+- [Candidate V2 handoff](docs/candidate-app/HANDOFF.md)
+- [Candidate V2 spec](docs/candidate-app/SPEC.md)
+- [Candidate V2 data contract](docs/candidate-app/DATA_CONTRACT.md)
+- [Candidate V2 docs by concern](docs/candidate-app/README.md)
+- [Recruiter-led V1/shared app archive](docs/reference-archive/recruiter-v1/README.md)
+- [Contributing guide](CONTRIBUTING.md)
 
-## Notes
+## Product Boundaries
 
-- Candidate access is through a unique magic link at `/s/[token]`.
-- Invite tokens are treated as bearer secrets and are validated server-side against stored hashes.
-- Some provider integrations degrade in local/dev environments when optional keys are absent; see the environment matrix for exact behavior.
+- Candidate-led V2 practice is for preparation and candidate review, not employer hiring decisions.
+- Recruiter-invited candidate behavior remains a distinct audience contract even where it shares session runtime code.
+- Host launch credentials, candidate answers, resume/JD content, prompts, and generated coaching must not enter ordinary logs.
+- V1-created app data requires no V2 compatibility unless explicitly reintroduced.
 
 ## License
 

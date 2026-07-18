@@ -10,8 +10,9 @@
 ## Setup
 
 1. Install dependencies with `npm install`.
-2. Configure local environment variables using [docs/05-quality/environment_variable_matrix.md](docs/05-quality/environment_variable_matrix.md).
-3. Start the app with `npm run dev`.
+2. Configure local environment variables and the disposable database using [Candidate Local Dev Bootstrap](docs/candidate-app/09-dev/local-dev-bootstrap.md).
+3. For legacy recruiter-only environment details, consult the archived [Environment Variable Matrix](docs/reference-archive/recruiter-v1/05-quality/environment_variable_matrix.md).
+4. Start the app with `npm run dev`.
 
 ## Required Checks Before Opening a PR
 

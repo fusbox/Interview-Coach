@@ -1,64 +1,91 @@
-## Documentation Index
+# Interview Coach Documentation
 
-> [!NOTE]
-> ### Current Product Scope
-> This repo is the recruiter-led Interview Coach app with a candidate practice experience entered via invite link.
-> Recruiter-facing readiness interpretation is not part of the current shipped scope.
+Status: Active index and documentation-migration ledger
+Last updated: 2026-07-18
 
-This folder contains project documentation for the current app. The docs are organized to support context, requirements, architecture, and quality, with an emphasis on present-day implementation clarity.
+The current product direction is the candidate V2 cleanroom rebuild on `feature/candidate-v2-rebuild`, while the deployed recruiter-led application remains an important behavior reference. Active V2 docs currently live under `docs/candidate-app` and will be promoted to this level after the active set is thinned and all links are mapped.
 
----
+## Active Context Stack
 
-## Recommended Reading Order
+Read these first, in order:
 
-### Project and context
+1. [Candidate V2 handoff](./candidate-app/HANDOFF.md): current truth, phase progress, risks, and the next slice.
+2. [Candidate V2 spec](./candidate-app/SPEC.md): product intent, user journeys, and non-goals.
+3. [Candidate V2 data contract](./candidate-app/DATA_CONTRACT.md): durable vocabulary, state, persistence, and payload boundaries.
+4. [Candidate docs index](./candidate-app/README.md): targeted architecture, quality, security, operations, and decision references.
+5. [Local development bootstrap](./candidate-app/09-dev/local-dev-bootstrap.md): current database, environment, dev-launch, and validation commands.
 
-1. [Project README](01-project/README.md)
-2. [Project Charter](01-project/project-charter.md)
-3. [Stakeholder Map](01-project/stakeholder-map.md)
+The implementation and current tests outrank historical documentation when they conflict. Update the active contract or record a deliberate deferral instead of allowing silent drift.
 
-### Requirements and users
+## Documentation Lifecycle
 
-4. [Recruiter Persona](02-requirements/personas/recruiter-persona.md)
-5. [Candidate Persona](02-requirements/personas/candidate-persona.md)
-6. [User Stories](02-requirements/user-stories.md)
+| Label | Meaning |
+| --- | --- |
+| Active | Governs current implementation or immediate execution. |
+| Supporting | Supplies detail for an active contract or release gate. |
+| Transitional | Still useful, but should be consolidated or archived before promotion. |
+| Historical | Behavior archaeology only; not current implementation instruction. |
+| Local-only | Discovery/design output that must not be committed without review. |
 
-### Current architecture and design contract
+## Reference Archives
 
-7. [Architecture README](04-architecture/README.md)
-8. [Architecture Overview](04-architecture/architecture-overview.md)
-9. [API Surface](04-architecture/api-surface.md)
-10. [End-to-End Flow](04-architecture/e2e-flow.md)
-11. [Routing and Rendering](03-design/ROUTING_AND_RENDERING.md)
-12. [Screen State Model](03-design/SCREEN_STATE_MODEL.md)
-13. [Code Organization](04-architecture/code-organization.md)
-14. [Stability and Change Policy](04-architecture/stability-and-change-policy.md)
+- [Recruiter-led V1/shared app docs](./reference-archive/recruiter-v1/README.md): former top-level project, requirements, design, architecture, Postgres migration, and quality material.
+- [Candidate V1/interim archive](./candidate-app/reference-archive/README.md): earlier candidate-module plans, contracts, SQL, and full handoff snapshots.
+- [Accepted V2 rebuild plan](./superpowers/plans/2026-07-06-parallel-v2-rebuild.md): initial cleanroom sequence; current numbered execution lives in the handoff.
 
-### Quality and release readiness
+## Cleanup And Promotion Roadmap
 
-15. [Quality README](05-quality/README.md)
-16. [Production Remediation Tracker](05-quality/production_remediation_tracker_2026-03-25.md)
-17. [Production Execution Plan](05-quality/production_execution_plan_2026-03-26.md)
-18. [Release Gate Checklist](05-quality/release-gate-checklist.md)
-19. [QA Checklist](05-quality/QA-checklist.md)
-20. [Implementation/Docs Alignment Review](05-quality/implementation-docs-alignment-review_2026-03-30.md)
+### Wave 1: Completed In This Pass
 
----
+- Compacted `HANDOFF.md` and archived its full Slice 85-133 ledger.
+- Moved the former top-level recruiter-era `01-project` through `05-quality` tree intact under `reference-archive/recruiter-v1`.
+- Reframed this index around the active candidate V2 stack.
 
-## Document Status
+### Wave 2: Thin `candidate-app`
 
-| Document Area | Status | Notes |
-|----------|--------|-------|
-| Project docs | Active | Context and handoff artifacts |
-| Requirements | Active | Current recruiter-led app scope |
-| Current architecture docs | Active | Use for implementation decisions |
-| Future-state architecture references | Reference only | Do not treat as live contract |
-| Quality docs | Active | Mixed release, QA, and decision-support material |
+Keep and eventually promote:
 
----
+- `SPEC.md`, `DATA_CONTRACT.md`, `HANDOFF.md`, and a single root `README.md`;
+- current setup/auth requirements;
+- evidence-first dashboard, question-category, host-launch/prep-context, and V1-reference architecture contracts;
+- evaluator/Coach Update contracts and live-validation runbooks;
+- security/privacy, observability, incident, release, and local-dev instructions;
+- ratified ADRs that still explain current architecture.
 
-## Notes
+Consolidate before promotion:
 
-- Prefer current implementation docs over future-state references when making changes.
-- If a doc and the code disagree, treat that as a cleanup task rather than assuming the doc wins automatically.
-- Use the readiness docs only as reference unless recruiter-facing readiness is explicitly re-scoped back into the product.
+- `REVIEWER-HANDOFF.md`, `START-WORK-PASS.md`, and `10-agent-workflows/workpass.md` into the root index, local bootstrap, and repository-local senior-pass skills;
+- preparedness inventories/maps into `DATA_CONTRACT.md` plus the dashboard architecture contract;
+- old dashboard briefs, disposable specs, and UX-contract fragments into the current design/product contracts;
+- Azure integration notes and stale backlog mechanics into current ops/release documentation.
+
+Archive after durable content is extracted:
+
+- `00-working-backlog.md` and superseded sequence plans;
+- pre-cleanroom candidate contracts and old route assumptions;
+- superseded ADRs, one-off audits, obsolete mockups, and fixture-era implementation notes.
+
+Security cleanup requiring an explicit pass:
+
+- remove tracked staging CSV exports from the current tip after confirming no active contract depends on them;
+- decide whether repository-history remediation is required for candidate/job discovery rows;
+- keep future probe output ignored and local-only.
+
+### Wave 3: Promote The Active Candidate Stack
+
+After Wave 2 and classification of the current untracked design imports:
+
+1. Move active `candidate-app/*` anchors and numbered subdirectories to `docs/*`.
+2. Update repository, code-comment, Markdown, and runbook links in one mechanical change.
+3. Add redirect/stub files only where external tooling or durable links require them.
+4. Run the documentation link check before removing the now-empty `candidate-app` directory.
+
+### Wave 4: Retire Residue
+
+- Remove stale compatibility docs only after their code paths are retired or explicitly preserved.
+- Keep dated milestone evidence in the reference archive rather than the active handoff.
+- Review the active stack at each phase boundary and archive documents that no longer answer a live implementation or release question.
+
+## Maintenance Rule
+
+Every active document must have one clear job. If content belongs to product truth, durable data, immediate execution, a ratified decision, or an operational gate, put it in that governing document. Otherwise archive it or keep it local-only.
