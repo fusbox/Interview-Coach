@@ -17,6 +17,14 @@ export const candidateCoachUpdateFixtureMetadata = {
     modelName: "deterministic_local_fixture",
     promptVersion: "coach_update_fixture_v1",
     evaluatorVersion: "evidence_first_v1",
+    profileId: "candidate_coach_update_fixture_v1",
+    configurationFingerprint: createHash("sha256").update(JSON.stringify({
+        provider: "candidate_v2_coach_update_synthesizer",
+        modelName: "deterministic_local_fixture",
+        promptVersion: "coach_update_fixture_v1",
+        evaluatorVersion: "evidence_first_v1",
+        profileId: "candidate_coach_update_fixture_v1",
+    })).digest("hex"),
 } as const;
 
 export type CandidateCoachUpdateLifecycleState = "requested" | "completed" | "failed" | "rejected";
@@ -34,6 +42,8 @@ export type CandidateCoachUpdateArtifactRecord = {
     modelName: string;
     promptVersion: string;
     evaluatorVersion: string;
+    profileId: string | null;
+    configurationFingerprint: string | null;
     generationAttempt: number;
     lifecycleState: CandidateCoachUpdateLifecycleState;
     candidateSafeContent: CandidateCoachUpdateContent | null;
@@ -355,6 +365,10 @@ export function normalizeCandidateCoachUpdateArtifactRecord(value: unknown): Can
         modelName: readString(value.model_name ?? value.modelName),
         promptVersion: readString(value.prompt_version ?? value.promptVersion),
         evaluatorVersion: readString(value.evaluator_version ?? value.evaluatorVersion),
+        profileId: readNullableString(value.profile_id ?? value.profileId),
+        configurationFingerprint: readNullableString(
+            value.configuration_fingerprint ?? value.configurationFingerprint,
+        ),
         generationAttempt: readPositiveInteger(value.generation_attempt ?? value.generationAttempt),
         lifecycleState: readLifecycle(value.lifecycle_state ?? value.lifecycleState),
         candidateSafeContent: readCandidateSafeContent(value.candidate_safe_content_json ?? value.candidateSafeContent),

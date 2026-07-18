@@ -27,15 +27,9 @@ describe("candidate launch context contract", () => {
         isActive: true,
         isExpired: false,
         expirationDate: "2026-08-01T00:00:00.000Z",
-        hasParsedResume: true,
-        resumeSourceType: "ResumeParserJSONMaster",
-        resumeCreatedDate: "2026-07-01T00:00:00.000Z",
-        resumeContentAvailable: true,
-        hasAIConsent: true,
-        aiConsentDate: "2026-06-01T00:00:00.000Z",
     };
 
-    it("normalizes a complete TA/RW launch-context row without storing resume text", () => {
+    it("normalizes approved candidate and job launch context", () => {
         const result = normalizeCandidateLaunchContextRow(baseRow);
 
         expect(result).toEqual({
@@ -66,19 +60,8 @@ describe("candidate launch context contract", () => {
                     isExpired: false,
                     expirationDate: "2026-08-01T00:00:00.000Z",
                 },
-                resume: {
-                    hasParsedResume: true,
-                    sourceType: "ResumeParserJSONMaster",
-                    createdDate: "2026-07-01T00:00:00.000Z",
-                    contentAvailable: true,
-                },
-                consent: {
-                    hasAIConsent: true,
-                    consentDate: "2026-06-01T00:00:00.000Z",
-                },
             },
         });
-        expect(JSON.stringify(result)).not.toContain("ResumeContent");
     });
 
     it("fails closed when the purpose-built resolver cannot find job context", () => {
@@ -106,46 +89,6 @@ describe("candidate launch context contract", () => {
         });
     });
 
-    it("allows no-consent rows so the UI can route to a consent gate before AI use", () => {
-        const result = normalizeCandidateLaunchContextRow({
-            ...baseRow,
-            hasAIConsent: false,
-            aiConsentDate: null,
-        });
-
-        expect(result).toMatchObject({
-            ok: true,
-            context: {
-                consent: {
-                    hasAIConsent: false,
-                    consentDate: null,
-                },
-            },
-        });
-    });
-
-    it("allows no-resume rows while preserving source metadata as none", () => {
-        const result = normalizeCandidateLaunchContextRow({
-            ...baseRow,
-            hasParsedResume: false,
-            resumeSourceType: null,
-            resumeCreatedDate: null,
-            resumeContentAvailable: false,
-        });
-
-        expect(result).toMatchObject({
-            ok: true,
-            context: {
-                resume: {
-                    hasParsedResume: false,
-                    sourceType: "None",
-                    createdDate: null,
-                    contentAvailable: false,
-                },
-            },
-        });
-    });
-
     it("allows partial requirement mapping because RequirementID is not guaranteed from every listing", () => {
         const result = normalizeCandidateLaunchContextRow({
             ...baseRow,
@@ -168,14 +111,17 @@ describe("candidate launch context contract", () => {
         });
     });
 
-    it("rejects missing candidate id, job collection id, title, or description", () => {
+    it("allows identity-only launch context while rejecting incomplete job context", () => {
         expect(normalizeCandidateLaunchContextRow({ ...baseRow, candidateId: null })).toEqual({
             ok: false,
             reason: "missing_candidate_id",
         });
-        expect(normalizeCandidateLaunchContextRow({ ...baseRow, jobCollectionId: null })).toEqual({
-            ok: false,
-            reason: "missing_job_collection_id",
+        expect(normalizeCandidateLaunchContextRow({ ...baseRow, jobCollectionId: null })).toMatchObject({
+            ok: true,
+            context: {
+                candidate: { candidateId: "12345" },
+                job: null,
+            },
         });
         expect(normalizeCandidateLaunchContextRow({ ...baseRow, jobTitle: " " })).toEqual({
             ok: false,

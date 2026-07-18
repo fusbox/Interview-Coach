@@ -4,6 +4,12 @@ import type {
     CandidateHostLaunchProvider,
     CandidateHostLaunchWorkspace,
 } from "./host-launch-contract";
+import {
+    createCandidateTrustedSetupContext,
+    type CandidateTrustedSetupContext,
+} from "@/features/candidate-setup-v2/candidate-setup-entry-context";
+
+export type CandidateLaunchEntryRoute = "/candidate/dashboard" | "/candidate/setup";
 
 export type CandidateLaunchIdentityKey = {
     provider: CandidateHostLaunchProvider;
@@ -17,15 +23,22 @@ export type CandidateLaunchIdentityKey = {
 
 export type CandidateLaunchProfileRecord = {
     candidateProfileId: string;
+    platformCandidateId: string | null;
 };
 
-export type CandidateLaunchSessionRecord = {
-    sessionId: string;
-};
+export type CandidateLaunchSessionCreationResult =
+    | {
+        ok: true;
+        sessionId: string;
+    }
+    | {
+        ok: false;
+        reason: "replayed_token" | "session_not_created";
+    };
 
 export type CandidateLaunchSessionContextSnapshot = {
     candidateId: string;
-    jobCollectionId: string;
+    jobCollectionId: string | null;
     sourceSurface: string;
     hostDomain: string | null;
 };
@@ -41,33 +54,50 @@ export type CandidateLaunchSessionRepository = {
         platformUserId: string | null;
         companyId: string | null;
     }) => Promise<CandidateLaunchProfileRecord | null>;
+    refreshProfileFromLaunch: (input: {
+        candidateProfileId: string;
+        authSubject: string;
+        workspace: CandidateHostLaunchWorkspace;
+        email: string;
+        displayName: string | null;
+        platformCandidateId: string;
+    }) => Promise<CandidateLaunchProfileRecord | null>;
     upsertIdentity: (input: {
         candidateProfileId: string;
         identity: CandidateLaunchIdentityKey;
         email: string;
         lastSeenAt: string;
     }) => Promise<void>;
+    hasPrepContexts: (candidateProfileId: string) => Promise<boolean>;
     createSession: (input: {
         candidateProfileId: string;
         provider: CandidateHostLaunchProvider;
         issuer: string;
         subject: string;
+        launchTokenId: string | null;
+        launchTokenFingerprint: string;
+        launchTokenExpiresAt: string;
         expiresAt: string;
         launchContext: CandidateLaunchSessionContextSnapshot;
-    }) => Promise<CandidateLaunchSessionRecord | null>;
+        trustedSetupContext: CandidateTrustedSetupContext | null;
+    }) => Promise<CandidateLaunchSessionCreationResult>;
 };
 
 export type CandidateLaunchSessionResolverDependencies = {
     handoff: CandidateHostLaunchHandoff;
     launchContext: CandidateLaunchContext;
     launchedAt: string;
-    expiresAt: string;
+    sessionExpiresAt: string;
+    launchTokenExpiresAt: string;
+    launchTokenId: string | null;
+    launchTokenFingerprint: string;
     repository: CandidateLaunchSessionRepository;
 };
 
 export type CandidateLaunchSessionResolutionFailureReason =
     | "identity_context_mismatch"
     | "profile_not_resolved"
+    | "replayed_token"
     | "session_not_created";
 
 export type CandidateLaunchSessionResolutionResult =
@@ -76,6 +106,7 @@ export type CandidateLaunchSessionResolutionResult =
         session: {
             candidateProfileId: string;
             sessionId: string;
+            entryRoute: CandidateLaunchEntryRoute;
         };
     }
     | {
@@ -86,45 +117,90 @@ export type CandidateLaunchSessionResolutionResult =
 export async function resolveCandidateLaunchSession(
     dependencies: CandidateLaunchSessionResolverDependencies,
 ): Promise<CandidateLaunchSessionResolutionResult> {
-    const { handoff, launchContext, launchedAt, expiresAt, repository } = dependencies;
+    const {
+        handoff,
+        launchContext,
+        launchedAt,
+        sessionExpiresAt,
+        launchTokenExpiresAt,
+        launchTokenId,
+        launchTokenFingerprint,
+        repository,
+    } = dependencies;
     if (hasIdentityContextMismatch(handoff, launchContext)) {
         return fail("identity_context_mismatch");
     }
 
     const identity = toIdentityKey(handoff, launchContext);
-    let profile = await repository.findProfileByIdentity(identity);
-    if (!profile) {
-        profile = await repository.createProfileFromLaunch({
-            authSubject: `${handoff.workspace}:${handoff.subject}`,
-            workspace: handoff.workspace,
-            email: firstNonEmpty(handoff.email, launchContext.candidate.email) ?? "",
-            displayName: firstNonEmpty(handoff.displayName, launchContext.candidate.displayName),
-            platformCandidateId: launchContext.candidate.candidateId,
+    const mappedProfile = await repository.findProfileByIdentity(identity);
+    if (
+        mappedProfile?.platformCandidateId
+        && mappedProfile.platformCandidateId !== identity.platformCandidateId
+    ) {
+        return fail("identity_context_mismatch");
+    }
+
+    const email = firstNonEmpty(launchContext.candidate.email, handoff.email) ?? "";
+    const profileInput = {
+        authSubject: `${handoff.workspace}:${handoff.subject}`,
+        workspace: handoff.workspace,
+        email,
+        displayName: firstNonEmpty(launchContext.candidate.displayName, handoff.displayName),
+        platformCandidateId: launchContext.candidate.candidateId,
+    };
+    const profile = mappedProfile
+        ? await repository.refreshProfileFromLaunch({
+            candidateProfileId: mappedProfile.candidateProfileId,
+            ...profileInput,
+        })
+        : await repository.createProfileFromLaunch({
+            ...profileInput,
             platformUserId: launchContext.candidate.userId,
             companyId: launchContext.candidate.companyId,
         });
-        if (!profile) {
-            return fail("profile_not_resolved");
-        }
-
-        await repository.upsertIdentity({
-            candidateProfileId: profile.candidateProfileId,
-            identity,
-            email: firstNonEmpty(handoff.email, launchContext.candidate.email) ?? "",
-            lastSeenAt: launchedAt,
-        });
+    if (!profile) {
+        return fail(mappedProfile ? "identity_context_mismatch" : "profile_not_resolved");
     }
+    if (mappedProfile && mappedProfile.candidateProfileId !== profile.candidateProfileId) {
+        return fail("identity_context_mismatch");
+    }
+
+    await repository.upsertIdentity({
+        candidateProfileId: profile.candidateProfileId,
+        identity,
+        email,
+        lastSeenAt: launchedAt,
+    });
+
+    const trustedSetupContext = launchContext.job
+        ? createCandidateTrustedSetupContext({
+            workspace: handoff.workspace,
+            launchContext,
+        })
+        : null;
+    if (launchContext.job && !trustedSetupContext) {
+        return fail("session_not_created");
+    }
+    const entryRoute: CandidateLaunchEntryRoute = trustedSetupContext
+        ? "/candidate/setup"
+        : await repository.hasPrepContexts(profile.candidateProfileId)
+            ? "/candidate/dashboard"
+            : "/candidate/setup";
 
     const session = await repository.createSession({
         candidateProfileId: profile.candidateProfileId,
         provider: handoff.provider,
         issuer: handoff.issuer,
         subject: handoff.subject,
-        expiresAt,
+        launchTokenId,
+        launchTokenFingerprint,
+        launchTokenExpiresAt,
+        expiresAt: sessionExpiresAt,
         launchContext: toSessionContextSnapshot(launchContext),
+        trustedSetupContext,
     });
-    if (!session) {
-        return fail("session_not_created");
+    if (!session.ok) {
+        return fail(session.reason);
     }
 
     return {
@@ -132,6 +208,7 @@ export async function resolveCandidateLaunchSession(
         session: {
             candidateProfileId: profile.candidateProfileId,
             sessionId: session.sessionId,
+            entryRoute,
         },
     };
 }
@@ -180,7 +257,7 @@ function toSessionContextSnapshot(
 ): CandidateLaunchSessionContextSnapshot {
     return {
         candidateId: launchContext.candidate.candidateId,
-        jobCollectionId: launchContext.job.jobCollectionId,
+        jobCollectionId: launchContext.job?.jobCollectionId ?? null,
         sourceSurface: launchContext.source.sourceSurface,
         hostDomain: launchContext.source.hostDomain,
     };

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import type { CandidateSetupStageId } from "./candidate-setup-contract";
 import type { CandidateSetupSessionCreationResult } from "./candidate-setup-session-creation";
+import type { CandidateTrustedSetupContext } from "./candidate-setup-entry-context";
 
 export type CandidateSetupPrepContextQueryClient = {
     query: (sql: string, values: unknown[]) => Promise<{
@@ -14,6 +15,8 @@ export type ResolveCandidateSetupPrepContextInput = {
     requestedRoleProfileId?: string | null;
     createSeparateFromRoleProfileId?: string | null;
     allowManualCreation: boolean;
+    trustedLaunchContext?: CandidateTrustedSetupContext | null;
+    trustedLaunchSessionId?: string | null;
     setupSnapshot: CandidateSetupSessionCreationResult["setupSnapshot"];
 };
 
@@ -59,6 +62,9 @@ export type CandidateSetupPrepContextResolver = {
 };
 
 type CandidateManualPrepContextKey = ReturnType<typeof createCandidateManualPrepContextKey>;
+type CandidateHostPrepContextKey = CandidateTrustedSetupContext & {
+    normalizedTargetRole: string;
+};
 
 type CandidateManualPrepContextMatch = CandidateExistingPrepContextSummary & {
     sessionCount: number;
@@ -79,6 +85,79 @@ export function createCandidateSetupPrepContextRepository(
                 });
                 return owned
                     ? { status: "resolved", roleProfileId: owned.roleProfileId, resolution: "requested" }
+                    : null;
+            }
+
+            if (input.trustedLaunchContext) {
+                const key = createCandidateHostPrepContextKey(
+                    input.trustedLaunchContext,
+                    input.setupSnapshot,
+                );
+                if (!key) {
+                    return null;
+                }
+                const trustedLaunchSessionId = normalizeRequiredId(input.trustedLaunchSessionId ?? "");
+                const createSeparateFromRoleProfileId = normalizeOptionalId(input.createSeparateFromRoleProfileId);
+                if (createSeparateFromRoleProfileId) {
+                    return createSeparateHostPrepContext(client, {
+                        candidateProfileId,
+                        sourceRoleProfileId: createSeparateFromRoleProfileId,
+                        key,
+                        trustedLaunchSessionId,
+                        setupSnapshot: input.setupSnapshot,
+                    });
+                }
+
+                const existingMatches = await listHostPrepContextMatches(client, {
+                    candidateProfileId,
+                    key,
+                });
+                const usedMatches = existingMatches.filter((match) => match.sessionCount > 0);
+                if (usedMatches.length > 0) {
+                    return {
+                        status: "existing_paths",
+                        existingPrepContexts: usedMatches.map(toExistingPrepContextSummary),
+                    };
+                }
+
+                const reusableEmptyProfile = existingMatches[0];
+                if (reusableEmptyProfile) {
+                    return {
+                        status: "resolved",
+                        roleProfileId: reusableEmptyProfile.roleProfileId,
+                        resolution: "reused_empty",
+                    };
+                }
+
+                const created = await insertHostPrepContext(client, {
+                    candidateProfileId,
+                    key,
+                    trustedLaunchSessionId,
+                    setupSnapshot: input.setupSnapshot,
+                    practicePathNumber: 1,
+                });
+                if (created) {
+                    return { status: "resolved", roleProfileId: created.roleProfileId, resolution: "created" };
+                }
+
+                const concurrentMatches = await listHostPrepContextMatches(client, {
+                    candidateProfileId,
+                    key,
+                });
+                const concurrentUsedMatches = concurrentMatches.filter((match) => match.sessionCount > 0);
+                if (concurrentUsedMatches.length > 0) {
+                    return {
+                        status: "existing_paths",
+                        existingPrepContexts: concurrentUsedMatches.map(toExistingPrepContextSummary),
+                    };
+                }
+                const concurrentEmptyProfile = concurrentMatches[0];
+                return concurrentEmptyProfile
+                    ? {
+                        status: "resolved",
+                        roleProfileId: concurrentEmptyProfile.roleProfileId,
+                        resolution: "reused_empty",
+                    }
                     : null;
             }
 
@@ -157,6 +236,28 @@ export function createCandidateSetupPrepContextRepository(
     };
 }
 
+function createCandidateHostPrepContextKey(
+    trusted: CandidateTrustedSetupContext,
+    setupSnapshot: CandidateSetupSessionCreationResult["setupSnapshot"],
+): CandidateHostPrepContextKey | null {
+    const canonical = createCandidateManualPrepContextKey({
+        targetRole: trusted.targetRole,
+        jobDescription: trusted.jobDescription,
+    });
+    if (
+        setupSnapshot.targetRole !== canonical.targetRole
+        || setupSnapshot.jobDescription !== canonical.jobDescription
+        || trusted.jobDescriptionHash !== canonical.jobDescriptionHash
+    ) {
+        return null;
+    }
+
+    return {
+        ...trusted,
+        normalizedTargetRole: canonical.normalizedTargetRole,
+    };
+}
+
 export function createCandidateManualPrepContextKey(input: {
     targetRole: string;
     jobDescription: string;
@@ -199,6 +300,48 @@ async function listManualPrepContextMatches(
         key: CandidateManualPrepContextKey;
     },
 ): Promise<CandidateManualPrepContextMatch[]> {
+    return listPrepContextMatches(client, {
+        candidateProfileId: input.candidateProfileId,
+        key: {
+            kind: "manual",
+            normalizedTargetRole: input.key.normalizedTargetRole,
+            jobDescriptionHash: input.key.jobDescriptionHash,
+        },
+    });
+}
+
+async function listHostPrepContextMatches(
+    client: CandidateSetupPrepContextQueryClient,
+    input: {
+        candidateProfileId: string;
+        key: CandidateHostPrepContextKey;
+    },
+): Promise<CandidateManualPrepContextMatch[]> {
+    return listPrepContextMatches(client, {
+        candidateProfileId: input.candidateProfileId,
+        key: {
+            kind: "host",
+            sourcePlatform: input.key.sourcePlatform,
+            jobCollectionId: input.key.jobCollectionId,
+        },
+    });
+}
+
+async function listPrepContextMatches(
+    client: CandidateSetupPrepContextQueryClient,
+    input: {
+        candidateProfileId: string;
+        key:
+            | { kind: "manual"; normalizedTargetRole: string; jobDescriptionHash: string }
+            | { kind: "host"; sourcePlatform: string; jobCollectionId: string };
+    },
+): Promise<CandidateManualPrepContextMatch[]> {
+    const matchPredicate = input.key.kind === "host"
+        ? "profile.source = 'host_platform' and profile.source_platform = $2 and profile.source_job_collection_id = $3"
+        : "profile.source in ('manual', 'dev_seed') and profile.normalized_target_role = $2 and profile.job_description_hash = $3";
+    const matchValues = input.key.kind === "host"
+        ? [input.candidateProfileId, input.key.sourcePlatform, input.key.jobCollectionId]
+        : [input.candidateProfileId, input.key.normalizedTargetRole, input.key.jobDescriptionHash];
     const result = await client.query(`
         select
           profile.role_profile_id,
@@ -269,15 +412,10 @@ async function listManualPrepContextMatches(
           limit 1
         ) active_round on true
         where profile.candidate_profile_id = $1
-          and profile.normalized_target_role = $2
-          and profile.job_description_hash = $3
+          and ${matchPredicate}
           and profile.status in ('active', 'paused')
         order by activity.last_practice_activity_at desc nulls last, profile.created_at desc
-    `, [
-        input.candidateProfileId,
-        input.key.normalizedTargetRole,
-        input.key.jobDescriptionHash,
-    ]);
+    `, matchValues);
 
     return result.rows
         .map(toManualPrepContextMatch)
@@ -319,6 +457,140 @@ async function insertManualPrepContext(
     const roleProfileId = readRoleProfileId(result.rows[0]);
 
     return roleProfileId ? { roleProfileId } : null;
+}
+
+async function insertHostPrepContext(
+    client: CandidateSetupPrepContextQueryClient,
+    input: {
+        candidateProfileId: string;
+        trustedLaunchSessionId: string;
+        key: CandidateHostPrepContextKey;
+        setupSnapshot: CandidateSetupSessionCreationResult["setupSnapshot"];
+        practicePathNumber: number;
+    },
+) {
+    const result = await client.query(`
+        insert into public.candidate_role_preparation_profiles (
+          candidate_profile_id,
+          target_role,
+          normalized_target_role,
+          job_description_snapshot,
+          job_description_hash,
+          resume_context_snapshot_json,
+          source,
+          source_platform,
+          source_job_collection_id,
+          source_requirement_id,
+          source_launch_session_id,
+          practice_path_number
+        )
+        values ($1, $2, $3, $4, $5, $6::jsonb, 'host_platform', $7, $8, $9, $10, $11)
+        on conflict do nothing
+        returning role_profile_id
+    `, [
+        input.candidateProfileId,
+        input.key.targetRole,
+        input.key.normalizedTargetRole,
+        input.key.jobDescription,
+        input.key.jobDescriptionHash,
+        toResumeContext(input.setupSnapshot),
+        input.key.sourcePlatform,
+        input.key.jobCollectionId,
+        input.key.requirementId,
+        input.trustedLaunchSessionId,
+        input.practicePathNumber,
+    ]);
+    const roleProfileId = readRoleProfileId(result.rows[0]);
+
+    return roleProfileId ? { roleProfileId } : null;
+}
+
+async function createSeparateHostPrepContext(
+    client: CandidateSetupPrepContextQueryClient,
+    input: {
+        candidateProfileId: string;
+        sourceRoleProfileId: string;
+        trustedLaunchSessionId: string;
+        key: CandidateHostPrepContextKey;
+        setupSnapshot: CandidateSetupSessionCreationResult["setupSnapshot"];
+    },
+): Promise<CandidateSetupPrepContextResolution> {
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+        const matches = await listHostPrepContextMatches(client, {
+            candidateProfileId: input.candidateProfileId,
+            key: input.key,
+        });
+        const sourceMatch = matches.find((match) => (
+            match.roleProfileId === input.sourceRoleProfileId && match.sessionCount > 0
+        ));
+        if (!sourceMatch) {
+            return { status: "decision_invalid" };
+        }
+
+        const reusableEmptyProfile = matches.find((match) => match.sessionCount === 0);
+        if (reusableEmptyProfile) {
+            return {
+                status: "resolved",
+                roleProfileId: reusableEmptyProfile.roleProfileId,
+                resolution: "separate_reused_empty",
+            };
+        }
+
+        const result = await client.query(`
+            insert into public.candidate_role_preparation_profiles (
+              candidate_profile_id,
+              target_role,
+              normalized_target_role,
+              job_description_snapshot,
+              job_description_hash,
+              resume_context_snapshot_json,
+              source,
+              source_platform,
+              source_job_collection_id,
+              source_requirement_id,
+              source_launch_session_id,
+              practice_path_number
+            )
+            select
+              $1, $2, $3, $4, $5, $6::jsonb, 'host_platform', $7, $8, $9, $10,
+              coalesce(max(profile.practice_path_number), 0) + 1
+            from public.candidate_role_preparation_profiles profile
+            where profile.candidate_profile_id = $1
+              and profile.source = 'host_platform'
+              and profile.source_platform = $7
+              and profile.source_job_collection_id = $8
+            having exists (
+              select 1
+              from public.candidate_role_preparation_profiles source_profile
+              where source_profile.role_profile_id = $11
+                and source_profile.candidate_profile_id = $1
+                and source_profile.source = 'host_platform'
+                and source_profile.source_platform = $7
+                and source_profile.source_job_collection_id = $8
+                and source_profile.status in ('active', 'paused')
+            )
+            on conflict do nothing
+            returning role_profile_id
+        `, [
+            input.candidateProfileId,
+            input.key.targetRole,
+            input.key.normalizedTargetRole,
+            input.key.jobDescription,
+            input.key.jobDescriptionHash,
+            toResumeContext(input.setupSnapshot),
+            input.key.sourcePlatform,
+            input.key.jobCollectionId,
+            input.key.requirementId,
+            input.trustedLaunchSessionId,
+            input.sourceRoleProfileId,
+        ]);
+        const roleProfileId = readRoleProfileId(result.rows[0]);
+        if (roleProfileId) {
+            return { status: "resolved", roleProfileId, resolution: "separate_created" };
+        }
+    }
+
+    return { status: "decision_invalid" };
 }
 
 async function createSeparateManualPrepContext(

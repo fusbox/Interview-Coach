@@ -117,6 +117,7 @@ describe("candidate dev host launch", () => {
         };
 
         await expect(resolveCandidateDevHostLaunchProfile(handoff)).resolves.toEqual({
+            ok: true,
             candidateProfileId: "10000000-0000-4000-8000-000000000002",
             sessionId: "dev-host-launch-100002",
         });

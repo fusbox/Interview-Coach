@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { z } from "zod";
 
 import { createCandidateAnswerCoachingFacts } from "@/features/candidate-session-v2/candidate-coaching-facts";
@@ -24,6 +26,8 @@ export type CandidateCoachUpdateRuntimeMetadata = {
     modelName: string;
     promptVersion: string;
     evaluatorVersion: string;
+    profileId: string;
+    configurationFingerprint: string;
 };
 
 export type CandidateCoachUpdateProviderRequest = {
@@ -84,6 +88,8 @@ export type CandidateCoachUpdateRuntimeTelemetry = {
     modelName: string;
     promptVersion: string;
     evaluatorVersion: string;
+    profileId?: string;
+    configurationFingerprint?: string;
     outcome: "accepted" | "failed" | "rejected";
     errorCode: string | null;
     retryable: boolean;
@@ -121,9 +127,11 @@ export type CandidateCoachUpdateSynthesisRuntime = {
 export type CandidateCoachUpdateRuntimeErrorKind =
     | "timeout"
     | "rate_limited"
+    | "provider_4xx"
     | "provider_5xx"
     | "provider_unavailable"
     | "misconfigured"
+    | "safety_blocked"
     | "empty_response"
     | "invalid_json"
     | "invalid_schema"
@@ -313,25 +321,6 @@ export const CANDIDATE_COACH_UPDATE_FAULT_MODES = [
 
 export type CandidateCoachUpdateFaultMode = typeof CANDIDATE_COACH_UPDATE_FAULT_MODES[number];
 
-export function createCandidateCoachUpdateRuntimeFromEnvironment({
-    env,
-    explicitLocalDev,
-}: {
-    env: Record<string, string | undefined>;
-    explicitLocalDev: boolean;
-}): CandidateCoachUpdateSynthesisRuntime | null {
-    if (!explicitLocalDev || env.NODE_ENV === "production") return null;
-
-    const configuredProvider = env[CANDIDATE_COACH_UPDATE_PROVIDER_ENV]?.trim().toLowerCase();
-    const provider = configuredProvider || "fixture";
-    if (provider === "fixture") return createFixtureCandidateCoachUpdateRuntime();
-    if (provider !== "fault") return null;
-
-    const faultMode = readFaultMode(env[CANDIDATE_COACH_UPDATE_FAULT_MODE_ENV]);
-    if (!faultMode) return null;
-    return createFaultInjectionCandidateCoachUpdateRuntime(faultMode);
-}
-
 export function createFaultInjectionCandidateCoachUpdateRuntime(
     mode: CandidateCoachUpdateFaultMode,
 ): CandidateCoachUpdateSynthesisRuntime {
@@ -342,6 +331,14 @@ export function createFaultInjectionCandidateCoachUpdateRuntime(
                 modelName: `deterministic_${mode}`,
                 promptVersion: CANDIDATE_COACH_UPDATE_PRODUCTION_PROMPT_VERSION,
                 evaluatorVersion: "evidence_first_v1",
+                profileId: `candidate_coach_update_fault_${mode}_v1`,
+                configurationFingerprint: createHash("sha256").update(JSON.stringify({
+                    provider: "candidate_v2_coach_update_fault_injector",
+                    modelName: `deterministic_${mode}`,
+                    promptVersion: CANDIDATE_COACH_UPDATE_PRODUCTION_PROMPT_VERSION,
+                    evaluatorVersion: "evidence_first_v1",
+                    mode,
+                })).digest("hex"),
             },
             async generate(request, { signal }) {
                 if (mode === "timeout") {
@@ -546,13 +543,6 @@ function readTokenCount(value: unknown) {
     return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : null;
 }
 
-function readFaultMode(value: string | undefined): CandidateCoachUpdateFaultMode | null {
-    const normalized = value?.trim().toLowerCase();
-    return CANDIDATE_COACH_UPDATE_FAULT_MODES.includes(normalized as CandidateCoachUpdateFaultMode)
-        ? normalized as CandidateCoachUpdateFaultMode
-        : null;
-}
-
 function boundText(value: string, maximumLength: number) {
     return value.trim().slice(0, maximumLength);
 }
@@ -575,6 +565,7 @@ function isRejectedOutputKind(kind: CandidateCoachUpdateRuntimeErrorKind) {
         "invalid_schema",
         "fingerprint_mismatch",
         "question_mapping_mismatch",
+        "safety_blocked",
         "unsafe_candidate_language",
     ].includes(kind);
 }

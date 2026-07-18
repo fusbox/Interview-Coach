@@ -1,5 +1,3 @@
-import { Pool } from "pg";
-
 import {
     resolveCandidateLaunchContext,
     type CandidateLaunchContextLookupInput,
@@ -7,74 +5,109 @@ import {
 import { createCandidateLaunchSessionRepository } from "./candidate-launch-session-repository";
 import { resolveCandidateLaunchSession } from "./candidate-launch-session-resolver";
 import type { CandidateHostLaunchHandoff } from "./host-launch-contract";
+import {
+    CANDIDATE_HOST_LAUNCH_DEFAULT_SESSION_TTL_SECONDS,
+    CANDIDATE_HOST_LAUNCH_MAX_SESSION_TTL_SECONDS,
+} from "./host-launch-contract";
 import type { CandidateHostLaunchRouteDependencies } from "./host-launch-route";
 import {
     createCandidateProductionHostLaunchVerifier,
     getCandidateProductionHostLaunchConfigStatus,
+    type CandidateProductionHostLaunchTelemetryReason,
 } from "./production-host-launch-verifier";
+import {
+    createTalentArborMssqlLaunchContextLookup,
+    getTalentArborMssqlConfigStatus,
+    type TalentArborLaunchContextLookup,
+    type TalentArborMssqlConfig,
+} from "./talentarbor-mssql-runtime";
+import { createCandidatePostgresQueryClient } from "./candidate-postgres-runtime";
 
 export const CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV = "DATABASE_URL";
+export const CANDIDATE_HOST_LAUNCH_SESSION_TTL_SECONDS_ENV = "CANDIDATE_HOST_LAUNCH_SESSION_TTL_SECONDS";
 
 type CandidateHostLaunchRuntimeEnv = Record<string, string | undefined>;
-
-type LazyQueryClient = {
-    query: (sql: string, values: unknown[]) => Promise<{
-        rows: Array<Record<string, unknown>>;
-    }>;
-};
 
 export function createCandidateProductionHostLaunchRouteDependencies({
     env = process.env,
     now,
+    createTalentArborLookup = createDefaultTalentArborLookup,
+    onVerificationDiagnostic,
 }: {
     env?: CandidateHostLaunchRuntimeEnv;
     now: Date;
+    createTalentArborLookup?: (config: TalentArborMssqlConfig) => TalentArborLaunchContextLookup;
+    onVerificationDiagnostic?: (reason: CandidateProductionHostLaunchTelemetryReason) => void;
 }): CandidateHostLaunchRouteDependencies | null {
     const verifierConfig = getCandidateProductionHostLaunchConfigStatus(env);
+    const talentArborConfig = getTalentArborMssqlConfigStatus(env);
     const databaseUrl = env[CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV]?.trim();
+    const sessionTtlSeconds = readSessionTtlSeconds(env[CANDIDATE_HOST_LAUNCH_SESSION_TTL_SECONDS_ENV]);
 
-    if (!verifierConfig.ok || !databaseUrl) {
+    if (
+        !verifierConfig.ok
+        || verifierConfig.expectedWorkspace !== "talentarbor"
+        || !talentArborConfig.ok
+        || !databaseUrl
+        || sessionTtlSeconds === null
+    ) {
         return null;
     }
 
-    const verifyConfiguredToken = createCandidateProductionHostLaunchVerifier(env);
-    const sessionRepository = createCandidateLaunchSessionRepository(createLazyPostgresQueryClient(databaseUrl));
+    const verifyConfiguredToken = createCandidateProductionHostLaunchVerifier(env, {
+        onDiagnostic: onVerificationDiagnostic,
+    });
+    const sessionRepository = createCandidateLaunchSessionRepository(createCandidatePostgresQueryClient(databaseUrl));
+    const lookupLaunchContext = createTalentArborLookup(talentArborConfig.config);
 
     return {
+        sessionTtlSeconds,
         verifyLaunchToken(token) {
             return verifyConfiguredToken(token, now);
         },
         async resolveCandidateProfile(handoff, source) {
             const lookupInput = toLaunchContextLookupInput(handoff);
             if (!lookupInput) {
-                return null;
+                return { ok: false, reason: "invalid_identity" };
             }
 
             const launchContext = await resolveCandidateLaunchContext({
                 input: lookupInput,
-                lookupLaunchContext: async () => null,
+                lookupLaunchContext,
             });
             if (!launchContext.ok) {
-                return null;
+                return { ok: false, reason: "invalid_identity" };
             }
 
             const session = await resolveCandidateLaunchSession({
                 handoff,
                 launchContext: launchContext.context,
                 launchedAt: now.toISOString(),
-                expiresAt: source.expiresAt,
+                sessionExpiresAt: source.sessionExpiresAt,
+                launchTokenExpiresAt: source.launchTokenExpiresAt,
+                launchTokenId: source.tokenId,
+                launchTokenFingerprint: source.tokenFingerprint,
                 repository: sessionRepository,
             });
 
-            return session.ok ? session.session : null;
+            return session.ok
+                ? { ok: true, ...session.session }
+                : {
+                    ok: false,
+                    reason: session.reason === "replayed_token" ? "replayed_token" : "invalid_identity",
+                };
         },
     };
+}
+
+function createDefaultTalentArborLookup(config: TalentArborMssqlConfig) {
+    return createTalentArborMssqlLaunchContextLookup({ config });
 }
 
 function toLaunchContextLookupInput(
     handoff: CandidateHostLaunchHandoff,
 ): CandidateLaunchContextLookupInput | null {
-    if (!handoff.launchContextHint.candidateId || !handoff.launchContextHint.jobCollectionId) {
+    if (!handoff.launchContextHint.candidateId) {
         return null;
     }
 
@@ -86,39 +119,13 @@ function toLaunchContextLookupInput(
     };
 }
 
-function createLazyPostgresQueryClient(databaseUrl: string): LazyQueryClient {
-    let pool: Pool | null = null;
-
-    return {
-        query(sql, values) {
-            pool ??= new Pool({
-                connectionString: databaseUrl,
-                ssl: getRuntimeSslConfig(databaseUrl),
-                max: 2,
-                application_name: "interview-coach-candidate-host-launch",
-            });
-            return pool.query(sql, values);
-        },
-    };
-}
-
-function getRuntimeSslConfig(databaseUrl: string) {
-    const sslMode = readUrlSslMode(databaseUrl);
-    if (sslMode === "disable") {
-        return false;
+function readSessionTtlSeconds(value: string | undefined) {
+    if (value === undefined) {
+        return CANDIDATE_HOST_LAUNCH_DEFAULT_SESSION_TTL_SECONDS;
     }
-    if (sslMode) {
-        return {
-            rejectUnauthorized: sslMode === "verify-ca" || sslMode === "verify-full",
-        };
-    }
-    return undefined;
-}
 
-function readUrlSslMode(databaseUrl: string) {
-    try {
-        return new URL(databaseUrl).searchParams.get("sslmode")?.toLowerCase() ?? null;
-    } catch {
-        return null;
-    }
+    const parsed = Number(value);
+    return Number.isInteger(parsed) && parsed > 0 && parsed <= CANDIDATE_HOST_LAUNCH_MAX_SESSION_TTL_SECONDS
+        ? parsed
+        : null;
 }

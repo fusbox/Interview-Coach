@@ -3,7 +3,6 @@ import { act } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import CandidateSetupPage from "./page";
 import { CandidateSetupExperience } from "@/features/candidate-setup-v2/CandidateSetupExperience";
 import {
     CANDIDATE_SETUP_DRAFT_STORAGE_KEY,
@@ -20,7 +19,7 @@ afterEach(() => {
 });
 
 it("renders the candidate setup inputs with required markers", () => {
-    render(<CandidateSetupPage />);
+    render(<CandidateSetupExperience />);
 
     expect(screen.getByRole("heading", { name: "Practice Setup" })).toBeInTheDocument();
     expect(screen.getByText(/Tell me what interview you are preparing for\. After setup/i)).toBeInTheDocument();
@@ -33,7 +32,7 @@ it("renders the candidate setup inputs with required markers", () => {
 });
 
 it("supports pasted, uploaded, and photographed resume text sources", () => {
-    render(<CandidateSetupPage />);
+    render(<CandidateSetupExperience />);
 
     expect(screen.getByRole("button", { name: /paste text/i })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByLabelText(/upload file/i)).toHaveAttribute("accept", ".pdf,.doc,.docx,.txt,image/*");
@@ -47,7 +46,7 @@ it("supports pasted, uploaded, and photographed resume text sources", () => {
 });
 
 it("changes the recommended question count when the interview stage changes", () => {
-    render(<CandidateSetupPage />);
+    render(<CandidateSetupExperience />);
 
     expect(screen.getAllByText("7 questions")).toHaveLength(2);
     expect(screen.getByText(/I recommend 7 questions/i)).toBeInTheDocument();
@@ -444,6 +443,38 @@ it("restores and autosaves a candidate setup draft for the same owner key", () =
         interviewStage: "follow_up",
         questionCount: 7,
     });
+});
+
+it("prefills and locks server-trusted host role context without overriding candidate-selected details", () => {
+    const draftStore = createCandidateSetupMemoryDraftStore();
+    saveCandidateSetupDraft(draftStore, "candidate:demo", {
+        targetRole: "Browser-supplied role",
+        jobDescription: "Browser-supplied description.",
+        resumeText: "Candidate resume text.",
+        interviewStage: "follow_up",
+        questionCount: 7,
+    });
+
+    render(<CandidateSetupExperience
+        draftOwnerKey="candidate:demo"
+        draftStore={draftStore}
+        trustedSetupContext={{
+            sourcePlatform: "talentarbor",
+            jobCollectionId: "555",
+            requirementId: "777",
+            targetRole: "Warehouse Associate",
+            jobDescription: "Pick, pack, and prepare shipments safely.",
+            jobDescriptionHash: "7524282fd4de6c39071cff432be5743da531f3e7c76902e1fefc1748442645ef",
+        }}
+    />);
+
+    expect(screen.getByText("Role details provided by TalentArbor.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Target role *")).toHaveValue("Warehouse Associate");
+    expect(screen.getByLabelText("Target role *")).toHaveAttribute("readonly");
+    expect(screen.getByLabelText("Job description *")).toHaveValue("Pick, pack, and prepare shipments safely.");
+    expect(screen.getByLabelText("Job description *")).toHaveAttribute("readonly");
+    expect(screen.getByLabelText("Paste resume text")).toHaveValue("Candidate resume text.");
+    expect(screen.getByRole("button", { name: /follow-up interview/i })).toHaveAttribute("aria-pressed", "true");
 });
 
 it("does not hydrate with different ready-state markup when a browser draft exists", async () => {

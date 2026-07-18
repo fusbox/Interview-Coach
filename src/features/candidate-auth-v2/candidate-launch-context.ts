@@ -4,12 +4,19 @@ export type CandidateLaunchJobDescriptionSource =
     | "RequirementDescTxn"
     | "HostPayload";
 
-export type CandidateLaunchResumeSourceType =
-    | "ResumeParserJSONMaster"
-    | "CandidateResume"
-    | "DisplayCandidateResume"
-    | "SubmissionResume"
-    | "None";
+export type CandidateLaunchJobContext = {
+    jobCollectionId: string;
+    requirementId: string | null;
+    requirementCode: string | null;
+    title: string;
+    description: string;
+    descriptionSource: CandidateLaunchJobDescriptionSource;
+    client: string | null;
+    location: string | null;
+    isActive: boolean | null;
+    isExpired: boolean | null;
+    expirationDate: string | null;
+};
 
 export type CandidateLaunchContext = {
     candidate: {
@@ -24,29 +31,7 @@ export type CandidateLaunchContext = {
         sourceSurface: string;
         talentChannelId: string | null;
     };
-    job: {
-        jobCollectionId: string;
-        requirementId: string | null;
-        requirementCode: string | null;
-        title: string;
-        description: string;
-        descriptionSource: CandidateLaunchJobDescriptionSource;
-        client: string | null;
-        location: string | null;
-        isActive: boolean | null;
-        isExpired: boolean | null;
-        expirationDate: string | null;
-    };
-    resume: {
-        hasParsedResume: boolean;
-        sourceType: CandidateLaunchResumeSourceType;
-        createdDate: string | null;
-        contentAvailable: boolean;
-    };
-    consent: {
-        hasAIConsent: boolean;
-        consentDate: string | null;
-    };
+    job: CandidateLaunchJobContext | null;
 };
 
 export type CandidateLaunchContextRow = {
@@ -58,28 +43,22 @@ export type CandidateLaunchContextRow = {
     hostDomain?: unknown;
     sourceSurface?: unknown;
     talentChannelId?: unknown;
-    jobCollectionId: unknown;
+    jobCollectionId?: unknown;
     requirementId?: unknown;
     requirementCode?: unknown;
-    jobTitle: unknown;
-    jobDescription: unknown;
+    jobTitle?: unknown;
+    jobDescription?: unknown;
     jobDescriptionSource?: unknown;
     client?: unknown;
     location?: unknown;
     isActive?: unknown;
     isExpired?: unknown;
     expirationDate?: unknown;
-    hasParsedResume?: unknown;
-    resumeSourceType?: unknown;
-    resumeCreatedDate?: unknown;
-    resumeContentAvailable?: unknown;
-    hasAIConsent?: unknown;
-    aiConsentDate?: unknown;
 } | null;
 
 export type CandidateLaunchContextLookupInput = {
     candidateId: string;
-    jobCollectionId: string;
+    jobCollectionId: string | null;
     hostDomain: string | null;
     sourceSurface: string;
 };
@@ -87,11 +66,9 @@ export type CandidateLaunchContextLookupInput = {
 export type CandidateLaunchContextFailureReason =
     | "missing_launch_context"
     | "missing_candidate_id"
-    | "missing_job_collection_id"
     | "missing_job_title"
     | "missing_job_description"
-    | "invalid_job_description_source"
-    | "invalid_resume_source";
+    | "invalid_job_description_source";
 
 export type CandidateLaunchContextResult =
     | {
@@ -115,14 +92,6 @@ const jobDescriptionSources = new Set<CandidateLaunchJobDescriptionSource>([
     "HostPayload",
 ]);
 
-const resumeSourceTypes = new Set<CandidateLaunchResumeSourceType>([
-    "ResumeParserJSONMaster",
-    "CandidateResume",
-    "DisplayCandidateResume",
-    "SubmissionResume",
-    "None",
-]);
-
 export async function resolveCandidateLaunchContext({
     input,
     lookupLaunchContext,
@@ -140,29 +109,9 @@ export function normalizeCandidateLaunchContextRow(row: CandidateLaunchContextRo
         return fail("missing_candidate_id");
     }
 
-    const jobCollectionId = toNullableString(row.jobCollectionId);
-    if (!jobCollectionId) {
-        return fail("missing_job_collection_id");
-    }
-
-    const title = toNullableString(row.jobTitle);
-    if (!title) {
-        return fail("missing_job_title");
-    }
-
-    const description = toNullableString(row.jobDescription);
-    if (!description) {
-        return fail("missing_job_description");
-    }
-
-    const descriptionSource = toJobDescriptionSource(row.jobDescriptionSource);
-    if (!descriptionSource) {
-        return fail("invalid_job_description_source");
-    }
-
-    const resumeSource = toResumeSourceType(row.resumeSourceType, Boolean(row.hasParsedResume));
-    if (!resumeSource) {
-        return fail("invalid_resume_source");
+    const job = normalizeJobContext(row);
+    if (!job.ok) {
+        return job;
     }
 
     return {
@@ -180,29 +129,48 @@ export function normalizeCandidateLaunchContextRow(row: CandidateLaunchContextRo
                 sourceSurface: toNullableString(row.sourceSurface) ?? "UNKNOWN",
                 talentChannelId: toNullableString(row.talentChannelId),
             },
-            job: {
-                jobCollectionId,
-                requirementId: toNullableString(row.requirementId),
-                requirementCode: toNullableString(row.requirementCode),
-                title,
-                description,
-                descriptionSource,
-                client: toNullableString(row.client),
-                location: toNullableString(row.location),
-                isActive: toNullableBoolean(row.isActive),
-                isExpired: toNullableBoolean(row.isExpired),
-                expirationDate: toNullableString(row.expirationDate),
-            },
-            resume: {
-                hasParsedResume: Boolean(row.hasParsedResume),
-                sourceType: resumeSource,
-                createdDate: toNullableString(row.resumeCreatedDate),
-                contentAvailable: Boolean(row.resumeContentAvailable),
-            },
-            consent: {
-                hasAIConsent: Boolean(row.hasAIConsent),
-                consentDate: toNullableString(row.aiConsentDate),
-            },
+            job: job.context,
+        },
+    };
+}
+
+function normalizeJobContext(row: Exclude<CandidateLaunchContextRow, null>):
+    | { ok: true; context: CandidateLaunchJobContext | null }
+    | { ok: false; reason: CandidateLaunchContextFailureReason } {
+    const jobCollectionId = toNullableString(row.jobCollectionId);
+    if (!jobCollectionId) {
+        return { ok: true, context: null };
+    }
+
+    const title = toNullableString(row.jobTitle);
+    if (!title) {
+        return fail("missing_job_title");
+    }
+
+    const description = toNullableString(row.jobDescription);
+    if (!description) {
+        return fail("missing_job_description");
+    }
+
+    const descriptionSource = toJobDescriptionSource(row.jobDescriptionSource);
+    if (!descriptionSource) {
+        return fail("invalid_job_description_source");
+    }
+
+    return {
+        ok: true,
+        context: {
+            jobCollectionId,
+            requirementId: toNullableString(row.requirementId),
+            requirementCode: toNullableString(row.requirementCode),
+            title,
+            description,
+            descriptionSource,
+            client: toNullableString(row.client),
+            location: toNullableString(row.location),
+            isActive: toNullableBoolean(row.isActive),
+            isExpired: toNullableBoolean(row.isExpired),
+            expirationDate: toNullableString(row.expirationDate),
         },
     };
 }
@@ -211,13 +179,6 @@ function toJobDescriptionSource(value: unknown): CandidateLaunchJobDescriptionSo
     const source = toNullableString(value) ?? "JobCollection";
     return jobDescriptionSources.has(source as CandidateLaunchJobDescriptionSource)
         ? source as CandidateLaunchJobDescriptionSource
-        : null;
-}
-
-function toResumeSourceType(value: unknown, hasParsedResume: boolean): CandidateLaunchResumeSourceType | null {
-    const source = toNullableString(value) ?? (hasParsedResume ? null : "None");
-    return source && resumeSourceTypes.has(source as CandidateLaunchResumeSourceType)
-        ? source as CandidateLaunchResumeSourceType
         : null;
 }
 
@@ -254,7 +215,7 @@ function toNullableBoolean(value: unknown) {
     return null;
 }
 
-function fail(reason: CandidateLaunchContextFailureReason): CandidateLaunchContextResult {
+function fail(reason: CandidateLaunchContextFailureReason): { ok: false; reason: CandidateLaunchContextFailureReason } {
     return {
         ok: false,
         reason,

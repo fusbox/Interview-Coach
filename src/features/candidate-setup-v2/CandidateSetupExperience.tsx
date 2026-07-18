@@ -25,6 +25,7 @@ import {
 } from "./candidate-setup-contract";
 import type { CandidateSetupSessionCreationResult } from "./candidate-setup-session-creation";
 import type { CandidateExistingPrepContextSummary } from "./candidate-setup-prep-context-repository";
+import type { CandidateTrustedSetupContext } from "./candidate-setup-entry-context";
 import { saveCandidateProvisionalSession } from "@/features/candidate-session-v2/candidate-provisional-session-store";
 import {
     clearCandidateSetupDraft,
@@ -47,16 +48,20 @@ type CandidateSetupExperienceProps = {
     ) => Promise<CandidateSetupStartResult>;
     draftOwnerKey?: string;
     draftStore?: CandidateSetupDraftStore;
+    trustedSetupContext?: CandidateTrustedSetupContext | null;
 };
 
 type CandidateSetupPrepContextDecision = {
-    action: "create_separate_path";
+    action: "create_separate_path" | "use_existing_path";
     matchingRoleProfileId: string;
 };
 
 type CandidateSetupStartResult = CandidateSetupSessionCreationResult | {
     status: "existing_prep_context_found";
     existingPrepContexts: CandidateExistingPrepContextSummary[];
+} | {
+    status: "existing_prep_context_selected";
+    nextRoute: string;
 };
 
 export function CandidateSetupExperience({
@@ -64,6 +69,7 @@ export function CandidateSetupExperience({
     createSession,
     draftOwnerKey = "candidate:local",
     draftStore,
+    trustedSetupContext = null,
 }: CandidateSetupExperienceProps = {}) {
     const [browserDraftStore, setBrowserDraftStore] = useState<CandidateSetupDraftStore | null>(null);
     const activeDraftStore = draftStore ?? browserDraftStore;
@@ -71,8 +77,10 @@ export function CandidateSetupExperience({
         () => toCandidateSetupDraftFormState(draftStore ? restoreCandidateSetupDraft(draftStore, draftOwnerKey) : null),
         [draftOwnerKey, draftStore],
     );
-    const [targetRole, setTargetRole] = useState(initialDraftState.targetRole);
-    const [jobDescription, setJobDescription] = useState(initialDraftState.jobDescription);
+    const [targetRole, setTargetRole] = useState(trustedSetupContext?.targetRole ?? initialDraftState.targetRole);
+    const [jobDescription, setJobDescription] = useState(
+        trustedSetupContext?.jobDescription ?? initialDraftState.jobDescription,
+    );
     const [resumeText, setResumeText] = useState(initialDraftState.resumeText);
     const [selectedStage, setSelectedStage] = useState<CandidateSetupStageId>(initialDraftState.interviewStage);
     const [questionCount, setQuestionCount] = useState(initialDraftState.questionCount);
@@ -108,12 +116,12 @@ export function CandidateSetupExperience({
         const nextDraftStore = createCandidateSetupBrowserDraftStore(window.localStorage);
         const nextDraftState = toCandidateSetupDraftFormState(restoreCandidateSetupDraft(nextDraftStore, draftOwnerKey));
         setBrowserDraftStore(nextDraftStore);
-        setTargetRole(nextDraftState.targetRole);
-        setJobDescription(nextDraftState.jobDescription);
+        setTargetRole(trustedSetupContext?.targetRole ?? nextDraftState.targetRole);
+        setJobDescription(trustedSetupContext?.jobDescription ?? nextDraftState.jobDescription);
         setResumeText(nextDraftState.resumeText);
         setSelectedStage(nextDraftState.interviewStage);
         setQuestionCount(nextDraftState.questionCount);
-    }, [draftOwnerKey, draftStore]);
+    }, [draftOwnerKey, draftStore, trustedSetupContext]);
 
     useEffect(() => {
         const dialog = existingContextDialogRef.current;
@@ -196,7 +204,13 @@ export function CandidateSetupExperience({
         setSetupError("");
 
         try {
-            const sessionCreator = createSession ?? createSessionViaSetupRoute;
+            const sessionCreator = createSession ?? ((nextTransition, nextDecision) => (
+                createSessionViaSetupRoute(
+                    nextTransition,
+                    nextDecision,
+                    trustedSetupContext ? "trusted_host_job" : null,
+                )
+            ));
             const result = decision
                 ? await sessionCreator(transition, decision)
                 : await sessionCreator(transition);
@@ -208,6 +222,11 @@ export function CandidateSetupExperience({
                 setExistingPrepContexts(result.existingPrepContexts);
                 setSelectedExistingRoleProfileId(result.existingPrepContexts[0].roleProfileId);
                 setIsPreparing(false);
+                return;
+            }
+            if (result.status === "existing_prep_context_selected") {
+                clearSubmittedSetupDraft();
+                window.location.assign(result.nextRoute);
                 return;
             }
 
@@ -237,8 +256,15 @@ export function CandidateSetupExperience({
         setExistingContextError("");
     }
 
-    function viewExistingContext() {
+    async function viewExistingContext() {
         if (!selectedExistingRoleProfileId) {
+            return;
+        }
+        if (trustedSetupContext && pendingSetupTransition) {
+            await performSetupStart(pendingSetupTransition, {
+                action: "use_existing_path",
+                matchingRoleProfileId: selectedExistingRoleProfileId,
+            });
             return;
         }
         clearSubmittedSetupDraft();
@@ -327,122 +353,135 @@ export function CandidateSetupExperience({
 
             <form className="setup-form app-grid" onSubmit={handleSubmit}>
                 <div className="setup-form__main">
-                    <section className="setup-panel" aria-labelledby="role-context-label">
-                        <div className="setup-section-header">
-                            <div>
-                                <p className="type-eyebrow" id="role-context-label">
-                                    Role
-                                </p>
+                    <div className="setup-panels-split">
+                        <section className="setup-panel" aria-labelledby="role-context-label">
+                            <div className="setup-section-header">
+                                <div>
+                                    <p className="type-eyebrow" id="role-context-label">
+                                        Role
+                                    </p>
+                                </div>
                             </div>
-                        </div>
 
-                        <div className="setup-field-grid">
-                            <label className="setup-field setup-field--full">
-                                <span>Target role *</span>
-                                <input
-                                    name="targetRole"
-                                    required
-                                    maxLength={CANDIDATE_SETUP_LIMITS.targetRole + 1}
-                                    aria-invalid={isTargetRoleInvalid}
-                                    className={isTargetRoleInvalid ? "is-required-missing" : undefined}
-                                    value={targetRole}
-                                    onChange={(event) => {
-                                        clearSetupValidation();
-                                        setTargetRole(event.target.value);
-                                        saveSetupDraft({ targetRole: event.target.value });
-                                    }}
-                                    placeholder="Example: Customer service representative"
-                                />
-                            </label>
+                            <div className="setup-field-grid">
+                                {trustedSetupContext ? (
+                                    <p className="setup-field setup-field--full" id="trusted-role-context">
+                                        Role details provided by {trustedSetupContext.sourcePlatform === "talentarbor"
+                                            ? "TalentArbor"
+                                            : "RangamWorks"}.
+                                    </p>
+                                ) : null}
+                                <label className="setup-field setup-field--full">
+                                    <span>Target role *</span>
+                                    <input
+                                        name="targetRole"
+                                        required
+                                        maxLength={CANDIDATE_SETUP_LIMITS.targetRole + 1}
+                                        aria-invalid={isTargetRoleInvalid}
+                                        className={isTargetRoleInvalid ? "is-required-missing" : undefined}
+                                        value={targetRole}
+                                        readOnly={Boolean(trustedSetupContext)}
+                                        aria-describedby={trustedSetupContext ? "trusted-role-context" : undefined}
+                                        onChange={(event) => {
+                                            clearSetupValidation();
+                                            setTargetRole(event.target.value);
+                                            saveSetupDraft({ targetRole: event.target.value });
+                                        }}
+                                        placeholder="Example: Customer service representative"
+                                    />
+                                </label>
+
+                                <label className="setup-field setup-field--full">
+                                    <span>Job description *</span>
+                                    <textarea
+                                        name="jobDescription"
+                                        required
+                                        maxLength={CANDIDATE_SETUP_LIMITS.jobDescription + 1}
+                                        aria-invalid={isJobDescriptionInvalid}
+                                        className={isJobDescriptionInvalid ? "is-required-missing" : undefined}
+                                        value={jobDescription}
+                                        readOnly={Boolean(trustedSetupContext)}
+                                        aria-describedby={trustedSetupContext ? "trusted-role-context" : undefined}
+                                        onChange={(event) => {
+                                            clearSetupValidation();
+                                            setJobDescription(event.target.value);
+                                            saveSetupDraft({ jobDescription: event.target.value });
+                                        }}
+                                        rows={7}
+                                        placeholder="Paste the job description or the parts that explain the role, duties, and requirements."
+                                    />
+                                </label>
+                            </div>
+                        </section>
+
+                        <section className="setup-panel" aria-labelledby="resume-context-label">
+                            <div className="setup-section-header">
+                                <div>
+                                    <p className="type-eyebrow" id="resume-context-label">
+                                        Resume
+                                        <span className="setup-eyebrow-note">Optional</span>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="resume-source-grid" role="group" aria-label="Resume input method">
+                                <button
+                                    type="button"
+                                    className={resumeSource === "paste" ? "resume-source is-selected" : "resume-source"}
+                                    aria-pressed={resumeSource === "paste"}
+                                    onClick={() => setResumeSource("paste")}
+                                >
+                                    <FileText size={18} aria-hidden="true" />
+                                    <span>Paste text</span>
+                                </button>
+
+                                <label className={resumeSource === "file" ? "resume-source is-selected" : "resume-source"}>
+                                    <Upload size={18} aria-hidden="true" />
+                                    <span>Upload file</span>
+                                    <input
+                                        type="file"
+                                        name="resumeFile"
+                                        accept=".pdf,.doc,.docx,.txt,image/*"
+                                        onChange={(event) => handleResumeAsset(event, "file")}
+                                    />
+                                </label>
+
+                                <label className={resumeSource === "photo" ? "resume-source is-selected" : "resume-source"}>
+                                    <Camera size={18} aria-hidden="true" />
+                                    <span>Take photo</span>
+                                    <input
+                                        type="file"
+                                        name="resumePhoto"
+                                        accept="image/*"
+                                        capture="environment"
+                                        onChange={(event) => handleResumeAsset(event, "photo")}
+                                    />
+                                </label>
+                            </div>
+
+                            {resumeAssetName ? (
+                                <p className="resume-asset-note" aria-live="polite">
+                                    Selected: {resumeAssetName}. After extraction, review the text before starting.
+                                </p>
+                            ) : null}
 
                             <label className="setup-field setup-field--full">
-                                <span>Job description *</span>
+                                <span>Paste resume text</span>
                                 <textarea
-                                    name="jobDescription"
-                                    required
-                                    maxLength={CANDIDATE_SETUP_LIMITS.jobDescription + 1}
-                                    aria-invalid={isJobDescriptionInvalid}
-                                    className={isJobDescriptionInvalid ? "is-required-missing" : undefined}
-                                    value={jobDescription}
+                                    name="resumeText"
+                                    maxLength={CANDIDATE_SETUP_LIMITS.resumeText + 1}
+                                    value={resumeText}
                                     onChange={(event) => {
                                         clearSetupValidation();
-                                        setJobDescription(event.target.value);
-                                        saveSetupDraft({ jobDescription: event.target.value });
+                                        setResumeText(event.target.value);
+                                        saveSetupDraft({ resumeText: event.target.value });
                                     }}
-                                    rows={7}
-                                    placeholder="Paste the job description or the parts that explain the role, duties, and requirements."
+                                    rows={6}
+                                    placeholder="Paste resume text here."
                                 />
                             </label>
-                        </div>
-                    </section>
-
-                    <section className="setup-panel" aria-labelledby="resume-context-label">
-                        <div className="setup-section-header">
-                            <div>
-                                <p className="type-eyebrow" id="resume-context-label">
-                                    Resume
-                                    <span className="setup-eyebrow-note">Optional</span>
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="resume-source-grid" role="group" aria-label="Resume input method">
-                            <button
-                                type="button"
-                                className={resumeSource === "paste" ? "resume-source is-selected" : "resume-source"}
-                                aria-pressed={resumeSource === "paste"}
-                                onClick={() => setResumeSource("paste")}
-                            >
-                                <FileText size={18} aria-hidden="true" />
-                                <span>Paste text</span>
-                            </button>
-
-                            <label className={resumeSource === "file" ? "resume-source is-selected" : "resume-source"}>
-                                <Upload size={18} aria-hidden="true" />
-                                <span>Upload file</span>
-                                <input
-                                    type="file"
-                                    name="resumeFile"
-                                    accept=".pdf,.doc,.docx,.txt,image/*"
-                                    onChange={(event) => handleResumeAsset(event, "file")}
-                                />
-                            </label>
-
-                            <label className={resumeSource === "photo" ? "resume-source is-selected" : "resume-source"}>
-                                <Camera size={18} aria-hidden="true" />
-                                <span>Take photo</span>
-                                <input
-                                    type="file"
-                                    name="resumePhoto"
-                                    accept="image/*"
-                                    capture="environment"
-                                    onChange={(event) => handleResumeAsset(event, "photo")}
-                                />
-                            </label>
-                        </div>
-
-                        {resumeAssetName ? (
-                            <p className="resume-asset-note" aria-live="polite">
-                                Selected: {resumeAssetName}. After extraction, review the text before starting.
-                            </p>
-                        ) : null}
-
-                        <label className="setup-field setup-field--full">
-                            <span>Paste resume text</span>
-                            <textarea
-                                name="resumeText"
-                                maxLength={CANDIDATE_SETUP_LIMITS.resumeText + 1}
-                                value={resumeText}
-                                onChange={(event) => {
-                                    clearSetupValidation();
-                                    setResumeText(event.target.value);
-                                    saveSetupDraft({ resumeText: event.target.value });
-                                }}
-                                rows={6}
-                                placeholder="Paste resume text here."
-                            />
-                        </label>
-                    </section>
+                        </section>
+                    </div>
 
                     <section className="setup-panel" aria-labelledby="practice-details-label">
                         <div className="setup-section-header">
@@ -453,49 +492,67 @@ export function CandidateSetupExperience({
                             </div>
                         </div>
 
-                        <fieldset className="setup-fieldset">
-                            <legend>Interview stage *</legend>
-                            <div className="stage-grid">
-                                {candidateSetupStageOptions.map((stage) => (
-                                    <button
-                                        key={stage.id}
-                                        type="button"
-                                        className={selectedStage === stage.id ? "stage-card is-selected" : "stage-card"}
-                                        aria-pressed={selectedStage === stage.id}
-                                        onClick={() => chooseStage(stage)}
-                                    >
-                                        <strong>{stage.label}</strong>
-                                        <span>{stage.detail}</span>
-                                    </button>
-                                ))}
-                            </div>
-                            <input type="hidden" name="interviewStage" value={selectedStage} required />
-                        </fieldset>
+                        <div className="setup-details-split">
+                            <fieldset className="setup-fieldset">
+                                <legend>Interview stage *</legend>
+                                <div className="stage-grid">
+                                    {candidateSetupStageOptions
+                                        .filter((stage) => stage.id !== "practice_only")
+                                        .map((stage) => (
+                                            <button
+                                                key={stage.id}
+                                                type="button"
+                                                className={selectedStage === stage.id ? "stage-card is-selected" : "stage-card"}
+                                                aria-pressed={selectedStage === stage.id}
+                                                onClick={() => chooseStage(stage)}
+                                            >
+                                                <strong>{stage.label}</strong>
+                                                <span className="stage-card__detail">{stage.detail}</span>
+                                            </button>
+                                        ))}
+                                    {candidateSetupStageOptions
+                                        .filter((stage) => stage.id === "practice_only")
+                                        .map((stage) => (
+                                            <button
+                                                key={stage.id}
+                                                type="button"
+                                                className={`stage-card stage-card--full ${selectedStage === stage.id ? "is-selected" : ""}`}
+                                                aria-pressed={selectedStage === stage.id}
+                                                onClick={() => chooseStage(stage)}
+                                            >
+                                                <strong>{stage.label}</strong>
+                                                <span className="stage-card__detail">{stage.detail}</span>
+                                            </button>
+                                        ))}
+                                </div>
+                                <input type="hidden" name="interviewStage" value={selectedStage} required />
+                            </fieldset>
 
-                        <fieldset className="setup-fieldset">
-                            <legend>Question count *</legend>
-                            <div className="question-count-row">
-                                {questionCountOptions.map((count) => (
-                                    <button
-                                        key={count}
-                                        type="button"
-                                        className={questionCount === count ? "count-option is-selected" : "count-option"}
-                                        aria-pressed={questionCount === count}
-                                        onClick={() => {
-                                            setQuestionCount(count);
-                                            saveSetupDraft({ questionCount: count });
-                                        }}
-                                    >
-                                        {count}
-                                    </button>
-                                ))}
-                            </div>
-                            <input type="hidden" name="questionCount" value={questionCount} required />
-                            <p className="question-help">
-                                {activeStage.recommendation} You can choose a different count, and after your first
-                                session I will guide what to practice next.
-                            </p>
-                        </fieldset>
+                            <fieldset className="setup-fieldset">
+                                <legend>Question count *</legend>
+                                <div className="question-count-row">
+                                    {questionCountOptions.map((count) => (
+                                        <button
+                                            key={count}
+                                            type="button"
+                                            className={questionCount === count ? "count-option is-selected" : "count-option"}
+                                            aria-pressed={questionCount === count}
+                                            onClick={() => {
+                                                setQuestionCount(count);
+                                                saveSetupDraft({ questionCount: count });
+                                            }}
+                                        >
+                                            {count}
+                                        </button>
+                                    ))}
+                                </div>
+                                <input type="hidden" name="questionCount" value={questionCount} required />
+                                <p className="question-help">
+                                    {activeStage.recommendation} You can choose a different count, and after your first
+                                    session I will guide what to practice next.
+                                </p>
+                            </fieldset>
+                        </div>
                     </section>
                 </div>
 
@@ -738,6 +795,7 @@ function toSetupValidationMessage(fieldErrors: {
 async function createSessionViaSetupRoute(
     transition: CandidateSetupTransition,
     decision?: CandidateSetupPrepContextDecision,
+    setupEntryMode: "trusted_host_job" | null = null,
 ): Promise<CandidateSetupStartResult> {
     const response = await fetch("/candidate/setup/start", {
         method: "POST",
@@ -747,6 +805,7 @@ async function createSessionViaSetupRoute(
         body: JSON.stringify({
             ...transition.payload,
             ...(decision ? { prepContextDecision: decision } : {}),
+            ...(setupEntryMode ? { setupEntryMode } : {}),
         }),
     });
 

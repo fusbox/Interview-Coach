@@ -32,14 +32,17 @@ describe("/candidate/session/[sessionId]/complete route", () => {
         vi.unstubAllEnvs();
     });
 
-    it("assembles Coach Update fixture and fault runtimes only inside explicit local development", () => {
+    it("keeps fixture and fault local-only while assembling the exact Google Coach Update profile in production", () => {
         vi.stubEnv("DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:5432/interviewcoach_smoke");
         vi.stubEnv("CANDIDATE_HOST_LAUNCH_DEV_MODE", "true");
         vi.stubEnv("CANDIDATE_HOST_LAUNCH_DEV_SECRET", "test-secret");
         vi.stubEnv("CANDIDATE_ANSWER_ANALYSIS_PROVIDER", "fixture");
         vi.stubEnv("NODE_ENV", "test");
 
-        expect(createDefaultCandidateSessionCompleteDependencies().ensureCoachUpdateArtifact).toEqual(expect.any(Function));
+        expect(createDefaultCandidateSessionCompleteDependencies()).toMatchObject({
+            repairCompletedRoundAnalysis: expect.any(Function),
+            ensureCoachUpdateArtifact: expect.any(Function),
+        });
 
         vi.stubEnv("CANDIDATE_ANSWER_ANALYSIS_PROVIDER", "google_genai");
         expect(createDefaultCandidateSessionCompleteDependencies().ensureCoachUpdateArtifact).toEqual(expect.any(Function));
@@ -50,6 +53,11 @@ describe("/candidate/session/[sessionId]/complete route", () => {
 
         vi.stubEnv("NODE_ENV", "production");
         expect(createDefaultCandidateSessionCompleteDependencies().ensureCoachUpdateArtifact).toBeUndefined();
+
+        vi.stubEnv("CANDIDATE_COACH_UPDATE_PROVIDER", "google_genai");
+        vi.stubEnv("CANDIDATE_COACH_UPDATE_PROFILE", "google_gemini_2_5_flash_coach_update_v1");
+        vi.stubEnv("GEMINI_API_KEY", "server-only-key");
+        expect(createDefaultCandidateSessionCompleteDependencies().ensureCoachUpdateArtifact).toEqual(expect.any(Function));
     });
 
     it("persists candidate-led completion from the durable session facts and returns the dashboard transition", async () => {
@@ -200,6 +208,72 @@ describe("/candidate/session/[sessionId]/complete route", () => {
         await expect(response.json()).resolves.toEqual({
             error: "Question wording is required before completion.",
         });
+    });
+
+    it("runs bounded evaluator repair after completion and gates Coach Update generation on complete accepted evidence", async () => {
+        const completionSnapshot = {
+            status: "candidate_session_completed" as const,
+            audience: "candidate_led" as const,
+            sessionId: "session-1",
+            completedAt: "2026-07-17T20:05:00.000Z",
+            finalProgress: { status: "completed" as const, currentQuestionIndex: 0 },
+            questionCount: 1,
+            answeredCount: 1,
+            coachedCount: 0,
+            answeredQuestionKeys: ["slot-1"],
+            coachedQuestionKeys: [],
+            skippedOrUnansweredQuestionKeys: [],
+            nextRoute: "/candidate/dashboard?prep=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        };
+        const repairCompletedRoundAnalysis = vi.fn(async () => ({
+            status: "repaired" as const,
+            answeredCount: 1,
+            acceptedCount: 1,
+            attemptedCount: 1,
+            repairedCount: 1,
+            pendingCount: 0,
+            retryableCount: 0,
+            unavailableCount: 0,
+            invalidLineageCount: 0,
+            allAnsweredOccurrencesAccepted: true,
+        }));
+        const ensureCoachUpdateArtifact = vi.fn(async () => ({
+            status: "coach_update_completed" as const,
+            artifact: {} as never,
+        }));
+
+        const response = await handleCandidateSessionCompleteRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/session/session-1/complete", {
+                method: "POST",
+            }),
+            sessionId: "session-1",
+            now: new Date("2026-07-17T20:05:00.000Z"),
+            resolveCandidateSessionIdentity: vi.fn(async () => ({ candidateProfileId: "candidate-1" })),
+            practiceSessionRepository: {
+                findSetupSession: vi.fn(async () => ({
+                    status: "completed" as const,
+                    completionSnapshot,
+                    questionWordingSnapshot: null,
+                })),
+                completeSession: vi.fn(async () => ({
+                    completionSnapshot,
+                    progress: completionSnapshot.finalProgress,
+                })),
+            },
+            repairCompletedRoundAnalysis,
+            ensureCoachUpdateArtifact,
+        });
+
+        expect(response.status).toBe(200);
+        await expect(response.json()).resolves.toMatchObject({
+            coachingRepair: {
+                status: "repaired",
+                allAnsweredOccurrencesAccepted: true,
+            },
+            coachUpdateStatus: "coach_update_completed",
+        });
+        expect(repairCompletedRoundAnalysis.mock.invocationCallOrder[0])
+            .toBeLessThan(ensureCoachUpdateArtifact.mock.invocationCallOrder[0]);
     });
 
     it("replays the first stored completion without rebuilding it from later compatibility fields", async () => {

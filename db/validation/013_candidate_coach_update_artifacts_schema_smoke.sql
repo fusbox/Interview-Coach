@@ -44,7 +44,8 @@ insert into public.candidate_coach_update_artifacts (
   source_candidate_practice_session_id, source_completion_fingerprint,
   source_answer_attempt_ids_json, accepted_evaluation_run_ids_json,
   synthesis_input_fingerprint, provider, model_name, prompt_version,
-  evaluator_version, generation_attempt, requested_at
+  evaluator_version, profile_id, configuration_fingerprint,
+  generation_attempt, requested_at
 ) values (
   'c4000000-0000-4000-8000-000000000001',
   'c1000000-0000-4000-8000-000000000001',
@@ -52,7 +53,8 @@ insert into public.candidate_coach_update_artifacts (
   'c3000000-0000-4000-8000-000000000001',
   'completion-fingerprint-1', '["attempt-1"]'::jsonb, '["run-1"]'::jsonb,
   'synthesis-fingerprint-1', 'fixture', 'fixture-v1', 'prompt-v1',
-  'evaluator-v1', 1, '2026-07-15T12:05:01.000Z'
+  'evaluator-v1', 'fixture-profile-v1', repeat('a', 64),
+  1, '2026-07-15T12:05:01.000Z'
 );
 
 update public.candidate_coach_update_artifacts
@@ -81,14 +83,14 @@ begin
     source_completion_fingerprint, source_answer_attempt_ids_json,
     accepted_evaluation_run_ids_json, synthesis_input_fingerprint,
     provider, model_name, prompt_version, evaluator_version,
-    generation_attempt, requested_at
+    profile_id, configuration_fingerprint, generation_attempt, requested_at
   ) values (
     'c1000000-0000-4000-8000-000000000001',
     'c2000000-0000-4000-8000-000000000001',
     'c3000000-0000-4000-8000-000000000001',
     'completion-fingerprint-2', '{}'::jsonb, '[]'::jsonb,
     'synthesis-fingerprint-2', 'fixture', 'fixture-v1', 'prompt-v1', 'evaluator-v1',
-    2, now()
+    'fixture-profile-v1', repeat('a', 64), 2, now()
   );
 
   raise exception 'expected non-array attempt ids to fail';

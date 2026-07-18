@@ -41,6 +41,9 @@ Use `actorType: candidate` on candidate logs and include an `appName` or tag val
 | Area | Event / Metric | Why It Matters | Sensitive Data Rule |
 | --- | --- | --- | --- |
 | Auth | auth denial structured logs and server-side `auth_denials_total` tagged `actorType=candidate`, `actorMode`, `route`, `reason` where the runtime supports metrics | Detect broken SSO handoff, callback issues, or route guard loops | Do not log tokens, provider assertions, full callback payloads, query strings, or return-state values |
+| Host launch | request-id-correlated `assembly`, `verification`, and `exchange` outcomes with allowlisted reasons and canonical entry route only | Distinguish deployment configuration, claim rejection, identity/job ownership, replay, and accepted routing without weakening the browser response | Never log launch URL/token, fingerprint/id, cookie/session value, candidate/job identifiers, email, role/JD/resume, or request query |
+| Completed-round coaching repair | `candidate_completed_round_coaching_repair` | Diagnose whether a completed round recovered missing evaluator evidence and became eligible for Coach Update | Log only a random request id, bounded outcome, attempted/repaired/pending/retryable/unavailable/invalid-lineage counts, and Coach Update status; never log candidate/session/answer/run ids, answer/question text, provider output, prompts, JD/resume content, or cookie values |
+| Coach Update synthesis | `candidate_coach_update_runtime_telemetry_v1` | Diagnose provider/profile behavior and safe terminal outcomes for post-session synthesis | Log only synthesis fingerprint, provider/profile/model/prompt/evaluator versions, safe configuration fingerprint, accepted/failed/rejected outcome, allowlisted error code, retryable boolean, latency, one-attempt count, and optional token counts; never log candidate/session/prep ids, answers, questions, generated coaching, request envelopes, prompts, raw output, provider exception detail, JD/resume content, or credentials |
 | Login return | login-start and callback outcomes | Confirm `/candidate/setup` and `/candidate/dashboard` returns work after TalentArbor login | Log allowlisted `next` path only |
 | Draft lifecycle | draft create/update/submit/generation status counters | Detect stuck drafts and setup friction | Do not log job description, resume text, or intake free text |
 | Resume ingestion | upload accepted, extraction success/failure, retention outcome | Confirm private upload and deletion behavior | Log safe failure code only, never parser output or storage URL |
@@ -109,6 +112,7 @@ Local development can keep memory metrics and `dev`, mock, or password candidate
 - One manual Teams alert send is validated after webhook provisioning.
 - Resume extraction failure path stores safe reason codes only.
 - Auth redirect tests prove unsafe return targets are rejected.
+- Production dependency audit is reviewed. The Slices 125-133 integration milestone removed the Google SDK transitive critical/high findings and upgraded Next.js to `15.5.20`; the remaining `nodemailer` high advisory and Next-bundled PostCSS moderate advisory require an explicit upgrade or risk-acceptance decision before pilot/release.
 
 ## Follow-Up Work
 

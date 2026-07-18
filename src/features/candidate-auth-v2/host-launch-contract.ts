@@ -1,5 +1,10 @@
+import { createHash } from "crypto";
+
 export const CANDIDATE_HOST_LAUNCH_PRODUCT = "interview-coach";
 export const CANDIDATE_HOST_LAUNCH_DEFAULT_REDIRECT = "/candidate/dashboard";
+export const CANDIDATE_HOST_LAUNCH_MAX_SESSION_TTL_SECONDS = 7 * 24 * 60 * 60;
+export const CANDIDATE_HOST_LAUNCH_DEFAULT_SESSION_TTL_SECONDS =
+    CANDIDATE_HOST_LAUNCH_MAX_SESSION_TTL_SECONDS;
 
 const candidateLaunchRedirectAllowlist = new Set([
     "/candidate/dashboard",
@@ -17,7 +22,8 @@ export type CandidateHostLaunchTokenPayload = {
     workspace: CandidateHostLaunchWorkspace;
     product: string;
     expiresAt: string;
-    issuedAt?: string | null;
+    issuedAt: string;
+    tokenId?: string | null;
     hostCandidateId?: string | null;
     hostUserId?: string | null;
     talentArborId?: string | null;
@@ -59,7 +65,9 @@ export type CandidateHostLaunchFailureReason =
     | "invalid_signature"
     | "invalid_product"
     | "expired_token"
-    | "invalid_identity";
+    | "invalid_identity"
+    | "replayed_token"
+    | "invalid_session_policy";
 
 export type CandidateHostLaunchResult =
     | {
@@ -79,12 +87,24 @@ export type CandidateHostLaunchDependencies = {
     requestedRedirect?: string | null;
     verifyLaunchToken: (token: string) => Promise<CandidateHostLaunchTokenPayload | null>;
     resolveCandidateProfile: (handoff: CandidateHostLaunchHandoff, source: {
-        expiresAt: string;
-        issuedAt: string | null;
-    }) => Promise<{
-        candidateProfileId: string;
-        sessionId: string;
-    } | null>;
+        launchTokenExpiresAt: string;
+        issuedAt: string;
+        tokenId: string | null;
+        tokenFingerprint: string;
+        sessionExpiresAt: string;
+    }) => Promise<
+        | {
+            ok: true;
+            candidateProfileId: string;
+            sessionId: string;
+            entryRoute?: string;
+        }
+        | {
+            ok: false;
+            reason: "invalid_identity" | "replayed_token";
+        }
+    >;
+    sessionTtlSeconds?: number;
 };
 
 export async function createCandidateHostLaunchSession({
@@ -93,10 +113,9 @@ export async function createCandidateHostLaunchSession({
     requestedRedirect,
     verifyLaunchToken,
     resolveCandidateProfile,
+    sessionTtlSeconds = CANDIDATE_HOST_LAUNCH_DEFAULT_SESSION_TTL_SECONDS,
 }: CandidateHostLaunchDependencies): Promise<CandidateHostLaunchResult> {
     const normalizedToken = token?.trim();
-    const redirectTo = normalizeCandidateLaunchRedirect(requestedRedirect);
-
     if (!normalizedToken) {
         return failCandidateLaunch("missing_token");
     }
@@ -119,21 +138,33 @@ export async function createCandidateHostLaunchSession({
         return failCandidateLaunch("invalid_identity");
     }
 
+    if (
+        !Number.isInteger(sessionTtlSeconds)
+        || sessionTtlSeconds <= 0
+        || sessionTtlSeconds > CANDIDATE_HOST_LAUNCH_MAX_SESSION_TTL_SECONDS
+    ) {
+        return failCandidateLaunch("invalid_session_policy");
+    }
+
+    const sessionExpiresAt = new Date(now.getTime() + sessionTtlSeconds * 1000).toISOString();
     const session = await resolveCandidateProfile(handoff, {
-        expiresAt: payload.expiresAt,
-        issuedAt: payload.issuedAt ?? null,
+        launchTokenExpiresAt: payload.expiresAt,
+        issuedAt: payload.issuedAt,
+        tokenId: payload.tokenId?.trim() || null,
+        tokenFingerprint: fingerprintLaunchToken(normalizedToken),
+        sessionExpiresAt,
     });
-    if (!session) {
-        return failCandidateLaunch("invalid_identity");
+    if (!session.ok) {
+        return failCandidateLaunch(session.reason);
     }
 
     return {
         ok: true,
-        redirectTo,
+        redirectTo: normalizeCandidateLaunchRedirect(session.entryRoute ?? requestedRedirect),
         session: {
             candidateProfileId: session.candidateProfileId,
             sessionId: session.sessionId,
-            expiresAt: payload.expiresAt,
+            expiresAt: sessionExpiresAt,
         },
     };
 }
@@ -180,6 +211,10 @@ function toCandidateHostLaunchHandoff(payload: CandidateHostLaunchTokenPayload):
 function isExpired(expiresAt: string, now: Date) {
     const expiresAtMs = Date.parse(expiresAt);
     return Number.isNaN(expiresAtMs) || expiresAtMs <= now.getTime();
+}
+
+function fingerprintLaunchToken(token: string) {
+    return createHash("sha256").update(token).digest("hex");
 }
 
 function failCandidateLaunch(reason: CandidateHostLaunchFailureReason): CandidateHostLaunchResult {

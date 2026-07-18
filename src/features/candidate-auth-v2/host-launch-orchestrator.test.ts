@@ -43,22 +43,24 @@ describe("candidate host launch orchestration boundary", () => {
         isActive: true,
         isExpired: false,
         expirationDate: "2026-08-01T00:00:00.000Z",
-        hasParsedResume: true,
-        resumeSourceType: "ResumeParserJSONMaster",
-        resumeCreatedDate: "2026-07-01T00:00:00.000Z",
-        resumeContentAvailable: true,
-        hasAIConsent: true,
-        aiConsentDate: "2026-06-01T00:00:00.000Z",
     };
 
     it("orchestrates verified token, launch context, profile resolution, and session creation", async () => {
         const verifyLaunchToken = vi.fn(async () => payload);
         const lookupLaunchContext = vi.fn(async () => launchContextRow);
         const sessionRepository = {
-            findProfileByIdentity: vi.fn(async () => ({ candidateProfileId: "profile-123" })),
+            findProfileByIdentity: vi.fn(async () => ({
+                candidateProfileId: "profile-123",
+                platformCandidateId: "12345",
+            })),
             createProfileFromLaunch: vi.fn(),
-            upsertIdentity: vi.fn(),
-            createSession: vi.fn(async () => ({ sessionId: "session-123" })),
+            refreshProfileFromLaunch: vi.fn(async () => ({
+                candidateProfileId: "profile-123",
+                platformCandidateId: "12345",
+            })),
+            upsertIdentity: vi.fn(async () => undefined),
+            hasPrepContexts: vi.fn(async () => true),
+            createSession: vi.fn(async () => ({ ok: true as const, sessionId: "session-123" })),
         };
 
         const result = await createCandidateHostLaunchOrchestration({
@@ -88,6 +90,9 @@ describe("candidate host launch orchestration boundary", () => {
         });
         expect(sessionRepository.createSession).toHaveBeenCalledWith(expect.objectContaining({
             candidateProfileId: "profile-123",
+            launchTokenId: null,
+            launchTokenFingerprint: expect.stringMatching(/^[0-9a-f]{64}$/),
+            launchTokenExpiresAt: "2026-07-15T17:00:00.000Z",
             expiresAt: "2026-07-15T17:00:00.000Z",
             launchContext: {
                 candidateId: "12345",
@@ -95,16 +100,33 @@ describe("candidate host launch orchestration boundary", () => {
                 sourceSurface: "TA_JOB_SEARCH",
                 hostDomain: "talentarbor.com",
             },
+            trustedSetupContext: expect.objectContaining({
+                sourcePlatform: "talentarbor",
+                jobCollectionId: "555",
+                requirementId: "777",
+                targetRole: "Warehouse Associate",
+            }),
         }));
     });
 
-    it("fails closed before lookup when the verified token cannot identify the target job", async () => {
-        const lookupLaunchContext = vi.fn();
+    it("orchestrates an identity-only dashboard launch without a job id", async () => {
+        const lookupLaunchContext = vi.fn(async () => ({
+            ...launchContextRow,
+            jobCollectionId: null,
+        }));
         const sessionRepository = {
-            findProfileByIdentity: vi.fn(),
+            findProfileByIdentity: vi.fn(async () => ({
+                candidateProfileId: "profile-123",
+                platformCandidateId: "12345",
+            })),
             createProfileFromLaunch: vi.fn(),
-            upsertIdentity: vi.fn(),
-            createSession: vi.fn(),
+            refreshProfileFromLaunch: vi.fn(async () => ({
+                candidateProfileId: "profile-123",
+                platformCandidateId: "12345",
+            })),
+            upsertIdentity: vi.fn(async () => undefined),
+            hasPrepContexts: vi.fn(async () => true),
+            createSession: vi.fn(async () => ({ ok: true as const, sessionId: "session-dashboard" })),
         };
 
         const result = await createCandidateHostLaunchOrchestration({
@@ -119,20 +141,30 @@ describe("candidate host launch orchestration boundary", () => {
             sessionRepository,
         });
 
-        expect(result).toEqual({
-            ok: false,
-            reason: "invalid_identity",
+        expect(result).toMatchObject({
+            ok: true,
             redirectTo: "/candidate/dashboard",
+            session: {
+                candidateProfileId: "profile-123",
+                sessionId: "session-dashboard",
+            },
         });
-        expect(lookupLaunchContext).not.toHaveBeenCalled();
-        expect(sessionRepository.createSession).not.toHaveBeenCalled();
+        expect(lookupLaunchContext).toHaveBeenCalledWith(expect.objectContaining({
+            candidateId: "12345",
+            jobCollectionId: null,
+        }));
+        expect(sessionRepository.createSession).toHaveBeenCalledWith(expect.objectContaining({
+            launchContext: expect.objectContaining({ jobCollectionId: null }),
+        }));
     });
 
     it("fails closed when the launch context resolver cannot normalize the platform row", async () => {
         const sessionRepository = {
             findProfileByIdentity: vi.fn(),
             createProfileFromLaunch: vi.fn(),
+            refreshProfileFromLaunch: vi.fn(),
             upsertIdentity: vi.fn(),
+            hasPrepContexts: vi.fn(),
             createSession: vi.fn(),
         };
 
@@ -164,10 +196,15 @@ describe("candidate host launch orchestration boundary", () => {
                 candidateId: 99999,
             })),
             sessionRepository: {
-                findProfileByIdentity: vi.fn(async () => ({ candidateProfileId: "profile-123" })),
+                findProfileByIdentity: vi.fn(async () => ({
+                    candidateProfileId: "profile-123",
+                    platformCandidateId: "12345",
+                })),
                 createProfileFromLaunch: vi.fn(),
+                refreshProfileFromLaunch: vi.fn(),
                 upsertIdentity: vi.fn(),
-                createSession: vi.fn(async () => ({ sessionId: "session-123" })),
+                hasPrepContexts: vi.fn(),
+                createSession: vi.fn(async () => ({ ok: true as const, sessionId: "session-123" })),
             },
         });
 

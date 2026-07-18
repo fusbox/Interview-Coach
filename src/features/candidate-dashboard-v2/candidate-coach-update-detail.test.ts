@@ -90,6 +90,8 @@ function createArtifact(): CandidateCoachUpdateArtifactRecord {
         modelName: "fixture-v1",
         promptVersion: "prompt-v1",
         evaluatorVersion: "evaluator-v1",
+        profileId: "fixture-profile-v1",
+        configurationFingerprint: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         generationAttempt: 1,
         lifecycleState: "completed",
         candidateSafeContent: {

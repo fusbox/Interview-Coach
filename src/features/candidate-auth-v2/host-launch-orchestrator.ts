@@ -18,6 +18,7 @@ export type CandidateHostLaunchOrchestrationDependencies = {
     token: string | null | undefined;
     now: Date;
     requestedRedirect?: string | null;
+    sessionTtlSeconds?: number;
     verifyLaunchToken: (token: string) => Promise<CandidateHostLaunchTokenPayload | null>;
     lookupLaunchContext: (input: CandidateLaunchContextLookupInput) => Promise<CandidateLaunchContextRow>;
     sessionRepository: CandidateLaunchSessionRepository;
@@ -30,6 +31,7 @@ export async function createCandidateHostLaunchOrchestration(
         token,
         now,
         requestedRedirect,
+        sessionTtlSeconds,
         verifyLaunchToken,
         lookupLaunchContext,
         sessionRepository,
@@ -39,11 +41,12 @@ export async function createCandidateHostLaunchOrchestration(
         token,
         now,
         requestedRedirect,
+        sessionTtlSeconds,
         verifyLaunchToken,
         async resolveCandidateProfile(handoff, source) {
             const input = toLaunchContextLookupInput(handoff);
             if (!input) {
-                return null;
+                return { ok: false, reason: "invalid_identity" };
             }
 
             const launchContext = await resolveCandidateLaunchContext({
@@ -51,18 +54,26 @@ export async function createCandidateHostLaunchOrchestration(
                 lookupLaunchContext,
             });
             if (!launchContext.ok) {
-                return null;
+                return { ok: false, reason: "invalid_identity" };
             }
 
             const session = await resolveCandidateLaunchSession({
                 handoff,
                 launchContext: launchContext.context,
                 launchedAt: now.toISOString(),
-                expiresAt: source.expiresAt,
+                sessionExpiresAt: source.sessionExpiresAt,
+                launchTokenExpiresAt: source.launchTokenExpiresAt,
+                launchTokenId: source.tokenId,
+                launchTokenFingerprint: source.tokenFingerprint,
                 repository: sessionRepository,
             });
 
-            return session.ok ? session.session : null;
+            return session.ok
+                ? { ok: true, ...session.session }
+                : {
+                    ok: false,
+                    reason: session.reason === "replayed_token" ? "replayed_token" : "invalid_identity",
+                };
         },
     });
 }
@@ -70,7 +81,7 @@ export async function createCandidateHostLaunchOrchestration(
 function toLaunchContextLookupInput(
     handoff: CandidateHostLaunchHandoff,
 ): CandidateLaunchContextLookupInput | null {
-    if (!handoff.launchContextHint.candidateId || !handoff.launchContextHint.jobCollectionId) {
+    if (!handoff.launchContextHint.candidateId) {
         return null;
     }
 

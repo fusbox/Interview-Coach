@@ -3,6 +3,11 @@ import { beforeEach, expect, it, vi } from "vitest";
 import type { CandidateDashboardV2ReadModel } from "@/features/candidate-dashboard-v2/candidate-dashboard-read-model";
 import CandidateDashboardPage, { getCandidateDashboardRuntimeSslConfig, renderCandidateDashboardPage } from "./page";
 
+vi.mock("next/navigation", () => ({
+    redirect: vi.fn(),
+    useRouter: () => ({ refresh: vi.fn() }),
+}));
+
 beforeEach(() => {
     window.localStorage.clear();
 });

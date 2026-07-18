@@ -59,6 +59,7 @@ export type CreateCandidatePracticeSessionInput = {
     candidateProfileId: string;
     roleProfileId?: string | null;
     candidateLaunchSessionId?: string | null;
+    consumeTrustedLaunchSetupContext?: boolean;
     setupSnapshot: CandidateSetupSessionCreationResult["setupSnapshot"];
     questionPlanSnapshot: CandidateQuestionPlan;
     questionWordingSnapshot?: CandidateQuestionWordingResult | CandidateQuestionWordingUnavailableResult | null;
@@ -77,20 +78,48 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
             const progress = normalizeProgress(input.progress);
 
             const result = await client.query(`
-                insert into public.candidate_practice_sessions (
-                  candidate_profile_id,
-                  role_profile_id,
-                  candidate_launch_session_id,
-                  status,
-                  setup_snapshot_json,
-                  question_plan_snapshot_json,
-                  question_wording_snapshot_json,
-                  question_wording_status,
-                  progress_state_json,
-                  answer_drafts_json
+                with consumed_setup_context as (
+                  delete from public.candidate_launch_setup_contexts setup
+                  using public.candidate_launch_sessions launch
+                  where $11::boolean
+                    and setup.candidate_launch_session_id = $3
+                    and setup.candidate_profile_id = $1
+                    and setup.expires_at > now()
+                    and launch.candidate_launch_session_id = setup.candidate_launch_session_id
+                    and launch.candidate_profile_id = setup.candidate_profile_id
+                    and launch.revoked_at is null
+                    and launch.expires_at > now()
+                    and launch.setup_context_consumed_at is null
+                  returning setup.candidate_launch_session_id
+                ), consumed_launch_session as (
+                  update public.candidate_launch_sessions launch
+                  set setup_context_consumed_at = now()
+                  where $11::boolean
+                    and launch.candidate_launch_session_id = $3
+                    and launch.candidate_profile_id = $1
+                    and launch.setup_context_consumed_at is null
+                    and exists (select 1 from consumed_setup_context)
+                  returning launch.candidate_launch_session_id
+                ), inserted_practice_session as (
+                  insert into public.candidate_practice_sessions (
+                    candidate_profile_id,
+                    role_profile_id,
+                    candidate_launch_session_id,
+                    status,
+                    setup_snapshot_json,
+                    question_plan_snapshot_json,
+                    question_wording_snapshot_json,
+                    question_wording_status,
+                    progress_state_json,
+                    answer_drafts_json
+                  )
+                  select $1, $2, $3, $4, $5::jsonb, $6::jsonb, $7::jsonb, $8, $9::jsonb, $10::jsonb
+                  where not $11::boolean
+                     or exists (select 1 from consumed_launch_session)
+                  returning candidate_practice_session_id
                 )
-                values ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7::jsonb, $8, $9::jsonb, $10::jsonb)
-                returning candidate_practice_session_id
+                select candidate_practice_session_id
+                from inserted_practice_session
             `, [
                 input.candidateProfileId,
                 input.roleProfileId ?? null,
@@ -102,6 +131,7 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
                 questionWordingStatus,
                 progress,
                 input.answerDrafts ?? {},
+                input.consumeTrustedLaunchSetupContext === true,
             ]);
 
             const candidatePracticeSessionId = readString(result.rows[0]?.candidate_practice_session_id);

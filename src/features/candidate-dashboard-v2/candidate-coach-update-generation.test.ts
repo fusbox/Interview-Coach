@@ -69,15 +69,18 @@ describe("candidate Coach Update generation", () => {
 
     it("leaves completion callers with an unavailable result when source evidence is incomplete", async () => {
         const repository = createRepository();
+        const runtime = createRuntime(vi.fn());
         const result = await ensureCandidateCoachUpdateArtifact({
             candidateProfileId: "candidate-1",
             sourceCandidatePracticeSessionId: "session-1",
             loadInput: async () => null,
             repository,
+            runtime,
         });
 
         expect(result).toEqual({ status: "coach_update_unavailable", reason: "source_not_ready" });
         expect(repository.claimArtifact).not.toHaveBeenCalled();
+        expect(runtime.synthesize).not.toHaveBeenCalled();
     });
 
     it("records a retryable timeout as a failed artifact attempt without weakening session completion", async () => {
@@ -241,6 +244,8 @@ function createRuntime(
             modelName: "test_model",
             promptVersion: "test_prompt_v1",
             evaluatorVersion: "evidence_first_v1",
+            profileId: "test_profile_v1",
+            configurationFingerprint: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         },
         timeoutMs: 12_000,
         synthesize,
@@ -265,6 +270,8 @@ function createArtifact({ lifecycleState = "requested" }: {
         modelName: "deterministic_local_fixture",
         promptVersion: "coach_update_fixture_v1",
         evaluatorVersion: "evidence_first_v1",
+        profileId: "candidate_coach_update_fixture_v1",
+        configurationFingerprint: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         generationAttempt: 1,
         lifecycleState,
         candidateSafeContent: completed ? {

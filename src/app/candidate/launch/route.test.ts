@@ -11,15 +11,24 @@ import {
 describe("/candidate/launch route", () => {
     afterEach(() => {
         vi.unstubAllEnvs();
+        vi.restoreAllMocks();
         vi.useRealTimers();
     });
 
     it("fails closed and redirects to the candidate dashboard when the verifier is not configured", async () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
         const response = await GET(new Request("https://interviewcoach.talentarbor.com/candidate/launch?token=signed.jwt"));
 
         expect(response.status).toBe(302);
         expect(response.headers.get("Location")).toBe("/candidate/dashboard");
         expect(response.headers.get("Set-Cookie")).toBeNull();
+        expect(response.headers.get("X-Interview-Coach-Request-Id")).toMatch(/^[0-9a-f-]{36}$/i);
+        expect(warn).toHaveBeenCalledWith("[candidate-host-launch]", expect.objectContaining({
+            phase: "assembly",
+            outcome: "rejected",
+            reason: "runtime_unavailable",
+        }));
+        expect(JSON.stringify(warn.mock.calls)).not.toContain("signed.jwt");
     });
 
     it("accepts a local dev host-launch token only when explicit dev mode is enabled", async () => {
@@ -41,7 +50,8 @@ describe("/candidate/launch route", () => {
         expect(response.headers.get("Set-Cookie")).toContain("ic_candidate_launch_session=dev-host-launch-100001");
     });
 
-    it("assembles production launch dependencies but fails closed until TA/RW context lookup is implemented", async () => {
+    it("fails closed with bounded diagnostics when production launch configuration is incomplete", async () => {
+        vi.spyOn(console, "warn").mockImplementation(() => undefined);
         vi.stubEnv("NODE_ENV", "production");
         vi.stubEnv("CANDIDATE_HOST_LAUNCH_SECRET", "production-launch-secret");
         vi.stubEnv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/postgres");

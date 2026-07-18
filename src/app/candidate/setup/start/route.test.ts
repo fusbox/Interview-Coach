@@ -16,6 +16,7 @@ describe("/candidate/setup/start route", () => {
         )).resolves.toEqual({
             candidateProfileId: "10000000-0000-4000-8000-000000000001",
             candidateLaunchSessionId: null,
+            trustedSetupContext: null,
             allowManualPrepContextCreation: true,
             allowBrowserBridgeFallback: true,
         });
@@ -175,6 +176,8 @@ describe("/candidate/setup/start route", () => {
             requestedRoleProfileId: null,
             createSeparateFromRoleProfileId: null,
             allowManualCreation: true,
+            trustedLaunchContext: null,
+            trustedLaunchSessionId: null,
             setupSnapshot: expect.objectContaining({
                 targetRole: "Customer service representative",
                 jobDescription: "Help customers resolve service questions.",
@@ -183,6 +186,7 @@ describe("/candidate/setup/start route", () => {
         expect(createSetupSession).toHaveBeenCalledWith(expect.objectContaining({
             candidateProfileId: "22222222-2222-4222-8222-222222222222",
             candidateLaunchSessionId: "launch-session-123",
+            consumeTrustedLaunchSetupContext: false,
             roleProfileId: "33333333-3333-4333-8333-333333333333",
             setupSnapshot: expect.objectContaining({
                 targetRole: "Customer service representative",
@@ -255,6 +259,182 @@ describe("/candidate/setup/start route", () => {
         });
         expect(response.status).toBe(409);
         expect(createSetupSession).not.toHaveBeenCalled();
+    });
+
+    it("accepts canonical trusted job context and atomically consumes it with session creation", async () => {
+        const trustedSetupContext = {
+            sourcePlatform: "talentarbor" as const,
+            jobCollectionId: "555",
+            requirementId: "777",
+            targetRole: "Warehouse Associate",
+            jobDescription: "Pick, pack, and prepare shipments safely.",
+            jobDescriptionHash: "7524282fd4de6c39071cff432be5743da531f3e7c76902e1fefc1748442645ef",
+        };
+        const resolveSetupPrepContext = vi.fn(async () => ({
+            status: "resolved" as const,
+            roleProfileId: "33333333-3333-4333-8333-333333333333",
+            resolution: "created" as const,
+        }));
+        const createSetupSession = vi.fn(async () => ({
+            candidatePracticeSessionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        }));
+
+        const response = await handleCandidateSetupStartRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    targetRole: "Warehouse Associate",
+                    jobDescription: "Pick, pack, and prepare shipments safely.",
+                    resumeText: null,
+                    interviewStage: "screening",
+                    questionCount: 5,
+                    setupEntryMode: "trusted_host_job",
+                }),
+            }),
+            now: new Date("2026-07-17T16:00:00.000Z"),
+            createSessionId: () => "unused-session-id",
+            resolveCandidateSetupIdentity: vi.fn(async () => ({
+                candidateProfileId: "22222222-2222-4222-8222-222222222222",
+                candidateLaunchSessionId: "launch-session-123",
+                trustedSetupContext,
+                allowManualPrepContextCreation: true,
+            })),
+            prepContextResolver: { resolveSetupPrepContext },
+            practiceSessionRepository: { createSetupSession },
+        });
+
+        expect(response.status).toBe(201);
+        expect(resolveSetupPrepContext).toHaveBeenCalledWith(expect.objectContaining({
+            trustedLaunchContext: trustedSetupContext,
+            trustedLaunchSessionId: "launch-session-123",
+        }));
+        expect(createSetupSession).toHaveBeenCalledWith(expect.objectContaining({
+            candidateLaunchSessionId: "launch-session-123",
+            consumeTrustedLaunchSetupContext: true,
+            setupSnapshot: expect.objectContaining({
+                targetRole: "Warehouse Associate",
+                jobDescription: "Pick, pack, and prepare shipments safely.",
+            }),
+        }));
+    });
+
+    it("rejects browser mutation of a trusted host job before prep-context creation", async () => {
+        const resolveSetupPrepContext = vi.fn();
+        const response = await handleCandidateSetupStartRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    targetRole: "Warehouse Associate",
+                    jobDescription: "Browser-replaced job description.",
+                    interviewStage: "screening",
+                    questionCount: 5,
+                    setupEntryMode: "trusted_host_job",
+                }),
+            }),
+            now: new Date("2026-07-17T16:00:00.000Z"),
+            createSessionId: () => "unused-session-id",
+            resolveCandidateSetupIdentity: vi.fn(async () => ({
+                candidateProfileId: "22222222-2222-4222-8222-222222222222",
+                candidateLaunchSessionId: "launch-session-123",
+                trustedSetupContext: {
+                    sourcePlatform: "talentarbor" as const,
+                    jobCollectionId: "555",
+                    requirementId: "777",
+                    targetRole: "Warehouse Associate",
+                    jobDescription: "Pick, pack, and prepare shipments safely.",
+                    jobDescriptionHash: "7524282fd4de6c39071cff432be5743da531f3e7c76902e1fefc1748442645ef",
+                },
+                allowManualPrepContextCreation: true,
+            })),
+            prepContextResolver: { resolveSetupPrepContext },
+            practiceSessionRepository: { createSetupSession: vi.fn() },
+        });
+
+        expect(response.status).toBe(409);
+        await expect(response.json()).resolves.toEqual({
+            error: "Trusted job context changed before setup was submitted.",
+        });
+        expect(resolveSetupPrepContext).not.toHaveBeenCalled();
+    });
+
+    it("rejects a stale trusted-job submission after another tab consumed the context", async () => {
+        const resolveSetupPrepContext = vi.fn();
+        const response = await handleCandidateSetupStartRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    targetRole: "Warehouse Associate",
+                    jobDescription: "Pick, pack, and prepare shipments safely.",
+                    interviewStage: "screening",
+                    questionCount: 5,
+                    setupEntryMode: "trusted_host_job",
+                }),
+            }),
+            now: new Date("2026-07-17T16:00:00.000Z"),
+            createSessionId: () => "unused-session-id",
+            resolveCandidateSetupIdentity: vi.fn(async () => ({
+                candidateProfileId: "22222222-2222-4222-8222-222222222222",
+                candidateLaunchSessionId: "launch-session-123",
+                trustedSetupContext: null,
+                allowManualPrepContextCreation: true,
+            })),
+            prepContextResolver: { resolveSetupPrepContext },
+            practiceSessionRepository: { createSetupSession: vi.fn() },
+        });
+
+        expect(response.status).toBe(409);
+        expect(resolveSetupPrepContext).not.toHaveBeenCalled();
+    });
+
+    it("consumes trusted setup staging when the candidate chooses its existing host-backed path", async () => {
+        const consumeWithExistingPrepContext = vi.fn(async () => true);
+        const response = await handleCandidateSetupStartRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    targetRole: "Warehouse Associate",
+                    jobDescription: "Pick, pack, and prepare shipments safely.",
+                    interviewStage: "screening",
+                    questionCount: 5,
+                    setupEntryMode: "trusted_host_job",
+                    prepContextDecision: {
+                        action: "use_existing_path",
+                        matchingRoleProfileId: "33333333-3333-4333-8333-333333333333",
+                    },
+                }),
+            }),
+            now: new Date("2026-07-17T16:00:00.000Z"),
+            createSessionId: () => "unused-session-id",
+            resolveCandidateSetupIdentity: vi.fn(async () => ({
+                candidateProfileId: "22222222-2222-4222-8222-222222222222",
+                candidateLaunchSessionId: "launch-session-123",
+                trustedSetupContext: {
+                    sourcePlatform: "talentarbor" as const,
+                    jobCollectionId: "555",
+                    requirementId: "777",
+                    targetRole: "Warehouse Associate",
+                    jobDescription: "Pick, pack, and prepare shipments safely.",
+                    jobDescriptionHash: "7524282fd4de6c39071cff432be5743da531f3e7c76902e1fefc1748442645ef",
+                },
+                allowManualPrepContextCreation: true,
+            })),
+            setupEntryRepository: { consumeWithExistingPrepContext },
+        });
+
+        expect(response.status).toBe(200);
+        await expect(response.json()).resolves.toEqual({
+            status: "existing_prep_context_selected",
+            nextRoute: "/candidate/dashboard?prep=33333333-3333-4333-8333-333333333333",
+        });
+        expect(consumeWithExistingPrepContext).toHaveBeenCalledWith({
+            candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            candidateLaunchSessionId: "launch-session-123",
+            roleProfileId: "33333333-3333-4333-8333-333333333333",
+        });
     });
 
     it("creates a separate profile and session only after an explicit exact-match choice", async () => {

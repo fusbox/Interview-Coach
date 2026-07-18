@@ -38,6 +38,10 @@ Prep-context propagation tests cover candidate/profile ownership on durable prac
 
 Coach Update artifact tests must cover immutable/replayed completion, candidate and prep-context ownership, accepted evaluator-run eligibility, latest-attempt selection, skipped/unanswered exclusion, same-source-question comparison boundaries, stale input rejection after a generation claim, concurrent/replayed claims, terminal failure and repair, candidate-safe fixture validation, and dashboard refusal to fall back to legacy or partial Coach Update content. The local fixture path must persist the same accepted evaluator-run lineage the artifact consumes so browser validation exercises the production-shaped boundary without pretending the fixture is a production model.
 
+The production Coach Update adapter gate must additionally prove exact provider/profile/key selection, key nonexposure, code-owned system instruction and untrusted data separation, absence of raw current/prior answers and identity from the provider request, provider-compatible structured output, code-owned status/fingerprint hydration, same-order question mapping, one bounded transport call, token/latency metadata only, timeout/rate-limit/4xx/5xx/safety/malformed-output classification, diagnostic-sink isolation, and no provider work for incomplete accepted-evaluator evidence. Fixture and fault modes must remain unavailable in production, and selected but incomplete Google configuration must degrade to unavailable synthesis rather than fail round completion.
+
+Credentialed Coach Update validation follows the [Live Coach Update Validation Runbook](./live-coach-update-validation-runbook.md). Its dedicated command requires explicit CLI, flag, provider, profile, and key controls before transport assembly. The synthetic artifact is privacy-minimized and still requires human language review. A separate disposable-DB pass must prove exact-profile artifact metadata, immutable source lineage, replay without a second call, refreshed dashboard recovery, and durable completion when synthesis is ineligible or unavailable. Stale-source rejection remains a deterministic network-free race test because live validation must not mutate candidate evidence merely to manufacture a late-write race.
+
 `npm run test:candidate:coach-update` is the focused Slice 104 gate. `ci:candidate` runs it after the broader candidate compatibility suite so newly added artifact tests do not depend on manually editing the historical long-form `test:candidate` file list.
 
 `npm run test:candidate:next-round` is the focused Slice 105 gate. It covers draft normalization, ownership-scoped repositories, optimistic mutation conflicts, invalid order/source handling, queue-assembly lineage, idempotent ready/consumed recovery, stale-evidence rejection, and follow-up session snapshot propagation. `db:smoke-candidate-next-round-drafts-schema` runs the real PostgreSQL ownership constraints and atomic snapshot function inside a rollback-only transaction, including duplicate-launch replay and proof that an invalid launch leaves the mutable draft untouched.
@@ -122,6 +126,15 @@ These examples can become Playwright or integration tests when the feature is im
 
 ## Coverage Expectations
 
+### Database Milestone Gate
+
+At every candidate migration milestone and before pilot/release, run the complete candidate readiness chain against both:
+
+- a newly created empty disposable database, proving install order and self-contained smoke fixtures; and
+- the current long-lived local or staging-shaped upgrade database, proving idempotent migration and compatibility with accumulated V2 development rows.
+
+A pass on only the long-lived database is insufficient because pre-existing rows can accidentally satisfy a smoke assertion. Validation SQL must create any evidence it needs inside its own rollback-only transaction. Disposable databases must be named explicitly, verified before use, and removed after the audit.
+
 Early scaffold:
 
 - coverage command runs
@@ -140,6 +153,7 @@ Before production pilot:
 - negative permission tests
 - accessibility checks for primary flows
 - dependency audit reviewed
+- every unresolved production dependency advisory has an owner, disposition, and release trigger; the Slices 125-133 milestone leaves the major-version `nodemailer` high advisory and Next-bundled PostCSS moderate advisory as explicit app-wide release gates
 - candidate PRs reviewed against [Recruiter Regression Checklist For Candidate PRs](recruiter-regression-checklist.md)
 
 ## CI Gate Direction

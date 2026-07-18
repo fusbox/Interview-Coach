@@ -58,7 +58,48 @@ describe("candidate practice session repository", () => {
                 currentQuestionIndex: 0,
             },
             {},
+            false,
         ]);
+    });
+
+    it("consumes a trusted launch setup context in the same statement as session creation", async () => {
+        const query = vi.fn(async () => ({
+            rows: [{ candidate_practice_session_id: "11111111-1111-4111-8111-111111111111" }],
+        }));
+        const repository = createCandidatePracticeSessionRepository({ query });
+        const setupSnapshot = {
+            targetRole: "Warehouse Associate",
+            jobDescription: "Pick, pack, and prepare shipments safely.",
+            resumeText: null,
+            interviewStage: "screening" as const,
+            questionCount: 5,
+            resumeCaptureMode: "none" as const,
+            createdAt: "2026-07-17T16:00:00.000Z",
+        };
+        const questionPlanSnapshot = createCandidateQuestionPlan({
+            interviewStage: "screening",
+            questionCount: 5,
+        });
+
+        await expect(repository.createSetupSession({
+            candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            roleProfileId: "33333333-3333-4333-8333-333333333333",
+            candidateLaunchSessionId: "44444444-4444-4444-8444-444444444444",
+            consumeTrustedLaunchSetupContext: true,
+            setupSnapshot,
+            questionPlanSnapshot,
+        })).resolves.toEqual({
+            candidatePracticeSessionId: "11111111-1111-4111-8111-111111111111",
+        });
+
+        expect(query).toHaveBeenCalledWith(
+            expect.stringContaining("delete from public.candidate_launch_setup_contexts"),
+            expect.arrayContaining([true]),
+        );
+        expect(query).toHaveBeenCalledWith(
+            expect.stringContaining("set setup_context_consumed_at = now()"),
+            expect.any(Array),
+        );
     });
 
     it("restores the durable setup-created session by candidate and session id", async () => {

@@ -1,7 +1,7 @@
 # Local Dev Bootstrap
 
 Status: Active cleanroom V2 bootstrap
-Last updated: 2026-07-16
+Last updated: 2026-07-17
 
 ## Purpose
 
@@ -49,15 +49,19 @@ npm run db:smoke-candidate-answer-evaluator-configuration-schema
 npm run db:apply-candidate-prep-context-propagation-schema
 npm run db:smoke-candidate-prep-context-propagation-schema
 npm run db:apply-candidate-coach-update-artifacts-schema
+npm run db:apply-candidate-coach-update-configuration-identity
 npm run db:smoke-candidate-coach-update-artifacts-schema
+npm run db:smoke-candidate-coach-update-configuration-identity
 npm run db:apply-candidate-practice-session-status-backfill
 npm run db:apply-candidate-next-round-drafts-schema
 npm run db:smoke-candidate-next-round-drafts-schema
 npm run db:apply-candidate-prep-context-practice-paths-schema
 npm run db:smoke-candidate-prep-context-practice-paths-schema
+npm run db:apply-candidate-host-launch-setup-context
+npm run db:smoke-candidate-host-launch-setup-context
 ```
 
-`candidate_practice_sessions` remains the durable session boundary, `candidate_practice_intents` is the durable ready-round boundary for one-question or multi-question follow-up selections, and `candidate_answer_attempts` plus `candidate_answer_evaluation_runs` preserve immutable submission and evaluator lineage. Migration 015 adds sequential evaluator generations, 60-second claim leases, stale-claim recovery, and candidate-coaching completion fences. Migration 016 adds immutable evaluator configuration manifests/fingerprints; earlier V2 development rows become `pre_manifest_v2`, while new rows must carry resolved configuration. Migration 010 propagates candidate-owned prep-context identity into intents and canonical dashboard/follow-up reads, migration 011 stores only versioned candidate-safe Coach Update artifacts over those source facts, and migration 012 idempotently repairs answered sessions that historical writes left in `planned` status.
+`candidate_practice_sessions` remains the durable session boundary, `candidate_practice_intents` is the durable ready-round boundary for one-question or multi-question follow-up selections, and `candidate_answer_attempts` plus `candidate_answer_evaluation_runs` preserve immutable submission and evaluator lineage. Migration 015 adds sequential evaluator generations, 60-second claim leases, stale-claim recovery, and candidate-coaching completion fences. Migration 016 adds immutable evaluator configuration manifests/fingerprints; earlier V2 development rows become `pre_manifest_v2`, while new rows must carry resolved configuration. Migration 010 propagates candidate-owned prep-context identity into intents and canonical dashboard/follow-up reads, migration 011 stores only versioned candidate-safe Coach Update artifacts over those source facts, migration 019 adds exact profile/configuration identity to new Coach Update claims and replay matching without inventing metadata for earlier V2 development rows, and migration 012 idempotently repairs answered sessions that historical writes left in `planned` status.
 
 ### Full Candidate Quality Check
 
@@ -90,6 +94,8 @@ Current candidate V2 local development depends on these scripts:
 | Start disposable local Postgres | `npm run postgres:smoke:start` |
 | Apply all current migrations | `npm run db:migrate` |
 | Apply only host-launch schema | `npm run db:apply-candidate-host-launch-schema` |
+| Apply host-launch one-time exchange hardening | `npm run db:apply-candidate-host-launch-exchange-hardening` |
+| Apply host-launch setup staging and host prep identity | `npm run db:apply-candidate-host-launch-setup-context` |
 | Apply only V2 practice-session schema | `npm run db:apply-candidate-practice-sessions-schema` |
 | Apply only V2 practice-intent schema | `npm run db:apply-candidate-practice-intents-schema` |
 | Apply only V2 answer-attempt/evaluator-run schema | `npm run db:apply-candidate-answer-attempts-schema` |
@@ -97,11 +103,14 @@ Current candidate V2 local development depends on these scripts:
 | Apply immutable evaluator configuration manifests | `npm run db:apply-candidate-answer-evaluator-configuration-schema` |
 | Apply only V2 prep-context propagation schema | `npm run db:apply-candidate-prep-context-propagation-schema` |
 | Apply only V2 Coach Update artifact schema | `npm run db:apply-candidate-coach-update-artifacts-schema` |
+| Apply Coach Update profile/configuration claim identity | `npm run db:apply-candidate-coach-update-configuration-identity` |
 | Repair historical answered sessions left `planned` | `npm run db:apply-candidate-practice-session-status-backfill` |
 | Apply durable next-round draft schema | `npm run db:apply-candidate-next-round-drafts-schema` |
 | Apply intentional same-role/JD practice-path schema | `npm run db:apply-candidate-prep-context-practice-paths-schema` |
 | Seed local primary/alternate candidates | `npm run db:seed-candidate-dev` |
 | Validate host-launch schema | `npm run db:smoke-candidate-host-launch-schema` |
+| Validate host-launch replay and identity-only session schema | `npm run db:smoke-candidate-host-launch-exchange-hardening` |
+| Validate host-launch setup staging and host prep identity | `npm run db:smoke-candidate-host-launch-setup-context` |
 | Validate V2 practice-session schema | `npm run db:smoke-candidate-practice-sessions-schema` |
 | Validate V2 practice-intent schema | `npm run db:smoke-candidate-practice-intents-schema` |
 | Validate V2 answer-attempt/evaluator-run schema | `npm run db:smoke-candidate-answer-attempts-schema` |
@@ -109,6 +118,7 @@ Current candidate V2 local development depends on these scripts:
 | Validate evaluator configuration manifest, fingerprint, and immutability | `npm run db:smoke-candidate-answer-evaluator-configuration-schema` |
 | Validate V2 prep-context propagation and ownership | `npm run db:smoke-candidate-prep-context-propagation-schema` |
 | Validate V2 Coach Update artifact lifecycle and ownership | `npm run db:smoke-candidate-coach-update-artifacts-schema` |
+| Validate Coach Update configuration-aware claim identity and immutability | `npm run db:smoke-candidate-coach-update-configuration-identity` |
 | Validate durable next-round draft launch | `npm run db:smoke-candidate-next-round-drafts-schema` |
 | Validate intentional same-role/JD practice paths | `npm run db:smoke-candidate-prep-context-practice-paths-schema` |
 | Validate local candidate fixtures | `npm run db:smoke-candidate-dev-seed` |
@@ -126,6 +136,18 @@ Add these to `.env.local`:
 CANDIDATE_HOST_LAUNCH_DEV_MODE=true
 CANDIDATE_HOST_LAUNCH_DEV_SECRET=local-only-shared-secret
 ```
+
+Local dev host launch uses deterministic fixture identities and does not require TA MSSQL access. To exercise the production `/candidate/launch` assembly in an authorized environment, supply all five required TA connection values in server-only configuration:
+
+```text
+CANDIDATE_HOST_LAUNCH_TA_SQL_SERVER=<server>
+CANDIDATE_HOST_LAUNCH_TA_SQL_DATABASE=<database>
+CANDIDATE_HOST_LAUNCH_TA_SQL_USER=<least-privilege-reader>
+CANDIDATE_HOST_LAUNCH_TA_SQL_PASSWORD=<secret>
+CANDIDATE_HOST_LAUNCH_TA_SQL_PORT=1433
+```
+
+Optional bounded controls are `CANDIDATE_HOST_LAUNCH_TA_SQL_ENCRYPT`, `CANDIDATE_HOST_LAUNCH_TA_SQL_TRUST_SERVER_CERTIFICATE`, `CANDIDATE_HOST_LAUNCH_TA_SQL_CONNECT_TIMEOUT_MS`, `CANDIDATE_HOST_LAUNCH_TA_SQL_REQUEST_TIMEOUT_MS`, and `CANDIDATE_HOST_LAUNCH_TA_SQL_POOL_MAX`. Keep credentials in `.env.local` or the deployment secret store, never in committed docs or scripts. The app will not assemble production launch dependencies unless verifier config, `DATABASE_URL`, and the complete required TA connection set are all valid.
 
 To browser-validate the current submit -> analysis -> read-only coaching surface without production provider credentials, also add:
 
@@ -166,6 +188,18 @@ CANDIDATE_COACH_UPDATE_FAULT_MODE=provider_5xx
 ```
 
 Allowlisted fault modes are `timeout`, `rate_limited`, `provider_5xx`, `provider_unavailable`, `misconfigured`, `invalid_json`, `invalid_schema`, `fingerprint_mismatch`, `question_mapping_mismatch`, `unsafe_candidate_language`, and `success`. The controls are read only from server environment, are never accepted through a URL or request payload, and are disabled when `NODE_ENV=production`. A fault must not block round completion or dashboard return; it should create a classified terminal artifact attempt and leave the dashboard in its existing truthful unavailable state. Remove both Coach Update variables to return to the independent local fixture.
+
+To exercise the production Coach Update adapter with the same server-only Gemini credential, set the exact serving tuple and restart the app:
+
+```text
+CANDIDATE_COACH_UPDATE_PROVIDER=google_genai
+CANDIDATE_COACH_UPDATE_PROFILE=google_gemini_2_5_flash_coach_update_v1
+GEMINI_API_KEY=<server-only-key>
+```
+
+This profile is independent from answer-analysis selection. A realistic live round therefore normally sets both the answer-analysis tuple and the Coach Update tuple. The Coach Update call runs only after the round is durably completed and every answered occurrence has accepted evaluator evidence. Missing or mismatched configuration leaves Coach Update unavailable without rolling back completion and never falls back to fixture output. The request excludes current/prior raw answers, candidate and database identity, JD/resume content, raw evaluator artifacts, and hidden evaluator plans. Keep ordinary development on the fixture unless live synthesis is the purpose of the test.
+
+Run the credentialed synthetic gate separately before treating browser behavior as provider evidence. See the [Live Coach Update Validation Runbook](../05-quality/live-coach-update-validation-runbook.md). Its `CANDIDATE_COACH_UPDATE_LIVE_TEST=true` value is a one-command acknowledgement, not an ordinary `.env.local` setting. After the synthetic gate, use the runbook's disposable-DB protocol to reconcile completion, exact profile/configuration metadata, replay without another call, and refreshed dashboard recovery.
 
 Then start the app:
 
@@ -244,7 +278,9 @@ npm run db:smoke-candidate-answer-evaluator-run-claims-schema
 npm run db:apply-candidate-prep-context-propagation-schema
 npm run db:smoke-candidate-prep-context-propagation-schema
 npm run db:apply-candidate-coach-update-artifacts-schema
+npm run db:apply-candidate-coach-update-configuration-identity
 npm run db:smoke-candidate-coach-update-artifacts-schema
+npm run db:smoke-candidate-coach-update-configuration-identity
 npm run db:apply-candidate-practice-session-status-backfill
 npm run db:apply-candidate-next-round-drafts-schema
 npm run db:smoke-candidate-next-round-drafts-schema
@@ -274,7 +310,7 @@ Use those files when comparing against V1 behavior. Do not treat them as current
 For current V2 local development:
 
 - smoke Postgres is running;
-- `db:migrate` has applied through `016_candidate_answer_evaluator_configuration_manifest.sql`;
+- `db:migrate` has applied through `019_candidate_coach_update_configuration_identity.sql`;
 - local candidate dev seed is present;
 - `db:smoke-candidate-readiness` passes;
 - the app is launched with `npm run dev`;

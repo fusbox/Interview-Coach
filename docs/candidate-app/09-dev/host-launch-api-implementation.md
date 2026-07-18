@@ -1,132 +1,191 @@
-**Host launch API - full landing context**
+# Host Launch API Implementation
 
-Target: already-logged-in TA/RW Quick Help → signed token → /candidate/launch → IC profile/session cookie → canonical candidate route. Synthesized from WI 2753, July 6 integration chat, V2 auth code, and 2026-07-14 staging discovery.
+Status: Active implementation guide
+Last updated: 2026-07-17
 
-**Scaffolded**
+## Purpose
 
-Token verify + route
+This is the execution guide for launching Interview Coach from an authenticated TalentArbor or RangamWorks browser session. Discovery findings are evidence, not automatically ratified product or integration direction.
 
-**Drafted**
+The first implementation target is TalentArbor. RangamWorks should use the same app-facing adapter contract but remains fail-closed until its candidate identity namespace is confirmed.
 
-Launch-context SQL
+## Exchange Contract
 
-**Blocked**
+The host backend mints a fresh HS256 JWT when the authenticated candidate clicks Interview Coach. The browser redirects to:
 
-lookupLaunchContext=null
+```text
+https://interviewcoach.talentarbor.com/candidate/launch?token=<signed-jwt>
+```
 
-**Open**
+Recommended dashboard token:
 
-Secret + company deploy
+```json
+{
+  "candidate_id": "123456",
+  "email": "user@example.com",
+  "product": "interview-coach",
+  "iss": "talentarbor",
+  "source_portal": "talentarbor",
+  "iat": 1783962616,
+  "exp": 1783962736,
+  "jti": "9fd47fd4-82ab-4dd1-aad8-623959bb8b33"
+}
+```
 
-Definition of done (auth/ID slice)
+A job-aware host link may also include:
 
-A host-minted staging JWT with candidate_id + job_collection_id verifies on IC, loads CandidateMaster + job context, creates candidate_identities / candidate_launch_sessions, sets ic_candidate_launch_session, and redirects off the token URL. Resume body text, activity taxonomy from WI 2753, and compliance certifications are explicitly out of this landing slice.
+```json
+{
+  "job_collection_id": "5551234",
+  "source_surface": "TA_JOB_DETAIL"
+}
+```
 
-**End-to-end flow**
+Required claims are `candidate_id`, `email`, `product`, `iss`, numeric `iat`, and numeric `exp`. `jti`, `source_portal`, `source_surface`, and `job_collection_id` are supported but job context is not required for a dashboard launch.
 
-| **Step**                                                        | **Owner**                  | **Status**                                    |
-| --------------------------------------------------------------- | -------------------------- | --------------------------------------------- |
-| Quick Help / Interview Coach button on TA or RW dashboard       | Host (.NET)                | Agreed; not in IC repo                        |
-| Mint HS256 JWT (server secret), redirect ?token=                | Host                       | Contract known; need freeze + secret exchange |
-| GET /candidate/launch?token=…&next=…                            | IC                         | Route + cookie cleanup landed                 |
-| Verify signature, product, exp, issuer                          | IC                         | production-host-launch-verifier.ts            |
-| Resolve launch context (CandidateID + JobCollectionID)          | IC ← TA/RW SQL or host API | Draft USP; runtime still returns null         |
-| Upsert candidate_profile + identity + launch session (Postgres) | IC                         | Repository + resolver landed                  |
-| Set session cookie → /candidate/setup or /candidate/dashboard   | IC                         | Landed when resolveCandidateProfile succeeds  |
+Current IC policy:
 
-**Token contract (freeze with host)**
+- algorithm: HS256;
+- product: exactly `interview-coach`;
+- default maximum launch lifetime: 120 seconds;
+- default future-issued tolerance: 30 seconds;
+- minimum shared-secret size: 32 bytes;
+- raw token and full claim payload: never logged or persisted;
+- replay: one accepted exchange per SHA-256 token fingerprint or issuer-scoped `jti`;
+- app session: independent server clock, default and maximum seven days.
 
-July 6 agreed claims
+The host token is signed, not encrypted. Its claims are visible to the browser and intermediaries that receive the URL. It must contain identifiers and routing context only, never resume text, JD text, or other sensitive body content.
 
-Required: candidate_id, email, product, exp
+## Host Team Responsibilities
 
-product must be interview-coach (validate only; do not persist)
+1. Mint a new token for each Interview Coach click after proving the host session.
+2. Use numeric JWT `iat` and `exp`; set `exp = iat + 120` for the recommended two-minute exchange window.
+3. Generate a unique unpredictable `jti` for each token.
+4. Sign with HS256 using a random server-only secret of at least 32 bytes.
+5. Supply the agreed `iss` and optional `source_portal` values.
+6. Redirect the browser to `/candidate/launch?token=...` and do not place candidate context in separate unsigned query parameters.
+7. Keep signing secrets in the company secret store and define rotation/overlap/revocation operations with the IC deployment owner.
+8. Ensure host, CDN, load-balancer, and observability access logs redact the `token` query value. The application suppresses caching and referrer propagation, but it cannot sanitize logs written before the request reaches it.
 
-Alg: HS256 · shared server secret only
+## Interview Coach Responsibilities
 
-Optional IC already reads: job_collection_id, host_domain, source_surface, iss, iat
+1. Verify signature, algorithm, issuer, product, source portal, numeric dates, and lifetime before trusting identity.
+2. Hash the normalized raw token and reserve its fingerprint exactly once.
+3. Resolve the signed candidate id from the trusted host data source.
+4. For job-aware launch, prove the candidate owns the requested job-activity row before loading job context.
+5. Resolve or create the IC candidate profile and identity mapping.
+6. Create one Postgres launch session with an independent expiry and compact context snapshot.
+7. For owned job-aware launch, atomically stage canonical role/JD with the launch session; do not put either in the cookie, URL, or compact launch snapshot.
+8. Choose the canonical entry route: job-aware -> setup; identity-only with no prep contexts -> setup; identity-only with prep contexts -> dashboard.
+9. Set `ic_candidate_launch_session` as `HttpOnly`, `SameSite=Lax`, `Secure` under HTTPS, and scoped to `/candidate`.
+10. Redirect to a clean canonical candidate URL with no launch token.
+11. Return the exchange redirect with `Cache-Control: no-store` and `Referrer-Policy: no-referrer`.
 
-WI 2753 extras (defer or map)
+If a response is lost after token consumption, the candidate returns to the host and clicks again for a new token. IC does not return the first app session to a replaying token.
 
-Source Portal / Destination Portal → workspace + hostDomain/sourceSurface
+## Launch Shapes
 
-Host Session ID → not required for first IC session cookie
+### Dashboard Quick-Link
 
-Activity events Link→Summary → separate analytics rollup
+Input: trusted candidate identity, no job id.
 
-GDPR/SOC2/WCAG checklist → Phase H; do not gate auth landing
+Expected result: establish the candidate session, then open the candidate dashboard when prep contexts exist or generic setup when none exist. No job is inferred.
 
-IC env: CANDIDATE_HOST_LAUNCH_SECRET, optional CANDIDATE_HOST_LAUNCH_EXPECTED_ISSUER (default talentarbor), CANDIDATE_HOST_LAUNCH_CLOCK_SKEW_SECONDS, DATABASE_URL (IC Postgres). Verifier currently defaults workspace to talentarbor - RW issuer/workspace must be confirmed.
+### Job-Aware Link
 
-**Platform data (staging truth)**
+Input: trusted candidate identity plus `job_collection_id`.
 
-Landing data readinessTA listing-ready · RW listing open
+Expected result: establish the candidate session, prove candidate/job ownership, resolve canonical job context, and stage trusted role/JD data for setup. Stage and question count remain candidate choices.
 
-| **Concern**          | **Source**                      | **Rule**                                                                                                                                 |
-| -------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Candidate identity   | dbo.CandidateMaster             | CandidateID, Email, FirstName+LastName, CompanyID, CreatedBy. Never Password/Salt/SSN\*.                                                 |
-| Candidate ↔ job pair | dbo.CandidateJobCollectionTxn   | CandidateID + JobCollectionID. Skip JobCollectionID=0 (candidate-created).                                                               |
-| Listing JD (TA)      | dbo.JobCollection               | ~7.5M rows; join works for real pairs (e.g. 2833899/4257312).                                                                            |
-| Listing JD (RW)      | Open                            | Live probe: JobCollection row count 0, 0 join hits. Bridge still has titles. Need host answer: sync, linked catalog, or bridge fallback. |
-| Resume for launch    | ResumeParserJSONMaster metadata | Flags + dates only. Never JSONData.                                                                                                      |
-| AI consent           | CandidateAIConsent              | hasAIConsent = row exists; latest ConsentDate.                                                                                           |
-| IC durable session   | Postgres candidate\_\*          | candidate_identities + candidate_launch_sessions already modeled.                                                                        |
+## Current IC Runtime Configuration
 
-TA vs RW catalog
+- `CANDIDATE_HOST_LAUNCH_SECRET`
+- `CANDIDATE_HOST_LAUNCH_EXPECTED_ISSUER`
+- `CANDIDATE_HOST_LAUNCH_EXPECTED_WORKSPACE`
+- `CANDIDATE_HOST_LAUNCH_CLOCK_SKEW_SECONDS`
+- `CANDIDATE_HOST_LAUNCH_MAX_TOKEN_LIFETIME_SECONDS`
+- `CANDIDATE_HOST_LAUNCH_SESSION_TTL_SECONDS`
+- `CANDIDATE_HOST_LAUNCH_TA_SQL_SERVER`
+- `CANDIDATE_HOST_LAUNCH_TA_SQL_PORT`
+- `CANDIDATE_HOST_LAUNCH_TA_SQL_DATABASE`
+- `CANDIDATE_HOST_LAUNCH_TA_SQL_USER`
+- `CANDIDATE_HOST_LAUNCH_TA_SQL_PASSWORD`
+- `CANDIDATE_HOST_LAUNCH_TA_SQL_ENCRYPT`
+- `CANDIDATE_HOST_LAUNCH_TA_SQL_TRUST_SERVER_CERTIFICATE`
+- `CANDIDATE_HOST_LAUNCH_TA_SQL_CONNECT_TIMEOUT_MS`
+- `CANDIDATE_HOST_LAUNCH_TA_SQL_REQUEST_TIMEOUT_MS`
+- `CANDIDATE_HOST_LAUNCH_TA_SQL_POOL_MAX`
+- `DATABASE_URL`
 
-Connections used for live probes: TalentArbor @ 52.33.112.102 and HealthWorksStag @ 3.85.182.226. Earlier ADS CSV exports for job samples looked identical across TA/RW; treat those as historical exports and use the live join-hit numbers above as current implementation constraints. Respect that ads connections were intended per-DB - resolve RW JobCollection emptiness with the platform team rather than assuming a wrong connection.
+Production assembly fails closed when required or bounded values are missing or invalid. SQL port, encryption, certificate trust, timeouts, and pool size have conservative defaults; explicit invalid values disable production assembly rather than falling back silently.
 
-**IC code map (replace the null)**
+## Landed IC Boundary
 
-| **Module**                                           | **Role**                                       |
-| ---------------------------------------------------- | ---------------------------------------------- |
-| host-launch-contract.ts                              | Handoff shape, product, redirect allowlist     |
-| production-host-launch-verifier.ts                   | HS256 JWT verify + claim parse                 |
-| candidate-launch-context.ts                          | Normalize SQL/API row → CandidateLaunchContext |
-| host-launch-orchestrator.ts                          | Composable verify → lookup → session           |
-| candidate-launch-session-resolver.ts                 | Identity key → profile → launch session        |
-| candidate-launch-session-repository.ts               | Postgres persistence                           |
-| production-host-launch-runtime.ts                    | Prod wiring - lookupLaunchContext still null   |
-| host-launch-route.ts / app/candidate/launch          | HTTP entry + cookie                            |
-| 09-dev/USP_InterviewCoach_GetLaunchContext.draft.sql | SQL draft for host DB                          |
+| Module | Responsibility |
+| --- | --- |
+| `host-launch-contract.ts` | Handoff, redirect, token fingerprint, independent session clock |
+| `production-host-launch-verifier.ts` | `jose` HS256 verification and claim policy |
+| `candidate-launch-context.ts` | Candidate identity plus optional canonical job context normalization; resume and consent are not queried here |
+| `host-launch-orchestrator.ts` | Verify -> lookup -> profile/session composition |
+| `candidate-launch-session-resolver.ts` | Identity proof, profile reuse/create, replay result |
+| `candidate-launch-session-repository.ts` | Postgres identity and one-time launch-session persistence |
+| `candidate-setup-entry-context.ts` | Active launch-session resolution, immutable job setup snapshot, and existing-path consume |
+| `candidate-setup-prep-context-repository.ts` | Separate manual and host-job prep identity plus candidate-owned duplicate choice |
+| `talentarbor-launch-context-adapter.ts` | Exact-row, fail-closed identity and candidate/job ownership adapter |
+| `talentarbor-mssql-runtime.ts` | Parameterized TA queries, bounded server-only pool, timeouts, and safe diagnostics |
+| `production-host-launch-runtime.ts` | Complete production verifier/Postgres/TA-MSSQL assembly; RW remains disabled |
+| `host-launch-route.ts` | Token-bearing HTTP entry, cookie, clean redirect |
+| `db/migrations/017_candidate_host_launch_exchange_hardening.sql` | Nullable job context, token fingerprint/id, one-time constraints |
+| `db/migrations/018_candidate_host_launch_setup_context.sql` | Immutable launch setup staging, host prep identity, and consume marker |
 
-**Implementation sequence**
+## Setup Staging And Consumption
 
-| **#** | **Work**                                                                                                                     | **Exit criteria**                                                          |
-| ----- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| 1     | Freeze token claims + issuer values for TA and RW with Himanshu's team; exchange staging secret                              | Written claim table + secret in company secret store (not Vercel personal) |
-| 2     | Decide RW listing strategy (catalog sync vs bridge JobTitle/Description fallback vs API)                                     | Signed decision; draft USP SELECT branches match decision                  |
-| 3     | Column-probe RequirementCollectionTxn + JobPostTxn; finish USP joins or drop to later slice                                  | Proc returns full CandidateLaunchContextRow on TA pair 2833899/4257312     |
-| 4     | Add IC mssql (or host HTTP) adapter implementing lookupLaunchContext; wire in production-host-launch-runtime.ts              | Focused tests + staging E2E: valid token → cookie set → redirect           |
-| 5     | Hardening: replay/jti if host adds it, RW workspace in verifier, cookie TTL, fail-closed when job listing missing per policy | Documented fail reasons; no raw token logging                              |
-| 6     | Company deploy env on interviewcoach.talentarbor.com; host enables Quick Help button against staging IC URL                  | Member click path works without Vercel + VPN laptop                        |
+- Job-aware launch stores the bounded canonical role/JD snapshot once, in the same Postgres transaction as the launch session. Host edits or deletion after exchange do not rewrite an in-flight candidate setup.
+- `/candidate/setup` resolves staging from the active launch cookie and renders role/JD read-only. The browser sends only `setupEntryMode: "trusted_host_job"`; that marker is not trusted data.
+- Browser draft keys separate each host platform/job from the candidate's generic manual setup so a resume, stage, or count abandoned for another role cannot bleed into this launch. This is still local-browser preservation, not the deferred cross-device draft contract.
+- Setup POST re-resolves the server snapshot and rejects any role/JD mismatch. A second tab that submits after another tab consumed staging receives a conflict rather than creating another host-backed path.
+- A new host-backed path is keyed by candidate + source platform + job collection id. A matching path with practice activity opens the existing-path choice instead of silently merging evidence.
+- Creating the first session consumes staging atomically with the session insert. Choosing `View in dashboard` consumes staging without creating a prep profile or session. Closing the dialog leaves staging available while the launch session remains active.
+- Identity-only production setup uses the authenticated candidate owner but creates only a manual path. It cannot attach host source metadata.
 
-Durable artifacts
+## TalentArbor MSSQL Adapter Contract
 
-docs/…/USP_InterviewCoach_GetLaunchContext.draft.sql
+The first server-only host-data adapter behind `lookupLaunchContext` must:
 
-docs/…/staging-launch-context-findings-2026-07-14.md
+- resolve `candidate_id` against `CandidateMaster`;
+- permit identity-only rows;
+- for `job_collection_id`, prove ownership through `CandidateJobCollectionTxn`;
+- use `CandidateJobCollectionTxn` only to prove ownership and TA `JobCollection` as canonical catalog context;
+- use parameterized queries, bounded connection pools, strict timeouts, and privacy-safe diagnostics;
+- select only approved identity/job columns and return no raw SQL or parameter values in failures;
+- reject nonnumeric identifiers before opening a connection;
+- fail closed on missing, duplicate, malformed, or unowned rows;
+- treat active/expired flags as context rather than ownership gates;
+- require complete validated MSSQL configuration before production launch dependencies assemble;
+- keep resume retrieval behind a separate port until the authoritative current-resume rule is ratified;
+- keep RW fail-closed until its identity mapping is known.
 
-docs/…/staging-launch-context-discovery.sql
+The draft `USP_InterviewCoach_GetLaunchContext` and staging CSVs remain discovery inputs. Do not deploy the draft procedure unchanged: requirement, channel, resume, and consent joins are intentionally outside the launch-critical query.
 
-scripts/probe-staging-tables.mjs
+## Verification
 
-scripts/probe-staging-candidate-columns.mjs
+```powershell
+npm run test:candidate:host-setup
+npx vitest run db/migrations/017_candidate_host_launch_exchange_hardening.test.ts src/features/candidate-auth-v2/*.test.ts src/app/candidate/launch/route.test.ts
+npm run typecheck
+npm run db:apply-candidate-host-launch-exchange-hardening
+npm run db:smoke-candidate-host-launch-exchange-hardening
+npm run db:apply-candidate-host-launch-setup-context
+npm run db:smoke-candidate-host-launch-setup-context
+```
 
-scripts/probe-staging-candidate-job-pairs.mjs
+Live staging acceptance is governed by [TalentArbor Host Launch Live Acceptance](./host-launch-live-acceptance.md). The live probe accepts only a host-minted URL through hidden standard input, reports metadata-only HTTP outcomes, and relies on request-id-correlated server diagnostics for rejection reasons. It does not mint or mutate tokens and must use a separate fresh token for each probe or browser run.
 
-Local gitignored TA-/RW-\*.csv discovery exports
+## Still Required Before Production
 
-Explicitly defer
-
-Resume OCR / cleanedText ingestion
-
-Full WI 2753 activity funnel + analytics ACL
-
-SOC2/GDPR certification paperwork
-
-Production TTS / answer providers
-
-Personal Vercel → private staging SQL
-
-CandidateID 2833899 · JobCollectionID 4257312 · CDL Truck Driver
+- Host ratification of issuer/source-portal values, mint-per-click behavior, and claim names.
+- Shared-secret exchange, rotation, overlap, and emergency revocation procedure.
+- One real TA-signed staging token and end-to-end browser validation.
+- TA deployment network path and least-privilege MSSQL credentials.
+- Authoritative current-resume selection and retention rules.
+- RW candidate identity mapping before enabling the RW adapter.

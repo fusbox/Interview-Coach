@@ -7,8 +7,10 @@ import {
     ChevronRight,
     Loader2,
     MessageSquareQuote,
+    RefreshCw,
     X,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
     useCallback,
     useEffect,
@@ -141,6 +143,8 @@ function CandidateDashboardCoachUpdatePanel({
     isNew: boolean;
     onOpen: () => void;
 }) {
+    const router = useRouter();
+    const [repairState, setRepairState] = useState<"idle" | "submitting" | "error">("idle");
     const state = dashboard.coachUpdateState;
     const className = `candidate-dashboard-module candidate-dashboard-module--coach-update${isPrimary ? " is-primary" : ""}`;
     const heading = (
@@ -171,15 +175,43 @@ function CandidateDashboardCoachUpdatePanel({
         );
     }
 
+    const repairCoachUpdate = async () => {
+        if (state.status !== "candidate_coach_update_unavailable" || repairState === "submitting") return;
+        setRepairState("submitting");
+        try {
+            const response = await fetch(
+                `/candidate/session/${encodeURIComponent(state.candidatePracticeSessionId)}/coach-update/repair`,
+                { method: "POST" },
+            );
+            if (!response.ok) throw new Error("Coach Update repair failed.");
+            setRepairState("idle");
+            router.refresh();
+        } catch {
+            setRepairState("error");
+        }
+    };
+
     return (
         <article className={className} aria-live={state.status === "candidate_coach_update_pending" ? "polite" : undefined}>
             {heading}
-            <CoachUpdateStatusCopy state={state} />
+            <CoachUpdateStatusCopy
+                state={state}
+                repairState={repairState}
+                onRepair={repairCoachUpdate}
+            />
         </article>
     );
 }
 
-function CoachUpdateStatusCopy({ state }: { state: CandidateDashboardCoachUpdateState }) {
+function CoachUpdateStatusCopy({
+    state,
+    repairState,
+    onRepair,
+}: {
+    state: CandidateDashboardCoachUpdateState;
+    repairState: "idle" | "submitting" | "error";
+    onRepair: () => void;
+}) {
     switch (state.status) {
         case "candidate_coach_update_pending":
             return (
@@ -194,6 +226,22 @@ function CoachUpdateStatusCopy({ state }: { state: CandidateDashboardCoachUpdate
                 <>
                     <h2>Your practice is saved.</h2>
                     <p>I couldn&apos;t prepare this Coach Update. Your answers and in-session coaching remain saved, and you can keep moving with Practice Next.</p>
+                    <div className="candidate-dashboard-module__actions">
+                        <button
+                            className="candidate-dashboard-action candidate-dashboard-action--secondary"
+                            type="button"
+                            disabled={repairState === "submitting"}
+                            onClick={onRepair}
+                        >
+                            {repairState === "submitting"
+                                ? <Loader2 className="candidate-dashboard-coach-update-spinner" size={16} aria-hidden="true" />
+                                : <RefreshCw size={16} aria-hidden="true" />}
+                            {repairState === "submitting" ? "Preparing Coach Update" : "Try Coach Update again"}
+                        </button>
+                    </div>
+                    {repairState === "error" ? (
+                        <p role="alert">I still couldn&apos;t prepare the update. Your practice remains saved.</p>
+                    ) : null}
                 </>
             );
         case "candidate_coach_update_awaiting_practice":

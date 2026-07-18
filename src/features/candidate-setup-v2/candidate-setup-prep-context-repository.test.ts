@@ -57,6 +57,79 @@ describe("candidate setup prep-context repository", () => {
         expect(query).not.toHaveBeenCalled();
     });
 
+    it("creates a host-backed path from the immutable launch job identity", async () => {
+        const query = vi.fn()
+            .mockResolvedValueOnce({ rows: [] })
+            .mockResolvedValueOnce({ rows: [{ role_profile_id: "host-role-profile" }] });
+        const repository = createCandidateSetupPrepContextRepository({ query });
+
+        await expect(repository.resolveSetupPrepContext({
+            candidateProfileId: "candidate-1",
+            trustedLaunchSessionId: "launch-session-1",
+            trustedLaunchContext: trustedSetupContext(),
+            allowManualCreation: true,
+            setupSnapshot: setupSnapshot(),
+        })).resolves.toEqual({
+            status: "resolved",
+            roleProfileId: "host-role-profile",
+            resolution: "created",
+        });
+
+        expect(query.mock.calls[0][0]).toContain("profile.source = 'host_platform'");
+        expect(query.mock.calls[0][1]).toEqual(["candidate-1", "talentarbor", "555"]);
+        expect(query.mock.calls[1][0]).toContain("'host_platform'");
+        expect(query.mock.calls[1][1]).toEqual([
+            "candidate-1",
+            "Customer service representative",
+            "customer service representative",
+            "Help customers resolve service questions.",
+            sha256("Help customers resolve service questions."),
+            JSON.stringify({ included: false, captureMode: "none" }),
+            "talentarbor",
+            "555",
+            "777",
+            "launch-session-1",
+            1,
+        ]);
+    });
+
+    it("keys an existing host path by platform job identity rather than matching role text", async () => {
+        const query = vi.fn(async () => ({
+            rows: [matchRow({ role_profile_id: "existing-host-profile" })],
+        }));
+        const repository = createCandidateSetupPrepContextRepository({ query });
+
+        await expect(repository.resolveSetupPrepContext({
+            candidateProfileId: "candidate-1",
+            trustedLaunchSessionId: "launch-session-1",
+            trustedLaunchContext: trustedSetupContext(),
+            allowManualCreation: true,
+            setupSnapshot: setupSnapshot(),
+        })).resolves.toEqual({
+            status: "existing_paths",
+            existingPrepContexts: [expect.objectContaining({ roleProfileId: "existing-host-profile" })],
+        });
+        expect(query).toHaveBeenCalledWith(expect.stringContaining("source_job_collection_id = $3"), [
+            "candidate-1",
+            "talentarbor",
+            "555",
+        ]);
+    });
+
+    it("fails closed when submitted setup text differs from the trusted launch snapshot", async () => {
+        const query = vi.fn();
+        const repository = createCandidateSetupPrepContextRepository({ query });
+
+        await expect(repository.resolveSetupPrepContext({
+            candidateProfileId: "candidate-1",
+            trustedLaunchSessionId: "launch-session-1",
+            trustedLaunchContext: trustedSetupContext(),
+            allowManualCreation: true,
+            setupSnapshot: setupSnapshot({ jobDescription: "Mutated browser value." }),
+        })).resolves.toBeNull();
+        expect(query).not.toHaveBeenCalled();
+    });
+
     it("returns every used exact-match path instead of silently reusing one", async () => {
         const query = vi.fn(async (sql: string, values: unknown[]) => {
             void sql;
@@ -312,6 +385,17 @@ function matchRow(overrides: Record<string, unknown> = {}) {
         active_completed_question_count: null,
         active_total_question_count: null,
         ...overrides,
+    };
+}
+
+function trustedSetupContext() {
+    return {
+        sourcePlatform: "talentarbor" as const,
+        jobCollectionId: "555",
+        requirementId: "777",
+        targetRole: "Customer service representative",
+        jobDescription: "Help customers resolve service questions.",
+        jobDescriptionHash: sha256("Help customers resolve service questions."),
     };
 }
 

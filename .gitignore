@@ -46,6 +46,8 @@ coverage/
 *.tsbuildinfo
  
 # Misc
+docs/candidate-app/09-dev/rw-job-catalog-ownership-diagnostic-*.csv
+docs/candidate-app/09-dev/ta-resolve-rw-jobcollection-ids.csv
 *.pem
 .cache/
 .agent

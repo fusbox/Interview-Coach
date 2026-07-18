@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CandidateDashboardV2ReadModel } from "./candidate-dashboard-read-model";
 import {
@@ -7,9 +7,20 @@ import {
     createCandidateCoachUpdateSeenStorageKey,
 } from "./CandidateDashboardPriorityExperience";
 
+const refresh = vi.fn();
+
+vi.mock("next/navigation", () => ({
+    useRouter: () => ({ refresh }),
+}));
+
 describe("CandidateDashboardPriorityExperience", () => {
     beforeEach(() => {
         window.localStorage.clear();
+        refresh.mockClear();
+    });
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
     });
 
     it("uses browser-held seen state to hand primary emphasis to Practice Next", async () => {
@@ -60,7 +71,32 @@ describe("CandidateDashboardPriorityExperience", () => {
 
         expect(screen.getByRole("heading", { name: "Your practice is saved." })).toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "Open Coach Update" })).not.toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Try Coach Update again" })).toBeInTheDocument();
         expect(document.body.textContent).not.toMatch(/error code|provider|validation|TEST_COACH/i);
+    });
+
+    it("requests session-owned Coach Update repair and refreshes the side-effect-free dashboard read", async () => {
+        const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+            status: "candidate_completed_round_coaching_repair",
+        }), { status: 200 }));
+        vi.stubGlobal("fetch", fetchMock);
+        render(<CandidateDashboardPriorityExperience dashboard={createReadyDashboard({
+            coachUpdateState: {
+                status: "candidate_coach_update_unavailable",
+                candidatePracticeSessionId: "session-1",
+                reason: "artifact_missing",
+            },
+            latestCoachUpdate: null,
+            coachUpdateDetail: null,
+        })} />);
+
+        fireEvent.click(screen.getByRole("button", { name: "Try Coach Update again" }));
+
+        await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+            "/candidate/session/session-1/coach-update/repair",
+            { method: "POST" },
+        ));
+        await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
     });
 
     it("navigates practiced questions and keeps only the current focused-practice action tabbable", async () => {

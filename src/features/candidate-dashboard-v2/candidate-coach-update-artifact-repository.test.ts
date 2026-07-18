@@ -23,6 +23,8 @@ describe("candidate Coach Update artifact repository", () => {
             modelName: "fixture-v1",
             promptVersion: "prompt-v1",
             evaluatorVersion: "evaluator-v1",
+            profileId: "fixture-profile-v1",
+            configurationFingerprint: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             requestedAt: "2026-07-15T12:05:00.000Z",
             staleRequestedBefore: "2026-07-15T12:03:00.000Z",
         });
@@ -32,10 +34,14 @@ describe("candidate Coach Update artifact repository", () => {
         expect(normalizedSql).toContain("select pg_advisory_xact_lock");
         expect(normalizedSql).toContain("expired_requested as (");
         expect(normalizedSql).toContain("error_code = 'stale_coach_update_claim'");
-        expect(normalizedSql).toContain("completed_at = $12");
-        expect(normalizedSql).toContain("artifact.requested_at < $13");
-        expect(values?.[11]).toBe("2026-07-15T12:05:00.000Z");
-        expect(values?.[12]).toBe("2026-07-15T12:03:00.000Z");
+        expect(normalizedSql).toContain("artifact.profile_id = $12");
+        expect(normalizedSql).toContain("artifact.configuration_fingerprint = $13");
+        expect(normalizedSql).toContain("completed_at = $14");
+        expect(normalizedSql).toContain("artifact.requested_at < $15");
+        expect(values?.[11]).toBe("fixture-profile-v1");
+        expect(values?.[12]).toBe("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        expect(values?.[13]).toBe("2026-07-15T12:05:00.000Z");
+        expect(values?.[14]).toBe("2026-07-15T12:03:00.000Z");
     });
 
     it("lists only the newest lifecycle attempt per source round for candidate-owned dashboard projection", async () => {

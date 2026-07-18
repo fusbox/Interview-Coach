@@ -105,6 +105,7 @@ export async function verifyCandidateDevHostLaunchToken({
         || payload.product !== CANDIDATE_HOST_LAUNCH_PRODUCT
         || payload.email !== fixture.email
         || !Number.isFinite(expiresAtSeconds)
+        || !Number.isFinite(issuedAtSeconds)
         || expiresAtSeconds <= Math.floor(now.getTime() / 1000)
     ) {
         return null;
@@ -118,7 +119,7 @@ export async function verifyCandidateDevHostLaunchToken({
         workspace: fixture.workspace,
         product: payload.product,
         expiresAt: new Date(expiresAtSeconds * 1000).toISOString(),
-        issuedAt: Number.isFinite(issuedAtSeconds) ? new Date(issuedAtSeconds * 1000).toISOString() : null,
+        issuedAt: new Date(issuedAtSeconds * 1000).toISOString(),
         hostCandidateId: fixture.candidateId,
         hostUserId: null,
         talentArborId: fixture.candidateId,
@@ -133,6 +134,7 @@ export async function resolveCandidateDevHostLaunchProfile(handoff: CandidateHos
     }
 
     return {
+        ok: true as const,
         candidateProfileId: fixture.candidateProfileId,
         sessionId: `dev-host-launch-${fixture.candidateId}`,
     };

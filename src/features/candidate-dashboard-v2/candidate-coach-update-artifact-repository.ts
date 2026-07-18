@@ -22,6 +22,8 @@ export type ClaimCandidateCoachUpdateArtifactInput = {
     modelName: string;
     promptVersion: string;
     evaluatorVersion: string;
+    profileId: string;
+    configurationFingerprint: string;
     requestedAt: string;
     staleRequestedBefore: string;
 };
@@ -57,11 +59,11 @@ export function createCandidateCoachUpdateArtifactRepository(
                   set lifecycle_state = 'failed',
                       validation_json = jsonb_build_object('disposition', 'failed', 'reason', 'stale_generation_claim'),
                       error_code = 'STALE_COACH_UPDATE_CLAIM',
-                      completed_at = $12
+                      completed_at = $14
                   from source_lock
                   where artifact.source_candidate_practice_session_id = $1
                     and artifact.lifecycle_state = 'requested'
-                    and artifact.requested_at < $13
+                    and artifact.requested_at < $15
                   returning artifact.candidate_coach_update_artifact_id
                 ),
                 existing as materialized (
@@ -77,6 +79,8 @@ export function createCandidateCoachUpdateArtifactRepository(
                     and artifact.model_name = $9
                     and artifact.prompt_version = $10
                     and artifact.evaluator_version = $11
+                    and artifact.profile_id = $12
+                    and artifact.configuration_fingerprint = $13
                     and artifact.lifecycle_state in ('requested', 'completed')
                     and artifact.candidate_coach_update_artifact_id not in (
                       select candidate_coach_update_artifact_id from expired_requested
@@ -103,12 +107,14 @@ export function createCandidateCoachUpdateArtifactRepository(
                     model_name,
                     prompt_version,
                     evaluator_version,
+                    profile_id,
+                    configuration_fingerprint,
                     generation_attempt,
                     lifecycle_state,
                     requested_at
                   )
-                  select $2, $3, $1, $4, $5::jsonb, $6::jsonb, $7, $8, $9, $10, $11,
-                         next_attempt.generation_attempt, 'requested', $12
+                  select $2, $3, $1, $4, $5::jsonb, $6::jsonb, $7, $8, $9, $10, $11, $12, $13,
+                         next_attempt.generation_attempt, 'requested', $14
                   from owned_source
                   cross join source_lock
                   cross join next_attempt
@@ -131,6 +137,8 @@ export function createCandidateCoachUpdateArtifactRepository(
                 input.modelName,
                 input.promptVersion,
                 input.evaluatorVersion,
+                input.profileId,
+                input.configurationFingerprint,
                 input.requestedAt,
                 input.staleRequestedBefore,
             ]);

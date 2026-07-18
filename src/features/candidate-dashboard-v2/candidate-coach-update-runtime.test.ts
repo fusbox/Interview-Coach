@@ -5,11 +5,11 @@ import {
     CANDIDATE_COACH_UPDATE_PROVIDER_OUTPUT_VERSION,
     CandidateCoachUpdateRuntimeError,
     createCandidateCoachUpdateProviderRequest,
-    createCandidateCoachUpdateRuntimeFromEnvironment,
     createCandidateCoachUpdateSynthesisRuntime,
     type CandidateCoachUpdateProviderAdapter,
     type CandidateCoachUpdateProviderRequest,
 } from "./candidate-coach-update-runtime";
+import { createCandidateCoachUpdateRuntimeFromEnvironment } from "./candidate-coach-update-runtime-selection";
 
 describe("candidate Coach Update synthesis runtime", () => {
     it("keeps candidate and database identity outside the provider request and reattaches facts in code", async () => {
@@ -192,6 +192,21 @@ describe("candidate Coach Update synthesis runtime", () => {
             new CandidateCoachUpdateRuntimeError("provider_unavailable"),
         );
     });
+
+    it("does not let a telemetry sink failure alter accepted synthesis", async () => {
+        const runtime = createCandidateCoachUpdateSynthesisRuntime({
+            adapter: createAdapter(async (request) => ({
+                rawText: JSON.stringify(createValidOutput(request)),
+            })),
+            recordTelemetry: async () => {
+                throw new Error("diagnostic sink unavailable");
+            },
+        });
+
+        await expect(runtime.synthesize(createInput())).resolves.toMatchObject({
+            content: { status: "candidate_coach_update_content_v1" },
+        });
+    });
 });
 
 function createAdapter(
@@ -203,6 +218,8 @@ function createAdapter(
             modelName: "test_model",
             promptVersion: "coach_update_prompt_v1",
             evaluatorVersion: "evidence_first_v1",
+            profileId: "test_profile_v1",
+            configurationFingerprint: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         },
         generate,
     };
