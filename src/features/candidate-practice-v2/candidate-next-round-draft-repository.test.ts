@@ -56,6 +56,8 @@ describe("candidate next-round draft repository", () => {
         expect(sql).toContain("draft.version = $4");
         expect(sql).toContain("source_session.answer_submissions_json ? $6");
         expect(sql).toContain("source_session.answer_analysis_snapshots_json ? $6");
+        expect(sql).toContain("profile.rigor_baseline_question_wording_snapshot_json");
+        expect(sql).toContain("not (source_session.setup_snapshot_json ? 'followuppractice')");
         expect(query.mock.calls[0][1]).toEqual([
             "draft-1",
             "candidate-1",

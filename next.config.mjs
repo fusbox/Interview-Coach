@@ -2,6 +2,9 @@
 const nextConfig = {
     // Rebuild trigger: 3
     reactStrictMode: true,
+    ...(process.env.NEXT_DIST_DIR?.trim()
+        ? { distDir: process.env.NEXT_DIST_DIR.trim() }
+        : {}),
     allowedDevOrigins: [
         '127.0.0.1',
         'localhost',

@@ -1,6 +1,6 @@
 # Test Strategy
 
-Date: 2026-05-07
+Date: 2026-07-19
 Status: Working quality strategy
 
 ## Purpose
@@ -22,11 +22,19 @@ Current CI scripts validate:
 - coverage command
 - production build
 
-Candidate integration now has Vitest coverage for candidate route, auth, persistence, dashboard next-practice guidance, session answer coaching, summary, resume, and quality helper behavior.
+Candidate V2 integration has Vitest coverage for host launch, ownership, setup idempotency, immutable question plans, answer drafts and attempts, evaluator lineage, immediate coaching, completion, Coach Update, dashboard reads, and one-question/multi-question follow-up.
+
+Recruiter dashboard coverage must prove recruiter-id fencing across every ownership-bearing join, exact delivery/entry/practice state mapping, distinct-question progress under answer retries, newest session/delivery attempt selection, revoked and empty states, and the absence of answer text, coaching, evaluator, provider-reference, and token material from both SQL selection and returned models. A disposable-database smoke must show that a second recruiter cannot read another recruiter's recipients.
+
+Recruiter invited-transcript coverage is a separate, narrower gate. It must prove that session, recipient, and batch ownership all match the authenticated recruiter; questions retain immutable snapshot order; only the highest submitted answer attempt per slot is visible; unanswered questions remain explicit; and drafts, superseded answer text, coaching, evaluator output, engagement/timing, candidate-led rows, and bearer material are absent. Unknown and foreign-owned session ids must share one not-found boundary. The rolled-back smoke command is `npm run db:smoke-recruiter-transcript`.
+
+The integrated standalone recruiter milestone additionally combines authentication, fixed-slot creation, delivery/copy fallback, clean invited entry, live completion, operational dashboard reads, and transcript privacy in one browser-and-database evidence pass. Its current conditional verdict, corrections, commands, browser matrix, and external release gates are recorded in [Recruiter Standalone Flow Milestone](./recruiter-standalone-flow-milestone.md).
 
 `e2e/candidate/primary-routes.spec.ts` covers the shared-host route contract for `/`, `/recruiter`, `/recruiter/dashboard`, candidate protected routes, recruiter/admin/QA protection, and the authenticated recruiter dashboard compatibility path.
 
-`npm run db:smoke-candidate-setup-summary` validates deterministic seeded candidate setup, in-session, completed-summary, and saved-feedback fixtures. `npm run test:e2e:candidate-seeded` then runs the DB-backed browser smoke in password-backed local candidate auth mode, using the primary seeded candidate to move from `/practice` into a generated session and summary. The seeded browser smoke also verifies invite-style session entry, read-question TTS state, voice-mode answer capture/submission through deterministic E2E audio, text-mode fallback submission, analysis, question progression, completion, and summary navigation. The browser smoke owns its temporary Next dev server process group in CI and should shut it down cleanly after Playwright finishes.
+`npm run db:smoke-candidate-readiness` applies the current V2 migration stack and runs the ownership, identity, replay, concurrency, evaluator, Coach Update, and seeded setup-to-completion database gates. `npm run test:e2e:candidate-seeded` then launches an isolated deterministic V2 server and runs two DB-backed Chromium journeys: the coached candidate-led setup-to-Coach-Update loop with refresh/new-tab draft recovery, and a provider-unavailable loop that proves saved answers can continue through completion into the quiet dashboard fallback. The runner selects a free all-interface port, uses isolated Next output, restores generated TypeScript references, owns its temporary server process group, and never calls a live provider.
+
+`npm run test:e2e:candidate-production` builds isolated optimized output, starts `next start`, and validates the public candidate shell at desktop and mobile against WCAG 2.2 A/AA axe rules, overflow and local performance/resource budgets. It also proves that dev launch and candidate prototype routes return 404 in production. Database, host-launch, and provider credentials are deliberately blank, so this is not real-host or authenticated-journey acceptance.
 
 The candidate V2 production question-generation and follow-up-launch milestone uses `npm run test:candidate:question-follow-up-milestone` for its four focused contract families and `npm run db:smoke-candidate-question-follow-up-milestone` for migration/readiness plus rolled-back wording reconciliation. Its deterministic manual setup-to-dashboard, direct-intent consumed replay, intentional repractice, and conditional fixed-set cases are defined in [Question Generation And Follow-Up Launch Runbook](./question-generation-and-follow-up-launch-milestone-runbook.md).
 
@@ -92,11 +100,12 @@ Use for:
 
 Use for:
 
-- landing to practice setup
+- trusted development launch to `/candidate/setup`
 - authenticated route guard behavior
-- create draft, generate, enter session
+- create prep context, generate immutable wording, cross the landing transition, and enter session
 - refresh and resume from persisted state
-- dashboard resume and review actions
+- immediate-coaching and provider-unavailable continuation
+- role-scoped dashboard, Coach Update evidence, and one/many follow-up actions
 - mobile shell navigation
 
 ### Visual Checks
@@ -155,7 +164,7 @@ Before production pilot:
 - negative permission tests
 - accessibility checks for primary flows
 - dependency audit reviewed
-- every unresolved production dependency advisory has an owner, disposition, and release trigger; the Slices 125-133 milestone leaves the major-version `nodemailer` high advisory and Next-bundled PostCSS moderate advisory as explicit app-wide release gates
+- every unresolved production dependency advisory has an owner, disposition, and release trigger; upgrade and re-audit Nodemailer during the recruiter-foundation slice before restoring required bulk email, while the single Next-bundled PostCSS advisory counted on both child and parent requires upstream monitoring plus explicit temporary risk acceptance before pilot unless a tested framework fix lands
 - candidate PRs reviewed against [Recruiter Regression Checklist For Candidate PRs](recruiter-regression-checklist.md)
 
 ## CI Gate Direction
@@ -168,6 +177,7 @@ PR gate should eventually run:
 - `npm run test:coverage`
 - `npm run build`
 - browser smoke tests
+- isolated production build/start smoke
 - `npm run db:smoke-candidate-setup-summary`
 - `npm run test:e2e:candidate-seeded`
 - dependency audit or security scan

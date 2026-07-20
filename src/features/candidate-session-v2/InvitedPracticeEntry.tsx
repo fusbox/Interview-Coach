@@ -5,12 +5,15 @@ import { useState } from "react";
 
 import { CandidatePreSessionLanding } from "./CandidatePreSessionLanding";
 
+const UNICODE_LETTER_PATTERN = new RegExp("\\p{L}", "u");
+
 type InvitedPracticeEntryProps = {
     targetRole: string;
     stageLabel: string;
     questionCount: number;
     candidateFirstName?: string;
-    onConfirmInitials: (initials: string) => Promise<void> | void;
+    initialsConfirmed?: boolean;
+    onConfirmInitials: (initials: string) => Promise<{ candidateFirstName?: string } | void> | { candidateFirstName?: string } | void;
     onStart: () => void;
 };
 
@@ -19,10 +22,12 @@ export function InvitedPracticeEntry({
     stageLabel,
     questionCount,
     candidateFirstName,
+    initialsConfirmed = false,
     onConfirmInitials,
     onStart,
 }: InvitedPracticeEntryProps) {
-    const [stage, setStage] = useState<"initials" | "landing">("initials");
+    const [stage, setStage] = useState<"initials" | "landing">(initialsConfirmed ? "landing" : "initials");
+    const [resolvedFirstName, setResolvedFirstName] = useState(candidateFirstName);
     const [initials, setInitials] = useState("");
     const [isConfirming, setIsConfirming] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -35,7 +40,8 @@ export function InvitedPracticeEntry({
                 stageLabel={stageLabel}
                 questionCount={questionCount}
                 resumeIncluded={false}
-                candidateFirstName={candidateFirstName}
+                candidateFirstName={resolvedFirstName}
+                manageTransitionExternally
                 onStart={onStart}
             />
         );
@@ -66,7 +72,10 @@ export function InvitedPracticeEntry({
                         setIsConfirming(true);
                         setErrorMessage(null);
                         try {
-                            await onConfirmInitials(initials);
+                            const result = await onConfirmInitials(initials);
+                            if (result?.candidateFirstName) {
+                                setResolvedFirstName(result.candidateFirstName);
+                            }
                             setStage("landing");
                         } catch {
                             setErrorMessage("I couldn't save those initials. Try again.");
@@ -84,7 +93,6 @@ export function InvitedPracticeEntry({
                         inputMode="text"
                         autoComplete="off"
                         autoCapitalize="characters"
-                        maxLength={2}
                         aria-describedby="invited-practice-initials-help"
                         aria-invalid={Boolean(errorMessage)}
                         onChange={(event) => setInitials(normalizeInitials(event.target.value))}
@@ -112,5 +120,8 @@ export function InvitedPracticeEntry({
 }
 
 export function normalizeInitials(value: string) {
-    return value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2);
+    return Array.from(value.normalize("NFKC").toLocaleUpperCase("en-US"))
+        .filter((character) => UNICODE_LETTER_PATTERN.test(character))
+        .slice(0, 2)
+        .join("");
 }

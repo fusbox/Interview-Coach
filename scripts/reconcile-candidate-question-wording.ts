@@ -3,8 +3,8 @@ import { createHash, randomUUID } from "node:crypto";
 
 import { Pool, type PoolClient } from "pg";
 
-import { handleCandidatePracticeIntentStartRequest } from "../src/app/candidate/practice/ready/[intentId]/start/route";
-import { handleCandidateSetupStartRequest } from "../src/app/candidate/setup/start/route";
+import { handleCandidatePracticeIntentStartRequest } from "../src/app/candidate/practice/ready/[intentId]/start/route-implementation";
+import { handleCandidateSetupStartRequest } from "../src/app/candidate/setup/start/route-implementation";
 import { createCandidateFollowUpSessionInputFromIntent } from "../src/features/candidate-practice-v2/candidate-follow-up-session-creation";
 import type { CandidatePracticeIntentRecord } from "../src/features/candidate-practice-v2/candidate-follow-up-practice-intent";
 import { createCandidatePracticeIntentLaunchRepository } from "../src/features/candidate-practice-v2/candidate-practice-intent-launch-repository";

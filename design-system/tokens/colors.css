@@ -23,6 +23,7 @@
     --accent: 210 40% 96.1%; /* @kind color */
     --accent-foreground: 222.2 47.4% 11.2%; /* @kind color */
     --destructive: 0 84.2% 60.2%; /* @kind color */
+    --destructive-text: 0 66% 38%; /* @kind color */
     --destructive-foreground: 210 40% 98%; /* @kind color */
     --ring: 222.2 84% 4.9%; /* @kind color */
 
@@ -132,6 +133,7 @@
     --accent-foreground: 210 40% 98%; /* @kind color */
     --accent-alt: 262 70% 68%; /* @kind color */
     --destructive: 0 62.8% 30.6%; /* @kind color */
+    --destructive-text: 0 72% 76%; /* @kind color */
     --destructive-foreground: 210 40% 98%; /* @kind color */
     --ring: 212.7 26.8% 83.9%; /* @kind color */
     --primary-deep: 225 90% 58%; /* @kind color */

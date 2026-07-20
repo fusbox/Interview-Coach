@@ -1,11 +1,11 @@
 # Local Dev Bootstrap
 
 Status: Active cleanroom V2 bootstrap
-Last updated: 2026-07-18
+Last updated: 2026-07-19
 
 ## Purpose
 
-This is the current local setup path for the candidate V2 rebuild in this repo.
+This is the current local setup path for the candidate and recruiter V2 rebuild in this repo.
 
 Older candidate docs and SQL helpers may still describe the V1 `/practice` -> `/session` -> `/summary` app. Treat those as reference material only. Current V2 work uses canonical `/candidate/*` routes, `candidate_practice_sessions` for durable rounds, and normalized answer-attempt/evaluator-run tables for immutable answer history.
 
@@ -30,6 +30,115 @@ npm run db:smoke-candidate-readiness
 ```
 
 `db:setup` starts the smoke container, applies all current migrations, and seeds deterministic local candidate identities. `db:smoke-candidate-readiness` reruns the current candidate schema and fixture checks.
+
+`db:setup` also seeds the local-only recruiter identity below. The recruiter seed command ignores
+`DATABASE_URL` and always targets the disposable smoke database; it is disabled when
+`NODE_ENV=production`.
+
+```text
+Email: recruiter-dev@talentarbor.local
+Password: local-only-recruiter
+```
+
+Validate the recruiter fixture independently with:
+
+```powershell
+npm run db:seed-recruiter-dev
+npm run db:smoke-recruiter-dev-seed
+npm run db:smoke-recruiter-auth
+```
+
+The final command proves password verification, role recovery, hashed durable session recovery,
+and revocation against the disposable database. It does not send invitations or email.
+
+Validate the V2 invited-practice persistence foundation independently with:
+
+```powershell
+npm run test:recruiter-invites
+npm run db:smoke-recruiter-invited-practice
+```
+
+The database command applies migration 023, proves recruiter-scoped create/replay/conflict,
+recipient/session/token binding, immutable ownership, attempt lineage, forced rollback/retry,
+candidate-table isolation, and real eight-connection convergence to one aggregate. It does not
+create a browser invitation, call a model, or send email. Future runtime link creation requires a
+nonblank `ENCRYPTION_SECRET` of at least 32 characters; plaintext invitation tokens are never
+stored in Postgres.
+
+Validate the authenticated recruiter create boundary and accepted question-set lineage with:
+
+```powershell
+npm run test:recruiter-invites
+npm run db:smoke-recruiter-invitation-create
+```
+
+The database smoke applies migration 025, seeds the local recruiter, races eight exact question-set
+claims to one durable winner, completes and replays the accepted set, rejects changed content and an
+unauthorized recruiter, proves accepted-source immutability, and creates one aggregate through the
+question-set-owned atomic wrapper. It cleans up its temporary batch and question set. It uses fixture
+wording only and does not call Gemini or send email.
+
+Validate the separate invitation-delivery ledger with:
+
+```powershell
+npm run test:recruiter-invites
+npm run db:smoke-recruiter-invitation-delivery
+```
+
+The database smoke applies migration 026, races eight recipient-level delivery claims to one winner,
+records provider acceptance, proves that accepted state is immutable, and confirms that a later action
+cannot resend the accepted recipient. It does not contact an email provider.
+
+Validate the invited link exchange, clean-route session, and initials signal with:
+
+```powershell
+npm run test:recruiter-invites
+npm run db:smoke-invited-practice-access
+```
+
+The database smoke applies migration 027, exchanges one active invitation-token hash into a separately
+hashed browser session, caps browser access to the invitation expiry, resolves the clean route, records a
+mismatch, proves that a later submission cannot rewrite the first initials signal, and confirms that
+revoking the source invitation immediately ends browser access. It uses no email provider and writes no
+candidate profile or candidate-led session.
+
+Validate invite-owned answers, evaluation claims, exact ownership, and completion with:
+
+```powershell
+npm run test:recruiter-invites
+npm run db:smoke-invited-practice-live-runtime
+```
+
+The live-runtime smoke applies migration 028, races eight identical answer submissions and evaluator
+claims to one durable winner, appends a feedback retry as attempt two, rejects a foreign recipient,
+proves answer immutability, completes the invited session, and verifies that no candidate-owned answer
+row was written.
+
+`INVITED_PRACTICE_ACCESS_TTL_SECONDS` defaults to seven days and may not exceed seven days. The actual
+cookie expiry is the earlier of that configured lifetime and the recruiter invitation token expiry.
+
+For deterministic browser validation, add the following to `.env.local` and restart the dev server:
+
+```text
+RECRUITER_INVITATION_DELIVERY_PROVIDER=fixture
+```
+
+The fixture is rejected in production. It proves the app's send/status/replay lifecycle only; it does
+not prove SMTP acceptance or mailbox delivery. To validate real provider acceptance, use server-only
+SMTP configuration and set the provider to `smtp`:
+
+```text
+RECRUITER_INVITATION_DELIVERY_PROVIDER=smtp
+SMTP_HOST=<approved-host>
+SMTP_PORT=587
+SMTP_USERNAME=<approved-user>
+SMTP_PASSWORD=<secret>
+SMTP_FROM_EMAIL=Rangam Interview Coach <interviews@coach.rangam.com>
+```
+
+Each candidate receives a separate message. A successful row means the configured provider accepted
+that one recipient, not that the message reached the mailbox. Do not commit `.env.local` or use the
+fixture as deployment evidence.
 
 ### After This Branch Changes Practice Persistence Migrations
 
@@ -68,6 +177,8 @@ npm run db:smoke-candidate-fixed-intent-launch
 npm run db:apply-candidate-direct-intent-idempotency
 npm run db:smoke-candidate-direct-intent-idempotency
 npm run db:smoke-candidate-direct-intent-concurrency
+npm run db:apply-recruiter-invited-practice-foundation
+npm run db:smoke-recruiter-invited-practice
 ```
 
 `candidate_practice_sessions` remains the durable session boundary, `candidate_practice_intents` is the durable ready-round boundary for one-question or multi-question follow-up selections, and `candidate_answer_attempts` plus `candidate_answer_evaluation_runs` preserve immutable submission and evaluator lineage. Migration 021 makes a ready intent a 24-hour, versioned one-use launch identity and atomically creates exactly one owned follow-up session while consuming that intent; duplicate or response-lost starts replay the same session. Migration 022 gives direct one-question and fixed-set creation its own candidate-owned 24-hour replay ledger: exact keyed replay returns one immutable intent, changed content conflicts before mutation, and concurrent submissions serialize to one row. Migration 015 adds sequential evaluator generations, 60-second claim leases, stale-claim recovery, and candidate-coaching completion fences. Migration 016 adds immutable evaluator configuration manifests/fingerprints; earlier V2 development rows become `pre_manifest_v2`, while new rows must carry resolved configuration. Migration 010 propagates candidate-owned prep-context identity into intents and canonical dashboard/follow-up reads, migration 011 stores only versioned candidate-safe Coach Update artifacts over those source facts, migration 019 adds exact profile/configuration identity to new Coach Update claims and replay matching without inventing metadata for earlier V2 development rows, and migration 012 idempotently repairs answered sessions that historical writes left in `planned` status.
@@ -118,6 +229,10 @@ Current candidate V2 local development depends on these scripts:
 | Repair historical answered sessions left `planned` | `npm run db:apply-candidate-practice-session-status-backfill` |
 | Apply durable next-round draft schema | `npm run db:apply-candidate-next-round-drafts-schema` |
 | Apply intentional same-role/JD practice-path schema | `npm run db:apply-candidate-prep-context-practice-paths-schema` |
+| Apply recruiter invited-practice aggregate schema | `npm run db:apply-recruiter-invited-practice-foundation` |
+| Apply recruiter accepted question-set lineage | `npm run db:apply-recruiter-invitation-question-sets` |
+| Apply recruiter per-recipient delivery attempts | `npm run db:apply-recruiter-invitation-delivery-attempts` |
+| Apply invited link exchange and initials evidence | `npm run db:apply-invited-practice-access-and-entry` |
 | Seed local primary/alternate candidates | `npm run db:seed-candidate-dev` |
 | Validate host-launch schema | `npm run db:smoke-candidate-host-launch-schema` |
 | Validate host-launch replay and identity-only session schema | `npm run db:smoke-candidate-host-launch-exchange-hardening` |
@@ -135,6 +250,13 @@ Current candidate V2 local development depends on these scripts:
 | Validate Coach Update configuration-aware claim identity and immutability | `npm run db:smoke-candidate-coach-update-configuration-identity` |
 | Validate durable next-round draft launch | `npm run db:smoke-candidate-next-round-drafts-schema` |
 | Validate intentional same-role/JD practice paths | `npm run db:smoke-candidate-prep-context-practice-paths-schema` |
+| Validate recruiter invited-practice aggregate | `npm run db:smoke-recruiter-invited-practice` |
+| Validate recruiter question-set and aggregate creation | `npm run db:smoke-recruiter-invitation-create` |
+| Validate recruiter delivery claim, acceptance, and stale recovery | `npm run db:smoke-recruiter-invitation-delivery` |
+| Validate invited token exchange, clean-route access, initials replay, and revocation | `npm run db:smoke-invited-practice-access` |
+| Validate invite-owned answer/evaluator replay, ownership, immutability, and completion | `npm run db:smoke-invited-practice-live-runtime` |
+| Validate recruiter dashboard ownership, latest-attempt projection, distinct-question progress, and content exclusion | `npm run db:smoke-recruiter-dashboard` |
+| Validate recruiter transcript ownership, latest submitted answers, and draft/coaching/timing exclusion | `npm run db:smoke-recruiter-transcript` |
 | Validate local candidate fixtures | `npm run db:smoke-candidate-dev-seed` |
 | Run current candidate DB readiness chain | `npm run db:smoke-candidate-readiness` |
 | Reconcile question wording across setup, persistence, recovery, trusted failure, and follow-up reuse | `npm run db:reconcile-candidate-question-wording` |
@@ -345,9 +467,25 @@ Use those files when comparing against V1 behavior. Do not treat them as current
 For current V2 local development:
 
 - smoke Postgres is running;
-- `db:migrate` has applied through `019_candidate_coach_update_configuration_identity.sql`;
+- `db:migrate` has applied through `028_invited_practice_live_runtime.sql`;
 - local candidate dev seed is present;
 - `db:smoke-candidate-readiness` passes;
 - the app is launched with `npm run dev`;
 - browser entry starts at `/candidate/dev/launch?...next=/candidate/setup`;
 - candidate route recovery works through the launch-session cookie.
+
+For the repeatable candidate-led browser gate, run:
+
+```powershell
+npm run test:e2e:candidate-seeded
+```
+
+The runner uses deterministic local providers, selects a genuinely free port, isolates Next output from an already-running development server, and restores generated TypeScript references when it exits. It covers the complete coached text loop, refresh/new-tab draft recovery, Coach Update transcript evidence, and provider-unavailable continuation through the quiet dashboard fallback. It does not call Gemini.
+
+For the optimized production-shell gate, run:
+
+```powershell
+npm run test:e2e:candidate-production
+```
+
+This separate runner builds and starts isolated production output with database, host-launch, and Gemini credentials blank. It checks the public page at desktop/mobile, WCAG 2.2 A/AA axe rules, horizontal overflow, local regression budgets, and production denial of dev/prototype routes. It does not prove authenticated candidate behavior or TalentArbor integration; use the [TA Host Launch Live Acceptance](./host-launch-live-acceptance.md) protocol for that evidence.

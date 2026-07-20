@@ -22,6 +22,7 @@ describe("candidate Coach Update detail contract", () => {
                 questionKey: "slot-1",
                 evidenceStatus: "practiced",
                 answer: expect.objectContaining({ text: expect.stringContaining("shipment records") }),
+                transcriptCanvas: null,
                 coachRead: expect.objectContaining({
                     nextPracticeFocus: "Add the result of the inventory count.",
                 }),

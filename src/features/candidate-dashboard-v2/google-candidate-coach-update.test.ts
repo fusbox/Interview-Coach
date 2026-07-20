@@ -121,7 +121,7 @@ describe("Google candidate Coach Update adapter", () => {
             },
         });
         expect(result.content).toMatchObject({
-            status: "candidate_coach_update_content_v1",
+            status: "candidate_coach_update_content_v2",
             questions: [{
                 questionKey: "slot-1",
                 answer: { candidateAnswerAttemptId: "attempt-current" },
@@ -245,6 +245,7 @@ function createInput(): CandidateCoachUpdateSynthesisInput {
                 candidateAnswerEvaluationRunId: "run-current",
             } as CandidateCoachUpdateSynthesisInput["questions"][number]["acceptedEvaluationRun"],
             acceptedAnalysis: createAnalysis(),
+            transcriptCanvas: null,
             source: { candidatePracticeSessionId: "source-session", questionKey: "source-slot" },
             priorComparableAttempts: [],
         }],

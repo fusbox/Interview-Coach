@@ -21,8 +21,10 @@ describe("candidate next-round draft launch repository", () => {
             sourceDraftVersion: 4,
         })).resolves.toMatchObject({
             candidatePracticeIntentId: "intent-1",
+            launchVersion: 1,
             sourceNextRoundDraftId: "draft-1",
             sourceNextRoundDraftVersion: 4,
+            expiresAt: "2026-07-16T12:00:00.000Z",
         });
 
         const sql = normalizeSql(query.mock.calls[0][0]);
@@ -131,7 +133,9 @@ function createIntentRow() {
         candidate_profile_id: "candidate-1",
         source: "practice_builder",
         lifecycle_state: "ready",
+        launch_version: "1",
         consumed_candidate_practice_session_id: null,
+        consumed_at: null,
         source_next_round_draft_id: "draft-1",
         source_next_round_draft_version: "4",
         role_profile_id: "role-1",
@@ -141,6 +145,7 @@ function createIntentRow() {
         items_json: items,
         created_at: "2026-07-15T12:00:00.000Z",
         updated_at: "2026-07-15T12:00:00.000Z",
+        expires_at: "2026-07-16T12:00:00.000Z",
     };
 }
 

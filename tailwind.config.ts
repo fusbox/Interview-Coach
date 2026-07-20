@@ -26,6 +26,12 @@ const config = {
 					'var(--font-sans)',
 					...fontFamily.sans
 				],
+				/* STAGED FOR MERGE: Candidate Typography Fonts (Uncomment to enable)
+				display: [
+					'var(--font-display)',
+					...fontFamily.sans
+				],
+				*/
 			},
 			fontSize: {
 				micro: ['0.625rem', { lineHeight: '1rem', letterSpacing: '0.05em' }]
@@ -85,6 +91,21 @@ const config = {
 				'text-secondary': 'hsl(var(--text-secondary))',
 				'text-muted': 'hsl(var(--text-muted))',
 				'text-inverse': 'hsl(var(--text-inverse))',
+				/* STAGED FOR MERGE: Candidate RGB Color Scale (Uncomment to enable)
+				candidate: {
+					background: 'rgb(var(--candidate-background))',
+					surface: 'rgb(var(--candidate-surface))',
+					border: 'rgb(var(--candidate-border))',
+					foreground: 'rgb(var(--candidate-foreground))',
+					'display-foreground': 'rgb(var(--candidate-display-foreground))',
+					muted: 'rgb(var(--candidate-muted))',
+					primary: 'rgb(var(--candidate-primary))',
+					accent: 'rgb(var(--candidate-accent))',
+					success: 'rgb(var(--candidate-success))',
+					'primary-soft': 'rgb(var(--candidate-primary-soft))',
+					'accent-soft': 'rgb(var(--candidate-accent-soft))',
+				},
+				*/
 				state: {
 					success: 'hsl(var(--state-success))',
 					warning: 'hsl(var(--state-warning))',
@@ -111,6 +132,79 @@ const config = {
 					'5': 'hsl(var(--chart-5))'
 				}
 			},
+			spacing: {
+				// Primitives
+				'space-0': 'var(--space-0)',
+				'space-0-5': 'var(--space-0-5)',
+				'space-1': 'var(--space-1)',
+				'space-1-5': 'var(--space-1-5)',
+				'space-2': 'var(--space-2)',
+				'space-3': 'var(--space-3)',
+				'space-4': 'var(--space-4)',
+				'space-5': 'var(--space-5)',
+				'space-6': 'var(--space-6)',
+				'space-8': 'var(--space-8)',
+				'space-10': 'var(--space-10)',
+				'space-12': 'var(--space-12)',
+				'space-16': 'var(--space-16)',
+
+				// Gaps
+				'gap-inline': 'var(--gap-inline)',
+				'gap-control': 'var(--gap-control)',
+				'gap-field': 'var(--gap-field)',
+				'gap-cluster': 'var(--gap-cluster)',
+				'gap-grid': 'var(--gap-grid)',
+				'gap-section': 'var(--gap-section)',
+
+				// Paddings
+				'pad-control-y': 'var(--pad-control-y)',
+				'pad-control-x': 'var(--pad-control-x)',
+				'pad-field-y': 'var(--pad-field-y)',
+				'pad-field-x': 'var(--pad-field-x)',
+				'pad-card': 'var(--pad-card)',
+				'pad-panel': 'var(--pad-panel)',
+				'pad-page': 'var(--pad-page)',
+				'pad-session': 'var(--pad-session)',
+
+				// Density
+				'density-compact-pad': 'var(--density-compact-pad)',
+				'density-compact-gap': 'var(--density-compact-gap)',
+				'density-compact-row': 'var(--density-compact-row)',
+				'density-comfort-pad': 'var(--density-comfort-pad)',
+				'density-comfort-gap': 'var(--density-comfort-gap)',
+				'density-comfort-row': 'var(--density-comfort-row)',
+				'density-focus-pad': 'var(--density-focus-pad)',
+				'density-focus-gap': 'var(--density-focus-gap)',
+				'density-focus-row': 'var(--density-focus-row)',
+
+				/* STAGED FOR MERGE: Candidate UI Spacing Tokens (Uncomment to enable)
+				'pad-card-compact-y': 'var(--pad-card-compact-y)',
+				'pad-card-compact-x': 'var(--pad-card-compact-x)',
+				'pad-card-compact-bottom': 'var(--pad-card-compact-bottom)',
+				'layout-composer-text': 'var(--layout-composer-text-height)',
+				'layout-composer-voice': 'var(--layout-composer-voice-height)',
+				'layout-visualizer': 'var(--layout-visualizer-height)',
+				// 3-Tier Component Control Heights:
+				'control-sm': '2rem', // 32px: chips, tags, auxiliary triggers
+				'control-md': '2.75rem', // 44px: standard actions, input fields, alert pills
+				'control-lg': '4.125rem', // 66px: voice capture bars, recording containers
+				*/
+			},
+			maxWidth: {
+				'grid-max': 'var(--candidate-grid-max)',
+				'public-max': 'var(--layout-public-max)',
+				'app-max': 'var(--layout-app-max)',
+				'readable-max': 'var(--layout-readable-max)',
+				'form-max': 'var(--layout-form-max)',
+				'session-max': 'var(--layout-session-max)',
+			},
+			width: {
+				'sidebar-width': 'var(--layout-sidebar-width)',
+				'rail-width': 'var(--layout-rail-width)',
+			},
+			height: {
+				'header-height': 'var(--layout-header-height)',
+			},
 			borderRadius: {
 				'3xl': 'var(--radius-3xl)',
 				'2xl': 'var(--radius-2xl)',
@@ -120,6 +214,13 @@ const config = {
 				sm: 'var(--radius-sm)',
 				full: '9999px',
 				DEFAULT: 'var(--radius)',
+				/* STAGED FOR MERGE: Candidate Semantic Radii (Uncomment to enable)
+				'radius-card': 'var(--radius-card)',
+				'radius-panel': 'var(--radius-panel)',
+				'radius-session': 'var(--radius-session)',
+				'radius-pill': 'var(--radius-pill)',
+				'radius-control': 'var(--radius-control)',
+				*/
 			},
 			boxShadow: {
 				flat: 'var(--shadow-flat)',

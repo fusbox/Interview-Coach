@@ -176,7 +176,7 @@ describe("candidate Coach Update synthesis runtime", () => {
                 explicitLocalDev: true,
             });
             await expect(fixtureRuntime?.synthesize(createInput())).resolves.toMatchObject({
-                content: { status: "candidate_coach_update_content_v1" },
+                content: { status: "candidate_coach_update_content_v2" },
             });
         }
     });
@@ -204,7 +204,7 @@ describe("candidate Coach Update synthesis runtime", () => {
         });
 
         await expect(runtime.synthesize(createInput())).resolves.toMatchObject({
-            content: { status: "candidate_coach_update_content_v1" },
+            content: { status: "candidate_coach_update_content_v2" },
         });
     });
 });

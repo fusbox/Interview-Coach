@@ -19,6 +19,7 @@ const CANDIDATE_ANSWER_DRAFT_SAVE_DELAY_MS = 600;
 
 type CandidateTypedAnswerMutationInput = {
     sessionId: string;
+    mutationBasePath?: string;
     hasDurableSession: boolean;
     setAnswerDrafts: Dispatch<SetStateAction<CandidateAnswerDrafts>>;
     setAnswerSubmissions: Dispatch<SetStateAction<CandidateAnswerSubmissions>>;
@@ -36,6 +37,7 @@ type CandidateAnswerTarget = {
 
 export function useCandidateTypedAnswerMutations({
     sessionId,
+    mutationBasePath = `/candidate/session/${encodeURIComponent(sessionId)}`,
     hasDurableSession,
     setAnswerDrafts,
     setAnswerSubmissions,
@@ -61,7 +63,7 @@ export function useCandidateTypedAnswerMutations({
                 return;
             }
 
-            void fetch(`/candidate/session/${encodeURIComponent(sessionId)}/answer-drafts`, {
+            void fetch(`${mutationBasePath}/answer-drafts`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -73,7 +75,7 @@ export function useCandidateTypedAnswerMutations({
 
         window.addEventListener("pagehide", handlePageHide);
         return () => window.removeEventListener("pagehide", handlePageHide);
-    }, [hasDurableSession, sessionId]);
+    }, [hasDurableSession, mutationBasePath]);
 
     useEffect(() => () => {
         if (draftSaveTimerRef.current !== null) {
@@ -133,7 +135,7 @@ export function useCandidateTypedAnswerMutations({
         try {
             await flushAnswerDraft({ slotId, questionIndex, text });
             setAnswerMutationPhase(slotId, "submitting");
-            const response = await fetch(`/candidate/session/${encodeURIComponent(sessionId)}/answers`, {
+            const response = await fetch(`${mutationBasePath}/answers`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -211,7 +213,7 @@ export function useCandidateTypedAnswerMutations({
             setAnswerMutationPhase(draft.slotId, "draft_saving");
 
             try {
-                const response = await fetch(`/candidate/session/${encodeURIComponent(sessionId)}/answer-drafts`, {
+                const response = await fetch(`${mutationBasePath}/answer-drafts`, {
                     method: "PUT",
                     headers: {
                         "Content-Type": "application/json",
@@ -235,7 +237,7 @@ export function useCandidateTypedAnswerMutations({
     async function performAnswerAnalysis(slotId: string) {
         try {
             const response = await fetch(
-                `/candidate/session/${encodeURIComponent(sessionId)}/answers/${encodeURIComponent(slotId)}/analysis`,
+                `${mutationBasePath}/answers/${encodeURIComponent(slotId)}/analysis`,
                 {
                     method: "POST",
                     headers: {

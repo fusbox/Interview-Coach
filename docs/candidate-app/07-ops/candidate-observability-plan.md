@@ -1,13 +1,15 @@
 # Candidate Observability Plan
 
-Date: 2026-05-12
-Status: Working deployment plan
+Date: 2026-07-19
+Status: Working implementation plan under the ratified production baseline
 
 ## Purpose
 
 This plan defines the candidate-side events, logs, metrics, dashboards, and alert hooks needed before candidate-led Interview Coach is production-facing on the shared host.
 
 The goal is useful operational visibility without leaking candidate resume text, answers, coaching output, or unnecessary identifiers.
+
+The governing field allowlist, initial alert map, environment ownership, rollback sequence, and post-deploy protocol are in [Candidate Production Hardening And Deployment Controls](./production-hardening-and-deployment-controls.md). This file inventories the observability implementation direction; it must not be read as evidence that dashboards or alert delivery are already provisioned.
 
 ## Existing Foundation To Reuse
 
@@ -82,6 +84,8 @@ Use low-noise alerts first:
 - durable metrics backend unavailable in production
 - recruiter invite create/send smoke failure after candidate branch merge
 
+Thresholds and first-response actions are defined in the production hardening contract. Tune them from staging baselines rather than treating local-development latency as an SLO.
+
 ## Logging Rules
 
 - Never log raw resume text, raw extracted text, uploaded file contents, candidate answers, generated coaching, or provider auth payloads.
@@ -118,5 +122,6 @@ Local development can keep memory metrics and `dev`, mock, or password candidate
 
 - Consider a neutral `/api/ops/metrics` route once candidate/recruiter metrics are both first-class.
 - Add candidate-specific counters around draft mutation, session generation, and resume extraction actions as implementation stabilizes.
-- Add post-deploy smoke that hits public `/`, recruiter `/recruiter`, and candidate auth-guarded redirects.
+- Wire the mapped candidate events and alerts to the selected deployment sink, then prove delivery in staging.
+- Execute the post-deploy smoke in the production hardening contract, including real TA launch exchange and log-redaction evidence.
 - Confirm the final TalentArbor identity handoff fields before logging any provider-specific metadata.

@@ -1,9 +1,9 @@
-# Candidate V2 Documentation
+# Interview Coach V2 Documentation
 
 Status: Active subtree pending promotion to `docs/*`
 Last updated: 2026-07-18
 
-This subtree contains the cleanroom candidate V2 contracts. The active stack is intentionally small; detailed docs are read only when their subsystem is in scope.
+This subtree contains the cleanroom candidate V2 contracts and the recruiter/invited convergence direction that now follows them. The active stack is intentionally small; detailed docs are read only when their subsystem is in scope.
 
 ## Start Here
 
@@ -21,6 +21,7 @@ For branch review or integration, use [Reviewer Handoff](./REVIEWER-HANDOFF.md) 
 - [Practice Setup Scope](./02-requirements/practice-setup-scope.md)
 - [Authenticated Candidate Access](./02-requirements/authenticated-candidate-access.md)
 - [Host Launch Implementation](./09-dev/host-launch-api-implementation.md)
+- [Recruiter V2 Delivery And Host Integration](./04-architecture/recruiter-v2-delivery-and-host-integration.md)
 - [V1 SWOT And Rebuild Runway](./04-architecture/v1-swot-and-rebuild-runway.md)
 
 ### Session, Evaluation, And Dashboard

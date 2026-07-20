@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
     createDefaultCandidateSessionCompleteDependencies,
     handleCandidateSessionCompleteRequest,
-} from "./route";
+} from "./route-implementation";
 
 const analysisSnapshot = {
     status: "answer_analysis_provider_result" as const,

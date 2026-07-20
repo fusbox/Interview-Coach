@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 import { spawn, spawnSync } from "node:child_process";
+import { readFile, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { getSmokeDatabaseUrl } from "./smoke-postgres-config.mjs";
 
+const generatedTypeConfigPaths = ["next-env.d.ts", "tsconfig.json"];
+const generatedTypeConfigSnapshots = await snapshotFiles(generatedTypeConfigPaths);
 const port = await findAvailablePort(3000);
 const baseURL = `http://127.0.0.1:${port}`;
 const env = {
@@ -14,6 +17,11 @@ const env = {
     CANDIDATE_DEV_ISSUER: "interview-coach-local",
     CANDIDATE_DEV_SUBJECT: "candidate-dev-primary@talentarbor.local",
     CANDIDATE_DEV_DISPLAY_NAME: "Dev Candidate Primary",
+    CANDIDATE_HOST_LAUNCH_DEV_MODE: "true",
+    CANDIDATE_HOST_LAUNCH_DEV_SECRET: "candidate-e2e-local-secret",
+    CANDIDATE_QUESTION_WORDING_PROVIDER: "fixture",
+    CANDIDATE_ANSWER_ANALYSIS_PROVIDER: "fixture",
+    CANDIDATE_COACH_UPDATE_PROVIDER: "fixture",
     GEMINI_API_KEY: "",
     SMTP_USERNAME: "",
     SMTP_PASSWORD: "",
@@ -22,6 +30,7 @@ const env = {
     SMTP_FROM_EMAIL: "",
     NEXT_PUBLIC_BASE_URL: baseURL,
     PLAYWRIGHT_BASE_URL: baseURL,
+    NEXT_DIST_DIR: ".next-candidate-e2e",
     E2E_TEST_MODE: "true",
     NEXT_PUBLIC_E2E_TEST_MODE: "true",
 };
@@ -44,7 +53,19 @@ try {
     process.exitCode = result.status ?? 1;
 } finally {
     await stopServer(server);
+    await restoreFiles(generatedTypeConfigSnapshots);
     process.exit(process.exitCode ?? 0);
+}
+
+async function snapshotFiles(paths) {
+    return Promise.all(paths.map(async (path) => ({
+        path,
+        contents: await readFile(path, "utf8"),
+    })));
+}
+
+async function restoreFiles(snapshots) {
+    await Promise.all(snapshots.map(({ path, contents }) => writeFile(path, contents, "utf8")));
 }
 
 function runPlaywright(env) {
@@ -164,6 +185,6 @@ function findAvailablePort(preferredPort) {
             });
         });
 
-        server.listen(preferredPort, "127.0.0.1");
+        server.listen(preferredPort, "0.0.0.0");
     });
 }

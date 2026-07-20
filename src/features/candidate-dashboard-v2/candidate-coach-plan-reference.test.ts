@@ -4,6 +4,7 @@ import type { CandidateFollowUpPracticeSessionMetadata } from "@/features/candid
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 import { createCandidateQuestionPlan } from "@/features/candidate-session-v2/candidate-question-plan";
 import { createFixtureCandidateQuestionWordingResult } from "@/features/candidate-session-v2/candidate-question-wording";
+import { createCandidatePracticePlanBaseline } from "@/features/candidate-setup-v2/candidate-practice-plan-baseline";
 import { createCandidateCoachPlanReference } from "./candidate-coach-plan-reference";
 
 const CANDIDATE_PROFILE_ID = "22222222-2222-4222-8222-222222222222";
@@ -11,6 +12,42 @@ const ROLE_PROFILE_ID = "33333333-3333-4333-8333-333333333333";
 const BASELINE_SESSION_ID = "11111111-1111-4111-8111-111111111111";
 
 describe("candidate Coach Plan reference", () => {
+    it("uses the prep-context baseline instead of shrinking coverage to the first round", () => {
+        const firstRound = createBaselineSession({ answeredQuestionKeys: ["slot-1"] });
+        const snapshot = createCandidatePracticePlanBaseline("screening");
+        const practicePlanBaseline = {
+            candidateProfileId: CANDIDATE_PROFILE_ID,
+            roleProfileId: ROLE_PROFILE_ID,
+            snapshot,
+            questionWordingSnapshot: createFixtureCandidateQuestionWordingResult({
+                setupSnapshot: {
+                    ...firstRound.setupSnapshot,
+                    questionCount: snapshot.questionCount,
+                },
+                questionPlanSnapshot: snapshot,
+            }),
+        };
+
+        const reference = createCandidateCoachPlanReference({
+            candidateProfileId: CANDIDATE_PROFILE_ID,
+            roleProfileId: ROLE_PROFILE_ID,
+            practiceSessions: [firstRound],
+            practicePlanBaseline,
+        });
+
+        expect(reference).toMatchObject({
+            source: { kind: "prep_context_baseline" },
+            questionCount: 5,
+            practicedQuestionCount: 1,
+            missingEvidenceCount: 4,
+        });
+        expect(reference?.questions[4]).toMatchObject({
+            questionKey: "slot-5",
+            evidenceStatus: "missing_evidence",
+        });
+        expect(reference?.questions[4]?.questionText).toBeTruthy();
+    });
+
     it("keeps the initial plan as the baseline and counts distinct root-question evidence", () => {
         const baseline = createBaselineSession({ answeredQuestionKeys: ["slot-1"] });
         baseline.answerDrafts["slot-3"] = {

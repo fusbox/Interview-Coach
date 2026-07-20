@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createCandidateLedSessionCompletion } from "./session-completion-contract";
+import { createCandidateLedSessionCompletion, createInvitedSessionCompletion } from "./session-completion-contract";
 import { createSessionRuntimeFacts } from "./session-runtime-facts";
 
 describe("session completion contract", () => {
@@ -125,5 +125,14 @@ describe("session completion contract", () => {
             facts,
             completedAt: "2026-07-10T22:10:00.000Z",
         })).toBeNull();
+        expect(createInvitedSessionCompletion({
+            facts,
+            completedAt: "2026-07-10T22:10:00.000Z",
+        })).toMatchObject({
+            status: "invited_session_completed",
+            audience: "invited_candidate",
+            nextRoute: "/candidate/invited",
+            answeredCount: 0,
+        });
     });
 });

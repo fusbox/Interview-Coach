@@ -169,9 +169,8 @@ function CategoryView({
             <div className="candidate-coach-plan-category-list" aria-label="Planned interview categories">
                 {plan.categories.map((category) => {
                     const isSelected = activeCategory?.category === category.category;
-                    const coverage = category.plannedCount > 0
-                        ? (category.practicedCount / category.plannedCount) * 100
-                        : 0;
+                    const isComplete = category.plannedCount > 0
+                        && category.practicedCount >= category.plannedCount;
                     return (
                         <button
                             key={category.category}
@@ -184,8 +183,9 @@ function CategoryView({
                                 <strong>{category.label}</strong>
                                 <span>{category.practicedCount} of {category.plannedCount} practiced</span>
                             </span>
-                            <span className="candidate-coach-plan-coverage" aria-hidden="true">
-                                <span style={{ width: `${coverage}%` }} />
+                            <span className={`candidate-coach-plan-category-status${isComplete ? " is-complete" : ""}`} aria-hidden="true">
+                                {isComplete ? <Check size={15} /> : <Circle size={12} />}
+                                <span>{isComplete ? "Practiced" : "In progress"}</span>
                             </span>
                         </button>
                     );

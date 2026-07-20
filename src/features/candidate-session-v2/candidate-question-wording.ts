@@ -22,6 +22,8 @@ export type CandidateQuestionWordingQuestion = {
     index: number;
     category: CandidateQuestionPlanCategory;
     questionText: string;
+    planQuestionId?: string;
+    coverageKind?: "baseline" | "supplemental";
 };
 
 export type CandidateQuestionWordingGeneration = {
@@ -129,6 +131,8 @@ export function parseCandidateQuestionWordingResult(
             index: plannedSlot.index,
             category: plannedSlot.category,
             questionText: question.questionText,
+            ...(plannedSlot.planQuestionId ? { planQuestionId: plannedSlot.planQuestionId } : {}),
+            ...(plannedSlot.coverageKind ? { coverageKind: plannedSlot.coverageKind } : {}),
         };
     });
 

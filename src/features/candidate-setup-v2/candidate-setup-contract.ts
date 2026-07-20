@@ -75,8 +75,8 @@ export const candidateSetupStageOptions: ReadonlyArray<{
         id: "follow_up",
         label: "Follow-up interview",
         detail: "Work on deeper examples, clarifying answers, and role-specific follow-up areas.",
-        recommendedCount: 7,
-        recommendation: "I recommend 7 questions so you can build on what may come next and still keep the practice manageable.",
+        recommendedCount: 10,
+        recommendation: "I recommend 10 questions so you can prepare for deeper follow-up across examples, judgment, and role-specific areas.",
     },
     {
         id: "final_interview",

@@ -1,6 +1,10 @@
 import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-v2/host-launch-route";
 import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidate-auth-v2/dev-host-launch-cookie-identity";
 import { createCandidatePracticeSessionRepository } from "@/features/candidate-session-v2/candidate-practice-session-repository";
+import {
+    createCandidateBaselineAwarePracticeSessions,
+    createCandidatePracticePlanBaselineRepository,
+} from "@/features/candidate-setup-v2/candidate-practice-plan-baseline-repository";
 
 import {
     loadCandidateNextRoundBuilder,
@@ -21,6 +25,7 @@ export function createCandidateNextRoundRuntime(databaseUrl: string) {
     const queryClient = createLazyPostgresQueryClient(databaseUrl);
     const draftRepository = createCandidateNextRoundDraftRepository(queryClient);
     const practiceSessionRepository = createCandidatePracticeSessionRepository(queryClient);
+    const practicePlanBaselineRepository = createCandidatePracticePlanBaselineRepository(queryClient);
     const launchRepository = createCandidateNextRoundDraftLaunchRepository(queryClient);
 
     return {
@@ -30,6 +35,7 @@ export function createCandidateNextRoundRuntime(databaseUrl: string) {
                 ...input,
                 draftRepository,
                 practiceSessionRepository,
+                practicePlanBaselineRepository,
             });
         },
         mutateBuilder(input: {
@@ -43,6 +49,7 @@ export function createCandidateNextRoundRuntime(databaseUrl: string) {
                 ...input,
                 draftRepository,
                 practiceSessionRepository,
+                practicePlanBaselineRepository,
             });
         },
         async launchBuilder(input: {
@@ -51,13 +58,22 @@ export function createCandidateNextRoundRuntime(databaseUrl: string) {
             candidateNextRoundDraftId: string;
             expectedVersion: number;
         }) {
-            const practiceSessions = await practiceSessionRepository.listPracticeSessionsForCandidateRoleProfile({
-                candidateProfileId: input.candidateProfileId,
-                roleProfileId: input.roleProfileId,
-            });
+            const [practiceSessions, practicePlanBaseline] = await Promise.all([
+                practiceSessionRepository.listPracticeSessionsForCandidateRoleProfile({
+                    candidateProfileId: input.candidateProfileId,
+                    roleProfileId: input.roleProfileId,
+                }),
+                practicePlanBaselineRepository.findForCandidateRoleProfile({
+                    candidateProfileId: input.candidateProfileId,
+                    roleProfileId: input.roleProfileId,
+                }),
+            ]);
             return launchCandidateNextRoundDraft({
                 ...input,
-                practiceSessions,
+                practiceSessions: createCandidateBaselineAwarePracticeSessions({
+                    practiceSessions,
+                    baseline: practicePlanBaseline,
+                }),
                 draftRepository,
                 launchRepository,
             });

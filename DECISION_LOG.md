@@ -292,3 +292,142 @@ Recruiters previously relied solely on local mail clients (`mailto:`) or manual 
 - Improved recruiter UX with single-click branded delivery.
 - Higher visual consistency and trust for candidates receiving invitations.
 - No impact on existing manual workflows, ensuring safe testing of the new feature.
+
+## ADR-021: Design System Tailwind CSS Token Integration
+
+### Context
+The design system defined custom CSS property tokens for spacing (primitives, gaps, paddings, density scales) and layouts (max-widths, sidebar/rail sizes) under `design-system/tokens/`. However, these custom variables were not mapped to the Tailwind configuration (`tailwind.config.ts`), forcing developers to write arbitrary values (e.g. `p-[var(--pad-card)]`) or default Tailwind classes, leading to spacing drift and inconsistent layouts.
+
+### Decision
+- **Tailwind Spacing Extensions**: Mapped all spacing primitives (`--space-X`), semantic gaps (`--gap-X`), semantic paddings (`--pad-X`), and density scaling variables (`--density-X`) directly to the `theme.extend.spacing` object in `tailwind.config.ts`.
+- **Layout Extensions**: Mapped candidate-grid and readable-max widths (`--layout-X-max`, `--candidate-grid-max`) to `theme.extend.maxWidth`.
+- **Sizing Rail Extensions**: Mapped sidebar and rail dimensions to `theme.extend.width` and `theme.extend.height`.
+
+### Consequences
+- **Developer Ergonomics**: Developers can now write native, grid-perfect Tailwind classes such as `p-pad-card`, `gap-gap-grid`, `max-w-readable-max`, and `h-header-height`.
+- **Grid Adherence**: Eliminates pixel-guessing or arbitrary margin/padding variables by exposing the design system directly to the Tailwind utility pipeline.
+- **Maintainability**: Changing spacing values in the central `design-system/tokens/spacing.css` now automatically scales and updates all responsive Tailwind layout configurations.
+
+## ADR-022: Transcript Canvas Sandbox Route
+
+### Context
+We needed a live, interactive workspace to test and vet the progressively revealed V2 Coach Update card and Transcript Canvas. A sandbox page was required to visualize the CSS styles, hover trigger tooltips, inline gap indicators, and focus faders without polluting candidate production routes.
+
+### Decision
+- **Demo Route Creation**: Created an isolated Next.js client component route at `src/app/candidate/demo-coach-update/page.tsx`.
+- **Component Staging**: Staged the Level 1 dashboard closed card, the Level 2/3 active carousel card slide, and the custom tokenized `TranscriptCanvas`.
+- **Lightweight Tooltips**: Deployed native CSS-powered absolute tooltip elements styled with Tailwind to ensure zero-lag hover actions on mobile without loading bloated React popup libraries.
+
+### Consequences
+- **Testing Fidelity**: Product owners and developers can run `npm run dev` and navigate to `/candidate/demo-coach-update` to verify design systems adherence.
+- **Pre-Production Validation**: Provides an isolated code playground where layout structures can be refined before being merged into the main candidate priority dashboard path.
+
+## ADR-023: Reimagined Candidate Dashboard Staging and Relocation
+
+### Context
+The previous provisional dashboard was visually cluttered and focused on activity metrics (counts of questions) rather than the core candidate preparedness loop: practice, review evaluation/feedback, see recommendation, and queue up follow-ups. A simplified dashboard proposal was drafted to stage this experience, including dual metrics (completion count vs preparedness/performance), a detailed practice plan list, a follow-up practice queue, resume-context managers, stage progression updates, and reference guides.
+
+### Decision
+- **Relocation of Sandbox**: Moved the sandbox page from `src/app/candidate/demo-coach-update` to `src/app/candidate/dashboard-demo` to reflect the full dashboard preview.
+- **Dual Visual Metrics**: Implemented Completion (SVG circular progress of baseline attempted count) and Preparedness (SVG progress of answers rated "Strong") gauges.
+- **Dynamic Practice Plan & Queue**: Designed an interactive question list detailing category and evaluation status (Strong, Emerging, Not Practiced). Clicking a card loads its feedback inside the Transcript Canvas. A custom "Next Practice Queue" panel lets users build and launch custom follow-up rounds.
+- **Resume and Stage Management**: Created responsive controls to switch interview stages (Screening [5 questions] vs First Round [7 questions]) and modals to select resumes, set defaults, and simulate question regeneration.
+- **Expertise Reference Panel**: Integrated a sliding side-drawer library containing definitions for categories, response patterns, and the evidence criteria used by the evaluation engine.
+
+### Consequences
+- Deployed a high-fidelity visual prototype representing the complete candidate loop under `/candidate/dashboard-demo`.
+- Allowed product stakeholders to test resume-swaps, stage-updates, question queueing, and reference views locally in the browser with stateful mock data.
+
+## ADR-024: Modularization of Staged Candidate Dashboard for Rebuild Branch Integration
+
+### Context
+To make the stateful dashboard demo at `/candidate/dashboard-demo` as portable and "plug-in" ready as possible for the target `candidate-v2-rebuild` production branch, it needed to be decoupled from a monolithic page file into self-contained presentational components with clean TypeScript interface boundaries.
+
+### Decision
+- **Extracted Presentational Components**: Structured the dashboard layout into seven separate presentational components: `DashboardHeader`, `RoleSwitcher`, `CombinedProgressGauge`, `PracticePlanList`, `CanvasAnswerWorkspace`, `ResumeManagerModal`, and `ReferenceLibraryDrawer`.
+- **Prop Interface Alignment**: Typed all components to consume data contracts matching the exact schema returned by the production read models (e.g. `CandidateCoachPlanQuestionReference`, `CandidateCoachUpdateQuestionDetail`, `CandidateDashboardIdentity`).
+- **Separation of Concerns**: Kept the main page component as a lightweight state manager/orchestrator of client actions, which passes mock datasets directly down to the presentational items.
+
+### Consequences
+- **Plug-and-Play Integration**: Developers can copy/paste these individual presentational components directly into the production code paths.
+- **Easy Hookup to Real Read Models**: Transitioning from simulated mock data to live server actions or database queries only requires passing the returned read model objects into the pre-defined component props.
+
+## ADR-025: Candidate Settings & Reference Library Specification and Staging
+
+### Context
+To map the user actions in the candidate-led application module, we needed specifications detailing:
+1. The **Reference Library** and how to contextually integrate its concepts (STAR frameworks, evaluation criteria) directly inside core candidate flows.
+2. The **Settings and Admin Surface** for a standalone module, detailing local configurations sorted by release posture (Current vs. Future/Deferred).
+
+### Decision
+- **Written Specifications**: Created `docs/candidate-app/settings_admin_spec.md` (detailing configuration postures and implementation plans) and `docs/candidate-app/reference_library_spec.md` (detailing contextual flow designs).
+- **Settings Demo Route**: Implemented a stateful settings sandbox at `/candidate/settings-demo` that stages AI coaching dials, recruiter platform sync, accessibility scaling, and local/server data wipes.
+- **Header & Switcher Refactor**: Removed the dashboard feed banner and relocated settings, resumes, and reference drawer controls to a unified setup utility line under the role switcher. Created an expandable notification alert in the header.
+
+### Consequences
+- Allows stakeholders to test font scaling, contrast swaps, recruiter sync, JSON mock database exports, and state deletions in a stateful playground page.
+- Establishes a clear blueprints directory (`docs/candidate-app`) for developers building out features in production.
+- Ensures a completely green build state verified by Next.js and TypeScript compiler passes.
+
+## ADR-026: Candidate Session Q&A Demo Staging
+
+### Context
+We needed a live, stateful playground to test the candidate-led interactive practice session screen (`/candidate/session/[sessionId]`) matching the layouts and dimensions detailed in the `Session Answer Wireframes` design spec. Specifically, the active question card required a unique top-right cutout notch to host the Hints and Strong Response toggles without cluttering the card content space, matching modern card notch components like `cult-ui/cutout-card`.
+
+### Decision
+- **Demo Route Creation**: Created a new stateful Next.js demo route at `src/app/candidate/session-demo/page.tsx` that mirrors the session layout.
+- **Top-Right Cutout Notch Implementation**: Built a custom, responsive, flat-glass cutout notch using a `100px` by `56px` absolute overlay container with rounded inner corners (`rounded-bl-2xl`) and matched border weights. This creates a physical pocket to house the hints/strong buttons.
+- **Stateful Control Mocking**: Staged mock questions, text-entry editors, record timers, audio waveform visualizer animations, audio reader toggles, and sliding feedback drawers.
+- **Design System Mapping**: Structured all padding, radii, typography (Atkinson Hyperlegible body vs. IBM Plex Sans headings), and colors using the conformed design system tokens.
+
+### Consequences
+- Provides an isolated pre-production playground at `/candidate/session-demo` to audit and test the interactive Q&A workflow.
+- Proves the feasibility of the top-right cutout notch design using a zero-overhead CSS overlay technique that scales responsively across viewports.
+
+## ADR-027: Isolated Vite UI Prototype Lab Migration
+
+### Context
+To keep developer iteration clean, we wanted a separation between production candidate application routes (which are compiled, typechecked, and linted by Next.js) and active visual mockups. Next.js was compiling prototype routes on every production build, introducing compiler overhead. We needed an independent sandbox containing its own node dependencies, TypeScript rules, and fixtures to isolate prototype components and allow real-time layout and state testing.
+
+### Decision
+- **Created Isolated Vite Project**: Scaffolded a React + TypeScript Vite project under `.untracked/ui-lab`.
+- **Ported Prototype Views**: Ported the Dashboard, Active Session Q&A, and Settings mockups from Next.js routes into isolated React components inside `.untracked/ui-lab/src/components`.
+- **Integrated Callback Navigation**: Connected the pages using a unified stateful container in `App.tsx` that routes clicks dynamically inside the sandbox without browser-level page reloads.
+- **Retired Next.js Demo Routes**: Purged the transitional prototype paths (`dashboard-demo`, `settings-demo`, and `session-demo`) from `src/app/candidate/`.
+- **Configured Shared Token Imports**: Wired PostCSS and Tailwind inside `ui-lab` to consume CSS parameters directly from the root `design-system/` path.
+
+### Consequences
+- **Zero Next.js Compiler Impact**: Mockups are excluded from Next.js, speeding up production build and deploy typecheck times.
+- **Unified Testing Deck**: Reviewers can test candidate page flows, toggle screens, swap mock resumes, and review evaluations in a single stateful browser playground.
+- **Clean Promotion Channel**: UI structures are vetted in the Vite lab and promoted into production app tracks based on explicit spec approvals.
+
+## ADR-028: Candidate Dashboard V2 3-Tier Exposure Layer & Interaction Contracts
+
+### Context
+The V2 evaluation engine produces multi-dimensional analytical outputs (5 Universal Criteria, 23 Evidence Markers, and Narrative Pattern Pipelines). We needed a definitive interaction and information architecture to govern how these metrics are presented on the Candidate Dashboard—distinguishing what indicators must be visible at a glance without interaction versus what should be progressively revealed via spatial micro-interactions or deep inspection drawers.
+
+### Decision
+Established the **3-Tier Exposure Layer Architecture** for the Candidate Dashboard:
+
+1. **Layer 1: Glanceable Ambient (Default Resting Page State)**
+   * **Scope**: The entire `/candidate/dashboard` page upon landing (zero clicks required).
+   * **Core Components**:
+     * **Top-Left**: Readiness Gauge UI (SVG arc score + readiness status badge).
+     * **Top-Right**: Signal Balance Radar Map (5-axis polygon: Focus, Organization, Specificity, Role Skill, Impact).
+     * **Main Rail**: Active Practice Plan queue + Active Workspace preview.
+   * **UX Invariant**: Answers *"Where do I stand right now, and what should I do next?"* in under 3 seconds without requiring mouse or keyboard input.
+
+2. **Layer 2: Spatial In-Place Micro-Interactions (Card Flips & Spotlight Toggles)**
+   * **Scope**: Micro-transforms that happen on the dashboard cards without navigating away or opening disruptive modals.
+   * **Key Patterns**:
+     * **3D Card Flip**: The Radar Card features a `[ 🔄 View Marker Breakdown ]` trigger that flips the card 180° (`rotateY(180deg)`) to reveal the **Evidence Density Heatmap** (the 23-marker frequency grid) on its back surface.
+     * **Concision Spotlight (X-Ray Lens)**: A toggle on the transcript card (`[ 👁️ Spotlight Signals ]`) that dims filler/non-essential text to `35%` opacity while keeping active evidence spans at `100%`.
+
+3. **Layer 3: Deep Inspection Drawer (Progressive Reveal)**
+   * **Scope**: On-demand deep coaching triggered by explicit intent.
+   * **Key Pattern**: Clicking any highlighted evidence text span or in-line gap caret (`[^ Add Tradeoff]`) slides out the **Coach Observation Drawer** from the right edge, providing sentence-by-sentence rewrites and STAR structure comparisons.
+
+### Consequences / Tradeoffs
+* **Spatial Continuity**: Candidates never lose their place on the dashboard when diving deep into analytics.
+* **Clutter Elimination**: Keeps Layer 1 clean, modern, and focused while keeping deep diagnostic tools 1 click or flip away.
+* **Implementation Contract**: Establishes clear component boundaries for future frontend engineering passes.

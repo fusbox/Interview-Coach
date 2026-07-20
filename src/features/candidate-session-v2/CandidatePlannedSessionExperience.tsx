@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { SharedLivePracticeShell } from "@/features/interview-session-v2/SharedLivePracticeShell";
 import { createSessionRuntimeFacts } from "@/features/interview-session-v2/session-runtime-facts";
+import type { SessionCompletionBehavior } from "@/features/interview-session-v2/session-runtime-contract";
 import {
     candidateSetupStageOptions,
     type CandidateSetupStageId,
@@ -51,6 +52,11 @@ type CandidatePlannedSessionExperienceProps = {
     dashboardHref: string;
     initialSession?: CandidateProvisionalSessionRecord | null;
     entryTransitionRequested?: boolean;
+    entryTransitionStartsPractice?: boolean;
+    mutationBasePath?: string;
+    completionBehavior?: SessionCompletionBehavior;
+    exitHref?: string;
+    exitLabel?: string;
 };
 
 export function CandidatePlannedSessionExperience({
@@ -58,6 +64,11 @@ export function CandidatePlannedSessionExperience({
     dashboardHref,
     initialSession = null,
     entryTransitionRequested = false,
+    entryTransitionStartsPractice = false,
+    mutationBasePath = `/candidate/session/${encodeURIComponent(sessionId)}`,
+    completionBehavior,
+    exitHref,
+    exitLabel,
 }: CandidatePlannedSessionExperienceProps) {
     const [session, setSession] = useState<CandidateProvisionalSessionRecord | null>(initialSession);
     const [hasCheckedStorage, setHasCheckedStorage] = useState(Boolean(initialSession));
@@ -112,6 +123,7 @@ export function CandidatePlannedSessionExperience({
         updateAnswerDraft,
     } = useCandidateTypedAnswerMutations({
         sessionId,
+        mutationBasePath,
         hasDurableSession: Boolean(initialSession),
         setAnswerDrafts,
         setAnswerSubmissions,
@@ -132,6 +144,23 @@ export function CandidatePlannedSessionExperience({
             });
         });
     }, []);
+
+    const updateProgress = useCallback((nextProgress: CandidateProvisionalSessionProgress) => {
+        setProgress(nextProgress);
+        saveCandidateProvisionalSessionProgress(window.sessionStorage, sessionId, nextProgress);
+
+        if (!initialSession) {
+            return;
+        }
+
+        void fetch(`${mutationBasePath}/progress`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(nextProgress),
+        });
+    }, [initialSession, mutationBasePath, sessionId]);
 
     useEffect(() => {
         if (loadedSessionIdRef.current === sessionId) {
@@ -214,8 +243,14 @@ export function CandidatePlannedSessionExperience({
             return null;
         }
 
+        const resolvedCompletionBehavior = completionBehavior ?? {
+            kind: "candidate_dashboard" as const,
+            dashboardHref,
+        };
         return createSessionRuntimeFacts({
-            audience: "candidate_led",
+            audience: resolvedCompletionBehavior.kind === "invited_debrief"
+                ? "invited_candidate"
+                : "candidate_led",
             sessionId,
             targetRole: session.setupSnapshot.targetRole,
             interviewStage: session.setupSnapshot.interviewStage,
@@ -248,14 +283,12 @@ export function CandidatePlannedSessionExperience({
                     } : {}),
                 };
             }),
-            completionBehavior: {
-                kind: "candidate_dashboard",
-                dashboardHref,
-            },
+            completionBehavior: resolvedCompletionBehavior,
         });
     }, [
         answerAnalysisSnapshots,
         answerSubmissions,
+        completionBehavior,
         dashboardHref,
         feedbackRetrySources,
         progress.currentQuestionIndex,
@@ -277,7 +310,7 @@ export function CandidatePlannedSessionExperience({
         saveCandidateProvisionalSessionProgress(window.sessionStorage, sessionId, nextProgress);
 
         if (initialSession) {
-            void fetch(`/candidate/session/${encodeURIComponent(sessionId)}/progress`, {
+            void fetch(`${mutationBasePath}/progress`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -285,7 +318,7 @@ export function CandidatePlannedSessionExperience({
                 body: JSON.stringify(nextProgress),
             }).catch(() => undefined);
         }
-    }, [initialSession, progress.currentQuestionIndex, progress.status, sessionId]);
+    }, [initialSession, mutationBasePath, progress.currentQuestionIndex, progress.status, sessionId]);
 
     useEffect(() => {
         setSessionCompletionMessage(null);
@@ -296,7 +329,6 @@ export function CandidatePlannedSessionExperience({
             return;
         }
 
-        routedEntryTransitionRef.current = false;
         const url = new URL(window.location.href);
         url.searchParams.delete("entry");
         window.history.replaceState(
@@ -305,11 +337,25 @@ export function CandidatePlannedSessionExperience({
             `${url.pathname}${url.search}${url.hash}`,
         );
 
-        entryHoldTimerRef.current = window.setTimeout(
-            releasePracticeEntryTransition,
-            CANDIDATE_PRACTICE_ENTRY_HOLD_MS,
-        );
-    }, [releasePracticeEntryTransition]);
+        entryHoldTimerRef.current = window.setTimeout(() => {
+            routedEntryTransitionRef.current = false;
+            entryHoldTimerRef.current = null;
+            if (entryTransitionStartsPractice && progress.status === "planned") {
+                updateProgress({
+                    status: "live_question",
+                    currentQuestionIndex: 0,
+                });
+            }
+            releasePracticeEntryTransition();
+        }, CANDIDATE_PRACTICE_ENTRY_HOLD_MS);
+
+        return () => {
+            if (entryHoldTimerRef.current !== null) {
+                window.clearTimeout(entryHoldTimerRef.current);
+                entryHoldTimerRef.current = null;
+            }
+        };
+    }, [entryTransitionStartsPractice, progress.status, releasePracticeEntryTransition, updateProgress]);
 
     useEffect(() => () => {
         if (entryHoldTimerRef.current !== null) {
@@ -433,6 +479,8 @@ export function CandidatePlannedSessionExperience({
             <>
                 <SharedLivePracticeShell
                     facts={runtimeFacts}
+                    exitHref={exitHref}
+                    exitLabel={exitLabel}
                     answerMode="text"
                     draftText={activeDraftText}
                     answerMutationPhase={activeAnswerMutationPhase}
@@ -505,23 +553,6 @@ export function CandidatePlannedSessionExperience({
         </>
     );
 
-    function updateProgress(nextProgress: CandidateProvisionalSessionProgress) {
-        setProgress(nextProgress);
-        saveCandidateProvisionalSessionProgress(window.sessionStorage, sessionId, nextProgress);
-
-        if (!initialSession) {
-            return;
-        }
-
-        void fetch(`/candidate/session/${encodeURIComponent(sessionId)}/progress`, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(nextProgress),
-        });
-    }
-
     function beginPracticeEntryTransition() {
         if (entryTransitionPhase) {
             return;
@@ -552,7 +583,7 @@ export function CandidatePlannedSessionExperience({
         }
 
         try {
-            const response = await fetch(`/candidate/session/${encodeURIComponent(sessionId)}/feedback-actions`, {
+            const response = await fetch(`${mutationBasePath}/feedback-actions`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -584,7 +615,7 @@ export function CandidatePlannedSessionExperience({
 
         let navigationStarted = false;
         try {
-            const response = await fetch(`/candidate/session/${encodeURIComponent(sessionId)}/complete`, {
+            const response = await fetch(`${mutationBasePath}/complete`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -596,7 +627,13 @@ export function CandidatePlannedSessionExperience({
                 error?: string;
             } | null;
 
-            if (response.ok && result?.status === "candidate_session_completed") {
+            if (
+                response.ok
+                && (
+                    result?.status === "candidate_session_completed"
+                    || result?.status === "invited_session_completed"
+                )
+            ) {
                 navigationStarted = true;
                 window.location.assign(result.nextRoute ?? dashboardHref);
                 return;

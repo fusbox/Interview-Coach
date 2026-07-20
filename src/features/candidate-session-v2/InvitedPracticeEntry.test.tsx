@@ -5,17 +5,17 @@ import { InvitedPracticeEntry, normalizeInitials } from "./InvitedPracticeEntry"
 
 it("normalizes invited candidate initials without treating them as identity proof", () => {
     expect(normalizeInitials(" a-1bC ")).toBe("AB");
+    expect(normalizeInitials("李 小")).toBe("李小");
 });
 
 it("keeps start gated by initials but does not gate invited practice on a rating", async () => {
-    const onConfirmInitials = vi.fn(async () => undefined);
+    const onConfirmInitials = vi.fn(async () => ({ candidateFirstName: "Irma" }));
 
     render(
         <InvitedPracticeEntry
             targetRole="Material Handler I"
             stageLabel="First interview"
             questionCount={3}
-            candidateFirstName="Irma"
             onConfirmInitials={onConfirmInitials}
             onStart={vi.fn()}
         />,
@@ -36,4 +36,21 @@ it("keeps start gated by initials but does not gate invited practice on a rating
     expect(screen.getByText(/AI coaching is visible only to you/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Start practice" })).toBeEnabled();
     expect(screen.queryByText(/prepared do you feel/i)).not.toBeInTheDocument();
+});
+
+it("recovers directly to the landing without repeating initials", () => {
+    render(
+        <InvitedPracticeEntry
+            targetRole="Material Handler I"
+            stageLabel="First interview"
+            questionCount={3}
+            initialsConfirmed
+            candidateFirstName="Irma"
+            onConfirmInitials={vi.fn()}
+            onStart={vi.fn()}
+        />,
+    );
+
+    expect(screen.queryByRole("textbox", { name: "Your initials" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Hi Irma. Ready to practice?" })).toBeInTheDocument();
 });

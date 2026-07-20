@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { CandidateCompletedRoundAnalysisRepairResult } from "@/features/candidate-session-v2/candidate-completed-round-analysis-repair";
 
-import { handleCandidateCompletedRoundRepairRequest } from "./route";
+import { handleCandidateCompletedRoundRepairRequest } from "./route-implementation";
 
 describe("/candidate/session/[sessionId]/coach-update/repair route", () => {
     it("requires a candidate-owned completed session", async () => {

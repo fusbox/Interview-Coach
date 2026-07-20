@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { handleCandidateFeedbackActionRequest } from "./route";
+import { handleCandidateFeedbackActionRequest } from "./route-implementation";
 
 const analysisSnapshot = {
     status: "answer_analysis_provider_result" as const,

@@ -80,7 +80,7 @@ describe("candidate setup contract", () => {
             ["practice_only", 5],
             ["screening", 5],
             ["first_interview", 7],
-            ["follow_up", 7],
+            ["follow_up", 10],
             ["final_interview", 10],
         ]);
     });

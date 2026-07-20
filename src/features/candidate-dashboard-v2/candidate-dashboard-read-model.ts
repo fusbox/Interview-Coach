@@ -6,6 +6,7 @@ import {
     type CandidatePracticeNext,
 } from "@/features/candidate-session-v2/candidate-completed-round-read-model";
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
+import type { CandidatePracticePlanBaselineRecord } from "@/features/candidate-setup-v2/candidate-practice-plan-baseline-repository";
 import {
     createCandidateCoachPlanReference,
     type CandidateCoachPlanReference,
@@ -179,6 +180,7 @@ export function createCandidateDashboardV2ReadModel({
     selectedLegacyTargetRole,
     coachUpdateArtifacts = [],
     candidateIdentity,
+    practicePlanBaselines = [],
 }: {
     candidateProfileId: string;
     practiceSessions: CandidatePracticeSessionRecord[];
@@ -186,6 +188,7 @@ export function createCandidateDashboardV2ReadModel({
     selectedLegacyTargetRole?: string | null;
     coachUpdateArtifacts?: CandidateCoachUpdateArtifactRecord[];
     candidateIdentity?: Partial<CandidateDashboardIdentity> | null;
+    practicePlanBaselines?: CandidatePracticePlanBaselineRecord[];
 }): CandidateDashboardV2ReadModel {
     const candidateSessions = practiceSessions.filter((session) => session.candidateProfileId === candidateProfileId);
     const selectedContextKey = selectTargetInterviewContextKey({
@@ -222,10 +225,15 @@ export function createCandidateDashboardV2ReadModel({
         : null;
     const latestCoachUpdate = createDashboardCoachUpdateFromArtifact(latestCoachUpdateArtifact, latestCompletedRound);
     const coachUpdateDetail = createCandidateCoachUpdateDetail(latestCoachUpdateArtifact);
+    const resolvedSelectedRoleProfileId = selectedRoleProfileIdFromKey(selectedContextKey);
     const coachPlan = createCandidateCoachPlanReference({
         candidateProfileId,
-        roleProfileId: selectedRoleProfileIdFromKey(selectedContextKey),
+        roleProfileId: resolvedSelectedRoleProfileId,
         practiceSessions: scopedCandidateSessions,
+        practicePlanBaseline: practicePlanBaselines.find((baseline) => (
+            baseline.candidateProfileId === candidateProfileId
+            && baseline.roleProfileId === resolvedSelectedRoleProfileId
+        )) ?? null,
     });
 
     return {

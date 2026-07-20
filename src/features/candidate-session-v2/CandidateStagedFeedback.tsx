@@ -1,7 +1,7 @@
 "use client";
 
-import { ArrowRight, RotateCcw } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ArrowRight, MessageSquareQuote, RotateCcw } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
     createCandidateFeedbackActionEvent,
@@ -37,22 +37,64 @@ export function CandidateStagedFeedback({
     ));
     const [pendingActionKind, setPendingActionKind] = useState<CandidateFeedbackAction["kind"] | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
+    const headingRef = useRef<HTMLHeadingElement>(null);
+    const previousStageIdRef = useRef(activeStageId);
+    const recoveredActionEventRef = useRef(savedActionEvent);
+    const hasAppliedRecoveredTransitionRef = useRef(false);
     const activeStage = useMemo(
         () => interaction.stages.find((stage) => stage.id === activeStageId) ?? interaction.stages[0],
         [activeStageId, interaction.stages],
     );
     const stageIndex = interaction.stages.findIndex((stage) => stage.id === activeStage.id);
 
+    useEffect(() => {
+        if (previousStageIdRef.current === activeStageId) return;
+        previousStageIdRef.current = activeStageId;
+        headingRef.current?.focus();
+    }, [activeStageId]);
+
+    useEffect(() => {
+        if (hasAppliedRecoveredTransitionRef.current) return;
+        hasAppliedRecoveredTransitionRef.current = true;
+        const recoveredEvent = recoveredActionEventRef.current;
+        if (!recoveredEvent || !isSameAnalyzedAnswer(interaction, recoveredEvent)) return;
+
+        if (recoveredEvent.transition === "advance_to_next_question") {
+            onAdvanceQuestion();
+        } else if (recoveredEvent.transition === "finish_session") {
+            onFinishSession();
+        }
+    }, [interaction, onAdvanceQuestion, onFinishSession]);
+
     return (
         <section className="candidate-staged-feedback" aria-labelledby="coach-feedback-title" aria-live="polite">
             <header className="candidate-staged-feedback__header">
-                <div>
-                    <p className="type-eyebrow">{activeStage.label}</p>
-                    <h2 id="coach-feedback-title">{activeStage.title}</h2>
+                <div className="candidate-staged-feedback__identity">
+                    <span className="candidate-staged-feedback__mark" aria-hidden="true">
+                        <MessageSquareQuote size={18} />
+                    </span>
+                    <div>
+                        <p>{activeStage.label}</p>
+                        <h2 id="coach-feedback-title" ref={headingRef} tabIndex={-1}>{activeStage.title}</h2>
+                    </div>
                 </div>
-                <p className="candidate-staged-feedback__progress" aria-label={`Feedback step ${stageIndex + 1} of ${interaction.stages.length}`}>
-                    {stageIndex + 1} / {interaction.stages.length}
-                </p>
+                <div className="candidate-staged-feedback__progress">
+                    <span className="sr-only">
+                        Feedback step {stageIndex + 1} of {interaction.stages.length}
+                    </span>
+                    <div aria-hidden="true">
+                        {interaction.stages.map((stage, index) => (
+                            <span
+                                key={stage.id}
+                                data-state={index < stageIndex
+                                    ? "complete"
+                                    : index === stageIndex
+                                        ? "current"
+                                        : "upcoming"}
+                            />
+                        ))}
+                    </div>
+                </div>
             </header>
 
             <p className="candidate-staged-feedback__body">{activeStage.body}</p>
@@ -61,7 +103,7 @@ export function CandidateStagedFeedback({
                 <div className="candidate-staged-feedback__guidance">
                     {activeStage.guidance.map((item) => (
                         <section key={`${item.label}:${item.body}`}>
-                            <p className="type-eyebrow">{item.label}</p>
+                            <h3>{item.label}</h3>
                             <p>{item.body}</p>
                             {item.steps?.length ? (
                                 <ol>

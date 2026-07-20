@@ -4,9 +4,10 @@ import {
     ArrowRight,
     AlertCircle,
     CheckCircle2,
+    ChevronDown,
     Keyboard,
+    LayoutDashboard,
     Loader2,
-    LogOut,
     Mic,
     Pause,
     Play,
@@ -30,6 +31,7 @@ import {
 export type SharedLivePracticeShellProps = {
     facts: SessionRuntimeFacts;
     answerMode: "text" | "voice";
+    availableAnswerModes?: ReadonlyArray<"text" | "voice">;
     draftText: string;
     answerMutationPhase?: SessionAnswerMutationPhase;
     feedbackContent?: ReactNode;
@@ -56,6 +58,7 @@ export type SharedLivePracticeShellProps = {
 export function SharedLivePracticeShell({
     facts,
     answerMode,
+    availableAnswerModes = [answerMode],
     draftText,
     answerMutationPhase = "idle",
     feedbackContent,
@@ -77,9 +80,6 @@ export function SharedLivePracticeShell({
     const currentQuestion = facts.questions[facts.currentQuestionIndex] ?? null;
     const questionPosition = currentQuestion ? facts.currentQuestionIndex + 1 : 0;
     const questionTotal = facts.questions.length;
-    const progressPercentage = questionTotal > 0
-        ? Math.round((questionPosition / questionTotal) * 100)
-        : 0;
     const resolvedExitHref = exitHref ?? (
         facts.completionBehavior.kind === "candidate_dashboard"
             ? facts.completionBehavior.dashboardHref
@@ -105,6 +105,8 @@ export function SharedLivePracticeShell({
         || answerPresentation.primaryAction === "retry_submit";
     const answerStatusTone = continueWithoutCoachingError ? "error" : answerPresentation.tone;
     const answerStatusMessage = continueWithoutCoachingError ?? answerPresentation.message;
+    const showAnswerModeControls = availableAnswerModes.length > 1;
+    const showSubmittedAnswer = answerPresentation.isAnswerLocked;
 
     useEffect(() => {
         window.scrollTo({ top: 0 });
@@ -130,7 +132,7 @@ export function SharedLivePracticeShell({
                     <h1>Your questions are not available yet.</h1>
                     {resolvedExitHref ? (
                         <a className="candidate-button candidate-button--secondary" href={resolvedExitHref}>
-                            <LogOut size={16} aria-hidden="true" />
+                            <LayoutDashboard size={16} aria-hidden="true" />
                             {resolvedExitLabel}
                         </a>
                     ) : null}
@@ -148,11 +150,10 @@ export function SharedLivePracticeShell({
                         <span>Question {questionPosition} of {questionTotal}</span>
                     </div>
                     <div className="session-live-shell__header-actions">
-                        <span>{progressPercentage}% complete</span>
                         {resolvedExitHref ? (
                             <a href={resolvedExitHref} aria-label={resolvedExitLabel}>
                                 <span>{resolvedExitLabel}</span>
-                                <LogOut size={18} aria-hidden="true" />
+                                <LayoutDashboard size={18} aria-hidden="true" />
                             </a>
                         ) : null}
                     </div>
@@ -160,11 +161,21 @@ export function SharedLivePracticeShell({
                         className="session-live-shell__progress"
                         role="progressbar"
                         aria-label="Practice round progress"
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        aria-valuenow={progressPercentage}
+                        aria-valuemin={1}
+                        aria-valuemax={questionTotal}
+                        aria-valuenow={questionPosition}
+                        aria-valuetext={`Question ${questionPosition} of ${questionTotal}`}
                     >
-                        <span style={{ width: `${progressPercentage}%` }} />
+                        {facts.questions.map((question, index) => (
+                            <span
+                                key={question.questionKey}
+                                data-state={index < facts.currentQuestionIndex
+                                    ? "complete"
+                                    : index === facts.currentQuestionIndex
+                                        ? "current"
+                                        : "upcoming"}
+                            />
+                        ))}
                     </div>
                 </div>
             </header>
@@ -172,7 +183,7 @@ export function SharedLivePracticeShell({
             <div className="session-live-shell__workspace app-grid">
                 <section className="session-live-shell__question" aria-labelledby="session-live-question-title">
                     <div className="session-live-shell__question-meta">
-                        <p className="type-eyebrow">{formatCategory(currentQuestion.category)}</p>
+                        <p className="session-live-shell__category">{formatCategory(currentQuestion.category)}</p>
                         {questionPlaybackControl ? (
                             <button
                                 type="button"
@@ -187,51 +198,76 @@ export function SharedLivePracticeShell({
                                 ) : (
                                     <Play size={18} aria-hidden="true" />
                                 )}
+                                <span>{questionPlaybackControl.isPlaying ? "Stop reading" : "Read aloud"}</span>
                             </button>
                         ) : null}
                     </div>
                     <h1 id="session-live-question-title">{currentQuestion.questionText}</h1>
                 </section>
 
-                <section className="session-live-shell__answer" aria-labelledby="session-live-answer-title">
+                <section
+                    className="session-live-shell__answer"
+                    aria-labelledby="session-live-answer-title"
+                    aria-busy={answerPresentation.isBusy}
+                    data-state={showSubmittedAnswer ? "submitted" : "draft"}
+                >
                     <div className="session-live-shell__answer-header">
-                        <div>
-                            <p className="type-eyebrow">Your response</p>
-                            <h2 id="session-live-answer-title">Answer in the way that works for you.</h2>
-                        </div>
-                        <div className="session-live-shell__modes" aria-label="Answer mode">
-                            <button
-                                type="button"
-                                aria-pressed={answerMode === "text"}
-                                onClick={() => onAnswerModeChange?.("text")}
-                            >
-                                <Keyboard size={16} aria-hidden="true" />
-                                Type
-                            </button>
-                            <button
-                                type="button"
-                                aria-pressed={answerMode === "voice"}
-                                disabled
-                                title="Voice answers are not connected yet"
-                            >
-                                <Mic size={16} aria-hidden="true" />
-                                Record
-                            </button>
-                        </div>
+                        <h2 id="session-live-answer-title">Your response</h2>
+                        {showAnswerModeControls ? (
+                            <div className="session-live-shell__modes" aria-label="Answer mode">
+                                {availableAnswerModes.map((mode) => (
+                                    <button
+                                        key={mode}
+                                        type="button"
+                                        aria-pressed={answerMode === mode}
+                                        onClick={() => onAnswerModeChange?.(mode)}
+                                    >
+                                        {mode === "text" ? (
+                                            <Keyboard size={16} aria-hidden="true" />
+                                        ) : (
+                                            <Mic size={16} aria-hidden="true" />
+                                        )}
+                                        {mode === "text" ? "Type" : "Record"}
+                                    </button>
+                                ))}
+                            </div>
+                        ) : null}
                     </div>
 
-                    <label className="session-live-shell__field">
-                        <span>Type your answer</span>
-                        <textarea
-                            value={draftText}
-                            onChange={(event) => onDraftChange(event.target.value)}
-                            onBlur={answerPresentation.isAnswerLocked ? undefined : onDraftBlur}
-                            readOnly={answerPresentation.isAnswerLocked}
-                            aria-describedby="session-live-answer-status"
-                            rows={8}
-                            placeholder="Start your answer here."
-                        />
-                    </label>
+                    {showSubmittedAnswer ? (
+                        feedbackContent ? (
+                            <details className="session-live-shell__submitted-answer is-collapsible">
+                                <summary>
+                                    <span>
+                                        <CheckCircle2 size={16} aria-hidden="true" />
+                                        Review your saved answer
+                                    </span>
+                                    <ChevronDown size={17} aria-hidden="true" />
+                                </summary>
+                                <p>{draftText}</p>
+                            </details>
+                        ) : (
+                            <div className="session-live-shell__submitted-answer" aria-label="Submitted answer">
+                                <div>
+                                    <CheckCircle2 size={16} aria-hidden="true" />
+                                    <span>Answer saved</span>
+                                </div>
+                                <p>{draftText}</p>
+                            </div>
+                        )
+                    ) : (
+                        <label className="session-live-shell__field">
+                            <span>Type your answer</span>
+                            <textarea
+                                value={draftText}
+                                onChange={(event) => onDraftChange(event.target.value)}
+                                onBlur={onDraftBlur}
+                                aria-describedby="session-live-answer-status"
+                                rows={8}
+                                placeholder="Type your answer here."
+                            />
+                        </label>
+                    )}
 
                     <footer className="session-live-shell__answer-footer">
                         <div

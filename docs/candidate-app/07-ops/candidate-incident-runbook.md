@@ -1,6 +1,6 @@
 # Candidate Incident Runbook
 
-Date: 2026-05-12
+Date: 2026-07-19
 Status: Working runbook
 
 ## Purpose
@@ -8,6 +8,8 @@ Status: Working runbook
 This runbook gives the team a first response path for candidate-led Interview Coach incidents on the shared `interviewcoach.talentarbor.com` host.
 
 Use it when candidate access, setup, resume ingestion, AI generation, dashboard, or deployment behavior fails or appears unsafe.
+
+Use [Candidate Production Hardening And Deployment Controls](./production-hardening-and-deployment-controls.md) for the authoritative environment ownership, rollback order, and post-deploy recovery smoke.
 
 ## First Response
 
@@ -150,7 +152,7 @@ Checks:
 Containment:
 
 - Stop deployment if migration failed.
-- Roll forward with a reviewed migration fix when possible; rollback only if app/data compatibility is understood.
+- Prefer a reviewed fix-forward migration. Do not run an ad hoc down migration; an application rollback is permitted only to a build already proven compatible with the currently applied schema.
 
 ## Shared Host Deployment Incidents
 

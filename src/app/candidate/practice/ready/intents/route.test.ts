@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
     handleCandidatePracticeIntentCreateRequest,
     loadCandidatePracticeIntentSourceSessions,
-} from "./route";
+} from "./route-implementation";
 
 describe("/candidate/practice/ready/intents route", () => {
     it("loads every unique source session by candidate ownership instead of a recency window", async () => {

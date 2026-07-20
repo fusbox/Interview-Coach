@@ -1,142 +1,141 @@
 import { expect, test } from "@playwright/test";
 
+import { expectCandidatePageToMeetAccessibilityBaseline } from "./accessibility";
+
 const routeTransitionTimeout = 30_000;
 
-test("seeded candidate can move from practice setup to session summary", async ({ page }) => {
-    test.setTimeout(180_000);
-    let ttsRequestCount = 0;
-    await page.route("**/api/tts", async (route) => {
-        ttsRequestCount += 1;
-        expect(route.request().headers()["x-session-id"]).toBeTruthy();
+test("seeded candidate completes the candidate-led V2 practice loop", async ({ page }) => {
+    test.setTimeout(240_000);
+    const role = `Milestone Validation Specialist ${Date.now()}`;
+    const answers = [
+        "I review the work requirements, identify the most important outcome, and connect my experience to that need.",
+        "I handled a similar priority by checking the facts, coordinating with the people involved, and confirming the result.",
+        "I work best where expectations are clear, teammates communicate directly, and everyone follows through on commitments.",
+    ];
+    await page.goto("/candidate/dev/launch?candidate=alternate&next=/candidate/setup");
+    await expect(page).toHaveURL(/\/candidate\/setup$/i, { timeout: routeTransitionTimeout });
+    await expect(page.getByRole("heading", { name: "Practice Setup" })).toBeVisible();
+    await expectCandidatePageToMeetAccessibilityBaseline(page, "candidate setup");
+
+    await page.getByLabel("Target role *").fill(role);
+    await page.getByLabel("Job description *").fill(
+        "Review quality records, communicate findings, resolve discrepancies, and document reliable outcomes.",
+    );
+    await page.getByRole("button", { name: /^Screening call/i }).click();
+    await page.getByRole("button", { name: "3", exact: true }).click();
+    await page.getByRole("button", { name: "Start practice" }).click();
+
+    await expect(page).toHaveURL(/\/candidate\/session\/[0-9a-f-]+$/i, { timeout: routeTransitionTimeout });
+    await expect(page.getByRole("heading", { name: "Your practice is ready." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: role })).toBeVisible();
+    await expectCandidatePageToMeetAccessibilityBaseline(page, "candidate practice landing");
+    await page.waitForTimeout(500);
+    await page.getByRole("button", { name: "Start practice" }).click();
+
+    await expect(page.getByRole("heading", { name: "Entering practice space" })).toBeVisible();
+
+    for (let index = 0; index < answers.length; index += 1) {
+        await expect(page.getByText(`Question ${index + 1} of ${answers.length}`, { exact: true })).toBeVisible({
+            timeout: routeTransitionTimeout,
+        });
+        if (index === 0) {
+            await expectCandidatePageToMeetAccessibilityBaseline(page, "candidate live-practice question");
+            const draftSaved = page.waitForResponse((response) => (
+                response.request().method() === "PUT"
+                && response.url().endsWith("/answer-drafts")
+                && response.ok()
+            ));
+            await page.getByRole("textbox", { name: "Type your answer" }).fill(answers[index]);
+            await draftSaved;
+            const sessionUrl = page.url();
+            await page.reload();
+            await expect(page.getByRole("textbox", { name: "Type your answer" })).toHaveValue(answers[index]);
+
+            const recoveredPage = await page.context().newPage();
+            await recoveredPage.goto(sessionUrl);
+            await expect(recoveredPage.getByRole("textbox", { name: "Type your answer" })).toHaveValue(answers[index]);
+            await recoveredPage.close();
+        } else {
+            await page.getByRole("textbox", { name: "Type your answer" }).fill(answers[index]);
+        }
+        await page.getByRole("button", { name: "Submit answer" }).click();
+        await expect(page.getByRole("heading", { name: "First, here is what I heard." })).toBeVisible({
+            timeout: routeTransitionTimeout,
+        });
+
+        await page.getByRole("button", {
+            name: index === answers.length - 1
+                ? "Skip and finish session"
+                : "Skip and continue to next question",
+        }).click();
+    }
+
+    await expect(page).toHaveURL(/\/candidate\/dashboard\?prep=[0-9a-f-]+$/i, {
+        timeout: routeTransitionTimeout,
+    });
+    await expect(page.getByText(role, { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: "Open Coach Update" })).toBeVisible({
+        timeout: routeTransitionTimeout,
+    });
+    await expectCandidatePageToMeetAccessibilityBaseline(page, "candidate dashboard");
+    await page.waitForTimeout(500);
+    await page.getByRole("button", { name: "Open Coach Update" }).click();
+    await expect(page.getByRole("dialog", { name: "Let's review your latest practice." })).toBeVisible();
+    await page.getByRole("button", { name: answers[0] }).click();
+    await expect(page.getByText("Evidence in your answer")).toBeVisible();
+    await expectCandidatePageToMeetAccessibilityBaseline(page, "candidate Coach Update dialog");
+});
+
+test("candidate can finish when immediate coaching is unavailable", async ({ page }) => {
+    test.setTimeout(240_000);
+    const role = `Provider Continuation Specialist ${Date.now()}`;
+
+    await page.route("**/answers/*/analysis", async (route) => {
         await route.fulfill({
-            status: 200,
-            contentType: "audio/wav",
-            body: createSilentWavBuffer(),
+            status: 503,
+            contentType: "application/json",
+            body: JSON.stringify({
+                status: "answer_analysis_unavailable",
+                retryable: false,
+            }),
         });
     });
 
-    await page.goto("/practice");
+    await page.goto("/candidate/dev/launch?candidate=alternate&next=/candidate/setup");
+    await expect(page).toHaveURL(/\/candidate\/setup$/i, { timeout: routeTransitionTimeout });
+    await page.getByLabel("Target role *").fill(role);
+    await page.getByLabel("Job description *").fill(
+        "Review operational work, document findings, communicate clearly, and follow through on next steps.",
+    );
+    await page.getByRole("button", { name: /^Screening call/i }).click();
+    await page.getByRole("button", { name: "3", exact: true }).click();
+    await page.getByRole("button", { name: "Start practice" }).click();
 
-    await expect(page.getByRole("heading", { name: /practice setup/i })).toBeVisible();
-    await page.getByLabel(/target role/i).fill("Customer Success Manager");
-    await page.getByLabel(/job description/i).fill("Customer success leader with SaaS onboarding and renewal experience.");
-    await page.getByLabel(/question count/i).selectOption("3");
-    await page.getByLabel(/I understand Interview Coach uses AI/i).check();
+    await expect(page).toHaveURL(/\/candidate\/session\/[0-9a-f-]+$/i, { timeout: routeTransitionTimeout });
+    await page.waitForTimeout(500);
+    await page.getByRole("button", { name: "Start practice" }).click();
 
-    await Promise.all([
-        page.waitForURL(/\/session\/[0-9a-f-]+$/i, { timeout: routeTransitionTimeout, waitUntil: "commit" }),
-        page.getByRole("button", { name: /start generating questions/i }).click({ noWaitAfter: true }),
-    ]);
-    await expect(page.getByRole("heading", { name: /ready for your interview/i })).toBeVisible();
-    await expect(page.getByText(/Customer Success Manager/i)).toBeVisible();
-
-    await page.getByRole("button", { name: /^begin first question$/i }).click();
-    await expect(page.getByRole("button", { name: /record answer/i })).toBeVisible();
-
-    const readQuestionButton = page.getByRole("button", { name: /read question/i });
-    if (await readQuestionButton.isVisible()) {
-        await readQuestionButton.click();
+    for (let index = 0; index < 3; index += 1) {
+        await expect(page.getByText(`Question ${index + 1} of 3`, { exact: true })).toBeVisible({
+            timeout: routeTransitionTimeout,
+        });
+        await page.getByRole("textbox", { name: "Type your answer" }).fill(
+            `I would clarify the requirement, take the relevant action, and document the result for question ${index + 1}.`,
+        );
+        await page.getByRole("button", { name: "Submit answer" }).click();
+        await expect(page.getByText("Your answer is saved. Coaching isn't available for this answer, but you can keep going.")).toBeVisible({
+            timeout: routeTransitionTimeout,
+        });
+        await page.getByRole("button", {
+            name: index === 2 ? "Finish without coaching" : "Continue without coaching",
+        }).click();
     }
-    await expect(page.getByRole("button", { name: /stop reading/i })).toBeVisible();
-    expect(ttsRequestCount).toBeGreaterThan(0);
 
-    await page.getByRole("button", { name: /text mode/i }).click();
-    await page.getByLabel(/type your answer/i).fill(
-        "I listen first, name the conflict clearly, and propose a next step that keeps the customer experience moving.",
-    );
-    await page.getByRole("button", { name: /submit answer/i }).click();
-
-    await expect(page.getByText(/reviewing answer content/i)).toBeVisible();
-    await continueFromFeedback(page, false, { verifyTranscript: /I listen first/i });
-
-    await expect(page.getByText(/Question 2 of 3/i)).toBeVisible({ timeout: routeTransitionTimeout });
-    await page.getByRole("button", { name: /text mode/i }).click();
-    await page.getByLabel(/type your answer/i).fill(
-        "I separate urgency from impact, name the tradeoff, and make the decision criteria visible before recommending a path.",
-    );
-    await page.getByRole("button", { name: /submit answer/i }).click();
-    await expect(page.getByText(/I separate urgency from impact/i)).toBeVisible();
-    await skipFromFeedback(page, false);
-
-    await expect(page.getByText(/Question 3 of 3/i)).toBeVisible({ timeout: routeTransitionTimeout });
-    await page.getByRole("button", { name: /text mode/i }).click();
-    await page.getByLabel(/type your answer/i).fill(
-        "I start with the customer problem, validate the workflow with users, and then turn the evidence into a small testable plan.",
-    );
-    await page.getByRole("button", { name: /submit answer/i }).click();
-    await expect(page.getByText(/I start with the customer problem/i)).toBeVisible();
-    await skipFromFeedback(page, true);
-
-    await expect(page).toHaveURL(/\/summary\/[0-9a-f-]+$/i, { timeout: routeTransitionTimeout });
-    await expect(page.getByText(/one moment while i create your feedback summary/i)).toBeVisible({ timeout: routeTransitionTimeout });
-
-    const sessionUrl = page.url();
-    const sessionId = sessionUrl.split("/summary/")[1]?.split(/[?#]/)[0];
-    expect(sessionId).toBeTruthy();
-
-    await expect(page.getByRole("heading", { name: /great practice round, dev/i })).toBeVisible();
-    await expect(page.getByRole("heading", { name: /session debrief|executive summary/i })).toBeVisible({ timeout: routeTransitionTimeout });
-    await expect(page.getByRole("link", { name: /back to dashboard/i })).toHaveAttribute("href", "/dashboard");
-    await expect(page.getByRole("link", { name: /back to practice setup/i })).toHaveAttribute("href", "/practice");
-    await expect(page.getByRole("link", { name: /practice again/i })).toHaveCount(0);
+    await expect(page).toHaveURL(/\/candidate\/dashboard\?prep=[0-9a-f-]+$/i, {
+        timeout: routeTransitionTimeout,
+    });
+    await expect(page.getByText(role, { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Your practice is saved." })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Try Coach Update again" })).toBeVisible();
+    await expectCandidatePageToMeetAccessibilityBaseline(page, "candidate unavailable-coaching dashboard");
 });
-
-async function continueFromFeedback(
-    page: import("@playwright/test").Page,
-    isLastQuestion: boolean,
-    options: { verifyTranscript?: RegExp } = {},
-) {
-    await expect(page.getByRole("button", { name: /explore feedback/i })).toBeVisible({ timeout: routeTransitionTimeout });
-    await page.getByRole("button", { name: /explore feedback/i }).click();
-
-    if (options.verifyTranscript) {
-        await expect(page.getByRole("button", { name: /view your answer/i })).toBeVisible({ timeout: routeTransitionTimeout });
-        await page.getByRole("button", { name: /view your answer/i }).click();
-        const transcriptPanel = page.getByRole("dialog", { name: /transcript panel/i });
-        await expect(transcriptPanel.getByText(options.verifyTranscript)).toBeVisible();
-        await page.getByRole("button", { name: /^close transcript$/i }).click();
-    } else {
-        await expect(page.getByRole("button", { name: /view your answer/i })).toBeVisible({ timeout: routeTransitionTimeout });
-        await page.getByRole("button", { name: /view your answer/i }).click();
-        await expect(page.getByRole("dialog", { name: /transcript panel/i })).toBeVisible();
-        await page.getByRole("button", { name: /^close transcript$/i }).click();
-    }
-
-    while (!(await page.getByRole("heading", { name: /ready to continue/i }).isVisible().catch(() => false))) {
-        await page.getByRole("button", { name: /^next$/i }).click();
-    }
-
-    await page.getByRole("button", {
-        name: isLastQuestion ? /^finish session$/i : /^continue to next question$/i,
-    }).click();
-}
-
-async function skipFromFeedback(page: import("@playwright/test").Page, isLastQuestion: boolean) {
-    await expect(page.getByRole("button", { name: /explore feedback/i })).toBeVisible({ timeout: routeTransitionTimeout });
-    await page.getByRole("button", {
-        name: isLastQuestion ? /skip and finish session/i : /skip and continue to next question/i,
-    }).first().click();
-}
-
-function createSilentWavBuffer() {
-    const sampleRate = 24_000;
-    const seconds = 2;
-    const dataLength = sampleRate * seconds * 2;
-    const buffer = Buffer.alloc(44 + dataLength);
-
-    buffer.write("RIFF", 0);
-    buffer.writeUInt32LE(36 + dataLength, 4);
-    buffer.write("WAVE", 8);
-    buffer.write("fmt ", 12);
-    buffer.writeUInt32LE(16, 16);
-    buffer.writeUInt16LE(1, 20);
-    buffer.writeUInt16LE(1, 22);
-    buffer.writeUInt32LE(sampleRate, 24);
-    buffer.writeUInt32LE(sampleRate * 2, 28);
-    buffer.writeUInt16LE(2, 32);
-    buffer.writeUInt16LE(16, 34);
-    buffer.write("data", 36);
-    buffer.writeUInt32LE(dataLength, 40);
-
-    return buffer;
-}

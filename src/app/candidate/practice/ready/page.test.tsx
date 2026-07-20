@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { expect, it } from "vitest";
 
-import CandidatePracticeReadyPage, { renderCandidatePracticeReadyPage } from "./page";
+import CandidatePracticeReadyPage, { renderCandidatePracticeReadyPage } from "./CandidatePracticeReadyRoute";
 
 it("renders a recovery state when a follow-up practice intent is missing", async () => {
     render(await CandidatePracticeReadyPage());

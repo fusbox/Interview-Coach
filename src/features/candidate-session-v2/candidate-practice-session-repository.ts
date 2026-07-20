@@ -21,6 +21,7 @@ import type { CandidateAnswerAnalysisProviderResult } from "./candidate-answer-a
 import type { CandidateFeedbackActionEvent } from "./candidate-feedback-interaction";
 import type { CandidateLedSessionCompletionSnapshot } from "@/features/interview-session-v2/session-completion-contract";
 import type { CandidateSetupStartClaim } from "@/features/candidate-setup-v2/candidate-setup-start-request";
+import type { CandidatePracticePlanBaselineSnapshot } from "@/features/candidate-setup-v2/candidate-practice-plan-baseline";
 
 export type CandidatePracticeSessionQueryClient = {
     query: (sql: string, values: unknown[]) => Promise<{
@@ -62,6 +63,8 @@ export type CreateCandidatePracticeSessionInput = {
     candidateLaunchSessionId?: string | null;
     consumeTrustedLaunchSetupContext?: boolean;
     setupSnapshot: CandidateSetupSessionCreationResult["setupSnapshot"];
+    rigorBaselineSnapshot?: CandidatePracticePlanBaselineSnapshot;
+    rigorBaselineQuestionWordingSnapshot?: CandidateQuestionWordingResult;
     questionPlanSnapshot: CandidateQuestionPlan;
     questionWordingSnapshot?: CandidateQuestionWordingResult | CandidateQuestionWordingUnavailableResult | null;
     progress?: CandidateProvisionalSessionProgress;
@@ -104,6 +107,12 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
     return {
         async createSetupSession(input: CreateCandidatePracticeSessionInput) {
             const persistence = createCandidatePracticeSessionPersistenceInput(input);
+            if (
+                persistence.roleProfileId
+                && (!input.rigorBaselineSnapshot || !input.rigorBaselineQuestionWordingSnapshot)
+            ) {
+                return null;
+            }
 
             const result = await client.query(`
                 with eligible_setup_start_request as materialized (
@@ -118,6 +127,28 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
                     and request.claim_expires_at > now()
                     and request.expires_at > now()
                   for update
+                ), persisted_practice_plan_baseline as (
+                  update public.candidate_role_preparation_profiles profile
+                  set rigor_baseline_snapshot_json = coalesce(profile.rigor_baseline_snapshot_json, $16::jsonb),
+                      rigor_baseline_question_wording_snapshot_json = coalesce(
+                        profile.rigor_baseline_question_wording_snapshot_json,
+                        $17::jsonb
+                      )
+                  where $2::uuid is not null
+                    and profile.role_profile_id = $2
+                    and profile.candidate_profile_id = $1
+                    and profile.status in ('active', 'paused')
+                    and (
+                      (
+                        profile.rigor_baseline_snapshot_json is null
+                        and profile.rigor_baseline_question_wording_snapshot_json is null
+                      )
+                      or (
+                        profile.rigor_baseline_snapshot_json = $16::jsonb
+                        and profile.rigor_baseline_question_wording_snapshot_json = $17::jsonb
+                      )
+                    )
+                  returning profile.role_profile_id
                 ), consumed_setup_context as (
                   delete from public.candidate_launch_setup_contexts setup
                   using public.candidate_launch_sessions launch
@@ -156,6 +187,7 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
                   )
                   select $1, $2, $3, $4, $5::jsonb, $6::jsonb, $7::jsonb, $8, $9::jsonb, $10::jsonb
                   where (not $12::boolean or exists (select 1 from eligible_setup_start_request))
+                    and ($2::uuid is null or exists (select 1 from persisted_practice_plan_baseline))
                     and (
                       not $11::boolean
                       or exists (select 1 from consumed_launch_session)
@@ -196,6 +228,8 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
                 input.setupStartClaim?.idempotencyKeyHash ?? null,
                 input.setupStartClaim?.requestFingerprint ?? null,
                 input.setupStartClaim?.claimGeneration ?? null,
+                input.rigorBaselineSnapshot ?? null,
+                input.rigorBaselineQuestionWordingSnapshot ?? null,
             ]);
 
             const candidatePracticeSessionId = readString(result.rows[0]?.candidate_practice_session_id);

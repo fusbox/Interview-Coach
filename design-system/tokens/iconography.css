@@ -18,6 +18,12 @@
     --icon-capsule-sm: 2rem; /* @kind size */
     --icon-capsule-md: 2.5rem; /* @kind size */
     --icon-capsule-lg: 3rem; /* @kind size */
+
+    /* Stricter setup/dashboard iconography tokens */
+    --icon-sm: 2rem; /* 32px @kind size */
+    --icon-md: 2.5rem; /* 40px @kind size */
+    --icon-lg: 2.75rem; /* 44px @kind size */
+    --touch-min: 2.75rem; /* 44px @kind size */
 }
 
 .icon-inline {

@@ -32,7 +32,7 @@ describe("CandidateDashboardPriorityExperience", () => {
         render(<CandidateDashboardPriorityExperience dashboard={dashboard} />);
 
         await waitFor(() => expect(screen.queryByText("New")).not.toBeInTheDocument());
-        const priorities = screen.getByRole("region", { name: "Coach Plan priorities" });
+        const priorities = screen.getByRole("region", { name: "Practice priorities" });
         expect(within(priorities).getByRole("heading", { name: "Practice one clearer result." }).closest("article"))
             .toHaveClass("is-primary");
         expect(within(priorities).getByRole("button", { name: "Practice this now" })).toBeInTheDocument();
@@ -106,6 +106,10 @@ describe("CandidateDashboardPriorityExperience", () => {
 
         const dialog = screen.getByRole("dialog", { name: "Let's review your latest practice." });
         expect(within(dialog).getByRole("tab", { name: "Current feedback: question 1" })).toHaveAttribute("aria-selected", "true");
+        expect(within(dialog).getByRole("tab", { name: "Current feedback: question 1" })).toHaveTextContent("Q1");
+        const currentSlide = within(dialog).getByRole("group", { name: "Question feedback 1 of 2" });
+        expect(within(currentSlide).getByText("What I noticed")).toBeInTheDocument();
+        expect(within(currentSlide).getByText("Try next")).toBeInTheDocument();
         const focusLinks = within(dialog).getAllByRole("button", { name: "Practice this now", hidden: true });
         expect(focusLinks[0]).not.toHaveAttribute("tabindex", "-1");
         expect(focusLinks[1]).toHaveAttribute("tabindex", "-1");
@@ -128,6 +132,7 @@ describe("CandidateDashboardPriorityExperience", () => {
 
         fireEvent.click(within(dialog).getByRole("button", { name: /Behavioral.*1 of 1 practiced/i }));
         expect(within(dialog).getByRole("heading", { name: "Past examples and personal action." })).toBeInTheDocument();
+        expect(dialog.querySelector(".candidate-coach-plan-coverage")).not.toBeInTheDocument();
 
         fireEvent.click(within(dialog).getByRole("tab", { name: "Question set" }));
         expect(within(dialog).getByText("What interests you about this role?")).toBeInTheDocument();
@@ -384,6 +389,7 @@ function createDetailItem({
             text: `Answer ${questionNumber}`,
             submittedAt: "2026-07-15T12:04:00.000Z",
         },
+        transcriptCanvas: null,
         coachRead: {
             acknowledgement: "You gave me a direct starting point.",
             observation: `Observation ${questionNumber}`,

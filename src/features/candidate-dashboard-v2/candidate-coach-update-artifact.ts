@@ -12,6 +12,12 @@ import { createCandidateAnswerCoachingFacts } from "@/features/candidate-session
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 import { parseAcceptedEvidenceFirstEvaluatorRun } from "@/features/evaluation-v2/evidence-first-evaluator-runtime";
 
+import {
+    createCandidateTranscriptCanvasProjection,
+    normalizeCandidateTranscriptCanvasProjection,
+    type CandidateTranscriptCanvasProjection,
+} from "./candidate-transcript-canvas";
+
 export const candidateCoachUpdateFixtureMetadata = {
     provider: "candidate_v2_coach_update_synthesizer",
     modelName: "deterministic_local_fixture",
@@ -55,8 +61,19 @@ export type CandidateCoachUpdateArtifactRecord = {
     updatedAt: string;
 };
 
-export type CandidateCoachUpdateContent = {
+export type CandidateCoachUpdateContent = CandidateCoachUpdateContentV1 | CandidateCoachUpdateContentV2;
+
+export type CandidateCoachUpdateContentV1 = {
     status: "candidate_coach_update_content_v1";
+    targetRole: string;
+    title: string;
+    summary: string;
+    primaryFocus: string;
+    questions: CandidateCoachUpdateContentQuestionV1[];
+};
+
+export type CandidateCoachUpdateContentV2 = {
+    status: "candidate_coach_update_content_v2";
     targetRole: string;
     title: string;
     summary: string;
@@ -64,7 +81,7 @@ export type CandidateCoachUpdateContent = {
     questions: CandidateCoachUpdateContentQuestion[];
 };
 
-export type CandidateCoachUpdateContentQuestion = {
+type CandidateCoachUpdateContentQuestionBase = {
     questionKey: string;
     questionNumber: number;
     category: string;
@@ -90,6 +107,12 @@ export type CandidateCoachUpdateContentQuestion = {
         candidatePracticeSessionId: string;
         questionKey: string;
     };
+};
+
+export type CandidateCoachUpdateContentQuestionV1 = CandidateCoachUpdateContentQuestionBase;
+
+export type CandidateCoachUpdateContentQuestion = CandidateCoachUpdateContentQuestionBase & {
+    transcriptCanvas: CandidateTranscriptCanvasProjection | null;
 };
 
 export type CandidateCoachUpdateSessionEvidence = {
@@ -120,6 +143,7 @@ export type CandidateCoachUpdateSynthesisQuestion = {
     answerAttempt: CandidateAnswerAttemptRecord;
     acceptedEvaluationRun: CandidateAnswerEvaluationRunRecord;
     acceptedAnalysis: CandidateAnswerAnalysisProviderResult;
+    transcriptCanvas: CandidateTranscriptCanvasProjection | null;
     source: {
         candidatePracticeSessionId: string;
         questionKey: string;
@@ -214,6 +238,15 @@ export function createCandidateCoachUpdateSynthesisInput({
             answerAttempt: latestAttempt,
             acceptedEvaluationRun: accepted.run,
             acceptedAnalysis: accepted.analysis,
+            transcriptCanvas: accepted.acceptedRun ? createCandidateTranscriptCanvasProjection({
+                acceptedRun: accepted.acceptedRun,
+                evaluation: {
+                    evaluationRunId: accepted.run.candidateAnswerEvaluationRunId,
+                    answerAttemptId: accepted.run.candidateAnswerAttemptId,
+                    inputFingerprint: accepted.run.inputFingerprint,
+                },
+                answerAttempt: latestAttempt,
+            }) : null,
             source,
             priorComparableAttempts,
         });
@@ -269,7 +302,7 @@ export function createCandidateCoachUpdateSynthesisInput({
 
 export function createFixtureCandidateCoachUpdateContent(
     input: CandidateCoachUpdateSynthesisInput,
-): CandidateCoachUpdateContent {
+): CandidateCoachUpdateContentV2 {
     const questions = input.questions.map((question) => {
         const coaching = createCandidateAnswerCoachingFacts(question.acceptedAnalysis);
         const priorCount = question.priorComparableAttempts.length;
@@ -298,12 +331,13 @@ export function createFixtureCandidateCoachUpdateContent(
                     : "This is the first accepted practice evidence for this question in this prep context.",
             },
             source: question.source,
+            transcriptCanvas: question.transcriptCanvas ?? null,
         };
     });
     const questionNoun = input.answeredCount === 1 ? "question" : "questions";
 
     return {
-        status: "candidate_coach_update_content_v1",
+        status: "candidate_coach_update_content_v2",
         targetRole: input.targetRole,
         title: `${input.targetRole} practice update`,
         summary: `I reviewed your ${input.answeredCount} practiced ${questionNoun} and connected each update to accepted coaching evidence.`,
@@ -319,7 +353,7 @@ export function validateCandidateCoachUpdateContent({
     input: CandidateCoachUpdateSynthesisInput;
     content: CandidateCoachUpdateContent;
 }) {
-    return isCandidateCoachUpdateContent(content)
+    return isCandidateCoachUpdateContentV2(content)
         && content.targetRole === input.targetRole
         && content.questions.length === input.questions.length
         && !containsProhibitedGeneratedLanguage(content)
@@ -328,7 +362,8 @@ export function validateCandidateCoachUpdateContent({
             return question.questionKey === source.questionKey
                 && question.answer.candidateAnswerAttemptId === source.answerAttempt.candidateAnswerAttemptId
                 && question.source.candidatePracticeSessionId === source.source.candidatePracticeSessionId
-                && question.source.questionKey === source.source.questionKey;
+                && question.source.questionKey === source.source.questionKey
+                && JSON.stringify(question.transcriptCanvas) === JSON.stringify(source.transcriptCanvas ?? null);
         });
 }
 
@@ -408,6 +443,16 @@ export function normalizeCandidateCoachUpdateArtifactRecord(value: unknown): Can
     ) return null;
     if (record.lifecycleState === "requested" && (record.candidateSafeContent || record.completedAt || record.errorCode)) return null;
     if ((record.lifecycleState === "failed" || record.lifecycleState === "rejected") && (!record.completedAt || !record.errorCode)) return null;
+    if (
+        record.candidateSafeContent?.status === "candidate_coach_update_content_v2"
+        && record.candidateSafeContent.questions.some((question) => (
+            question.transcriptCanvas
+            && (
+                !record.sourceAnswerAttemptIds?.includes(question.transcriptCanvas.answerAttemptId)
+                || !record.acceptedEvaluationRunIds?.includes(question.transcriptCanvas.evaluationRunId)
+            )
+        ))
+    ) return null;
     return record as CandidateCoachUpdateArtifactRecord;
 }
 
@@ -430,7 +475,7 @@ function findAcceptedCandidateCoachingRun(
                 run.inputFingerprint,
                 run.candidateAnswerEvaluationRunId,
             );
-            return analysis ? [{ run, analysis }] : [];
+            return analysis ? [{ run, ...analysis }] : [];
         })
         .sort((left, right) => (right.run.completedAt ?? "").localeCompare(left.run.completedAt ?? ""));
     return accepted[0] ?? null;
@@ -441,23 +486,29 @@ function readAcceptedAnalysis(
     attempt: CandidateAnswerAttemptRecord,
     inputFingerprint: string,
     evaluationRunId: string,
-): CandidateAnswerAnalysisProviderResult | null {
+): {
+    analysis: CandidateAnswerAnalysisProviderResult;
+    acceptedRun: ReturnType<typeof parseAcceptedEvidenceFirstEvaluatorRun>;
+} | null {
     const acceptedRun = parseAcceptedEvidenceFirstEvaluatorRun(value);
     if (
         acceptedRun
         && acceptedRun.inputFingerprint === inputFingerprint
         && acceptedRun.evaluationRunId === evaluationRunId
     ) {
-        return createCandidateAnswerAnalysisProjectionFromEvaluatorRun({
-            run: acceptedRun,
-            answer: {
-                slotId: attempt.questionSlotId,
-                questionIndex: attempt.questionIndex,
-                answerAttemptId: attempt.candidateAnswerAttemptId,
-                attemptNumber: attempt.attemptNumber,
-                trigger: attempt.trigger,
-            },
-        });
+        return {
+            acceptedRun,
+            analysis: createCandidateAnswerAnalysisProjectionFromEvaluatorRun({
+                run: acceptedRun,
+                answer: {
+                    slotId: attempt.questionSlotId,
+                    questionIndex: attempt.questionIndex,
+                    answerAttemptId: attempt.candidateAnswerAttemptId,
+                    attemptNumber: attempt.attemptNumber,
+                    trigger: attempt.trigger,
+                },
+            }),
+        };
     }
 
     if (!isRecord(value) || value.status !== "answer_analysis_provider_result") return null;
@@ -475,7 +526,10 @@ function readAcceptedAnalysis(
         || !isRecord(evidenceFirst)
         || evidenceFirst.inputFingerprint !== inputFingerprint
     ) return null;
-    return value as unknown as CandidateAnswerAnalysisProviderResult;
+    return {
+        acceptedRun: null,
+        analysis: value as unknown as CandidateAnswerAnalysisProviderResult,
+    };
 }
 
 function resolveQuestionSource(session: CandidatePracticeSessionRecord, questionSlotId: string) {
@@ -528,6 +582,10 @@ function readCandidateSafeContent(value: unknown): CandidateCoachUpdateContent |
 }
 
 function isCandidateCoachUpdateContent(value: unknown): value is CandidateCoachUpdateContent {
+    return isCandidateCoachUpdateContentV1(value) || isCandidateCoachUpdateContentV2(value);
+}
+
+function isCandidateCoachUpdateContentV1(value: unknown): value is CandidateCoachUpdateContentV1 {
     if (
         !isRecord(value)
         || !hasExactKeys(value, ["status", "targetRole", "title", "summary", "primaryFocus", "questions"])
@@ -540,39 +598,78 @@ function isCandidateCoachUpdateContent(value: unknown): value is CandidateCoachU
         || value.questions.length === 0
     ) return false;
 
-    return value.questions.every((question) => {
-        if (
-            !isRecord(question)
-            || !hasExactKeys(question, ["questionKey", "questionNumber", "category", "questionText", "answer", "coaching", "comparison", "source"])
-            || !readString(question.questionKey)
-            || !readPositiveInteger(question.questionNumber)
-            || !readString(question.category)
-            || !readString(question.questionText)
-            || !isRecord(question.answer)
-            || !hasExactKeys(question.answer, ["candidateAnswerAttemptId", "mode", "text", "submittedAt"])
-            || !readString(question.answer.candidateAnswerAttemptId)
-            || !["text", "voice", "photo"].includes(String(question.answer.mode))
-            || !readString(question.answer.text)
-            || !readTimestamp(question.answer.submittedAt)
-            || !isRecord(question.coaching)
-            || !hasExactKeys(question.coaching, ["acknowledgement", "observation", "nextPracticeFocus", "overallBand"])
-            || !readString(question.coaching.acknowledgement)
-            || !readString(question.coaching.observation)
-            || !readString(question.coaching.nextPracticeFocus)
-            || !["not_enough_evidence", "emerging", "clear", "strong"].includes(String(question.coaching.overallBand))
-            || !isRecord(question.comparison)
-            || !hasExactKeys(question.comparison, ["kind", "priorComparableAttemptCount", "message"])
-            || !["first_practice", "repeat_practice"].includes(String(question.comparison.kind))
-            || readNonNegativeInteger(question.comparison.priorComparableAttemptCount) === null
-            || !readString(question.comparison.message)
-            || !isRecord(question.source)
-            || !hasExactKeys(question.source, ["candidatePracticeSessionId", "questionKey"])
-            || !readString(question.source.candidatePracticeSessionId)
-            || !readString(question.source.questionKey)
-        ) return false;
+    return value.questions.every((question) => isCandidateCoachUpdateQuestionBase(question, false));
+}
 
-        return !containsDisallowedCandidateContentKey(question);
-    });
+function isCandidateCoachUpdateContentV2(value: unknown): value is CandidateCoachUpdateContentV2 {
+    if (
+        !isRecord(value)
+        || !hasExactKeys(value, ["status", "targetRole", "title", "summary", "primaryFocus", "questions"])
+        || value.status !== "candidate_coach_update_content_v2"
+        || !readString(value.targetRole)
+        || !readString(value.title)
+        || !readString(value.summary)
+        || !readString(value.primaryFocus)
+        || !Array.isArray(value.questions)
+        || value.questions.length === 0
+    ) return false;
+
+    return value.questions.every((question) => isCandidateCoachUpdateQuestionBase(question, true));
+}
+
+function isCandidateCoachUpdateQuestionBase(value: unknown, expectsTranscriptCanvas: boolean) {
+    const expectedKeys = [
+        "questionKey",
+        "questionNumber",
+        "category",
+        "questionText",
+        "answer",
+        "coaching",
+        "comparison",
+        "source",
+        ...(expectsTranscriptCanvas ? ["transcriptCanvas"] : []),
+    ];
+    const question = value;
+    if (
+        !isRecord(question)
+        || !hasExactKeys(question, expectedKeys)
+        || !readString(question.questionKey)
+        || !readPositiveInteger(question.questionNumber)
+        || !readString(question.category)
+        || !readString(question.questionText)
+        || !isRecord(question.answer)
+        || !hasExactKeys(question.answer, ["candidateAnswerAttemptId", "mode", "text", "submittedAt"])
+        || !readString(question.answer.candidateAnswerAttemptId)
+        || !["text", "voice", "photo"].includes(String(question.answer.mode))
+        || !readExactNonBlankString(question.answer.text)
+        || !readTimestamp(question.answer.submittedAt)
+        || !isRecord(question.coaching)
+        || !hasExactKeys(question.coaching, ["acknowledgement", "observation", "nextPracticeFocus", "overallBand"])
+        || !readString(question.coaching.acknowledgement)
+        || !readString(question.coaching.observation)
+        || !readString(question.coaching.nextPracticeFocus)
+        || !["not_enough_evidence", "emerging", "clear", "strong"].includes(String(question.coaching.overallBand))
+        || !isRecord(question.comparison)
+        || !hasExactKeys(question.comparison, ["kind", "priorComparableAttemptCount", "message"])
+        || !["first_practice", "repeat_practice"].includes(String(question.comparison.kind))
+        || readNonNegativeInteger(question.comparison.priorComparableAttemptCount) === null
+        || !readString(question.comparison.message)
+        || !isRecord(question.source)
+        || !hasExactKeys(question.source, ["candidatePracticeSessionId", "questionKey"])
+        || !readString(question.source.candidatePracticeSessionId)
+        || !readString(question.source.questionKey)
+    ) return false;
+
+    if (
+        expectsTranscriptCanvas
+        && question.transcriptCanvas !== null
+        && !normalizeCandidateTranscriptCanvasProjection(question.transcriptCanvas, {
+            candidateAnswerAttemptId: readString(question.answer.candidateAnswerAttemptId)!,
+            text: readExactNonBlankString(question.answer.text)!,
+        })
+    ) return false;
+
+    return !containsDisallowedCandidateContentKey(question);
 }
 
 function hasExactKeys(value: Record<string, unknown>, keys: string[]) {
@@ -596,6 +693,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function readString(value: unknown) {
     return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function readExactNonBlankString(value: unknown) {
+    return typeof value === "string" && value.trim() ? value : null;
 }
 
 function readNullableString(value: unknown) {

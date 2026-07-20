@@ -188,7 +188,7 @@ function createInput(overrides: Partial<CandidateCoachUpdateSynthesisInput> = {}
 
 function createValidContent() {
     return {
-        status: "candidate_coach_update_content_v1" as const,
+        status: "candidate_coach_update_content_v2" as const,
         targetRole: "Material Handler",
         title: "Material Handler practice update",
         summary: "I reviewed your practiced answer.",
@@ -219,6 +219,7 @@ function createValidContent() {
                 candidatePracticeSessionId: "session-1",
                 questionKey: "slot-1",
             },
+            transcriptCanvas: null,
         }],
     };
 }

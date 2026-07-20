@@ -381,7 +381,7 @@ function composeCandidateCoachUpdateContent(
     output: CandidateCoachUpdateProviderOutput,
 ): CandidateCoachUpdateContent {
     return {
-        status: "candidate_coach_update_content_v1",
+        status: "candidate_coach_update_content_v2",
         targetRole: input.targetRole,
         title: output.title,
         summary: output.summary,
@@ -411,6 +411,7 @@ function composeCandidateCoachUpdateContent(
                     message: output.questionUpdates[index].comparisonMessage,
                 },
                 source: question.source,
+                transcriptCanvas: question.transcriptCanvas ?? null,
             };
         }),
     };

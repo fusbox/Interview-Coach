@@ -3,7 +3,7 @@ import { expect, it } from "vitest";
 
 import CandidatePracticeIntentReadyPage, {
     renderCandidatePracticeIntentReadyPage,
-} from "./page";
+} from "./CandidatePracticeIntentReadyRoute";
 import type { CandidatePracticeIntentRecord } from "@/features/candidate-practice-v2/candidate-follow-up-practice-intent";
 
 it("renders a recovery state when the durable follow-up practice intent cannot be confirmed", async () => {

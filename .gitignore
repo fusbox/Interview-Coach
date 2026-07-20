@@ -7,6 +7,8 @@ node_modules/
 dist/
 build/
 .next/
+.next-candidate-e2e/
+.next-candidate-production-smoke/
 out/
 .vercel/
  
@@ -41,17 +43,25 @@ yarn-error.log*
 coverage/
 .nyc_output/
 .playwright-cli/
+output/
+
+# Local design studies and extracted source bundles
+docs/candidate-app/03-design/Design system Q&A screen/
+docs/candidate-app/03-design/extracted/
  
 # TypeScript
 *.tsbuildinfo
  
 # Misc
+
+AI-eval/
+openspec
+tours.md
 docs/candidate-app/09-dev/rw-job-catalog-ownership-diagnostic-*.csv
 docs/candidate-app/09-dev/ta-resolve-rw-jobcollection-ids.csv
 *.pem
 .cache/
-.agent
-openspec
+.agents
 .vscode
 .deprecated
 .todo
@@ -64,8 +74,7 @@ openspec
 .deprecated
 .superpowers
 .github
-tours.md
-AI-eval/
+
 
 # Azure Boards import/export scratch
 docs/candidate-app/work-items*.csv

@@ -131,8 +131,22 @@ describe("candidate Coach Update artifact input", () => {
             acceptedAnalysis: {
                 coachFeedback: { acknowledgement: "You gave me a direct starting point to work with." },
             },
+            transcriptCanvas: {
+                status: "candidate_transcript_canvas_v1",
+                answerAttemptId: "attempt-1",
+                evaluationRunId: "run-internal",
+                annotations: [expect.objectContaining({
+                    markerIds: ["direct_answer"],
+                })],
+            },
         });
         expect(input?.questions[0]?.acceptedAnalysis.evidenceFirst).not.toHaveProperty("feedbackPlan");
+        expect(createFixtureCandidateCoachUpdateContent(input!)).toMatchObject({
+            status: "candidate_coach_update_content_v2",
+            questions: [expect.objectContaining({
+                transcriptCanvas: expect.objectContaining({ evaluationRunId: "run-internal" }),
+            })],
+        });
     });
 
     it("compares only prior accepted attempts with the same prep context and source plan question", () => {

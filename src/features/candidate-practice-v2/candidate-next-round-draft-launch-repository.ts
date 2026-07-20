@@ -37,7 +37,9 @@ export function createCandidateNextRoundDraftLaunchRepository(
                   candidate_profile_id,
                   source,
                   lifecycle_state,
+                  launch_version,
                   consumed_candidate_practice_session_id,
+                  consumed_at,
                   source_next_round_draft_id,
                   source_next_round_draft_version,
                   role_profile_id,
@@ -46,7 +48,8 @@ export function createCandidateNextRoundDraftLaunchRepository(
                   setup_context_json,
                   items_json,
                   created_at,
-                  updated_at
+                  updated_at,
+                  expires_at
                 from public.candidate_practice_intents
                 where source_next_round_draft_id = $1
                   and candidate_profile_id = $2

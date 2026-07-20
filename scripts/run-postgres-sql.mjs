@@ -47,6 +47,11 @@ function parseArgs(args) {
             continue;
         }
 
+        if (arg === "--local-smoke-only") {
+            options.localSmokeOnly = true;
+            continue;
+        }
+
         if (arg === "--file") {
             options.file = args[++index];
             if (!options.file) {
@@ -67,8 +72,14 @@ function parseArgs(args) {
 }
 
 function getPostgresPoolConfig(env, options) {
-    const databaseUrl = readOptionalEnv(env, "DATABASE_URL")
-        ?? (options.smokeDefaults ? getSmokeDatabaseUrl() : undefined);
+    if (options.localSmokeOnly && env.NODE_ENV === "production") {
+        throw new Error("--local-smoke-only is disabled when NODE_ENV=production.");
+    }
+
+    const databaseUrl = options.localSmokeOnly
+        ? getSmokeDatabaseUrl()
+        : readOptionalEnv(env, "DATABASE_URL")
+            ?? (options.smokeDefaults ? getSmokeDatabaseUrl() : undefined);
     const shared = {
         max: parsePositiveInt(readOptionalEnv(env, "POSTGRES_POOL_MAX"), 2, "POSTGRES_POOL_MAX"),
         idleTimeoutMillis: parsePositiveInt(readOptionalEnv(env, "POSTGRES_IDLE_TIMEOUT_MS"), 30_000, "POSTGRES_IDLE_TIMEOUT_MS"),
@@ -168,8 +179,11 @@ Usage:
   npm run db:apply-schema
   npm run db:smoke-schema
   node scripts/run-postgres-sql.mjs --file db/migrations/001_initial_schema.sql --smoke-defaults
+  node scripts/run-postgres-sql.mjs --file db/seeds/003_recruiter_dev_seed.sql --local-smoke-only
 
 Connection:
-  Uses DATABASE_URL or POSTGRES_* values. With --smoke-defaults, uses the local disposable smoke DB.
+  Uses DATABASE_URL or POSTGRES_* values. With --smoke-defaults, uses the local disposable smoke DB
+  only when DATABASE_URL is absent. --local-smoke-only always uses the disposable local DB and is
+  disabled when NODE_ENV=production.
 `);
 }

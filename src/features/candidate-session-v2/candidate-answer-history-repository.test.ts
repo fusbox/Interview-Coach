@@ -204,6 +204,32 @@ describe("candidate answer history repository", () => {
         );
     });
 
+    it("reconciles one concurrent unique conflict into the durable evaluator claim", async () => {
+        const uniqueConflict = Object.assign(new Error("concurrent generation"), { code: "23505" });
+        const query = vi.fn()
+            .mockRejectedValueOnce(uniqueConflict)
+            .mockResolvedValueOnce({ rows: [{ write_outcome: "replayed", ...evaluationRunRow }] });
+        const repository = createCandidateAnswerHistoryRepository({ query });
+
+        await expect(repository.claimEvaluationRun({
+            candidateAnswerAttemptId: attemptRow.candidate_answer_attempt_id,
+            candidatePracticeSessionId: attemptRow.candidate_practice_session_id,
+            candidateProfileId: attemptRow.candidate_profile_id,
+            purpose: "candidate_coaching",
+            provider: candidateAnswerAnalysisFixtureRunMetadata.provider,
+            modelName: candidateAnswerAnalysisFixtureRunMetadata.modelName,
+            promptVersion: candidateAnswerAnalysisFixtureRunMetadata.promptVersion,
+            evaluatorVersion: candidateAnswerAnalysisFixtureRunMetadata.evaluatorVersion,
+            configurationManifest: candidateAnswerAnalysisFixtureRunMetadata.configurationManifest,
+            configurationFingerprint: candidateAnswerAnalysisFixtureRunMetadata.configurationFingerprint,
+            inputFingerprint: "input-1",
+            idempotencyKey: "analysis-key-1",
+            requestedAt: "2026-07-14T18:01:00.000Z",
+            claimExpiresAt: "2026-07-14T18:02:00.000Z",
+        })).resolves.toMatchObject({ outcome: "replayed" });
+        expect(query).toHaveBeenCalledTimes(2);
+    });
+
     it("expires stale claims before allocating a later generation with the same logical key", async () => {
         const generationTwo = {
             ...evaluationRunRow,

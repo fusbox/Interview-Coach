@@ -6,8 +6,11 @@ import {
     ChevronLeft,
     ChevronRight,
     Loader2,
+    Map,
     MessageSquareQuote,
+    Play,
     RefreshCw,
+    Route,
     X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -21,6 +24,7 @@ import {
 } from "react";
 
 import { CandidateCoachPlanReferenceDialog } from "./CandidateCoachPlanReference";
+import { CandidateTranscriptCanvas } from "./CandidateTranscriptCanvas";
 import { useCandidateNextRoundBuilder } from "./CandidateNextRoundBuilderExperience";
 import { CandidatePlanProgressAction } from "./CandidatePlanProgressAction";
 import { CandidateQuestionPracticeActions } from "./CandidatePracticeNextActions";
@@ -78,7 +82,7 @@ export function CandidateDashboardPriorityExperience({
         <>
             <section
                 className={`candidate-dashboard-priority-grid candidate-dashboard-priority-grid--${priority}`}
-                aria-label="Coach Plan priorities"
+                aria-label="Practice priorities"
             >
                 <CandidateDashboardActiveRound
                     activeRound={dashboard.activeRound}
@@ -149,7 +153,9 @@ function CandidateDashboardCoachUpdatePanel({
     const className = `candidate-dashboard-module candidate-dashboard-module--coach-update${isPrimary ? " is-primary" : ""}`;
     const heading = (
         <div className="candidate-dashboard-module__heading">
-            <MessageSquareQuote size={20} aria-hidden="true" />
+            <span className="candidate-dashboard-module__icon" aria-hidden="true">
+                <MessageSquareQuote size={19} />
+            </span>
             <p className="type-eyebrow">Coach Update</p>
             {isNew ? <span className="candidate-dashboard-coach-update-new">New</span> : null}
         </div>
@@ -170,6 +176,7 @@ function CandidateDashboardCoachUpdatePanel({
                 <p>
                     I reviewed {state.answeredCount} {answerLabel} from your latest {dashboard.coachUpdateDetail.targetRole} round.
                 </p>
+                <span className="candidate-dashboard-module__meta">Open your question-by-question review</span>
                 <ArrowRight className="candidate-dashboard-module__arrow" size={20} aria-hidden="true" />
             </button>
         );
@@ -270,7 +277,12 @@ function CandidateDashboardPracticeNextPanel({
             className={`candidate-dashboard-module candidate-dashboard-module--practice-next${isPrimary ? " is-primary" : ""}`}
             id="practice-next"
         >
-            <p className="type-eyebrow">Practice Next</p>
+            <div className="candidate-dashboard-module__heading">
+                <span className="candidate-dashboard-module__icon" aria-hidden="true">
+                    <Route size={19} />
+                </span>
+                <p className="type-eyebrow">Practice Next</p>
+            </div>
             <h2>{coachGuidedFocus?.title ?? feedforward.title}</h2>
             <p>{coachGuidedFocus?.body ?? feedforward.body}</p>
             {coachGuidedFocus && isPrimary ? (
@@ -301,7 +313,12 @@ function CandidateDashboardCoachPlanPanel({
 
     return (
         <article className={`candidate-dashboard-module candidate-dashboard-module--coach-plan${isPrimary ? " is-primary" : ""}`}>
-            <p className="type-eyebrow">Coach Plan</p>
+            <div className="candidate-dashboard-module__heading">
+                <span className="candidate-dashboard-module__icon" aria-hidden="true">
+                    <Map size={19} />
+                </span>
+                <p className="type-eyebrow">Coach Plan</p>
+            </div>
             <h2>{planProgress.title}</h2>
             <p>{planProgress.body}</p>
             <div className="candidate-dashboard-module__actions">
@@ -342,10 +359,17 @@ function CandidateDashboardActiveRound({
     return (
         <section className={`candidate-dashboard-active-round${isPrimary ? " is-primary" : ""}`} aria-label="Active round">
             <div>
-                <p className="type-eyebrow">Active round</p>
+                <div className="candidate-dashboard-module__heading">
+                    <span className="candidate-dashboard-module__icon" aria-hidden="true">
+                        <Play size={19} />
+                    </span>
+                    <p className="type-eyebrow">Active round</p>
+                </div>
                 <h2>Continue where you left off.</h2>
-                <p>{activeRound.targetRole}</p>
-                <p>{activeRound.progressLabel} &middot; Question {activeRound.currentQuestionNumber} of {activeRound.questionCount}</p>
+                <div className="candidate-dashboard-active-round__meta">
+                    <strong>{activeRound.targetRole}</strong>
+                    <span>{activeRound.progressLabel} &middot; Question {activeRound.currentQuestionNumber} of {activeRound.questionCount}</span>
+                </div>
             </div>
             <a className="candidate-dashboard-action" href={activeRound.href}>
                 Resume round
@@ -517,7 +541,9 @@ function CandidateCoachUpdateDialog({
                                                 : `Go to question ${item.questionNumber} feedback`}
                                             className={isCurrent ? "is-current" : undefined}
                                             onClick={() => selectQuestion(index)}
-                                        />
+                                        >
+                                            Q{item.questionNumber}
+                                        </button>
                                     );
                                 })}
                             </div>
@@ -579,15 +605,29 @@ function CandidateCoachUpdateQuestionCard({
             </header>
             <h3>{item.questionText}</h3>
 
-            <div className="candidate-coach-update-question__answer">
-                <p className="type-eyebrow">Your response</p>
-                <blockquote>{item.answer.text}</blockquote>
-            </div>
+            <div className="candidate-coach-update-question__review-grid">
+                <section className="candidate-coach-update-question__answer" aria-labelledby={`candidate-answer-${item.questionKey}`}>
+                    <p className="type-eyebrow" id={`candidate-answer-${item.questionKey}`}>Your response</p>
+                    <CandidateTranscriptCanvas
+                        answerText={item.answer.text}
+                        projection={item.transcriptCanvas}
+                        isCurrent={isCurrent}
+                    />
+                </section>
 
-            <div className="candidate-coach-update-question__observation" role="region" aria-label="Coach observation">
-                <p>{item.coachRead.observation}</p>
-                <p>{item.coachRead.nextPracticeFocus}</p>
-                {item.comparison.kind === "repeat_practice" ? <p>{item.comparison.message}</p> : null}
+                <section className="candidate-coach-update-question__coach-read" aria-label="Coach observation">
+                    <div className="candidate-coach-update-question__observation">
+                        <p className="type-eyebrow">What I noticed</p>
+                        <p>{item.coachRead.observation}</p>
+                    </div>
+                    <div className="candidate-coach-update-question__next-focus">
+                        <p className="type-eyebrow">Try next</p>
+                        <p>{item.coachRead.nextPracticeFocus}</p>
+                    </div>
+                    {item.comparison.kind === "repeat_practice" ? (
+                        <p className="candidate-coach-update-question__comparison">{item.comparison.message}</p>
+                    ) : null}
+                </section>
             </div>
 
             <CandidateQuestionPracticeActions

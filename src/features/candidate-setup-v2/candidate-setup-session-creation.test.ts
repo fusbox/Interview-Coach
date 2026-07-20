@@ -14,7 +14,7 @@ describe("candidate setup session creation boundary", () => {
             },
             now: new Date("2026-07-08T18:00:00.000Z"),
             createSessionId: () => "candidate-session-123",
-        })).toEqual({
+        })).toMatchObject({
             status: "session_created",
             sessionId: "candidate-session-123",
             nextRoute: "/candidate/session/candidate-session-123",

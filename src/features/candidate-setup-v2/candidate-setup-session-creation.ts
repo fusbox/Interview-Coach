@@ -3,13 +3,20 @@ import {
     type CandidateSetupPayload,
 } from "./candidate-setup-contract";
 import {
-    createCandidateQuestionPlan,
     type CandidateQuestionPlan,
 } from "@/features/candidate-session-v2/candidate-question-plan";
 import {
     createFixtureCandidateQuestionWordingResult,
     type CandidateQuestionWordingResult,
 } from "@/features/candidate-session-v2/candidate-question-wording";
+import {
+    createCandidatePracticePlanBaseline,
+    createCandidateQuestionGenerationPlan,
+    deriveCandidateBaselineWording,
+    deriveCandidateInitialRoundPlan,
+    deriveCandidateInitialRoundWording,
+    type CandidatePracticePlanBaselineSnapshot,
+} from "./candidate-practice-plan-baseline";
 
 export type CandidateSetupSessionCreationInput = {
     payload: unknown;
@@ -24,14 +31,19 @@ export type CandidateSetupSessionCreationResult = {
     setupSnapshot: CandidateSetupPayload & {
         createdAt: string;
     };
+    rigorBaselineSnapshot?: CandidatePracticePlanBaselineSnapshot;
+    rigorBaselineQuestionWordingSnapshot?: CandidateQuestionWordingResult;
     questionPlanSnapshot: CandidateQuestionPlan;
     questionWordingSnapshot: CandidateQuestionWordingResult;
 };
 
 export type CandidateSetupSessionPlanResult = Omit<
     CandidateSetupSessionCreationResult,
-    "questionWordingSnapshot"
->;
+    "rigorBaselineQuestionWordingSnapshot" | "questionWordingSnapshot"
+> & {
+    rigorBaselineSnapshot: CandidatePracticePlanBaselineSnapshot;
+    questionGenerationPlanSnapshot: CandidateQuestionPlan;
+};
 
 export function createCandidateSetupSessionTransition({
     payload,
@@ -42,9 +54,12 @@ export function createCandidateSetupSessionTransition({
 
     return completeCandidateSetupSessionTransition({
         plan,
-        questionWordingSnapshot: createFixtureCandidateQuestionWordingResult({
-            setupSnapshot: plan.setupSnapshot,
-            questionPlanSnapshot: plan.questionPlanSnapshot,
+        questionGenerationWordingSnapshot: createFixtureCandidateQuestionWordingResult({
+            setupSnapshot: {
+                ...plan.setupSnapshot,
+                questionCount: plan.questionGenerationPlanSnapshot.questionCount,
+            },
+            questionPlanSnapshot: plan.questionGenerationPlanSnapshot,
         }),
     });
 }
@@ -60,9 +75,15 @@ export function createCandidateSetupSessionPlan({
         ...setupPayload,
         createdAt: now.toISOString(),
     };
-    const questionPlanSnapshot = createCandidateQuestionPlan({
-        interviewStage: setupPayload.interviewStage,
-        questionCount: setupPayload.questionCount,
+    const rigorBaselineSnapshot = createCandidatePracticePlanBaseline(setupPayload.interviewStage);
+    const questionGenerationPlanSnapshot = createCandidateQuestionGenerationPlan({
+        baseline: rigorBaselineSnapshot,
+        selectedQuestionCount: setupPayload.questionCount,
+    });
+    const questionPlanSnapshot = deriveCandidateInitialRoundPlan({
+        baseline: rigorBaselineSnapshot,
+        generationPlan: questionGenerationPlanSnapshot,
+        selectedQuestionCount: setupPayload.questionCount,
     });
 
     return {
@@ -70,20 +91,34 @@ export function createCandidateSetupSessionPlan({
         sessionId,
         nextRoute: `/candidate/session/${encodeURIComponent(sessionId)}`,
         setupSnapshot,
+        rigorBaselineSnapshot,
+        questionGenerationPlanSnapshot,
         questionPlanSnapshot,
     };
 }
 
 export function completeCandidateSetupSessionTransition({
     plan,
-    questionWordingSnapshot,
+    questionGenerationWordingSnapshot,
 }: {
     plan: CandidateSetupSessionPlanResult;
-    questionWordingSnapshot: CandidateQuestionWordingResult;
+    questionGenerationWordingSnapshot: CandidateQuestionWordingResult;
 }): CandidateSetupSessionCreationResult {
     return {
-        ...plan,
-        questionWordingSnapshot,
+        status: plan.status,
+        sessionId: plan.sessionId,
+        nextRoute: plan.nextRoute,
+        setupSnapshot: plan.setupSnapshot,
+        rigorBaselineSnapshot: plan.rigorBaselineSnapshot,
+        questionPlanSnapshot: plan.questionPlanSnapshot,
+        rigorBaselineQuestionWordingSnapshot: deriveCandidateBaselineWording({
+            baseline: plan.rigorBaselineSnapshot,
+            generatedWording: questionGenerationWordingSnapshot,
+        }),
+        questionWordingSnapshot: deriveCandidateInitialRoundWording({
+            roundPlan: plan.questionPlanSnapshot,
+            generatedWording: questionGenerationWordingSnapshot,
+        }),
     };
 }
 

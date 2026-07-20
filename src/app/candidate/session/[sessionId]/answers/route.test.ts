@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { handleCandidateAnswerSubmitRequest, resolveCandidateAnswerSubmitIdentityFromDevLaunchCookie } from "./route";
+import { handleCandidateAnswerSubmitRequest, resolveCandidateAnswerSubmitIdentityFromDevLaunchCookie } from "./route-implementation";
 
 describe("/candidate/session/[sessionId]/answers route", () => {
     it("resolves explicit dev host-launch cookies for answer submit attempts", () => {

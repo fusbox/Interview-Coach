@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { handleCandidateAnswerDraftRequest, resolveCandidateAnswerDraftIdentityFromDevLaunchCookie } from "./route";
+import { handleCandidateAnswerDraftRequest, resolveCandidateAnswerDraftIdentityFromDevLaunchCookie } from "./route-implementation";
 
 describe("/candidate/session/[sessionId]/answer-drafts route", () => {
     it("resolves explicit dev host-launch cookies for durable answer draft saves", () => {

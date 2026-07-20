@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { handleCandidateSetupStartRequest, resolveCandidateSetupIdentityFromDevLaunchCookie, POST } from "./route";
+import { handleCandidateSetupStartRequest, resolveCandidateSetupIdentityFromDevLaunchCookie, POST } from "./route-implementation";
 import {
     createFaultInjectionCandidateQuestionWordingRuntime,
     createFixtureCandidateQuestionWordingRuntime,

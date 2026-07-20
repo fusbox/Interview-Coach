@@ -1,0 +1,128 @@
+# Candidate Production Hardening And Deployment Controls
+
+Status: Ratified baseline; deployment acceptance pending
+Last updated: 2026-07-19
+
+## Purpose
+
+This contract defines the minimum production gate for the candidate-led V2 app without inventing unknown TalentArbor behavior. It separates locally provable build/runtime controls from staging evidence that requires a real host-minted launch credential, deployed secrets, and network access.
+
+It does not approve a pilot or release. Real TA launch acceptance, organizational AI/privacy approval, dependency disposition, alert delivery, and a senior release pass remain release gates.
+
+## Required Quality Gates
+
+Before deployment promotion:
+
+```powershell
+npm run lint
+npm run typecheck
+npm run test:candidate
+npm run db:smoke-candidate-readiness
+npm run test:e2e:candidate-seeded
+npm run test:e2e:candidate-production
+```
+
+`test:e2e:candidate-production` creates isolated optimized output, starts `next start` on a free port, and then removes that output. It proves the public shell at desktop and mobile, WCAG 2.2 A/AA axe rules, no horizontal overflow, bounded local navigation/resource metrics, and production denial of dev launch and candidate prototype routes. It deliberately blanks database, launch, and Gemini credentials.
+
+The local timing and transfer limits are regression budgets, not internet-user service-level objectives. Staging and production need separately observed latency percentiles after real ingress, host launch, database, and provider traffic exist.
+
+Next App Router entry modules are part of the gate. `page.tsx` may expose only supported page exports; `route.ts` may expose only supported HTTP/config exports. Testable renderers, repositories, dependency types, and request handlers belong in adjacent implementation modules.
+
+## Metadata-Only Telemetry Map
+
+| Boundary | Safe fields | Never record |
+| --- | --- | --- |
+| Host launch assembly and verification | random request id, phase, allowlisted outcome/reason, source portal/workspace label, canonical destination, duration | token, launch URL/query, token fingerprint, `jti`, candidate/job ids, email, cookie/session value, MSSQL row data |
+| MSSQL launch context | request id, lookup kind (`identity` or `job`), success/not-found/ownership-denied/unavailable, duration, timeout class | query parameters, candidate/job ids, name/email, role, JD, resume, connection string |
+| Setup start and question wording | request id, claim outcome, replay/conflict/generation status, provider/profile/config fingerprint, slot count, duration, safe error code | role, JD, resume, generated questions, prompt/request/response body, idempotency key |
+| Answer analysis | request id, provider/profile/config fingerprint, accepted/rejected/failed status, evaluator generation, duration, retryable flag, safe error code, optional token counts | answer/question text, evaluator output, evidence excerpts, prompts, candidate/session/attempt/run ids, provider exception body |
+| Session completion and repair | request id, completion outcome, bounded answered/repair status counts, Coach Update eligibility/status, duration | answers, coaching, ids, role/JD/resume, provider payloads |
+| Coach Update | synthesis fingerprint, provider/profile/model/prompt/evaluator versions, accepted/failed/rejected status, duration, attempt count, safe error code, optional token counts | candidate/prep/session ids, transcript, questions, coaching, prompts, raw model output, credentials |
+| Route health | normalized route family, method, status class, duration, environment/deployment id | full URL/query, request/response body, cookie/header values, free-form exception details |
+
+Telemetry payloads use allowlisted enums and bounded counts. A random request id may correlate application phases for one request, but it must not be a durable candidate identifier. Product analytics and enterprise BI require a separate reviewed data contract; ordinary operational logs are not that store.
+
+## Initial Alert Map
+
+The thresholds below are starting hypotheses and must be tuned from staging traffic. This document does not claim an alert sink is already provisioned.
+
+| Signal | Initial trigger | Response |
+| --- | --- | --- |
+| Candidate route availability | five or more 5xx responses or more than 2% 5xx in ten minutes | inspect deployment, Postgres, and route-family telemetry; stop promotion |
+| Host launch configuration | any sustained `assembly_unavailable` or accepted-launch rate unexpectedly drops to zero | verify secret/config presence, issuer/workspace, ingress redaction, MSSQL reachability; disable host quick-link if necessary |
+| Host launch replay/claim rejection | unusual increase over established staging baseline | distinguish expected replay tests from stale links, clock skew, double exchange, or abuse; never weaken single-use validation during incident response |
+| MSSQL launch lookup | five timeouts/unavailable outcomes in ten minutes or p95 above the approved staging budget | check tunnel/firewall, pool saturation, least-privilege login, and query plan |
+| Question wording or answer analysis | ten or more calls with failure/rejection above 10% in ten minutes, or p95 above provider timeout posture | inspect provider/profile/config identity, quota, safe error codes, and fallback behavior |
+| Completion/Coach Update | completion 5xx, repair backlog growth, or unavailable Coach Update above staging baseline | protect answer/session durability first; verify evaluator eligibility and provider state without rolling back completed practice |
+| Database | connection failures, pool exhaustion, migration mismatch, or durable claim contention above baseline | stop promotion; verify schema and capacity; prefer reviewed fix-forward migration |
+
+High-severity immediate alerts remain appropriate for suspected cross-candidate exposure, raw token/content logging, or recruiter-route regression.
+
+## Environment And Secret Ownership
+
+| Environment | Candidate runtime posture | Required controls |
+| --- | --- | --- |
+| Local development | dev host launch plus fixture providers; local smoke Postgres | `.env.local` only; no committed secrets; direct `/candidate/dev/launch`; deterministic candidates |
+| CI production smoke | optimized production runtime with launch/database/provider secrets blank | isolated output and port; dev/prototype routes 404; no external network dependency |
+| TA staging | production launch verifier, TA MSSQL lookup, staging Postgres, approved Gemini profiles | HTTPS; host-minted two-minute single-use launch; query redaction; least-privilege DB users; staging-only secrets; metadata telemetry and alert test |
+| Production | same contracts as accepted staging with production-owned secret instances | explicit promotion evidence, secret rotation procedure, backup/rollback owner, post-deploy smoke, senior release approval |
+
+Configuration groups:
+
+- Postgres: `DATABASE_URL`.
+- Host verification/session: `CANDIDATE_HOST_LAUNCH_SECRET`, `CANDIDATE_HOST_LAUNCH_EXPECTED_ISSUER`, `CANDIDATE_HOST_LAUNCH_EXPECTED_WORKSPACE=talentarbor`, `CANDIDATE_HOST_LAUNCH_MAX_TOKEN_LIFETIME_SECONDS`, `CANDIDATE_HOST_LAUNCH_CLOCK_SKEW_SECONDS`, and `CANDIDATE_HOST_LAUNCH_SESSION_TTL_SECONDS`.
+- TA MSSQL: `CANDIDATE_HOST_LAUNCH_TA_SQL_SERVER`, `_PORT`, `_DATABASE`, `_USER`, `_PASSWORD`, `_ENCRYPT`, `_TRUST_SERVER_CERTIFICATE`, `_CONNECT_TIMEOUT_MS`, `_REQUEST_TIMEOUT_MS`, and `_POOL_MAX`.
+- Model selection: `CANDIDATE_QUESTION_WORDING_PROVIDER`/`_PROFILE`, `CANDIDATE_ANSWER_ANALYSIS_PROVIDER`/`_PROFILE`, `CANDIDATE_COACH_UPDATE_PROVIDER`/`_PROFILE`, and server-only `GEMINI_API_KEY`.
+- Operations: deployment id/environment metadata, durable metrics configuration, and the approved alert destination secret.
+
+The host/integration owner owns token minting, issuer, secret synchronization, quick-link behavior, and upstream query redaction. The IC deployment owner owns verifier/session settings, Postgres, MSSQL read credentials, provider profiles, telemetry, and rollback. Security owns secret-store and rotation policy. Product/AI owners approve serving profiles and candidate-facing behavior.
+
+Fixture/fault modes and `CANDIDATE_HOST_LAUNCH_DEV_MODE` must be unavailable when `NODE_ENV=production`.
+
+## Rollback Contract
+
+1. Stop promotion and, when launch behavior is unsafe, disable the host quick-link before changing verification rules.
+2. Capture deployment id, request ids, safe reason codes, environment, and time window. Do not capture launch URLs, tokens, cookies, resumes, answers, or coaching.
+3. Roll the application back only to a build proven compatible with the currently applied schema. Candidate migrations are forward-owned; do not run ad hoc down migrations or delete evidence rows during incident response.
+4. A model rollback changes the exact provider/profile tuple to a previously accepted configuration. Do not mutate an immutable configuration manifest to make new behavior look old.
+5. If a credential may be exposed, revoke/rotate it at the owning secret stores, synchronize host and IC where applicable, and invalidate affected app sessions according to incident policy.
+6. Re-run the production shell smoke and the applicable staging host/provider smoke before restoring traffic.
+
+Rollback readiness requires the deployment owner to record the last known schema-compatible app build, database backup/restore owner, host quick-link owner, secret-rotation owner, and last accepted provider profiles before release.
+
+## Post-Deploy Smoke
+
+Run in order:
+
+1. Public `/` returns 200 over HTTPS with assets, no browser errors, no horizontal overflow, and expected legal links.
+2. `/candidate/dev/launch`, `/candidate/dashboard-demo`, `/candidate/session-demo`, and `/candidate/settings-demo` return 404.
+3. Host mints a fresh staging URL through its authenticated UI. The token query is absent from CDN/proxy/application logs and is exchanged once into a clean `/candidate/*` URL plus the IC HttpOnly session cookie.
+4. Run identity-new, identity-returning, job-owned, replay, invalid-ownership, and invalid/expired credential cases from [TA Host Launch Live Acceptance](../09-dev/host-launch-live-acceptance.md).
+5. Complete one synthetic candidate setup, three-question text round, immediate coaching, dashboard return, Coach Update, one-question follow-up, pause/resume, and refresh/new-tab recovery using the approved staging provider profiles.
+6. Confirm metadata-only telemetry for each phase, expected dashboard/alert health, and no candidate content or credentials in logs.
+7. Run the shared-host recruiter regression checklist before promotion if recruiter/admin routes ship in the same deployment.
+
+The real host cases require fresh host-minted credentials. Local token minting, fabricated MSSQL rows, or manually set cookies are not substitutes for deployment acceptance.
+
+## Dependency Advisory Disposition
+
+The current production audit reports three vulnerable dependency entries, but they represent two underlying concerns:
+
+| Dependency path | Audit meaning | Current reachability | Required disposition |
+| --- | --- | --- | --- |
+| direct `nodemailer@8.0.5` | One high package entry aggregates a high message-level `raw` file/URL access bypass plus three moderate header, JSON transport, and OAuth2 TLS advisories. | No active source imports Nodemailer yet because recruiter V2 has not been ported, but app-owned bulk email is a required upcoming runtime capability. | Upgrade Nodemailer to a patched release in the recruiter-foundation slice, keep the mail service behind a narrow delivery port, disable file/URL access, prevent caller-controlled raw/header objects, and restore configuration plus delivery tests before sending. Retire it only after TA replacement acceptance covers bulk operations and required evidence. |
+| `next@15.5.20` -> `postcss@8.4.31` | One moderate PostCSS stringify XSS advisory is counted once on PostCSS and again on its parent Next dependency, producing two audit entries. The app's direct `postcss@8.5.19` is patched. | The app does not accept or stringify user-authored CSS. The affected nested copy is used through the framework/build toolchain, so current application reachability is low. | Track the Next upstream dependency and record explicit temporary risk acceptance before pilot. Do not follow npm's regressive Next downgrade suggestion or force an untested transitive override. Recheck every framework upgrade and before release. |
+
+Severity describes the vulnerable package behavior, not proof that the app exposes an attack path. A vulnerable package retained for a near-term required capability must be upgraded before that capability becomes reachable.
+
+Advisory references: [Nodemailer raw-option bypass](https://github.com/advisories/GHSA-p6gq-j5cr-w38f), [Nodemailer header injection](https://github.com/advisories/GHSA-268h-hp4c-crq3), [Nodemailer JSON transport bypass](https://github.com/advisories/GHSA-wqvq-jvpq-h66f), [Nodemailer OAuth2 TLS validation](https://github.com/advisories/GHSA-r7g4-qg5f-qqm2), and [PostCSS stringify XSS](https://github.com/advisories/GHSA-qx2v-qp2m-jg93).
+
+## Remaining Release Gates
+
+- Execute and retain the real TA staging acceptance evidence.
+- Wire and validate the chosen telemetry/alert sink and production dashboards.
+- Establish staging-derived performance objectives and capacity baselines.
+- Upgrade and re-audit Nodemailer before the recruiter foundation is considered complete, and record the owner/expiry for any temporary Next/PostCSS risk acceptance before pilot or release.
+- Complete the manual accessibility matrix and organizational AI/privacy approvals.
+- Run the senior release pass.
+- Resolve the public `Employee login` destination as part of recruiter/shared-host route ownership; `/login` is not implemented in the clean rebuild.

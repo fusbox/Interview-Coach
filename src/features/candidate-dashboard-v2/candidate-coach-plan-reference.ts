@@ -5,6 +5,10 @@ import {
 import { candidateSetupStageOptions } from "@/features/candidate-setup-v2/candidate-setup-contract";
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 import {
+    createCandidateBaselineAwarePracticeSessions,
+    type CandidatePracticePlanBaselineRecord,
+} from "@/features/candidate-setup-v2/candidate-practice-plan-baseline-repository";
+import {
     candidateQuestionPlanCategoryDetails,
     type CandidateQuestionPlanCategory,
 } from "@/features/candidate-session-v2/candidate-question-plan";
@@ -12,7 +16,7 @@ import {
 export type CandidateCoachPlanReference = {
     status: "candidate_coach_plan_reference_ready";
     source: {
-        kind: "initial_session_plan";
+        kind: "initial_session_plan" | "prep_context_baseline";
         baselineCandidatePracticeSessionId: string;
         roleProfileId: string | null;
     };
@@ -56,15 +60,20 @@ export function createCandidateCoachPlanReference({
     candidateProfileId,
     roleProfileId,
     practiceSessions,
+    practicePlanBaseline = null,
 }: {
     candidateProfileId: string;
     roleProfileId: string | null;
     practiceSessions: CandidatePracticeSessionRecord[];
+    practicePlanBaseline?: CandidatePracticePlanBaselineRecord | null;
 }): CandidateCoachPlanReference | null {
-    const ownedContextSessions = practiceSessions.filter((session) => (
-        session.candidateProfileId === candidateProfileId
-        && session.roleProfileId === roleProfileId
-    ));
+    const ownedContextSessions = createCandidateBaselineAwarePracticeSessions({
+        practiceSessions: practiceSessions.filter((session) => (
+            session.candidateProfileId === candidateProfileId
+            && session.roleProfileId === roleProfileId
+        )),
+        baseline: practicePlanBaseline,
+    });
     const originalBaselineSession = [...ownedContextSessions]
         .filter((session) => !readCandidateFollowUpPracticeSessionMetadata(session.setupSnapshot))
         .sort(compareSessionCreation)[0] ?? null;
@@ -120,7 +129,7 @@ export function createCandidateCoachPlanReference({
     return {
         status: "candidate_coach_plan_reference_ready",
         source: {
-            kind: "initial_session_plan",
+            kind: practicePlanBaseline ? "prep_context_baseline" : "initial_session_plan",
             baselineCandidatePracticeSessionId: baselineSession.candidatePracticeSessionId,
             roleProfileId,
         },

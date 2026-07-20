@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { handleCandidateSessionProgressRequest, resolveCandidateSessionProgressIdentityFromDevLaunchCookie } from "./route";
+import { handleCandidateSessionProgressRequest, resolveCandidateSessionProgressIdentityFromDevLaunchCookie } from "./route-implementation";
 
 describe("/candidate/session/[sessionId]/progress route", () => {
     it("resolves explicit dev host-launch cookies for durable progress saves", () => {

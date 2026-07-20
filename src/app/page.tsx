@@ -83,7 +83,7 @@ export default function Home() {
                             unoptimized
                         />
                     </Link>
-                    <Link href="/login" className="utility-link">
+                    <Link href="/login" prefetch={false} className="utility-link">
                         Employee login
                     </Link>
                 </div>

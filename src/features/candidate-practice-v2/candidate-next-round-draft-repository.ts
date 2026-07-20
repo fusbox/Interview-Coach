@@ -143,20 +143,20 @@ export function createCandidateNextRoundDraftRepository(client: CandidateNextRou
                     on source_session.candidate_profile_id = draft.candidate_profile_id
                    and source_session.role_profile_id = draft.role_profile_id
                   where source_session.candidate_practice_session_id = $5
-                    and exists (
-                      select 1
-                      from jsonb_array_elements(
-                        case
-                          when jsonb_typeof(source_session.question_wording_snapshot_json -> 'questions') = 'array'
-                            then source_session.question_wording_snapshot_json -> 'questions'
-                          else '[]'::jsonb
-                        end
-                      ) question
-                      where question ->> 'slotId' = $6
-                    )
                     and (
                       (
                         $7 = 'practice_from_feedback'
+                        and exists (
+                          select 1
+                          from jsonb_array_elements(
+                            case
+                              when jsonb_typeof(source_session.question_wording_snapshot_json -> 'questions') = 'array'
+                                then source_session.question_wording_snapshot_json -> 'questions'
+                              else '[]'::jsonb
+                            end
+                          ) question
+                          where question ->> 'slotId' = $6
+                        )
                         and source_session.answer_submissions_json ? $6
                         and source_session.answer_analysis_snapshots_json ? $6
                         and source_session.answer_analysis_snapshots_json #>> array[$6, 'answer', 'slotId'] = $6
@@ -170,6 +170,51 @@ export function createCandidateNextRoundDraftRepository(client: CandidateNextRou
                       (
                         $7 = 'practice_missing_evidence'
                         and not source_session.answer_submissions_json ? $6
+                        and (
+                          exists (
+                            select 1
+                            from jsonb_array_elements(
+                              case
+                                when jsonb_typeof(source_session.question_wording_snapshot_json -> 'questions') = 'array'
+                                  then source_session.question_wording_snapshot_json -> 'questions'
+                                else '[]'::jsonb
+                              end
+                            ) question
+                            where question ->> 'slotId' = $6
+                          )
+                          or (
+                            not (source_session.setup_snapshot_json ? 'followUpPractice')
+                            and not exists (
+                              select 1
+                              from public.candidate_practice_sessions earlier_session
+                              where earlier_session.candidate_profile_id = source_session.candidate_profile_id
+                                and earlier_session.role_profile_id = source_session.role_profile_id
+                                and not (earlier_session.setup_snapshot_json ? 'followUpPractice')
+                                and (
+                                  earlier_session.created_at < source_session.created_at
+                                  or (
+                                    earlier_session.created_at = source_session.created_at
+                                    and earlier_session.candidate_practice_session_id < source_session.candidate_practice_session_id
+                                  )
+                                )
+                            )
+                            and exists (
+                              select 1
+                              from public.candidate_role_preparation_profiles profile
+                              cross join lateral jsonb_array_elements(
+                                case
+                                  when jsonb_typeof(profile.rigor_baseline_question_wording_snapshot_json -> 'questions') = 'array'
+                                    then profile.rigor_baseline_question_wording_snapshot_json -> 'questions'
+                                  else '[]'::jsonb
+                                end
+                              ) baseline_question
+                              where profile.role_profile_id = source_session.role_profile_id
+                                and profile.candidate_profile_id = source_session.candidate_profile_id
+                                and profile.status in ('active', 'paused')
+                                and baseline_question ->> 'slotId' = $6
+                            )
+                          )
+                        )
                       )
                     )
                   limit 1

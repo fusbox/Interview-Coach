@@ -21,7 +21,7 @@ import {
     createDefaultCandidateAnswerAnalysisDependencies,
     handleCandidateAnswerAnalysisRequest,
     resolveCandidateAnswerAnalysisIdentityFromDevLaunchCookie,
-} from "./route";
+} from "./route-implementation";
 
 afterEach(() => {
     vi.unstubAllEnvs();

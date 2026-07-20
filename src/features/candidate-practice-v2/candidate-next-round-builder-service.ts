@@ -1,5 +1,9 @@
 import { createCandidateCoachPlanReference } from "@/features/candidate-dashboard-v2/candidate-coach-plan-reference";
 import type { createCandidatePracticeSessionRepository } from "@/features/candidate-session-v2/candidate-practice-session-repository";
+import {
+    createCandidateBaselineAwarePracticeSessions,
+    type createCandidatePracticePlanBaselineRepository,
+} from "@/features/candidate-setup-v2/candidate-practice-plan-baseline-repository";
 
 import type { createCandidateNextRoundDraftRepository } from "./candidate-next-round-draft-repository";
 import {
@@ -15,6 +19,10 @@ type CandidateNextRoundDraftRepository = Pick<
 type CandidateNextRoundSessionRepository = Pick<
     ReturnType<typeof createCandidatePracticeSessionRepository>,
     "listPracticeSessionsForCandidateRoleProfile"
+>;
+type CandidateNextRoundBaselineRepository = Pick<
+    ReturnType<typeof createCandidatePracticePlanBaselineRepository>,
+    "findForCandidateRoleProfile"
 >;
 
 export type CandidateNextRoundBuilderMutation =
@@ -54,30 +62,40 @@ export async function loadCandidateNextRoundBuilder({
     roleProfileId,
     draftRepository,
     practiceSessionRepository,
+    practicePlanBaselineRepository,
 }: {
     candidateProfileId: string;
     roleProfileId: string;
     draftRepository: CandidateNextRoundDraftRepository;
     practiceSessionRepository: CandidateNextRoundSessionRepository;
+    practicePlanBaselineRepository?: CandidateNextRoundBaselineRepository;
 }) {
-    const [draft, practiceSessions] = await Promise.all([
+    const [draft, practiceSessions, practicePlanBaseline] = await Promise.all([
         draftRepository.findOrCreateDraft({ candidateProfileId, roleProfileId }),
         practiceSessionRepository.listPracticeSessionsForCandidateRoleProfile({
             candidateProfileId,
             roleProfileId,
         }),
+        practicePlanBaselineRepository
+            ? practicePlanBaselineRepository.findForCandidateRoleProfile({ candidateProfileId, roleProfileId })
+            : Promise.resolve(null),
     ]);
+    const baselineAwareSessions = createCandidateBaselineAwarePracticeSessions({
+        practiceSessions,
+        baseline: practicePlanBaseline,
+    });
     const coachPlan = createCandidateCoachPlanReference({
         candidateProfileId,
         roleProfileId,
-        practiceSessions,
+        practiceSessions: baselineAwareSessions,
+        practicePlanBaseline,
     });
 
     return createCandidateNextRoundBuilderModel({
         candidateProfileId,
         roleProfileId,
         coachPlan,
-        practiceSessions,
+        practiceSessions: baselineAwareSessions,
         draft,
     });
 }
@@ -90,6 +108,7 @@ export async function mutateCandidateNextRoundBuilder({
     mutation,
     draftRepository,
     practiceSessionRepository,
+    practicePlanBaselineRepository,
 }: {
     candidateProfileId: string;
     roleProfileId: string;
@@ -98,12 +117,14 @@ export async function mutateCandidateNextRoundBuilder({
     mutation: CandidateNextRoundBuilderMutation;
     draftRepository: CandidateNextRoundDraftRepository;
     practiceSessionRepository: CandidateNextRoundSessionRepository;
+    practicePlanBaselineRepository?: CandidateNextRoundBaselineRepository;
 }): Promise<CandidateNextRoundBuilderMutationResult> {
     const current = await loadCandidateNextRoundBuilder({
         candidateProfileId,
         roleProfileId,
         draftRepository,
         practiceSessionRepository,
+        practicePlanBaselineRepository,
     });
     if (!current || current.candidateNextRoundDraftId !== candidateNextRoundDraftId) {
         return result("not_found", current);
@@ -150,6 +171,7 @@ export async function mutateCandidateNextRoundBuilder({
         roleProfileId,
         draftRepository,
         practiceSessionRepository,
+        practicePlanBaselineRepository,
     });
     return result(mutationResult.outcome, authoritative);
 }

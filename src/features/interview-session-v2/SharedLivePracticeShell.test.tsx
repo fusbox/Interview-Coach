@@ -37,8 +37,12 @@ describe("SharedLivePracticeShell", () => {
             "href",
             "/candidate/dashboard?targetRole=material-handler",
         );
-        expect(screen.getByRole("button", { name: "Type" })).toHaveAttribute("aria-pressed", "true");
-        expect(screen.getByRole("button", { name: "Record" })).toBeDisabled();
+        expect(screen.getByRole("progressbar", { name: "Practice round progress" })).toHaveAttribute(
+            "aria-valuetext",
+            "Question 2 of 3",
+        );
+        expect(screen.queryByRole("button", { name: "Type" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Record" })).not.toBeInTheDocument();
         expect(screen.queryByRole("button", { name: /back to plan/i })).not.toBeInTheDocument();
         expect(prefetch).toHaveBeenCalledTimes(2);
         expect(prefetch).toHaveBeenNthCalledWith(1, expect.objectContaining({ questionKey: "slot-2" }));
@@ -81,7 +85,8 @@ describe("SharedLivePracticeShell", () => {
             />,
         );
 
-        expect(screen.getByRole("textbox", { name: "Type your answer" })).toHaveAttribute("readonly");
+        expect(screen.queryByRole("textbox", { name: "Type your answer" })).not.toBeInTheDocument();
+        expect(screen.getByLabelText("Submitted answer")).toHaveTextContent("My submitted answer");
         expect(screen.getByRole("alert")).toHaveTextContent(/answer is saved/i);
         screen.getByRole("button", { name: "Try coaching again" }).click();
         expect(onRetryAnalysis).toHaveBeenCalledOnce();
@@ -128,6 +133,44 @@ describe("SharedLivePracticeShell", () => {
         expect(screen.getByRole("textbox", { name: "Type your answer" })).not.toHaveAttribute("readonly");
         screen.getByRole("button", { name: "Try saving again" }).click();
         expect(onRetryDraftSave).toHaveBeenCalledOnce();
+    });
+
+    it("shows mode controls only when an adapter declares more than one usable mode", () => {
+        const onAnswerModeChange = vi.fn();
+
+        render(
+            <SharedLivePracticeShell
+                facts={createFacts("candidate_led")}
+                answerMode="text"
+                availableAnswerModes={["text", "voice"]}
+                draftText=""
+                onAnswerModeChange={onAnswerModeChange}
+                onDraftChange={vi.fn()}
+                onSubmit={vi.fn()}
+            />,
+        );
+
+        expect(screen.getByRole("button", { name: "Type" })).toHaveAttribute("aria-pressed", "true");
+        screen.getByRole("button", { name: "Record" }).click();
+        expect(onAnswerModeChange).toHaveBeenCalledWith("voice");
+    });
+
+    it("collapses the saved answer after coaching becomes available", () => {
+        render(
+            <SharedLivePracticeShell
+                facts={createFacts("candidate_led")}
+                answerMode="text"
+                draftText="My submitted answer"
+                answerMutationPhase="analysis_ready"
+                feedbackContent={<section aria-label="Coach feedback">Feedback</section>}
+                onDraftChange={vi.fn()}
+                onSubmit={vi.fn()}
+            />,
+        );
+
+        const disclosure = screen.getByText("Review your saved answer").closest("details");
+        expect(disclosure).not.toHaveAttribute("open");
+        expect(screen.getByRole("region", { name: "Coach feedback" })).toBeInTheDocument();
     });
 });
 

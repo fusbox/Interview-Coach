@@ -15,7 +15,7 @@ import CandidateSessionPage, {
     renderCandidateSessionPage,
     resolveCandidateSessionIdentityFromDevLaunchCookie,
     toCandidateProvisionalSession,
-} from "./page";
+} from "./CandidateSessionRoute";
 
 beforeEach(() => {
     vi.useRealTimers();
@@ -459,7 +459,10 @@ it("keeps a saved answer locked and retries only coaching after analysis fails",
     fireEvent.click(screen.getByRole("button", { name: "Submit answer" }));
 
     expect(await screen.findByText(/Your answer is saved. I couldn't prepare coaching just now/i)).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "Type your answer" })).toHaveAttribute("readonly");
+    expect(screen.queryByRole("textbox", { name: "Type your answer" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Submitted answer")).toHaveTextContent(
+        "I would ask a clarifying question first.",
+    );
     expect(fetch).toHaveBeenCalledWith(
         "/candidate/session/session-v2-1/answers",
         expect.objectContaining({ method: "POST" }),
@@ -506,8 +509,8 @@ it("recovers a persisted answer after reload as analysis-only work", async () =>
     );
 
     expect(screen.getByText(/Your answer is saved. I couldn't prepare coaching just now/i)).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "Type your answer" })).toHaveValue("A saved answer.");
-    expect(screen.getByRole("textbox", { name: "Type your answer" })).toHaveAttribute("readonly");
+    expect(screen.queryByRole("textbox", { name: "Type your answer" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Submitted answer")).toHaveTextContent("A saved answer.");
     expect(fetch).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "Try coaching again" }));
@@ -647,9 +650,11 @@ it("continues from saved coaching to the next live question", async () => {
 
     expect(screen.getByRole("heading", { name: "First, here is what I heard." })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Explore feedback" }));
-    expect(await screen.findByRole("heading", { name: "What to strengthen" })).toBeInTheDocument();
+    const strengtheningHeading = await screen.findByRole("heading", { name: "What to strengthen" });
+    await waitFor(() => expect(strengtheningHeading).toHaveFocus());
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    expect(await screen.findByRole("heading", { name: "What to do next" })).toBeInTheDocument();
+    const nextStepHeading = await screen.findByRole("heading", { name: "What to do next" });
+    await waitFor(() => expect(nextStepHeading).toHaveFocus());
     fireEvent.click(screen.getByRole("button", { name: "Continue to next question" }));
 
     expect(await screen.findByRole("heading", { name: "Stored snapshot question for the second slot." })).toBeInTheDocument();

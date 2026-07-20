@@ -187,7 +187,10 @@ export function createCandidateAnswerHistoryRepository(client: CandidateAnswerHi
 
         async claimEvaluationRun(input: ClaimCandidateAnswerEvaluationRunInput): Promise<CandidateAnswerEvaluationRunWriteResult | null> {
             assertResolvedEvaluationConfiguration(input);
-            const result = await client.query(`
+            let uniqueConflictRetryCount = 0;
+            for (;;) {
+                try {
+                    const result = await client.query(`
                 with owned_attempt as materialized (
                   select attempt.candidate_answer_attempt_id
                   from public.candidate_answer_attempts attempt
@@ -364,7 +367,14 @@ export function createCandidateAnswerHistoryRepository(client: CandidateAnswerHi
                 CANDIDATE_ANSWER_ANALYSIS_GENERATION_LIMIT,
             ]);
 
-            return normalizeEvaluationRunWriteResult(result.rows[0]);
+                    return normalizeEvaluationRunWriteResult(result.rows[0]);
+                } catch (error) {
+                    if (readPostgresCode(error) !== "23505" || uniqueConflictRetryCount >= 1) {
+                        throw error;
+                    }
+                    uniqueConflictRetryCount += 1;
+                }
+            }
         },
 
         async listEvaluationRuns(input: {
@@ -570,4 +580,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function readNonNegativeInteger(value: unknown) {
     return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : null;
+}
+
+function readPostgresCode(error: unknown) {
+    if (!error || typeof error !== "object" || !("code" in error)) return null;
+    return typeof error.code === "string" ? error.code : null;
 }

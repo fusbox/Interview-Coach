@@ -4,6 +4,7 @@ import { createCandidatePracticeSessionRepository } from "./candidate-practice-s
 import { createCandidateQuestionPlan } from "./candidate-question-plan";
 import { createFixtureCandidateQuestionWordingResult } from "./candidate-question-wording";
 import type { CandidateLedSessionCompletionSnapshot } from "@/features/interview-session-v2/session-completion-contract";
+import { createCandidatePracticePlanBaseline } from "@/features/candidate-setup-v2/candidate-practice-plan-baseline";
 
 describe("candidate practice session repository", () => {
     it("stores a setup-created candidate practice session with traceable snapshots", async () => {
@@ -28,12 +29,14 @@ describe("candidate practice session repository", () => {
             setupSnapshot,
             questionPlanSnapshot,
         });
+        const baseline = createBaselineInput(setupSnapshot);
 
         await expect(repository.createSetupSession({
             candidateProfileId: "22222222-2222-4222-8222-222222222222",
             roleProfileId: "33333333-3333-4333-8333-333333333333",
             candidateLaunchSessionId: "44444444-4444-4444-8444-444444444444",
             setupSnapshot,
+            ...baseline,
             questionPlanSnapshot,
             questionWordingSnapshot,
             progress: {
@@ -63,6 +66,8 @@ describe("candidate practice session repository", () => {
             null,
             null,
             null,
+            baseline.rigorBaselineSnapshot,
+            baseline.rigorBaselineQuestionWordingSnapshot,
         ]);
     });
 
@@ -84,11 +89,13 @@ describe("candidate practice session repository", () => {
             interviewStage: "screening",
             questionCount: 5,
         });
+        const baseline = createBaselineInput(setupSnapshot);
 
         await repository.createSetupSession({
             candidateProfileId: "22222222-2222-4222-8222-222222222222",
             roleProfileId: "33333333-3333-4333-8333-333333333333",
             setupSnapshot,
+            ...baseline,
             questionPlanSnapshot,
             setupStartClaim: {
                 idempotencyKeyHash: "a".repeat(64),
@@ -121,6 +128,7 @@ describe("candidate practice session repository", () => {
             interviewStage: "screening",
             questionCount: 5,
         });
+        const baseline = createBaselineInput(setupSnapshot);
 
         await expect(repository.createSetupSession({
             candidateProfileId: "22222222-2222-4222-8222-222222222222",
@@ -128,6 +136,7 @@ describe("candidate practice session repository", () => {
             candidateLaunchSessionId: "44444444-4444-4444-8444-444444444444",
             consumeTrustedLaunchSetupContext: true,
             setupSnapshot,
+            ...baseline,
             questionPlanSnapshot,
         })).resolves.toEqual({
             candidatePracticeSessionId: "11111111-1111-4111-8111-111111111111",
@@ -676,3 +685,19 @@ describe("candidate practice session repository", () => {
         ]);
     });
 });
+
+function createBaselineInput(
+    setupSnapshot: Parameters<typeof createFixtureCandidateQuestionWordingResult>[0]["setupSnapshot"],
+) {
+    const rigorBaselineSnapshot = createCandidatePracticePlanBaseline(setupSnapshot.interviewStage);
+    return {
+        rigorBaselineSnapshot,
+        rigorBaselineQuestionWordingSnapshot: createFixtureCandidateQuestionWordingResult({
+            setupSnapshot: {
+                ...setupSnapshot,
+                questionCount: rigorBaselineSnapshot.questionCount,
+            },
+            questionPlanSnapshot: rigorBaselineSnapshot,
+        }),
+    };
+}

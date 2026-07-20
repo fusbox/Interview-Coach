@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { CandidatePracticeIntentRecord } from "@/features/candidate-practice-v2/candidate-follow-up-practice-intent";
 import type { CandidatePracticeIntentLaunchResult } from "@/features/candidate-practice-v2/candidate-practice-intent-launch-repository";
 import type { CreateCandidatePracticeSessionInput } from "@/features/candidate-session-v2/candidate-practice-session-repository";
-import { handleCandidatePracticeIntentStartRequest } from "./route";
+import { handleCandidatePracticeIntentStartRequest } from "./route-implementation";
 
 const NOW = new Date("2026-07-12T17:00:00.000Z");
 type StartRequestDependencies = Omit<

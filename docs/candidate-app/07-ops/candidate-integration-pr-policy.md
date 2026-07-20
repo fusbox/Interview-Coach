@@ -138,7 +138,7 @@ Before merge approval, reviewers should have evidence for:
 - `npm run test:candidate`
 - `npm run build`
 - candidate seeded DB/browser smoke in a controlled environment
-- recruiter/admin/QA route preservation, including `/recruiter`, `/recruiter/dashboard`, `/recruiter/templates`, `/recruiter/settings`, `/admin/feedback`, and `/qa/ai-quality`
+- recruiter/admin/QA route preservation, including `/recruiter`, `/recruiter/dashboard`, `/recruiter/settings`, `/admin/feedback`, and `/qa/ai-quality`, plus denial of the retired `/recruiter/templates` surface
 - no reintroduction of Supabase runtime dependencies for candidate persistence
 - no production use of Fu-Lab placeholder secrets or mirror-pipeline assumptions
 

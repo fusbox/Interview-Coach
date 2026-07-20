@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { CandidateNextRoundBuilderModel } from "@/features/candidate-practice-v2/candidate-next-round-builder";
 
-import { handleCandidateNextRoundDraftLaunchRequest } from "./route";
+import { handleCandidateNextRoundDraftLaunchRequest } from "./route-implementation";
 
 const roleProfileId = "10000000-0000-4000-8000-000000000001";
 

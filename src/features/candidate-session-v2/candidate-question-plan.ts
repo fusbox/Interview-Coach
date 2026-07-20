@@ -13,6 +13,8 @@ export type CandidateQuestionPlanSlot = {
     category: CandidateQuestionPlanCategory;
     label: string;
     purpose: string;
+    planQuestionId?: string;
+    coverageKind?: "baseline" | "supplemental";
 };
 
 export type CandidateQuestionPlan = {
@@ -194,6 +196,27 @@ export function createCandidateQuestionPlan({
         questionCount: normalizedQuestionCount,
         categoryCounts,
         slots,
+    };
+}
+
+export function createCandidateQuestionPlanFromSlots({
+    interviewStage,
+    slots,
+}: {
+    interviewStage: CandidateSetupStageId;
+    slots: CandidateQuestionPlanSlot[];
+}): CandidateQuestionPlan {
+    const categoryCounts = createEmptyCategoryCounts();
+    const normalizedSlots = slots.map((slot, index) => {
+        categoryCounts[slot.category] += 1;
+        return { ...slot, index };
+    });
+
+    return {
+        interviewStage,
+        questionCount: normalizedSlots.length,
+        categoryCounts,
+        slots: normalizedSlots,
     };
 }
 

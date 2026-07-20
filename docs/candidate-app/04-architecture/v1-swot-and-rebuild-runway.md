@@ -1,7 +1,7 @@
 # V1 SWOT And Rebuild Runway
 
 Status: Working architecture and operating reference
-Last updated: 2026-07-12
+Last updated: 2026-07-18
 
 ## Purpose
 
@@ -130,17 +130,69 @@ What remains is not another plumbing-first detour. The next gap is turning those
 - V1 routes candidate-led completion through a standalone summary. V2 routes candidate-led completion to `/candidate/dashboard`; invited completion may remain summary/debrief-oriented.
 - V1's interaction cadence is useful, but its feedback content and score-derived dashboard conclusions are not the V2 source of truth.
 - The refactor pack preferred adapting the existing shared runtime. The cleanroom rebuild may establish newly factored shared modules instead, provided candidate-led and invited flows derive from the same runtime facts and answer lifecycle rather than creating a third path.
-- V2 already carries cross-session practice lineage for repeated questions, recruiter engagement, and company reporting. It must now add immutable answer-attempt lineage within a question occurrence and separate evaluator-run lineage so feedback retries and model A/B runs are not conflated. Candidate-visible attempt treatment is deferred until a real trend or progress presentation is designed.
+- V2 carries cross-session question lineage, immutable answer attempts within a question occurrence, and separate evaluator-run lineage, so feedback retries, intentional repractice, and model A/B runs are not conflated. Candidate-visible attempt treatment remains deferred until a real trend or progress presentation is designed.
 
-## Recommended Runway
+## Slice 140 Integrated Read
 
-Good next commit milestone: finish the candidate session arc over the landed landing, shared-shell, and typed-answer contracts, then return to final dashboard information architecture.
+The earlier runway's lifecycle, evaluator, Coach Update, queue, and follow-up-launch work is now landed. The original refactor pack's candidate-side architecture phases are correspondingly advanced:
 
-1. Immutable in-session answer-attempt and evaluator-run lineage, with latest-answer compatibility reads and atomic mutation claims.
-2. Production evidence-first evaluator contract, provider policy, validation, redaction, observability, and QA capture.
-3. Staged evidence-first feedback using the useful V1 action cadence and append-only feedback retry.
-4. End-to-end completion and recovery validation into the selected-context candidate dashboard.
+| Original phase | V2 position after Slice 139 |
+| --- | --- |
+| Shared session experience | Shared runtime facts, shell, landing composition, and completion adapters exist for candidate-led use; invited routing and constraints have not converged. |
+| One answer lifecycle | Typed drafts, immutable submissions, feedback retries, evaluator runs, failure recovery, and exact resume state are durable. |
+| Canonical categories | Deterministic planning and production wording use the canonical category contract. |
+| Evidence-first contracts and evaluator | The first production Gemini profile, validation, redaction, telemetry, QA identity, and live gates are landed. |
+| Dashboard migration | Evidence-first read models, Coach Update, Coach Plan, Practice Next, queue, and immutable follow-up intents are landed; final presentation is not. |
+| Legacy retirement | Candidate V2 no longer needs V1 data compatibility, but V1 routes, invited runtime, compatibility redirects, and transitional fixtures still require deliberate disposition. |
 
-That candidate session milestone is now closed and opaque candidate-owned prep-context identity is authoritative through new setup sessions, follow-up intents/sessions, dashboard reads, and canonical navigation. Historical null-profile records retain an isolated title-keyed compatibility path; title text is no longer identity for profile-backed work.
+This means the shortest path to a credible candidate demo is no longer more domain scaffolding. It is productionizing the candidate-led text-practice surfaces without weakening the contracts underneath them.
 
-The current coherent arc is dashboard composition: first land the versioned Coach Update synthesis artifact, then the durable plan-aware builder/queue contract, and only then replace the scaffold with the stable dashboard shell. Attempt history, trend views, and analytics projections should follow only when those core surfaces make their product purpose clear.
+### V1 Disposition For The Production Surface Milestone
+
+- **Preserve:** pre-session entry; the fade into practice; one question at a time; visible round progress; exact current-question/draft/feedback recovery; question-audio prefetch and no-repeat intent for the later media phase; acknowledgement before detailed coaching; explore-or-skip feedback; feedback-driven retry; explicit continue/finish; and a clear completion destination.
+- **Reinterpret:** V1's visual workspace through the candidate design system; its candidate summary through dashboard Coach Update and Practice Next; its hints and strong-response material through accepted V2 evidence and reference contracts; and its invited/candidate completion branch through typed completion adapters.
+- **Retire:** separate candidate-led and invited answer engines; score-derived feedback and dashboard truth; a standalone candidate-led summary route; preview as a production session mode; setup as a follow-up destination; and a pause screen that replaces the candidate dashboard as the durable home.
+- **Defer:** TTS/voice/photo capture, invited initials and recruiter constraints, surveys, resume ingestion/revision, candidate attempt charts, model-comparison UI, and broader reference/settings surfaces. Their seams must remain possible, but they do not belong in the production-surface milestone.
+
+### Staged Artifact Intake
+
+The uncommitted `dashboard-demo`, `settings-demo`, and adjacent design documents are exploratory design work. They are not silently promoted into the product contract.
+
+| Artifact idea | Disposition | Reason |
+| --- | --- | --- |
+| Bento/grid-led dashboard composition, compact role context, sparse Coach Update entry, transcript canvas, and responsive sheet patterns | Preserve as design input | These can improve hierarchy and interaction without changing evidence meaning. |
+| Interactive transcript evidence spans | Reinterpret through accepted evaluator spans | Exact accepted offsets can support annotation; generated gap insertion, inferred filler, and hover-only explanations cannot be assumed. |
+| Preparedness gauge, radar, heatmap, `Strong`/`Emerging` rollups, and colored overall-round status | Retire from the milestone | They turn model bands or marker frequency into score-like conclusions and conflict with the evidence-first dashboard contract. |
+| Recruiter sharing, prepared badges, feedback strictness, destructive data controls, resume swapping/regeneration, and benchmark-oriented reference copy | Defer for separate contracts | Each changes privacy, evaluation, retention, or question-lineage behavior and requires explicit product and security decisions. |
+| Simulated alerts, mock data, client-only export/delete, and false real-time AI stage logs | Retire as runtime behavior | A production surface must call durable boundaries and describe only work the runtime can prove. |
+
+### Ratified Slices 141-144
+
+1. **Typed session productionization:** finish responsive question, draft, evaluation, immediate feedback, retry, failure, recovery, exit, and completion presentation over `SharedLivePracticeShell`; do not add media or change evaluator behavior.
+2. **Dashboard home productionization:** replace the scaffold with the stable state-priority shell over the existing read model, using the prototype only for safe visual composition.
+3. **Dashboard work-surface productionization:** finish Coach Update detail, Coach Plan, Practice Next, and the durable builder/queue with truthful responsive, accessibility, and failure states.
+4. **Integrated milestone acceptance:** prove the candidate-led typed journey end to end in fixture and guarded live-provider modes across mobile and desktop, then run the senior milestone gate.
+
+This is one commit-scale milestone because all four slices change the presentation of the same already-integrated candidate loop. It explicitly excludes resume/media, invited convergence, host staging acceptance, QA reviewer tooling, settings/reference expansion, and speculative longitudinal charts.
+
+### Later Phase Order
+
+After the candidate-led production-surface milestone, choose the next phase from release need rather than proximity of prototype files:
+
+1. App-owned recruiter login, route ownership, and the standalone invite-creation/handoff baseline.
+2. Invited-candidate convergence over the shared session kernel and intentional debrief destination.
+3. Real TA host-launch and deployment acceptance plus release operations as an externally gated parallel track.
+4. Recruiter dashboard/settings, then approved TA recruiter launch, candidate/job prefill, and messaging handback.
+5. Resume file/photo ingestion plus production TTS/voice/media with their privacy and recovery contracts.
+6. QA reviewer/model-comparison workflow, technical-reference governance, longitudinal views, BI projections, admin disposition, and legacy retirement.
+
+## Slice 147 Recruiter Pivot
+
+The candidate-led production milestone cleared the condition that previously deferred recruiter route migration. Time constraints and missing host-owned launch details now favor a standalone recruiter V2 baseline rather than more speculative candidate integration work.
+
+- **Preserve:** V1 Postgres app-owned auth concepts, recruiter route ownership, create/batch workflows, invite persistence and retries, dashboard status, invite-token entry, and initials mismatch signaling.
+- **Reinterpret:** V1 modules through current V2 design, ownership, idempotency, question, session, attempt, evaluator, and completion contracts; email delivery gains explicit per-recipient outcomes while copy-link plus copy-message remain operational fallback affordances.
+- **Retire:** recruiter question templates, duplicate invited/candidate answer engines, legacy score-derived feedback, and V1 data compatibility. App-owned email retires only after TalentArbor replaces bulk delivery and required evidence.
+- **Defer:** TA recruiter launch and authorized prefill, TalentArbor messaging handback/API, admin/QA migration, media, and longitudinal reporting until the standalone invite journey is stable.
+
+Candidate host-launch mechanics establish a useful security pattern but do not prove recruiter identity or authorization. See [Recruiter V2 Delivery And Host Integration](./recruiter-v2-delivery-and-host-integration.md).

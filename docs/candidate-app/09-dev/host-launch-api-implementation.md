@@ -9,6 +9,8 @@ This is the execution guide for launching Interview Coach from an authenticated 
 
 The first implementation target is TalentArbor. RangamWorks should use the same app-facing adapter contract but remains fail-closed until its candidate identity namespace is confirmed.
 
+This guide is candidate-specific. Candidate launch establishes a reusable exchange pattern but does not authenticate recruiters. The future recruiter boundary is governed by [Recruiter V2 Delivery And Host Integration](../04-architecture/recruiter-v2-delivery-and-host-integration.md).
+
 ## Exchange Contract
 
 The host backend mints a fresh HS256 JWT when the authenticated candidate clicks Interview Coach. The browser redirects to:
@@ -189,3 +191,11 @@ Live staging acceptance is governed by [TalentArbor Host Launch Live Acceptance]
 - TA deployment network path and least-privilege MSSQL credentials.
 - Authoritative current-resume selection and retention rules.
 - RW candidate identity mapping before enabling the RW adapter.
+
+## Rebuild Pivot Checkpoint
+
+No further speculative launch implementation is required before work resumes on recruiter and invited-candidate V2. The IC-side candidate verifier, replay boundary, app-session exchange, TA MSSQL adapter, trusted job setup staging, and live acceptance harness are already present.
+
+The remaining TalentArbor work requires host-owned facts or deployed evidence: final claims and issuer/source values, mint-per-click behavior, secret rotation, network and least-privilege credentials, ingress query redaction, and fresh host-minted staging tokens. Keep those as release gates and do not fabricate them locally.
+
+Do not broaden `/candidate/launch` into a shared employee endpoint while waiting. A recruiter launch needs a distinct principal, entitlement and resource-authorization contract, route, cookie, and explicit external-identity mapping.

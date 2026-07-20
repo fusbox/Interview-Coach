@@ -1,4 +1,5 @@
 import type { CandidateCoachUpdateArtifactRecord } from "./candidate-coach-update-artifact";
+import type { CandidateTranscriptCanvasProjection } from "./candidate-transcript-canvas";
 import type { CandidateFollowUpPracticeIntentKind } from "@/features/candidate-practice-v2/candidate-follow-up-practice-intent";
 
 export type CandidateCoachUpdateDetail = {
@@ -27,6 +28,7 @@ export type CandidateCoachUpdateQuestionDetail = {
         text: string;
         submittedAt: string;
     };
+    transcriptCanvas: CandidateTranscriptCanvasProjection | null;
     coachRead: {
         acknowledgement: string;
         observation: string;
@@ -119,6 +121,7 @@ function toQuestionDetail({
             text: question.answer.text,
             submittedAt: question.answer.submittedAt,
         },
+        transcriptCanvas: "transcriptCanvas" in question ? question.transcriptCanvas : null,
         coachRead: question.coaching,
         comparison: question.comparison,
         actionPosture,

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import type { CandidateDashboardV2ReadModel } from "@/features/candidate-dashboard-v2/candidate-dashboard-read-model";
-import CandidateDashboardPage, { getCandidateDashboardRuntimeSslConfig, renderCandidateDashboardPage } from "./page";
+import CandidateDashboardPage, { getCandidateDashboardRuntimeSslConfig, renderCandidateDashboardPage } from "./CandidateDashboardRoute";
 
 vi.mock("next/navigation", () => ({
     redirect: vi.fn(),
@@ -146,7 +146,7 @@ it("renders the V2 dashboard read boundary when completed-round facts are availa
         },
     }));
 
-    expect(screen.getByRole("heading", { name: "Your interview practice, connected." })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Material Handler I" })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Signed in as Candidate One" })).toHaveTextContent("CO");
     expect(screen.getByText("Coach Update")).toBeInTheDocument();
     expect(screen.getByText("The latest round is complete.")).toBeInTheDocument();
@@ -417,6 +417,7 @@ it("opens the exact Coach Update artifact from the sparse feedback card", async 
                                 text: "I checked the shipment records before updating the inventory sheet.",
                                 submittedAt: "2026-07-11T12:01:00.000Z",
                             },
+                            transcriptCanvas: null,
                             coachRead: {
                                 acknowledgement: "You chose a relevant work example.",
                                 observation: "Your answer includes the task, but the result is still missing.",
@@ -531,7 +532,7 @@ it("opens the exact Coach Update artifact from the sparse feedback card", async 
     expect(within(detail).queryByRole("link", { name: "Practice this question" })).not.toBeInTheDocument();
     expect(JSON.stringify(detail.textContent)).not.toMatch(/score|oneBigUpgrade|percentile|pass|fail/i);
 
-    const priorities = screen.getByRole("region", { name: "Coach Plan priorities" });
+    const priorities = screen.getByRole("region", { name: "Practice priorities" });
     expect(within(priorities).getByRole("heading", { name: "Add the result of the inventory count." }).closest("article"))
         .toHaveClass("is-primary");
 });
@@ -646,7 +647,7 @@ it("renders selected target interview context and switch links", async () => {
     }));
 
     expect(screen.getByText("Preparing for")).toBeInTheDocument();
-    expect(screen.getAllByText("CSR")).toHaveLength(2);
+    expect(screen.getByRole("heading", { name: "CSR" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Packaging Associate/i })).toHaveAttribute(
         "href",
         "/candidate/dashboard?prep=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",

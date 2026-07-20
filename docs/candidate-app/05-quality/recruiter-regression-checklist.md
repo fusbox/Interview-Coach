@@ -27,8 +27,9 @@ If the PR only changes isolated candidate docs, mark this checklist as not appli
 - `/` remains public and candidate-owned.
 - `/practice`, `/dashboard`, `/session/[sessionId]`, and `/summary/[sessionId]` remain candidate-auth protected.
 - `/recruiter` still lands on the recruiter create experience.
-- `/recruiter/dashboard`, `/recruiter/create`, `/recruiter/templates`, `/recruiter/settings`, `/admin/feedback`, and `/qa/ai-quality` keep their current ownership and auth requirements.
-- `/s/[token]` still uses recruiter invite-token access and is not claimed by candidate SSO routes.
+- `/recruiter/dashboard`, `/recruiter/create`, `/recruiter/settings`, `/admin/feedback`, and `/qa/ai-quality` keep their current ownership and auth requirements.
+- `/recruiter/templates` does not restore or expose the retired V1 template surface.
+- `/s/[token]` still uses recruiter invitation-token access, exchanges to clean `/candidate/invited`, and is not claimed by candidate SSO routes.
 - New top-level routes are checked against [Shared Host Routing Contract](../04-architecture/shared-host-routing-contract.md).
 
 ## Auth And Cookie Checks
@@ -42,10 +43,22 @@ If the PR only changes isolated candidate docs, mark this checklist as not appli
 ## Data And API Checks
 
 - Candidate-owned reads never return recruiter dashboard/session data.
-- Recruiter invite-token reads still work for `/s/[token]`.
+- Recruiter invite-token reads still work for `/s/[token]`; raw tokens do not survive in the clean URL, client payload, cookie, or diagnostics.
+- Invite-session cookies do not authorize candidate-led or employee routes, and those actors' cookies do not authorize `/candidate/invited`.
+- Initials match and mismatch both proceed; the first signal is durable, cannot be rewritten, and is not identity proof.
 - Shared APIs resolve actor/ownership explicitly when used by both candidate and recruiter surfaces.
 - New candidate persistence does not change recruiter-owned table constraints without a migration and smoke plan.
 - Resume or candidate answer content is not logged or emitted as ordinary telemetry.
+- Invitation creation remains separate from delivery; creating or copying an invite never marks it sent.
+- Bulk delivery sends one candidate-specific bearer link per provider message and never uses BCC.
+- Provider-accepted recipients are not resent by exact replay or a later retry action.
+- Only retryable failed or never-attempted recipients receive a new append-only delivery attempt.
+- Indeterminate provider outcomes are labeled for review and are not automatically retried.
+- Delivery telemetry excludes invite tokens, message bodies, candidate content, and raw provider responses.
+- The recruiter dashboard selects only operational facts owned by the signed-in recruiter; it does not select answer text, coaching, evaluator payloads, provider references, or bearer/session material.
+- Dashboard question progress counts distinct answered slots, so feedback retries do not inflate progress.
+- `/recruiter/sessions/[sessionId]` independently proves session, recipient, and batch ownership before showing the immutable question set and latest submitted response per question.
+- The recruiter transcript never shows drafts, superseded retry text, candidate coaching, evaluator output, engagement timing, candidate-led content, or bearer/session material.
 
 ## UI And Asset Checks
 
@@ -75,6 +88,16 @@ Run recruiter e2e smoke when the PR touches recruiter routes, shared auth, share
 
 ```powershell
 npx playwright test e2e/recruiter/create-invite.spec.ts e2e/recruiter/manage-invites.spec.ts --workers=1
+```
+
+For the V2 recruiter create/delivery boundary, also run:
+
+```powershell
+npm run test:recruiter-invites
+npm run db:smoke-recruiter-invitation-create
+npm run db:smoke-recruiter-invitation-delivery
+npm run db:smoke-recruiter-dashboard
+npm run db:smoke-recruiter-transcript
 ```
 
 ## PR Description Copy
