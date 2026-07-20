@@ -22,3 +22,26 @@ export function resolveRecruiterInvitationAppOrigin(
 
     return url.origin;
 }
+
+export function resolveRecruiterInvitationAppOriginFromRequest(
+    request: Pick<Request, "url" | "headers">,
+    env: AppOriginEnv = process.env,
+) {
+    if (env.NODE_ENV === "production") {
+        return resolveRecruiterInvitationAppOrigin(request.url, env);
+    }
+
+    const requestUrl = new URL(request.url);
+    const host = firstForwardedValue(
+        request.headers.get("x-forwarded-host") ?? request.headers.get("host"),
+    );
+    if (!host) return resolveRecruiterInvitationAppOrigin(request.url, env);
+
+    const protocol = firstForwardedValue(request.headers.get("x-forwarded-proto"))
+        ?? requestUrl.protocol.replace(/:$/, "");
+    return resolveRecruiterInvitationAppOrigin(`${protocol}://${host}`, env);
+}
+
+function firstForwardedValue(value: string | null) {
+    return value?.split(",", 1)[0]?.trim() || null;
+}

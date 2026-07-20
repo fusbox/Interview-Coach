@@ -17,7 +17,7 @@ import {
 } from "@/features/recruiter-invites-v2/recruiter-invitation-delivery-service";
 import { createRecruiterInvitationRepository } from "@/features/recruiter-invites-v2/recruiter-invitation-repository";
 import { createInvitedPracticeTokenVault } from "@/features/recruiter-invites-v2/invited-practice-token-vault";
-import { resolveRecruiterInvitationAppOrigin } from "@/features/recruiter-invites-v2/recruiter-invitation-app-origin";
+import { resolveRecruiterInvitationAppOriginFromRequest } from "@/features/recruiter-invites-v2/recruiter-invitation-app-origin";
 
 const MAX_DELIVERY_REQUEST_BYTES = 16_384;
 
@@ -100,7 +100,7 @@ async function defaultDeliverInvitations(
 }
 
 function defaultResolveAppOrigin(request: NextRequest) {
-    return resolveRecruiterInvitationAppOrigin(request.url);
+    return resolveRecruiterInvitationAppOriginFromRequest(request);
 }
 
 function jsonError(status: number, code: string, message: string, retryable = false) {

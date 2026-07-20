@@ -1,6 +1,6 @@
 # Invited Practice Live Runtime
 
-Status: Implemented and verified in Slice 153
+Status: Implemented in Slice 153; terminal behavior extended in Slice 158
 Last updated: 2026-07-20
 
 ## Purpose
@@ -50,11 +50,11 @@ Refresh and a second tab recover the exact durable state:
 - a saved draft remains editable;
 - an accepted answer remains locked while coaching is pending, retryable, unavailable, or ready;
 - a persisted feedback-retry action reopens the latest answer as the next draft without erasing its source attempt;
-- `completed` returns a simple invited completion acknowledgement.
+- `completed` returns the candidate-only debrief defined by the [Invited Practice Completion And Repeat](./invited-practice-completion-and-repeat.md) contract.
 
 ## Completion Boundary
 
-Finishing the last question writes an `invited_session_completed` snapshot and terminal progress through the invited session owner. It does not generate a candidate Coach Update, candidate dashboard record, recruiter read model, debrief, rating, practice-again attempt, or email event. Those require separate product and visibility contracts.
+Finishing the last question writes an `invited_session_completed` snapshot and terminal progress through the invited session owner. It does not generate a candidate Coach Update, candidate dashboard record, rating, or email event. Candidate-only debrief recovery and whole-session practice again are separate terminal operations over these durable facts; they do not broaden recruiter visibility.
 
 ## Slice 153 Acceptance
 
@@ -68,8 +68,7 @@ Finishing the last question writes an `invited_session_completed` snapshot and t
 ## Deferred
 
 - recruiter dashboard and answer-visibility reads;
-- invited debrief and optional non-gating experience feedback;
-- whole-session practice again and attempt creation;
+- optional non-gating experience feedback;
 - token regeneration/revocation UI;
 - production TTS, voice, and photo modes;
 - retention schedules and production edge-log proof.

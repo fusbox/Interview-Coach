@@ -64,7 +64,7 @@ The handoff invokes the existing batch delivery command. The browser does not se
 ## Token And Copy Boundary
 
 - A link is recoverable only when the batch and recipient are ready, the active token is not revoked or expired, and the configured encryption key authenticates the ciphertext.
-- Nonproduction link recovery uses the current request host and port so LAN and alternate-port validation remain usable; production ignores request-host input and requires the configured public HTTPS origin.
+- Nonproduction create, delivery, and link recovery use the browser-facing direct or first forwarded request host and port so LAN and alternate-port validation remain usable; they never emit Next's internal `0.0.0.0` bind address when the browser used another host. Production ignores request-host input and requires the configured public HTTPS origin.
 - An accepted delivery may outlive link availability. In that case the provider-accepted fact remains visible but copy controls are unavailable.
 - Token decryption failure is a key-availability/support condition. The handoff does not reveal the ciphertext and does not present an eligible send action for that recipient.
 - The browser receives only the final link/message needed by this authorized detail. Raw token fields never enter serialized props, logs, telemetry, dashboard rows, or API delivery responses.
@@ -104,4 +104,4 @@ The handoff invokes the existing batch delivery command. The browser does not se
 - provider-side lookup or human authorization for `outcome_unknown`;
 - bounce/webhook reconciliation and mailbox-delivery claims;
 - recruiter settings/signatures, host launch, TalentArbor messaging handback;
-- invited debrief, whole-session practice again, and admin/QA surfaces.
+- admin/QA surfaces.

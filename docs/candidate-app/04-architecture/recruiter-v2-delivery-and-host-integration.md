@@ -126,6 +126,8 @@ Slice 151 adds delivery as a separate recruiter-owned command over an already-cr
 
 Each recipient is delivered separately even when the recruiter invokes one bulk action. V1's one-message BCC pattern is retired because candidate-specific bearer links cannot safely share one message. The provider adapter retains the useful V1 SMTP settings and Nodemailer seam, but configuration absence is now an explicit failure rather than a successful no-op. Recruiter CC is also retired from the default path so candidate bearer links are not copied into another mailbox merely to provide delivery evidence.
 
+SMTP connection, greeting, and socket waits are bounded, and the adapter requires TLS 1.2 or newer. A transport failure with no trustworthy provider outcome remains quarantined rather than automatically retried.
+
 `recruiter_invitation_delivery_attempts` provides one durable identity for every provider invocation:
 
 - `queued` means the action has been claimed but no provider call has started;
@@ -148,7 +150,7 @@ The create flow's immediate result is not the only recovery boundary. One separa
 
 The handoff reuses the existing batch delivery command rather than adding a resend endpoint. Never-attempted and retryable-failed recipients are eligible, stale queued claims follow the five-minute recovery rule, and accepted, actively queued/sending, unknown-outcome, non-retryable, revoked, expired, or key-unavailable recipients are suppressed. See [Recruiter Invitation Handoff Read Contract](./recruiter-invitation-handoff-read-contract.md).
 
-Local development may select the deterministic `fixture` adapter explicitly. Production requires `smtp` plus valid SMTP credentials and fails closed for any other configuration. Fixture acceptance proves application lifecycle behavior only; a credentialed SMTP acceptance run remains separate deployment evidence.
+Local development may select the deterministic `fixture` adapter explicitly. Production requires `smtp` plus valid SMTP credentials and fails closed for any other configuration. Fixture acceptance proves application lifecycle behavior only; a credentialed SMTP acceptance run remains separate deployment evidence. Use the guarded [Recruiter SMTP Live Validation](../05-quality/recruiter-smtp-live-validation-runbook.md) gate to send one synthetic invitation through the same V2 service, recover the accepted ledger state through fresh recruiter reads, and prove accepted-recipient resend suppression. Provider acceptance must remain distinct from mailbox delivery.
 
 ## Future Recruiter Host Launch
 
@@ -194,8 +196,8 @@ Keep these as release gates. Do not invent their values or hold the recruiter re
 
 1. **Recruiter foundation (landed):** Nodemailer is on `9.0.3`; app-owned login/logout, hashed revocable sessions, role guards, `/recruiter/*` route ownership, audit events, safe return targets, and a local-only test recruiter are restored.
 2. **Invite creation and delivery (landed):** the atomic invite-scoped recipient/session/token persistence foundation, simplified authenticated fixed-slot create UI/API, append-on-retry per-recipient delivery attempts, partial-failure retry, accepted-recipient suppression, and copy-link/copy-message affordances are landed. Credentialed SMTP acceptance and later bounce/webhook reconciliation remain operational evidence, not creation semantics.
-3. **Invited candidate convergence (core landed):** `/s/[token]`, invite-scoped access, initials signal, invited landing, shared V2 live session, durable completion acknowledgement, and recruiter-visibility boundaries are landed. Invited debrief and whole-session practice-again remain.
-4. **Recruiter operations (core landed):** invite/session status, factual progress and attempt context, employer-safe latest-answer transcript, and owner-fenced reopenable handoff/retry controls are landed without exposing candidate-led private practice. Credentialed SMTP evidence and settings remain.
+3. **Invited candidate convergence (landed):** `/s/[token]`, invite-scoped access, initials signal, invited landing, shared V2 live session, candidate-only debrief, immutable whole-session practice again, and recruiter-visibility boundaries are landed. Broader browser/release evidence remains.
+4. **Recruiter operations (core landed):** invite/session status, factual progress and attempt context, employer-safe latest-answer transcript, owner-fenced reopenable handoff/retry controls, and the single-consumer candidate-facing display-name setting are landed without exposing candidate-led private practice. Credentialed SMTP evidence remains.
 5. **Host integration:** add recruiter external identity, `/recruiter/launch`, authorized TA prefill, and messaging handback only after the host contracts are known.
 6. **Admin and QA:** rebuild privileged surfaces against V2 evidence and comparison contracts after the core recruiter journey is stable.
 
@@ -215,7 +217,7 @@ Keep these as release gates. Do not invent their values or hold the recruiter re
 ## Open Decisions
 
 - Final recruiter account provisioning, password reset, MFA, administrator unlock, and support policy. The current ten-attempt/fifteen-minute lock is a bounded standalone baseline, not the final enterprise identity policy.
-- Minimum recruiter V2 surface set for the first demo: create, dashboard, and settings need a commit-scale inventory. Templates are explicitly retired.
+- The minimum standalone recruiter V2 surface set for the first demo is now create, dashboard, transcript, invitation handoff, and the single-consumer settings page. Templates are explicitly retired; any additional settings or operational surface requires a defined consumer and separate contract.
 - Recruiter visibility into invited answers and factual transcripts, including disclosure and retention.
 - Whether TalentArbor can accept a messaging deep link, structured draft handoff, or server-to-server send request.
 - Which provider-level status constitutes `sent`, which delivery/bounce events are available, and their retention policy.

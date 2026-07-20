@@ -46,6 +46,12 @@ describe("recruiter invitation delivery provider", () => {
         });
 
         await expect(provider.send(sendInput())).resolves.toEqual({ providerReferenceId: "provider-message-1" });
+        expect(createTransport).toHaveBeenCalledWith(expect.objectContaining({
+            connectionTimeout: 10_000,
+            greetingTimeout: 10_000,
+            socketTimeout: 30_000,
+            tls: { minVersion: "TLSv1.2" },
+        }));
         expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({
             to: "irma@example.com",
             messageId: "<invite-attempt-1@coach.rangam.com>",

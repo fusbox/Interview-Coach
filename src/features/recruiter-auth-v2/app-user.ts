@@ -17,6 +17,7 @@ export function canAccessRecruiterRoutes(user: AppUser): boolean {
 }
 
 export function getAppUserDisplayName(user: AppUser): string {
-    return user.displayName
-        ?? ([user.firstName, user.lastName].filter(Boolean).join(" ") || user.email);
+    const displayName = user.displayName?.trim();
+    if (displayName) return displayName;
+    return [user.firstName?.trim(), user.lastName?.trim()].filter(Boolean).join(" ") || user.email;
 }

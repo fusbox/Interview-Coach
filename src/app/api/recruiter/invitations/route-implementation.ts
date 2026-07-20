@@ -26,7 +26,7 @@ import { createRecruiterInvitationRepository } from "@/features/recruiter-invite
 import { createInvitedPracticeTokenVault } from "@/features/recruiter-invites-v2/invited-practice-token-vault";
 import { createRecruiterInvitationCopyMessage } from "@/features/recruiter-invites-v2/recruiter-invitation-message";
 import { getAppUserDisplayName } from "@/features/recruiter-auth-v2/app-user";
-import { resolveRecruiterInvitationAppOrigin } from "@/features/recruiter-invites-v2/recruiter-invitation-app-origin";
+import { resolveRecruiterInvitationAppOriginFromRequest } from "@/features/recruiter-invites-v2/recruiter-invitation-app-origin";
 
 const MAX_REQUEST_BYTES = 3_000_000;
 const DEFAULT_INVITE_TOKEN_TTL_SECONDS = 14 * 24 * 60 * 60;
@@ -181,7 +181,7 @@ function mapCreateError(error: unknown) {
 }
 
 function defaultResolveAppOrigin(request: NextRequest) {
-    return resolveRecruiterInvitationAppOrigin(request.url);
+    return resolveRecruiterInvitationAppOriginFromRequest(request);
 }
 
 function resolveInviteTokenTtlSeconds(value: string | undefined) {

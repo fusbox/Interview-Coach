@@ -65,8 +65,7 @@ export function createRecruiterInvitationHandoffRepository(client: RecruiterInvi
                          owned_token.expires_at,
                          owned_token.revoked_at
                   from public.invited_practice_access_tokens owned_token
-                  where owned_token.invited_practice_session_id = session.invited_practice_session_id
-                    and owned_token.recruiter_invitation_recipient_id = recipient.recruiter_invitation_recipient_id
+                  where owned_token.recruiter_invitation_recipient_id = recipient.recruiter_invitation_recipient_id
                   order by (owned_token.revoked_at is null) desc, owned_token.created_at desc
                   limit 1
                 ) token on true

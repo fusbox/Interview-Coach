@@ -376,7 +376,10 @@ export function CandidatePlannedSessionExperience({
         <CandidatePracticeEntryTransitionOverlay isReleasing={entryTransitionPhase === "releasing"} />
     ) : null;
     const completionTransition = isCompletingSession ? (
-        <CandidatePracticeEntryTransitionOverlay isReleasing={false} mode="completion" />
+        <CandidatePracticeEntryTransitionOverlay
+            isReleasing={false}
+            mode={completionBehavior?.kind === "invited_debrief" ? "summary" : "coach_plan"}
+        />
     ) : null;
 
     if (!hasCheckedStorage) {

@@ -5,6 +5,7 @@ import {
     exchangeInvitedPracticeLink,
     InvalidInvitedPracticeInitialsError,
     normalizeInvitedPracticeInitials,
+    repeatInvitedPractice,
     resolveInvitedPracticeEntry,
 } from "./invited-practice-entry-service";
 
@@ -54,6 +55,7 @@ describe("invited practice entry service", () => {
             targetRole: "Quality Inspector",
             interviewStage: "screening",
             questionCount: 1,
+            sessionAttemptNumber: 1,
             sessionStatus: "planned",
             initialsConfirmed: false,
         });
@@ -94,6 +96,55 @@ describe("invited practice entry service", () => {
             initials: "123",
         }, repository)).rejects.toBeInstanceOf(InvalidInvitedPracticeInitialsError);
     });
+
+    it("creates a fresh clean browser context for a replay-safe repeated attempt", async () => {
+        const repository = repositoryMock();
+        repository.advanceCompletedAttempt.mockResolvedValue({
+            outcome: "created",
+            sessionId: "30000000-0000-4000-8000-000000000002",
+            browserSessionExpiresAt: "2026-07-27T00:00:00.000Z",
+        });
+
+        await expect(repeatInvitedPractice({
+            rawBrowserSessionToken: "s".repeat(43),
+            expectedParentSessionId: "30000000-0000-4000-8000-000000000001",
+            now: new Date("2026-07-20T00:00:00.000Z"),
+            accessTtlSeconds: 604_800,
+        }, {
+            repository,
+            createSessionId: () => "30000000-0000-4000-8000-000000000002",
+            createBrowserSessionMaterial: () => ({
+                browserSessionId: "10000000-0000-4000-8000-000000000002",
+                rawSessionToken: "n".repeat(43),
+                sessionTokenHash: "c".repeat(64),
+            }),
+        })).resolves.toEqual({
+            outcome: "created",
+            sessionId: "30000000-0000-4000-8000-000000000002",
+            rawBrowserSessionToken: "n".repeat(43),
+            expiresAt: "2026-07-27T00:00:00.000Z",
+        });
+        expect(repository.advanceCompletedAttempt).toHaveBeenCalledWith(expect.objectContaining({
+            expectedParentSessionId: "30000000-0000-4000-8000-000000000001",
+            newSessionId: "30000000-0000-4000-8000-000000000002",
+            newBrowserSessionTokenHash: "c".repeat(64),
+        }));
+    });
+
+    it("returns terminal repeat conflicts without exposing new browser material", async () => {
+        const repository = repositoryMock();
+        repository.advanceCompletedAttempt.mockResolvedValue({
+            outcome: "stale_parent",
+            sessionId: null,
+            browserSessionExpiresAt: null,
+        });
+        await expect(repeatInvitedPractice({
+            rawBrowserSessionToken: "s".repeat(43),
+            expectedParentSessionId: "30000000-0000-4000-8000-000000000001",
+            now: new Date("2026-07-20T00:00:00.000Z"),
+            accessTtlSeconds: 604_800,
+        }, { repository })).resolves.toEqual({ outcome: "stale_parent" });
+    });
 });
 
 function repositoryMock() {
@@ -101,6 +152,7 @@ function repositoryMock() {
         exchangeInvitationToken: vi.fn(),
         resolveBrowserSession: vi.fn(),
         confirmInitials: vi.fn(),
+        advanceCompletedAttempt: vi.fn(),
     };
 }
 
@@ -110,6 +162,7 @@ function context() {
         browserSessionExpiresAt: "2026-07-27T00:00:00.000Z",
         sourceTokenExpiresAt: "2026-08-03T00:00:00.000Z",
         sessionId: "30000000-0000-4000-8000-000000000001",
+        sessionAttemptNumber: 1,
         recipientId: "40000000-0000-4000-8000-000000000001",
         recruiterId: "20000000-0000-4000-8000-000000000001",
         firstName: "Irma",

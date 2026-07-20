@@ -1,21 +1,23 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function RecruiterLogoutButton() {
-    const router = useRouter();
+export function RecruiterLogoutButton({ navigate = replaceDocument }: {
+    navigate?: (target: string) => void;
+} = {}) {
     const [submitting, setSubmitting] = useState(false);
 
     async function logout() {
         setSubmitting(true);
         try {
-            const response = await fetch("/api/auth/logout", { method: "POST" });
+            const response = await fetch("/api/auth/logout", {
+                method: "POST",
+                credentials: "same-origin",
+            });
             if (!response.ok) return;
-            router.replace("/login");
-            router.refresh();
+            navigate("/login");
         } finally {
             setSubmitting(false);
         }
@@ -34,4 +36,8 @@ export function RecruiterLogoutButton() {
             {submitting ? "Signing out" : "Sign out"}
         </Button>
     );
+}
+
+function replaceDocument(target: string) {
+    window.location.replace(target);
 }

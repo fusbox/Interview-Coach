@@ -75,9 +75,38 @@ describe("recruiter invitations API", () => {
         expect(response.headers.get("cache-control")).toBe("private, no-store");
         expect(body.recipients[0].inviteLink).toBe("https://interviewcoach.example/s/secret-token");
         expect(body.recipients[0].copyMessage).toContain("https://interviewcoach.example/s/secret-token");
+        expect(body.recipients[0].copyMessage).toContain("Recruiter Settings Name");
         expect(body.recipients[0].copyMessage).toContain("does not make hiring decisions");
         expect(body.recipients[0]).not.toHaveProperty("rawToken");
         expect(createInvitations).toHaveBeenCalledWith(RECRUITER_ID, expect.objectContaining({ questionSetId: QUESTION_SET_ID }));
+    });
+
+    it("uses the browser-facing development host instead of Next's bind address", async () => {
+        const createInvitations = vi.fn().mockResolvedValue({
+            outcome: "created",
+            batchId: "batch-1",
+            targetRole: "Quality Inspector",
+            recipients: [{
+                recipientId: "recipient-1",
+                sessionId: "session-1",
+                firstName: "Irma",
+                lastName: "Castillo",
+                email: "irma@example.com",
+                rawToken: "secret-token",
+                tokenExpiresAt: "2026-08-02T00:00:00.000Z",
+            }],
+        });
+        const response = await createRecruiterInvitationsRouteHandler({
+            resolveAccess: authorizedAccess,
+            createInvitations,
+        })(new NextRequest("http://0.0.0.0:3001/api/recruiter/invitations", {
+            method: "POST",
+            headers: { "content-type": "application/json", Host: "localhost:3001" },
+            body: JSON.stringify(createBody()),
+        }));
+        const body = await response.json();
+
+        expect(body.recipients[0].inviteLink).toBe("http://localhost:3001/s/secret-token");
     });
 
     it("rejects unknown fields that could imply body-owned recruiter identity", async () => {
@@ -110,6 +139,7 @@ async function authorizedAccess() {
         user: {
             id: RECRUITER_ID,
             email: "recruiter@example.com",
+            displayName: "Recruiter Settings Name",
             status: "active" as const,
             roles: ["recruiter" as const],
         },

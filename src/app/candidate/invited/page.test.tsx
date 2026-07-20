@@ -39,6 +39,7 @@ function entry(overrides: Record<string, unknown> = {}) {
         targetRole: "Quality Inspector",
         interviewStage: "screening" as const,
         questionCount: 5,
+        sessionAttemptNumber: 1,
         sessionStatus: "planned" as const,
         initialsConfirmed: false,
         ...overrides,
@@ -49,6 +50,26 @@ function state(overrides: Record<string, unknown> = {}) {
     return {
         entry: entry(overrides),
         initialSession: session(),
+        completedDebrief: {
+            sessionId: "30000000-0000-4000-8000-000000000001",
+            sessionAttemptNumber: 1,
+            targetRole: "Quality Inspector",
+            questionCount: 1,
+            answeredCount: 1,
+            coachedCount: 1,
+            questions: [{
+                slotId: "slot-1",
+                questionNumber: 1,
+                categoryLabel: "Screening",
+                questionText: "Why are you interested in this role?",
+                answerText: "I enjoy quality-focused work.",
+                coaching: {
+                    acknowledgement: "You connected your interest to the work.",
+                    observation: "A specific example would make the answer clearer.",
+                    nextPracticeFocus: "Add one example from your experience.",
+                },
+            }],
+        },
     };
 }
 

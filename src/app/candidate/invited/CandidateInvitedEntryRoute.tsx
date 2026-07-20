@@ -11,6 +11,10 @@ import {
 import { createInvitedPracticeQueryClientFromEnv } from "@/features/recruiter-invites-v2/invited-practice-postgres-runtime";
 import { createInvitedPracticeSessionRuntimeRepository } from "@/features/recruiter-invites-v2/invited-practice-session-runtime-repository";
 import { createInvitedPracticeAnswerHistoryRepository } from "@/features/recruiter-invites-v2/invited-practice-answer-history-repository";
+import {
+    createInvitedPracticeDebrief,
+    type InvitedPracticeDebrief,
+} from "@/features/recruiter-invites-v2/invited-practice-debrief";
 import { toInvitedPracticeSharedSessionRecord } from "@/features/recruiter-invites-v2/invited-practice-session-recovery";
 import { isCandidateAnswerAnalysisRuntimeAvailable } from "@/features/candidate-session-v2/candidate-answer-analysis-runtime-selection";
 import type { CandidateProvisionalSessionRecord } from "@/features/candidate-session-v2/candidate-provisional-session-store";
@@ -22,6 +26,7 @@ import { InvitedPracticeUnavailable } from "./InvitedPracticeUnavailable";
 type InvitedPracticeRouteState = {
     entry: InvitedPracticeEntryProjection;
     initialSession: CandidateProvisionalSessionRecord | null;
+    completedDebrief?: InvitedPracticeDebrief | null;
 };
 
 export async function renderCandidateInvitedEntryRoute(dependencies: {
@@ -33,7 +38,9 @@ export async function renderCandidateInvitedEntryRoute(dependencies: {
     }
     const { entry, initialSession } = state;
     if (entry.sessionStatus === "completed") {
-        return <InvitedPracticeCompleted targetRole={entry.targetRole} />;
+        return state.completedDebrief
+            ? <InvitedPracticeCompleted debrief={state.completedDebrief} />
+            : <InvitedPracticeUnavailable />;
     }
     if (!initialSession) return <InvitedPracticeUnavailable />;
     const stageLabel = candidateSetupStageOptions.find((option) => option.id === entry.interviewStage)?.label
@@ -68,6 +75,13 @@ async function resolveDefaultState(): Promise<InvitedPracticeRouteState | null> 
             recruiterInvitationRecipientId: context.recipientId,
         });
         if (!session) return { entry, initialSession: null };
+        if (entry.sessionStatus === "completed") {
+            return {
+                entry,
+                initialSession: null,
+                completedDebrief: createInvitedPracticeDebrief(session, entry.sessionAttemptNumber),
+            };
+        }
         const answerHistoryRepository = createInvitedPracticeAnswerHistoryRepository(queryClient);
         const evaluationRuns = await answerHistoryRepository.listEvaluationRuns({
             invitedPracticeSessionId: context.sessionId,

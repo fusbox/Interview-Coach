@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Settings2 } from "lucide-react";
 import type { ReactNode } from "react";
 import type { AppUser } from "./app-user";
 import { getAppUserDisplayName } from "./app-user";
@@ -22,6 +23,10 @@ export function RecruiterShell({ user, children }: { user: AppUser; children: Re
                 </Link>
                 <div className="recruiter-shell__identity">
                     <span>{getAppUserDisplayName(user)}</span>
+                    <Link href="/recruiter/settings" className="recruiter-shell__settings">
+                        <Settings2 size={16} aria-hidden="true" />
+                        Settings
+                    </Link>
                     <RecruiterLogoutButton />
                 </div>
             </header>

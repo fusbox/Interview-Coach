@@ -1726,6 +1726,250 @@ select {
     border-top: 1px solid rgb(var(--candidate-border) / 0.72);
 }
 
+.invited-practice-complete {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-8);
+    width: 100%;
+    min-height: 100vh;
+    padding: var(--space-8) max(var(--space-4), calc((100vw - var(--layout-app-max)) / 2));
+    background: rgb(var(--candidate-background));
+}
+
+.invited-practice-complete > * {
+    width: 100%;
+    max-width: var(--layout-app-max);
+    margin-inline: auto;
+}
+
+.invited-practice-complete .candidate-pre-session__brand {
+    margin-bottom: 0;
+}
+
+.invited-practice-complete__hero {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) minmax(18rem, 0.58fr);
+    gap: var(--space-5);
+    align-items: center;
+    padding: var(--space-7);
+    border: 1px solid rgb(var(--candidate-primary) / 0.2);
+    border-radius: var(--radius-card);
+    background: rgb(var(--candidate-primary-wash));
+    box-shadow: var(--elevation-card);
+}
+
+.invited-practice-complete__icon {
+    display: inline-flex;
+    width: 3rem;
+    height: 3rem;
+    align-items: center;
+    justify-content: center;
+    align-self: start;
+    border-radius: var(--radius-icon-capsule);
+    background: rgb(var(--candidate-surface));
+    color: rgb(var(--candidate-accent));
+}
+
+.invited-practice-complete__hero h1,
+.invited-practice-complete__section-heading h2,
+.invited-practice-complete__actions h2 {
+    margin: 0;
+    color: rgb(var(--candidate-display-foreground));
+    font-family: var(--font-display);
+    letter-spacing: 0;
+    text-wrap: balance;
+}
+
+.invited-practice-complete__hero h1 {
+    margin-top: var(--space-2);
+    font-size: 2rem;
+    line-height: 1.12;
+}
+
+.invited-practice-complete__hero > div > p:last-child,
+.invited-practice-complete__actions p {
+    margin: var(--space-3) 0 0;
+    color: rgb(var(--candidate-muted));
+    font-size: var(--type-body-size);
+    line-height: var(--type-body-line);
+}
+
+.invited-practice-complete__facts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-4);
+    margin: 0;
+    padding: var(--space-5);
+    border-radius: var(--radius-control);
+    background: rgb(var(--candidate-surface) / 0.82);
+}
+
+.invited-practice-complete__facts div {
+    min-width: 0;
+}
+
+.invited-practice-complete__facts dt {
+    color: rgb(var(--candidate-muted));
+    font-size: var(--type-eyebrow-size);
+    font-weight: var(--font-weight-bold);
+    line-height: 1.25;
+    text-transform: uppercase;
+}
+
+.invited-practice-complete__facts dd {
+    margin: var(--space-1) 0 0;
+    color: rgb(var(--candidate-primary-deep));
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: var(--font-weight-bold);
+    line-height: 1;
+}
+
+.invited-practice-complete__review {
+    display: grid;
+    gap: var(--space-5);
+}
+
+.invited-practice-complete__section-heading {
+    display: grid;
+    gap: var(--space-2);
+    max-width: 46rem;
+}
+
+.invited-practice-complete__section-heading h2,
+.invited-practice-complete__actions h2 {
+    font-size: 1.5rem;
+    line-height: 1.2;
+}
+
+.invited-practice-complete__questions {
+    display: grid;
+    gap: var(--space-3);
+}
+
+.invited-practice-complete__questions details {
+    overflow: hidden;
+    border: 1px solid rgb(var(--candidate-border));
+    border-radius: var(--radius-card);
+    background: rgb(var(--candidate-surface));
+    box-shadow: var(--elevation-card);
+}
+
+.invited-practice-complete__questions summary {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: var(--space-4);
+    align-items: center;
+    padding: var(--space-5);
+    color: rgb(var(--candidate-heading));
+    cursor: pointer;
+    list-style: none;
+}
+
+.invited-practice-complete__questions summary::-webkit-details-marker {
+    display: none;
+}
+
+.invited-practice-complete__questions summary strong {
+    display: block;
+    margin-top: var(--space-1);
+    font-size: var(--type-body-size);
+    line-height: var(--type-body-line);
+}
+
+.invited-practice-complete__questions summary > svg {
+    color: rgb(var(--candidate-muted));
+    transition: transform 160ms var(--ease-standard);
+}
+
+.invited-practice-complete__questions details[open] summary > svg {
+    transform: rotate(180deg);
+}
+
+.invited-practice-complete__question-number {
+    display: inline-flex;
+    width: 2.5rem;
+    height: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-icon-capsule);
+    background: rgb(var(--candidate-primary-soft));
+    color: rgb(var(--candidate-primary));
+    font-size: var(--type-label-size);
+    font-weight: var(--font-weight-bold);
+}
+
+.invited-practice-complete__question-body {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-6);
+    padding: 0 var(--space-5) var(--space-5) calc(var(--space-5) + 2.5rem + var(--space-4));
+}
+
+.invited-practice-complete__question-body article {
+    min-width: 0;
+}
+
+.invited-practice-complete__question-body h3 {
+    margin: 0 0 var(--space-2);
+    color: rgb(var(--candidate-muted));
+    font-size: var(--type-eyebrow-size);
+    font-weight: var(--font-weight-bold);
+    line-height: 1.25;
+    text-transform: uppercase;
+}
+
+.invited-practice-complete__question-body p {
+    margin: 0 0 var(--space-3);
+    color: rgb(var(--candidate-ink));
+    font-size: var(--type-body-sm-size);
+    line-height: var(--type-body-sm-line);
+    white-space: pre-wrap;
+}
+
+.invited-practice-complete__question-body p:last-child {
+    margin-bottom: 0;
+}
+
+.invited-practice-complete__coaching {
+    padding-left: var(--space-5);
+    border-left: 3px solid rgb(var(--candidate-primary));
+}
+
+.invited-practice-complete__acknowledgement {
+    color: rgb(var(--candidate-primary-deep)) !important;
+    font-weight: var(--font-weight-semibold);
+}
+
+.invited-practice-complete__actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-6);
+    align-items: center;
+    padding: var(--space-6);
+    border: 1px solid rgb(var(--candidate-accent) / 0.24);
+    border-radius: var(--radius-card);
+    background: rgb(var(--candidate-accent-wash));
+}
+
+.invited-practice-complete__action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    justify-content: flex-end;
+}
+
+.invited-practice-complete__actions .candidate-button {
+    display: inline-flex;
+    gap: var(--space-2);
+    align-items: center;
+    justify-content: center;
+}
+
+.invited-practice-complete__actions .invited-practice-entry__error {
+    grid-column: 1 / -1;
+}
+
 @keyframes candidate-pre-session-pulse {
     0%,
     100% {
@@ -1796,6 +2040,50 @@ select {
     .invited-practice-entry__panel {
         padding: var(--space-5);
     }
+
+    .invited-practice-complete {
+        gap: var(--space-6);
+        padding-top: calc(var(--space-7) + env(safe-area-inset-top));
+        padding-bottom: calc(var(--space-8) + env(safe-area-inset-bottom));
+    }
+
+    .invited-practice-complete__hero {
+        grid-template-columns: auto minmax(0, 1fr);
+        padding: var(--space-5);
+    }
+
+    .invited-practice-complete__hero h1 {
+        font-size: 1.625rem;
+    }
+
+    .invited-practice-complete__facts {
+        grid-column: 1 / -1;
+        padding: var(--space-4);
+    }
+
+    .invited-practice-complete__question-body {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-5);
+    }
+
+    .invited-practice-complete__coaching {
+        padding-top: var(--space-4);
+        padding-left: 0;
+        border-top: 3px solid rgb(var(--candidate-primary));
+        border-left: 0;
+    }
+
+    .invited-practice-complete__actions {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .invited-practice-complete__action-buttons {
+        justify-content: stretch;
+    }
+
+    .invited-practice-complete__action-buttons .candidate-button {
+        flex: 1 1 12rem;
+    }
 }
 
 @media (max-width: 559px) {
@@ -1810,6 +2098,43 @@ select {
     .candidate-pre-session__actions,
     .candidate-pre-session__actions form,
     .candidate-pre-session__actions .candidate-button {
+        width: 100%;
+    }
+
+    .invited-practice-complete__hero {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .invited-practice-complete__icon {
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+
+    .invited-practice-complete__facts {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: var(--space-2);
+    }
+
+    .invited-practice-complete__facts dt {
+        font-size: 0.625rem;
+    }
+
+    .invited-practice-complete__facts dd {
+        font-size: 1.25rem;
+    }
+
+    .invited-practice-complete__questions summary {
+        gap: var(--space-3);
+        padding: var(--space-4);
+    }
+
+    .invited-practice-complete__question-body {
+        padding: 0 var(--space-4) var(--space-4);
+    }
+
+    .invited-practice-complete__actions,
+    .invited-practice-complete__action-buttons,
+    .invited-practice-complete__action-buttons .candidate-button {
         width: 100%;
     }
 }
@@ -5215,11 +5540,188 @@ button.candidate-dashboard-action:disabled {
     gap: 7px;
 }
 
+.recruiter-shell__settings {
+    min-height: 36px;
+    padding: 7px 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.recruiter-shell__settings:hover {
+    background: var(--surface-subtle);
+    color: var(--text-primary);
+}
+
+.recruiter-shell__settings:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+}
+
 .recruiter-workspace {
     width: min(calc(100% - 40px), 1200px);
     min-height: calc(100vh - 72px);
     margin: 0 auto;
     padding: 56px 0;
+}
+
+.recruiter-settings-page {
+    display: grid;
+    align-content: start;
+    gap: 30px;
+}
+
+.recruiter-settings-intro {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 32px;
+}
+
+.recruiter-settings-intro h1 {
+    margin: 6px 0 0;
+    font-family: var(--font-display);
+    font-size: 34px;
+    line-height: 1.2;
+    font-weight: 600;
+}
+
+.recruiter-settings-intro > div > p:last-child {
+    max-width: 650px;
+    margin: 10px 0 0;
+    color: var(--text-muted);
+    font-size: 15px;
+    line-height: 1.55;
+}
+
+.recruiter-settings-back {
+    min-height: 40px;
+    padding: 8px 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    background: var(--surface-base);
+    color: hsl(var(--primary));
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.recruiter-settings-form {
+    width: min(100%, 760px);
+}
+
+.recruiter-settings-panel {
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    background: var(--surface-base);
+    box-shadow: var(--shadow-raised-1);
+}
+
+.recruiter-settings-panel__heading,
+.recruiter-settings-field,
+.recruiter-settings-account-email,
+.recruiter-settings-actions {
+    padding: 24px 28px;
+}
+
+.recruiter-settings-panel__heading {
+    background: var(--surface-subtle);
+}
+
+.recruiter-settings-panel__heading h2 {
+    margin: 7px 0 0;
+    font-family: var(--font-display);
+    font-size: 24px;
+    line-height: 1.25;
+    font-weight: 600;
+}
+
+.recruiter-settings-field {
+    display: grid;
+    gap: 9px;
+}
+
+.recruiter-settings-field > label,
+.recruiter-settings-account-email > span {
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 750;
+}
+
+.recruiter-settings-field input {
+    width: 100%;
+    min-height: 46px;
+    padding: 10px 12px;
+    border: 1px solid hsl(var(--border));
+    border-radius: 6px;
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font: inherit;
+}
+
+.recruiter-settings-field input:focus-visible {
+    border-color: hsl(var(--primary));
+    outline: 3px solid hsl(var(--primary) / 0.13);
+    outline-offset: 1px;
+}
+
+.recruiter-settings-field input[aria-invalid="true"] {
+    border-color: hsl(var(--destructive));
+}
+
+.recruiter-settings-field small,
+.recruiter-settings-account-email small {
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.recruiter-settings-account-email {
+    display: grid;
+    gap: 7px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.recruiter-settings-account-email strong {
+    overflow-wrap: anywhere;
+    font-size: 15px;
+    font-weight: 650;
+}
+
+.recruiter-settings-actions {
+    min-height: 92px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    border-top: 1px solid var(--border-subtle);
+    background: color-mix(in srgb, var(--surface-subtle) 55%, white);
+}
+
+.recruiter-settings-message {
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    line-height: 1.45;
+    font-weight: 650;
+}
+
+.recruiter-settings-message.is-success {
+    color: hsl(var(--success-text));
+}
+
+.recruiter-settings-message.is-error {
+    color: hsl(var(--destructive));
 }
 
 .recruiter-dashboard-create-link {
@@ -6678,9 +7180,40 @@ button.candidate-dashboard-action:disabled {
         white-space: nowrap;
     }
 
+    .recruiter-shell__settings {
+        min-height: 32px;
+        padding-block: 5px;
+    }
+
     .recruiter-workspace {
         width: min(calc(100% - 28px), 1200px);
         padding: 36px 0;
+    }
+
+    .recruiter-settings-intro,
+    .recruiter-settings-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .recruiter-settings-intro {
+        gap: 18px;
+    }
+
+    .recruiter-settings-back {
+        width: fit-content;
+    }
+
+    .recruiter-settings-panel__heading,
+    .recruiter-settings-field,
+    .recruiter-settings-account-email,
+    .recruiter-settings-actions {
+        padding: 20px;
+    }
+
+    .recruiter-settings-actions button {
+        width: 100%;
+        justify-content: center;
     }
 
     .recruiter-dashboard-page {

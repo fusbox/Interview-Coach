@@ -18,6 +18,7 @@ export type InvitedPracticeAccessContext = {
     browserSessionExpiresAt: string;
     sourceTokenExpiresAt: string;
     sessionId: string;
+    sessionAttemptNumber: number;
     recipientId: string;
     recruiterId: string;
     firstName: string;
@@ -29,6 +30,12 @@ export type InvitedPracticeAccessContext = {
     questionWordingSnapshot: CandidateQuestionWordingResult;
     progress: Record<string, unknown>;
     entrySignal: InvitedPracticeEntrySignal | null;
+};
+
+export type InvitedPracticeAttemptAdvanceResult = {
+    outcome: "created" | "replayed" | "invalid_state" | "stale_parent";
+    sessionId: string | null;
+    browserSessionExpiresAt: string | null;
 };
 
 export function createInvitedPracticeAccessRepository(client: InvitedPracticeAccessQueryClient) {
@@ -44,7 +51,9 @@ export function createInvitedPracticeAccessRepository(client: InvitedPracticeAcc
                   select
                     token.invited_practice_access_token_id,
                     token.expires_at as source_token_expires_at,
+                    token.invited_practice_session_id as source_session_id,
                     session.invited_practice_session_id,
+                    session.attempt_number as session_attempt_number,
                     session.recruiter_invitation_recipient_id,
                     session.recruiter_id,
                     session.status,
@@ -56,15 +65,23 @@ export function createInvitedPracticeAccessRepository(client: InvitedPracticeAcc
                     batch.target_role,
                     batch.interview_stage
                   from public.invited_practice_access_tokens token
-                  join public.invited_practice_sessions session
-                    on session.invited_practice_session_id = token.invited_practice_session_id
-                   and session.recruiter_invitation_recipient_id = token.recruiter_invitation_recipient_id
+                  join public.invited_practice_sessions source_session
+                    on source_session.invited_practice_session_id = token.invited_practice_session_id
+                   and source_session.recruiter_invitation_recipient_id = token.recruiter_invitation_recipient_id
                   join public.recruiter_invitation_recipients recipient
-                    on recipient.recruiter_invitation_recipient_id = session.recruiter_invitation_recipient_id
-                   and recipient.recruiter_id = session.recruiter_id
+                    on recipient.recruiter_invitation_recipient_id = source_session.recruiter_invitation_recipient_id
+                   and recipient.recruiter_id = source_session.recruiter_id
                   join public.recruiter_invitation_batches batch
                     on batch.recruiter_invitation_batch_id = recipient.recruiter_invitation_batch_id
                    and batch.recruiter_id = recipient.recruiter_id
+                  join lateral (
+                    select owned_session.*
+                    from public.invited_practice_sessions owned_session
+                    where owned_session.recruiter_invitation_recipient_id = recipient.recruiter_invitation_recipient_id
+                      and owned_session.recruiter_id = recipient.recruiter_id
+                    order by owned_session.attempt_number desc
+                    limit 1
+                  ) session on true
                   where token.token_hash = $1
                     and token.revoked_at is null
                     and token.expires_at > now()
@@ -103,7 +120,7 @@ export function createInvitedPracticeAccessRepository(client: InvitedPracticeAcc
                 join eligible
                   on eligible.invited_practice_access_token_id = inserted.invited_practice_access_token_id
                 left join public.invited_practice_entry_signals signal
-                  on signal.invited_practice_session_id = eligible.invited_practice_session_id
+                  on signal.invited_practice_session_id = eligible.source_session_id
                  and signal.recruiter_invitation_recipient_id = eligible.recruiter_invitation_recipient_id
             `, [
                 input.invitationTokenHash,
@@ -122,7 +139,9 @@ export function createInvitedPracticeAccessRepository(client: InvitedPracticeAcc
                     browser.invited_practice_browser_session_id,
                     browser.expires_at as browser_session_expires_at,
                     token.expires_at as source_token_expires_at,
+                    token.invited_practice_session_id as source_session_id,
                     session.invited_practice_session_id,
+                    session.attempt_number as session_attempt_number,
                     session.recruiter_invitation_recipient_id,
                     session.recruiter_id,
                     session.status,
@@ -136,15 +155,23 @@ export function createInvitedPracticeAccessRepository(client: InvitedPracticeAcc
                   from public.invited_practice_browser_sessions browser
                   join public.invited_practice_access_tokens token
                     on token.invited_practice_access_token_id = browser.invited_practice_access_token_id
-                  join public.invited_practice_sessions session
-                    on session.invited_practice_session_id = token.invited_practice_session_id
-                   and session.recruiter_invitation_recipient_id = token.recruiter_invitation_recipient_id
+                  join public.invited_practice_sessions source_session
+                    on source_session.invited_practice_session_id = token.invited_practice_session_id
+                   and source_session.recruiter_invitation_recipient_id = token.recruiter_invitation_recipient_id
                   join public.recruiter_invitation_recipients recipient
-                    on recipient.recruiter_invitation_recipient_id = session.recruiter_invitation_recipient_id
-                   and recipient.recruiter_id = session.recruiter_id
+                    on recipient.recruiter_invitation_recipient_id = source_session.recruiter_invitation_recipient_id
+                   and recipient.recruiter_id = source_session.recruiter_id
                   join public.recruiter_invitation_batches batch
                     on batch.recruiter_invitation_batch_id = recipient.recruiter_invitation_batch_id
                    and batch.recruiter_id = recipient.recruiter_id
+                  join lateral (
+                    select owned_session.*
+                    from public.invited_practice_sessions owned_session
+                    where owned_session.recruiter_invitation_recipient_id = recipient.recruiter_invitation_recipient_id
+                      and owned_session.recruiter_id = recipient.recruiter_id
+                    order by owned_session.attempt_number desc
+                    limit 1
+                  ) session on true
                   where browser.session_token_hash = $1
                     and browser.revoked_at is null
                     and browser.expires_at > now()
@@ -169,11 +196,33 @@ export function createInvitedPracticeAccessRepository(client: InvitedPracticeAcc
                   signal.created_at as signal_created_at
                 from eligible
                 left join public.invited_practice_entry_signals signal
-                  on signal.invited_practice_session_id = eligible.invited_practice_session_id
+                  on signal.invited_practice_session_id = eligible.source_session_id
                  and signal.recruiter_invitation_recipient_id = eligible.recruiter_invitation_recipient_id
             `, [sessionTokenHash]);
 
             return mapAccessContext(result.rows[0]);
+        },
+
+        async advanceCompletedAttempt(input: {
+            currentBrowserSessionTokenHash: string;
+            expectedParentSessionId: string;
+            newSessionId: string;
+            newBrowserSessionId: string;
+            newBrowserSessionTokenHash: string;
+            requestedExpiresAt: string;
+        }): Promise<InvitedPracticeAttemptAdvanceResult | null> {
+            const result = await client.query(`
+                select *
+                from public.advance_invited_practice_attempt($1, $2, $3, $4, $5, $6)
+            `, [
+                input.currentBrowserSessionTokenHash,
+                input.expectedParentSessionId,
+                input.newSessionId,
+                input.newBrowserSessionId,
+                input.newBrowserSessionTokenHash,
+                input.requestedExpiresAt,
+            ]);
+            return mapAttemptAdvanceResult(result.rows[0]);
         },
 
         async confirmInitials(input: {
@@ -264,6 +313,7 @@ function mapAccessContext(row: Record<string, unknown> | undefined): InvitedPrac
         browserSessionExpiresAt: toIsoString(row.browser_session_expires_at, "browser_session_expires_at"),
         sourceTokenExpiresAt: toIsoString(row.source_token_expires_at, "source_token_expires_at"),
         sessionId: requireString(row.invited_practice_session_id, "invited_practice_session_id"),
+        sessionAttemptNumber: readPositiveInteger(row.session_attempt_number, "session_attempt_number"),
         recipientId: requireString(row.recruiter_invitation_recipient_id, "recipient_id"),
         recruiterId: requireString(row.recruiter_id, "recruiter_id"),
         firstName: requireString(row.first_name, "first_name"),
@@ -292,6 +342,29 @@ function mapEntrySignal(row: Record<string, unknown> | undefined): InvitedPracti
     };
 }
 
+function mapAttemptAdvanceResult(
+    row: Record<string, unknown> | undefined,
+): InvitedPracticeAttemptAdvanceResult | null {
+    if (!row) return null;
+    const outcome = row.outcome;
+    if (
+        outcome !== "created"
+        && outcome !== "replayed"
+        && outcome !== "invalid_state"
+        && outcome !== "stale_parent"
+    ) throw new Error("Invalid invited practice attempt-advance outcome.");
+    const sessionId = typeof row.invited_practice_session_id === "string"
+        ? row.invited_practice_session_id
+        : null;
+    const browserSessionExpiresAt = row.browser_session_expires_at == null
+        ? null
+        : toIsoString(row.browser_session_expires_at, "browser_session_expires_at");
+    if ((outcome === "created" || outcome === "replayed") && (!sessionId || !browserSessionExpiresAt)) {
+        throw new Error("Invited practice attempt advance returned incomplete browser-session material.");
+    }
+    return { outcome, sessionId, browserSessionExpiresAt };
+}
+
 function requireString(value: unknown, field: string) {
     if (typeof value !== "string" || !value.trim()) throw new Error(`Invalid ${field}.`);
     return value;
@@ -316,6 +389,12 @@ function readInterviewStage(value: unknown): CandidateSetupStageId {
         || value === "final_interview"
     ) return value;
     throw new Error("Invalid invited practice interview stage.");
+}
+
+function readPositiveInteger(value: unknown, field: string) {
+    const number = typeof value === "number" ? value : Number(value);
+    if (!Number.isInteger(number) || number < 1) throw new Error(`Invalid ${field}.`);
+    return number;
 }
 
 function toIsoString(value: unknown, field: string) {

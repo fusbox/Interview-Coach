@@ -70,17 +70,21 @@ export function createRecruiterDashboardRepository(client: RecruiterDashboardQue
                   order by owned_delivery.attempt_number desc
                   limit 1
                 ) delivery on true
-                left join public.invited_practice_entry_signals entry_signal
-                  on entry_signal.invited_practice_session_id = session.invited_practice_session_id
-                 and entry_signal.recruiter_invitation_recipient_id = recipient.recruiter_invitation_recipient_id
+                left join lateral (
+                  select owned_signal.match_state,
+                         owned_signal.created_at
+                  from public.invited_practice_entry_signals owned_signal
+                  where owned_signal.recruiter_invitation_recipient_id = recipient.recruiter_invitation_recipient_id
+                  order by owned_signal.created_at asc
+                  limit 1
+                ) entry_signal on true
                 left join lateral (
                   select min(browser.created_at) as first_opened_at,
                          max(browser.last_seen_at) as last_seen_at
                   from public.invited_practice_access_tokens access_token
                   join public.invited_practice_browser_sessions browser
                     on browser.invited_practice_access_token_id = access_token.invited_practice_access_token_id
-                  where access_token.invited_practice_session_id = session.invited_practice_session_id
-                    and access_token.recruiter_invitation_recipient_id = recipient.recruiter_invitation_recipient_id
+                  where access_token.recruiter_invitation_recipient_id = recipient.recruiter_invitation_recipient_id
                 ) browser_activity on true
                 left join lateral (
                   select count(distinct answer_attempt.question_slot_id)::integer as answered_question_count,

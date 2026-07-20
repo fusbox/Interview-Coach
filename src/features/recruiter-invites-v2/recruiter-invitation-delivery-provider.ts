@@ -62,6 +62,10 @@ export function createRecruiterInvitationDeliveryProvider(
         port,
         secure: port === 465,
         requireTLS: port !== 465,
+        connectionTimeout: 10_000,
+        greetingTimeout: 10_000,
+        socketTimeout: 30_000,
+        tls: { minVersion: "TLSv1.2" },
         auth: { user: username, pass: password },
     });
 

@@ -32,6 +32,7 @@ This contract defines how a recruiter-issued Interview Coach link becomes an inv
 7. Clean invited routes resolve the cookie hash through the active invite session and source invitation. Candidate-launch and employee cookies are ignored.
 8. Unknown, malformed, expired, revoked, and inactive links all reach the same clean unavailable surface. Observability may record a request id and coarse outcome, never token material, token hashes, candidate PII, invitation URLs, or session ids.
 9. A malformed invite-session cookie is treated as missing access rather than an application error. It cannot satisfy an invited mutation or affect recruiter/candidate identity cookies.
+10. Cookie-authenticated invited mutations require the browser `Origin` to match the request URL, direct `Host`, or first trusted forwarded host/protocol. Routes share one verifier so an internal development bind address such as `0.0.0.0` does not reject the real browser origin while cross-origin requests still fail closed.
 
 The invitation token is deliberately reusable because it is the candidate's return mechanism. This is distinct from the one-time TalentArbor host-launch credential. A copied or forwarded invite link therefore grants the same scoped access until revocation or expiry; delivery copy must continue to tell recipients not to forward it.
 
@@ -67,7 +68,7 @@ The landing must state that the recruiting team may review answers to support pr
 - If the source invitation expires or is revoked, existing invite sessions stop resolving even when their own expiry has not arrived.
 - If an invite session expires, the clean URL fails closed; the still-valid original link may establish another.
 - A first initials write racing from multiple tabs converges to one immutable signal.
-- Completed, abandoned, and future practice-again states require explicit product handling; they must not be silently treated as a fresh planned round.
+- Completed and abandoned states require explicit product handling; they must not be silently treated as a fresh planned round. Completed access now follows the separate completion-and-repeat contract.
 
 ## Slice 152 Boundary
 
@@ -85,7 +86,7 @@ Out of scope:
 
 - invited answer drafts, submissions, evaluator calls, feedback actions, and completion;
 - recruiter engagement/dashboard reads;
-- debrief, practice-again, token regeneration, and manual revocation UI;
+- token regeneration and manual revocation UI;
 - bounce/webhook delivery evidence;
 - production edge-log redaction proof.
 
