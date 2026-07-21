@@ -2365,7 +2365,8 @@ select {
     align-items: center;
 }
 
-.session-live-shell__header-actions a {
+.session-live-shell__header-actions a,
+.session-live-shell__header-actions button {
     display: inline-flex;
     min-height: 2.625rem;
     align-items: center;
@@ -2379,23 +2380,103 @@ select {
     font-size: var(--type-label-size);
     font-weight: var(--font-weight-bold);
     text-decoration: none;
+    cursor: pointer;
     transition:
         border-color var(--motion-control-duration) var(--ease-standard),
         background-color var(--motion-control-duration) var(--ease-standard),
         color var(--motion-control-duration) var(--ease-standard);
 }
 
-.session-live-shell__header-actions a:hover {
+.session-live-shell__header-actions a:hover,
+.session-live-shell__header-actions button:hover:not(:disabled) {
     border-color: rgb(var(--candidate-primary) / 0.26);
     background: rgb(var(--candidate-primary-wash));
 }
 
 .session-live-shell__header-actions a:focus-visible,
+.session-live-shell__header-actions button:focus-visible,
 .session-live-shell__question-meta button:focus-visible,
 .session-live-shell__modes button:focus-visible,
 .session-live-shell__submitted-answer summary:focus-visible {
     outline: 3px solid rgb(var(--candidate-primary) / 0.18);
     outline-offset: 2px;
+}
+
+.session-live-shell__header-actions button:disabled {
+    cursor: wait;
+    opacity: 0.72;
+}
+
+.invited-practice-pause {
+    min-height: 100vh;
+    padding-block: var(--space-8);
+    background: rgb(var(--candidate-background));
+}
+
+.invited-practice-pause__panel {
+    display: grid;
+    width: min(100% - 2rem, 42rem);
+    gap: var(--space-5);
+    margin: clamp(3rem, 9vh, 7rem) auto 0;
+    padding: var(--space-7);
+    border: 1px solid rgb(var(--candidate-primary) / 0.18);
+    border-radius: var(--radius-card);
+    background: rgb(var(--candidate-surface));
+    box-shadow: var(--elevation-card);
+}
+
+.invited-practice-pause__icon {
+    display: inline-flex;
+    width: 3rem;
+    height: 3rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-icon-capsule);
+    background: rgb(var(--candidate-accent-wash));
+    color: rgb(var(--candidate-accent));
+}
+
+.invited-practice-pause__copy {
+    display: grid;
+    gap: var(--space-3);
+    max-width: 35rem;
+}
+
+.invited-practice-pause__copy > * {
+    margin: 0;
+}
+
+.invited-practice-pause__copy h1 {
+    color: rgb(var(--candidate-display-foreground));
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 3rem);
+    line-height: 1.08;
+}
+
+.invited-practice-pause__copy > p:last-child,
+.invited-practice-pause__close-note {
+    color: rgb(var(--candidate-muted));
+    font-size: var(--type-body-size);
+    line-height: var(--type-body-line);
+}
+
+.invited-practice-pause__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+}
+
+.invited-practice-pause__actions .candidate-button {
+    display: inline-flex;
+    gap: var(--space-2);
+    align-items: center;
+    justify-content: center;
+}
+
+.invited-practice-pause__close-note {
+    margin: 0;
+    padding-top: var(--space-4);
+    border-top: 1px solid rgb(var(--candidate-border) / 0.72);
 }
 
 .session-live-shell__progress {
@@ -2896,7 +2977,8 @@ select {
 
 @media (max-width: 640px) {
     .session-live-shell__header-actions > span,
-    .session-live-shell__header-actions a span {
+    .session-live-shell__header-actions a span,
+    .session-live-shell__header-actions button span {
         position: absolute;
         width: 1px;
         height: 1px;
@@ -2910,9 +2992,25 @@ select {
         gap: var(--space-2);
     }
 
-    .session-live-shell__header-actions a {
+    .session-live-shell__header-actions a,
+    .session-live-shell__header-actions button {
         width: 2.625rem;
         padding: 0;
+    }
+
+    .invited-practice-pause {
+        padding-top: calc(var(--space-7) + env(safe-area-inset-top));
+        padding-bottom: calc(var(--space-8) + env(safe-area-inset-bottom));
+    }
+
+    .invited-practice-pause__panel {
+        margin-top: var(--space-8);
+        padding: var(--space-5);
+    }
+
+    .invited-practice-pause__actions,
+    .invited-practice-pause__actions .candidate-button {
+        width: 100%;
     }
 
     .session-live-shell__workspace {

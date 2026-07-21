@@ -50,22 +50,72 @@ describe("SharedLivePracticeShell", () => {
         expect(playOnce).toHaveBeenCalledWith(expect.objectContaining({ questionKey: "slot-2" }));
     });
 
-    it("lets an invited adapter return to its invitation landing boundary", () => {
+    it("does not restart playback when an equivalent facts projection rerenders", () => {
+        const prefetch = vi.fn();
+        const playOnce = vi.fn();
+        const stop = vi.fn();
+        const questionAudio = {
+            unlock: vi.fn(),
+            prefetch,
+            playOnce,
+            stop,
+        };
+        const renderShell = () => (
+            <SharedLivePracticeShell
+                facts={createFacts("invited_candidate")}
+                answerMode="text"
+                draftText=""
+                questionAudio={questionAudio}
+                onDraftChange={vi.fn()}
+                onSubmit={vi.fn()}
+            />
+        );
+
+        const view = render(renderShell());
+        view.rerender(renderShell());
+
+        expect(prefetch).toHaveBeenCalledTimes(2);
+        expect(playOnce).toHaveBeenCalledOnce();
+        expect(stop).not.toHaveBeenCalled();
+    });
+
+    it("supports an explicit adapter-owned link exit", () => {
         render(
             <SharedLivePracticeShell
                 facts={createFacts("invited_candidate")}
                 answerMode="text"
                 draftText=""
                 exitHref="/invited/session-1"
+                exitLabel="Leave practice"
                 onDraftChange={vi.fn()}
                 onSubmit={vi.fn()}
             />,
         );
 
-        expect(screen.getByRole("link", { name: "Return to invitation" })).toHaveAttribute(
+        expect(screen.getByRole("link", { name: "Leave practice" })).toHaveAttribute(
             "href",
             "/invited/session-1",
         );
+    });
+
+    it("lets an invited adapter replace navigation with a pause action", () => {
+        const onExit = vi.fn();
+
+        render(
+            <SharedLivePracticeShell
+                facts={createFacts("invited_candidate")}
+                answerMode="text"
+                draftText=""
+                exitLabel="Pause session"
+                onExit={onExit}
+                onDraftChange={vi.fn()}
+                onSubmit={vi.fn()}
+            />,
+        );
+
+        screen.getByRole("button", { name: "Pause session" }).click();
+        expect(onExit).toHaveBeenCalledOnce();
+        expect(screen.queryByRole("link", { name: "Pause session" })).not.toBeInTheDocument();
     });
 
     it("locks an accepted answer and exposes an analysis-only retry", () => {

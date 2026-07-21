@@ -19,7 +19,6 @@ import type { ReactNode } from "react";
 import { useEffect } from "react";
 
 import {
-    getSessionQuestionAudioPrefetchTargets,
     type SessionQuestionAudioLifecycle,
 } from "./session-question-audio-contract";
 import type { SessionRuntimeFacts } from "./session-runtime-facts";
@@ -37,6 +36,7 @@ export type SharedLivePracticeShellProps = {
     feedbackContent?: ReactNode;
     exitHref?: string;
     exitLabel?: string;
+    isExitPending?: boolean;
     questionAudio?: SessionQuestionAudioLifecycle;
     questionPlaybackControl?: {
         isPlaying: boolean;
@@ -44,6 +44,7 @@ export type SharedLivePracticeShellProps = {
         onToggle: () => void;
     };
     onAnswerModeChange?: (mode: "text" | "voice") => void;
+    onExit?: () => void;
     onDraftChange: (text: string) => void;
     onDraftBlur?: () => void;
     onRetryDraftSave?: () => void;
@@ -64,9 +65,11 @@ export function SharedLivePracticeShell({
     feedbackContent,
     exitHref,
     exitLabel,
+    isExitPending = false,
     questionAudio,
     questionPlaybackControl,
     onAnswerModeChange,
+    onExit,
     onDraftChange,
     onDraftBlur,
     onRetryDraftSave,
@@ -78,6 +81,12 @@ export function SharedLivePracticeShell({
     onSubmit,
 }: SharedLivePracticeShellProps) {
     const currentQuestion = facts.questions[facts.currentQuestionIndex] ?? null;
+    const nextQuestion = facts.questions[facts.currentQuestionIndex + 1] ?? null;
+    const audioSessionId = facts.sessionId;
+    const currentAudioQuestionKey = currentQuestion?.questionKey ?? null;
+    const currentAudioQuestionText = currentQuestion?.questionText ?? null;
+    const nextAudioQuestionKey = nextQuestion?.questionKey ?? null;
+    const nextAudioQuestionText = nextQuestion?.questionText ?? null;
     const questionPosition = currentQuestion ? facts.currentQuestionIndex + 1 : 0;
     const questionTotal = facts.questions.length;
     const resolvedExitHref = exitHref ?? (
@@ -88,7 +97,7 @@ export function SharedLivePracticeShell({
     const resolvedExitLabel = exitLabel ?? (
         facts.completionBehavior.kind === "candidate_dashboard"
             ? "Return to dashboard"
-            : "Return to invitation"
+            : undefined
     );
     const answerPresentation = getSessionAnswerMutationPresentation(answerMutationPhase);
     const answerPrimaryHandler = answerPresentation.primaryAction === "continue_without_coaching"
@@ -113,16 +122,31 @@ export function SharedLivePracticeShell({
     }, [currentQuestion?.questionKey]);
 
     useEffect(() => {
-        if (!questionAudio || !currentQuestion) {
+        if (!questionAudio || !currentAudioQuestionKey || !currentAudioQuestionText) {
             return;
         }
 
-        const targets = getSessionQuestionAudioPrefetchTargets(facts);
+        const targets = [{
+            sessionId: audioSessionId,
+            questionKey: currentAudioQuestionKey,
+            questionText: currentAudioQuestionText,
+        }, ...(nextAudioQuestionKey && nextAudioQuestionText ? [{
+            sessionId: audioSessionId,
+            questionKey: nextAudioQuestionKey,
+            questionText: nextAudioQuestionText,
+        }] : [])];
         targets.forEach((target) => questionAudio.prefetch(target));
         void questionAudio.playOnce(targets[0]);
 
         return () => questionAudio.stop?.();
-    }, [currentQuestion, facts, questionAudio]);
+    }, [
+        audioSessionId,
+        currentAudioQuestionKey,
+        currentAudioQuestionText,
+        nextAudioQuestionKey,
+        nextAudioQuestionText,
+        questionAudio,
+    ]);
 
     if (!currentQuestion) {
         return (
@@ -130,7 +154,7 @@ export function SharedLivePracticeShell({
                 <section className="session-live-shell__missing" role="status">
                     <p className="type-eyebrow">Practice space</p>
                     <h1>Your questions are not available yet.</h1>
-                    {resolvedExitHref ? (
+                    {resolvedExitHref && resolvedExitLabel ? (
                         <a className="candidate-button candidate-button--secondary" href={resolvedExitHref}>
                             <LayoutDashboard size={16} aria-hidden="true" />
                             {resolvedExitLabel}
@@ -150,7 +174,21 @@ export function SharedLivePracticeShell({
                         <span>Question {questionPosition} of {questionTotal}</span>
                     </div>
                     <div className="session-live-shell__header-actions">
-                        {resolvedExitHref ? (
+                        {onExit && resolvedExitLabel ? (
+                            <button
+                                type="button"
+                                disabled={isExitPending}
+                                onClick={onExit}
+                                aria-label={resolvedExitLabel}
+                            >
+                                <span>{isExitPending ? "Saving progress..." : resolvedExitLabel}</span>
+                                {isExitPending ? (
+                                    <Loader2 className="session-live-shell__status-spinner" size={18} aria-hidden="true" />
+                                ) : (
+                                    <Pause size={18} aria-hidden="true" />
+                                )}
+                            </button>
+                        ) : resolvedExitHref && resolvedExitLabel ? (
                             <a href={resolvedExitHref} aria-label={resolvedExitLabel}>
                                 <span>{resolvedExitLabel}</span>
                                 <LayoutDashboard size={18} aria-hidden="true" />

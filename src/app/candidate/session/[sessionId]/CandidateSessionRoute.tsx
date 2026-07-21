@@ -12,6 +12,7 @@ import { createCandidateAnswerHistoryRepository } from "@/features/candidate-ses
 import type { CandidateAnswerEvaluationRunRecord } from "@/features/candidate-session-v2/candidate-answer-history";
 import { createSessionAnswerAnalysisRecoveries } from "@/features/interview-session-v2/session-answer-analysis-recovery";
 import { isCandidateAnswerAnalysisRuntimeAvailable } from "@/features/candidate-session-v2/candidate-answer-analysis-runtime-selection";
+import { isSessionQuestionAudioRuntimeAvailable } from "@/features/interview-session-v2/session-question-audio-runtime";
 import {
     createCandidateSessionCompletionLinks,
     createSharedSessionContext,
@@ -77,6 +78,7 @@ export async function renderCandidateSessionPage({
             dashboardHref={completionTarget.href}
             initialSession={initialSession}
             entryTransitionRequested={readSingleSearchParam(resolvedSearchParams?.entry) === "1"}
+            questionAudioEnabled={isSessionQuestionAudioRuntimeAvailable(process.env)}
         />
     );
 }

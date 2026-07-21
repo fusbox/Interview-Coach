@@ -12,8 +12,9 @@ import {
     isCandidatePracticeIntentLaunchable,
     type CandidatePracticeIntentRecord,
 } from "@/features/candidate-practice-v2/candidate-follow-up-practice-intent";
-import { CandidatePreSessionLanding } from "@/features/candidate-session-v2/CandidatePreSessionLanding";
+import { CandidatePracticeIntentReadyLanding } from "@/features/candidate-session-v2/CandidatePracticeIntentReadyLanding";
 import { candidateSetupStageOptions } from "@/features/candidate-setup-v2/candidate-setup-contract";
+import { isSessionQuestionAudioRuntimeAvailable } from "@/features/interview-session-v2/session-question-audio-runtime";
 
 type CandidatePracticeIntentReadyPageProps = {
     params: Promise<{ intentId: string }> | { intentId: string };
@@ -55,17 +56,28 @@ export async function renderCandidatePracticeIntentReadyPage({
         return <PracticeIntentReadyRecoveryState />;
     }
 
-    return <PracticeIntentReadyResolvedState intent={practiceIntent} />;
+    return (
+        <PracticeIntentReadyResolvedState
+            intent={practiceIntent}
+            questionAudioEnabled={isSessionQuestionAudioRuntimeAvailable(process.env)}
+        />
+    );
 }
 
-function PracticeIntentReadyResolvedState({ intent }: { intent: CandidatePracticeIntentRecord }) {
+function PracticeIntentReadyResolvedState({
+    intent,
+    questionAudioEnabled,
+}: {
+    intent: CandidatePracticeIntentRecord;
+    questionAudioEnabled: boolean;
+}) {
     const returnHref = intent.roleProfileId
         ? createCandidateDashboardHref({ roleProfileId: intent.roleProfileId })
         : createCandidateDashboardHref({ legacyTargetRole: intent.targetInterviewId });
 
     return (
-        <CandidatePreSessionLanding
-            variant="follow_up"
+        <CandidatePracticeIntentReadyLanding
+            intentId={intent.candidatePracticeIntentId}
             targetRole={intent.targetRole}
             stageLabel={candidateSetupStageOptions.find((stage) => stage.id === intent.setupContext.interviewStage)?.label ?? "Interview"}
             questionCount={intent.itemCount}
@@ -76,8 +88,15 @@ function PracticeIntentReadyResolvedState({ intent }: { intent: CandidatePractic
                 category: item.source.category,
                 questionText: item.source.questionText,
             }))}
+            firstQuestion={intent.items[0] ? {
+                id: intent.items[0].source.questionKey,
+                number: intent.items[0].source.questionNumber,
+                category: intent.items[0].source.category,
+                questionText: intent.items[0].source.questionText,
+            } : undefined}
             startActionUrl={`/candidate/practice/ready/${intent.candidatePracticeIntentId}/start`}
             returnHref={returnHref}
+            questionAudioEnabled={questionAudioEnabled}
         />
     );
 }

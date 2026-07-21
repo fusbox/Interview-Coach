@@ -1,6 +1,6 @@
 # Invited Practice Live Runtime
 
-Status: Implemented in Slice 153; terminal behavior extended in Slice 158
+Status: Implemented in Slice 153; terminal behavior extended in Slice 158; pause behavior refined in Slice 161
 Last updated: 2026-07-20
 
 ## Purpose
@@ -16,6 +16,8 @@ This contract connects a clean invite-scoped browser session to the shared V2 ty
 | Every session API receives the invitation token | Retire | All live reads and mutations resolve only the invite cookie and require its exact bound session and recipient. |
 | One mutable answer is stored per question | Retire | Drafts remain mutable projections; submissions append immutable answer attempts and feedback retry appends linked attempts. |
 | Retry clears or overwrites earlier feedback | Retire | Earlier attempts and evaluator runs remain immutable evidence. The latest accepted attempt drives the live projection. |
+| Exit asks for confirmation, writes a mutable `PAUSED` status, and leaves the candidate in an ambiguous state | Reinterpret | `Pause session` first confirms any active draft save, then presents a friendly in-place paused surface. Resume restores the exact mounted question; the emailed personal link remains the durable cross-browser return path. |
+| Completed summary attempts to close the browser and redirects elsewhere when blocked | Retire | The paused surface tells the candidate they may close the window themselves. It does not offer an unreliable scripted-close action or silently navigate. |
 | Candidate and invited flows use the same session interaction | Preserve through shared domain code | Reuse the same typed-answer mutation states, evidence-first evaluator runtime, candidate-safe coaching projection, staged feedback, and live shell through audience-specific persistence and route adapters. |
 
 ## Ownership And Persistence
@@ -51,6 +53,8 @@ Refresh and a second tab recover the exact durable state:
 - an accepted answer remains locked while coaching is pending, retryable, unavailable, or ready;
 - a persisted feedback-retry action reopens the latest answer as the next draft without erasing its source attempt;
 - `completed` returns the candidate-only debrief defined by the [Invited Practice Completion And Repeat](./invited-practice-completion-and-repeat.md) contract.
+
+`Pause session` is a presentation state, not a second durable session lifecycle. Submitted answers, analysis, feedback actions, and progress are already durable; an editable current draft must complete its explicit flush before the UI may claim that progress is saved. A failed flush leaves the live session open with its existing save-retry affordance. While paused, question audio is stopped. `Resume practice` returns to the same question and interaction state in the current tab, while reopening the emailed personal link re-establishes invite access and recovers the same state in a later tab or browser. The paused surface may tell the candidate to close the window themselves but must not offer scripted closing as a reliable action.
 
 ## Completion Boundary
 

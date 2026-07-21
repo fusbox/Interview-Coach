@@ -44,8 +44,11 @@ import {
     parseCandidateQuestionWordingResult,
 } from "./candidate-question-wording";
 import { useCandidateTypedAnswerMutations } from "./useCandidateTypedAnswerMutations";
+import { InvitedPracticePause } from "./InvitedPracticePause";
 import type { CandidateAnswerAnalysisRecovery } from "./candidate-answer-analysis-recovery";
 import type { SessionAnswerMutationPhase } from "@/features/interview-session-v2/session-answer-mutation-contract";
+import { useSessionQuestionAudio } from "@/features/interview-session-v2/session-question-audio-browser";
+import { toSessionQuestionAudioTarget } from "@/features/interview-session-v2/session-question-audio-contract";
 
 type CandidatePlannedSessionExperienceProps = {
     sessionId: string;
@@ -57,6 +60,8 @@ type CandidatePlannedSessionExperienceProps = {
     completionBehavior?: SessionCompletionBehavior;
     exitHref?: string;
     exitLabel?: string;
+    invitedPauseEnabled?: boolean;
+    questionAudioEnabled?: boolean;
 };
 
 export function CandidatePlannedSessionExperience({
@@ -69,6 +74,8 @@ export function CandidatePlannedSessionExperience({
     completionBehavior,
     exitHref,
     exitLabel,
+    invitedPauseEnabled = false,
+    questionAudioEnabled = false,
 }: CandidatePlannedSessionExperienceProps) {
     const [session, setSession] = useState<CandidateProvisionalSessionRecord | null>(initialSession);
     const [hasCheckedStorage, setHasCheckedStorage] = useState(Boolean(initialSession));
@@ -92,6 +99,8 @@ export function CandidatePlannedSessionExperience({
     const feedbackRetrySourcesRef = useRef(feedbackRetrySources);
     const [sessionCompletionMessage, setSessionCompletionMessage] = useState<string | null>(null);
     const [isCompletingSession, setIsCompletingSession] = useState(false);
+    const [isPausingSession, setIsPausingSession] = useState(false);
+    const [isSessionPaused, setIsSessionPaused] = useState(false);
     const [entryTransitionPhase, setEntryTransitionPhase] = useState<"entering" | "releasing" | null>(
         entryTransitionRequested ? "entering" : null,
     );
@@ -296,6 +305,15 @@ export function CandidatePlannedSessionExperience({
         session,
         sessionId,
     ]);
+    const activeAudioQuestion = runtimeFacts?.questions[runtimeFacts.currentQuestionIndex] ?? null;
+    const activeAudioTarget = activeAudioQuestion
+        ? toSessionQuestionAudioTarget({ sessionId, question: activeAudioQuestion })
+        : null;
+    const { questionAudio, questionPlaybackControl } = useSessionQuestionAudio({
+        enabled: questionAudioEnabled,
+        requestPath: `${mutationBasePath}/question-audio`,
+        activeTarget: activeAudioTarget,
+    });
 
     useEffect(() => {
         if (progress.status !== "question_preview") {
@@ -478,16 +496,51 @@ export function CandidatePlannedSessionExperience({
             />
         ) : null;
 
+        if (isSessionPaused) {
+            return (
+                <InvitedPracticePause
+                    targetRole={runtimeFacts.targetRole}
+                    onResume={() => setIsSessionPaused(false)}
+                />
+            );
+        }
+
+        const pauseInvitedSession = async () => {
+            if (!invitedPauseEnabled || isPausingSession) {
+                return;
+            }
+
+            setIsPausingSession(true);
+            try {
+                const draftSaved = activeAnswerSubmission
+                    ? true
+                    : await flushAnswerDraft({
+                        slotId: activeQuestion.slotId,
+                        questionIndex: activeQuestion.index,
+                        text: activeDraftText,
+                    });
+                if (draftSaved) {
+                    setIsSessionPaused(true);
+                }
+            } finally {
+                setIsPausingSession(false);
+            }
+        };
+
         return (
             <>
                 <SharedLivePracticeShell
                     facts={runtimeFacts}
                     exitHref={exitHref}
                     exitLabel={exitLabel}
+                    isExitPending={isPausingSession}
+                    onExit={invitedPauseEnabled ? () => void pauseInvitedSession() : undefined}
                     answerMode="text"
                     draftText={activeDraftText}
                     answerMutationPhase={activeAnswerMutationPhase}
                     feedbackContent={feedbackContent}
+                    questionAudio={questionAudio}
+                    questionPlaybackControl={questionPlaybackControl}
                     onDraftChange={(text) => updateAnswerDraft({
                         slotId: activeQuestion.slotId,
                         questionIndex: activeQuestion.index,
@@ -549,6 +602,7 @@ export function CandidatePlannedSessionExperience({
                     category: questionWordingPreview.questions[0].category,
                     questionText: questionWordingPreview.questions[0].questionText,
                 } : undefined}
+                questionAudio={questionAudio}
                 manageTransitionExternally
                 onStart={questionWordingPreview ? beginPracticeEntryTransition : undefined}
             />

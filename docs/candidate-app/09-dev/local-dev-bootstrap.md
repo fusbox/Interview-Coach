@@ -303,6 +303,18 @@ CANDIDATE_ANSWER_ANALYSIS_PROVIDER=fixture
 
 The fixture provider is accepted only with explicit local dev host-launch mode. If the variable is missing, answer analysis remains fail-closed with provider-not-configured behavior.
 
+Question audio is independently opt-in. To browser-validate the shared candidate-led and invited TTS lifecycle, add the exact serving tuple and restart the dev server:
+
+```text
+SESSION_QUESTION_AUDIO_PROVIDER=google_genai
+SESSION_QUESTION_AUDIO_PROFILE=google_gemini_2_5_flash_tts_v1
+GEMINI_API_KEY=<server-only-key>
+```
+
+The landing warms question one, live entry prepares the current and next question, and the visible `Read aloud` control remains the reliable recovery action when browser autoplay is unavailable. The browser sends only `questionKey`; candidate, invited-session, or ready-intent ownership is proved before the server resolves persisted wording. A failed or missing audio provider never blocks text practice. Successful automatic playback is remembered only in the current browser tab for that session question; it is deliberately not synchronized across devices.
+
+Validate one candidate initial round, one candidate follow-up ready intent, and one invited round on desktop and mobile. Confirm first-entry playback after `Start practice`, next-question playback, explicit replay, no automatic repeat after same-tab refresh, and new-tab recovery through `Read aloud`. Then remove or misspell `SESSION_QUESTION_AUDIO_PROFILE`, restart, and confirm the same session remains fully usable as text practice without a broken audio control. Restore the exact profile after the failure check.
+
 Initial-round question wording is selected independently. Ordinary local development uses the deterministic wording fixture when explicit dev host-launch mode is enabled. To exercise the pinned production profile through setup, the pre-session landing, durable session recovery, and the first live question, use the guarded disposable-DB browser reconciliation instead of leaving live configuration in `.env.local`:
 
 ```powershell

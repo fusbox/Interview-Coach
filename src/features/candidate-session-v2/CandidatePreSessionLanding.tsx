@@ -203,7 +203,11 @@ export function CandidatePreSessionLanding({
                             action={startActionUrl}
                             method="post"
                         >
-                            <button className="candidate-button candidate-button--primary" type="submit">
+                            <button
+                                className="candidate-button candidate-button--primary"
+                                type="submit"
+                                onClick={() => void questionAudio?.unlock()}
+                            >
                                 <Play size={16} aria-hidden="true" />
                                 Start practice
                             </button>
