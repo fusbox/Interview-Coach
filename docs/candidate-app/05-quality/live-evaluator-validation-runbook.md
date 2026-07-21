@@ -1,7 +1,7 @@
 # Live Evaluator Validation Runbook
 
 Status: Ratified implementation contract
-Last updated: 2026-07-16
+Last updated: 2026-07-20
 
 ## Purpose
 
@@ -14,7 +14,7 @@ This is validation evidence, not candidate-serving persistence and not a model-p
 In scope:
 
 - the exact `google_genai` / `google_gemini_2_5_flash_v1` profile;
-- synthetic fixed golden cases for thin, off-topic, sensitive-disclosure, transferable-experience, voice-fairness, and confidently-wrong technical behavior;
+- synthetic fixed golden cases spanning all five categories, thin and sufficient-short answers, off-topic and sensitive answers, missing behavioral/scenario/culture signals, transferable experience, voice and language fairness, and confidently-wrong technical behavior;
 - accepted and safely classified failed/rejected runtime outcomes;
 - immutable configuration fingerprint, stage outcomes, latency, token metadata, deterministic appraisal facts, and candidate-safe projection;
 - local ignored JSON artifacts for human review;
@@ -68,7 +68,7 @@ Generated files use exclusive creation and never silently overwrite prior eviden
 
 ## Synthetic Golden Suite
 
-The first suite is `candidate_evaluator_golden_v1`. Every case is code-owned, synthetic, stable, and has a fixed input fingerprint.
+The current source suite is `candidate_evaluator_golden_v2`. Every case is code-owned, synthetic, stable, and has a fixed input fingerprint. Every case now asserts all five universal criteria, including applicability and a band only when the criterion is observed. This makes marker-to-criterion contradictions visible instead of allowing a case to pass because only one favorable band was checked.
 
 | Case | Primary contract |
 | --- | --- |
@@ -78,9 +78,23 @@ The first suite is `candidate_evaluator_golden_v1`. Every case is code-owned, sy
 | Transferable experience | Treat a relevant school/community example as usable evidence rather than requiring formal job-title experience. |
 | Strong typed answer | Establish the content baseline for voice fairness. |
 | Equivalent voice answer with fillers | Preserve the typed answer's core criterion bands; delivery may receive only a separate light note. |
+| Brief screening logistics answer | Keep a short sufficient answer strong without inventing a need for story evidence. |
+| Team result without personal action | Preserve the result while keeping personal-action and role-skill evidence emerging. |
+| Scenario solution without problem framing | Recognize the recommendation without rewarding missing diagnosis, priorities, or tradeoffs. |
+| Generic culture/fit answer | Recognize stated preference without inferring a grounded example, role connection, or self-awareness. |
+| Strong content with non-native grammar | Evaluate meaning and evidence without penalizing grammar polish or mentioning language proficiency. |
 | Confidently wrong technical answer | Use the supplied versioned technical reference, mark the misconception contradicted, and require accepted verification before coaching. |
 
 The suite gate combines runtime invariants with bounded case-specific assertions. A failed assertion remains visible in the artifact and makes the command exit nonzero after the artifact is written. It must not be hidden by fallback coaching or a different case result.
+
+### V1 QA reconciliation
+
+- **Preserve:** generation traceability, immutable provider/configuration identity, latency/token facts, filtering, and exportable review evidence.
+- **Reinterpret:** use fixed source cases, exact input fingerprints, strict parsed outputs, named machine-checkable assertions, and privacy-minimized artifacts as the quality gate.
+- **Retire:** source-app as an evaluation axis, broad raw prompt/output snapshots as the default review surface, and success/status counts as evidence that coaching meaning is correct.
+- **Defer:** a reviewer workflow and UI, durable reviewer annotations, approved second-profile A/B runs, and any narrowly justified raw-payload retention exception.
+
+The original refactor pack's larger category-by-criterion-by-band matrix remains a direction for progressive coverage, not a claim that twelve cases exhaust evaluator behavior.
 
 ## Artifact Contract
 
@@ -142,10 +156,32 @@ A disposable-DB candidate browser flow then submitted one typed answer through t
 
 The broader manual browser protocol subsequently exposed a valid Q1 whose composer returned `affirm_and_continue` together with a useful biggest upgrade. The strict validator correctly refused the contradictory internal shape, but candidate coaching became unavailable. Application code now normalizes that usable-answer combination to `polish_then_continue` without changing candidate wording or weakening evidence checks. Credentialed reruns then exposed adjacent brittle boundaries: a grounded candidate-owned school-grade outcome was mistaken for coach scoring, an unobserved category signal carried contradictory evidence ids, a verifier copied the expected technical-contradiction trigger into its unsupported-reasons field, and one voice-case composer response failed schema validation without a useful field diagnostic. The prompt now distinguishes coach-owned evaluation from grounded candidate outcomes, verifier triggers from unsupported conclusions, and a supported extractor contradiction from a supported candidate claim. Code clears citations from unobserved signals, still requires every observed signal to cite accepted evidence, and adds content-free schema issue paths to invalid-schema error codes.
 
-The current validated configuration is evaluator contract `candidate_evidence_first_v2`, prompt bundle `candidate_evidence_first_prompts_v6`, Google adapter `google_genai_evidence_first_adapter_v10`, and fingerprint `466f1d3d7f5395346ba8172b952c35c5a5f1a9f182f4ce2014495c208f26ae93`. Final artifacts `live_eval_196fb6fd160ace41` and `live_eval_79d9b3263cd85691` each accepted and passed 7 of 7; repeatability comparison `live_compare_7a8db71ebade7af2` found all seven cases comparable and retains the required human-review flag. Superseded failed artifacts remain ignored diagnostic evidence.
+The seven-case Slice 123 configuration was evaluator contract `candidate_evidence_first_v2`, prompt bundle `candidate_evidence_first_prompts_v6`, Google adapter `google_genai_evidence_first_adapter_v10`, and fingerprint `466f1d3d7f5395346ba8172b952c35c5a5f1a9f182f4ce2014495c208f26ae93`. Artifacts `live_eval_196fb6fd160ace41` and `live_eval_79d9b3263cd85691` each accepted and passed 7 of 7; comparison `live_compare_7a8db71ebade7af2` found all seven cases comparable. This remains historical evidence and is superseded for current source-gate review by Slice 163 below.
 
 - Baseline artifact `live_eval_196fb6fd160ace41`: 7 requested, 7 accepted, 7 passed, gate passed.
 - Repeat artifact `live_eval_79d9b3263cd85691`: 7 requested, 7 accepted, 7 passed, gate passed.
 - Comparison artifact `live_compare_7a8db71ebade7af2`: same-profile repeatability, 7 of 7 comparable; the only flag is the intentionally unresolved `needs_human_review`, and human preference remains `not_reviewed`.
 
 The earlier v5 fingerprint and intermediate failed gates remain historical evidence and are superseded for serving-profile review by the v8/v5/v2 fingerprint above.
+
+## Slice 162 Calibration Expansion
+
+The prior seven-case `candidate_evaluator_golden_v1` artifacts remain valid historical evidence for the configuration that produced them. They do not satisfy the current source gate. `candidate_evaluator_golden_v2` adds five cases from the original refactor edge-case direction and requires a complete five-criterion expectation for every case.
+
+The deterministic appraisal boundary now treats `answerUsability: thin` as insufficient evidence for promotion: every assessable criterion is `observed/emerging`, even when an isolated direct-answer span exists. Technical role skill remains `unscoreable` without a trusted reference. This restores the original evidence-first invariant that a thin answer cannot acquire `clear` or `strong` bands merely because it is short, on topic, or grammatically polished. A separate usable screening-logistics case preserves the equally important rule that brevity alone is not a defect when the question calls for a concise factual answer.
+
+The expanded source gate and its network-free tests are implemented. Slice 163 completed the required credentialed rerun, offline comparison, and human review described below.
+
+## Slice 163 Twelve-Case Calibration Result
+
+The expanded gate first exposed brittle expectations and two deterministic appraisal defects. Concise screening logistics now makes role-skill evidence `not_elicited` when no role connection was asked for, and a scenario recommendation cannot receive a mature role-skill band when problem framing is absent. Golden assertions now require the decisive pattern gap while allowing defensible variation in generic context/detail extraction and adjacent qualitative bands.
+
+Human review of intermediate otherwise-passing output found unsupported speaking-pace advice on a typed answer. The composer contract now confines pace, tone, fillers, pauses, and speaking-style advice to the separate delivery note, rejects such guidance in every other feedback field, requires that note when supplied voice markers show fillers or long pauses, and keeps it null without supporting voice evidence. This request-affecting correction advanced the prompt bundle to `candidate_evidence_first_prompts_v8` and configuration fingerprint `69a65121b67ec1b9745d50c6d952409ea4291e4a7d70b6ca423966eb667c980f`.
+
+- Baseline artifact `live_eval_c1da8f7f7104975c`: 12 requested, 12 accepted, 12 passed, gate passed.
+- Repeat artifact `live_eval_16784048b2e5d6ca`: 12 requested, 12 accepted, 12 passed, gate passed.
+- Comparison artifact `live_compare_29f03288ef5a9e51`: same-profile repeatability, 12 of 12 comparable; generated preference remains `not_reviewed` by design.
+
+Human review accepted both final candidate-safe projections for all twelve cases. Meaningful variation stayed within the same evidence-grounded coaching intent: missing personal action, missing scenario framing, generic motivation, technical contradiction, privacy reframe, concise logistics sufficiency, transferable experience, and typed/voice content parity all remained stable. Voice delivery advice appeared only in the light note. The comparison artifact retains `needs_human_review` because generated artifacts never self-promote; this paragraph records the completed human judgment.
+
+Earlier v6-v8 failed or superseded artifacts remain ignored diagnostic evidence. They must not be presented as current passing evidence even when an individual run reached 12 of 12 before a later human-review correction changed the immutable prompt configuration.

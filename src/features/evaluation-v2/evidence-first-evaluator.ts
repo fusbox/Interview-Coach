@@ -29,7 +29,7 @@ export const EVIDENCE_FIRST_FEEDBACK_FORBIDDEN_PATTERNS = [
     /\b(?:your|this|the)\s+(?:answer|response)\s+(?:(?:is|was|seems|felt)\s+)?(?:weak|bad)\b|\b(?:weak|bad)\s+(?:answer|response)\b|\bweakness(?:es)?\b/i,
     /\bmost candidates\b|\bother candidates\b|\bcompared (?:with|to)\b/i,
     /\bpercentile\b/i,
-    /\baccent\b|\bnative fluency\b|\bnative speaker\b|\benglish proficiency\b/i,
+    /\baccent\b|\bnative fluency\b|\bnative speaker\b|\benglish proficiency\b|\bgrammar\b|\benglish(?: language)?\b/i,
     /\bpersonality\b|\bcharisma\b|\bappearance\b/i,
     /\brace\b|\breligion\b|\bnational origin\b|\bgender expression\b|\bfamily status\b|\bage\b/i,
     /\byou seem (?:young|old|anxious|confident|shy|introverted|extroverted)\b/i,
@@ -343,6 +343,7 @@ export function validateFeedbackComposition(input: {
 
     validateFeedbackAnchor(input.appraisal, feedback, issues);
     validateInterventionCompleteness(feedback, issues);
+    validateDeliveryGuidancePlacement(feedback, issues);
     validateDeliveryNote(input.evaluationCase, feedback, issues);
     validateCandidateLanguage(feedback.candidateFeedback, issues);
 
@@ -467,6 +468,26 @@ function appraiseCriteria(evidence: EvidenceExtractionOutput, category: Question
                 : insufficientCriterion(criterionId, "off_topic_no_relevant_evidence")
         ));
     }
+    if (evidence.answerUsability.status === "thin") {
+        return UNIVERSAL_CRITERION_IDS.map((criterionId) => (
+            criterionId === "role_skill_signal"
+                && category === "technical_role_specific"
+                && evidence.technicalAccuracy.status === "not_assessed"
+                ? {
+                    criterionId,
+                    applicability: "unscoreable",
+                    evidenceSpanIds: [],
+                    reasonCode: "technical_reference_not_supplied",
+                }
+                : observedCriterion(
+                    criterionId,
+                    "emerging",
+                    evidence,
+                    criterionEvidenceMarkers(criterionId),
+                    "thin_answer_insufficient_evidence",
+                )
+        ));
+    }
 
     return [
         appraiseAnswerFocus(evidence),
@@ -475,6 +496,21 @@ function appraiseCriteria(evidence: EvidenceExtractionOutput, category: Question
         appraiseRoleSkillSignal(evidence, category),
         appraiseImpactJudgmentTakeaway(evidence, category),
     ];
+}
+
+function criterionEvidenceMarkers(criterionId: UniversalCriterionId): EvidenceSpan["marker"][] {
+    switch (criterionId) {
+        case "answer_focus":
+            return ["direct_answer"];
+        case "organization":
+            return ["context", "personal_action", "outcome", "reasoning", "priority", "recommendation", "next_step"];
+        case "evidence_specificity":
+            return ["example", "specific_detail", "personal_action"];
+        case "role_skill_signal":
+            return ["role_skill_signal", "personal_action", "reasoning", "practical_application", "role_connection"];
+        case "impact_judgment_takeaway":
+            return ["outcome", "takeaway", "tradeoff", "recommendation", "next_step", "learning", "self_awareness"];
+    }
 }
 
 function appraiseAnswerFocus(evidence: EvidenceExtractionOutput): CriterionAppraisal {
@@ -517,7 +553,7 @@ function appraiseEvidenceSpecificity(
     const markers = evidence.observableMarkers;
     if (
         category === "screening"
-        && markers.hasDirectAnswer
+        && (markers.hasDirectAnswer || hasObservedSignal(evidence, "has_logistics_clarity"))
         && markers.isVeryShort
         && !markers.hasExample
         && !markers.hasSpecificDetails
@@ -539,6 +575,22 @@ function appraiseRoleSkillSignal(
     evidence: EvidenceExtractionOutput,
     category: QuestionCategory,
 ): CriterionAppraisal {
+    if (
+        category === "screening"
+        && hasObservedSignal(evidence, "has_logistics_clarity")
+        && !hasObservedSignal(evidence, "has_role_connection")
+    ) {
+        return notElicitedCriterion("role_skill_signal", "screening_role_skill_not_elicited");
+    }
+    if (category === "case_scenario" && !hasObservedSignal(evidence, "has_problem_framing")) {
+        return observedCriterion(
+            "role_skill_signal",
+            "emerging",
+            evidence,
+            ["role_skill_signal", "personal_action", "reasoning", "practical_application", "role_connection"],
+            "scenario_problem_framing_missing",
+        );
+    }
     if (category === "technical_role_specific" && evidence.technicalAccuracy.status === "not_assessed") {
         return {
             criterionId: "role_skill_signal",
@@ -741,7 +793,7 @@ function detectPatternGap(
     return patternGap(
         "reinforce_effective_pattern",
         "low",
-        "Keep the answer's effective structure and make the key evidence easy to hear.",
+        "Keep the answer's effective structure and make the key point easy to recognize.",
         ["direct point", "supporting evidence", "clear takeaway"],
         "criterion_appraisal",
     );
@@ -857,6 +909,36 @@ function validateDeliveryNote(
     if (voiceMarkers.fillerWordCount === 0 && voiceMarkers.longPauseCount === 0) {
         issues.push({ code: "delivery_note_without_observed_marker" });
     }
+}
+
+function validateDeliveryGuidancePlacement(
+    feedback: FeedbackCompositionOutput,
+    issues: EvidenceValidationIssue[],
+) {
+    const nonDeliveryText = [
+        feedback.feedbackPlan.centralRead,
+        feedback.candidateFeedback.acknowledgement,
+        feedback.candidateFeedback.primaryStrength,
+        feedback.candidateFeedback.biggestUpgrade,
+        feedback.candidateFeedback.redoPrompt,
+        feedback.candidateFeedback.patternSuggestion?.patternName,
+        ...(feedback.candidateFeedback.patternSuggestion?.steps ?? []),
+    ].filter((value): value is string => Boolean(value)).join(" ");
+
+    if (containsDeliveryMechanicsGuidance(nonDeliveryText)) {
+        issues.push({ code: "delivery_guidance_outside_delivery_note" });
+    }
+}
+
+function containsDeliveryMechanicsGuidance(value: string) {
+    return [
+        /\bpractice (?:your )?speaking\b/i,
+        /\bspeak(?:ing)? (?:more )?(?:clearly|slowly|steadily|confidently)\b/i,
+        /\b(?:slower|faster|steady|clear|measured) pace\b/i,
+        /\b(?:adjust|improve|watch|vary|use) (?:your )?(?:tone|volume)\b/i,
+        /\b(?:reduce|avoid|cut)(?: down on)? (?:filler words?|pauses?)\b/i,
+        /\b(?:filler words?|long pauses?|vocal delivery|verbal delivery)\b/i,
+    ].some((pattern) => pattern.test(value));
 }
 
 function validateCandidateLanguage(

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+    UNIVERSAL_CRITERION_IDS,
     createEvidenceFirstEvaluationCase,
     createEvidenceExtractorTask,
     createEvaluatorRunDescriptor,
@@ -101,18 +102,18 @@ describe("evidence-first evaluator contract", () => {
     it("does not penalize a short, sufficient screening answer for evidence the question did not elicit", () => {
         const answerText = "I can start two weeks after an offer.";
         const evaluationCase = createCase({ answerText, category: "screening" });
-        const direct = createSpan(answerText, "I can start two weeks after an offer.", "direct_answer", "direct");
+        const logistics = createSpan(answerText, "I can start two weeks after an offer.", "next_step", "logistics");
         const extraction = createExtraction(evaluationCase, {
             observableMarkers: {
                 answeredQuestion: true,
-                hasDirectAnswer: true,
+                hasDirectAnswer: false,
                 isVeryShort: true,
             },
-            evidenceSpans: [direct],
+            evidenceSpans: [logistics],
             categorySignals: [{
                 id: "has_logistics_clarity",
                 status: "observed",
-                evidenceSpanIds: [direct.id],
+                evidenceSpanIds: [logistics.id],
             }],
         });
 
@@ -122,10 +123,80 @@ describe("evidence-first evaluator contract", () => {
         if (result.disposition !== "accepted") {
             throw new Error("Expected accepted appraisal.");
         }
-        expect(findCriterion(result, "answer_focus")).toMatchObject({ applicability: "observed", band: "strong" });
-        expect(findCriterion(result, "organization")).toMatchObject({ applicability: "observed", band: "strong" });
+        expect(findCriterion(result, "answer_focus")).toMatchObject({ applicability: "observed", band: "clear" });
+        expect(findCriterion(result, "organization")).toMatchObject({ applicability: "observed", band: "clear" });
         expect(findCriterion(result, "evidence_specificity")).toMatchObject({ applicability: "not_elicited" });
         expect(findCriterion(result, "evidence_specificity")).not.toHaveProperty("band");
+        expect(findCriterion(result, "role_skill_signal")).toMatchObject({ applicability: "not_elicited" });
+        expect(result.patternGap).toMatchObject({ id: "reinforce_effective_pattern", severity: "low" });
+    });
+
+    it("does not promote a thin answer from isolated direct-answer evidence", () => {
+        const answerText = "I work hard.";
+        const evaluationCase = createCase({ answerText, category: "screening" });
+        const direct = createSpan(answerText, answerText, "direct_answer", "direct");
+        const extraction = createExtraction(evaluationCase, {
+            answerUsability: { status: "thin", reasonCode: "too_little_supporting_evidence" },
+            observableMarkers: {
+                answeredQuestion: true,
+                hasDirectAnswer: true,
+                isVeryShort: true,
+            },
+            evidenceSpans: [direct],
+        });
+
+        const result = validateAndAppraiseEvidence({ evaluationCase, value: extraction });
+
+        expect(result.disposition).toBe("accepted");
+        if (result.disposition !== "accepted") {
+            throw new Error("Expected accepted thin-answer appraisal.");
+        }
+        expect(result.criteria).toHaveLength(UNIVERSAL_CRITERION_IDS.length);
+        expect(result.criteria).toEqual(expect.arrayContaining(
+            UNIVERSAL_CRITERION_IDS.map((criterionId) => expect.objectContaining({
+                criterionId,
+                applicability: "observed",
+                band: "emerging",
+                reasonCode: "thin_answer_insufficient_evidence",
+            })),
+        ));
+    });
+
+    it("keeps technical role skill unscoreable for a thin answer without a trusted reference", () => {
+        const answerText = "It makes queries faster.";
+        const evaluationCase = createCase({ answerText, category: "technical_role_specific" });
+        const direct = createSpan(answerText, answerText, "direct_answer", "direct");
+        const extraction = createExtraction(evaluationCase, {
+            answerUsability: { status: "thin", reasonCode: "too_little_technical_evidence" },
+            observableMarkers: {
+                answeredQuestion: true,
+                hasDirectAnswer: true,
+                isVeryShort: true,
+            },
+            evidenceSpans: [direct],
+            categorySignals: [{
+                id: "has_direct_technical_answer",
+                status: "observed",
+                evidenceSpanIds: [direct.id],
+            }],
+        });
+
+        const result = validateAndAppraiseEvidence({ evaluationCase, value: extraction });
+
+        expect(result.disposition).toBe("accepted");
+        if (result.disposition !== "accepted") {
+            throw new Error("Expected accepted thin technical appraisal.");
+        }
+        expect(findCriterion(result, "role_skill_signal")).toEqual({
+            criterionId: "role_skill_signal",
+            applicability: "unscoreable",
+            evidenceSpanIds: [],
+            reasonCode: "technical_reference_not_supplied",
+        });
+        expect(findCriterion(result, "answer_focus")).toMatchObject({
+            applicability: "observed",
+            band: "emerging",
+        });
     });
 
     it("preserves a behavioral team result while identifying the missing personal action", () => {
@@ -178,9 +249,19 @@ describe("evidence-first evaluator contract", () => {
             ],
         });
 
-        expect(validateAndAppraiseEvidence({ evaluationCase, value: extraction })).toMatchObject({
+        const result = validateAndAppraiseEvidence({ evaluationCase, value: extraction });
+
+        expect(result).toMatchObject({
             disposition: "accepted",
             patternGap: { id: "missing_problem_framing", source: "category_lens" },
+        });
+        expect(result.disposition).toBe("accepted");
+        if (result.disposition !== "accepted") {
+            throw new Error("Expected accepted appraisal.");
+        }
+        expect(findCriterion(result, "role_skill_signal")).toMatchObject({
+            applicability: "observed",
+            band: "emerging",
         });
     });
 
@@ -357,6 +438,20 @@ describe("evidence-first evaluator contract", () => {
         });
     });
 
+    it("rejects delivery-mechanics advice outside the voice-only delivery note", () => {
+        const { evaluationCase, appraisal } = createAcceptedBehavioralAppraisal();
+        const feedback = createFeedback(evaluationCase, appraisal, {
+            primaryStrength: null,
+            primaryStrengthSpanIds: [],
+            biggestUpgrade: "Practice speaking clearly and at a steady pace.",
+        });
+
+        expect(validateFeedbackComposition({ evaluationCase, appraisal, value: feedback })).toMatchObject({
+            status: "feedback_rejected",
+            issues: expect.arrayContaining([{ code: "delivery_guidance_outside_delivery_note" }]),
+        });
+    });
+
     it("projects only validated candidate-safe coaching and keeps the hidden plan internal", () => {
         const { evaluationCase, appraisal } = createAcceptedBehavioralAppraisal();
         const evidenceSpanId = appraisal.evidence.evidenceSpans[0].id;
@@ -428,7 +523,7 @@ describe("evidence-first evaluator contract", () => {
             profile: {
                 profileId: "pipeline-a",
                 evaluatorVersion: "candidate_evidence_first_v2",
-                promptBundleVersion: "candidate_evidence_first_prompts_v6",
+                promptBundleVersion: "candidate_evidence_first_prompts_v8",
                 serviceMode: "test",
                 adapterVersion: "test_adapter_v1",
                 evidenceExtractor: {
@@ -474,7 +569,7 @@ function createModelProfile() {
     return {
         profileId: "google_gemini_2_5_flash_v1",
         evaluatorVersion: "candidate_evidence_first_v2" as const,
-        promptBundleVersion: "candidate_evidence_first_prompts_v6" as const,
+        promptBundleVersion: "candidate_evidence_first_prompts_v8" as const,
         serviceMode: "gemini_api",
         adapterVersion: "google_genai_evidence_first_adapter_v1",
         evidenceExtractor: {
@@ -655,6 +750,7 @@ function createFeedback(
     overrides: {
         primaryStrength: string | null;
         primaryStrengthSpanIds: string[];
+        biggestUpgrade?: string;
     },
 ) {
     return {
@@ -670,7 +766,7 @@ function createFeedback(
         candidateFeedback: {
             acknowledgement: "You answered with a relevant work example.",
             primaryStrength: overrides.primaryStrength,
-            biggestUpgrade: "Make the result and what you learned easier to hear.",
+            biggestUpgrade: overrides.biggestUpgrade ?? "Make the result and what you learned easier to recognize.",
             redoPrompt: null,
             patternSuggestion: {
                 patternName: "Context, action, result",

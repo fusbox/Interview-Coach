@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 
 export const EVIDENCE_FIRST_EVALUATOR_CONTRACT_VERSION = "candidate_evidence_first_v2" as const;
-export const EVIDENCE_FIRST_PROMPT_BUNDLE_VERSION = "candidate_evidence_first_prompts_v6" as const;
+export const EVIDENCE_FIRST_PROMPT_BUNDLE_VERSION = "candidate_evidence_first_prompts_v8" as const;
 
 export const EVIDENCE_FIRST_INPUT_LIMITS = {
     targetRole: 120,
@@ -142,7 +142,7 @@ export const FEEDBACK_COMPOSER_SYSTEM_POLICY = [
     "Do not describe missing or unelicited evidence as poor performance.",
     "A strength claim must cite accepted answer evidence. If no supported strength exists, acknowledge the attempt without inventing praise.",
     "Sensitive disclosure requires a privacy_reframe anchor and professional_reframe intervention.",
-    "Voice mechanics never alter content appraisal. When supplied voice markers show fillers or long pauses, include only a separate light delivery note with one practical suggestion.",
+    "Voice mechanics never alter content appraisal. When supplied voice markers show fillers or long pauses, include one separate light delivery note with one practical suggestion. Pace, tone, fillers, pauses, speaking style, and other delivery advice may appear only in that note. When no voice markers support delivery guidance, deliveryNote must be null. No other feedback field may mention delivery mechanics.",
     "Keep central read and acknowledgement within 220 characters each, primary strength and biggest upgrade within 280 characters each, redo prompt within 320 characters, and every pattern step within 120 characters.",
     "Use plain language appropriate to the target role without lowering the evaluation standard based on assumed background.",
     "Return only the structured feedback schema.",

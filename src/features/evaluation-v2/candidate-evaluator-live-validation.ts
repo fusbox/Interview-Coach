@@ -788,6 +788,16 @@ function createAcceptedValidations(
         const actual = extraction.observableMarkers[marker as keyof typeof extraction.observableMarkers];
         validations.push(fact(`marker_${toFactId(marker)}`, actual === expected, [String(expected)], [String(actual)]));
     }
+    for (const [signalId, allowedStatuses] of Object.entries(expectation.categorySignalStatuses ?? {})) {
+        const signal = extraction.categorySignals.find((item) => item.id === signalId);
+        const actual = signal?.status ?? "missing";
+        validations.push(fact(
+            `category_signal_${toFactId(signalId)}`,
+            Boolean(signal && allowedStatuses.includes(signal.status)),
+            [...allowedStatuses],
+            [actual],
+        ));
+    }
     for (const requiredFlag of expectation.requiredSensitiveFlags ?? []) {
         const present = extraction.sensitiveContentFlags.includes(requiredFlag);
         validations.push(fact(
@@ -822,6 +832,14 @@ function createAcceptedValidations(
             [intervention],
         ));
     }
+    if (expectation.allowedPatternGapIds) {
+        validations.push(fact(
+            "pattern_gap",
+            expectation.allowedPatternGapIds.includes(run.accepted.patternGap.id),
+            [...expectation.allowedPatternGapIds],
+            [run.accepted.patternGap.id],
+        ));
+    }
     if (expectation.primaryStrength) {
         const present = Boolean(run.accepted.candidateProjection.primaryStrength);
         validations.push(fact(
@@ -840,15 +858,22 @@ function createAcceptedValidations(
             [present ? "present" : "absent"],
         ));
     }
-    for (const [criterionId, allowedBands] of Object.entries(expectation.criterionBands ?? {})) {
+    for (const [criterionId, criterionExpectation] of Object.entries(expectation.criterionAppraisals)) {
         const criterion = run.accepted.criteria.find((item) => item.criterionId === criterionId);
-        const actual = criterion?.band ?? criterion?.applicability ?? "missing";
         validations.push(fact(
-            `criterion_${toFactId(criterionId)}`,
-            Boolean(criterion?.band && allowedBands?.includes(criterion.band)),
-            [...(allowedBands ?? [])],
-            [actual],
+            `criterion_${toFactId(criterionId)}_applicability`,
+            Boolean(criterion && criterionExpectation.allowedApplicability.includes(criterion.applicability)),
+            [...criterionExpectation.allowedApplicability],
+            [criterion?.applicability ?? "missing"],
         ));
+        if (criterion?.applicability === "observed" && criterionExpectation.allowedBands) {
+            validations.push(fact(
+                `criterion_${toFactId(criterionId)}_band`,
+                Boolean(criterion.band && criterionExpectation.allowedBands.includes(criterion.band)),
+                [...criterionExpectation.allowedBands],
+                [criterion.band ?? "missing"],
+            ));
+        }
     }
     return validations;
 }

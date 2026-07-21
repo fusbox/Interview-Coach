@@ -1,6 +1,6 @@
 # Candidate V2 Reviewer Handoff
 
-Date: 2026-07-16
+Date: 2026-07-20
 Status: Cleanroom rebuild reviewer quick start; not a release or merge approval
 
 ## Purpose
@@ -62,6 +62,7 @@ Default candidate checks:
 
 ```powershell
 npm run test:candidate
+npm run test:candidate:question-audio
 npm run test:candidate:evaluator-configuration
 npm run test:candidate:coach-update
 npm run test:candidate:next-round
@@ -91,20 +92,21 @@ That adds the production build, DB readiness chain, and seeded browser smoke. Do
 
 ## Evaluator Milestone Evidence
 
-The current candidate-serving baseline is the pinned `google_gemini_2_5_flash_v1` profile under evaluator contract `candidate_evidence_first_v2`. Two credentialed seven-case artifacts passed the automated gate under the same immutable configuration fingerprint, and a durable candidate-route run proved accepted evaluator persistence plus candidate-safe projection and recovery. These are conformance results, not a human serving-profile promotion.
+The current candidate-serving baseline is the pinned `google_gemini_2_5_flash_v1` profile under evaluator contract `candidate_evidence_first_v2`, prompt bundle `candidate_evidence_first_prompts_v8`, and fingerprint `69a65121b67ec1b9745d50c6d952409ea4291e4a7d70b6ca423966eb667c980f`. Two independent `candidate_evaluator_golden_v2` artifacts accepted and passed all twelve marker/signal/five-criterion cases; offline comparison found all twelve comparable, and human review accepted both candidate-safe projections for every case. A durable candidate-route run separately proves accepted evaluator persistence plus candidate-safe projection and recovery. Earlier seven-case artifacts are historical evidence, not the current source gate. These are conformance results, not deployment approval.
 
 Review these before changing the evaluator boundary:
 
 - [Evidence-First Evaluator Contract](./05-quality/evidence-first-evaluator-contract.md)
 - [Production Evaluator Integration Contract](./05-quality/production-evaluator-integration-contract.md)
 - [Live Evaluator Validation Runbook](./05-quality/live-evaluator-validation-runbook.md)
+- [Shared Audio And Evaluator Calibration Milestone](./05-quality/shared-audio-evaluator-calibration-milestone.md)
 
 Technical correctness remains `not_assessed` when no trusted technical reference is supplied. Coaching should still be composed from other accepted evidence. Local Coach Update synthesis uses its deterministic fixture independently of whether answer analysis uses the fixture or Gemini; a live Coach Update provider is not yet wired.
 
 ## Known Non-Release Boundaries
 
-- Production TA/RW host-launch context resolution and final token/cookie guarantees are not implemented.
-- Production question wording, technical-reference retrieval, Coach Update provider wiring, TTS, resume ingestion/OCR, and invited-route persistence remain incomplete.
-- Human qualitative review and explicit evaluator serving-profile promotion remain pending.
-- Post-completion evaluator repair, request-level idempotency at setup/direct-intent boundaries, async Coach Update polling/retry, privacy masking, observability, accessibility, and deployment hardening remain release work.
-- Recruiter/admin V2 rebuild decisions are outside this candidate milestone.
+- The IC-side TA launch verifier, exchange, bounded MSSQL identity/job lookup, and app session are implemented; real TA staging token/network/secret-rotation acceptance is still external. RW remains disabled.
+- Production question wording, answer evaluation, Coach Update persistence/synthesis, candidate/invited typed practice, question TTS, and the standalone recruiter/invitation flow are locally functional. Trusted technical-reference retrieval, resume ingestion/OCR, answer recording/transcription, and photo capture remain incomplete.
+- A second evaluator comparison profile, reviewer workflow, explicit serving-profile promotion/rollback operations, and deployed evaluator observability remain pending.
+- Question TTS uses a preview Gemini model and browser-local play-once memory. It is optional and text-first; organizational approval and deployed desktop/mobile evidence remain release gates.
+- Deployed telemetry/alerts, manual accessibility, real-host and deployed SMTP/network acceptance, dependency-risk disposition, and organizational approvals remain release work.

@@ -2,7 +2,7 @@
 
 Status: Ratified executable contract
 Contract version: `candidate_evidence_first_v2`
-Prompt bundle version: `candidate_evidence_first_prompts_v6`
+Prompt bundle version: `candidate_evidence_first_prompts_v8`
 Last updated: 2026-07-16
 
 ## Purpose
@@ -109,7 +109,7 @@ The universal criteria are:
 4. `role_skill_signal`
 5. `impact_judgment_takeaway`
 
-Missing, unelicited, private, unusable, or technically unverifiable evidence must not be converted to `emerging`. `Emerging` is an observed qualitative band, not a synonym for missing evidence. The bands are internal evaluator facts and contain no numeric score.
+Missing, unelicited, private, non-answer, unclear-transcript, or technically unverifiable evidence must not be converted to `emerging`. `Emerging` is an observed qualitative band, not a synonym for missing evidence. A `thin` answer is the bounded exception because it contains an answer that can be coached but not enough developed evidence to promote: every assessable criterion remains `observed/emerging`, regardless of an isolated direct-answer marker. Technical role skill remains `unscoreable` without a trusted reference. The bands are internal evaluator facts and contain no numeric score.
 
 Category lenses interpret those same criteria for behavioral, screening, culture/fit, case/scenario, and technical/role-specific questions. A concise screening answer can be strong for focus and organization while specificity or impact remains `not_elicited`. Non-native grammar and voice filler markers do not alter content bands unless meaning cannot be recovered; an optional delivery note is separate.
 
@@ -256,7 +256,7 @@ The next implementation slice should not wire production analysis until these de
 
 1. Keep the two-call extractor/composer model with a conditional verifier, or choose a different latency/cost contract.
 2. Keep the universal criteria and internal `emerging` / `clear` / `strong` bands as written.
-3. Confirm that `thin` but usable answers may still receive observed criterion bands while non-answers, unclear transcripts, and sensitive disclosures may not.
+3. Ratified in Slice 162: `thin` answers receive only `observed/emerging` criterion bands, while non-answers, unclear transcripts, and sensitive disclosures receive no observed bands.
 4. Confirm technical role-skill evaluation fails to `unscoreable` when no versioned reference exists.
 5. Confirm raw prompts and unvalidated outputs are not retained by default.
 6. Define the technical-reference source and ownership before technical production evaluation.

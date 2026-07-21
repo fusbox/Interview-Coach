@@ -67,12 +67,19 @@ describe("candidate evaluator live validation", () => {
 
         expect(artifact.suiteVersion).toBe(CANDIDATE_EVALUATOR_GOLDEN_SUITE_VERSION);
         expect(artifact.summary).toMatchObject({
-            requestedCases: 7,
-            acceptedCases: 7,
-            passedCases: 7,
+            requestedCases: 12,
+            acceptedCases: 12,
+            passedCases: 12,
             gatePassed: true,
         });
         expect(artifact.suiteValidations.every((fact) => fact.passed)).toBe(true);
+        for (const goldenCase of candidateEvaluatorGoldenCases.filter((item) => item.expectation.allowedPatternGapIds)) {
+            const artifactCase = artifact.cases.find((item) => item.caseId === goldenCase.caseId);
+            expect(artifactCase?.validations).toContainEqual(expect.objectContaining({
+                id: "pattern_gap",
+                passed: true,
+            }));
+        }
         expect(findProhibitedLiveArtifactKeys(artifact)).toEqual([]);
         expect(serialized).not.toContain(liveEnvironment[GOOGLE_GENAI_API_KEY_ENV]);
 
@@ -119,7 +126,7 @@ describe("candidate evaluator live validation", () => {
         });
 
         expect(artifact.summary).toMatchObject({
-            acceptedCases: 6,
+            acceptedCases: 11,
             failedCases: 1,
             gatePassed: false,
         });
@@ -175,8 +182,8 @@ describe("candidate evaluator live validation", () => {
         expect(runEvaluator).toHaveBeenCalledTimes(callsAfterLiveRuns);
         expect(comparison.mode).toBe("same_profile_repeatability");
         expect(comparison.summary).toMatchObject({
-            comparableCases: 7,
-            totalCases: 7,
+            comparableCases: 12,
+            totalCases: 12,
             comparisonReady: true,
             preference: "not_reviewed",
         });
@@ -229,7 +236,7 @@ describe("candidate evaluator live validation", () => {
 
         expect(comparison.mode).toBe("profile_ab");
         expect(comparison.summary).toMatchObject({
-            comparableCases: 7,
+            comparableCases: 12,
             comparisonReady: true,
             preference: "not_reviewed",
         });
@@ -249,6 +256,8 @@ describe("candidate evaluator live validation", () => {
         )).toBe(false);
         expect(containsForbiddenCandidateLanguage("I can diagnose you from this answer.")).toBe(true);
         expect(containsForbiddenCandidateLanguage("This amounts to a medical diagnosis.")).toBe(true);
+        expect(containsForbiddenCandidateLanguage("Your grammar needs improvement.")).toBe(true);
+        expect(containsForbiddenCandidateLanguage("Your English is clear enough.")).toBe(true);
     });
 });
 
@@ -261,11 +270,47 @@ describe("candidate evaluator golden suite", () => {
             "transferable_school_leadership",
             "strong_content_typed",
             "strong_content_voice_with_fillers",
+            "brief_screening_logistics_answer",
+            "behavioral_team_result_without_personal_action",
+            "scenario_solution_without_problem_framing",
+            "generic_culture_fit_answer",
+            "strong_content_non_native_grammar",
             "confidently_wrong_database_indexing",
         ]);
         expect(new Set(candidateEvaluatorGoldenCases.map((item) => item.evaluationCase.inputFingerprint)).size)
             .toBe(candidateEvaluatorGoldenCases.length);
         expect(candidateEvaluatorGoldenCases.filter((item) => item.fairnessPair)).toHaveLength(2);
+    });
+
+    it("fails the golden gate when a thin answer is promoted to clear criteria", async () => {
+        const artifact = await runCandidateEvaluatorLiveValidation({
+            env: liveEnvironment,
+            confirmedLiveProvider: true,
+            dependencies: {
+                now: fixedNow,
+                createEvaluator: () => createPinnedAssembly(),
+                runEvaluator: async (input) => {
+                    const goldenCase = findGoldenCase(input.evaluationCase);
+                    const run = createAcceptedRun(goldenCase, input.profile, input.evaluationRunId, input.requestedAt);
+                    if (goldenCase.caseId === "thin_screening_answer") {
+                        run.accepted.criteria = run.accepted.criteria.map((criterion) => ({
+                            ...criterion,
+                            applicability: "observed",
+                            band: "clear",
+                        }));
+                    }
+                    return run;
+                },
+            },
+        });
+
+        const thinCase = artifact.cases.find((item) => item.caseId === "thin_screening_answer");
+        expect(thinCase).toMatchObject({ outcome: "accepted", goldenPassed: false });
+        expect(thinCase?.validations).toEqual(expect.arrayContaining([
+            expect.objectContaining({ id: "criterion_answer_focus_band", passed: false }),
+            expect.objectContaining({ id: "criterion_evidence_specificity_band", passed: false }),
+        ]));
+        expect(artifact.summary.gatePassed).toBe(false);
     });
 });
 
@@ -319,13 +364,19 @@ function createAcceptedRun(
     const deliveryNote = expectation.deliveryNote === "present"
         ? { status: "light_note" as const, message: "A short pause can make the same strong content easier to follow." }
         : null;
-    const criteria = UNIVERSAL_CRITERION_IDS.map((criterionId) => ({
-        criterionId,
-        applicability: "observed" as const,
-        band: expectation.criterionBands?.[criterionId]?.[0] ?? "clear" as const,
-        evidenceSpanIds: [spanId],
-        reasonCode: `golden_${criterionId}`,
-    }));
+    const criteria = UNIVERSAL_CRITERION_IDS.map((criterionId) => {
+        const criterionExpectation = expectation.criterionAppraisals[criterionId];
+        const applicability = criterionExpectation.allowedApplicability[0];
+        return {
+            criterionId,
+            applicability,
+            ...(applicability === "observed"
+                ? { band: criterionExpectation.allowedBands?.[0] ?? "emerging" as const }
+                : {}),
+            evidenceSpanIds: applicability === "observed" ? [spanId] : [],
+            reasonCode: `golden_${criterionId}`,
+        };
+    });
     const intervention = expectation.allowedInterventions?.[0] ?? "polish_then_continue";
     const candidateProjection = {
         status: "candidate_safe_feedback" as const,
@@ -384,7 +435,11 @@ function createAcceptedRun(
                     start: 0,
                     end: quote.length,
                 }],
-                categorySignals: [],
+                categorySignals: Object.entries(expectation.categorySignalStatuses ?? {}).map(([id, statuses]) => ({
+                    id,
+                    status: statuses[0],
+                    evidenceSpanIds: statuses[0] === "observed" ? [spanId] : [],
+                })),
                 technicalAccuracy: {
                     status: expectation.technicalAccuracy ?? "not_assessed",
                     referenceConceptIds: expectation.technicalAccuracy ? ["index_lookup_structure"] : [],
@@ -396,7 +451,7 @@ function createAcceptedRun(
             },
             criteria,
             patternGap: {
-                id: "golden_pattern_gap",
+                id: expectation.allowedPatternGapIds?.[0] ?? "golden_pattern_gap",
                 severity: primaryStrength ? "low" : "medium",
                 upgrade: "Add one concrete supporting detail.",
                 redoPattern: ["Situation", "Action", "Result"],
@@ -423,7 +478,7 @@ function createAcceptedRun(
                     signal: { valence: primaryStrength ? "strength" : "growth", detectability: "clear" },
                     primaryAnchor: primaryStrength
                         ? { kind: "criterion", id: "answer_focus" }
-                        : { kind: "pattern_gap", id: "golden_pattern_gap" },
+                        : { kind: "pattern_gap", id: expectation.allowedPatternGapIds?.[0] ?? "golden_pattern_gap" },
                     intervention,
                 },
                 candidateFeedback: {
