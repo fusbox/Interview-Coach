@@ -42,6 +42,7 @@ describe("candidate answer attempts schema migration", () => {
         expect(sql).toContain("cross join lateral jsonb_each(coalesce(session.answer_submissions_json, '{}'::jsonb)) submission");
         expect(sql).toContain("'migration-backfill:' || submission.key");
         expect(sql).toContain("~* '^[0-9]{4}-[0-9]{2}-[0-9]{2}t'");
+        expect(sql).toContain("and not exists ( select 1 from public.candidate_answer_attempts existing where existing.candidate_practice_session_id = session.candidate_practice_session_id and existing.question_slot_id = submission.key and existing.attempt_number = 1 )");
         expect(sql).toContain("on conflict (candidate_practice_session_id, question_slot_id, attempt_number) do nothing");
     });
 });

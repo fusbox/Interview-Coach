@@ -106,23 +106,24 @@ The real host cases require fresh host-minted credentials. Local token minting, 
 
 ## Dependency Advisory Disposition
 
-The current production audit reports three vulnerable dependency entries, but they represent two underlying concerns:
+The Slice 177 production audit reports four vulnerable package entries representing three underlying concerns. The previously vulnerable direct Nodemailer version has been replaced by `nodemailer@9.0.3`; live SMTP acceptance does not waive deployed-network evidence.
 
 | Dependency path | Audit meaning | Current reachability | Required disposition |
 | --- | --- | --- | --- |
-| direct `nodemailer@8.0.5` | One high package entry aggregates a high message-level `raw` file/URL access bypass plus three moderate header, JSON transport, and OAuth2 TLS advisories. | No active source imports Nodemailer yet because recruiter V2 has not been ported, but app-owned bulk email is a required upcoming runtime capability. | Upgrade Nodemailer to a patched release in the recruiter-foundation slice, keep the mail service behind a narrow delivery port, disable file/URL access, prevent caller-controlled raw/header objects, and restore configuration plus delivery tests before sending. Retire it only after TA replacement acceptance covers bulk operations and required evidence. |
-| `next@15.5.20` -> `postcss@8.4.31` | One moderate PostCSS stringify XSS advisory is counted once on PostCSS and again on its parent Next dependency, producing two audit entries. The app's direct `postcss@8.5.19` is patched. | The app does not accept or stringify user-authored CSS. The affected nested copy is used through the framework/build toolchain, so current application reachability is low. | Track the Next upstream dependency and record explicit temporary risk acceptance before pilot. Do not follow npm's regressive Next downgrade suggestion or force an untested transitive override. Recheck every framework upgrade and before release. |
+| `@google/genai@1.39.0` cleanup chain -> `brace-expansion@2.0.3` | One high denial-of-service advisory affects exponential expansion of crafted brace groups. | App input is not supplied as a glob pattern, so no current application path is known to exercise the vulnerable behavior. | Test a compatible transitive or Google SDK update; otherwise record a time-bounded risk acceptance before pilot and recheck each provider-SDK update. |
+| `next@15.5.20` -> nested `postcss@8.4.31` | One moderate PostCSS stringify XSS advisory is counted on PostCSS and contributes to the parent Next entry. The app's direct `postcss@8.5.19` is patched. | The app does not accept or stringify user-authored CSS. The affected nested copy is used through the framework/build toolchain, so current application reachability is low. | Track a tested Next upgrade and record explicit temporary risk acceptance before pilot. Do not follow npm's regressive Next downgrade suggestion or force an untested transitive override. |
+| `next@15.5.20` -> `sharp@0.34.x` / libvips | One high Sharp entry aggregates four newly reported inherited libvips vulnerabilities and contributes to the parent Next entry. | Current resume-photo processing validates the container and passes bytes to the OCR provider; it does not invoke Sharp or Next image optimization. Static product assets may still use framework image tooling. | Evaluate a supported Next/Sharp update, confirm actual runtime image paths, and either patch or record explicit temporary risk acceptance before pilot. Do not add app-side image conversion on the affected path as a workaround. |
 
 Severity describes the vulnerable package behavior, not proof that the app exposes an attack path. A vulnerable package retained for a near-term required capability must be upgraded before that capability becomes reachable.
 
-Advisory references: [Nodemailer raw-option bypass](https://github.com/advisories/GHSA-p6gq-j5cr-w38f), [Nodemailer header injection](https://github.com/advisories/GHSA-268h-hp4c-crq3), [Nodemailer JSON transport bypass](https://github.com/advisories/GHSA-wqvq-jvpq-h66f), [Nodemailer OAuth2 TLS validation](https://github.com/advisories/GHSA-r7g4-qg5f-qqm2), and [PostCSS stringify XSS](https://github.com/advisories/GHSA-qx2v-qp2m-jg93).
+Advisory references: [brace-expansion denial of service](https://github.com/advisories/GHSA-3jxr-9vmj-r5cp), [PostCSS stringify XSS](https://github.com/advisories/GHSA-qx2v-qp2m-jg93), and [Sharp inherited libvips vulnerabilities](https://github.com/advisories/GHSA-f88m-g3jw-g9cj).
 
 ## Remaining Release Gates
 
 - Execute and retain the real TA staging acceptance evidence.
 - Wire and validate the chosen telemetry/alert sink and production dashboards.
 - Establish staging-derived performance objectives and capacity baselines.
-- Upgrade and re-audit Nodemailer before the recruiter foundation is considered complete, and record the owner/expiry for any temporary Next/PostCSS risk acceptance before pilot or release.
+- Re-audit the production tree after compatible Google SDK and Next/Sharp upgrades; record the owner and expiry for every temporary dependency-risk acceptance before pilot or release.
 - Complete the manual accessibility matrix and organizational AI/privacy approvals.
 - Run the senior release pass.
 - Resolve the public `Employee login` destination as part of recruiter/shared-host route ownership; `/login` is not implemented in the clean rebuild.

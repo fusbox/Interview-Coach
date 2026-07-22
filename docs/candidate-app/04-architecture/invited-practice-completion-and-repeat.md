@@ -47,6 +47,8 @@ The debrief must not expose evaluator internals, evidence spans, provider metada
 
 The debrief is read-only. Refresh, a new tab, and reopening the original invitation link recover the same latest completed attempt until practice again creates a later attempt.
 
+The completion surface may offer **Practice again** and tells the candidate they can close the window when finished. It does not render a script-driven close control: browsers generally permit `window.close()` only for windows opened by script, so presenting it as a dependable app action would be false.
+
 ## Practice-Again Transition
 
 Practice again is valid only when the latest owned invited session is `completed`. One operation:

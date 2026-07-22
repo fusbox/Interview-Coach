@@ -226,6 +226,145 @@ it("releases a routed follow-up transition over the already-mounted live questio
     expect(screen.queryByRole("heading", { name: "Entering practice space" })).not.toBeInTheDocument();
 });
 
+it("offers the shared voice-answer editor and durably remembers an explicit mode change", async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ status: "progress_saved" }), { status: 200 }));
+    vi.stubGlobal("fetch", fetch);
+    render(
+        <CandidatePlannedSessionExperience
+            sessionId="session-v2-1"
+            dashboardHref="/candidate/dashboard"
+            initialSession={createSession({
+                progress: {
+                    status: "live_question",
+                    currentQuestionIndex: 0,
+                },
+            })}
+            voiceAnswerEnabled
+        />,
+    );
+
+    const recordMode = screen.getByRole("button", { name: "Record" });
+    expect(recordMode).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(recordMode);
+    expect(recordMode).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("heading", { name: "Record your answer" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start recording" })).toBeEnabled();
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(
+        "/candidate/session/session-v2-1/progress",
+        expect.objectContaining({
+            method: "PUT",
+            body: JSON.stringify({
+                status: "live_question",
+                currentQuestionIndex: 0,
+                answerMode: "voice",
+            }),
+        }),
+    ));
+});
+
+it("restores voice as the last-used mode when the runtime remains available", () => {
+    render(
+        <CandidatePlannedSessionExperience
+            sessionId="session-v2-1"
+            dashboardHref="/candidate/dashboard"
+            initialSession={createSession({
+                progress: {
+                    status: "live_question",
+                    currentQuestionIndex: 0,
+                    answerMode: "voice",
+                },
+            })}
+            voiceAnswerEnabled
+        />,
+    );
+
+    expect(screen.getByRole("button", { name: "Record" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("heading", { name: "Record your answer" })).toBeInTheDocument();
+});
+
+it("submits a recovered reviewed transcript as a source-linked voice answer", async () => {
+    const sourceRunId = "44444444-4444-4444-8444-444444444444";
+    const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.endsWith("/answers")) {
+            return new Response(JSON.stringify({
+                status: "answer_submit_saved",
+                answerSubmissions: {
+                    "slot-1": {
+                        slotId: "slot-1",
+                        questionIndex: 0,
+                        mode: "voice",
+                        text: "I checked the labels and documented the result.",
+                        submittedAt: "2026-07-21T17:01:00.000Z",
+                        status: "pending_analysis",
+                        answerAttemptId: "11111111-1111-4111-8111-111111111111",
+                        attemptNumber: 1,
+                        trigger: "initial_submit",
+                        supersedesAnswerAttemptId: null,
+                        sourceVoiceTranscriptionRunId: sourceRunId,
+                        voiceSubmissionPath: "transcript_review",
+                        voiceTranscriptEdited: true,
+                    },
+                },
+            }), { status: 202 });
+        }
+        if (url.endsWith("/analysis")) {
+            return new Response(JSON.stringify({
+                status: "answer_analysis_unavailable",
+                retryable: false,
+            }), { status: 503 });
+        }
+        throw new Error(`Unexpected request: ${url} ${init?.method ?? "GET"}`);
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    render(
+        <CandidatePlannedSessionExperience
+            sessionId="session-v2-1"
+            dashboardHref="/candidate/dashboard"
+            initialSession={createSession({
+                progress: { status: "live_question", currentQuestionIndex: 0 },
+                voiceTranscriptDrafts: {
+                    "slot-1": {
+                        status: "voice_transcript_draft",
+                        slotId: "slot-1",
+                        questionIndex: 0,
+                        transcriptText: "I checked the labels and documented the result.",
+                        sourceTranscriptionRunId: sourceRunId,
+                        submissionPath: "transcript_review",
+                        updatedAt: "2026-07-21T17:00:00.000Z",
+                    },
+                },
+            })}
+            voiceAnswerEnabled
+        />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Record" }));
+    expect(screen.getByLabelText("Review your transcript")).toHaveValue(
+        "I checked the labels and documented the result.",
+    );
+    expect(screen.getByRole("button", { name: "Type" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Record" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Submit answer" }));
+
+    await waitFor(() => expect(screen.getByText("Answer saved")).toBeInTheDocument());
+    const answerCall = fetch.mock.calls.find(([input]) => String(input).endsWith("/answers"));
+    expect(answerCall?.[1]).toMatchObject({
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": `voice-answer:${sourceRunId}:transcript_review`,
+        },
+    });
+    expect(JSON.parse(String(answerCall?.[1]?.body))).toMatchObject({
+        mode: "voice",
+        text: "I checked the labels and documented the result.",
+        sourceVoiceTranscriptionRunId: sourceRunId,
+        voiceSubmissionPath: "transcript_review",
+    });
+});
+
 it("recovers the exact live question and uses the dashboard as the candidate exit", async () => {
     const resolveDurableSession = vi.fn(async () => createSession({
         roleProfileId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",

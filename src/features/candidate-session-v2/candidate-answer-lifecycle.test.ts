@@ -174,6 +174,37 @@ describe("candidate answer lifecycle", () => {
         }).key).toBe("client-submit-key-1");
     });
 
+    it("binds voice-answer idempotency to the exact transcription source and path", () => {
+        const sourceRunId = "44444444-4444-4444-8444-444444444444";
+        const draft = createCandidateAnswerDraftChange({
+            slotId: "slot-1",
+            questionIndex: 0,
+            mode: "voice",
+            text: "I checked each label and documented the result.",
+            now: new Date("2026-07-21T17:00:00.000Z"),
+        }).draft;
+        const request = createCandidateAnswerSubmitRequest({
+            draft,
+            requestedAt: new Date("2026-07-21T17:01:00.000Z"),
+            sourceVoiceTranscriptionRunId: sourceRunId,
+            voiceSubmissionPath: "transcript_review",
+        });
+
+        expect(createCandidateAnswerSubmitIdempotencyContract({
+            candidatePracticeSessionId: "practice-session-1",
+            candidateProfileId: "candidate-1",
+            request,
+        }).payload).toMatchObject({
+            mode: "voice",
+            sourceVoiceTranscriptionRunId: sourceRunId,
+            voiceSubmissionPath: "transcript_review",
+        });
+        expect(() => createCandidateAnswerSubmitRequest({
+            draft,
+            requestedAt: new Date("2026-07-21T17:01:00.000Z"),
+        })).toThrow("Answer mode does not match its voice transcription source.");
+    });
+
     it("binds feedback-retry idempotency to the exact source attempt", () => {
         const draft = createCandidateAnswerDraftChange({
             slotId: "slot-1",

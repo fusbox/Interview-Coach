@@ -16,6 +16,10 @@ import {
     createEvaluatorFingerprint,
     type EvidenceFirstEvaluatorResolvedConfigurationManifest,
 } from "@/features/evaluation-v2/evidence-first-evaluator-contract";
+import {
+    normalizeVoiceTranscriptDraft,
+    type VoiceTranscriptSubmissionPath,
+} from "@/features/interview-session-v2/voice-answer-transcription";
 
 export type InvitedPracticeAnswerHistoryQueryClient = {
     query: (sql: string, values: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }>;
@@ -35,6 +39,9 @@ export function createInvitedPracticeAnswerHistoryRepository(client: InvitedPrac
             supersedesInvitedPracticeAnswerAttemptId?: string | null;
             idempotencyKey: string;
             payloadFingerprint: string;
+            sourceVoiceTranscriptionRunId?: string | null;
+            voiceSubmissionPath?: VoiceTranscriptSubmissionPath | null;
+            voiceTranscriptEdited?: boolean | null;
         }): Promise<CandidateAnswerAttemptWriteResult | null> {
             const result = await client.query(`
                 with owned_session as materialized (
@@ -91,17 +98,24 @@ export function createInvitedPracticeAnswerHistoryRepository(client: InvitedPrac
                     answer_text,
                     submitted_at,
                     idempotency_key,
-                    payload_fingerprint
+                    payload_fingerprint,
+                    source_invited_voice_transcription_run_id,
+                    voice_submission_path,
+                    voice_transcript_edited
                   )
                   select $1, $2, $3, $4, candidate.attempt_number, $8,
-                         candidate.supersedes_invited_practice_answer_attempt_id, $5, $6, $7, $9, $10
+                         candidate.supersedes_invited_practice_answer_attempt_id, $5, $6, $7, $9, $10, $12, $13, $14
                   from candidate
                   returning *
                 )
                 select 'created'::text as write_outcome, inserted.* from inserted
                 union all
                 select
-                  case when existing.payload_fingerprint = $10 then 'replayed' else 'idempotency_conflict' end,
+                  case when existing.payload_fingerprint = $10
+                              and existing.source_invited_voice_transcription_run_id is not distinct from $12::uuid
+                              and existing.voice_submission_path is not distinct from $13::text
+                              and existing.voice_transcript_edited is not distinct from $14::boolean
+                       then 'replayed' else 'idempotency_conflict' end,
                   existing.*
                 from existing
                 limit 1
@@ -117,8 +131,71 @@ export function createInvitedPracticeAnswerHistoryRepository(client: InvitedPrac
                 input.idempotencyKey,
                 input.payloadFingerprint,
                 input.supersedesInvitedPracticeAnswerAttemptId ?? null,
+                input.sourceVoiceTranscriptionRunId ?? null,
+                input.voiceSubmissionPath ?? null,
+                input.voiceTranscriptEdited ?? null,
             ]);
             return normalizeAttemptWriteResult(result.rows[0]);
+        },
+
+        async authorizeVoiceAnswerTranscript(input: {
+            invitedPracticeSessionId: string;
+            recruiterInvitationRecipientId: string;
+            questionSlotId: string;
+            questionIndex: number;
+            sourceVoiceTranscriptionRunId: string;
+            voiceSubmissionPath: VoiceTranscriptSubmissionPath;
+            transcriptText: string;
+            updatedAt: string;
+        }) {
+            const result = await client.query(`
+                with authorized as (
+                  update public.invited_practice_sessions session
+                  set voice_transcript_drafts_json = jsonb_set(
+                    session.voice_transcript_drafts_json,
+                    array[$3]::text[],
+                    (session.voice_transcript_drafts_json -> $3)
+                      || jsonb_build_object('transcriptText', $7::text, 'updatedAt', $8::text),
+                    true
+                  )
+                  from public.invited_practice_voice_transcription_runs run
+                  where session.invited_practice_session_id = $1
+                    and session.recruiter_invitation_recipient_id = $2
+                    and run.invited_practice_voice_transcription_run_id = $5::uuid
+                    and run.invited_practice_session_id = session.invited_practice_session_id
+                    and run.recruiter_invitation_recipient_id = session.recruiter_invitation_recipient_id
+                    and run.question_slot_id = $3
+                    and run.question_index = $4
+                    and run.lifecycle_state = 'completed'
+                    and session.voice_transcript_drafts_json -> $3 ->> 'sourceTranscriptionRunId' = $5::text
+                    and session.voice_transcript_drafts_json -> $3 ->> 'submissionPath' = $6
+                    and session.voice_transcript_drafts_json -> $3 ->> 'questionIndex' = $4::text
+                    and (
+                      $6 <> 'quick_submit'
+                      or run.output_fingerprint = encode(digest(trim($7), 'sha256'), 'hex')
+                    )
+                  returning session.voice_transcript_drafts_json -> $3 as transcript_draft,
+                            run.output_fingerprint
+                )
+                select transcript_draft,
+                       output_fingerprint <> encode(digest(trim($7), 'sha256'), 'hex')
+                         as voice_transcript_edited
+                from authorized
+            `, [
+                input.invitedPracticeSessionId,
+                input.recruiterInvitationRecipientId,
+                input.questionSlotId,
+                input.questionIndex,
+                input.sourceVoiceTranscriptionRunId,
+                input.voiceSubmissionPath,
+                input.transcriptText,
+                input.updatedAt,
+            ]);
+            const row = result.rows[0];
+            const draft = normalizeVoiceTranscriptDraft(row?.transcript_draft);
+            return draft && typeof row?.voice_transcript_edited === "boolean"
+                ? { draft, voiceTranscriptEdited: row.voice_transcript_edited }
+                : null;
         },
 
         async listAnswerAttempts(input: {
@@ -453,6 +530,9 @@ export function createInvitedPracticeCandidateAnswerHistoryAdapter(
             supersedesCandidateAnswerAttemptId?: string | null;
             idempotencyKey: string;
             payloadFingerprint: string;
+            sourceVoiceTranscriptionRunId?: string | null;
+            voiceSubmissionPath?: VoiceTranscriptSubmissionPath | null;
+            voiceTranscriptEdited?: boolean | null;
         }) => repository.appendAnswerAttempt({
             invitedPracticeSessionId: input.candidatePracticeSessionId,
             recruiterInvitationRecipientId: input.candidateProfileId,
@@ -465,6 +545,28 @@ export function createInvitedPracticeCandidateAnswerHistoryAdapter(
             supersedesInvitedPracticeAnswerAttemptId: input.supersedesCandidateAnswerAttemptId,
             idempotencyKey: input.idempotencyKey,
             payloadFingerprint: input.payloadFingerprint,
+            sourceVoiceTranscriptionRunId: input.sourceVoiceTranscriptionRunId,
+            voiceSubmissionPath: input.voiceSubmissionPath,
+            voiceTranscriptEdited: input.voiceTranscriptEdited,
+        }),
+        authorizeVoiceAnswerTranscript: (input: {
+            candidatePracticeSessionId: string;
+            candidateProfileId: string;
+            questionSlotId: string;
+            questionIndex: number;
+            sourceVoiceTranscriptionRunId: string;
+            voiceSubmissionPath: VoiceTranscriptSubmissionPath;
+            transcriptText: string;
+            updatedAt: string;
+        }) => repository.authorizeVoiceAnswerTranscript({
+            invitedPracticeSessionId: input.candidatePracticeSessionId,
+            recruiterInvitationRecipientId: input.candidateProfileId,
+            questionSlotId: input.questionSlotId,
+            questionIndex: input.questionIndex,
+            sourceVoiceTranscriptionRunId: input.sourceVoiceTranscriptionRunId,
+            voiceSubmissionPath: input.voiceSubmissionPath,
+            transcriptText: input.transcriptText,
+            updatedAt: input.updatedAt,
         }),
         listEvaluationRuns: (input: {
             candidatePracticeSessionId: string;
@@ -564,6 +666,7 @@ function normalizeInvitedAttempt(row: Record<string, unknown> | undefined) {
         candidate_practice_session_id: row.invited_practice_session_id,
         candidate_profile_id: row.recruiter_invitation_recipient_id,
         supersedes_candidate_answer_attempt_id: row.supersedes_invited_practice_answer_attempt_id,
+        source_candidate_voice_transcription_run_id: row.source_invited_voice_transcription_run_id,
     });
 }
 

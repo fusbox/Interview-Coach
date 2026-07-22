@@ -109,6 +109,11 @@ describe("candidate follow-up practice intent", () => {
                 jobDescription: "Move materials safely.",
                 interviewStage: "first_interview",
                 questionCount: 3,
+                resumeArtifact: {
+                    artifactId: "20000000-0000-4000-8000-000000000001",
+                    candidateLabel: "resume.pdf",
+                    reviewState: "accepted",
+                },
             },
         });
     });
@@ -351,10 +356,18 @@ function createPracticeSession({
     const setupSnapshot = {
         targetRole: "Material Handler I",
         jobDescription: "Move materials safely.",
-        resumeText: null,
+        resumeText: "Inventory lead with shipping experience.",
+        resumeArtifact: {
+            artifactId: "20000000-0000-4000-8000-000000000001",
+            version: 1,
+            revision: 2,
+            source: "document_upload" as const,
+            candidateLabel: "resume.pdf",
+            reviewState: "accepted" as const,
+        },
         interviewStage: "first_interview" as const,
         questionCount: 3,
-        resumeCaptureMode: "none" as const,
+        resumeCaptureMode: "document_upload" as const,
         createdAt: "2026-07-11T12:00:00.000Z",
     };
     const questionPlanSnapshot = createCandidateQuestionPlan({

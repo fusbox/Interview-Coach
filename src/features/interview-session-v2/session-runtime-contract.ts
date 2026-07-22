@@ -7,7 +7,10 @@ export type SessionRuntimeProgressStatus =
 export type SessionRuntimeProgress = {
     status: SessionRuntimeProgressStatus;
     currentQuestionIndex: number;
+    answerMode?: SessionAnswerMode;
 };
+
+export type SessionAnswerMode = "text" | "voice";
 
 export type SessionCompletionBehavior =
     | {
@@ -34,10 +37,12 @@ export type SessionRuntimeConsumer =
 export function createSessionRuntimeProgress(input: {
     status: SessionRuntimeProgressStatus;
     currentQuestionIndex: number;
+    answerMode?: SessionAnswerMode;
 }): SessionRuntimeProgress {
     return {
         status: input.status,
         currentQuestionIndex: normalizeQuestionIndex(input.currentQuestionIndex),
+        ...(input.answerMode ? { answerMode: input.answerMode } : {}),
     };
 }
 
@@ -53,6 +58,7 @@ export function normalizeSessionRuntimeProgress(value: unknown): SessionRuntimeP
     return createSessionRuntimeProgress({
         status: readProgressStatus(progress.status),
         currentQuestionIndex: progress.currentQuestionIndex ?? 0,
+        answerMode: isSessionAnswerMode(progress.answerMode) ? progress.answerMode : undefined,
     });
 }
 
@@ -65,6 +71,10 @@ export function isSessionRuntimeProgressStatus(value: unknown): value is Session
         || value === "question_preview"
         || value === "live_question"
         || value === "completed";
+}
+
+export function isSessionAnswerMode(value: unknown): value is SessionAnswerMode {
+    return value === "text" || value === "voice";
 }
 
 function readProgressStatus(value: unknown): SessionRuntimeProgressStatus {

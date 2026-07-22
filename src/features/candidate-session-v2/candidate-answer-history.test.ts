@@ -96,6 +96,37 @@ describe("candidate answer history", () => {
         })).toBeNull();
     });
 
+    it("requires a completed transcription source for every normalized voice attempt", () => {
+        const voiceAttempt = {
+            ...attemptRow,
+            mode: "voice",
+            source_candidate_voice_transcription_run_id: "44444444-4444-4444-8444-444444444444",
+            voice_submission_path: "quick_submit",
+            voice_transcript_edited: false,
+        };
+        expect(normalizeCandidateAnswerAttemptRecord(voiceAttempt)).toMatchObject({
+            mode: "voice",
+            sourceVoiceTranscriptionRunId: "44444444-4444-4444-8444-444444444444",
+            voiceSubmissionPath: "quick_submit",
+            voiceTranscriptEdited: false,
+        });
+        expect(toLatestCandidateAnswerSubmission(normalizeCandidateAnswerAttemptRecord(voiceAttempt)!)).toMatchObject({
+            mode: "voice",
+            text: voiceAttempt.answer_text,
+            sourceVoiceTranscriptionRunId: "44444444-4444-4444-8444-444444444444",
+            voiceSubmissionPath: "quick_submit",
+            voiceTranscriptEdited: false,
+        });
+        expect(normalizeCandidateAnswerAttemptRecord({
+            ...voiceAttempt,
+            source_candidate_voice_transcription_run_id: null,
+        })).toBeNull();
+        expect(normalizeCandidateAnswerAttemptRecord({
+            ...attemptRow,
+            voice_submission_path: "transcript_review",
+        })).toBeNull();
+    });
+
     it("keeps evaluator-run lifecycle separate from answer attempts", () => {
         const evaluationRunRow = {
             candidate_answer_evaluation_run_id: "44444444-4444-4444-8444-444444444444",

@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { SharedLivePracticeShell } from "@/features/interview-session-v2/SharedLivePracticeShell";
+import { SessionVoiceAnswerCapture } from "@/features/interview-session-v2/SessionVoiceAnswerCapture";
 import { createSessionRuntimeFacts } from "@/features/interview-session-v2/session-runtime-facts";
 import type { SessionCompletionBehavior } from "@/features/interview-session-v2/session-runtime-contract";
 import {
@@ -49,6 +50,7 @@ import type { CandidateAnswerAnalysisRecovery } from "./candidate-answer-analysi
 import type { SessionAnswerMutationPhase } from "@/features/interview-session-v2/session-answer-mutation-contract";
 import { useSessionQuestionAudio } from "@/features/interview-session-v2/session-question-audio-browser";
 import { toSessionQuestionAudioTarget } from "@/features/interview-session-v2/session-question-audio-contract";
+import { isVoiceTranscriptDraftResolvedByAnswer } from "@/features/interview-session-v2/voice-answer-transcription";
 
 type CandidatePlannedSessionExperienceProps = {
     sessionId: string;
@@ -62,6 +64,7 @@ type CandidatePlannedSessionExperienceProps = {
     exitLabel?: string;
     invitedPauseEnabled?: boolean;
     questionAudioEnabled?: boolean;
+    voiceAnswerEnabled?: boolean;
 };
 
 export function CandidatePlannedSessionExperience({
@@ -76,12 +79,14 @@ export function CandidatePlannedSessionExperience({
     exitLabel,
     invitedPauseEnabled = false,
     questionAudioEnabled = false,
+    voiceAnswerEnabled = false,
 }: CandidatePlannedSessionExperienceProps) {
     const [session, setSession] = useState<CandidateProvisionalSessionRecord | null>(initialSession);
     const [hasCheckedStorage, setHasCheckedStorage] = useState(Boolean(initialSession));
     const [progress, setProgress] = useState<CandidateProvisionalSessionProgress>({
         status: initialSession?.progress?.status ?? "planned",
         currentQuestionIndex: initialSession?.progress?.currentQuestionIndex ?? 0,
+        ...(initialSession?.progress?.answerMode ? { answerMode: initialSession.progress.answerMode } : {}),
     });
     const [answerDrafts, setAnswerDrafts] = useState<CandidateAnswerDrafts>(initialSession?.answerDrafts ?? {});
     const [answerSubmissions, setAnswerSubmissions] = useState<CandidateAnswerSubmissions>(
@@ -101,6 +106,11 @@ export function CandidatePlannedSessionExperience({
     const [isCompletingSession, setIsCompletingSession] = useState(false);
     const [isPausingSession, setIsPausingSession] = useState(false);
     const [isSessionPaused, setIsSessionPaused] = useState(false);
+    const [answerMode, setAnswerMode] = useState<"text" | "voice">(
+        resolveAvailableAnswerMode(initialSession?.progress?.answerMode, voiceAnswerEnabled),
+    );
+    const [hasUnsafeVoiceWork, setHasUnsafeVoiceWork] = useState(false);
+    const [isVoiceAnswerModeLocked, setIsVoiceAnswerModeLocked] = useState(false);
     const [entryTransitionPhase, setEntryTransitionPhase] = useState<"entering" | "releasing" | null>(
         entryTransitionRequested ? "entering" : null,
     );
@@ -129,6 +139,7 @@ export function CandidatePlannedSessionExperience({
         flushAnswerDraft,
         retryAnswerAnalysis,
         submitAnswerDraft,
+        submitVoiceTranscript,
         updateAnswerDraft,
     } = useCandidateTypedAnswerMutations({
         sessionId,
@@ -155,8 +166,14 @@ export function CandidatePlannedSessionExperience({
     }, []);
 
     const updateProgress = useCallback((nextProgress: CandidateProvisionalSessionProgress) => {
-        setProgress(nextProgress);
-        saveCandidateProvisionalSessionProgress(window.sessionStorage, sessionId, nextProgress);
+        const nextProgressWithAnswerMode = {
+            ...nextProgress,
+            ...(nextProgress.answerMode ?? progress.answerMode
+                ? { answerMode: nextProgress.answerMode ?? progress.answerMode }
+                : {}),
+        };
+        setProgress(nextProgressWithAnswerMode);
+        saveCandidateProvisionalSessionProgress(window.sessionStorage, sessionId, nextProgressWithAnswerMode);
 
         if (!initialSession) {
             return;
@@ -167,9 +184,20 @@ export function CandidatePlannedSessionExperience({
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify(nextProgress),
+            body: JSON.stringify(nextProgressWithAnswerMode),
         });
-    }, [initialSession, mutationBasePath, sessionId]);
+    }, [initialSession, mutationBasePath, progress.answerMode, sessionId]);
+
+    const handleAnswerModeChange = useCallback((nextMode: "text" | "voice") => {
+        if (nextMode === answerMode) return;
+        if (isVoiceAnswerModeLocked) return;
+
+        setAnswerMode(nextMode);
+        updateProgress({
+            ...progress,
+            answerMode: nextMode,
+        });
+    }, [answerMode, isVoiceAnswerModeLocked, progress, updateProgress]);
 
     useEffect(() => {
         if (loadedSessionIdRef.current === sessionId) {
@@ -187,6 +215,7 @@ export function CandidatePlannedSessionExperience({
                 status: "planned",
                 currentQuestionIndex: 0,
             });
+            setAnswerMode(resolveAvailableAnswerMode(initialSession.progress?.answerMode, voiceAnswerEnabled));
             setAnswerDrafts(initialSession.answerDrafts ?? {});
             setAnswerSubmissions(initialSession.answerSubmissions ?? {});
             setAnswerAnalysisSnapshots(initialSession.answerAnalysisSnapshots ?? {});
@@ -205,6 +234,7 @@ export function CandidatePlannedSessionExperience({
             status: "planned",
             currentQuestionIndex: 0,
         });
+        setAnswerMode(resolveAvailableAnswerMode(storedSession?.progress?.answerMode, voiceAnswerEnabled));
         setAnswerDrafts(storedSession?.answerDrafts ?? {});
         setAnswerSubmissions(storedSession?.answerSubmissions ?? {});
         setAnswerAnalysisSnapshots(storedSession?.answerAnalysisSnapshots ?? {});
@@ -213,7 +243,7 @@ export function CandidatePlannedSessionExperience({
         feedbackRetrySourcesRef.current = recoveredRetrySources;
         setFeedbackRetrySources(recoveredRetrySources);
         window.scrollTo({ top: 0 });
-    }, [initialSession, sessionId]);
+    }, [initialSession, sessionId, voiceAnswerEnabled]);
 
     const stageLabel = useMemo(
         () => session ? getStageLabel(session.setupSnapshot.interviewStage) : "",
@@ -323,6 +353,7 @@ export function CandidatePlannedSessionExperience({
         const nextProgress: CandidateProvisionalSessionProgress = {
             status: "live_question",
             currentQuestionIndex: progress.currentQuestionIndex,
+            ...(progress.answerMode ? { answerMode: progress.answerMode } : {}),
         };
         setProgress(nextProgress);
         saveCandidateProvisionalSessionProgress(window.sessionStorage, sessionId, nextProgress);
@@ -336,7 +367,7 @@ export function CandidatePlannedSessionExperience({
                 body: JSON.stringify(nextProgress),
             }).catch(() => undefined);
         }
-    }, [initialSession, mutationBasePath, progress.currentQuestionIndex, progress.status, sessionId]);
+    }, [initialSession, mutationBasePath, progress.answerMode, progress.currentQuestionIndex, progress.status, sessionId]);
 
     useEffect(() => {
         setSessionCompletionMessage(null);
@@ -439,8 +470,18 @@ export function CandidatePlannedSessionExperience({
         const activeQuestion = questionWordingPreview.questions[activeQuestionIndex];
         const activeAnswerSubmission = answerSubmissions[activeQuestion.slotId] ?? null;
         const activeAnalysisRecovery = session.answerAnalysisRecoveries?.[activeQuestion.slotId] ?? null;
-        const activeDraftText = answerDrafts[activeQuestion.slotId]?.text ?? activeAnswerSubmission?.text ?? "";
         const activeRetrySource = feedbackRetrySources[activeQuestion.slotId] ?? null;
+        const activeDraftText = activeRetrySource
+            ? answerDrafts[activeQuestion.slotId]?.text ?? activeAnswerSubmission?.text ?? ""
+            : activeAnswerSubmission?.text ?? answerDrafts[activeQuestion.slotId]?.text ?? "";
+        const currentVoiceTranscriptDraft = session.voiceTranscriptDrafts?.[activeQuestion.slotId] ?? null;
+        const initialVoiceTranscriptDraft = isVoiceTranscriptDraftResolvedByAnswer(
+            currentVoiceTranscriptDraft,
+            activeAnswerSubmission,
+        )
+            ? null
+            : currentVoiceTranscriptDraft;
+        const canUseVoiceAnswers = voiceAnswerEnabled && Boolean(initialSession);
         const activeAnalysisSnapshot = activeRetrySource
             ? null
             : getCurrentAnswerAnalysisSnapshot(
@@ -510,9 +551,15 @@ export function CandidatePlannedSessionExperience({
                 return;
             }
 
+            if (hasUnsafeVoiceWork && !window.confirm(
+                "This recording has not been transcribed yet. Pause now and this recording will be discarded?",
+            )) {
+                return;
+            }
+
             setIsPausingSession(true);
             try {
-                const draftSaved = activeAnswerSubmission
+                const draftSaved = activeAnswerSubmission || answerMode === "voice"
                     ? true
                     : await flushAnswerDraft({
                         slotId: activeQuestion.slotId,
@@ -527,6 +574,15 @@ export function CandidatePlannedSessionExperience({
             }
         };
 
+        const exitCandidateSession = () => {
+            if (hasUnsafeVoiceWork && !window.confirm(
+                "This recording has not been transcribed yet. Leave now and this recording will be discarded?",
+            )) {
+                return;
+            }
+            window.location.assign(exitHref ?? dashboardHref);
+        };
+
         return (
             <>
                 <SharedLivePracticeShell
@@ -534,13 +590,44 @@ export function CandidatePlannedSessionExperience({
                     exitHref={exitHref}
                     exitLabel={exitLabel}
                     isExitPending={isPausingSession}
-                    onExit={invitedPauseEnabled ? () => void pauseInvitedSession() : undefined}
-                    answerMode="text"
+                    onExit={invitedPauseEnabled
+                        ? () => void pauseInvitedSession()
+                        : canUseVoiceAnswers
+                            ? exitCandidateSession
+                            : undefined}
+                    answerMode={answerMode}
+                    availableAnswerModes={canUseVoiceAnswers ? ["text", "voice"] : ["text"]}
+                    answerModeChangeDisabled={isVoiceAnswerModeLocked}
+                    onAnswerModeChange={handleAnswerModeChange}
                     draftText={activeDraftText}
                     answerMutationPhase={activeAnswerMutationPhase}
                     feedbackContent={feedbackContent}
                     questionAudio={questionAudio}
                     questionPlaybackControl={questionPlaybackControl}
+                    voiceAnswerContent={canUseVoiceAnswers ? (
+                        <SessionVoiceAnswerCapture
+                            key={`${activeQuestion.slotId}:${activeRetrySource ?? "initial"}`}
+                            mutationBasePath={mutationBasePath}
+                            questionSlotId={activeQuestion.slotId}
+                            questionIndex={activeQuestion.index}
+                            initialTranscriptDraft={initialVoiceTranscriptDraft}
+                            onQuickSubmitTranscript={(draft) => submitVoiceTranscript({
+                                draft,
+                                transcriptText: draft.transcriptText,
+                                retrySourceAnswerAttemptId: feedbackRetrySourcesRef.current[activeQuestion.slotId]
+                                    ?? activeRetrySource,
+                            })}
+                            onReviewedSubmitTranscript={({ draft, transcriptText }) => submitVoiceTranscript({
+                                draft,
+                                transcriptText,
+                                retrySourceAnswerAttemptId: feedbackRetrySourcesRef.current[activeQuestion.slotId]
+                                    ?? activeRetrySource,
+                            })}
+                            onSwitchToText={() => handleAnswerModeChange("text")}
+                            onUnsafeLocalWorkChange={setHasUnsafeVoiceWork}
+                            onAnswerModeLockChange={setIsVoiceAnswerModeLocked}
+                        />
+                    ) : undefined}
                     onDraftChange={(text) => updateAnswerDraft({
                         slotId: activeQuestion.slotId,
                         questionIndex: activeQuestion.index,
@@ -595,6 +682,7 @@ export function CandidatePlannedSessionExperience({
                 stageLabel={stageLabel}
                 questionCount={session.setupSnapshot.questionCount}
                 resumeIncluded={Boolean(session.setupSnapshot.resumeText)}
+                resumeLabel={session.setupSnapshot.resumeArtifact?.candidateLabel ?? null}
                 sessionId={sessionId}
                 firstQuestion={questionWordingPreview?.questions[0] ? {
                     id: questionWordingPreview.questions[0].slotId,
@@ -705,6 +793,13 @@ export function CandidatePlannedSessionExperience({
             }
         }
     }
+}
+
+function resolveAvailableAnswerMode(
+    persistedMode: CandidateProvisionalSessionProgress["answerMode"],
+    voiceAnswerEnabled: boolean,
+): "text" | "voice" {
+    return voiceAnswerEnabled && persistedMode === "voice" ? "voice" : "text";
 }
 
 function toRecoveredAnswerMutationPhase(

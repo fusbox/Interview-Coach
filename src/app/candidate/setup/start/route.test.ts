@@ -38,6 +38,7 @@ describe("/candidate/setup/start route", () => {
             }),
         )).resolves.toEqual({
             candidateProfileId: "10000000-0000-4000-8000-000000000001",
+            setupOwnerKey: "candidate:10000000-0000-4000-8000-000000000001",
             candidateLaunchSessionId: null,
             trustedSetupContext: null,
             allowManualPrepContextCreation: true,
@@ -143,6 +144,133 @@ describe("/candidate/setup/start route", () => {
             },
         });
         expect(response.status).toBe(400);
+    });
+
+    it("rejects raw resume text for an identity-backed production setup before prep or wording work", async () => {
+        const resolveSetupPrepContext = vi.fn();
+        const response = await handleCandidateSetupStartRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
+                method: "POST",
+                body: JSON.stringify({
+                    targetRole: "Material handler",
+                    jobDescription: "Move and track production materials.",
+                    resumeText: "Call me at 312-555-0199.",
+                    interviewStage: "screening",
+                    questionCount: 5,
+                }),
+            }),
+            now: new Date("2026-07-21T12:00:00.000Z"),
+            createSessionId: () => "browser-bridge-session-id",
+            resolveCandidateSetupIdentity: vi.fn(async () => ({
+                candidateProfileId: "22222222-2222-4222-8222-222222222222",
+                allowManualPrepContextCreation: true,
+            })),
+            prepContextResolver: { resolveSetupPrepContext },
+            practiceSessionRepository: { createSetupSession: vi.fn() },
+            setupStartRequestRepository: createAcquiredSetupStartRequestRepository(),
+        });
+
+        expect(response.status).toBe(409);
+        await expect(response.json()).resolves.toEqual({
+            error: "Review and accept the processed resume text before starting practice.",
+            code: "RESUME_REVIEW_REQUIRED",
+        });
+        expect(resolveSetupPrepContext).not.toHaveBeenCalled();
+    });
+
+    it("reloads exact accepted candidate-owned resume text before setup planning", async () => {
+        const canonicalResumeText = "Inventory lead with shipping and cycle-count experience.";
+        const resolveAcceptedSelection = vi.fn(async () => ({
+            artifactId: "20000000-0000-4000-8000-000000000001",
+            candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            roleProfileId: null,
+            version: 1,
+            revision: 2,
+            source: "document_upload" as const,
+            candidateLabel: "resume.pdf",
+            normalizedText: canonicalResumeText,
+            sourceFingerprint: "a".repeat(64),
+            normalizedTextFingerprint: "b".repeat(64),
+            processingPolicyVersion: "candidate_resume_text_processing_v1",
+            piiPolicyVersion: "candidate_resume_direct_pii_v5",
+            piiRedactionCounts: {
+                known_name: 0,
+                personal_detail: 0,
+                email: 1,
+                phone: 0,
+                address: 0,
+                date_of_birth: 0,
+                government_identifier: 0,
+                personal_url_or_handle: 0,
+            },
+            reviewState: "accepted" as const,
+            createdAt: "2026-07-21T11:55:00.000Z",
+            acceptedAt: "2026-07-21T11:56:00.000Z",
+            originalRetained: false as const,
+        }));
+        const resolveSetupPrepContext = vi.fn(async () => ({
+            status: "resolved" as const,
+            roleProfileId: "33333333-3333-4333-8333-333333333333",
+            resolution: "created" as const,
+        }));
+        const createSetupSession = vi.fn(async () => ({
+            candidatePracticeSessionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        }));
+        const response = await handleCandidateSetupStartRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
+                method: "POST",
+                headers: { "Idempotency-Key": setupStartIdempotencyKey },
+                body: JSON.stringify({
+                    targetRole: "Material handler",
+                    jobDescription: "Move and track production materials.",
+                    resumeText: "tampered browser text",
+                    resumeArtifact: {
+                        artifactId: "20000000-0000-4000-8000-000000000001",
+                        version: 1,
+                        revision: 2,
+                        source: "document_upload",
+                        candidateLabel: "resume.pdf",
+                        reviewState: "accepted",
+                    },
+                    interviewStage: "screening",
+                    questionCount: 5,
+                }),
+            }),
+            now: new Date("2026-07-21T12:00:00.000Z"),
+            createSessionId: () => "browser-bridge-session-id",
+            resolveCandidateSetupIdentity: vi.fn(async () => ({
+                candidateProfileId: "22222222-2222-4222-8222-222222222222",
+                setupOwnerKey: "candidate:22222222-2222-4222-8222-222222222222",
+                allowManualPrepContextCreation: true,
+            })),
+            resumeSelectionRepository: {
+                resolveAcceptedSelection,
+                clearSelection: vi.fn(async () => ({ revision: 1 })),
+            },
+            prepContextResolver: { resolveSetupPrepContext },
+            practiceSessionRepository: { createSetupSession },
+            setupStartRequestRepository: createAcquiredSetupStartRequestRepository(),
+        });
+
+        expect(response.status).toBe(201);
+        expect(resolveAcceptedSelection).toHaveBeenCalledWith({
+            candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            setupOwnerKey: "candidate:22222222-2222-4222-8222-222222222222",
+            artifactId: "20000000-0000-4000-8000-000000000001",
+            version: 1,
+            revision: 2,
+        });
+        expect(createSetupSession).toHaveBeenCalledWith(expect.objectContaining({
+            resumeSelectionOwnerKey: "candidate:22222222-2222-4222-8222-222222222222",
+            setupSnapshot: expect.objectContaining({
+                resumeText: canonicalResumeText,
+                resumeArtifact: expect.objectContaining({
+                    artifactId: "20000000-0000-4000-8000-000000000001",
+                    source: "document_upload",
+                    reviewState: "accepted",
+                }),
+            }),
+        }));
     });
 
     it("persists the setup-created session when candidate identity dependencies resolve", async () => {

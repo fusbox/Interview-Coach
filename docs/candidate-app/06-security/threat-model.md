@@ -1,7 +1,7 @@
 # Candidate App Threat Model
 
-Date: 2026-05-13
-Status: Working threat model refreshed after candidate auth, Postgres persistence, resume ingestion, session, dashboard, and smoke-test foundation
+Date: 2026-07-20
+Status: Working threat model refreshed through the ratified transcript-first voice boundary
 
 ## Purpose
 
@@ -21,6 +21,7 @@ In scope:
 - candidate Postgres profile, draft, session, dashboard, and resume-context data
 - resume paste, file-upload metadata, parser-agnostic extraction, and processed artifact retention
 - candidate mutation rate limits, route metrics, structured logs, and seeded smoke paths
+- planned candidate-led and invited browser audio capture, provider transcription, recoverable transcript drafts, and immutable voice answers
 - Azure branch, PR, pipeline, and deployment-readiness controls that affect candidate integration safety
 
 Out of scope for this pass:
@@ -35,7 +36,7 @@ Assumptions that materially affect risk:
 - Production candidate auth mode is `external`; `dev`, `password`, and `mock` are local/test conveniences only.
 - `interviewcoach.talentarbor.com` remains one deployable Next app rather than independently deployed candidate/recruiter apps behind a proxy.
 - Candidate data is sensitive PII and interview-preparation content, but final legal/compliance retention requirements are not yet confirmed.
-- Resume upload implementation currently models private storage paths and extraction state; final blob storage and scanning controls still need platform decisions.
+- Pasted/trusted-host text now uses a no-original processed-artifact boundary. Binary upload/photo extraction, malware scanning, and any temporary-storage controls still need platform decisions and evidence.
 - AI prompt/response artifact retention is not approved for broad logging or diagnostics.
 
 Open questions:
@@ -55,6 +56,7 @@ Open questions:
 - Postgres repositories for candidate profiles, identities, practice drafts, sessions, dashboard read models, and resume context.
 - Resume normalization and extraction services that turn paste/upload inputs into normalized processed text or safe failure codes.
 - AI-backed session/question/coaching services reused through candidate-owned services and server actions.
+- A future provider-neutral transcription service with separate candidate-led and invited ownership adapters; raw audio is transient request material and is not application-persisted.
 - Metrics, structured logging, alerts, seeded DB smoke checks, and candidate browser smoke checks.
 - Azure branch/PR/pipeline controls for integrating candidate work into the shared Interview Coach repo.
 
@@ -65,9 +67,10 @@ Open questions:
 - Public CTA -> `/auth/talentarbor/start` -> TalentArbor login: allowlisted `next` path is stored in an HTTP-only, same-site cookie before redirecting to `https://talentarbor.com/Auth/LoginWithType/2`.
 - TalentArbor/RangamWorks -> callback or launch handoff: identity assertion details are still unconfirmed. The app expects a normalized issuer, subject, email, display name, workspace, and provider before profile resolution.
 - Candidate route/server action -> candidate profile repository -> Postgres: feature code resolves `candidate_profile_id` and queries candidate-owned rows using profile-scoped predicates.
-- Practice setup/resume input -> normalization/extraction -> Postgres: pasted text or extracted file text becomes `resume_context_json`; raw parser errors, file paths, and public URLs must not be persisted.
-- Candidate file upload path -> blob/object storage: currently modeled as private relative `candidate-resume-uploads/` metadata; final Azure Blob controls are pending.
+- Practice setup/resume input -> processor -> Postgres: pasted/trusted-host source text and uploaded PDF/DOCX bytes are request-only; only candidate-reviewed processed text, safe label, hashes, bounded redaction counts, and exact policy provenance enter `candidate_resume_processed_artifacts`. Accepted text is then snapshotted into setup/session context.
+- Candidate file upload/photo -> extraction/OCR: PDF/DOCX extraction is request-scoped and in-memory with disposal before persistence; photo OCR remains unwired. Any future temporary object storage requires an explicit private hard-TTL and disposal contract rather than candidate-visible paths.
 - Candidate session services -> AI provider: role, JD, resume context, answers, and coaching prompts cross to AI services. Candidate input must be treated as untrusted prompt content.
+- Browser voice capture -> audience-owned transcription route -> approved transcription provider -> recoverable transcript draft: the route proves owner/session/slot, validates bounded media, and never sends raw audio to the evaluator.
 - Runtime -> logs/metrics/alerts: candidate routes, auth denials, rate limits, AI errors, and smoke signals should emit safe operational data only.
 - Developer/Azure pipeline -> build/test/deploy branch: CI validates lint, typecheck, tests, build, and smoke readiness before candidate integration is reviewed.
 
@@ -110,6 +113,7 @@ flowchart TD
 - Candidate identity and email: ties practice data to a real person and drives account ownership.
 - External identity assertions and auth session state: compromise can become account takeover or cross-account access.
 - Candidate drafts, sessions, answers, coaching, summaries, and dashboard history: private interview-preparation content.
+- Transient raw voice recordings, candidate-authorized transcripts, and transcription provenance: highly sensitive practice content even when the raw audio is not retained.
 - Resume text, uploaded file metadata, future blobs/photos, and extracted artifacts: high-sensitivity employment and personal history data.
 - AI prompts and responses: may contain resume text, job details, candidate answers, and coaching feedback.
 - Postgres credentials and schema state: controls all durable app data.
@@ -124,11 +128,13 @@ flowchart TD
 - Production auth-mode guardrails live in [candidate-runtime-config.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-runtime-config.ts).
 - Candidate identity normalization lives in [candidate-auth-adapter.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-auth-adapter.ts).
 - Candidate profile and identity persistence live in [candidate-profile-repository.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-profile-repository.ts) and [002_candidate_identity_schema.sql](/c:/tmp/Interview-Coach-Recruiter-postgres/db/migrations/002_candidate_identity_schema.sql).
-- Candidate draft ownership and resume context persistence live in [candidate-practice-draft-repository.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.ts) and [003_candidate_practice_drafts_schema.sql](/c:/tmp/Interview-Coach-Recruiter-postgres/db/migrations/003_candidate_practice_drafts_schema.sql).
-- Resume extraction behavior lives in [candidate-resume-extraction-service.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-resume-extraction-service.ts).
+- Candidate setup draft minimization lives in [candidate-setup-draft-store.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-setup-v2/candidate-setup-draft-store.ts).
+- Processed artifact ownership and immutable review provenance live in [candidate-resume-text-artifact-repository.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-setup-v2/candidate-resume-text-artifact-repository.ts) and migrations [032](/c:/tmp/Interview-Coach-Recruiter-postgres/db/migrations/032_candidate_resume_processed_artifacts.sql) through [033](/c:/tmp/Interview-Coach-Recruiter-postgres/db/migrations/033_candidate_resume_document_upload.sql).
+- Resume text privacy processing and PDF/DOCX extraction live in [candidate-resume-text-processing.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-setup-v2/candidate-resume-text-processing.ts) and [candidate-resume-document-processing.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-setup-v2/candidate-resume-document-processing.ts).
 - Candidate mutation rate limits live in [candidate-mutation-boundary.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-mutation-boundary.ts).
 - Candidate observability guidance lives in [candidate-observability-plan.md](../07-ops/candidate-observability-plan.md).
 - Privacy, disclosure, consent, and retention requirements live in [privacy-disclosures-and-consent-requirements.md](privacy-disclosures-and-consent-requirements.md).
+- Voice capture, transcription, answer lineage, and recovery invariants live in [voice-answer-transcription-contract.md](../04-architecture/voice-answer-transcription-contract.md).
 - Candidate CI is defined in [azure-pipelines.candidate.yml](/c:/tmp/Interview-Coach-Recruiter-postgres/azure-pipelines.candidate.yml).
 
 ## Attacker Model
@@ -231,15 +237,18 @@ Risk:
 
 Existing mitigations:
 
-- Upload metadata accepts private relative paths under `candidate-resume-uploads/` and rejects public URL-like or traversal paths.
-- Parser failures collapse to safe reason codes such as `EXTRACTION_FAILED`, `EMPTY_EXTRACTION`, and `UNREADABLE_DOCUMENT`.
-- Processed resume artifact records `originalRetained = false`.
+- The current upload/photo controls do not put selected source bytes or paths into the setup payload or browser draft storage.
+- Pasted/trusted-host text uses a candidate-owned bounded processor; raw paste is neither browser-draft nor database state, and identity-backed setup reloads only an exact accepted artifact.
+- PDF/DOCX upload proves same-origin candidate identity before reading an actually bounded 5 MiB stream, checks actual signature/container structure, bounds PDF pages and DOCX expansion/entries, rejects encrypted/traversal/unsupported containers, zero-fills app-owned buffers, and permits persistence only after disposal succeeds.
 - Observability plan forbids raw resume text, raw extracted text, uploaded file contents, and provider auth payloads in ordinary logs.
+- The ratified V2 ingestion contract requires one server-owned parse, direct-PII-scrub, normalize, candidate-review, and processed-artifact boundary for paste, documents, photos, and trusted-host text. Direct-PII v5 combines exact authenticated aliases and their bounded name variants with header-only inference for unknown names corroborated by one strong contact signal. An ambiguous first span is removed generically only when another span on that same delimited line is a recognized contact signal; likely role, organization, and section titles remain excluded. Real multiline/bullet-delimited street addresses and header postal codes are removed while coarse city/state may remain.
+- The ratified contract excludes raw source paths from durable drafts and requires source disposal on every successful or failed terminal outcome before processing can report success.
 
 Gaps and follow-ups:
 
-- Final Azure Blob private container, short-lived access, deletion, and malware scanning policy are still open.
-- OCR/photo capture is not implemented and should receive its own threat-model update before build-out.
+- Trusted-host lookup is not wired even though the shared text processor supports its source contract.
+- Ordered photo OCR and PDF/DOCX extraction have local automated safe-failure/disposal evidence. Production still lacks approved OCR subprocessor posture, deployed throttling/resource/disposal evidence, representative-device/file evidence, parser isolation, and a malware-control decision.
+- If synchronous in-memory processing is insufficient, private encrypted hard-TTL temporary storage and deletion-retry/quarantine controls require implementation and security review.
 - AI diagnostic artifact retention and redaction rules remain open.
 
 ### T5. Prompt Injection Through Resume, JD, Or Candidate Answers
@@ -303,10 +312,11 @@ Existing mitigations:
 
 - Candidate mutation boundary rate-limits practice generation, session progress, answer submit/analyze, and question retry by candidate, operation, and subject.
 - Shared API routes already use IP-based rate-limit helpers for several recruiter-era generation endpoints.
+- Resume document extraction caps request bytes, PDF pages, DOCX entries and declared expansion, and rejects extreme compression ratios before text extraction.
 
 Gaps and follow-ups:
 
-- Resume upload and extraction size/type/scanning limits need final implementation evidence.
+- Resume document upload still needs per-candidate throttling, parser process isolation or equivalent containment, a malware-scanning decision, and deployed CPU/memory/timeout evidence.
 - Candidate-specific AI generation endpoints should retain rate-limit coverage as UI wiring expands.
 
 ### T8. Deployment Control Gaps In Shared Production Host
@@ -332,6 +342,35 @@ Gaps and follow-ups:
 - Azure pipeline still needs to be wired in the company project.
 - Branch policy and reviewer expectations still depend on company project permissions and reviewer availability.
 
+### T9. Voice Audio Leakage, Misattribution, Replay, Or Cost Abuse
+
+Abuse path:
+
+An attacker or broken client uploads oversized or mislabeled media, reuses an operation key with different audio, submits audio against another owner/session/slot, causes duplicate provider calls, or leaks audio/transcript content through logs, diagnostics, QA exports, or provider errors. A coupled implementation could also accept a voice answer before a durable transcript exists or evaluate provider-rewritten wording as the candidate's answer.
+
+Risk:
+
+- Likelihood: medium once recording is exposed because all route, media, and operation fields are attacker-controlled.
+- Impact: high because voice and transcript content is sensitive, provider calls incur cost, and misattribution can corrupt immutable answer/evaluator history.
+- Priority: high before voice enablement.
+
+Required mitigations:
+
+- Keep recording UI absent unless the exact runtime tuple is available; keep production release blocked until provider-processing approval, deployed-browser evidence, and operational gates pass.
+- Require explicit disclosure and user gesture before microphone permission; retain complete text fallback.
+- Prove audience owner, session, and question slot before parsing media or calling a provider.
+- Enforce code-owned MIME, byte, duration, rate, and request-time limits; use binary/multipart transport rather than base64 JSON.
+- Use separate candidate-led and invited transcription persistence with strong foreign keys, hashed idempotency keys, audio fingerprints, leases, immutable terminal states, and exact replay/conflict behavior.
+- Never application-persist raw audio or place it in logs, metrics, QA artifacts, support records, URLs, answer history, or evaluator input.
+- Persist a recoverable transcript before immutable answer creation; require a same-audience completed source run, nonblank candidate-authorized transcript, and server-resolved quick-submit or review provenance for every voice answer.
+- Separate transcription from evaluation and reject transcript rewriting, coaching, scoring, or delivery claims at the transcription boundary.
+- Pin and live-validate an approved provider profile; use metadata-only failure codes and telemetry.
+
+Gaps and follow-ups:
+
+- Exact code-owned media limits, provider profile, provider-side audio-retention approval, and credentialed acceptance are implementation and release gates.
+- Voice-marker extraction and delivery coaching require a separate evidence, persistence, and privacy contract.
+
 ## Minimum Security Requirements
 
 - no Supabase runtime secrets or clients
@@ -343,6 +382,7 @@ Gaps and follow-ups:
 - no production dev, mock, or password candidate auth
 - no unvalidated file uploads
 - no raw resume text, extracted text, answers, generated coaching, provider auth payloads, or prompt bodies in ordinary logs
+- no raw voice audio, transcript text, audio fingerprints, or transcription-provider output in ordinary logs, metrics, or QA artifacts
 - no generic shared-host route or API ownership changes without route/auth regression tests
 - no candidate UI release claim until candidate-facing UI workflows are actually built and smoke-tested
 
@@ -355,8 +395,8 @@ Gaps and follow-ups:
 - [src/lib/server/candidate/candidate-runtime-config.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-runtime-config.ts): production fail-closed auth/data backend controls.
 - [src/lib/server/candidate/candidate-auth-adapter.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-auth-adapter.ts): provider-neutral identity normalization.
 - [src/lib/server/candidate/candidate-profile-repository.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-profile-repository.ts): candidate profile and external identity persistence.
-- [src/lib/server/candidate/candidate-practice-draft-repository.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.ts): ownership predicates, resume metadata validation, and processed artifact writes.
-- [src/lib/server/candidate/candidate-resume-extraction-service.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-resume-extraction-service.ts): parser-failure handling and extraction result normalization.
+- [src/features/candidate-setup-v2/candidate-resume-text-artifact-repository.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-setup-v2/candidate-resume-text-artifact-repository.ts): candidate ownership, exact-policy artifacts, review fencing, and accepted-artifact resolution.
+- [src/features/candidate-setup-v2/candidate-resume-document-processing.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-setup-v2/candidate-resume-document-processing.ts): content inspection, extraction bounds, source disposal, and safe failure handling.
 - [src/lib/server/candidate/candidate-mutation-boundary.ts](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-mutation-boundary.ts): candidate mutation rate limits and idempotency assumptions.
 - [src/features/candidate-session](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/candidate-session): candidate session actions, answer submission, analysis, retry, and summary flows.
 - [src/features/practice-setup](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup): setup validation, draft updates, and future UI wiring.

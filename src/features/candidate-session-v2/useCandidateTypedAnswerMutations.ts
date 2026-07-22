@@ -4,6 +4,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import type { SessionAnswerMutationPhase } from "@/features/interview-session-v2/session-answer-mutation-contract";
+import type { VoiceTranscriptDraft } from "@/features/interview-session-v2/voice-answer-transcription";
 import type {
     CandidateAnswerDraft,
     CandidateAnswerDrafts,
@@ -174,6 +175,69 @@ export function useCandidateTypedAnswerMutations({
         }
     }
 
+    async function submitVoiceTranscript({
+        draft,
+        transcriptText,
+        retrySourceAnswerAttemptId = null,
+    }: {
+        draft: VoiceTranscriptDraft;
+        transcriptText: string;
+        retrySourceAnswerAttemptId?: string | null;
+    }) {
+        const normalizedTranscript = transcriptText.trim();
+        if (!normalizedTranscript) {
+            throw new Error("A nonblank voice transcript is required.");
+        }
+        if (answerOperationSlotRef.current === draft.slotId) {
+            throw new Error("This answer is already being submitted.");
+        }
+
+        answerOperationSlotRef.current = draft.slotId;
+        try {
+            setAnswerMutationPhase(draft.slotId, "submitting");
+            const response = await fetch(`${mutationBasePath}/answers`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Idempotency-Key": `voice-answer:${draft.sourceTranscriptionRunId}:${draft.submissionPath}`,
+                },
+                body: JSON.stringify({
+                    slotId: draft.slotId,
+                    questionIndex: draft.questionIndex,
+                    mode: "voice",
+                    text: normalizedTranscript,
+                    sourceVoiceTranscriptionRunId: draft.sourceTranscriptionRunId,
+                    voiceSubmissionPath: draft.submissionPath,
+                    trigger: retrySourceAnswerAttemptId ? "feedback_retry" : "initial_submit",
+                    supersedesAnswerAttemptId: retrySourceAnswerAttemptId,
+                }),
+            });
+            const result = await response.json().catch(() => null) as {
+                status?: string;
+                answerSubmissions?: CandidateAnswerSubmissions;
+            } | null;
+            if (result?.status !== "answer_submit_saved" || !result.answerSubmissions) {
+                setAnswerMutationPhase(draft.slotId, "submit_failed");
+                throw new Error("Voice answer submission was not saved.");
+            }
+
+            setAnswerSubmissions(result.answerSubmissions);
+            setAnswerAnalysisSnapshots((currentSnapshots) => {
+                const nextSnapshots = { ...currentSnapshots };
+                delete nextSnapshots[draft.slotId];
+                return nextSnapshots;
+            });
+            onAnswerSubmissionSaved?.(draft.slotId);
+            setAnswerMutationPhase(draft.slotId, "analyzing");
+            await performAnswerAnalysis(draft.slotId);
+        } catch (error) {
+            setAnswerMutationPhase(draft.slotId, "submit_failed");
+            throw error;
+        } finally {
+            answerOperationSlotRef.current = null;
+        }
+    }
+
     async function retryAnswerAnalysis(slotId: string) {
         if (answerOperationSlotRef.current === slotId) {
             return;
@@ -295,6 +359,7 @@ export function useCandidateTypedAnswerMutations({
         flushAnswerDraft,
         retryAnswerAnalysis,
         submitAnswerDraft,
+        submitVoiceTranscript,
         updateAnswerDraft,
     };
 }

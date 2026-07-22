@@ -3,7 +3,10 @@ import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidat
 import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-auth-v2/production-host-launch-runtime";
 import type { CandidateProvisionalSessionProgress } from "@/features/candidate-session-v2/candidate-provisional-session-store";
 import { createCandidatePracticeSessionRepository } from "@/features/candidate-session-v2/candidate-practice-session-repository";
-import { isSessionRuntimeProgressStatus } from "@/features/interview-session-v2/session-runtime-contract";
+import {
+    isSessionAnswerMode,
+    isSessionRuntimeProgressStatus,
+} from "@/features/interview-session-v2/session-runtime-contract";
 
 type CandidateSessionIdentity = {
     candidateProfileId: string;
@@ -162,6 +165,7 @@ function parseProgressBody(value: unknown): CandidateProvisionalSessionProgress 
         typeof currentQuestionIndex !== "number"
         || !Number.isInteger(currentQuestionIndex)
         || currentQuestionIndex < 0
+        || (body.answerMode !== undefined && !isSessionAnswerMode(body.answerMode))
     ) {
         return null;
     }
@@ -169,6 +173,7 @@ function parseProgressBody(value: unknown): CandidateProvisionalSessionProgress 
     return {
         status: body.status,
         currentQuestionIndex,
+        ...(isSessionAnswerMode(body.answerMode) ? { answerMode: body.answerMode } : {}),
     };
 }
 

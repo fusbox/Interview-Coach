@@ -674,6 +674,15 @@ function toResumeContext(setupSnapshot: CandidateSetupSessionCreationResult["set
     return JSON.stringify({
         included: Boolean(setupSnapshot.resumeText),
         captureMode: setupSnapshot.resumeCaptureMode,
+        ...(setupSnapshot.resumeArtifact
+            ? { artifact: {
+                artifactId: setupSnapshot.resumeArtifact.artifactId,
+                version: setupSnapshot.resumeArtifact.version,
+                revision: setupSnapshot.resumeArtifact.revision,
+                source: setupSnapshot.resumeArtifact.source,
+                candidateLabel: setupSnapshot.resumeArtifact.candidateLabel,
+            } }
+            : {}),
     });
 }
 

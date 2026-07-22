@@ -235,4 +235,11 @@ where jsonb_typeof(submission.value) = 'object'
   and (submission.value ->> 'questionIndex') ~ '^[0-9]+$'
   and length(trim(submission.value ->> 'text')) > 0
   and (submission.value ->> 'submittedAt') ~* '^[0-9]{4}-[0-9]{2}-[0-9]{2}t'
+  and not exists (
+    select 1
+    from public.candidate_answer_attempts existing
+    where existing.candidate_practice_session_id = session.candidate_practice_session_id
+      and existing.question_slot_id = submission.key
+      and existing.attempt_number = 1
+  )
 on conflict (candidate_practice_session_id, question_slot_id, attempt_number) do nothing;

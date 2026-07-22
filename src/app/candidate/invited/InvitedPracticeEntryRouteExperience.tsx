@@ -15,6 +15,7 @@ export function InvitedPracticeEntryRouteExperience(props: {
     candidateFirstName?: string;
     initialSession: CandidateProvisionalSessionRecord;
     questionAudioEnabled?: boolean;
+    voiceAnswerEnabled?: boolean;
 }) {
     const [practiceStarted, setPracticeStarted] = useState(
         props.initialSession.progress?.status === "live_question"
@@ -40,6 +41,7 @@ export function InvitedPracticeEntryRouteExperience(props: {
                 entryTransitionRequested={startedFromLanding}
                 entryTransitionStartsPractice={startedFromLanding}
                 questionAudioEnabled={props.questionAudioEnabled}
+                voiceAnswerEnabled={props.voiceAnswerEnabled}
             />
         );
     }

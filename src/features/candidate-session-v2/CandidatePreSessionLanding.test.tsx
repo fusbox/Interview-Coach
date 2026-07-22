@@ -1,7 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { CandidatePracticeEntryTransitionOverlay } from "./CandidatePreSessionLanding";
+import {
+    CandidatePreSessionLanding,
+    CandidatePracticeEntryTransitionOverlay,
+} from "./CandidatePreSessionLanding";
 
 describe("candidate practice transition copy", () => {
     it("uses summary language for invited completion without changing Coach Plan completion", () => {
@@ -14,5 +17,20 @@ describe("candidate practice transition copy", () => {
 
         rerender(<CandidatePracticeEntryTransitionOverlay isReleasing={false} mode="coach_plan" />);
         expect(screen.getByRole("heading", { name: "Preparing your Coach Plan" })).toBeInTheDocument();
+    });
+
+    it("shows the safe accepted resume label on candidate-owned landing screens", () => {
+        render(<CandidatePreSessionLanding
+            variant="initial"
+            targetRole="Quality inspector"
+            stageLabel="Screening call"
+            questionCount={5}
+            resumeIncluded
+            resumeLabel="resume.pdf"
+            onStart={() => undefined}
+        />);
+
+        expect(screen.getByText("resume.pdf")).toBeInTheDocument();
+        expect(screen.queryByText("Included")).not.toBeInTheDocument();
     });
 });

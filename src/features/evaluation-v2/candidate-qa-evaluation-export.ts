@@ -1,5 +1,6 @@
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 import type { CandidateAnswerAnalysisProviderResult } from "@/features/candidate-session-v2/candidate-answer-analysis-adapter";
+import type { CandidateAnswerSubmission } from "@/features/candidate-session-v2/candidate-answer-lifecycle";
 import type { EvaluationEvidenceItem } from "./evaluation-domain";
 
 export type CandidateQaEvalPrivacyShape = {
@@ -38,7 +39,7 @@ export type CandidateQaEvalCaseSnapshot = {
         answerAttemptId?: string;
         attemptNumber?: number;
         trigger?: "initial_submit" | "feedback_retry";
-        mode: "text";
+        mode: CandidateAnswerSubmission["mode"];
         text: string;
         submittedAt: string;
     };

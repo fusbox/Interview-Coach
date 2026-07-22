@@ -243,6 +243,9 @@ function createAttempt(index: number): CandidateAnswerAttemptRecord {
         submittedAt: `2026-07-17T17:0${index + 1}:00.000Z`,
         idempotencyKey: `answer-${index + 1}`,
         payloadFingerprint: `payload-${index + 1}`,
+        sourceVoiceTranscriptionRunId: null,
+        voiceSubmissionPath: null,
+        voiceTranscriptEdited: null,
         createdAt: `2026-07-17T17:0${index + 1}:00.000Z`,
     };
 }

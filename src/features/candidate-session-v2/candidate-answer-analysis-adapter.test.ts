@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { CandidateAnswerAnalysisRequest } from "./candidate-answer-lifecycle";
 import {
+    createCandidateAnswerEvidenceFirstEvaluationCase,
     createCandidateAnswerAnalysisProviderRequest,
     parseCandidateAnswerAnalysisProviderResult,
 } from "./candidate-answer-analysis-adapter";
@@ -81,6 +82,31 @@ describe("candidate answer analysis adapter", () => {
             },
             setupSnapshot,
         })).toThrow("Answer analysis provider request must map to the submitted answer slot.");
+    });
+
+    it("evaluates a voice transcript without inventing unavailable delivery markers", () => {
+        const providerRequest = createCandidateAnswerAnalysisProviderRequest({
+            request: {
+                ...analysisRequest,
+                answerSubmission: {
+                    ...analysisRequest.answerSubmission,
+                    mode: "voice",
+                    answerAttemptId: "11111111-1111-4111-8111-111111111111",
+                    attemptNumber: 1,
+                    trigger: "initial_submit",
+                    sourceVoiceTranscriptionRunId: "22222222-2222-4222-8222-222222222222",
+                    voiceSubmissionPath: "quick_submit",
+                    voiceTranscriptEdited: false,
+                },
+            },
+            question,
+            setupSnapshot,
+        });
+
+        expect(createCandidateAnswerEvidenceFirstEvaluationCase(providerRequest).providerInput).toMatchObject({
+            answer: { mode: "voice" },
+            voiceMarkers: null,
+        });
     });
 
     it("parses provider results that map back to the requested answer and evidence contract", () => {

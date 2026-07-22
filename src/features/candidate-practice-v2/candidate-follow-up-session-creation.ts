@@ -205,6 +205,9 @@ export function createCandidateFollowUpSessionInputFromIntent({
             interviewStage: sourceSession.setupSnapshot.interviewStage,
             questionCount: intent.items.length,
             resumeCaptureMode: sourceSession.setupSnapshot.resumeCaptureMode,
+            ...(intent.setupContext.resumeArtifact
+                ? { resumeArtifact: intent.setupContext.resumeArtifact }
+                : {}),
             createdAt: now.toISOString(),
             followUpPractice,
         },

@@ -16,6 +16,7 @@ Current docs should describe the cleanroom `/candidate/*` rebuild or durable pro
 - [Recruiter Settings And Invitation Identity](./recruiter-settings-and-invitation-identity.md)
 - [Recruiter Invited Transcript Read Contract](./recruiter-invited-transcript-read-contract.md)
 - [Shared Question Audio Contract](./shared-question-audio-contract.md)
+- [Voice Answer And Transcription Contract](./voice-answer-transcription-contract.md)
 - [Practice Plan Baseline And Round Selection](./practice-plan-baseline-and-round-selection.md)
 - [V1 SWOT And Rebuild Runway](./v1-swot-and-rebuild-runway.md)
 - [Storage And Resume Ingestion](./storage-and-resume-ingestion.md)

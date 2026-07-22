@@ -1,7 +1,7 @@
 # Candidate App Data Contract
 
 Status: Canonical system truth
-Last updated: 2026-07-18
+Last updated: 2026-07-20
 
 ## Purpose
 
@@ -49,6 +49,30 @@ Pre-submission edits are drafts and do not create attempts. The first accepted s
 The normalized durable target uses stable `candidateAnswerAttemptId` and `candidateAnswerEvaluationRunId` values, candidate/session/question ownership, per-occurrence attempt number, answer mode/content/submission time, retry lineage, provider/model/prompt/evaluator metadata, immutable configuration manifest and fingerprint, input fingerprint, lifecycle timestamps, validation facts, and candidate-safe result snapshots. Model-stage manifests include the abstract reasoning posture plus the effective numeric thinking budget and whether thought output is included, so provider requests cannot change behind an unchanged fingerprint. Evaluator runs also carry a positive sequential `generationAttempt` within one answer attempt and purpose plus an explicit `claimExpiresAt` lease. A run id is the completion fence: only its own fresh `requested` row may transition once to `completed`, `failed`, or `rejected`. Terminal rows remain immutable. Candidate coaching permits at most one fresh requested run and one accepted completed result per answer attempt and input fingerprint; terminal retry appends the next generation without creating a new answer attempt. QA comparison may retain multiple same-input completed variants only when each variant has its own resolved configuration identity.
 
 Repository/domain records expose timestamps as ISO strings even when the PostgreSQL driver returns `timestamptz` columns as JavaScript `Date` objects. Migration `009_candidate_answer_attempts_schema.sql` creates `candidate_answer_attempts` and `candidate_answer_evaluation_runs`; migration `015_candidate_answer_evaluator_run_claims.sql` adds generation, lease, stale-claim, and accepted-result fencing; migration `016_candidate_answer_evaluator_configuration_manifest.sql` adds immutable resolved configuration identity. Rows created during earlier V2 slices are marked `pre_manifest_v2` without invented stage settings, while every new row must be resolved. `candidate-answer-history-repository.ts` provides ownership-scoped append, replay-safe answer idempotency, immutable retry lineage, and evaluator-run claim/lifecycle operations. Existing `candidate_practice_sessions.answer_submissions_json` and `answer_analysis_snapshots_json` remain latest-attempt V2 build projections while session consumers migrate; they must not be treated as complete history. No V1-created app data is a V2 migration or runtime compatibility requirement.
+
+### Voice Transcription And Answer Lineage
+
+The ratified voice boundary is transcript-first. A transcription run is neither an answer attempt nor an evaluator run. Candidate-led and invited practice use the same domain vocabulary with separate owner-scoped persistence; a polymorphic owner record without strong foreign keys is not allowed.
+
+Each audience stores metadata-only transcription runs with generated run identity, owner/session/question-slot identity, hashed operation key, audio input fingerprint, immutable submission path, accepted MIME/size/duration metadata, provider/profile/configuration identity, generation/lease timestamps, terminal lifecycle, output fingerprint, and a safe error code. Raw audio and duplicate transcript text are excluded from these run rows.
+
+A completed transcription transaction writes the machine transcript, source run id, and bounded submission path (`quick_submit` or `transcript_review`) into the current audience session's recoverable voice-draft projection. That projection is mutable latest state, not answer history. Rerecording creates another run and moves the draft pointer. Exact response-lost replay returns the same saved transcript without another provider call.
+
+Explicit answer submit appends the immutable answer attempt. A `voice` attempt requires:
+
+- nonblank submitted transcript text;
+- canonical answer mode `voice`;
+- a completed source transcription run owned by the same audience principal, session, and question slot;
+- server-resolved quick-submit or transcript-review provenance;
+- server-derived provenance indicating whether the submitted transcript fingerprint differs from the transcription output fingerprint.
+
+The answer attempt contains the candidate-authorized transcript that was submitted. Quick submit requires the answer and transcription-output fingerprints to match. Review may preserve the machine transcript or submit a corrected one, with edit state derived server-side. The evaluator receives the immutable attempt and never receives raw audio or a second competing machine transcript. The first voice release supplies `voiceMarkers: null`, so the existing evidence-first contract cannot emit delivery coaching. See [Voice Answer And Transcription Contract](./04-architecture/voice-answer-transcription-contract.md).
+
+One quick-submit parent command derives stable transcription and answer child operation identities. Transcript completion and voice-answer append remain ordered durable boundaries: replay after transcript completion reuses the saved result and retries only the incomplete answer append. The transcription provider adapter and repository never write answer history directly.
+
+Migration `030_voice_answer_transcription_foundation.sql` implements the storage boundary with `candidate_voice_transcription_runs` and `invited_practice_voice_transcription_runs`, plus separate `voice_transcript_drafts_json` session projections. Migration `031_voice_transcription_claims.sql` makes the user-authorized submission path immutable run identity. Candidate and invited repositories retain distinct ownership queries while sharing normalized claim vocabulary. Advisory-lock claims produce one provider owner under concurrency; matching completed current drafts replay; fresh work returns pending; changed audio or intent conflicts; matching stale work advances generation; and one operation is capped at three generations. Their completion operations derive the output fingerprint from the normalized transcript, terminalize one fresh run, and save its transcript draft atomically. Composite answer foreign keys and insert validation require the exact same audience owner, session, slot, index, completed current draft source, submission path, and candidate-authorized draft text; the database verifies `voiceTranscriptEdited` and requires quick-submit text to match the machine-output fingerprint. A completed run whose draft was superseded by deliberate rerecord remains metadata history and is not restored by replay.
+
+The first accepted production adapter stores profile `google_gemini_2_5_flash_voice_transcription_v1`, model `gemini-2.5-flash`, and current immutable configuration fingerprint `9ce44b0bab357bed36b838e2d7f3788837175e22a4c201b9bc3e439d60ad8b22` on each newly claimed run. The current profile includes credentialed-accepted truthful `audio/webm` and `audio/mp4`; any media allowlist, prompt, model, schema, language, limit, or setting change advances the fingerprint. Provider errors persist only a bounded safe code. Raw provider request/output, audio bytes, and transcript duplicates do not enter transcription-run rows.
 
 ### V2 Evaluation Evidence
 
@@ -366,6 +390,73 @@ Optional:
 - host-platform launch metadata when available.
 
 Current setup rule: candidate-led `/candidate/setup` requires a job description because production entry is expected to supply JD context and the practice model is role-specific.
+
+### ResumeProcessedArtifact
+
+Resume acquisition is separate from resume persistence. Paste, document upload, photo capture, and trusted-host text all produce the same candidate-owned processed artifact before the text may enter setup or a session snapshot.
+
+```ts
+type ResumeInputSource = "pasted_text" | "document_upload" | "photo_capture" | "trusted_host";
+
+type ResumeProcessedArtifact = {
+    artifactId: string;
+    candidateProfileId: string;
+    roleProfileId: string | null;
+    version: number;
+    revision: number;
+    source: ResumeInputSource;
+    candidateLabel: string;
+    normalizedText: string;
+    sourceFingerprint: string;
+    normalizedTextFingerprint: string;
+    processingPolicyVersion: string;
+    piiPolicyVersion: string;
+    piiRedactionCounts: Record<string, number>;
+    reviewState: "awaiting_review" | "accepted" | "replaced";
+    createdAt: string;
+    acceptedAt: string | null;
+    originalRetained: false;
+};
+```
+
+Rules:
+
+- `normalizedText` is parsed and direct-PII-scrubbed under the recorded code-owned policy before persistence;
+- candidate review or correction is required before `accepted` state;
+- safe labels may retain a sanitized filename or generated source label, but never paths, URLs, identity ids, or source bytes;
+- source bytes and unprocessed paste are request-scoped and excluded from Postgres, browser draft storage, logs, analytics, evaluator artifacts, and session snapshots;
+- the durable source fingerprint supports idempotency and diagnostics but is not exposed to the browser;
+- successful processing is not terminal until source disposal succeeds; terminal failures also dispose of source bytes and persist at most a bounded safe reason code;
+- an accepted artifact version is immutable input to its prep/session history. Later replacement creates a new version rather than rewriting historical meaning.
+
+### CandidateSetupResumeSelection
+
+The processed artifact is immutable evidence; the setup selection is the mutable recovery pointer that says which artifact, if any, belongs to one still-open setup context.
+
+```ts
+type CandidateSetupResumeSelection = {
+    candidateProfileId: string;
+    setupOwnerKey: string; // server-derived candidate plus optional trusted-host setup scope
+    revision: number;
+    pendingOperationId: string | null;
+    artifactId: string | null;
+    lifecycleState: "pending" | "active" | "cleared" | "consumed";
+    consumedRoleProfileId: string | null;
+    consumedCandidatePracticeSessionId: string | null;
+};
+```
+
+Rules:
+
+- the browser may supply an opaque operation id, but the server derives the owner key from authenticated request context;
+- only the current pending operation may finalize an artifact selection;
+- a clear/change command supersedes pending work, and stale completion leaves at most an unselected candidate-owned artifact;
+- recovery returns only an `active` candidate-owned artifact under current processing and PII policy;
+- review acceptance and setup submission require the exact active artifact pointer, not merely any artifact owned by the candidate;
+- successful durable setup consumes the pointer with the exact prep context and session, while immutable setup/follow-up snapshots retain the accepted artifact reference and safe label;
+- no raw or processed resume text is duplicated into the selection row.
+
+Migration `032_candidate_resume_processed_artifacts.sql` implements the first durable form for `pasted_text` and `trusted_host`; migrations `033_candidate_resume_document_upload.sql` and `034_candidate_resume_photo_ocr.sql` widen only the same provenance constraint to `document_upload` and `photo_capture` without adding raw-source columns. Migration `035_candidate_setup_resume_selections.sql` adds the text-free, lifecycle-fenced setup selection and consumption pointers. `POST /candidate/setup/resume-text` proves same-origin candidate identity before reading bounded pasted source, processes it under exact code-owned policy versions, and creates or recovers an `awaiting_review` artifact without persisting raw source. `POST /candidate/setup/resume-document` proves the same identity before reading an actually bounded 5 MiB stream, accepts only actual PDF/DOCX signatures/containers, extracts text under `candidate_resume_document_extraction_v1`, disposes app-owned binary buffers, and only then creates or recovers the same processed artifact. `POST /candidate/setup/resume-photo` proves identity before streaming a bounded multipart batch, accepts at most four exact-order JPEG/PNG/WebP/HEIC/HEIF pages, allows any one page to consume the 12 MiB aggregate source ceiling, checks actual signatures/container brands, and calls one exact-profile OCR runtime. The provider must return one same-order page result per source image. App-owned request/page buffers are zero-filled before only combined text enters the shared direct-PII processor and artifact repository. Document and photo source fingerprints cover exact source bytes plus their extraction/OCR configuration identity and are never returned to the browser. `POST /candidate/setup/resume-text/[artifactId]/accept` revision-fences candidate review and re-scrubs edits before acceptance. Identity-backed setup start requires an accepted artifact reference and reloads its canonical processed text through the active selection by candidate, owner key, artifact id, version, and revision; raw `CandidateSetupPayload.resumeText` without that reference is rejected before prep or wording work. The non-production identity-less browser bridge remains a compatibility exception only.
 
 ### CandidateHostLaunchSession
 

@@ -1,6 +1,7 @@
 import { createCandidateAnswerCoachingFacts } from "./candidate-coaching-facts";
 import type { CandidateQuestionPlanCategory } from "./candidate-question-plan";
 import type { CandidatePracticeSessionRecord } from "./candidate-practice-session-repository";
+import type { CandidateAnswerSubmission } from "./candidate-answer-lifecycle";
 
 export type CandidateCompletedRoundReadModels = {
     status: "candidate_completed_round_read_models";
@@ -64,7 +65,7 @@ export type CandidatePostRoundReviewQuestion = {
     questionText: string;
     status: "practiced" | "skipped_or_unanswered";
     answer?: {
-        mode: "text";
+        mode: CandidateAnswerSubmission["mode"];
         text: string;
         submittedAt: string;
     };

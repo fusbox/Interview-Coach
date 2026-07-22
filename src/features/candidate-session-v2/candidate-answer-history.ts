@@ -6,6 +6,7 @@ import {
     type EvidenceFirstEvaluatorConfigurationManifest,
 } from "@/features/evaluation-v2/evidence-first-evaluator-contract";
 import type { CandidateAnswerSubmission } from "./candidate-answer-lifecycle";
+import type { VoiceTranscriptSubmissionPath } from "@/features/interview-session-v2/voice-answer-transcription";
 
 export type CandidateAnswerAttemptMode = "text" | "voice" | "photo";
 export type CandidateAnswerAttemptTrigger = "initial_submit" | "feedback_retry";
@@ -24,6 +25,9 @@ export type CandidateAnswerAttemptRecord = {
     submittedAt: string;
     idempotencyKey: string;
     payloadFingerprint: string;
+    sourceVoiceTranscriptionRunId: string | null;
+    voiceSubmissionPath: VoiceTranscriptSubmissionPath | null;
+    voiceTranscriptEdited: boolean | null;
     createdAt: string;
 };
 
@@ -79,6 +83,9 @@ export function createCandidateAnswerAttemptPayloadFingerprint(input: {
     answerText: string;
     trigger: CandidateAnswerAttemptTrigger;
     supersedesCandidateAnswerAttemptId?: string | null;
+    sourceVoiceTranscriptionRunId?: string | null;
+    voiceSubmissionPath?: VoiceTranscriptSubmissionPath | null;
+    voiceTranscriptEdited?: boolean | null;
 }) {
     return createHash("sha256")
         .update(JSON.stringify(input))
@@ -97,14 +104,14 @@ export function createCandidateAnswerEvaluationClaimExpiresAt(requestedAt: Date)
 export function toLatestCandidateAnswerSubmission(
     attempt: CandidateAnswerAttemptRecord,
 ): CandidateAnswerSubmission {
-    if (attempt.mode !== "text") {
-        throw new Error("The current candidate session compatibility projection supports typed answers only.");
+    if (attempt.mode !== "text" && attempt.mode !== "voice") {
+        throw new Error("The current candidate session projection supports text and voice answers only.");
     }
 
     return {
         slotId: attempt.questionSlotId,
         questionIndex: attempt.questionIndex,
-        mode: "text",
+        mode: attempt.mode,
         text: attempt.answerText,
         submittedAt: attempt.submittedAt,
         status: "pending_analysis",
@@ -112,6 +119,11 @@ export function toLatestCandidateAnswerSubmission(
         attemptNumber: attempt.attemptNumber,
         trigger: attempt.trigger,
         supersedesAnswerAttemptId: attempt.supersedesCandidateAnswerAttemptId,
+        ...(attempt.mode === "voice" ? {
+            sourceVoiceTranscriptionRunId: attempt.sourceVoiceTranscriptionRunId,
+            voiceSubmissionPath: attempt.voiceSubmissionPath,
+            voiceTranscriptEdited: attempt.voiceTranscriptEdited,
+        } : {}),
     };
 }
 
@@ -131,6 +143,17 @@ export function normalizeCandidateAnswerAttemptRecord(value: unknown): Candidate
     const idempotencyKey = readString(value.idempotency_key ?? value.idempotencyKey);
     const payloadFingerprint = readString(value.payload_fingerprint ?? value.payloadFingerprint);
     const createdAt = readTimestamp(value.created_at ?? value.createdAt);
+    const sourceVoiceTranscriptionRunId = readNullableString(
+        value.source_candidate_voice_transcription_run_id
+        ?? value.source_invited_voice_transcription_run_id
+        ?? value.sourceVoiceTranscriptionRunId,
+    );
+    const voiceSubmissionPath = readNullableVoiceSubmissionPath(
+        value.voice_submission_path ?? value.voiceSubmissionPath,
+    );
+    const voiceTranscriptEdited = readNullableBoolean(
+        value.voice_transcript_edited ?? value.voiceTranscriptEdited,
+    );
 
     if (
         !candidateAnswerAttemptId
@@ -146,6 +169,8 @@ export function normalizeCandidateAnswerAttemptRecord(value: unknown): Candidate
         || !idempotencyKey
         || !payloadFingerprint
         || !createdAt
+        || voiceSubmissionPath === undefined
+        || voiceTranscriptEdited === undefined
     ) {
         return null;
     }
@@ -156,6 +181,18 @@ export function normalizeCandidateAnswerAttemptRecord(value: unknown): Candidate
     if (
         (attemptNumber === 1 && (trigger !== "initial_submit" || supersedesCandidateAnswerAttemptId !== null))
         || (attemptNumber > 1 && (trigger !== "feedback_retry" || supersedesCandidateAnswerAttemptId === null))
+        || (
+            mode === "voice"
+            && (!sourceVoiceTranscriptionRunId || !voiceSubmissionPath || voiceTranscriptEdited === null)
+        )
+        || (
+            mode !== "voice"
+            && (
+                sourceVoiceTranscriptionRunId !== null
+                || voiceSubmissionPath !== null
+                || voiceTranscriptEdited !== null
+            )
+        )
     ) {
         return null;
     }
@@ -174,6 +211,9 @@ export function normalizeCandidateAnswerAttemptRecord(value: unknown): Candidate
         submittedAt,
         idempotencyKey,
         payloadFingerprint,
+        sourceVoiceTranscriptionRunId,
+        voiceSubmissionPath,
+        voiceTranscriptEdited,
         createdAt,
     };
 }
@@ -303,6 +343,19 @@ function readNullableString(value: unknown) {
 
 function readNullableTimestamp(value: unknown) {
     return value === null || typeof value === "undefined" ? null : readTimestamp(value);
+}
+
+function readNullableBoolean(value: unknown) {
+    return value === null || typeof value === "undefined"
+        ? null
+        : typeof value === "boolean"
+            ? value
+            : undefined;
+}
+
+function readNullableVoiceSubmissionPath(value: unknown): VoiceTranscriptSubmissionPath | null | undefined {
+    if (value === null || typeof value === "undefined") return null;
+    return value === "quick_submit" || value === "transcript_review" ? value : undefined;
 }
 
 function isTimestampAfter(value: string, boundary: string) {

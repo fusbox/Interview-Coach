@@ -11,6 +11,7 @@ import {
     resolveCandidateAnswerIdempotencyDecision,
     type CandidateAnswerIdempotencyRecord,
     type CandidateAnswerIdempotencyRecords,
+    type CandidateAnswerMode,
     type CandidateAnswerSubmission,
     type CandidateAnswerSubmissions,
 } from "@/features/candidate-session-v2/candidate-answer-lifecycle";
@@ -24,6 +25,7 @@ import {
     createCandidatePracticeSessionRepository,
     type CandidatePracticeSessionRecord,
 } from "@/features/candidate-session-v2/candidate-practice-session-repository";
+import type { VoiceTranscriptSubmissionPath } from "@/features/interview-session-v2/voice-answer-transcription";
 import type { CandidateAnswerAnalysisProviderResult } from "@/features/candidate-session-v2/candidate-answer-analysis-adapter";
 import type { CandidateFeedbackActionEvent } from "@/features/candidate-session-v2/candidate-feedback-interaction";
 import { EVIDENCE_FIRST_INPUT_LIMITS } from "@/features/evaluation-v2/evidence-first-evaluator-contract";
@@ -68,14 +70,27 @@ type CandidateAnswerAttemptRepository = {
         candidateProfileId: string;
         questionSlotId: string;
         questionIndex: number;
-        mode: "text";
+        mode: "text" | "voice";
         answerText: string;
         submittedAt: string;
         trigger: "initial_submit" | "feedback_retry";
         supersedesCandidateAnswerAttemptId?: string | null;
         idempotencyKey: string;
         payloadFingerprint: string;
+        sourceVoiceTranscriptionRunId?: string | null;
+        voiceSubmissionPath?: VoiceTranscriptSubmissionPath | null;
+        voiceTranscriptEdited?: boolean | null;
     }) => Promise<CandidateAnswerAttemptWriteResult | null>;
+    authorizeVoiceAnswerTranscript?: (input: {
+        candidatePracticeSessionId: string;
+        candidateProfileId: string;
+        questionSlotId: string;
+        questionIndex: number;
+        sourceVoiceTranscriptionRunId: string;
+        voiceSubmissionPath: VoiceTranscriptSubmissionPath;
+        transcriptText: string;
+        updatedAt: string;
+    }) => Promise<{ voiceTranscriptEdited: boolean } | null>;
 };
 
 export type CandidateAnswerSubmitRouteDependencies = {
@@ -164,6 +179,8 @@ export async function handleCandidateAnswerSubmitRequest({
         requestedAt: now,
         trigger: parsedBody.trigger,
         supersedesAnswerAttemptId: parsedBody.supersedesAnswerAttemptId,
+        sourceVoiceTranscriptionRunId: parsedBody.sourceVoiceTranscriptionRunId,
+        voiceSubmissionPath: parsedBody.voiceSubmissionPath,
     });
     const idempotencyContract = createCandidateAnswerSubmitIdempotencyContract({
         candidatePracticeSessionId: sessionId,
@@ -210,6 +227,35 @@ export async function handleCandidateAnswerSubmitRequest({
             });
         }
 
+        let voiceTranscriptEdited: boolean | null = null;
+        if (submitRequest.draft.mode === "voice") {
+            if (!answerAttemptRepository?.authorizeVoiceAnswerTranscript) {
+                return Response.json({
+                    code: "VOICE_ANSWER_PERSISTENCE_UNAVAILABLE",
+                    error: "Voice answer persistence is not available.",
+                    retryable: true,
+                }, { status: 503 });
+            }
+            const authorizedTranscript = await answerAttemptRepository.authorizeVoiceAnswerTranscript({
+                candidatePracticeSessionId: sessionId,
+                candidateProfileId: identity.candidateProfileId,
+                questionSlotId: submitRequest.draft.slotId,
+                questionIndex: submitRequest.draft.questionIndex,
+                sourceVoiceTranscriptionRunId: submitRequest.sourceVoiceTranscriptionRunId!,
+                voiceSubmissionPath: submitRequest.voiceSubmissionPath!,
+                transcriptText: submitRequest.draft.text,
+                updatedAt: submitRequest.requestedAt,
+            });
+            if (!authorizedTranscript) {
+                return Response.json({
+                    code: "VOICE_TRANSCRIPT_SOURCE_NOT_CURRENT",
+                    error: "This transcript is no longer the current voice answer for this question.",
+                    retryable: false,
+                }, { status: 409 });
+            }
+            voiceTranscriptEdited = authorizedTranscript.voiceTranscriptEdited;
+        }
+
         let answerSubmission = createCandidateAnswerSubmission({
             request: submitRequest,
         });
@@ -234,7 +280,13 @@ export async function handleCandidateAnswerSubmitRequest({
                     answerText: submitRequest.draft.text,
                     trigger: submitRequest.trigger ?? "initial_submit",
                     supersedesCandidateAnswerAttemptId: submitRequest.supersedesAnswerAttemptId ?? null,
+                    sourceVoiceTranscriptionRunId: submitRequest.sourceVoiceTranscriptionRunId ?? null,
+                    voiceSubmissionPath: submitRequest.voiceSubmissionPath ?? null,
+                    voiceTranscriptEdited,
                 }),
+                sourceVoiceTranscriptionRunId: submitRequest.sourceVoiceTranscriptionRunId ?? null,
+                voiceSubmissionPath: submitRequest.voiceSubmissionPath ?? null,
+                voiceTranscriptEdited,
             });
 
             if (!attemptWrite) {
@@ -381,15 +433,28 @@ function parseAnswerSubmitBody(value: unknown) {
 
     const body = value as Record<string, unknown>;
     const slotId = readString(body.slotId);
+    const mode: CandidateAnswerMode | null = body.mode === "text" || body.mode === "voice"
+        ? body.mode
+        : null;
+    const sourceVoiceTranscriptionRunId = readUuid(body.sourceVoiceTranscriptionRunId);
+    const voiceSubmissionPath: VoiceTranscriptSubmissionPath | null = body.voiceSubmissionPath === "quick_submit"
+        || body.voiceSubmissionPath === "transcript_review"
+        ? body.voiceSubmissionPath
+        : null;
     if (
         !slotId
-        || body.mode !== "text"
+        || !mode
         || typeof body.text !== "string"
         || !body.text.trim()
         || body.text.length > EVIDENCE_FIRST_INPUT_LIMITS.answerText
         || typeof body.questionIndex !== "number"
         || !Number.isInteger(body.questionIndex)
         || body.questionIndex < 0
+        || (mode === "voice" && (!sourceVoiceTranscriptionRunId || !voiceSubmissionPath))
+        || (mode === "text" && (
+            typeof body.sourceVoiceTranscriptionRunId !== "undefined"
+            || typeof body.voiceSubmissionPath !== "undefined"
+        ))
     ) {
         return null;
     }
@@ -409,10 +474,12 @@ function parseAnswerSubmitBody(value: unknown) {
     return {
         slotId,
         questionIndex: body.questionIndex,
-        mode: "text" as const,
+        mode,
         text: body.text,
         trigger,
         supersedesAnswerAttemptId: trigger === "feedback_retry" ? supersedesAnswerAttemptId! : null,
+        sourceVoiceTranscriptionRunId: mode === "voice" ? sourceVoiceTranscriptionRunId! : null,
+        voiceSubmissionPath: mode === "voice" ? voiceSubmissionPath! : null,
     };
 }
 
@@ -465,6 +532,13 @@ function readCookieValue(cookieHeader: string | null, name: string) {
 
 function readString(value: unknown) {
     return typeof value === "string" && value.trim() ? value : null;
+}
+
+function readUuid(value: unknown) {
+    const normalized = readString(value);
+    return normalized && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(normalized)
+        ? normalized
+        : null;
 }
 
 function getRuntimeSslConfig(databaseUrl: string) {

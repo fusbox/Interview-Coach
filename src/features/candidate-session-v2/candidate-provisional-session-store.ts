@@ -16,6 +16,10 @@ import {
     normalizeCandidateAnswerAnalysisRecoveries,
     type CandidateAnswerAnalysisRecoveries,
 } from "./candidate-answer-analysis-recovery";
+import {
+    normalizeVoiceTranscriptDrafts,
+    type VoiceTranscriptDrafts,
+} from "@/features/interview-session-v2/voice-answer-transcription";
 
 export const CANDIDATE_PROVISIONAL_SESSION_STORAGE_KEY = "interview-coach:candidate-provisional-sessions:v1";
 
@@ -33,6 +37,7 @@ export type CandidateProvisionalSessionRecord = (CandidateSetupSessionCreationRe
     answerAnalysisSnapshots?: CandidateAnswerAnalysisSnapshots;
     answerAnalysisRecoveries?: CandidateAnswerAnalysisRecoveries;
     feedbackActionEvents?: CandidateFeedbackActionEvents;
+    voiceTranscriptDrafts?: VoiceTranscriptDrafts;
 };
 
 type CandidateProvisionalSessionMap = Record<string, CandidateProvisionalSessionRecord>;
@@ -52,6 +57,7 @@ export function saveCandidateProvisionalSession(
         answerAnalysisSnapshots: normalizeCandidateAnswerAnalysisSnapshots(session.answerAnalysisSnapshots),
         answerAnalysisRecoveries: normalizeCandidateAnswerAnalysisRecoveries(session.answerAnalysisRecoveries),
         feedbackActionEvents: normalizeCandidateFeedbackActionEvents(session.feedbackActionEvents),
+        voiceTranscriptDrafts: normalizeVoiceTranscriptDrafts(session.voiceTranscriptDrafts),
     };
     storage.setItem(CANDIDATE_PROVISIONAL_SESSION_STORAGE_KEY, JSON.stringify(sessions));
 }
@@ -162,6 +168,7 @@ function readCandidateProvisionalSessionMap(storage: Pick<Storage, "getItem">): 
                     answerAnalysisSnapshots: normalizeCandidateAnswerAnalysisSnapshots(session.answerAnalysisSnapshots),
                     answerAnalysisRecoveries: normalizeCandidateAnswerAnalysisRecoveries(session.answerAnalysisRecoveries),
                     feedbackActionEvents: normalizeCandidateFeedbackActionEvents(session.feedbackActionEvents),
+                    voiceTranscriptDrafts: normalizeVoiceTranscriptDrafts(session.voiceTranscriptDrafts),
                 },
             ]),
         );

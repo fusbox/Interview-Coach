@@ -4,6 +4,7 @@ import {
     createSessionRuntimeProgress,
     isQuestionSurfaceProgress,
     isSessionRuntimeProgressStatus,
+    normalizeSessionRuntimeProgress,
     type SessionRuntimeConsumer,
 } from "./session-runtime-contract";
 
@@ -23,6 +24,26 @@ describe("session runtime contract", () => {
         })).toEqual({
             status: "live_question",
             currentQuestionIndex: 0,
+        });
+    });
+
+    it("preserves an explicit last-used answer mode without inventing one for older progress", () => {
+        expect(normalizeSessionRuntimeProgress({
+            status: "live_question",
+            currentQuestionIndex: 1,
+            answerMode: "voice",
+        })).toEqual({
+            status: "live_question",
+            currentQuestionIndex: 1,
+            answerMode: "voice",
+        });
+        expect(normalizeSessionRuntimeProgress({
+            status: "live_question",
+            currentQuestionIndex: 1,
+            answerMode: "photo",
+        })).toEqual({
+            status: "live_question",
+            currentQuestionIndex: 1,
         });
     });
 

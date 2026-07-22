@@ -139,3 +139,72 @@ test("candidate can finish when immediate coaching is unavailable", async ({ pag
     await expect(page.getByRole("button", { name: "Try Coach Update again" })).toBeVisible();
     await expectCandidatePageToMeetAccessibilityBaseline(page, "candidate unavailable-coaching dashboard");
 });
+
+test("resume review recovers across browsers, propagates by reference, and clears after setup consumption", async ({
+    browser,
+    page,
+}) => {
+    test.setTimeout(180_000);
+    const role = `Resume Milestone Specialist ${Date.now()}`;
+    const rawResume = [
+        "Dev Candidate Alternate",
+        "candidate-dev-alt@talentarbor.local | 312-555-0144",
+        "123 Main Street, Chicago, IL 60601",
+        "Inventory Coordinator | Example Distribution | 2022-2026",
+        "Reviewed shipment records, resolved discrepancies, and documented accurate outcomes.",
+    ].join("\n");
+
+    await page.goto("/candidate/dev/launch?candidate=alternate&next=/candidate/setup");
+    await expect(page).toHaveURL(/\/candidate\/setup$/i, { timeout: routeTransitionTimeout });
+    await page.getByRole("button", { name: "Paste text" }).click();
+    await page.getByLabel("Paste resume text").fill(rawResume);
+    await page.getByRole("button", { name: "Review resume" }).click();
+
+    await expect(page.getByText("Review prepared text", { exact: true })).toBeVisible({
+        timeout: routeTransitionTimeout,
+    });
+    const preparedResume = page.getByLabel("Paste resume text");
+    const processedText = await preparedResume.inputValue();
+    expect(processedText).toContain("Inventory Coordinator");
+    expect(processedText).not.toContain("Dev Candidate Alternate");
+    expect(processedText).not.toContain("candidate-dev-alt@talentarbor.local");
+    expect(processedText).not.toContain("312-555-0144");
+    expect(processedText).not.toContain("123 Main Street");
+    await expectCandidatePageToMeetAccessibilityBaseline(page, "candidate resume review");
+
+    await page.reload();
+    await expect(page.getByLabel("Paste resume text")).toHaveValue(processedText);
+
+    const recoveredContext = await browser.newContext({
+        baseURL: process.env.PLAYWRIGHT_BASE_URL,
+        viewport: { width: 390, height: 844 },
+    });
+    try {
+        const recoveredPage = await recoveredContext.newPage();
+        await recoveredPage.goto("/candidate/dev/launch?candidate=alternate&next=/candidate/setup");
+        await expect(recoveredPage).toHaveURL(/\/candidate\/setup$/i, { timeout: routeTransitionTimeout });
+        await expect(recoveredPage.getByLabel("Paste resume text")).toHaveValue(processedText);
+        await expect(recoveredPage.getByText("Review prepared text", { exact: true })).toBeVisible();
+        await expectCandidatePageToMeetAccessibilityBaseline(recoveredPage, "candidate resume review mobile recovery");
+    } finally {
+        await recoveredContext.close();
+    }
+
+    await page.getByRole("button", { name: "Use this resume" }).click();
+    await expect(page.getByText("Resume ready", { exact: true })).toBeVisible();
+    await page.getByLabel("Target role *").fill(role);
+    await page.getByLabel("Job description *").fill(
+        "Review inventory records, investigate discrepancies, communicate findings, and document reliable outcomes.",
+    );
+    await page.getByRole("button", { name: /^Screening call/i }).click();
+    await page.getByRole("button", { name: "3", exact: true }).click();
+    await page.getByRole("button", { name: "Start practice" }).click();
+
+    await expect(page).toHaveURL(/\/candidate\/session\/[0-9a-f-]+$/i, { timeout: routeTransitionTimeout });
+    await expect(page.getByRole("heading", { name: role })).toBeVisible();
+    await expect(page.getByText("Pasted resume", { exact: true })).toBeVisible();
+
+    await page.goto("/candidate/setup");
+    await expect(page.getByLabel("Paste resume text")).toHaveValue("");
+    await expect(page.getByText("Prepare resume text", { exact: true })).toBeVisible();
+});

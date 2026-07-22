@@ -1,6 +1,6 @@
 # Candidate V2 Reviewer Handoff
 
-Date: 2026-07-20
+Date: 2026-07-21
 Status: Cleanroom rebuild reviewer quick start; not a release or merge approval
 
 ## Purpose
@@ -100,13 +100,14 @@ Review these before changing the evaluator boundary:
 - [Production Evaluator Integration Contract](./05-quality/production-evaluator-integration-contract.md)
 - [Live Evaluator Validation Runbook](./05-quality/live-evaluator-validation-runbook.md)
 - [Shared Audio And Evaluator Calibration Milestone](./05-quality/shared-audio-evaluator-calibration-milestone.md)
+- [Transcript-First Voice Answer Milestone](./05-quality/transcript-first-voice-answer-milestone.md)
 
 Technical correctness remains `not_assessed` when no trusted technical reference is supplied. Coaching should still be composed from other accepted evidence. Local Coach Update synthesis uses its deterministic fixture independently of whether answer analysis uses the fixture or Gemini; a live Coach Update provider is not yet wired.
 
 ## Known Non-Release Boundaries
 
 - The IC-side TA launch verifier, exchange, bounded MSSQL identity/job lookup, and app session are implemented; real TA staging token/network/secret-rotation acceptance is still external. RW remains disabled.
-- Production question wording, answer evaluation, Coach Update persistence/synthesis, candidate/invited typed practice, question TTS, and the standalone recruiter/invitation flow are locally functional. Trusted technical-reference retrieval, resume ingestion/OCR, answer recording/transcription, and photo capture remain incomplete.
+- Production question wording, answer evaluation, Coach Update persistence/synthesis, candidate/invited typed practice, question TTS, and the standalone recruiter/invitation flow are locally functional. Answer recording/transcription has a ratified [transcript-first architecture](./04-architecture/voice-answer-transcription-contract.md), locally validated audience-separated persistence/routes, truthful WebM/MP4 Developer API acceptance, shared recording/review UI, immutable source-linked voice attempts, and evaluator integration with `voiceMarkers: null`. Provider-side audio processing/retention approval and deployed desktop/mobile evidence remain release gates. Trusted technical-reference retrieval remains incomplete. Resume ingestion has a ratified all-source processed-text/PII/disposal contract; Slices 173-175 implement pasted/trusted-host text processing, bounded PDF/DOCX extraction, ordered photo OCR, candidate-owned review, explicit acceptance, and exact setup resolution. Trusted-host lookup, unfinished-review cross-device recovery, complete accepted-artifact presentation, and deployed parser/OCR controls and evidence remain open.
 - A second evaluator comparison profile, reviewer workflow, explicit serving-profile promotion/rollback operations, and deployed evaluator observability remain pending.
 - Question TTS uses a preview Gemini model and browser-local play-once memory. It is optional and text-first; organizational approval and deployed desktop/mobile evidence remain release gates.
 - Deployed telemetry/alerts, manual accessibility, real-host and deployed SMTP/network acceptance, dependency-risk disposition, and organizational approvals remain release work.

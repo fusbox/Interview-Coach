@@ -205,6 +205,48 @@ describe("SharedLivePracticeShell", () => {
         expect(onAnswerModeChange).toHaveBeenCalledWith("voice");
     });
 
+    it("locks both answer modes while the active adapter owns unsafe local work", () => {
+        const onAnswerModeChange = vi.fn();
+
+        render(
+            <SharedLivePracticeShell
+                facts={createFacts("candidate_led")}
+                answerMode="voice"
+                availableAnswerModes={["text", "voice"]}
+                answerModeChangeDisabled
+                draftText=""
+                voiceAnswerContent={<section aria-label="Voice answer capture">Recording ready</section>}
+                onAnswerModeChange={onAnswerModeChange}
+                onDraftChange={vi.fn()}
+                onSubmit={vi.fn()}
+            />,
+        );
+
+        expect(screen.getByRole("button", { name: "Type" })).toBeDisabled();
+        expect(screen.getByRole("button", { name: "Record" })).toBeDisabled();
+        screen.getByRole("button", { name: "Type" }).click();
+        expect(onAnswerModeChange).not.toHaveBeenCalled();
+    });
+
+    it("renders the shared voice editor without typed-answer footer actions", () => {
+        render(
+            <SharedLivePracticeShell
+                facts={createFacts("candidate_led")}
+                answerMode="voice"
+                availableAnswerModes={["text", "voice"]}
+                draftText=""
+                voiceAnswerContent={<section aria-label="Voice answer capture">Capture</section>}
+                onAnswerModeChange={vi.fn()}
+                onDraftChange={vi.fn()}
+                onSubmit={vi.fn()}
+            />,
+        );
+
+        expect(screen.getByRole("region", { name: "Voice answer capture" })).toBeInTheDocument();
+        expect(screen.queryByRole("textbox", { name: "Type your answer" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Submit answer" })).not.toBeInTheDocument();
+    });
+
     it("collapses the saved answer after coaching becomes available", () => {
         render(
             <SharedLivePracticeShell

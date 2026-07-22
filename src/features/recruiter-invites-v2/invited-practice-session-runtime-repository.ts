@@ -19,6 +19,10 @@ import {
     normalizeSessionRuntimeProgress,
 } from "@/features/interview-session-v2/session-runtime-contract";
 import type { InvitedSessionCompletionSnapshot } from "@/features/interview-session-v2/session-completion-contract";
+import {
+    normalizeVoiceTranscriptDrafts,
+    type VoiceTranscriptDrafts,
+} from "@/features/interview-session-v2/voice-answer-transcription";
 
 export type InvitedPracticeRuntimeQueryClient = {
     query: (sql: string, values: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }>;
@@ -38,6 +42,7 @@ export type InvitedPracticeSessionRuntimeRecord = {
     answerIdempotencyRecords: CandidateAnswerIdempotencyRecords;
     answerAnalysisSnapshots: Record<string, CandidateAnswerAnalysisProviderResult>;
     feedbackActionEvents: Record<string, CandidateFeedbackActionEvent>;
+    voiceTranscriptDrafts?: VoiceTranscriptDrafts;
     completionSnapshot: InvitedSessionCompletionSnapshot | null;
 };
 
@@ -62,6 +67,7 @@ export function createInvitedPracticeSessionRuntimeRepository(client: InvitedPra
                   answer_idempotency_json,
                   answer_analysis_snapshots_json,
                   feedback_actions_json,
+                  voice_transcript_drafts_json,
                   completion_snapshot_json
                 from public.invited_practice_sessions
                 where invited_practice_session_id = $1
@@ -366,6 +372,7 @@ function toRuntimeRecord(row: Record<string, unknown> | undefined): InvitedPract
         answerIdempotencyRecords: normalizeCandidateAnswerIdempotencyRecords(row.answer_idempotency_json),
         answerAnalysisSnapshots: readRecord<CandidateAnswerAnalysisProviderResult>(row.answer_analysis_snapshots_json),
         feedbackActionEvents: readRecord<CandidateFeedbackActionEvent>(row.feedback_actions_json),
+        voiceTranscriptDrafts: normalizeVoiceTranscriptDrafts(row.voice_transcript_drafts_json),
         completionSnapshot: normalizeCompletionSnapshot(row.completion_snapshot_json),
     };
 }

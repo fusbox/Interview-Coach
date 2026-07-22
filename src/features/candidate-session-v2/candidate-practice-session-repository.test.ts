@@ -68,6 +68,64 @@ describe("candidate practice session repository", () => {
             null,
             baseline.rigorBaselineSnapshot,
             baseline.rigorBaselineQuestionWordingSnapshot,
+            null,
+            null,
+            null,
+            null,
+            "candidate_resume_text_processing_v1",
+            "candidate_resume_direct_pii_v5",
+        ]);
+    });
+
+    it("consumes only the exact active accepted resume selection with the new session", async () => {
+        const query = vi.fn(async () => ({
+            rows: [{ candidate_practice_session_id: "11111111-1111-4111-8111-111111111111" }],
+        }));
+        const repository = createCandidatePracticeSessionRepository({ query });
+        const setupSnapshot = {
+            targetRole: "Quality inspector",
+            jobDescription: "Inspect products and document defects.",
+            resumeText: "Inspected production records and documented defects.",
+            resumeArtifact: {
+                artifactId: "20000000-0000-4000-8000-000000000001",
+                version: 1,
+                revision: 2,
+                source: "document_upload" as const,
+                candidateLabel: "resume.pdf",
+                reviewState: "accepted" as const,
+            },
+            interviewStage: "screening" as const,
+            questionCount: 5,
+            resumeCaptureMode: "document_upload" as const,
+            createdAt: "2026-07-21T20:00:00.000Z",
+        };
+        const questionPlanSnapshot = createCandidateQuestionPlan({
+            interviewStage: "screening",
+            questionCount: 5,
+        });
+        const baseline = createBaselineInput(setupSnapshot);
+
+        await repository.createSetupSession({
+            candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            roleProfileId: "33333333-3333-4333-8333-333333333333",
+            setupSnapshot,
+            ...baseline,
+            questionPlanSnapshot,
+            resumeSelectionOwnerKey: "candidate:22222222-2222-4222-8222-222222222222",
+        });
+
+        const [sql, values] = (query.mock.calls as unknown as Array<[string, unknown[]]>)[0] ?? ["", []];
+        expect(sql).toContain("locked_resume_selection");
+        expect(sql).toContain("eligible_resume_selection");
+        expect(sql).toContain("consumed_resume_selection");
+        expect(sql).toContain("selection.lifecycle_state in ('cleared', 'consumed')");
+        expect(values?.slice(17)).toEqual([
+            "candidate:22222222-2222-4222-8222-222222222222",
+            "20000000-0000-4000-8000-000000000001",
+            1,
+            2,
+            "candidate_resume_text_processing_v1",
+            "candidate_resume_direct_pii_v5",
         ]);
     });
 

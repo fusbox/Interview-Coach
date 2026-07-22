@@ -34,6 +34,7 @@ export type SharedLivePracticeShellProps = {
     draftText: string;
     answerMutationPhase?: SessionAnswerMutationPhase;
     feedbackContent?: ReactNode;
+    voiceAnswerContent?: ReactNode;
     exitHref?: string;
     exitLabel?: string;
     isExitPending?: boolean;
@@ -43,6 +44,7 @@ export type SharedLivePracticeShellProps = {
         isLoading: boolean;
         onToggle: () => void;
     };
+    answerModeChangeDisabled?: boolean;
     onAnswerModeChange?: (mode: "text" | "voice") => void;
     onExit?: () => void;
     onDraftChange: (text: string) => void;
@@ -63,11 +65,13 @@ export function SharedLivePracticeShell({
     draftText,
     answerMutationPhase = "idle",
     feedbackContent,
+    voiceAnswerContent,
     exitHref,
     exitLabel,
     isExitPending = false,
     questionAudio,
     questionPlaybackControl,
+    answerModeChangeDisabled = false,
     onAnswerModeChange,
     onExit,
     onDraftChange,
@@ -258,6 +262,7 @@ export function SharedLivePracticeShell({
                                         key={mode}
                                         type="button"
                                         aria-pressed={answerMode === mode}
+                                        disabled={answerModeChangeDisabled}
                                         onClick={() => onAnswerModeChange?.(mode)}
                                     >
                                         {mode === "text" ? (
@@ -293,6 +298,8 @@ export function SharedLivePracticeShell({
                                 <p>{draftText}</p>
                             </div>
                         )
+                    ) : answerMode === "voice" && voiceAnswerContent ? (
+                        voiceAnswerContent
                     ) : (
                         <label className="session-live-shell__field">
                             <span>Type your answer</span>
@@ -307,6 +314,7 @@ export function SharedLivePracticeShell({
                         </label>
                     )}
 
+                    {answerMode === "voice" && !showSubmittedAnswer ? null : (
                     <footer className="session-live-shell__answer-footer">
                         <div
                             id="session-live-answer-status"
@@ -374,6 +382,7 @@ export function SharedLivePracticeShell({
                             </div>
                         ) : null}
                     </footer>
+                    )}
                 </section>
 
                 {feedbackContent}

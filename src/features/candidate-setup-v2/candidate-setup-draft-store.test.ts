@@ -8,6 +8,7 @@ import {
     getOrCreateCandidateSetupStartRequest,
     restoreCandidateSetupDraft,
     saveCandidateSetupDraft,
+    toCandidateSetupDraftFormState,
 } from "./candidate-setup-draft-store";
 
 describe("candidate setup draft store", () => {
@@ -17,7 +18,7 @@ describe("candidate setup draft store", () => {
         localStorage.clear();
     });
 
-    it("creates an editable draft from normalized setup values", () => {
+    it("keeps raw resume paste out of the browser draft while preserving setup fields", () => {
         const store = createCandidateSetupMemoryDraftStore();
 
         const draft = saveCandidateSetupDraft(store, ownerKey, {
@@ -33,15 +34,100 @@ describe("candidate setup draft store", () => {
             status: "draft",
             targetRole: "Customer service representative",
             jobDescription: "Help customers resolve service questions.",
-            resumeText: "Supported a high-volume front desk.",
+            resumeText: null,
             interviewStage: "screening",
             questionCount: 5,
-            resumeCaptureMode: "pasted_text",
+            resumeCaptureMode: "none",
             resumeTargetScreen: "candidate_setup",
         });
         expect(draft.id).toBe("setup-draft-candidate-local-dev");
         expect(draft.createdAt).toEqual(expect.any(String));
         expect(draft.updatedAt).toEqual(expect.any(String));
+    });
+
+    it("preserves only reviewed processed resume text with its server artifact reference", () => {
+        const store = createCandidateSetupMemoryDraftStore();
+        const resumeArtifact = {
+            artifactId: "20000000-0000-4000-8000-000000000001",
+            version: 1,
+            revision: 2,
+            source: "pasted_text" as const,
+            candidateLabel: "Pasted resume",
+            reviewState: "accepted" as const,
+        };
+
+        const draft = saveCandidateSetupDraft(store, ownerKey, {
+            targetRole: "Customer service representative",
+            jobDescription: "Help customers resolve service questions.",
+            resumeText: "Supported a high-volume front desk.",
+            resumeArtifact,
+            interviewStage: "screening",
+            questionCount: 5,
+        });
+
+        expect(draft).toMatchObject({
+            resumeText: "Supported a high-volume front desk.",
+            resumeCaptureMode: "pasted_text",
+            resumeArtifact,
+        });
+        expect(toCandidateSetupDraftFormState(draft)).toMatchObject({
+            resumeText: "Supported a high-volume front desk.",
+            resumeArtifact,
+        });
+    });
+
+    it("preserves an awaiting-review artifact reference without its processed text", () => {
+        const store = createCandidateSetupMemoryDraftStore();
+        const resumeArtifact = {
+            artifactId: "20000000-0000-4000-8000-000000000003",
+            version: 1,
+            revision: 1,
+            source: "photo_capture" as const,
+            candidateLabel: "2 resume photos",
+            reviewState: "awaiting_review" as const,
+        };
+        const draft = saveCandidateSetupDraft(store, ownerKey, {
+            targetRole: "Inventory lead",
+            jobDescription: "Manage inventory and shipments.",
+            resumeText: "Processed server-owned text.",
+            resumeArtifact,
+        });
+
+        expect(draft).toMatchObject({
+            resumeText: null,
+            resumeArtifact,
+        });
+        expect(toCandidateSetupDraftFormState(draft)).toEqual(expect.objectContaining({
+            resumeText: "",
+            resumeArtifact,
+        }));
+    });
+
+    it("restores accepted document text without retaining document bytes", () => {
+        const store = createCandidateSetupMemoryDraftStore();
+        const resumeArtifact = {
+            artifactId: "20000000-0000-4000-8000-000000000002",
+            version: 1,
+            revision: 2,
+            source: "document_upload" as const,
+            candidateLabel: "resume.pdf",
+            reviewState: "accepted" as const,
+        };
+
+        const draft = saveCandidateSetupDraft(store, ownerKey, {
+            targetRole: "Quality inspector",
+            jobDescription: "Inspect products and document defects.",
+            resumeText: "Inspected production records and documented defects.",
+            resumeArtifact,
+        });
+
+        expect(draft).toMatchObject({
+            resumeCaptureMode: "document_upload",
+            resumeText: "Inspected production records and documented defects.",
+            resumeArtifact,
+        });
+        expect(JSON.stringify(draft)).not.toContain("sourceBytes");
+        expect(JSON.stringify(draft)).not.toContain("sourceFile");
     });
 
     it("restores the latest editable draft for the same owner key", () => {

@@ -87,8 +87,64 @@ describe("candidate answer history repository", () => {
                 "submit-key-1",
                 "fingerprint-1",
                 null,
+                null,
+                null,
+                null,
             ],
         );
+    });
+
+    it("authorizes a reviewed transcript against its current completed voice source", async () => {
+        const sourceRunId = "44444444-4444-4444-8444-444444444444";
+        const transcriptDraft = {
+            status: "voice_transcript_draft",
+            slotId: "slot-1",
+            questionIndex: 0,
+            transcriptText: "I checked each label and documented the result.",
+            sourceTranscriptionRunId: sourceRunId,
+            submissionPath: "transcript_review",
+            updatedAt: "2026-07-21T17:00:00.000Z",
+        };
+        const query = vi.fn(async (sql: string, values: unknown[]) => {
+            void sql;
+            void values;
+            return {
+            rows: [{
+                transcript_draft: transcriptDraft,
+                voice_transcript_edited: true,
+            }],
+            };
+        });
+        const repository = createCandidateAnswerHistoryRepository({ query });
+
+        await expect(repository.authorizeVoiceAnswerTranscript({
+            candidatePracticeSessionId: attemptRow.candidate_practice_session_id,
+            candidateProfileId: attemptRow.candidate_profile_id,
+            questionSlotId: "slot-1",
+            questionIndex: 0,
+            sourceVoiceTranscriptionRunId: sourceRunId,
+            voiceSubmissionPath: "transcript_review",
+            transcriptText: transcriptDraft.transcriptText,
+            updatedAt: transcriptDraft.updatedAt,
+        })).resolves.toEqual({
+            draft: transcriptDraft,
+            voiceTranscriptEdited: true,
+        });
+
+        expect(query).toHaveBeenCalledWith(
+            expect.stringMatching(/update public\.candidate_practice_sessions[\s\S]+sourceTranscriptionRunId[\s\S]+quick_submit/),
+            [
+                attemptRow.candidate_practice_session_id,
+                attemptRow.candidate_profile_id,
+                "slot-1",
+                0,
+                sourceRunId,
+                "transcript_review",
+                transcriptDraft.transcriptText,
+                transcriptDraft.updatedAt,
+            ],
+        );
+        expect(query.mock.calls[0]?.[0]).toContain("sourceTranscriptionRunId' = $5::text");
     });
 
     it("returns an idempotency conflict without changing the existing attempt", async () => {

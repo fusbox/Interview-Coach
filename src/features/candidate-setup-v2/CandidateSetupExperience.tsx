@@ -2,12 +2,15 @@
 
 import {
     AlertCircle,
+    ArrowDown,
     ArrowRight,
+    ArrowUp,
     BadgeCheck,
     Camera,
     ChevronDown,
     FileText,
     Loader2,
+    Trash2,
     Upload,
     User,
     UserCheck,
@@ -22,6 +25,7 @@ import {
     toCandidateSetupTransition,
     type CandidateSetupStageId,
     type CandidateSetupTransition,
+    type CandidateSetupResumeArtifactReference,
 } from "./candidate-setup-contract";
 import type { CandidateSetupSessionCreationResult } from "./candidate-setup-session-creation";
 import type { CandidateExistingPrepContextSummary } from "./candidate-setup-prep-context-repository";
@@ -39,6 +43,27 @@ import {
 
 type ResumeSource = "paste" | "file" | "photo";
 
+type SetupHydrationField = "targetRole" | "jobDescription" | "resume" | "interviewDetails";
+
+type ResumePhotoPage = {
+    id: string;
+    file: File;
+};
+
+export type CandidateResumeReviewArtifact = CandidateSetupResumeArtifactReference & {
+    normalizedText: string;
+    piiRedactionCounts: Record<string, number>;
+    createdAt: string;
+    acceptedAt: string | null;
+};
+
+const CANDIDATE_RESUME_DOCUMENT_ACCEPT = [
+    ".pdf",
+    ".docx",
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+].join(",");
+
 const questionCountOptions = [3, 5, 7, 10];
 
 type CandidateSetupExperienceProps = {
@@ -50,6 +75,7 @@ type CandidateSetupExperienceProps = {
     draftOwnerKey?: string;
     draftStore?: CandidateSetupDraftStore;
     trustedSetupContext?: CandidateTrustedSetupContext | null;
+    initialResumeArtifact?: CandidateResumeReviewArtifact | null;
 };
 
 type CandidateSetupPrepContextDecision = {
@@ -67,11 +93,25 @@ type CandidateSetupStartResult = CandidateSetupSessionCreationResult | {
 
 class CandidateSetupStartRequestError extends Error {
     readonly candidateMessage: string;
+    readonly code: string | null;
 
-    constructor(candidateMessage: string) {
+    constructor(candidateMessage: string, code: string | null = null) {
         super("Candidate setup session creation failed.");
         this.name = "CandidateSetupStartRequestError";
         this.candidateMessage = candidateMessage;
+        this.code = code;
+    }
+}
+
+class CandidateResumeReviewRequestError extends Error {
+    readonly candidateMessage: string;
+    readonly code: string | null;
+
+    constructor(candidateMessage: string, code: string | null = null) {
+        super("Candidate resume review request failed.");
+        this.name = "CandidateResumeReviewRequestError";
+        this.candidateMessage = candidateMessage;
+        this.code = code;
     }
 }
 
@@ -81,6 +121,7 @@ export function CandidateSetupExperience({
     draftOwnerKey = "candidate:local",
     draftStore,
     trustedSetupContext = null,
+    initialResumeArtifact = null,
 }: CandidateSetupExperienceProps = {}) {
     const [browserDraftStore, setBrowserDraftStore] = useState<CandidateSetupDraftStore | null>(null);
     const activeDraftStore = draftStore ?? browserDraftStore;
@@ -92,11 +133,34 @@ export function CandidateSetupExperience({
     const [jobDescription, setJobDescription] = useState(
         trustedSetupContext?.jobDescription ?? initialDraftState.jobDescription,
     );
-    const [resumeText, setResumeText] = useState(initialDraftState.resumeText);
+    const initialResumeState = initialResumeArtifact ?? (initialDraftState.resumeArtifact
+        ? {
+            ...initialDraftState.resumeArtifact,
+            normalizedText: initialDraftState.resumeText,
+            piiRedactionCounts: {},
+            createdAt: "",
+            acceptedAt: initialDraftState.resumeArtifact.reviewState === "accepted" ? "restored" : null,
+        }
+        : null);
+    const [resumeText, setResumeText] = useState(initialResumeState?.normalizedText ?? initialDraftState.resumeText);
+    const [resumeArtifact, setResumeArtifact] = useState<CandidateResumeReviewArtifact | null>(
+        initialResumeState,
+    );
     const [selectedStage, setSelectedStage] = useState<CandidateSetupStageId>(initialDraftState.interviewStage);
     const [questionCount, setQuestionCount] = useState(initialDraftState.questionCount);
-    const [resumeSource, setResumeSource] = useState<ResumeSource>("paste");
-    const [resumeAssetName, setResumeAssetName] = useState("");
+    const [resumeSource, setResumeSource] = useState<ResumeSource>(
+        toResumeUiSource(initialResumeState?.source),
+    );
+    const [resumeAssetName, setResumeAssetName] = useState(
+        initialResumeState?.source === "document_upload"
+            || initialResumeState?.source === "photo_capture"
+            ? initialResumeState.candidateLabel
+            : "",
+    );
+    const [resumePhotoPages, setResumePhotoPages] = useState<ResumePhotoPage[]>([]);
+    const [isResumeProcessing, setIsResumeProcessing] = useState(false);
+    const [resumeReviewMessage, setResumeReviewMessage] = useState("");
+    const [resumeError, setResumeError] = useState("");
     const [isPreparing, setIsPreparing] = useState(false);
     const [setupError, setSetupError] = useState("");
     const [setupValidationMessage, setSetupValidationMessage] = useState("");
@@ -108,12 +172,19 @@ export function CandidateSetupExperience({
     const [existingContextError, setExistingContextError] = useState("");
     const existingContextDialogRef = useRef<HTMLDialogElement | null>(null);
     const setupStartRequestRef = useRef<{ requestSignature: string; idempotencyKey: string } | null>(null);
+    const resumeSelectionClearRef = useRef<Promise<void>>(Promise.resolve());
+    const userEditedSetupFieldsRef = useRef<Set<SetupHydrationField>>(new Set());
 
     const activeStage = useMemo(
         () => candidateSetupStageOptions.find((stage) => stage.id === selectedStage) ?? candidateSetupStageOptions[2],
         [selectedStage],
     );
-    const canStartPractice = targetRole.trim().length > 0 && jobDescription.trim().length > 0;
+    const resumeNeedsReview = isResumeProcessing
+        || (resumeText.trim().length > 0 && resumeArtifact?.reviewState !== "accepted")
+        || (resumeSource !== "paste" && Boolean(resumeAssetName) && resumeArtifact?.reviewState !== "accepted");
+    const canStartPractice = targetRole.trim().length > 0
+        && jobDescription.trim().length > 0
+        && !resumeNeedsReview;
     const showRequiredAlert = attemptedStart && !canStartPractice;
     const isTargetRoleMissing = showRequiredAlert && targetRole.trim().length === 0;
     const isJobDescriptionMissing = showRequiredAlert && jobDescription.trim().length === 0;
@@ -128,12 +199,35 @@ export function CandidateSetupExperience({
         const nextDraftStore = createCandidateSetupBrowserDraftStore(window.localStorage);
         const nextDraftState = toCandidateSetupDraftFormState(restoreCandidateSetupDraft(nextDraftStore, draftOwnerKey));
         setBrowserDraftStore(nextDraftStore);
-        setTargetRole(trustedSetupContext?.targetRole ?? nextDraftState.targetRole);
-        setJobDescription(trustedSetupContext?.jobDescription ?? nextDraftState.jobDescription);
-        setResumeText(nextDraftState.resumeText);
-        setSelectedStage(nextDraftState.interviewStage);
-        setQuestionCount(nextDraftState.questionCount);
-    }, [draftOwnerKey, draftStore, trustedSetupContext]);
+        if (!userEditedSetupFieldsRef.current.has("targetRole")) {
+            setTargetRole(trustedSetupContext?.targetRole ?? nextDraftState.targetRole);
+        }
+        if (!userEditedSetupFieldsRef.current.has("jobDescription")) {
+            setJobDescription(trustedSetupContext?.jobDescription ?? nextDraftState.jobDescription);
+        }
+        const recoveredResume = initialResumeArtifact ?? (nextDraftState.resumeArtifact
+            ? {
+                ...nextDraftState.resumeArtifact,
+                normalizedText: nextDraftState.resumeText,
+                piiRedactionCounts: {},
+                createdAt: "",
+                acceptedAt: nextDraftState.resumeArtifact.reviewState === "accepted" ? "restored" : null,
+            }
+            : null);
+        if (!userEditedSetupFieldsRef.current.has("resume")) {
+            setResumeText(recoveredResume?.normalizedText ?? nextDraftState.resumeText);
+            setResumeArtifact(recoveredResume);
+            setResumeSource(toResumeUiSource(recoveredResume?.source));
+            setResumeAssetName(recoveredResume?.source === "document_upload"
+                || recoveredResume?.source === "photo_capture"
+                ? recoveredResume.candidateLabel
+                : "");
+        }
+        if (!userEditedSetupFieldsRef.current.has("interviewDetails")) {
+            setSelectedStage(nextDraftState.interviewStage);
+            setQuestionCount(nextDraftState.questionCount);
+        }
+    }, [draftOwnerKey, draftStore, initialResumeArtifact, trustedSetupContext]);
 
     useEffect(() => {
         const dialog = existingContextDialogRef.current;
@@ -153,6 +247,7 @@ export function CandidateSetupExperience({
     }, [existingPrepContexts]);
 
     function chooseStage(stage: (typeof candidateSetupStageOptions)[number]) {
+        userEditedSetupFieldsRef.current.add("interviewDetails");
         setSelectedStage(stage.id);
         setQuestionCount(stage.recommendedCount);
         saveSetupDraft({
@@ -161,10 +256,282 @@ export function CandidateSetupExperience({
         });
     }
 
-    function handleResumeAsset(event: ChangeEvent<HTMLInputElement>, source: ResumeSource) {
-        const file = event.target.files?.[0];
+    async function handleResumeAsset(event: ChangeEvent<HTMLInputElement>, source: ResumeSource) {
+        userEditedSetupFieldsRef.current.add("resume");
+        const selectedFiles = Array.from(event.target.files ?? []);
+        const file = selectedFiles[0];
+        event.target.value = "";
+
+        if (
+            resumeArtifact
+            || resumeText.trim()
+            || (resumeAssetName && (source !== "photo" || resumeSource !== "photo"))
+        ) {
+            try {
+                await invalidateResumeSelection();
+            } catch {
+                return;
+            }
+        }
+
+        if (source === "photo") {
+            queueResumePhotos(selectedFiles);
+            return;
+        }
+
         setResumeSource(source);
+        setResumePhotoPages([]);
         setResumeAssetName(file?.name ?? "");
+        setResumeText("");
+        setResumeArtifact(null);
+        setResumeReviewMessage("");
+        setResumeError("");
+        saveSetupDraft({ resumeText: "", resumeArtifact: null });
+
+        if (!file || source !== "file") {
+            return;
+        }
+
+        const mimeType = resolveResumeDocumentMimeType(file);
+        if (!mimeType) {
+            setResumeError("Choose a PDF or DOCX resume.");
+            return;
+        }
+
+        setIsResumeProcessing(true);
+        setResumeReviewMessage("Preparing the document for your review.");
+        try {
+            const operationId = createResumeSelectionOperationId();
+            const response = await fetch("/candidate/setup/resume-document", {
+                method: "POST",
+                headers: {
+                    "Content-Type": mimeType,
+                    "X-Resume-Document-Name": encodeURIComponent(file.name),
+                    "X-Candidate-Resume-Selection-Operation": operationId,
+                },
+                body: file,
+            });
+            const result = await readCandidateResumeArtifactResponse(response);
+            setResumeText(result.artifact.normalizedText);
+            setResumeArtifact(result.artifact);
+            setResumeAssetName(result.artifact.candidateLabel);
+            if (result.artifact.reviewState === "accepted") {
+                setResumeReviewMessage("This accepted resume is ready to use.");
+                saveSetupDraft({
+                    resumeText: result.artifact.normalizedText,
+                    resumeArtifact: toResumeArtifactReference(result.artifact),
+                });
+            } else {
+                setResumeReviewMessage("Review the prepared text, make any corrections, then confirm it for practice.");
+                saveSetupDraft({
+                    resumeText: "",
+                    resumeArtifact: toResumeArtifactReference(result.artifact),
+                });
+            }
+        } catch (error) {
+            setResumeError(error instanceof CandidateResumeReviewRequestError
+                ? error.candidateMessage
+                : "I could not prepare that document. Try another file or paste the resume text.");
+            setResumeReviewMessage("");
+        } finally {
+            setIsResumeProcessing(false);
+        }
+    }
+
+    function queueResumePhotos(files: File[]) {
+        if (files.length === 0) return;
+        setResumeSource("photo");
+        setResumeText("");
+        setResumeArtifact(null);
+        setResumeReviewMessage("");
+        setResumeError("");
+        saveSetupDraft({ resumeText: "", resumeArtifact: null });
+        const remaining = Math.max(0, 4 - resumePhotoPages.length);
+        const additions = files.slice(0, remaining).map((file) => ({
+            id: createResumePhotoPageId(),
+            file,
+        }));
+        const next = [...resumePhotoPages, ...additions];
+        setResumePhotoPages(next);
+        setResumeAssetName(`${next.length} resume photo${next.length === 1 ? "" : "s"}`);
+        if (files.length > remaining) {
+            setResumeError("You can add up to 4 resume pages.");
+        }
+    }
+
+    function removeResumePhotoPage(pageId: string) {
+        const next = resumePhotoPages.filter((page) => page.id !== pageId);
+        setResumePhotoPages(next);
+        setResumeAssetName(next.length ? `${next.length} resume photo${next.length === 1 ? "" : "s"}` : "");
+        setResumeError("");
+    }
+
+    function moveResumePhotoPage(index: number, direction: -1 | 1) {
+        const target = index + direction;
+        if (target < 0 || target >= resumePhotoPages.length) return;
+        const next = [...resumePhotoPages];
+        [next[index], next[target]] = [next[target]!, next[index]!];
+        setResumePhotoPages(next);
+    }
+
+    async function processResumePhotos() {
+        if (resumePhotoPages.length === 0 || isResumeProcessing) return;
+        setIsResumeProcessing(true);
+        setResumeError("");
+        setResumeReviewMessage("Reading the pages in the order shown.");
+        const formData = new FormData();
+        for (const page of resumePhotoPages) {
+            formData.append("pages", page.file, page.file.name || "resume-photo");
+        }
+
+        try {
+            await resumeSelectionClearRef.current;
+            const operationId = createResumeSelectionOperationId();
+            const response = await fetch("/candidate/setup/resume-photo", {
+                method: "POST",
+                headers: { "X-Candidate-Resume-Selection-Operation": operationId },
+                body: formData,
+            });
+            const result = await readCandidateResumeArtifactResponse(response);
+            setResumeText(result.artifact.normalizedText);
+            setResumeArtifact(result.artifact);
+            setResumeAssetName(result.artifact.candidateLabel);
+            if (result.artifact.reviewState === "accepted") {
+                setResumeReviewMessage("This accepted resume is ready to use.");
+                saveSetupDraft({
+                    resumeText: result.artifact.normalizedText,
+                    resumeArtifact: toResumeArtifactReference(result.artifact),
+                });
+            } else {
+                setResumeReviewMessage("Review the prepared text, make any corrections, then confirm it for practice.");
+                saveSetupDraft({
+                    resumeText: "",
+                    resumeArtifact: toResumeArtifactReference(result.artifact),
+                });
+            }
+        } catch (error) {
+            setResumeAssetName("");
+            setResumeReviewMessage("");
+            setResumeError(error instanceof CandidateResumeReviewRequestError
+                ? error.candidateMessage
+                : "I could not read those photos. Retake them, choose existing photos, or paste the resume text.");
+        } finally {
+            setResumePhotoPages([]);
+            setIsResumeProcessing(false);
+        }
+    }
+
+    async function processPastedResume() {
+        if (!resumeText.trim() || isResumeProcessing) {
+            return;
+        }
+        setIsResumeProcessing(true);
+        setResumeError("");
+        setResumeReviewMessage("");
+        try {
+            await resumeSelectionClearRef.current;
+            const operationId = createResumeSelectionOperationId();
+            const response = await fetch("/candidate/setup/resume-text", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Candidate-Resume-Selection-Operation": operationId,
+                },
+                body: JSON.stringify({ source: "pasted_text", text: resumeText }),
+            });
+            const result = await readCandidateResumeArtifactResponse(response);
+            setResumeText(result.artifact.normalizedText);
+            setResumeArtifact(result.artifact);
+            if (result.artifact.reviewState === "accepted") {
+                setResumeReviewMessage("This accepted resume is ready to use.");
+                saveSetupDraft({
+                    resumeText: result.artifact.normalizedText,
+                    resumeArtifact: toResumeArtifactReference(result.artifact),
+                });
+            } else {
+                setResumeReviewMessage("Review the prepared text, make any corrections, then confirm it for practice.");
+                saveSetupDraft({
+                    resumeText: "",
+                    resumeArtifact: toResumeArtifactReference(result.artifact),
+                });
+            }
+        } catch (error) {
+            setResumeError(error instanceof CandidateResumeReviewRequestError
+                ? error.candidateMessage
+                : "I could not prepare that resume text. Try again.");
+        } finally {
+            setIsResumeProcessing(false);
+        }
+    }
+
+    async function acceptProcessedResume() {
+        if (!resumeArtifact || resumeArtifact.reviewState !== "awaiting_review" || isResumeProcessing) {
+            return;
+        }
+        setIsResumeProcessing(true);
+        setResumeError("");
+        setResumeReviewMessage("");
+        try {
+            const response = await fetch(
+                `/candidate/setup/resume-text/${encodeURIComponent(resumeArtifact.artifactId)}/accept`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        version: resumeArtifact.version,
+                        revision: resumeArtifact.revision,
+                        reviewedText: resumeText,
+                    }),
+                },
+            );
+            const result = await readCandidateResumeArtifactResponse(response);
+            setResumeText(result.artifact.normalizedText);
+            setResumeArtifact(result.artifact);
+            if (result.outcome === "review_required") {
+                setResumeReviewMessage("I removed additional personal details. Review the updated text, then confirm it again.");
+                saveSetupDraft({
+                    resumeText: "",
+                    resumeArtifact: toResumeArtifactReference(result.artifact),
+                });
+            } else {
+                setResumeReviewMessage("Resume ready. I will use this reviewed text to tailor your practice.");
+                saveSetupDraft({
+                    resumeText: result.artifact.normalizedText,
+                    resumeArtifact: toResumeArtifactReference(result.artifact),
+                });
+            }
+        } catch (error) {
+            if (
+                error instanceof CandidateResumeReviewRequestError
+                && error.code === "RESUME_REVIEW_POLICY_CHANGED"
+            ) {
+                setResumeArtifact(null);
+                setResumeReviewMessage("Review this text again with the updated privacy protections.");
+                saveSetupDraft({ resumeText: "", resumeArtifact: null });
+            }
+            setResumeError(error instanceof CandidateResumeReviewRequestError
+                ? error.candidateMessage
+                : "I could not save this resume review. Try again.");
+        } finally {
+            setIsResumeProcessing(false);
+        }
+    }
+
+    function invalidateResumeSelection() {
+        const clearRequest = fetch("/candidate/setup/resume-text/selection", { method: "DELETE" })
+            .then((response) => {
+                if (!response.ok) {
+                    throw new CandidateResumeReviewRequestError("I could not clear that resume selection. Try again.");
+                }
+            })
+            .catch((error) => {
+                setResumeError(error instanceof CandidateResumeReviewRequestError
+                    ? error.candidateMessage
+                    : "I could not clear that resume selection. Try again.");
+                throw error;
+            });
+        resumeSelectionClearRef.current = clearRequest;
+        return clearRequest;
     }
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -179,6 +546,7 @@ export function CandidateSetupExperience({
             targetRole,
             jobDescription,
             resumeText,
+            resumeArtifact: resumeArtifact ? toResumeArtifactReference(resumeArtifact) : null,
             interviewStage: selectedStage,
             questionCount,
         };
@@ -274,6 +642,15 @@ export function CandidateSetupExperience({
             window.location.assign(result.nextRoute);
         } catch (error) {
             setIsPreparing(false);
+            if (
+                error instanceof CandidateSetupStartRequestError
+                && (error.code === "RESUME_REVIEW_REQUIRED" || error.code === "RESUME_REVIEW_STALE")
+                && resumeArtifact
+            ) {
+                setResumeArtifact(null);
+                setResumeReviewMessage("Review this text again with the current privacy protections.");
+                saveSetupDraft({ resumeText: "", resumeArtifact: null });
+            }
             if (decision) {
                 setExistingContextError("I could not create the separate practice path. Your setup is still here, so you can try again.");
             } else {
@@ -345,6 +722,7 @@ export function CandidateSetupExperience({
         targetRole: string;
         jobDescription: string;
         resumeText: string;
+        resumeArtifact: CandidateSetupResumeArtifactReference | null;
         interviewStage: CandidateSetupStageId;
         questionCount: number;
     }> = {}) {
@@ -354,7 +732,12 @@ export function CandidateSetupExperience({
         const nextInput = {
             targetRole: nextTargetRole,
             jobDescription: nextJobDescription,
-            resumeText: overrides.resumeText ?? resumeText,
+            resumeText: Object.prototype.hasOwnProperty.call(overrides, "resumeText") ? overrides.resumeText : resumeText,
+            resumeArtifact: Object.prototype.hasOwnProperty.call(overrides, "resumeArtifact")
+                ? overrides.resumeArtifact
+                : resumeArtifact
+                    ? toResumeArtifactReference(resumeArtifact)
+                    : null,
             interviewStage: overrides.interviewStage ?? selectedStage,
             questionCount: overrides.questionCount ?? questionCount,
         };
@@ -424,6 +807,7 @@ export function CandidateSetupExperience({
                                         readOnly={Boolean(trustedSetupContext)}
                                         aria-describedby={trustedSetupContext ? "trusted-role-context" : undefined}
                                         onChange={(event) => {
+                                            userEditedSetupFieldsRef.current.add("targetRole");
                                             clearSetupValidation();
                                             setTargetRole(event.target.value);
                                             saveSetupDraft({ targetRole: event.target.value });
@@ -444,6 +828,7 @@ export function CandidateSetupExperience({
                                         readOnly={Boolean(trustedSetupContext)}
                                         aria-describedby={trustedSetupContext ? "trusted-role-context" : undefined}
                                         onChange={(event) => {
+                                            userEditedSetupFieldsRef.current.add("jobDescription");
                                             clearSetupValidation();
                                             setJobDescription(event.target.value);
                                             saveSetupDraft({ jobDescription: event.target.value });
@@ -470,7 +855,25 @@ export function CandidateSetupExperience({
                                     type="button"
                                     className={resumeSource === "paste" ? "resume-source is-selected" : "resume-source"}
                                     aria-pressed={resumeSource === "paste"}
-                                    onClick={() => setResumeSource("paste")}
+                                    disabled={isResumeProcessing}
+                                    onClick={async () => {
+                                        userEditedSetupFieldsRef.current.add("resume");
+                                        if (resumeArtifact || resumeText.trim() || resumeAssetName) {
+                                            try {
+                                                await invalidateResumeSelection();
+                                            } catch {
+                                                return;
+                                            }
+                                        }
+                                        setResumeSource("paste");
+                                        setResumePhotoPages([]);
+                                        setResumeAssetName("");
+                                        setResumeText("");
+                                        setResumeArtifact(null);
+                                        setResumeReviewMessage("");
+                                        setResumeError("");
+                                        saveSetupDraft({ resumeText: "", resumeArtifact: null });
+                                    }}
                                 >
                                     <FileText size={18} aria-hidden="true" />
                                     <span>Paste text</span>
@@ -478,11 +881,12 @@ export function CandidateSetupExperience({
 
                                 <label className={resumeSource === "file" ? "resume-source is-selected" : "resume-source"}>
                                     <Upload size={18} aria-hidden="true" />
-                                    <span>Upload file</span>
+                                    <span>Upload resume</span>
                                     <input
                                         type="file"
                                         name="resumeFile"
-                                        accept=".pdf,.doc,.docx,.txt,image/*"
+                                        accept={CANDIDATE_RESUME_DOCUMENT_ACCEPT}
+                                        disabled={isResumeProcessing}
                                         onChange={(event) => handleResumeAsset(event, "file")}
                                     />
                                 </label>
@@ -495,6 +899,7 @@ export function CandidateSetupExperience({
                                         name="resumePhoto"
                                         accept="image/*"
                                         capture="environment"
+                                        disabled={isResumeProcessing}
                                         onChange={(event) => handleResumeAsset(event, "photo")}
                                     />
                                 </label>
@@ -502,25 +907,185 @@ export function CandidateSetupExperience({
 
                             {resumeAssetName ? (
                                 <p className="resume-asset-note" aria-live="polite">
-                                    Selected: {resumeAssetName}. After extraction, review the text before starting.
+                                    Selected: {resumeAssetName}. {isResumeProcessing
+                                        ? "Preparing text for review."
+                                        : resumeArtifact?.reviewState === "accepted"
+                                            ? "Reviewed text is ready to use."
+                                            : resumeArtifact?.reviewState === "awaiting_review"
+                                                ? "Prepared text is ready for your review."
+                                                : "It is not included until processed text is ready."}
                                 </p>
                             ) : null}
 
-                            <label className="setup-field setup-field--full">
-                                <span>Paste resume text</span>
-                                <textarea
-                                    name="resumeText"
-                                    maxLength={CANDIDATE_SETUP_LIMITS.resumeText + 1}
-                                    value={resumeText}
-                                    onChange={(event) => {
-                                        clearSetupValidation();
-                                        setResumeText(event.target.value);
-                                        saveSetupDraft({ resumeText: event.target.value });
-                                    }}
-                                    rows={6}
-                                    placeholder="Paste resume text here."
-                                />
-                            </label>
+                            {resumeSource === "photo" && !resumeText ? (
+                                <div className="resume-photo-workspace" aria-busy={isResumeProcessing}>
+                                    <div className="resume-photo-intro">
+                                        <strong>Photograph each page in reading order.</strong>
+                                        <span>You can add up to 4 pages, change their order, or choose existing photos instead.</span>
+                                    </div>
+
+                                    {resumePhotoPages.length > 0 ? (
+                                        <ol className="resume-photo-pages" aria-label="Resume photo page order">
+                                            {resumePhotoPages.map((page, index) => (
+                                                <li key={page.id}>
+                                                    <div>
+                                                        <strong>Page {index + 1}</strong>
+                                                        <span>{page.file.name || "Resume photo"}</span>
+                                                    </div>
+                                                    <div className="resume-photo-page-actions">
+                                                        <button
+                                                            type="button"
+                                                            title="Move page up"
+                                                            aria-label={`Move page ${index + 1} up`}
+                                                            disabled={isResumeProcessing || index === 0}
+                                                            onClick={() => moveResumePhotoPage(index, -1)}
+                                                        >
+                                                            <ArrowUp size={17} />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            title="Move page down"
+                                                            aria-label={`Move page ${index + 1} down`}
+                                                            disabled={isResumeProcessing || index === resumePhotoPages.length - 1}
+                                                            onClick={() => moveResumePhotoPage(index, 1)}
+                                                        >
+                                                            <ArrowDown size={17} />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            title="Remove page"
+                                                            aria-label={`Remove page ${index + 1}`}
+                                                            disabled={isResumeProcessing}
+                                                            onClick={() => removeResumePhotoPage(page.id)}
+                                                        >
+                                                            <Trash2 size={17} />
+                                                        </button>
+                                                    </div>
+                                                </li>
+                                            ))}
+                                        </ol>
+                                    ) : null}
+
+                                    <div className="resume-photo-controls">
+                                        <label className="resume-photo-control">
+                                            <Camera size={17} aria-hidden="true" />
+                                            <span>{resumePhotoPages.length ? "Add another page" : "Take page photo"}</span>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                capture="environment"
+                                                disabled={isResumeProcessing || resumePhotoPages.length >= 4}
+                                                onChange={(event) => handleResumeAsset(event, "photo")}
+                                            />
+                                        </label>
+                                        <label className="resume-photo-control">
+                                            <Upload size={17} aria-hidden="true" />
+                                            <span>Choose photos</span>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                multiple
+                                                disabled={isResumeProcessing || resumePhotoPages.length >= 4}
+                                                onChange={(event) => handleResumeAsset(event, "photo")}
+                                            />
+                                        </label>
+                                        <button
+                                            type="button"
+                                            className="resume-review-action"
+                                            disabled={isResumeProcessing || resumePhotoPages.length === 0}
+                                            onClick={processResumePhotos}
+                                        >
+                                            {isResumeProcessing ? "Reading pages" : "Review photo text"}
+                                            {isResumeProcessing ? <Loader2 className="setup-spinner" size={16} /> : <ArrowRight size={16} />}
+                                        </button>
+                                    </div>
+
+                                    <p className="resume-photo-fallback">
+                                        Camera unavailable? Choose existing photos, upload a PDF or DOCX, or paste the resume text.
+                                    </p>
+                                </div>
+                            ) : null}
+
+                            {resumeSource !== "photo" || resumeText ? (
+                                <div className="resume-review-workspace" aria-busy={isResumeProcessing}>
+                                    {resumeSource === "paste" || resumeText ? (
+                                        <label className="setup-field setup-field--full">
+                                            <span>{resumeSource === "paste" ? "Paste resume text" : "Review resume text"}</span>
+                                            <textarea
+                                                name="resumeText"
+                                                maxLength={CANDIDATE_SETUP_LIMITS.resumeText + 1}
+                                                value={resumeText}
+                                                aria-describedby="resume-review-status"
+                                                onChange={(event) => {
+                                                    userEditedSetupFieldsRef.current.add("resume");
+                                                    clearSetupValidation();
+                                                    const nextText = event.target.value;
+                                                    setResumeText(nextText);
+                                                    setResumeError("");
+                                                    if (!nextText.trim()) {
+                                                        if (resumeArtifact) {
+                                                            void invalidateResumeSelection().catch(() => undefined);
+                                                        }
+                                                        setResumeArtifact(null);
+                                                        setResumeReviewMessage("");
+                                                    } else if (resumeArtifact?.reviewState === "accepted") {
+                                                        void invalidateResumeSelection().catch(() => undefined);
+                                                        setResumeArtifact(null);
+                                                        setResumeReviewMessage("Review the updated text before using it for practice.");
+                                                    }
+                                                    saveSetupDraft({ resumeText: "", resumeArtifact: null });
+                                                }}
+                                                rows={6}
+                                                placeholder="Paste resume text here."
+                                            />
+                                        </label>
+                                    ) : null}
+
+                                    <div className="resume-review-status" id="resume-review-status" aria-live="polite">
+                                        <div>
+                                            <strong>
+                                                {isResumeProcessing
+                                                    ? "Preparing resume"
+                                                    : resumeArtifact?.reviewState === "accepted"
+                                                    ? "Resume ready"
+                                                    : resumeArtifact?.reviewState === "awaiting_review"
+                                                        ? "Review prepared text"
+                                                        : "Prepare resume text"}
+                                            </strong>
+                                            <span>
+                                                {resumeError
+                                                    || resumeReviewMessage
+                                                    || (resumeArtifact?.reviewState === "awaiting_review"
+                                                        ? "Check that the work history is accurate before confirming it."
+                                                        : "I will remove direct contact details and let you review the text before it is used.")}
+                                            </span>
+                                        </div>
+                                        {resumeArtifact?.reviewState === "accepted" ? (
+                                            <BadgeCheck size={20} aria-hidden="true" />
+                                        ) : resumeArtifact?.reviewState === "awaiting_review" ? (
+                                            <button
+                                                type="button"
+                                                className="resume-review-action"
+                                                disabled={isResumeProcessing}
+                                                onClick={acceptProcessedResume}
+                                            >
+                                                {isResumeProcessing ? "Checking" : "Use this resume"}
+                                                {isResumeProcessing ? <Loader2 className="setup-spinner" size={16} /> : <ArrowRight size={16} />}
+                                            </button>
+                                        ) : resumeSource === "paste" ? (
+                                            <button
+                                                type="button"
+                                                className="resume-review-action"
+                                                disabled={isResumeProcessing || !resumeText.trim()}
+                                                onClick={processPastedResume}
+                                            >
+                                                {isResumeProcessing ? "Preparing" : "Review resume"}
+                                                {isResumeProcessing ? <Loader2 className="setup-spinner" size={16} /> : <ArrowRight size={16} />}
+                                            </button>
+                                        ) : isResumeProcessing ? <Loader2 className="setup-spinner" size={20} aria-hidden="true" /> : null}
+                                    </div>
+                                </div>
+                            ) : null}
                         </section>
                     </div>
 
@@ -579,6 +1144,7 @@ export function CandidateSetupExperience({
                                             className={questionCount === count ? "count-option is-selected" : "count-option"}
                                             aria-pressed={questionCount === count}
                                             onClick={() => {
+                                                userEditedSetupFieldsRef.current.add("interviewDetails");
                                                 setQuestionCount(count);
                                                 saveSetupDraft({ questionCount: count });
                                             }}
@@ -670,7 +1236,11 @@ export function CandidateSetupExperience({
                                     </span>
                                 ) : null}
                                 <div>
-                                    <span>Required fields are marked with an asterisk.</span>
+                                    <span>
+                                        {showRequiredAlert && resumeNeedsReview
+                                            ? "Review and confirm the resume text, or clear it to continue without a resume."
+                                            : "Required fields are marked with an asterisk."}
+                                    </span>
                                 </div>
                             </>
                         )}
@@ -833,6 +1403,98 @@ function toSetupValidationMessage(fieldErrors: {
     ][0] ?? "Check the setup details and try again.";
 }
 
+function toResumeArtifactReference(
+    artifact: CandidateResumeReviewArtifact,
+): CandidateSetupResumeArtifactReference {
+    return {
+        artifactId: artifact.artifactId,
+        version: artifact.version,
+        revision: artifact.revision,
+        source: artifact.source,
+        candidateLabel: artifact.candidateLabel,
+        reviewState: artifact.reviewState,
+    };
+}
+
+async function readCandidateResumeArtifactResponse(response: Response): Promise<{
+    outcome?: "accepted" | "review_required";
+    artifact: CandidateResumeReviewArtifact;
+}> {
+    const result = await response.json() as Record<string, unknown>;
+    if (!response.ok) {
+        const candidateMessage = typeof result.error === "string" && result.error.trim()
+            ? result.error.trim()
+            : "I could not prepare that resume text. Try again.";
+        const code = typeof result.code === "string" ? result.code : null;
+        throw new CandidateResumeReviewRequestError(candidateMessage, code);
+    }
+    const artifact = result.artifact;
+    if (!artifact || typeof artifact !== "object" || Array.isArray(artifact)) {
+        throw new CandidateResumeReviewRequestError("I could not recover the prepared resume text. Try again.");
+    }
+    const record = artifact as Record<string, unknown>;
+    if (
+        typeof record.artifactId !== "string"
+        || typeof record.version !== "number"
+        || typeof record.revision !== "number"
+        || (
+            record.source !== "pasted_text"
+            && record.source !== "document_upload"
+            && record.source !== "photo_capture"
+            && record.source !== "trusted_host"
+        )
+        || typeof record.candidateLabel !== "string"
+        || typeof record.normalizedText !== "string"
+        || (record.reviewState !== "awaiting_review" && record.reviewState !== "accepted")
+    ) {
+        throw new CandidateResumeReviewRequestError("I could not recover the prepared resume text. Try again.");
+    }
+    return {
+        outcome: result.outcome === "accepted" || result.outcome === "review_required" ? result.outcome : undefined,
+        artifact: {
+            artifactId: record.artifactId,
+            version: record.version,
+            revision: record.revision,
+            source: record.source,
+            candidateLabel: record.candidateLabel,
+            normalizedText: record.normalizedText,
+            piiRedactionCounts: record.piiRedactionCounts && typeof record.piiRedactionCounts === "object"
+                ? record.piiRedactionCounts as Record<string, number>
+                : {},
+            reviewState: record.reviewState,
+            createdAt: typeof record.createdAt === "string" ? record.createdAt : "",
+            acceptedAt: typeof record.acceptedAt === "string" ? record.acceptedAt : null,
+        },
+    };
+}
+
+function toResumeUiSource(source: CandidateSetupResumeArtifactReference["source"] | undefined): ResumeSource {
+    return source === "document_upload" ? "file" : source === "photo_capture" ? "photo" : "paste";
+}
+
+function resolveResumeDocumentMimeType(file: File) {
+    const declaredType = file.type.split(";", 1)[0]?.trim().toLowerCase();
+    const normalizedName = file.name.trim().toLowerCase();
+    const isGenericType = !declaredType || declaredType === "application/octet-stream";
+    if (normalizedName.endsWith(".pdf") && (isGenericType || declaredType === "application/pdf")) {
+        return "application/pdf";
+    }
+    if (
+        normalizedName.endsWith(".docx")
+        && (isGenericType || declaredType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+    ) {
+        return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    }
+    return null;
+}
+
+let resumePhotoPageSequence = 0;
+
+function createResumePhotoPageId() {
+    resumePhotoPageSequence += 1;
+    return `resume-photo-${Date.now()}-${resumePhotoPageSequence}`;
+}
+
 async function createSessionViaSetupRoute(
     transition: CandidateSetupTransition,
     decision?: CandidateSetupPrepContextDecision,
@@ -878,7 +1540,10 @@ async function createSessionViaSetupRoute(
             || responseCode === "SETUP_START_IDEMPOTENCY_KEY_REQUIRED"
             || responseCode === "SETUP_START_IDEMPOTENCY_CONFLICT"
             || responseCode === "SETUP_START_IN_PROGRESS"
-            || responseCode === "SETUP_START_CLAIM_LOST";
+            || responseCode === "SETUP_START_CLAIM_LOST"
+            || responseCode === "RESUME_REVIEW_REQUIRED"
+            || responseCode === "RESUME_REVIEW_STALE"
+            || responseCode === "RESUME_REVIEW_UNAVAILABLE";
         const candidateMessage = isCandidateSafeFailure
             && typeof result === "object"
             && "error" in result
@@ -886,7 +1551,7 @@ async function createSessionViaSetupRoute(
             && result.error.trim()
             ? result.error.trim()
             : "I could not start this practice round. Try again.";
-        throw new CandidateSetupStartRequestError(candidateMessage);
+        throw new CandidateSetupStartRequestError(candidateMessage, responseCode);
     }
 
     return result as CandidateSetupSessionCreationResult;
@@ -927,6 +1592,18 @@ function createSetupStartIdempotencyKey() {
         return window.crypto.randomUUID();
     }
     return `setup-${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+}
+
+function createResumeSelectionOperationId() {
+    if (typeof window !== "undefined" && typeof window.crypto?.randomUUID === "function") {
+        return window.crypto.randomUUID();
+    }
+    const bytes = new Uint8Array(16);
+    globalThis.crypto.getRandomValues(bytes);
+    bytes[6] = (bytes[6]! & 0x0f) | 0x40;
+    bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+    const value = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+    return `${value.slice(0, 8)}-${value.slice(8, 12)}-${value.slice(12, 16)}-${value.slice(16, 20)}-${value.slice(20)}`;
 }
 
 function formatSetupDate(value: string) {

@@ -30,5 +30,6 @@ export function toInvitedPracticeSharedSessionRecord(
             ...recoveryInput,
         }),
         feedbackActionEvents: session.feedbackActionEvents,
+        voiceTranscriptDrafts: session.voiceTranscriptDrafts ?? {},
     };
 }

@@ -104,6 +104,7 @@ Use for:
 - authenticated route guard behavior
 - create prep context, generate immutable wording, cross the landing transition, and enter session
 - refresh and resume from persisted state
+- resume direct-PII review, refresh recovery, fresh-browser/mobile recovery, explicit acceptance, landing-label propagation, and clean-slate setup after atomic consumption
 - immediate-coaching and provider-unavailable continuation
 - role-scoped dashboard, Coach Update evidence, and one/many follow-up actions
 - mobile shell navigation
@@ -164,8 +165,10 @@ Before production pilot:
 - negative permission tests
 - accessibility checks for primary flows
 - dependency audit reviewed
-- every unresolved production dependency advisory has an owner, disposition, and release trigger; upgrade and re-audit Nodemailer during the recruiter-foundation slice before restoring required bulk email, while the single Next-bundled PostCSS advisory counted on both child and parent requires upstream monitoring plus explicit temporary risk acceptance before pilot unless a tested framework fix lands
+- every unresolved production dependency advisory has an owner, disposition, and release trigger; the current Google cleanup-chain brace-expansion, Next-bundled PostCSS, and Next/Sharp-libvips concerns require a tested compatible upgrade or explicit temporary risk acceptance before pilot
 - candidate PRs reviewed against [Recruiter Regression Checklist For Candidate PRs](recruiter-regression-checklist.md)
+
+The resume milestone browser matrix is documented in [Resume Ingestion Milestone](resume-ingestion-milestone.md). PDF/DOCX parser and photo-OCR provider matrices remain focused adapter/manual gates; the representative seeded browser contract uses paste so it can prove the shared artifact, ownership, accessibility, and consumption lifecycle without external provider or binary-fixture dependence.
 
 ## CI Gate Direction
 

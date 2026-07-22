@@ -23,6 +23,7 @@ type CandidatePreSessionLandingProps = {
     stageLabel: string;
     questionCount: number;
     resumeIncluded: boolean;
+    resumeLabel?: string | null;
     candidateFirstName?: string;
     questions?: CandidatePreSessionQuestion[];
     sessionId?: string;
@@ -44,6 +45,7 @@ export function CandidatePreSessionLanding({
     stageLabel,
     questionCount,
     resumeIncluded,
+    resumeLabel,
     candidateFirstName,
     questions = [],
     sessionId,
@@ -143,7 +145,7 @@ export function CandidatePreSessionLanding({
                         {!isInvited ? (
                             <div>
                                 <dt>Resume</dt>
-                                <dd>{resumeIncluded ? "Included" : "Not included"}</dd>
+                                <dd>{resumeIncluded ? resumeLabel?.trim() || "Included" : "Not included"}</dd>
                             </div>
                         ) : null}
                     </dl>

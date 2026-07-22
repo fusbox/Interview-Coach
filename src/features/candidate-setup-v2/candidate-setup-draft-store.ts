@@ -1,6 +1,7 @@
 import {
     parseCandidateSetupInput,
     type CandidateSetupPayload,
+    type CandidateSetupResumeArtifactReference,
     type CandidateSetupStageId,
 } from "./candidate-setup-contract";
 
@@ -28,6 +29,7 @@ export type CandidateSetupDraftInput = {
     targetRole?: unknown;
     jobDescription?: unknown;
     resumeText?: unknown;
+    resumeArtifact?: unknown;
     interviewStage?: unknown;
     questionCount?: unknown;
 };
@@ -92,10 +94,20 @@ export function saveCandidateSetupDraft(
     input: CandidateSetupDraftInput,
 ): CandidateSetupDraft {
     const previousDraft = store.readDraft(ownerKey);
+    const hasResumeArtifactInput = Object.prototype.hasOwnProperty.call(input, "resumeArtifact");
+    const hasResumeTextInput = Object.prototype.hasOwnProperty.call(input, "resumeText");
+    const resumeArtifact = hasResumeArtifactInput
+        ? input.resumeArtifact
+        : hasResumeTextInput && input.resumeText !== previousDraft?.resumeText
+            ? null
+            : previousDraft?.resumeArtifact ?? null;
     const payload = parseCandidateSetupInput({
         targetRole: input.targetRole,
         jobDescription: input.jobDescription,
-        resumeText: input.resumeText,
+        resumeText: isAcceptedResumeArtifactInput(resumeArtifact)
+            ? input.resumeText ?? previousDraft?.resumeText
+            : null,
+        resumeArtifact,
         interviewStage: input.interviewStage ?? previousDraft?.interviewStage,
         questionCount: input.questionCount ?? previousDraft?.questionCount,
     });
@@ -152,13 +164,16 @@ export function toCandidateSetupDraftFormState(draft: CandidateSetupDraft | null
     resumeText: string;
     interviewStage: CandidateSetupStageId;
     questionCount: number;
+    resumeArtifact: CandidateSetupResumeArtifactReference | null;
 } {
+    const resumeArtifact = draft?.resumeArtifact ?? null;
     return {
         targetRole: draft?.targetRole ?? "",
         jobDescription: draft?.jobDescription ?? "",
-        resumeText: draft?.resumeText ?? "",
+        resumeText: resumeArtifact?.reviewState === "accepted" ? draft?.resumeText ?? "" : "",
         interviewStage: draft?.interviewStage ?? "first_interview",
         questionCount: draft?.questionCount ?? 7,
+        resumeArtifact,
     };
 }
 
@@ -178,13 +193,23 @@ function hasSameSetupPayload(left: CandidateSetupPayload, right: CandidateSetupP
         && left.resumeText === right.resumeText
         && left.interviewStage === right.interviewStage
         && left.questionCount === right.questionCount
-        && left.resumeCaptureMode === right.resumeCaptureMode;
+        && left.resumeCaptureMode === right.resumeCaptureMode
+        && JSON.stringify(left.resumeArtifact ?? null) === JSON.stringify(right.resumeArtifact ?? null);
 }
 
 function isValidSetupStartIdempotencyKey(value: string) {
     return value.length >= 16
         && value.length <= 128
         && /^[A-Za-z0-9._:-]+$/.test(value);
+}
+
+function isAcceptedResumeArtifactInput(value: unknown): value is CandidateSetupResumeArtifactReference {
+    return Boolean(
+        value
+        && typeof value === "object"
+        && !Array.isArray(value)
+        && (value as { reviewState?: unknown }).reviewState === "accepted",
+    );
 }
 
 function readBrowserDrafts(storage: Storage): Record<string, CandidateSetupDraft> {
@@ -195,9 +220,23 @@ function readBrowserDrafts(storage: Storage): Record<string, CandidateSetupDraft
 
     try {
         const parsedDrafts = JSON.parse(storedDrafts);
-        return parsedDrafts && typeof parsedDrafts === "object" && !Array.isArray(parsedDrafts)
-            ? parsedDrafts as Record<string, CandidateSetupDraft>
-            : {};
+        if (!parsedDrafts || typeof parsedDrafts !== "object" || Array.isArray(parsedDrafts)) {
+            return {};
+        }
+        return Object.fromEntries(Object.entries(parsedDrafts).flatMap(([ownerKey, value]) => {
+            if (!value || typeof value !== "object" || Array.isArray(value)) {
+                return [];
+            }
+            const draft = value as CandidateSetupDraft;
+            if (draft.resumeText && draft.resumeArtifact?.reviewState !== "accepted") {
+                return [[ownerKey, {
+                    ...draft,
+                    resumeText: null,
+                    resumeCaptureMode: draft.resumeArtifact?.source ?? "none",
+                } satisfies CandidateSetupDraft]];
+            }
+            return [[ownerKey, draft]];
+        }));
     } catch {
         return {};
     }

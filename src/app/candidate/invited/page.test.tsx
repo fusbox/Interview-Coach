@@ -31,6 +31,8 @@ describe("candidate invited entry page", () => {
             resolveState: async () => state({ sessionStatus: "completed" }),
         }));
         expect(screen.getByRole("heading", { name: /practice is complete/i })).toBeInTheDocument();
+        expect(screen.getByText(/you can close this window when you are finished/i)).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /close this window/i })).not.toBeInTheDocument();
     });
 });
 

@@ -1,5 +1,16 @@
 export type CandidateSetupStageId = "practice_only" | "screening" | "first_interview" | "follow_up" | "final_interview";
-export type CandidateSetupResumeCaptureMode = "none" | "pasted_text";
+export type CandidateSetupResumeCaptureMode = "none" | "pasted_text" | "document_upload" | "photo_capture" | "trusted_host";
+export type CandidateSetupResumeArtifactSource = "pasted_text" | "document_upload" | "photo_capture" | "trusted_host";
+export type CandidateSetupResumeArtifactReviewState = "awaiting_review" | "accepted";
+
+export type CandidateSetupResumeArtifactReference = {
+    artifactId: string;
+    version: number;
+    revision: number;
+    source: CandidateSetupResumeArtifactSource;
+    candidateLabel: string;
+    reviewState: CandidateSetupResumeArtifactReviewState;
+};
 
 export type CandidateSetupPayload = {
     targetRole: string;
@@ -8,6 +19,7 @@ export type CandidateSetupPayload = {
     interviewStage: CandidateSetupStageId;
     questionCount: number;
     resumeCaptureMode: CandidateSetupResumeCaptureMode;
+    resumeArtifact?: CandidateSetupResumeArtifactReference | null;
 };
 
 export type CandidateSetupTransition = {
@@ -109,6 +121,7 @@ export function safeParseCandidateSetupInput(payload: unknown): CandidateSetupPa
         "jobDescription",
     );
     const resumeText = normalizeOptionalText(record.resumeText, "Resume content", CANDIDATE_SETUP_LIMITS.resumeText, fieldErrors, "resumeText");
+    const resumeArtifact = normalizeResumeArtifact(record.resumeArtifact, fieldErrors);
     const questionCount = normalizeQuestionCount(record.questionCount, fieldErrors);
 
     if (Object.keys(fieldErrors).length > 0) {
@@ -128,8 +141,62 @@ export function safeParseCandidateSetupInput(payload: unknown): CandidateSetupPa
             resumeText,
             interviewStage: normalizeInterviewStage(record.interviewStage),
             questionCount,
-            resumeCaptureMode: resumeText ? "pasted_text" : "none",
+            resumeCaptureMode: resumeArtifact?.source ?? (resumeText ? "pasted_text" : "none"),
+            ...(resumeArtifact ? { resumeArtifact } : {}),
         },
+    };
+}
+
+function normalizeResumeArtifact(
+    value: unknown,
+    fieldErrors: CandidateSetupFieldErrors,
+): CandidateSetupResumeArtifactReference | null {
+    if (value == null) {
+        return null;
+    }
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        fieldErrors.resumeText = ["Resume review details are invalid."];
+        return null;
+    }
+
+    const record = value as Record<string, unknown>;
+    const artifactId = typeof record.artifactId === "string" ? record.artifactId.trim() : "";
+    const candidateLabel = typeof record.candidateLabel === "string" ? record.candidateLabel.trim() : "";
+    const version = typeof record.version === "number" ? record.version : Number(record.version);
+    const revision = typeof record.revision === "number" ? record.revision : Number(record.revision);
+    const source = record.source === "pasted_text"
+        || record.source === "document_upload"
+        || record.source === "photo_capture"
+        || record.source === "trusted_host"
+        ? record.source
+        : null;
+    const reviewState = record.reviewState === "awaiting_review" || record.reviewState === "accepted"
+        ? record.reviewState
+        : null;
+
+    if (
+        !artifactId
+        || artifactId.length > 128
+        || !candidateLabel
+        || candidateLabel.length > 80
+        || !Number.isInteger(version)
+        || version < 1
+        || !Number.isInteger(revision)
+        || revision < 1
+        || !source
+        || !reviewState
+    ) {
+        fieldErrors.resumeText = ["Resume review details are invalid."];
+        return null;
+    }
+
+    return {
+        artifactId,
+        version,
+        revision,
+        source,
+        candidateLabel,
+        reviewState,
     };
 }
 

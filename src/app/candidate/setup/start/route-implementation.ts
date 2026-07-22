@@ -5,7 +5,10 @@ import {
     createCandidateSetupSessionPlan,
     type CandidateSetupSessionPlanResult,
 } from "@/features/candidate-setup-v2/candidate-setup-session-creation";
-import { safeParseCandidateSetupInput } from "@/features/candidate-setup-v2/candidate-setup-contract";
+import {
+    safeParseCandidateSetupInput,
+    type CandidateSetupPayload,
+} from "@/features/candidate-setup-v2/candidate-setup-contract";
 import type { CandidateProvisionalSessionProgress } from "@/features/candidate-session-v2/candidate-provisional-session-store";
 import {
     createCandidatePracticeSessionRepository,
@@ -23,6 +26,7 @@ import {
 } from "@/features/candidate-setup-v2/candidate-setup-prep-context-repository";
 import {
     applyCandidateTrustedSetupContext,
+    createCandidateSetupDraftOwnerKey,
     createCandidateSetupEntryRepository,
     type CandidateTrustedSetupContext,
 } from "@/features/candidate-setup-v2/candidate-setup-entry-context";
@@ -47,6 +51,8 @@ import {
 import {
     createCandidateSetupStartRequestRepository,
 } from "@/features/candidate-setup-v2/candidate-setup-start-request-repository";
+import type { CandidateResumeTextArtifact } from "@/features/candidate-setup-v2/candidate-resume-text-artifact-repository";
+import { createCandidateSetupResumeSelectionRepository } from "@/features/candidate-setup-v2/candidate-setup-resume-selection-repository";
 
 export async function POST(request: Request) {
     try {
@@ -63,6 +69,7 @@ export async function POST(request: Request) {
 
 type CandidateSetupIdentity = {
     candidateProfileId: string;
+    setupOwnerKey?: string | null;
     roleProfileId?: string | null;
     candidateLaunchSessionId?: string | null;
     trustedSetupContext?: CandidateTrustedSetupContext | null;
@@ -90,6 +97,11 @@ type CandidateSetupEntryRepository = Pick<
     "consumeWithExistingPrepContext"
 >;
 
+type CandidateSetupResumeSelectionRepository = Pick<
+    ReturnType<typeof createCandidateSetupResumeSelectionRepository>,
+    "resolveAcceptedSelection" | "clearSelection"
+>;
+
 export type CandidateSetupStartDependencies = {
     now: Date;
     createSessionId: () => string;
@@ -99,6 +111,7 @@ export type CandidateSetupStartDependencies = {
     setupEntryRepository?: CandidateSetupEntryRepository;
     practiceSessionRepository?: CandidateSetupStartPracticeSessionRepository;
     setupStartRequestRepository?: CandidateSetupStartRequestRepository;
+    resumeSelectionRepository?: CandidateSetupResumeSelectionRepository;
     questionWordingRuntime?: CandidateQuestionWordingRuntime | null;
 };
 
@@ -112,6 +125,7 @@ export async function handleCandidateSetupStartRequest({
     setupEntryRepository,
     practiceSessionRepository,
     setupStartRequestRepository,
+    resumeSelectionRepository,
     questionWordingRuntime = createFixtureCandidateQuestionWordingRuntime(),
 }: CandidateSetupStartDependencies & {
     request: Request;
@@ -144,6 +158,14 @@ export async function handleCandidateSetupStartRequest({
         const identity = resolveCandidateSetupIdentity
             ? await resolveCandidateSetupIdentity(request)
             : null;
+        const resumeResolution = await resolveCandidateSetupAcceptedResume({
+            setup: parsedSetup.data,
+            identity,
+            repository: resumeSelectionRepository,
+        });
+        if (resumeResolution instanceof Response) {
+            return resumeResolution;
+        }
         const hasTrustedSetupContext = Boolean(identity?.trustedSetupContext);
         if (
             (setupEntryMode === "trusted_host_job" && !hasTrustedSetupContext)
@@ -154,7 +176,7 @@ export async function handleCandidateSetupStartRequest({
             }, { status: 409 });
         }
         const canonicalSetup = applyCandidateTrustedSetupContext(
-            parsedSetup.data,
+            resumeResolution,
             identity?.trustedSetupContext ?? null,
         );
         if (!canonicalSetup) {
@@ -177,6 +199,14 @@ export async function handleCandidateSetupStartRequest({
                 return Response.json({
                     error: "That existing practice path is no longer available. Reload setup and try again.",
                 }, { status: 409 });
+            }
+
+            if (identity.setupOwnerKey && resumeSelectionRepository) {
+                await resumeSelectionRepository.clearSelection({
+                    candidateProfileId: identity.candidateProfileId,
+                    setupOwnerKey: identity.setupOwnerKey,
+                    now,
+                });
             }
 
             const consumed = await setupEntryRepository.consumeWithExistingPrepContext({
@@ -341,6 +371,7 @@ export async function handleCandidateSetupStartRequest({
                     questionWordingSnapshot: result.questionWordingSnapshot,
                     progress,
                     setupStartClaim: activeClaim,
+                    resumeSelectionOwnerKey: identity.setupOwnerKey ?? null,
                 });
 
                 if (durableSession) {
@@ -398,7 +429,7 @@ export async function handleCandidateSetupStartRequest({
 
 function createDefaultCandidateSetupStartDependencies(): Pick<
     CandidateSetupStartDependencies,
-    "allowBrowserBridgeWithoutIdentity" | "resolveCandidateSetupIdentity" | "prepContextResolver" | "setupEntryRepository" | "practiceSessionRepository" | "setupStartRequestRepository" | "questionWordingRuntime"
+    "allowBrowserBridgeWithoutIdentity" | "resolveCandidateSetupIdentity" | "prepContextResolver" | "setupEntryRepository" | "practiceSessionRepository" | "setupStartRequestRepository" | "resumeSelectionRepository" | "questionWordingRuntime"
 > {
     const databaseUrl = process.env[CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV]?.trim();
     const allowBrowserBridgeWithoutIdentity = process.env.NODE_ENV !== "production";
@@ -428,7 +459,81 @@ function createDefaultCandidateSetupStartDependencies(): Pick<
         setupEntryRepository,
         practiceSessionRepository: createCandidatePracticeSessionRepository(queryClient),
         setupStartRequestRepository: createCandidateSetupStartRequestRepository(queryClient),
+        resumeSelectionRepository: createCandidateSetupResumeSelectionRepository(queryClient),
         questionWordingRuntime: createDefaultQuestionWordingRuntime(),
+    };
+}
+
+async function resolveCandidateSetupAcceptedResume({
+    setup,
+    identity,
+    repository,
+}: {
+    setup: CandidateSetupPayload;
+    identity: CandidateSetupIdentity | null;
+    repository?: CandidateSetupResumeSelectionRepository;
+}): Promise<CandidateSetupPayload | Response> {
+    if (!identity) {
+        return setup;
+    }
+    if (!setup.resumeArtifact) {
+        return setup.resumeText
+            ? Response.json({
+                error: "Review and accept the processed resume text before starting practice.",
+                code: "RESUME_REVIEW_REQUIRED",
+            }, { status: 409 })
+            : setup;
+    }
+    if (setup.resumeArtifact.reviewState !== "accepted") {
+        return Response.json({
+            error: "Review and accept the processed resume text before starting practice.",
+            code: "RESUME_REVIEW_REQUIRED",
+        }, { status: 409 });
+    }
+    if (!repository) {
+        return Response.json({
+            error: "Accepted resume text could not be verified.",
+            code: "RESUME_REVIEW_UNAVAILABLE",
+        }, { status: 503 });
+    }
+
+    if (!identity.setupOwnerKey) {
+        return Response.json({
+            error: "Accepted resume text could not be verified.",
+            code: "RESUME_REVIEW_UNAVAILABLE",
+        }, { status: 503 });
+    }
+
+    const artifact = await repository.resolveAcceptedSelection({
+        candidateProfileId: identity.candidateProfileId,
+        setupOwnerKey: identity.setupOwnerKey,
+        artifactId: setup.resumeArtifact.artifactId,
+        version: setup.resumeArtifact.version,
+        revision: setup.resumeArtifact.revision,
+    });
+    if (!artifact) {
+        return Response.json({
+            error: "That resume review is no longer current. Review the resume again before starting practice.",
+            code: "RESUME_REVIEW_STALE",
+        }, { status: 409 });
+    }
+
+    return {
+        ...setup,
+        resumeText: artifact.normalizedText,
+        resumeCaptureMode: artifact.source,
+        resumeArtifact: toAcceptedResumeReference(artifact),
+    };
+}
+
+function toAcceptedResumeReference(artifact: CandidateResumeTextArtifact) {
+    return {
+        artifactId: artifact.artifactId,
+        version: artifact.version,
+        revision: artifact.revision,
+        source: artifact.source,
+        candidateLabel: artifact.candidateLabel,
+        reviewState: "accepted" as const,
     };
 }
 
@@ -529,6 +634,10 @@ async function resolveCandidateSetupIdentityFromLaunchCookie(
     return entry
         ? {
             candidateProfileId: entry.candidateProfileId,
+            setupOwnerKey: createCandidateSetupDraftOwnerKey(
+                entry.candidateProfileId,
+                entry.trustedSetupContext,
+            ),
             candidateLaunchSessionId: entry.candidateLaunchSessionId,
             trustedSetupContext: entry.trustedSetupContext,
             allowManualPrepContextCreation: true,
@@ -607,6 +716,7 @@ export async function resolveCandidateSetupIdentityFromDevLaunchCookie(request: 
     return identity
         ? {
             candidateProfileId: identity.candidateProfileId,
+            setupOwnerKey: createCandidateSetupDraftOwnerKey(identity.candidateProfileId, null),
             candidateLaunchSessionId: null,
             trustedSetupContext: null,
             allowManualPrepContextCreation: true,

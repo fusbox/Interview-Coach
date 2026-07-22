@@ -19,6 +19,7 @@ import { toInvitedPracticeSharedSessionRecord } from "@/features/recruiter-invit
 import { isCandidateAnswerAnalysisRuntimeAvailable } from "@/features/candidate-session-v2/candidate-answer-analysis-runtime-selection";
 import type { CandidateProvisionalSessionRecord } from "@/features/candidate-session-v2/candidate-provisional-session-store";
 import { isSessionQuestionAudioRuntimeAvailable } from "@/features/interview-session-v2/session-question-audio-runtime";
+import { isVoiceTranscriptionRuntimeAvailable } from "@/features/interview-session-v2/voice-transcription-runtime";
 
 import { InvitedPracticeEntryRouteExperience } from "./InvitedPracticeEntryRouteExperience";
 import { InvitedPracticeCompleted } from "./InvitedPracticeCompleted";
@@ -55,6 +56,7 @@ export async function renderCandidateInvitedEntryRoute(dependencies: {
             candidateFirstName={entry.candidateFirstName}
             initialSession={initialSession}
             questionAudioEnabled={isSessionQuestionAudioRuntimeAvailable(process.env)}
+            voiceAnswerEnabled={isVoiceTranscriptionRuntimeAvailable(process.env)}
         />
     );
 }

@@ -1,5 +1,6 @@
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 import type { CandidateQuestionPlanCategory } from "@/features/candidate-session-v2/candidate-question-plan";
+import type { CandidateSetupResumeArtifactReference } from "@/features/candidate-setup-v2/candidate-setup-contract";
 
 export type CandidateFollowUpPracticeIntentKind =
     | "practice_from_feedback"
@@ -59,6 +60,7 @@ export type CandidateResolvedFollowUpPracticeIntent = {
         interviewStage: CandidatePracticeSessionRecord["setupSnapshot"]["interviewStage"];
         questionCount: number;
         resumeIncluded: boolean;
+        resumeArtifact?: CandidateSetupResumeArtifactReference | null;
     };
     display: CandidateFollowUpPracticeIntent["display"];
 };
@@ -222,6 +224,7 @@ export function resolveCandidateFollowUpPracticeIntent({
             interviewStage: sourceSession.setupSnapshot.interviewStage,
             questionCount: sourceSession.setupSnapshot.questionCount,
             resumeIncluded: Boolean(sourceSession.setupSnapshot.resumeText),
+            resumeArtifact: sourceSession.setupSnapshot.resumeArtifact ?? null,
         },
         display: getResolvedIntentDisplay(intent.kind, sourceSession.setupSnapshot.targetRole, sourceQuestion.index + 1),
     };
@@ -277,6 +280,8 @@ export function createCandidateFollowUpPracticeIntentRecord({
             || item.setupContext.jobDescription !== setupContext.jobDescription
             || item.setupContext.interviewStage !== setupContext.interviewStage
             || item.setupContext.resumeIncluded !== setupContext.resumeIncluded
+            || JSON.stringify(item.setupContext.resumeArtifact ?? null)
+                !== JSON.stringify(setupContext.resumeArtifact ?? null)
         ) {
             return null;
         }

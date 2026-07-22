@@ -1,6 +1,6 @@
 # Privacy, Disclosures, And Consent Requirements
 
-Date: 2026-05-20
+Date: 2026-07-20
 Status: Working requirements artifact
 
 ## Purpose
@@ -116,26 +116,31 @@ Requirements:
 - Original uploaded files should be deleted after successful extraction by default.
 - Original files may be retained only if an explicit future policy permits it.
 
-Current pasted-text implementation:
+Current V2 implementation truth:
 
-- pasted resume content is normalized before draft persistence
-- normalized pasted content is stored as a processed resume artifact inside draft resume context for the candidate-owned practice draft
-- `processedArtifact.originalRetained` is false for the current pasted-text path
-- no original file is created or retained for the pasted-text path
+- pasted and extracted resume text are candidate-owned, bounded, deterministically direct-PII-scrubbed, normalized, and explicitly reviewed before acceptance; the current policy removes exact authenticated identity aliases plus trusted abbreviated/surname-first variants, accepts one strong contact signal as bounded header-only corroboration for an unknown name, and generically removes only an ambiguous first span sharing a delimited line with another contact signal; street addresses and postal codes are removed without broadly removing role, employer, school, or work-location language, coarse city/state may remain, and raw paste is not stored in browser setup drafts or Postgres;
+- trusted-host text uses the same processor and artifact contract, but host-side resume lookup is not wired;
+- PDF/DOCX upload uses candidate-owned bounded in-memory acquisition, actual signature/container validation, extraction, app-buffer disposal before persistence, the shared PII processor, and explicit review/acceptance;
+- photo capture sends at most four explicitly ordered, byte-validated image pages to the exact configured OCR provider; app-owned image/request buffers are disposed before only scrubbed normalized review text may persist;
+- selected source files are not written into browser draft storage or the setup payload;
+- document extraction and ordered photo OCR have automated local lifecycle evidence but still need deployed parser/provider throttling/resource/disposal, accessibility, representative-device, and organizational subprocessor evidence.
 
-Current upload/extraction implementation:
+Ratified V2 processing requirement:
 
-- pending upload metadata stores only a private relative storage path and file metadata needed for processing
-- successful extraction stores normalized extracted text as the processed resume artifact
-- successful extraction marks the source asset retention as `original_deleted`
-- failed extraction stores a safe failure code only, not raw parser messages, local paths, storage URLs, or resume content
+- paste, PDF/DOCX, photo, and trusted-host text use one server-owned parse, direct-PII-scrub, normalize, candidate-review, and processed-artifact boundary;
+- raw documents/photos are request-scoped and deleted on success and every terminal failure;
+- no raw source path or private blob is a durable candidate-draft field;
+- only safe source metadata, policy versions, a source fingerprint, and the candidate-reviewed processed text may persist;
+- PII-scrubbed resume text remains sensitive candidate data and keeps the same candidate access, retention, and disclosure protections.
 
 Open production dependencies:
 
-- final blob storage controls
-- malware scanning
-- OCR/photo capture policy
-- deletion implementation evidence
+- proof that bounded in-memory processing is sufficient, or approved private hard-TTL temporary-storage controls when it is not
+- parser isolation or equivalent malicious-document containment and a malware-scanning decision
+- per-candidate upload throttling and deployed CPU/memory/timeout evidence
+- organizational approval of the exact OCR provider/profile and its candidate-data handling
+- deployed disposal implementation evidence
+- organizational approval of the deterministic PII policy and residual-PII review behavior
 
 ### Practice Drafts
 
@@ -172,14 +177,14 @@ Initial retention:
 
 Requirements:
 
-- Voice mode must disclose that microphone input is recorded in the browser, sent for transcription/analysis when submitted, and used to generate feedback.
+- Voice mode must disclose that microphone input is recorded in the browser and sent to an approved provider to create the transcript used for the answer; the candidate may submit directly or choose Review before submission.
 - The app must state whether recorded audio files are retained.
-- Any persistence of raw audio beyond transient feedback playback requires explicit product/legal review, a defined retention period, deletion controls, and updated notice copy.
+- Any application persistence of raw audio requires explicit product/legal review, a defined retention period, deletion controls, and updated notice copy.
 
 Current fit:
 
-- The current implementation does not persist candidate response audio as an app-side audio file or blob reference.
-- Audio is currently used for in-session playback and transient analysis, while transcript and feedback are persisted.
+- Current V2 answer UI exposes voice only when the exact approved runtime tuple is configured; question text-to-speech is a different capability and does not capture candidate audio.
+- The ratified voice contract keeps response audio transient only during the dedicated transcription operation. A recoverable transcript draft is persisted before the candidate may submit it for coaching.
 
 ### AI Quality And Operational Diagnostics
 
@@ -254,9 +259,11 @@ Display near resume paste:
 
 Display as a first-time voice notice before triggering browser microphone permission:
 
-> Your browser will ask for microphone permission after you continue. Interview Coach uses your voice response to create coaching for this practice question.
+> Your browser will ask for microphone permission after you continue. Interview Coach sends the response you record to create a transcript for this practice question.
 
-> Text mode is always available. Voice answers are practice content. The transcript may be saved for feedback and your own review, but the app does not save a separate audio file after the question is completed.
+> Submit Answer uses the transcript created from your recording. Choose Review first if you want to play back the recording or correct the transcript. Text mode is always available. The transcript may be saved for feedback and review, but Interview Coach does not save a separate audio file.
+
+Invited practice must add the already-governing visibility fact: the submitted transcript may be visible to the inviting recruiter, while private coaching is not. Candidate-led practice must not imply recruiter visibility.
 
 ### Session Entry Notice
 
@@ -303,16 +310,24 @@ Resume paste/upload should be optional and accompanied by notice that:
 
 Voice mode should disclose that:
 
-- microphone input is recorded by the browser when the candidate chooses voice mode
-- the answer may be transcribed, analyzed, and played back during feedback
-- current recordings are not saved as audio files after the candidate moves past the question
+- microphone input is recorded only after the candidate explicitly starts voice capture
+- the audio is sent to an approved provider to create a transcript
+- **Submit Answer** authorizes transcription and submission without requiring review; **Review** optionally pauses for playback, confirmation, or correction
+- the submitted transcript may be saved according to the applicable candidate-led or invited-session history contract
+- Interview Coach does not persist a separate raw-audio file under the ratified first-release contract
 - text mode is available as an alternative
+
+V0.5/V1 transient-audio behavior is reference evidence, not current V2 behavior. V2 now implements the dedicated, audience-owned, transcript-first operation in [Voice Answer And Transcription Contract](../04-architecture/voice-answer-transcription-contract.md). Browser speech recognition is not the transcript authority, raw audio is not sent to the evaluator, and transcription completion does not itself submit an answer. Exact runtime configuration is necessary but not sufficient for production release; provider-processing approval and deployed evidence remain required.
+
+Provider-side audio processing and retention must be reviewed and approved even though Interview Coach does not persist raw audio. Ordinary logs, metrics, QA exports, and support artifacts must exclude audio bytes, transcript text, audio fingerprints, and provider raw output.
+
+The first Google Developer API profile passed local credentialed WAV, truthful WebM/Opus, and truthful MP4/AAC synthetic-audio privacy-envelope gates on 2026-07-21: each request contained only audio, fixed transcription instructions, and an English language hint. This is implementation evidence, not organizational approval of Google-side audio processing/retention or deployed secret/network behavior. Production release remains blocked until those approvals and deployed browser/operations gates are satisfied.
 
 ### Consent Escalation Triggers
 
 Explicit product/legal review is required before:
 
-- persisting raw audio beyond the active feedback moment
+- persisting raw candidate-response audio at any application boundary
 - sharing candidate practice content with recruiters, employers, or hiring-decision users
 - enabling protected-route analytics, advertising pixels, session replay, or detailed behavioral monitoring
 - using AI outputs for ranking, placement, screening, or hiring decisions
@@ -322,7 +337,7 @@ Explicit product/legal review is required before:
 
 - Add practice setup AI/data notice. Implemented for MVP.
 - Add resume notice near paste input. Implemented for MVP.
-- Add voice notice near microphone controls or first voice-mode use. Implemented as a one-time pre-permission modal for MVP.
+- Add voice notice near microphone controls or first voice-mode use. Implemented behind the exact voice runtime tuple; production approval and deployed evidence remain open.
 - Add session-entry privacy notice. Implemented for MVP.
 - Add summary privacy notice and candidate footer placeholders. Implemented for MVP.
 - Link to the governing Privacy Policy and Responsible AI Statement from notices where feasible.

@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, ChevronDown, RotateCcw, X } from "lucide-react";
+import { CheckCircle2, ChevronDown, RotateCcw } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -114,7 +114,10 @@ export function InvitedPracticeCompleted({ debrief }: { debrief: InvitedPractice
             <section className="invited-practice-complete__actions" aria-label="Practice completion actions">
                 <div>
                     <h2>Want another run at these questions?</h2>
-                    <p>Practice the same recruiter-selected round again. Your earlier work stays saved.</p>
+                    <p>
+                        Practice the same recruiter-selected round again. Your earlier work stays saved.
+                        You can close this window when you are finished.
+                    </p>
                 </div>
                 <div className="invited-practice-complete__action-buttons">
                     <button
@@ -125,14 +128,6 @@ export function InvitedPracticeCompleted({ debrief }: { debrief: InvitedPractice
                     >
                         <RotateCcw size={18} aria-hidden="true" />
                         {isStarting ? "Preparing your round..." : "Practice again"}
-                    </button>
-                    <button
-                        type="button"
-                        className="candidate-button candidate-button--secondary"
-                        onClick={() => window.close()}
-                    >
-                        <X size={18} aria-hidden="true" />
-                        Close this window
                     </button>
                 </div>
                 {error ? <p className="invited-practice-entry__error" role="alert">{error}</p> : null}

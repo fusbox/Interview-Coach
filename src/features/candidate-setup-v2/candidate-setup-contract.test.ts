@@ -40,6 +40,29 @@ describe("candidate setup contract", () => {
         });
     });
 
+    it("carries an accepted document artifact as the resume capture mode", () => {
+        expect(parseCandidateSetupInput({
+            targetRole: "QA analyst",
+            jobDescription: "Test regulated workflows.",
+            resumeText: "Inspected production records and documented defects.",
+            resumeArtifact: {
+                artifactId: "20000000-0000-4000-8000-000000000001",
+                version: 1,
+                revision: 2,
+                source: "document_upload",
+                candidateLabel: "resume.docx",
+                reviewState: "accepted",
+            },
+        })).toMatchObject({
+            resumeCaptureMode: "document_upload",
+            resumeArtifact: {
+                source: "document_upload",
+                candidateLabel: "resume.docx",
+                reviewState: "accepted",
+            },
+        });
+    });
+
     it("rejects missing required role context before a transition can be created", () => {
         const result = safeParseCandidateSetupInput({
             targetRole: " ",

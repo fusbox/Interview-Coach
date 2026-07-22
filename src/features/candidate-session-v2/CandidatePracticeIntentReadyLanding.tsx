@@ -13,6 +13,7 @@ export function CandidatePracticeIntentReadyLanding(props: {
     stageLabel: string;
     questionCount: number;
     resumeIncluded: boolean;
+    resumeLabel?: string | null;
     questions: CandidatePreSessionQuestion[];
     firstQuestion?: CandidatePreSessionQuestion;
     startActionUrl: string;
@@ -32,6 +33,7 @@ export function CandidatePracticeIntentReadyLanding(props: {
             stageLabel={props.stageLabel}
             questionCount={props.questionCount}
             resumeIncluded={props.resumeIncluded}
+            resumeLabel={props.resumeLabel}
             questions={props.questions}
             sessionId={props.intentId}
             firstQuestion={props.firstQuestion}

@@ -57,6 +57,24 @@ test("production fails closed for development-only candidate routes", async ({ r
     }
 });
 
+test("production loads the resume document route through the Node parser boundary", async ({ request }) => {
+    const response = await request.post("/candidate/setup/resume-document", {
+        data: Buffer.from("%PDF-1.4\nparser-boundary-smoke", "ascii"),
+        headers: {
+            "Content-Type": "application/pdf",
+            Origin: process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3100",
+            "X-Resume-Document-Name": "resume.pdf",
+        },
+    });
+
+    expect(response.status()).toBe(503);
+    expect(response.headers()["content-type"]).toContain("application/json");
+    expect(await response.json()).toEqual({
+        error: "Resume processing is temporarily unavailable.",
+        code: "RESUME_PERSISTENCE_FAILED",
+    });
+});
+
 async function readProductionMetrics(page: import("@playwright/test").Page) {
     return page.evaluate(() => {
         const navigation = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;

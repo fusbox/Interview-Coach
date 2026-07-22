@@ -96,6 +96,57 @@ describe("/candidate/session/[sessionId]/progress route", () => {
         });
     });
 
+    it("persists the explicit last-used voice mode with session progress", async () => {
+        const saveProgress = vi.fn(async (input) => input.progress);
+
+        const response = await handleCandidateSessionProgressRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/session/session-1/progress", {
+                method: "PUT",
+                body: JSON.stringify({
+                    status: "live_question",
+                    currentQuestionIndex: 1,
+                    answerMode: "voice",
+                }),
+            }),
+            sessionId: "session-1",
+            resolveCandidateSessionIdentity: vi.fn(async () => ({
+                candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            })),
+            practiceSessionRepository: { saveProgress },
+        });
+
+        expect(response.status).toBe(200);
+        expect(saveProgress).toHaveBeenCalledWith(expect.objectContaining({
+            progress: {
+                status: "live_question",
+                currentQuestionIndex: 1,
+                answerMode: "voice",
+            },
+        }));
+    });
+
+    it("rejects unknown answer modes instead of persisting ambiguous UI state", async () => {
+        const saveProgress = vi.fn();
+        const response = await handleCandidateSessionProgressRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/session/session-1/progress", {
+                method: "PUT",
+                body: JSON.stringify({
+                    status: "live_question",
+                    currentQuestionIndex: 1,
+                    answerMode: "photo",
+                }),
+            }),
+            sessionId: "session-1",
+            resolveCandidateSessionIdentity: vi.fn(async () => ({
+                candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            })),
+            practiceSessionRepository: { saveProgress },
+        });
+
+        expect(response.status).toBe(400);
+        expect(saveProgress).not.toHaveBeenCalled();
+    });
+
     it("fails closed when candidate identity is unavailable", async () => {
         const response = await handleCandidateSessionProgressRequest({
             request: new Request("https://interviewcoach.talentarbor.com/candidate/session/session-1/progress", {

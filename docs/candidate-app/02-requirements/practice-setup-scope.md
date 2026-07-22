@@ -1,105 +1,100 @@
 # Practice Setup Scope
 
-Date: 2026-04-03
-Status: Current product contract + future-extension seam
+Date: 2026-07-21
+Status: Current V2 product contract
 
 ## Purpose
 
-This document defines what `/practice` should let an authenticated candidate do before a practice session starts, and where the setup flow must leave clean extension points for future intake and guest-trial work.
+`/candidate/setup` creates a new candidate-owned preparation context and its first practice round. It is not the generic entry point for follow-up practice; one-question, fixed-set, and queued follow-up rounds use durable practice intents and the ready landing.
 
-## Current User Goal
+## User Goal
 
-As a candidate, I want to set up a practice interview around the role I am preparing for, use the job description as required role context, optionally add resume context, and start a guided session without having to manage question generation myself.
+As a candidate, I can describe the interview I am preparing for, optionally include processed resume context, choose the interview stage and first-round size, and start one recoverable coaching journey without managing question generation.
 
-## Current `/practice` Scope
+## Inputs
 
-Current route/feature boundary:
+Required:
 
-- [Practice route](/c:/tmp/Interview-Coach-Recruiter-postgres/src/app/practice/page.tsx)
-- [Practice route test](/c:/tmp/Interview-Coach-Recruiter-postgres/src/app/practice/page.test.tsx)
-- [Practice setup feature](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/PracticeSetupPage.tsx)
-- [Practice setup feature tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/PracticeSetupPage.test.tsx)
-- [Practice setup form](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/PracticeSetupForm.tsx)
-- [Practice setup form tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/PracticeSetupForm.test.tsx)
-- [Practice setup schema](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/practice-setup-schema.ts)
-- [Practice setup schema tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/features/practice-setup/practice-setup-schema.test.ts)
+- target role;
+- job description;
+- interview stage;
+- first-round question count.
 
-The route delegates rendering to `src/features/practice-setup`, keeping the page shell thin before server-backed draft lifecycle work begins.
+Optional resume sources:
 
-The setup schema is the current shared contract for form/server boundary validation. It trims accepted text, requires `targetRole` and `jobDescription`, normalizes blank optional `resumeText` values to `null`, and rejects invalid payload shapes before draft persistence is added.
+- pasted text;
+- a PDF or DOCX selected through Upload resume;
+- a resume image selected or captured through Take photo;
+- trusted host-resolved resume text when the launch context provides it.
 
-The setup form renders validation and future server submission errors through an announced alert region. Field-level errors set `aria-invalid` and are connected to the relevant input with `aria-describedby`.
+The source is never the coaching payload. Every source must become candidate-reviewed processed text through the shared [Storage And Resume Ingestion](../04-architecture/storage-and-resume-ingestion.md) contract.
 
-When a candidate has an editable server-backed draft, `/practice` restores the latest draft and pre-fills the target role, job description, and resume text fields. The current implementation supports local candidate auth modes; external SSO restore uses the same draft read path once the callback/session boundary is finalized.
+## Entry Modes
 
-Submitting setup now saves the candidate's latest role, job description, resume text, and structured intake before session creation. If an editable draft was restored, the app updates that draft; if no editable draft exists, it creates a new candidate-owned draft. The draft then moves through generation and routes the candidate into the session experience.
+### Identity-Only Host Launch
 
-### Required input
+The candidate enters manual role/JD setup unless an existing prep context should become the dashboard selection. The app does not invent host job provenance.
 
-- Target role
-- Job description text
+### Job-Aware Host Launch
 
-### Optional input
+The server stages the candidate-owned canonical role/JD and renders them read-only. Browser values cannot override trusted setup context. Optional host resume text still enters the shared resume processing boundary before use.
 
-- Resume text pasted directly into the app
-- Resume file upload
-- One or more photos of a printed resume, including multi-page capture
+### Local Development Launch
 
-### System behavior
+The fixture identity route exercises the same setup/session ownership path. Browser-local draft persistence is a development bridge, not evidence of production cross-device resume recovery.
 
-- Resume inputs should be normalized into extracted text before downstream question generation and coaching.
-- Candidate-facing question generation should remain hidden.
-- After setup submission, the app should show a generating/loading state and then route the candidate into the session experience.
-- If the candidate leaves during setup, generation, session, or summary, returning later should restore the correct screen/state from persisted server data.
+## Resume Input Behavior
 
-## Candidate Intake
+- Paste text is the default mode.
+- Upload resume opens a document-oriented picker restricted by browser hint to PDF/DOCX.
+- Take photo is the only mode that requests an image/camera-oriented picker. It also offers an explicit existing-photo fallback when camera capture is unavailable or denied.
+- Browser `accept` and `capture` attributes are usability hints; server content validation remains authoritative.
+- Pasted, extracted, OCR, and host text use the same parse, direct-PII-scrub, normalize, processed-draft, and candidate-review path.
+- Uploaded documents and photos are processing-only and are discarded on every success or failure. Raw sources never become setup drafts or session snapshots.
+- The setup/session payload carries only an accepted processed artifact reference/snapshot and safe candidate label. It does not carry source bytes, object paths, parser output, or unreviewed text.
+- An authenticated candidate may recover the exact current awaiting-review or accepted artifact for this setup context on refresh, revisit, or another device. Recovery never means selecting the candidate's newest artifact globally.
+- Changing source or deliberately clearing resume input invalidates older in-flight processing. A late parser/OCR response cannot become the current selection after that choice.
 
-The original PoC included a candidate intake flow for additional personalization. The first durable boundary now exists in the candidate-owned practice draft model, and `/practice` surfaces the MVP intake controls directly in setup.
+Pasted text now uses the candidate-owned processing and explicit review/acceptance path; identity-backed setup cannot use raw paste directly. PDF/DOCX upload uses the same review/acceptance path after bounded server-side signature/container validation, extraction, and disposal-before-persistence. Photo capture accepts up to four ordered JPEG, PNG, WebP, HEIC, or HEIF pages, checks actual image bytes, performs one ordered OCR request, disposes app-owned image buffers before artifact persistence, and places only scrubbed normalized text into the existing candidate review. The trusted-host processor is available but host resume lookup is not wired. Production document/photo enablement still requires provider/privacy approval, deployed throttling/resource/disposal evidence, accessibility, and representative desktop/mobile validation.
 
-Current implementation boundary:
+## Setup And Session Behavior
 
-- [Candidate practice draft repository](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.ts)
-- [Candidate practice draft repository tests](/c:/tmp/Interview-Coach-Recruiter-postgres/src/lib/server/candidate/candidate-practice-draft-repository.test.ts)
+- The server normalizes and validates setup input before side effects.
+- Stage creates the immutable prep-context Coach Plan baseline: 5 for not-sure/general and screening, 7 for first interview, and 10 for follow-up/final.
+- Candidate-selected count controls only the first round and may differ from the baseline.
+- Setup start is candidate-owned and idempotent. Concurrent/replayed requests do not repeat question generation or create another session.
+- Question generation remains hidden from the candidate and fails closed; failed generation preserves the setup draft and does not consume trusted staging.
+- Successful setup creates or explicitly separates one opaque prep context, persists its baseline plan/wording, creates the first session, clears the submitted setup draft, and enters the ready landing.
+- Successful setup consumes the current resume selection into the immutable prep/session snapshot. The next new-role setup starts without that resume selected.
+- Exact role/JD matches with prior practice require the existing-path versus separate-path choice; title text is not prep-context identity.
 
-Structured draft-level intake persists:
+## Statefulness
 
-- confidence level
-- interview type
-- timeline
-- concerns
-- practice focus values
+- Unsubmitted setup state is preserved until successful session creation or deliberate reset.
+- Candidate identity owns server-backed production drafts; browser storage alone is not sufficient for cross-device claims.
+- Successful setup starts a new blank setup state on the next visit.
+- Active sessions resume at the exact meaningful view/question with their current draft.
+- Historical sessions retain their original setup, resume artifact version, plan, wording, answers, and coaching meaning.
+- Initial and follow-up ready landings identify the staged accepted resume by its safe candidate label; older truthful snapshots may fall back to `Included`.
 
-The current UI captures readiness/confidence, interview type, timeline, concerns, and selected focus areas. The setup action persists these fields before creating the session so downstream session and dashboard work can use the same draft context.
+## Accessibility
 
-The first implementation keeps intake draft-specific. Future work can decide whether some answers should be promoted into reusable candidate profile preferences.
+- Required fields and errors are programmatically associated.
+- Processing and failure states use announced status without focus theft.
+- File, camera, and paste modes remain keyboard operable.
+- Camera permission is optional and always has paste/upload fallback.
+- Photo order can be changed or corrected without drag-and-drop or a precision pointer.
+- Candidate review/edit/accept controls must work without drag, hover, or precision pointer input.
 
-## Future Extension: Candidate-Authored Questions
+## Explicit Boundaries
 
-The original PoC also allowed candidates to add questions they specifically wanted to practice, in addition to AI-generated questions.
+Not part of initial setup:
 
-This should be treated as a supported future option in the session setup model, but it does not need to be surfaced in the first `/practice` screen if we choose to ship a simpler setup path first.
+- recruiter invitation creation or recipients;
+- candidate-authored question editing;
+- reusable resume library;
+- automatic resume revision against historical questions;
+- mixed-prep-context rounds;
+- raw-file retention.
 
-## Explicit Deviations from the Recruiter App
-
-- No invite-batch creation.
-- No recruiter-authored candidate list.
-- No pre-session invite email service.
-- Question generation is hidden from the candidate instead of shown as a review/edit step.
-- Candidate setup belongs to an authenticated user-owned draft/session object, not an anonymous invite token flow.
-
-## Reused Behavior from the Recruiter App
-
-The candidate app should preserve the recruiter app's strongest stateful-session patterns:
-
-- resume from the correct screen after refresh
-- resume from the correct screen after returning later
-- resume from the same state on another authenticated device
-- derive current screen from persisted draft/session state rather than trusting local component state alone
-
-## Out of Scope for the First `/practice` Pass
-
-- Guest trial flow
-- Full candidate dashboard implementation
-- Additional intake questionnaire depth beyond the MVP controls
-- Candidate-authored question UX, unless we decide to bring that forward early
-- Any recruiter-facing invite or review workflow
+Resume revision and question replacement are a later explicit product/data slice. A revision must not rewrite historical evidence or silently change an active round.

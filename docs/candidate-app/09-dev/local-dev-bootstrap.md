@@ -221,6 +221,13 @@ Current candidate V2 local development depends on these scripts:
 | Apply atomic fixed-intent session launch | `npm run db:apply-candidate-fixed-intent-launch` |
 | Apply direct-intent creation idempotency | `npm run db:apply-candidate-direct-intent-idempotency` |
 | Apply only V2 answer-attempt/evaluator-run schema | `npm run db:apply-candidate-answer-attempts-schema` |
+| Apply transcript-first voice persistence | `npm run db:apply-voice-transcription-foundation` |
+| Apply immutable voice transcription claims | `npm run db:apply-voice-transcription-claims` |
+| Validate voice persistence, claim concurrency, replay, conflict, and stale recovery | `npm run db:smoke-voice-transcription-claims` |
+| Apply candidate processed-resume artifacts | `npm run db:apply-candidate-resume-processed-artifacts` |
+| Allow processed PDF/DOCX provenance | `npm run db:apply-candidate-resume-document-upload` |
+| Allow processed photo-OCR provenance | `npm run db:apply-candidate-resume-photo-ocr` |
+| Validate processed-resume ownership, document/photo provenance, review fencing, and immutability | `npm run db:smoke-candidate-resume-processed-artifacts` |
 | Apply evaluator-run generations and claim fencing | `npm run db:apply-candidate-answer-evaluator-run-claims-schema` |
 | Apply immutable evaluator configuration manifests | `npm run db:apply-candidate-answer-evaluator-configuration-schema` |
 | Apply only V2 prep-context propagation schema | `npm run db:apply-candidate-prep-context-propagation-schema` |
@@ -302,6 +309,46 @@ CANDIDATE_ANSWER_ANALYSIS_PROVIDER=fixture
 ```
 
 The fixture provider is accepted only with explicit local dev host-launch mode. If the variable is missing, answer analysis remains fail-closed with provider-not-configured behavior.
+
+The shared candidate-led and invited recording UI is available only when an exact voice-transcription runtime is configured. For deterministic local browser validation without a provider call, use:
+
+```text
+SESSION_VOICE_TRANSCRIPTION_PROVIDER=fixture
+SESSION_VOICE_TRANSCRIPTION_PROFILE=fixture_voice_transcription_v1
+SESSION_VOICE_TRANSCRIPTION_FIXTURE_ENABLED=true
+```
+
+The fixture is blocked when `NODE_ENV=production` or `VERCEL_ENV=production`. It returns a deterministic transcript, so use it to validate permission-independent UI states, quick submit, Review/edit, immutable answer append, evaluator invocation, refresh recovery, and typed fallback rather than transcription fidelity.
+
+The current Developer API profile is:
+
+```text
+SESSION_VOICE_TRANSCRIPTION_PROVIDER=google_genai
+SESSION_VOICE_TRANSCRIPTION_PROFILE=google_gemini_2_5_flash_voice_transcription_v1
+GEMINI_API_KEY=<server-only-key>
+```
+
+The server exposes recording controls only when this exact provider/profile/key tuple resolves. Chromium capture prefers truthful WebM/Opus and falls back to truthful MP4/AAC; both containers passed the guarded Developer API matrix on 2026-07-21 without MIME relabeling or transcoding. Follow the [live voice-transcription runbook](../05-quality/live-voice-transcription-validation-runbook.md), then run `npm run test:voice-transcription-seam` and `npm run db:smoke-voice-transcription-claims`.
+
+For browser validation, restart the dev server after changing the tuple. Validate candidate-led and invited sessions through both voice paths: quick Submit Answer, then Review with a transcript correction. Confirm Retry creates no durable answer before submission, refresh after transcription recovers the transcript draft but not local playback, accepted voice answers receive ordinary content coaching with no delivery claims, a failed transcription leaves Type fully usable, and pause/exit warns only while unsaved local audio is at risk. Exact runtime configuration is local implementation enablement, not production approval; Google-side audio processing/retention approval and deployed desktop/mobile evidence remain release gates.
+
+Resume-photo OCR is independently configured. To validate the page queue, ordering, safe failure, review, and acceptance behavior without sending images to a provider, use:
+
+```text
+CANDIDATE_RESUME_OCR_PROVIDER=fixture
+CANDIDATE_RESUME_OCR_PROFILE=fixture_resume_photo_ocr_v1
+CANDIDATE_RESUME_OCR_FIXTURE_ENABLED=true
+```
+
+The fixture is blocked in production and returns deterministic page text; it does not validate OCR fidelity or provider image support. For a credentialed local OCR check, replace that tuple with:
+
+```text
+CANDIDATE_RESUME_OCR_PROVIDER=google_genai
+CANDIDATE_RESUME_OCR_PROFILE=google_gemini_2_5_flash_resume_photo_ocr_v1
+GEMINI_API_KEY=<server-only-key>
+```
+
+Restart the dev server, enter through the candidate dev-launch route, and choose Take photo. Validate one page and a multi-page batch: add pages in the wrong order, correct them with the arrow controls, remove one page, add it again, and choose `Review photo text`. Confirm only scrubbed normalized text appears, candidate edits are possible, `Use this resume` is required before practice can start, and revisiting setup never restores selected image files. Also deny camera access or run on desktop and confirm Choose photos, Upload resume, and Paste text remain usable. Do not run the live profile with real candidate resumes until the Google subprocessor/privacy posture is organizationally approved.
 
 Question audio is independently opt-in. To browser-validate the shared candidate-led and invited TTS lifecycle, add the exact serving tuple and restart the dev server:
 
@@ -479,7 +526,7 @@ Use those files when comparing against V1 behavior. Do not treat them as current
 For current V2 local development:
 
 - smoke Postgres is running;
-- `db:migrate` has applied through `028_invited_practice_live_runtime.sql`;
+- `db:migrate` has applied through `035_candidate_setup_resume_selections.sql`;
 - local candidate dev seed is present;
 - `db:smoke-candidate-readiness` passes;
 - the app is launched with `npm run dev`;
@@ -501,3 +548,9 @@ npm run test:e2e:candidate-production
 ```
 
 This separate runner builds and starts isolated production output with database, host-launch, and Gemini credentials blank. It checks the public page at desktop/mobile, WCAG 2.2 A/AA axe rules, horizontal overflow, local regression budgets, and production denial of dev/prototype routes. It does not prove authenticated candidate behavior or TalentArbor integration; use the [TA Host Launch Live Acceptance](./host-launch-live-acceptance.md) protocol for that evidence.
+
+The seeded browser runner accepts ordinary Playwright filters after `--`. For a focused resume milestone rerun without repeating the full practice loops:
+
+```powershell
+npm run test:e2e:candidate-seeded -- --grep "resume review recovers"
+```

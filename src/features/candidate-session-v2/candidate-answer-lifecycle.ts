@@ -1,4 +1,6 @@
-export type CandidateAnswerMode = "text";
+import type { VoiceTranscriptSubmissionPath } from "@/features/interview-session-v2/voice-answer-transcription";
+
+export type CandidateAnswerMode = "text" | "voice";
 
 export type CandidateAnswerDraft = {
     slotId: string;
@@ -23,6 +25,9 @@ export type CandidateAnswerSubmission = {
     attemptNumber?: number;
     trigger?: "initial_submit" | "feedback_retry";
     supersedesAnswerAttemptId?: string | null;
+    sourceVoiceTranscriptionRunId?: string | null;
+    voiceSubmissionPath?: VoiceTranscriptSubmissionPath | null;
+    voiceTranscriptEdited?: boolean | null;
 };
 
 export type CandidateAnswerSubmissions = Record<string, CandidateAnswerSubmission>;
@@ -43,6 +48,8 @@ export type CandidateAnswerSubmitIdempotencyPayload = {
     text: string;
     trigger?: "initial_submit" | "feedback_retry";
     supersedesAnswerAttemptId?: string | null;
+    sourceVoiceTranscriptionRunId?: string | null;
+    voiceSubmissionPath?: VoiceTranscriptSubmissionPath | null;
 };
 
 export type CandidateAnswerAnalysisIdempotencyPayload = CandidateAnswerSubmitIdempotencyPayload & {
@@ -107,6 +114,8 @@ export type CandidateAnswerSubmitRequest = {
     requestedAt: string;
     trigger?: "initial_submit" | "feedback_retry";
     supersedesAnswerAttemptId?: string | null;
+    sourceVoiceTranscriptionRunId?: string | null;
+    voiceSubmissionPath?: VoiceTranscriptSubmissionPath | null;
 };
 
 export type CandidateAnswerSubmitUnavailable = {
@@ -157,17 +166,28 @@ export function createCandidateAnswerSubmitRequest({
     requestedAt,
     trigger = "initial_submit",
     supersedesAnswerAttemptId = null,
+    sourceVoiceTranscriptionRunId = null,
+    voiceSubmissionPath = null,
 }: {
     draft: CandidateAnswerDraft;
     requestedAt: Date;
     trigger?: "initial_submit" | "feedback_retry";
     supersedesAnswerAttemptId?: string | null;
+    sourceVoiceTranscriptionRunId?: string | null;
+    voiceSubmissionPath?: VoiceTranscriptSubmissionPath | null;
 }): CandidateAnswerSubmitRequest {
     if (
         (trigger === "initial_submit" && supersedesAnswerAttemptId)
         || (trigger === "feedback_retry" && !readTrimmedString(supersedesAnswerAttemptId))
     ) {
         throw new Error("Answer submit trigger does not match its source attempt.");
+    }
+    const normalizedVoiceSource = readTrimmedString(sourceVoiceTranscriptionRunId);
+    if (
+        (draft.mode === "voice" && (!normalizedVoiceSource || !voiceSubmissionPath))
+        || (draft.mode === "text" && (normalizedVoiceSource || voiceSubmissionPath))
+    ) {
+        throw new Error("Answer mode does not match its voice transcription source.");
     }
 
     return {
@@ -177,6 +197,10 @@ export function createCandidateAnswerSubmitRequest({
         ...(trigger === "feedback_retry" ? {
             trigger,
             supersedesAnswerAttemptId: readTrimmedString(supersedesAnswerAttemptId)!,
+        } : {}),
+        ...(draft.mode === "voice" ? {
+            sourceVoiceTranscriptionRunId: normalizedVoiceSource!,
+            voiceSubmissionPath: voiceSubmissionPath!,
         } : {}),
     };
 }
@@ -261,6 +285,10 @@ export function createCandidateAnswerSubmitIdempotencyContract({
         ...(trigger === "feedback_retry" ? {
             trigger,
             supersedesAnswerAttemptId: request.supersedesAnswerAttemptId!,
+        } : {}),
+        ...(request.draft.mode === "voice" ? {
+            sourceVoiceTranscriptionRunId: request.sourceVoiceTranscriptionRunId!,
+            voiceSubmissionPath: request.voiceSubmissionPath!,
         } : {}),
     };
 
@@ -505,7 +533,7 @@ function normalizeCandidateAnswerSubmission(value: unknown): CandidateAnswerSubm
     const submittedAt = readNonEmptyString(answerSubmission.submittedAt);
     if (
         !slotId
-        || answerSubmission.mode !== "text"
+        || (answerSubmission.mode !== "text" && answerSubmission.mode !== "voice")
         || typeof answerSubmission.text !== "string"
         || !submittedAt
         || answerSubmission.status !== "pending_analysis"
@@ -515,6 +543,23 @@ function normalizeCandidateAnswerSubmission(value: unknown): CandidateAnswerSubm
     ) {
         return null;
     }
+
+    const sourceVoiceTranscriptionRunId = readNonEmptyString(answerSubmission.sourceVoiceTranscriptionRunId);
+    const voiceSubmissionPath = answerSubmission.voiceSubmissionPath === "quick_submit"
+        || answerSubmission.voiceSubmissionPath === "transcript_review"
+        ? answerSubmission.voiceSubmissionPath
+        : null;
+    const hasValidVoiceProvenance = answerSubmission.mode === "voice"
+        ? Boolean(
+            sourceVoiceTranscriptionRunId
+            && voiceSubmissionPath
+            && typeof answerSubmission.voiceTranscriptEdited === "boolean"
+        )
+        : !sourceVoiceTranscriptionRunId
+            && !voiceSubmissionPath
+            && (answerSubmission.voiceTranscriptEdited === null
+                || typeof answerSubmission.voiceTranscriptEdited === "undefined");
+    if (!hasValidVoiceProvenance) return null;
 
     const answerAttemptId = readNonEmptyString(answerSubmission.answerAttemptId);
     const hasAttemptMetadata = Boolean(
@@ -548,7 +593,7 @@ function normalizeCandidateAnswerSubmission(value: unknown): CandidateAnswerSubm
     return {
         slotId,
         questionIndex: answerSubmission.questionIndex,
-        mode: "text",
+        mode: answerSubmission.mode,
         text: answerSubmission.text,
         submittedAt,
         status: "pending_analysis",
@@ -557,6 +602,11 @@ function normalizeCandidateAnswerSubmission(value: unknown): CandidateAnswerSubm
             attemptNumber: answerSubmission.attemptNumber!,
             trigger: answerSubmission.trigger!,
             supersedesAnswerAttemptId: answerSubmission.supersedesAnswerAttemptId ?? null,
+        } : {}),
+        ...(answerSubmission.mode === "voice" ? {
+            sourceVoiceTranscriptionRunId,
+            voiceSubmissionPath,
+            voiceTranscriptEdited: answerSubmission.voiceTranscriptEdited!,
         } : {}),
     };
 }

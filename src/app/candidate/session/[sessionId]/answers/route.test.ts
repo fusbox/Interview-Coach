@@ -96,6 +96,151 @@ describe("/candidate/session/[sessionId]/answers route", () => {
         });
     });
 
+    it("authorizes and appends a reviewed voice transcript with server-derived edit provenance", async () => {
+        const sourceRunId = "44444444-4444-4444-8444-444444444444";
+        const authorizeVoiceAnswerTranscript = vi.fn(async () => ({
+            voiceTranscriptEdited: true,
+        }));
+        const appendAnswerAttempt = vi.fn(async ({ payloadFingerprint }) => ({
+            outcome: "created" as const,
+            attempt: {
+                candidateAnswerAttemptId: "11111111-1111-4111-8111-111111111111",
+                candidatePracticeSessionId: "session-1",
+                candidateProfileId: "22222222-2222-4222-8222-222222222222",
+                questionSlotId: "slot-1",
+                questionIndex: 0,
+                attemptNumber: 1,
+                trigger: "initial_submit" as const,
+                supersedesCandidateAnswerAttemptId: null,
+                mode: "voice" as const,
+                answerText: "I checked the labels and documented the result.",
+                submittedAt: "2026-07-21T17:00:00.000Z",
+                idempotencyKey: `voice-answer:${sourceRunId}:transcript_review`,
+                payloadFingerprint,
+                sourceVoiceTranscriptionRunId: sourceRunId,
+                voiceSubmissionPath: "transcript_review" as const,
+                voiceTranscriptEdited: true,
+                createdAt: "2026-07-21T17:00:00.000Z",
+            },
+        }));
+        const saveAnswerSubmission = vi.fn(async ({ answerSubmission }) => ({
+            "slot-1": answerSubmission,
+        }));
+
+        const response = await handleCandidateAnswerSubmitRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/session/session-1/answers", {
+                method: "POST",
+                headers: { "Idempotency-Key": `voice-answer:${sourceRunId}:transcript_review` },
+                body: JSON.stringify({
+                    slotId: "slot-1",
+                    questionIndex: 0,
+                    mode: "voice",
+                    text: "  I checked the labels and documented the result.  ",
+                    sourceVoiceTranscriptionRunId: sourceRunId,
+                    voiceSubmissionPath: "transcript_review",
+                    voiceTranscriptEdited: false,
+                }),
+            }),
+            sessionId: "session-1",
+            now: new Date("2026-07-21T17:00:00.000Z"),
+            resolveCandidateSessionIdentity: vi.fn(async () => ({
+                candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            })),
+            practiceSessionRepository: {
+                findSetupSession: vi.fn(async () => ({ answerIdempotencyRecords: {} })),
+                saveAnswerSubmission,
+            },
+            answerAttemptRepository: {
+                appendAnswerAttempt,
+                authorizeVoiceAnswerTranscript,
+            },
+        });
+
+        expect(response.status).toBe(202);
+        expect(authorizeVoiceAnswerTranscript).toHaveBeenCalledWith({
+            candidatePracticeSessionId: "session-1",
+            candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            questionSlotId: "slot-1",
+            questionIndex: 0,
+            sourceVoiceTranscriptionRunId: sourceRunId,
+            voiceSubmissionPath: "transcript_review",
+            transcriptText: "I checked the labels and documented the result.",
+            updatedAt: "2026-07-21T17:00:00.000Z",
+        });
+        expect(appendAnswerAttempt).toHaveBeenCalledWith(expect.objectContaining({
+            mode: "voice",
+            sourceVoiceTranscriptionRunId: sourceRunId,
+            voiceSubmissionPath: "transcript_review",
+            voiceTranscriptEdited: true,
+            payloadFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+        }));
+        await expect(response.json()).resolves.toMatchObject({
+            status: "answer_submit_saved",
+            answerSubmissions: {
+                "slot-1": {
+                    mode: "voice",
+                    sourceVoiceTranscriptionRunId: sourceRunId,
+                    voiceSubmissionPath: "transcript_review",
+                    voiceTranscriptEdited: true,
+                },
+            },
+        });
+    });
+
+    it("rejects a superseded voice transcript before appending an answer attempt", async () => {
+        const appendAnswerAttempt = vi.fn();
+        const response = await handleCandidateAnswerSubmitRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/session/session-1/answers", {
+                method: "POST",
+                body: JSON.stringify({
+                    slotId: "slot-1",
+                    questionIndex: 0,
+                    mode: "voice",
+                    text: "A stale transcript.",
+                    sourceVoiceTranscriptionRunId: "44444444-4444-4444-8444-444444444444",
+                    voiceSubmissionPath: "quick_submit",
+                }),
+            }),
+            sessionId: "session-1",
+            now: new Date("2026-07-21T17:00:00.000Z"),
+            resolveCandidateSessionIdentity: vi.fn(async () => ({ candidateProfileId: "candidate-1" })),
+            practiceSessionRepository: {
+                findSetupSession: vi.fn(async () => ({ answerIdempotencyRecords: {} })),
+                saveAnswerSubmission: vi.fn(),
+            },
+            answerAttemptRepository: {
+                appendAnswerAttempt,
+                authorizeVoiceAnswerTranscript: vi.fn(async () => null),
+            },
+        });
+
+        expect(response.status).toBe(409);
+        await expect(response.json()).resolves.toMatchObject({
+            code: "VOICE_TRANSCRIPT_SOURCE_NOT_CURRENT",
+            retryable: false,
+        });
+        expect(appendAnswerAttempt).not.toHaveBeenCalled();
+    });
+
+    it("rejects a voice submit without a valid transcription source", async () => {
+        const response = await handleCandidateAnswerSubmitRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/session/session-1/answers", {
+                method: "POST",
+                body: JSON.stringify({
+                    slotId: "slot-1",
+                    questionIndex: 0,
+                    mode: "voice",
+                    text: "No source attached.",
+                    voiceSubmissionPath: "quick_submit",
+                }),
+            }),
+            sessionId: "session-1",
+            now: new Date("2026-07-21T17:00:00.000Z"),
+        });
+
+        expect(response.status).toBe(400);
+    });
+
     it("persists attempt identity in the latest-answer projection without creating another attempt on replay", async () => {
         const appendAnswerAttempt = vi.fn(async () => ({
             outcome: "created" as const,
@@ -113,6 +258,9 @@ describe("/candidate/session/[sessionId]/answers route", () => {
                 submittedAt: "2026-07-09T20:01:00.000Z",
                 idempotencyKey: "client-submit-key-1",
                 payloadFingerprint: "fingerprint-1",
+                sourceVoiceTranscriptionRunId: null,
+                voiceSubmissionPath: null,
+                voiceTranscriptEdited: null,
                 createdAt: "2026-07-09T20:01:00.000Z",
             },
         }));
@@ -188,6 +336,9 @@ describe("/candidate/session/[sessionId]/answers route", () => {
                 submittedAt: "2026-07-14T19:00:00.000Z",
                 idempotencyKey: "retry-key-1",
                 payloadFingerprint: "fingerprint-2",
+                sourceVoiceTranscriptionRunId: null,
+                voiceSubmissionPath: null,
+                voiceTranscriptEdited: null,
                 createdAt: "2026-07-14T19:00:00.000Z",
             },
         }));

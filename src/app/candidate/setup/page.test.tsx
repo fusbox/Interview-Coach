@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { act } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -31,18 +31,142 @@ it("renders the candidate setup inputs with required markers", () => {
     expect(screen.getByLabelText("Paste resume text")).toBeInTheDocument();
 });
 
-it("supports pasted, uploaded, and photographed resume text sources", () => {
-    render(<CandidateSetupExperience />);
+it("processes document upload separately from image capture without saving raw file content", async () => {
+    const handleSetupReady = vi.fn();
+    const fetchMock = vi.fn()
+        .mockResolvedValueOnce(new Response(JSON.stringify({
+            artifact: createDocumentReviewArtifact("awaiting_review", 1),
+        }), { status: 201 }))
+        .mockResolvedValueOnce(new Response(JSON.stringify({
+            outcome: "accepted",
+            artifact: createDocumentReviewArtifact("accepted", 2),
+        }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<CandidateSetupExperience onSetupReady={handleSetupReady} />);
 
     expect(screen.getByRole("button", { name: /paste text/i })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByLabelText(/upload file/i)).toHaveAttribute("accept", ".pdf,.doc,.docx,.txt,image/*");
-    expect(screen.getByLabelText(/take photo/i)).toHaveAttribute("capture", "environment");
+    const documentInput = screen.getByLabelText(/upload resume/i);
+    expect(documentInput).toHaveAttribute(
+        "accept",
+        ".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    );
+    expect(documentInput.getAttribute("accept")).not.toContain("image/");
+    expect(documentInput.getAttribute("accept")).not.toMatch(/(?:^|,)\.doc(?:,|$)/);
+    expect(documentInput.getAttribute("accept")).not.toContain(".txt");
 
-    const resume = new File(["resume"], "resume.pdf", { type: "application/pdf" });
-    fireEvent.change(screen.getByLabelText(/upload file/i), { target: { files: [resume] } });
+    const photoInput = screen.getByLabelText(/take photo/i);
+    expect(photoInput).toHaveAttribute("accept", "image/*");
+    expect(photoInput).toHaveAttribute("capture", "environment");
+
+    const resume = new File(["%PDF-1.4 private-pdf-bytes"], "resume.pdf", { type: "application/pdf" });
+    await act(async () => {
+        fireEvent.change(documentInput, { target: { files: [resume] } });
+    });
 
     expect(screen.getByRole("button", { name: /paste text/i })).toHaveAttribute("aria-pressed", "false");
-    expect(screen.getByText(/Selected: resume.pdf/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Selected: resume.pdf. Prepared text is ready for your review./i)).toBeInTheDocument();
+    expect(screen.getByLabelText("Review resume text")).toHaveValue("Supported a high-volume front desk.");
+    expect(window.localStorage.getItem(CANDIDATE_SETUP_DRAFT_STORAGE_KEY) ?? "").not.toContain("private-pdf-bytes");
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "/candidate/setup/resume-document", expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+            "Content-Type": "application/pdf",
+            "X-Resume-Document-Name": "resume.pdf",
+            "X-Candidate-Resume-Selection-Operation": expect.stringMatching(/^[0-9a-f-]{36}$/),
+        }),
+        body: resume,
+    }));
+
+    await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /use this resume/i }));
+    });
+    expect(await screen.findByText(/Selected: resume.pdf. Reviewed text is ready to use./i)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Target role *"), {
+        target: { value: "Customer service representative" },
+    });
+    fireEvent.change(screen.getByLabelText("Job description *"), {
+        target: { value: "Help customers resolve service questions." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /start practice/i }));
+
+    expect(handleSetupReady).toHaveBeenCalledWith(expect.objectContaining({
+        payload: expect.objectContaining({
+            resumeText: "Supported a high-volume front desk.",
+            resumeCaptureMode: "document_upload",
+            resumeArtifact: expect.objectContaining({
+                source: "document_upload",
+                reviewState: "accepted",
+                revision: 2,
+            }),
+        }),
+    }));
+
+});
+
+it("queues, reorders, OCRs, reviews, and accepts resume photos without persisting image bytes", async () => {
+    const handleSetupReady = vi.fn();
+    const fetchMock = vi.fn()
+        .mockResolvedValueOnce(new Response(JSON.stringify({
+            artifact: createPhotoReviewArtifact("awaiting_review", 1),
+        }), { status: 201 }))
+        .mockResolvedValueOnce(new Response(JSON.stringify({
+            outcome: "accepted",
+            artifact: createPhotoReviewArtifact("accepted", 2),
+        }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<CandidateSetupExperience onSetupReady={handleSetupReady} />);
+
+    const firstPage = new File(["first-private-photo"], "page-1.jpg", { type: "image/jpeg" });
+    const secondPage = new File(["second-private-photo"], "page-2.heic", { type: "image/heic" });
+    await act(async () => {
+        fireEvent.change(screen.getByLabelText(/take photo/i), { target: { files: [firstPage] } });
+    });
+    await act(async () => {
+        fireEvent.change(screen.getByLabelText(/choose photos/i), { target: { files: [secondPage] } });
+    });
+
+    expect(screen.getByRole("list", { name: /resume photo page order/i })).toHaveTextContent("Page 1page-1.jpg");
+    expect(screen.getByRole("list", { name: /resume photo page order/i })).toHaveTextContent("Page 2page-2.heic");
+    fireEvent.click(screen.getByRole("button", { name: "Move page 1 down" }));
+
+    await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /review photo text/i }));
+    });
+
+    const submitted = fetchMock.mock.calls[0]?.[1]?.body as FormData;
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "/candidate/setup/resume-photo", expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+            "X-Candidate-Resume-Selection-Operation": expect.stringMatching(/^[0-9a-f-]{36}$/),
+        }),
+    }));
+    expect(submitted.getAll("pages").map((value) => value instanceof File ? value.name : "")).toEqual([
+        "page-2.heic",
+        "page-1.jpg",
+    ]);
+    expect(screen.queryByRole("list", { name: /resume photo page order/i })).not.toBeInTheDocument();
+    expect(await screen.findByLabelText("Review resume text")).toHaveValue("Managed inventory and shipments.");
+    expect(window.localStorage.getItem(CANDIDATE_SETUP_DRAFT_STORAGE_KEY) ?? "").not.toContain("private-photo");
+
+    await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /use this resume/i }));
+    });
+    fireEvent.change(screen.getByLabelText("Target role *"), { target: { value: "Inventory lead" } });
+    fireEvent.change(screen.getByLabelText("Job description *"), { target: { value: "Manage inventory and shipments." } });
+    fireEvent.click(screen.getByRole("button", { name: /start practice/i }));
+
+    expect(handleSetupReady).toHaveBeenCalledWith(expect.objectContaining({
+        payload: expect.objectContaining({
+            resumeText: "Managed inventory and shipments.",
+            resumeCaptureMode: "photo_capture",
+            resumeArtifact: expect.objectContaining({
+                source: "photo_capture",
+                reviewState: "accepted",
+                revision: 2,
+            }),
+        }),
+    }));
 });
 
 it("changes the recommended question count when the interview stage changes", () => {
@@ -112,8 +236,17 @@ it("shows setup contract errors before posting invalid setup input", async () =>
     expect(screen.getByLabelText("Job description *")).toHaveAttribute("aria-invalid", "true");
 });
 
-it("submits a typed setup payload for the next transition", () => {
+it("requires resume processing and acceptance before submitting the reviewed artifact", async () => {
     const handleSetupReady = vi.fn();
+    const fetchMock = vi.fn()
+        .mockResolvedValueOnce(new Response(JSON.stringify({
+            artifact: createResumeReviewArtifact("awaiting_review", 1),
+        }), { status: 201 }))
+        .mockResolvedValueOnce(new Response(JSON.stringify({
+            outcome: "accepted",
+            artifact: createResumeReviewArtifact("accepted", 2),
+        }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
     render(<CandidateSetupExperience onSetupReady={handleSetupReady} />);
 
     fireEvent.change(screen.getByLabelText("Target role *"), {
@@ -125,6 +258,15 @@ it("submits a typed setup payload for the next transition", () => {
     fireEvent.change(screen.getByLabelText("Paste resume text"), {
         target: { value: " Supported a high-volume front desk. " },
     });
+    expect(screen.getByRole("button", { name: /start practice/i })).toHaveAttribute("aria-disabled", "true");
+    await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /review resume/i }));
+    });
+    await waitFor(() => expect(screen.getByRole("button", { name: /use this resume/i })).toBeInTheDocument());
+    await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /use this resume/i }));
+    });
+    await waitFor(() => expect(screen.getByText("Resume ready")).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: /screening call/i }));
     fireEvent.click(screen.getByRole("button", { name: "3" }));
     fireEvent.click(screen.getByRole("button", { name: /start practice/i }));
@@ -139,8 +281,79 @@ it("submits a typed setup payload for the next transition", () => {
             interviewStage: "screening",
             questionCount: 3,
             resumeCaptureMode: "pasted_text",
+            resumeArtifact: createResumeArtifactReference(2),
         },
     });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+
+it("returns an older-policy review to the processing step without losing its text", async () => {
+    const fetchMock = vi.fn()
+        .mockResolvedValueOnce(new Response(JSON.stringify({
+            artifact: createResumeReviewArtifact("awaiting_review", 1),
+        }), { status: 201 }))
+        .mockResolvedValueOnce(new Response(JSON.stringify({
+            error: "Resume protection has been updated. Review this text again before using it.",
+            code: "RESUME_REVIEW_POLICY_CHANGED",
+        }), { status: 409 }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<CandidateSetupExperience />);
+
+    fireEvent.change(screen.getByLabelText("Paste resume text"), {
+        target: { value: "Supported a high-volume front desk." },
+    });
+    await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /review resume/i }));
+    });
+    await act(async () => {
+        fireEvent.click(await screen.findByRole("button", { name: /use this resume/i }));
+    });
+
+    expect(await screen.findByRole("button", { name: /review resume/i })).toBeInTheDocument();
+    expect(screen.getByLabelText("Paste resume text")).toHaveValue("Supported a high-volume front desk.");
+    expect(screen.getByText(/resume protection has been updated/i)).toBeInTheDocument();
+});
+
+it("returns an accepted stale-policy artifact to review when setup start rejects it", async () => {
+    const fetchMock = vi.fn()
+        .mockResolvedValueOnce(new Response(JSON.stringify({
+            artifact: createResumeReviewArtifact("awaiting_review", 1),
+        }), { status: 201 }))
+        .mockResolvedValueOnce(new Response(JSON.stringify({
+            outcome: "accepted",
+            artifact: createResumeReviewArtifact("accepted", 2),
+        }), { status: 200 }))
+        .mockResolvedValueOnce(new Response(JSON.stringify({
+            error: "That resume review is no longer current. Review the resume again before starting practice.",
+            code: "RESUME_REVIEW_STALE",
+        }), { status: 409 }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<CandidateSetupExperience />);
+
+    fireEvent.change(screen.getByLabelText("Target role *"), {
+        target: { value: "Customer service representative" },
+    });
+    fireEvent.change(screen.getByLabelText("Job description *"), {
+        target: { value: "Help customers resolve service questions." },
+    });
+    fireEvent.change(screen.getByLabelText("Paste resume text"), {
+        target: { value: "Supported a high-volume front desk." },
+    });
+    await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /review resume/i }));
+    });
+    await act(async () => {
+        fireEvent.click(await screen.findByRole("button", { name: /use this resume/i }));
+    });
+    fireEvent.click(screen.getByRole("button", { name: /screening call/i }));
+    fireEvent.click(screen.getByRole("button", { name: "3" }));
+    await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /start practice/i }));
+    });
+
+    expect(await screen.findByRole("button", { name: /review resume/i })).toBeInTheDocument();
+    expect(screen.getByLabelText("Paste resume text")).toHaveValue("Supported a high-volume front desk.");
+    expect(screen.getByText(/resume review is no longer current/i)).toBeInTheDocument();
 });
 
 it("can create a provisional session transition through the setup boundary", () => {
@@ -474,6 +687,7 @@ it("restores and autosaves a candidate setup draft for the same owner key", () =
         targetRole: "Warehouse lead",
         jobDescription: "Coordinate safety workflows.",
         resumeText: "Led daily standups.",
+        resumeArtifact: createResumeArtifactReference(2),
         interviewStage: "follow_up",
         questionCount: 7,
     });
@@ -504,6 +718,7 @@ it("prefills and locks server-trusted host role context without overriding candi
         targetRole: "Browser-supplied role",
         jobDescription: "Browser-supplied description.",
         resumeText: "Candidate resume text.",
+        resumeArtifact: createResumeArtifactReference(2),
         interviewStage: "follow_up",
         questionCount: 7,
     });
@@ -529,6 +744,57 @@ it("prefills and locks server-trusted host role context without overriding candi
     expect(screen.getByLabelText("Paste resume text")).toHaveValue("Candidate resume text.");
     expect(screen.getByRole("button", { name: /follow-up interview/i })).toHaveAttribute("aria-pressed", "true");
 });
+
+it("restores an unfinished server-owned resume review without browser source bytes", () => {
+    render(<CandidateSetupExperience
+        draftOwnerKey="candidate:demo"
+        initialResumeArtifact={createDocumentReviewArtifact("awaiting_review", 1)}
+    />);
+
+    expect(screen.getByLabelText("Review resume text")).toHaveValue("Supported a high-volume front desk.");
+    expect(screen.getByText(/Selected: resume.pdf. Prepared text is ready for your review./i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /use this resume/i })).toBeEnabled();
+    expect(window.localStorage.getItem(CANDIDATE_SETUP_DRAFT_STORAGE_KEY) ?? "").not.toContain("Supported a high-volume front desk.");
+});
+
+function createResumeArtifactReference(revision: number) {
+    return {
+        artifactId: "20000000-0000-4000-8000-000000000001",
+        version: 1,
+        revision,
+        source: "pasted_text" as const,
+        candidateLabel: "Pasted resume",
+        reviewState: "accepted" as const,
+    };
+}
+
+function createResumeReviewArtifact(reviewState: "awaiting_review" | "accepted", revision: number) {
+    return {
+        ...createResumeArtifactReference(revision),
+        reviewState,
+        normalizedText: "Supported a high-volume front desk.",
+        piiRedactionCounts: {},
+        createdAt: "2026-07-21T12:00:00.000Z",
+        acceptedAt: reviewState === "accepted" ? "2026-07-21T12:01:00.000Z" : null,
+    };
+}
+
+function createDocumentReviewArtifact(reviewState: "awaiting_review" | "accepted", revision: number) {
+    return {
+        ...createResumeReviewArtifact(reviewState, revision),
+        source: "document_upload" as const,
+        candidateLabel: "resume.pdf",
+    };
+}
+
+function createPhotoReviewArtifact(reviewState: "awaiting_review" | "accepted", revision: number) {
+    return {
+        ...createResumeReviewArtifact(reviewState, revision),
+        source: "photo_capture" as const,
+        candidateLabel: "2 resume photos",
+        normalizedText: "Managed inventory and shipments.",
+    };
+}
 
 it("does not hydrate with different ready-state markup when a browser draft exists", async () => {
     const previousWindow = globalThis.window;

@@ -22,6 +22,14 @@ import type { CandidateFeedbackActionEvent } from "./candidate-feedback-interact
 import type { CandidateLedSessionCompletionSnapshot } from "@/features/interview-session-v2/session-completion-contract";
 import type { CandidateSetupStartClaim } from "@/features/candidate-setup-v2/candidate-setup-start-request";
 import type { CandidatePracticePlanBaselineSnapshot } from "@/features/candidate-setup-v2/candidate-practice-plan-baseline";
+import {
+    CANDIDATE_RESUME_DIRECT_PII_POLICY_VERSION,
+    CANDIDATE_RESUME_TEXT_PROCESSING_POLICY_VERSION,
+} from "@/features/candidate-setup-v2/candidate-resume-text-processing";
+import {
+    normalizeVoiceTranscriptDrafts,
+    type VoiceTranscriptDrafts,
+} from "@/features/interview-session-v2/voice-answer-transcription";
 
 export type CandidatePracticeSessionQueryClient = {
     query: (sql: string, values: unknown[]) => Promise<{
@@ -51,6 +59,7 @@ export type CandidatePracticeSessionRecord = {
     answerIdempotencyRecords: CandidateAnswerIdempotencyRecords;
     answerAnalysisSnapshots: CandidateAnswerAnalysisSnapshots;
     feedbackActionEvents: CandidateFeedbackActionEvents;
+    voiceTranscriptDrafts?: VoiceTranscriptDrafts;
     completionSnapshot: CandidateLedSessionCompletionSnapshot | null;
 };
 
@@ -71,6 +80,7 @@ export type CreateCandidatePracticeSessionInput = {
     answerDrafts?: CandidateAnswerDrafts;
     answerSubmissions?: CandidateAnswerSubmissions;
     setupStartClaim?: CandidateSetupStartClaim;
+    resumeSelectionOwnerKey?: string | null;
 };
 
 export type CandidatePracticeSessionPersistenceInput = {
@@ -127,6 +137,27 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
                     and request.claim_expires_at > now()
                     and request.expires_at > now()
                   for update
+                ), locked_resume_selection as materialized (
+                  select selection.candidate_resume_artifact_id, selection.lifecycle_state
+                  from public.candidate_setup_resume_selections selection
+                  where $18::text is not null
+                    and selection.candidate_profile_id = $1
+                    and selection.setup_owner_key = $18
+                  for update
+                ), eligible_resume_selection as materialized (
+                  select selection.candidate_resume_artifact_id
+                  from locked_resume_selection selection
+                  join public.candidate_resume_processed_artifacts artifact
+                    on artifact.candidate_profile_id = $1
+                   and artifact.candidate_resume_artifact_id = selection.candidate_resume_artifact_id
+                  where $19::uuid is not null
+                    and selection.lifecycle_state = 'active'
+                    and selection.candidate_resume_artifact_id = $19::uuid
+                    and artifact.version = $20
+                    and artifact.review_revision = $21
+                    and artifact.review_state = 'accepted'
+                    and artifact.processing_policy_version = $22
+                    and artifact.pii_policy_version = $23
                 ), persisted_practice_plan_baseline as (
                   update public.candidate_role_preparation_profiles profile
                   set rigor_baseline_snapshot_json = coalesce(profile.rigor_baseline_snapshot_json, $16::jsonb),
@@ -188,11 +219,51 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
                   select $1, $2, $3, $4, $5::jsonb, $6::jsonb, $7::jsonb, $8, $9::jsonb, $10::jsonb
                   where (not $12::boolean or exists (select 1 from eligible_setup_start_request))
                     and ($2::uuid is null or exists (select 1 from persisted_practice_plan_baseline))
+                    and ($18::text is null or $2::uuid is not null)
+                    and (
+                      $18::text is null
+                      or (
+                        $19::uuid is null
+                        and (
+                          not exists (select 1 from locked_resume_selection)
+                          or exists (
+                            select 1
+                            from locked_resume_selection selection
+                            where selection.lifecycle_state in ('cleared', 'consumed')
+                          )
+                        )
+                      )
+                      or exists (select 1 from eligible_resume_selection)
+                    )
                     and (
                       not $11::boolean
                       or exists (select 1 from consumed_launch_session)
                     )
                   returning candidate_practice_session_id
+                ), consumed_resume_selection as (
+                  update public.candidate_setup_resume_selections selection
+                  set pending_operation_id = null,
+                      candidate_resume_artifact_id = $19::uuid,
+                      lifecycle_state = 'consumed',
+                      consumed_role_profile_id = $2::uuid,
+                      consumed_candidate_practice_session_id = inserted.candidate_practice_session_id,
+                      consumed_at = now(),
+                      updated_at = now()
+                  from inserted_practice_session inserted
+                  where $18::text is not null
+                    and selection.candidate_profile_id = $1
+                    and selection.setup_owner_key = $18
+                    and (
+                      (
+                        $19::uuid is null
+                        and selection.lifecycle_state = 'cleared'
+                      )
+                      or (
+                        $19::uuid is not null
+                        and exists (select 1 from eligible_resume_selection)
+                      )
+                    )
+                  returning selection.consumed_candidate_practice_session_id
                 ), completed_setup_start_request as (
                   update public.candidate_setup_start_requests request
                   set lifecycle_state = 'completed',
@@ -210,8 +281,25 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
                 )
                 select inserted.candidate_practice_session_id
                 from inserted_practice_session inserted
-                where not $12::boolean
-                   or exists (select 1 from completed_setup_start_request)
+                where (
+                    not $12::boolean
+                    or exists (select 1 from completed_setup_start_request)
+                  )
+                  and (
+                    $18::text is null
+                    or (
+                      $19::uuid is null
+                      and (
+                        not exists (select 1 from locked_resume_selection)
+                        or exists (
+                          select 1
+                          from locked_resume_selection selection
+                          where selection.lifecycle_state = 'consumed'
+                        )
+                      )
+                    )
+                    or exists (select 1 from consumed_resume_selection)
+                  )
             `, [
                 input.candidateProfileId,
                 persistence.roleProfileId,
@@ -230,6 +318,12 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
                 input.setupStartClaim?.claimGeneration ?? null,
                 input.rigorBaselineSnapshot ?? null,
                 input.rigorBaselineQuestionWordingSnapshot ?? null,
+                input.resumeSelectionOwnerKey ?? null,
+                input.setupSnapshot.resumeArtifact?.artifactId ?? null,
+                input.setupSnapshot.resumeArtifact?.version ?? null,
+                input.setupSnapshot.resumeArtifact?.revision ?? null,
+                CANDIDATE_RESUME_TEXT_PROCESSING_POLICY_VERSION,
+                CANDIDATE_RESUME_DIRECT_PII_POLICY_VERSION,
             ]);
 
             const candidatePracticeSessionId = readString(result.rows[0]?.candidate_practice_session_id);
@@ -257,6 +351,7 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
                   answer_idempotency_json,
                   answer_analysis_snapshots_json,
                   feedback_actions_json,
+                  voice_transcript_drafts_json,
                   completion_snapshot_json
                 from public.candidate_practice_sessions
                 where candidate_practice_session_id = $1
@@ -292,6 +387,7 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
                   answer_idempotency_json,
                   answer_analysis_snapshots_json,
                   feedback_actions_json,
+                  voice_transcript_drafts_json,
                   completion_snapshot_json
                 from public.candidate_practice_sessions
                 where candidate_profile_id = $1
@@ -327,6 +423,7 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
                   answer_idempotency_json,
                   answer_analysis_snapshots_json,
                   feedback_actions_json,
+                  voice_transcript_drafts_json,
                   completion_snapshot_json
                 from public.candidate_practice_sessions
                 where candidate_profile_id = $1
@@ -359,6 +456,7 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
                   answer_idempotency_json,
                   answer_analysis_snapshots_json,
                   feedback_actions_json,
+                  voice_transcript_drafts_json,
                   completion_snapshot_json
                 from public.candidate_practice_sessions
                 where candidate_profile_id = $1
@@ -636,6 +734,7 @@ function toCandidatePracticeSessionRecord(row: Record<string, unknown> | undefin
         answerIdempotencyRecords: normalizeCandidateAnswerIdempotencyRecords(row.answer_idempotency_json),
         answerAnalysisSnapshots: normalizeCandidateAnswerAnalysisSnapshots(row.answer_analysis_snapshots_json),
         feedbackActionEvents: normalizeCandidateFeedbackActionEvents(row.feedback_actions_json),
+        voiceTranscriptDrafts: normalizeVoiceTranscriptDrafts(row.voice_transcript_drafts_json),
         completionSnapshot: normalizeCandidateCompletionSnapshot(row.completion_snapshot_json),
     };
 }

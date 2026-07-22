@@ -82,6 +82,7 @@ function PracticeIntentReadyResolvedState({
             stageLabel={candidateSetupStageOptions.find((stage) => stage.id === intent.setupContext.interviewStage)?.label ?? "Interview"}
             questionCount={intent.itemCount}
             resumeIncluded={intent.setupContext.resumeIncluded}
+            resumeLabel={intent.setupContext.resumeArtifact?.candidateLabel ?? null}
             questions={intent.items.map((item) => ({
                 id: `${item.source.candidatePracticeSessionId}:${item.source.questionKey}`,
                 number: item.source.questionNumber,

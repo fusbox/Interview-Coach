@@ -410,6 +410,9 @@ function createAttempt({
         submittedAt,
         idempotencyKey: `key-${id}`,
         payloadFingerprint: `payload-${id}`,
+        sourceVoiceTranscriptionRunId: null,
+        voiceSubmissionPath: null,
+        voiceTranscriptEdited: null,
         createdAt: submittedAt,
     };
 }

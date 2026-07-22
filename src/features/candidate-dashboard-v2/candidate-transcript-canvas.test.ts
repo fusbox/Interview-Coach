@@ -244,6 +244,9 @@ function createAttempt(answerText: string): CandidateAnswerAttemptRecord {
         submittedAt: "2026-07-19T11:59:00.000Z",
         idempotencyKey: "attempt-key-1",
         payloadFingerprint: "answer-payload-1",
+        sourceVoiceTranscriptionRunId: null,
+        voiceSubmissionPath: null,
+        voiceTranscriptEdited: null,
         createdAt: "2026-07-19T11:59:00.000Z",
     };
 }

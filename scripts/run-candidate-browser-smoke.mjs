@@ -6,6 +6,7 @@ import { getSmokeDatabaseUrl } from "./smoke-postgres-config.mjs";
 
 const generatedTypeConfigPaths = ["next-env.d.ts", "tsconfig.json"];
 const generatedTypeConfigSnapshots = await snapshotFiles(generatedTypeConfigPaths);
+const playwrightArgs = process.argv.slice(2);
 const port = await findAvailablePort(3000);
 const baseURL = `http://127.0.0.1:${port}`;
 const env = {
@@ -49,7 +50,7 @@ const server = spawn(
 
 try {
     await waitForServer(baseURL, server);
-    const result = runPlaywright(env);
+    const result = runPlaywright(env, playwrightArgs);
     process.exitCode = result.status ?? 1;
 } finally {
     await stopServer(server);
@@ -68,11 +69,11 @@ async function restoreFiles(snapshots) {
     await Promise.all(snapshots.map(({ path, contents }) => writeFile(path, contents, "utf8")));
 }
 
-function runPlaywright(env) {
+function runPlaywright(env, additionalArgs) {
     const command = process.platform === "win32" ? "cmd.exe" : "npx";
     const args = process.platform === "win32"
-        ? ["/c", "npx", "playwright", "test", "e2e/candidate/seeded-setup-summary.spec.ts", "--config=playwright.candidate-seeded.config.ts"]
-        : ["playwright", "test", "e2e/candidate/seeded-setup-summary.spec.ts", "--config=playwright.candidate-seeded.config.ts"];
+        ? ["/c", "npx", "playwright", "test", "e2e/candidate/seeded-setup-summary.spec.ts", "--config=playwright.candidate-seeded.config.ts", ...additionalArgs]
+        : ["playwright", "test", "e2e/candidate/seeded-setup-summary.spec.ts", "--config=playwright.candidate-seeded.config.ts", ...additionalArgs];
 
     const result = spawnSync(command, args, { stdio: "inherit", env });
 

@@ -16,6 +16,11 @@ import {
     createEvaluatorFingerprint,
     type EvidenceFirstEvaluatorResolvedConfigurationManifest,
 } from "@/features/evaluation-v2/evidence-first-evaluator-contract";
+import {
+    normalizeVoiceTranscriptDraft,
+    type VoiceTranscriptDraft,
+    type VoiceTranscriptSubmissionPath,
+} from "@/features/interview-session-v2/voice-answer-transcription";
 
 export type CandidateAnswerHistoryQueryClient = {
     query: (sql: string, values: unknown[]) => Promise<{
@@ -35,6 +40,14 @@ export type AppendCandidateAnswerAttemptInput = {
     supersedesCandidateAnswerAttemptId?: string | null;
     idempotencyKey: string;
     payloadFingerprint: string;
+    sourceVoiceTranscriptionRunId?: string | null;
+    voiceSubmissionPath?: VoiceTranscriptSubmissionPath | null;
+    voiceTranscriptEdited?: boolean | null;
+};
+
+export type AuthorizedVoiceAnswerTranscript = {
+    draft: VoiceTranscriptDraft;
+    voiceTranscriptEdited: boolean;
 };
 
 export type ClaimCandidateAnswerEvaluationRunInput = {
@@ -115,10 +128,13 @@ export function createCandidateAnswerHistoryRepository(client: CandidateAnswerHi
                     answer_text,
                     submitted_at,
                     idempotency_key,
-                    payload_fingerprint
+                    payload_fingerprint,
+                    source_candidate_voice_transcription_run_id,
+                    voice_submission_path,
+                    voice_transcript_edited
                   )
                   select $1, $2, $3, $4, candidate.attempt_number, $8,
-                         candidate.supersedes_candidate_answer_attempt_id, $5, $6, $7, $9, $10
+                         candidate.supersedes_candidate_answer_attempt_id, $5, $6, $7, $9, $10, $12, $13, $14
                   from candidate
                   returning *
                 )
@@ -126,7 +142,11 @@ export function createCandidateAnswerHistoryRepository(client: CandidateAnswerHi
                 from inserted
                 union all
                 select
-                  case when existing.payload_fingerprint = $10 then 'replayed' else 'idempotency_conflict' end as write_outcome,
+                  case when existing.payload_fingerprint = $10
+                              and existing.source_candidate_voice_transcription_run_id is not distinct from $12::uuid
+                              and existing.voice_submission_path is not distinct from $13::text
+                              and existing.voice_transcript_edited is not distinct from $14::boolean
+                       then 'replayed' else 'idempotency_conflict' end as write_outcome,
                   existing.*
                 from existing
                 limit 1
@@ -142,9 +162,68 @@ export function createCandidateAnswerHistoryRepository(client: CandidateAnswerHi
                 input.idempotencyKey,
                 input.payloadFingerprint,
                 input.supersedesCandidateAnswerAttemptId ?? null,
+                input.sourceVoiceTranscriptionRunId ?? null,
+                input.voiceSubmissionPath ?? null,
+                input.voiceTranscriptEdited ?? null,
             ]);
 
             return normalizeAttemptWriteResult(result.rows[0]);
+        },
+
+        async authorizeVoiceAnswerTranscript(input: {
+            candidatePracticeSessionId: string;
+            candidateProfileId: string;
+            questionSlotId: string;
+            questionIndex: number;
+            sourceVoiceTranscriptionRunId: string;
+            voiceSubmissionPath: VoiceTranscriptSubmissionPath;
+            transcriptText: string;
+            updatedAt: string;
+        }): Promise<AuthorizedVoiceAnswerTranscript | null> {
+            const result = await client.query(`
+                with authorized as (
+                  update public.candidate_practice_sessions session
+                  set voice_transcript_drafts_json = jsonb_set(
+                    session.voice_transcript_drafts_json,
+                    array[$3]::text[],
+                    (session.voice_transcript_drafts_json -> $3)
+                      || jsonb_build_object('transcriptText', $7::text, 'updatedAt', $8::text),
+                    true
+                  )
+                  from public.candidate_voice_transcription_runs run
+                  where session.candidate_practice_session_id = $1
+                    and session.candidate_profile_id = $2
+                    and run.candidate_voice_transcription_run_id = $5::uuid
+                    and run.candidate_practice_session_id = session.candidate_practice_session_id
+                    and run.candidate_profile_id = session.candidate_profile_id
+                    and run.question_slot_id = $3
+                    and run.question_index = $4
+                    and run.lifecycle_state = 'completed'
+                    and session.voice_transcript_drafts_json -> $3 ->> 'sourceTranscriptionRunId' = $5::text
+                    and session.voice_transcript_drafts_json -> $3 ->> 'submissionPath' = $6
+                    and session.voice_transcript_drafts_json -> $3 ->> 'questionIndex' = $4::text
+                    and (
+                      $6 <> 'quick_submit'
+                      or run.output_fingerprint = encode(digest(trim($7), 'sha256'), 'hex')
+                    )
+                  returning session.voice_transcript_drafts_json -> $3 as transcript_draft,
+                            run.output_fingerprint
+                )
+                select transcript_draft,
+                       output_fingerprint <> encode(digest(trim($7), 'sha256'), 'hex')
+                         as voice_transcript_edited
+                from authorized
+            `, [
+                input.candidatePracticeSessionId,
+                input.candidateProfileId,
+                input.questionSlotId,
+                input.questionIndex,
+                input.sourceVoiceTranscriptionRunId,
+                input.voiceSubmissionPath,
+                input.transcriptText,
+                input.updatedAt,
+            ]);
+            return normalizeAuthorizedVoiceAnswerTranscript(result.rows[0]);
         },
 
         async listAnswerAttempts(input: {
@@ -544,6 +623,16 @@ function normalizeAttemptWriteResult(value: unknown): CandidateAnswerAttemptWrit
         return null;
     }
     return { outcome, attempt };
+}
+
+function normalizeAuthorizedVoiceAnswerTranscript(
+    value: unknown,
+): AuthorizedVoiceAnswerTranscript | null {
+    if (!isRecord(value)) return null;
+    const draft = normalizeVoiceTranscriptDraft(value.transcript_draft);
+    return draft && typeof value.voice_transcript_edited === "boolean"
+        ? { draft, voiceTranscriptEdited: value.voice_transcript_edited }
+        : null;
 }
 
 function normalizeEvaluationRunWriteResult(value: unknown): CandidateAnswerEvaluationRunWriteResult | null {

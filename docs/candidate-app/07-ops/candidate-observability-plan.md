@@ -48,7 +48,8 @@ Use `actorType: candidate` on candidate logs and include an `appName` or tag val
 | Coach Update synthesis | `candidate_coach_update_runtime_telemetry_v1` | Diagnose provider/profile behavior and safe terminal outcomes for post-session synthesis | Log only synthesis fingerprint, provider/profile/model/prompt/evaluator versions, safe configuration fingerprint, accepted/failed/rejected outcome, allowlisted error code, retryable boolean, latency, one-attempt count, and optional token counts; never log candidate/session/prep ids, answers, questions, generated coaching, request envelopes, prompts, raw output, provider exception detail, JD/resume content, or credentials |
 | Login return | login-start and callback outcomes | Confirm `/candidate/setup` and `/candidate/dashboard` returns work after TalentArbor login | Log allowlisted `next` path only |
 | Draft lifecycle | draft create/update/submit/generation status counters | Detect stuck drafts and setup friction | Do not log job description, resume text, or intake free text |
-| Resume ingestion | upload accepted, extraction success/failure, retention outcome | Confirm private upload and deletion behavior | Log safe failure code only, never parser output or storage URL |
+| Resume ingestion | processing accepted plus extraction/OCR, PII-scrub, persistence, and disposal outcomes | Confirm every source follows the shared policy and raw documents/photos are discarded | Log only source kind, bounded size/page bucket, policy/profile version, safe outcome/failure code, and duration; never source text/bytes, OCR output, removed PII, filename, path/URL, source fingerprint, or candidate/prep identity. Slices 174-175 have automated disposal/safe-error evidence but have not yet wired this event to a deployed sink. |
+| Voice transcription | `voice_transcription` outcome and duration | Detect permission-independent route/provider failures, stale claims, malformed media, and latency without capturing practice content | Allow only random request id, audience type, safe outcome/error code, provider/profile/configuration identity, generation attempt, latency, and coarse byte/duration buckets; never audio, transcript, audio/output fingerprints, candidate/session/question ids, provider raw output, or credentials |
 | Session lifecycle | session created/started/paused/resumed/completed counters | Track whether candidates can get through the core flow | Do not log answers or generated coaching |
 | AI generation | request count, failure count, latency by operation | Detect provider or prompt-contract failures | Prompt and response bodies stay out of ordinary logs |
 | Dashboard | dashboard load success/error and empty/active/completed counts | Detect ownership or query regressions | Counts only, no titles or snippets in logs |
@@ -62,6 +63,7 @@ Before production pilot, the ops view should answer:
 - Are `/candidate/setup`, `/candidate/dashboard`, `/candidate/session`, and `/candidate/summary` returning errors?
 - Are draft-to-session transitions succeeding?
 - Are resume extraction failures increasing?
+- Are voice transcription failures, stale claims, or latency increasing after voice is enabled?
 - Are AI generation failures or latency increasing?
 - Are ownership denials occurring unexpectedly?
 - Are recruiter invite-token flows still healthy after candidate changes?
@@ -80,6 +82,8 @@ Use low-noise alerts first:
 - candidate auth denial spike over a short window
 - candidate route 5xx spike on `/candidate/setup`, `/candidate/dashboard`, `/candidate/session`, or `/candidate/summary`
 - resume extraction failure spike
+- voice transcription malformed-media, provider-error, stale-claim, or latency spike after a staging baseline exists
+- voice transcription diagnostics must retain only safe provider/profile/configuration identity on provider or format failure; audio, transcript, fingerprints, actor/session/question identity, and raw provider details remain prohibited
 - AI generation error or malformed-response spike
 - durable metrics backend unavailable in production
 - recruiter invite create/send smoke failure after candidate branch merge
@@ -89,6 +93,7 @@ Thresholds and first-response actions are defined in the production hardening co
 ## Logging Rules
 
 - Never log raw resume text, raw extracted text, uploaded file contents, candidate answers, generated coaching, or provider auth payloads.
+- Never log raw voice audio, transcript text, audio/output fingerprints, provider transcription output, or media-bearing request bodies.
 - Prefer IDs and reason codes over free-form exception messages for candidate-sensitive paths.
 - Use route names and operation names instead of full URLs when query strings may contain sensitive data.
 - Keep candidate and recruiter actor labels distinct so metrics are not blended accidentally.
@@ -116,12 +121,13 @@ Local development can keep memory metrics and `dev`, mock, or password candidate
 - One manual Teams alert send is validated after webhook provisioning.
 - Resume extraction failure path stores safe reason codes only.
 - Auth redirect tests prove unsafe return targets are rejected.
-- Production dependency audit is reviewed. The Slices 125-133 integration milestone removed the Google SDK transitive critical/high findings and upgraded Next.js to `15.5.20`; the remaining `nodemailer` high advisory and Next-bundled PostCSS moderate advisory require an explicit upgrade or risk-acceptance decision before pilot/release.
+- Production dependency audit is reviewed. At Slice 175, `npm audit --omit=dev` reports four package entries representing high `brace-expansion` denial of service through the existing Google-auth cleanup chain, one moderate Next-bundled PostCSS advisory, and high `sharp`/libvips advisories through Next. No finding is attributed to Busboy or the pinned document parsers. Resume photos are not decoded by Sharp in the app, but every unresolved production-tree finding still requires a tested upgrade/override or explicit temporary risk acceptance before pilot/release.
 
 ## Follow-Up Work
 
 - Consider a neutral `/api/ops/metrics` route once candidate/recruiter metrics are both first-class.
 - Add candidate-specific counters around draft mutation, session generation, and resume extraction actions as implementation stabilizes.
+- Add voice-transcription counters only with the allowlist in this plan, then verify log/metric redaction with fixture, credentialed failure, and deployed-browser cases before production enablement.
 - Wire the mapped candidate events and alerts to the selected deployment sink, then prove delivery in staging.
 - Execute the post-deploy smoke in the production hardening contract, including real TA launch exchange and log-redaction evidence.
 - Confirm the final TalentArbor identity handoff fields before logging any provider-specific metadata.

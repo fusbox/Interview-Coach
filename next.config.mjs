@@ -2,6 +2,10 @@
 const nextConfig = {
     // Rebuild trigger: 3
     reactStrictMode: true,
+    serverExternalPackages: [
+        'mammoth',
+        'pdf-parse',
+    ],
     ...(process.env.NEXT_DIST_DIR?.trim()
         ? { distDir: process.env.NEXT_DIST_DIR.trim() }
         : {}),
