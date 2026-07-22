@@ -1,6 +1,6 @@
 # Candidate Observability Plan
 
-Date: 2026-07-19
+Date: 2026-07-22
 Status: Working implementation plan under the ratified production baseline
 
 ## Purpose
@@ -11,9 +11,9 @@ The goal is useful operational visibility without leaking candidate resume text,
 
 The governing field allowlist, initial alert map, environment ownership, rollback sequence, and post-deploy protocol are in [Candidate Production Hardening And Deployment Controls](./production-hardening-and-deployment-controls.md). This file inventories the observability implementation direction; it must not be read as evidence that dashboards or alert delivery are already provisioned.
 
-## Existing Foundation To Reuse
+## Reference Foundation And Current Rebuild State
 
-The migrated recruiter app already includes:
+The pre-cleanroom recruiter app included patterns worth reusing:
 
 - structured logger utilities in `src/lib/logger.ts` and `src/lib/server/server-logger.ts`
 - counter and timing helpers in `src/lib/server/metrics.ts`
@@ -23,18 +23,7 @@ The migrated recruiter app already includes:
 - auth denial and rate-limit metric helpers
 - AI request/error/latency metrics on existing generation services
 
-Candidate work should extend those patterns instead of creating a separate observability stack.
-
-Current candidate helper:
-
-- `src/lib/server/candidate/candidate-observability.ts` records candidate route counters as `candidate_route_total`
-- route timings are recorded as `candidate_route_duration_ms`
-- both helpers add `actorType=candidate` and `appName=candidate_app`
-- `withCandidateRouteMetrics` wraps candidate route loaders for `/candidate/dashboard`, `/candidate/setup`, `/candidate/session/[sessionId]`, and `/candidate/summary/[sessionId]`
-- `withCandidateMutationBoundary` applies shared rate-limit backend checks to candidate generation, session progress, answer submit, and retry mutations
-- current candidate server-action mutations are state-idempotent: repeat calls either set the same target state, return the already-submitted answer, or no-op when retry state is already clear
-- candidate protected-route redirects in external auth mode write structured logs with safe fields only: `actorType=candidate`, `actorMode=external`, `route=<path only>`, and `reason=missing_candidate_session`
-- helper tests live in `src/lib/server/candidate/candidate-observability.test.ts`
+Those helpers and the recruiter metrics route are not present in the clean V2 rebuild and must not be cited as current implementation. Candidate work should reuse their narrow structured-event principles without restoring stale V1 modules wholesale. Current V2 boundaries emit local structured diagnostics directly, and durable resume-ingestion operation metadata lands in Postgres. A neutral durable metrics sink, dashboard, and alert delivery remain release work.
 
 ## Event Taxonomy
 
@@ -48,7 +37,7 @@ Use `actorType: candidate` on candidate logs and include an `appName` or tag val
 | Coach Update synthesis | `candidate_coach_update_runtime_telemetry_v1` | Diagnose provider/profile behavior and safe terminal outcomes for post-session synthesis | Log only synthesis fingerprint, provider/profile/model/prompt/evaluator versions, safe configuration fingerprint, accepted/failed/rejected outcome, allowlisted error code, retryable boolean, latency, one-attempt count, and optional token counts; never log candidate/session/prep ids, answers, questions, generated coaching, request envelopes, prompts, raw output, provider exception detail, JD/resume content, or credentials |
 | Login return | login-start and callback outcomes | Confirm `/candidate/setup` and `/candidate/dashboard` returns work after TalentArbor login | Log allowlisted `next` path only |
 | Draft lifecycle | draft create/update/submit/generation status counters | Detect stuck drafts and setup friction | Do not log job description, resume text, or intake free text |
-| Resume ingestion | processing accepted plus extraction/OCR, PII-scrub, persistence, and disposal outcomes | Confirm every source follows the shared policy and raw documents/photos are discarded | Log only source kind, bounded size/page bucket, policy/profile version, safe outcome/failure code, and duration; never source text/bytes, OCR output, removed PII, filename, path/URL, source fingerprint, or candidate/prep identity. Slices 174-175 have automated disposal/safe-error evidence but have not yet wired this event to a deployed sink. |
+| Resume ingestion | `candidate_resume_ingestion` plus the durable ingestion-operation ledger | Confirm admission, replay, extraction/OCR, PII-scrub, persistence, disposal, stale recovery, and publication fencing | Log only source kind, bounded size/page class, safe outcome/failure code, claim generation, HTTP status, and duration/latency class; never source text/bytes, OCR output, removed PII, filename, path/URL, fingerprint, operation/artifact id, or candidate/prep identity. Slice 178 wires the local event and durable operation facts; a deployed sink/dashboard remains open. |
 | Voice transcription | `voice_transcription` outcome and duration | Detect permission-independent route/provider failures, stale claims, malformed media, and latency without capturing practice content | Allow only random request id, audience type, safe outcome/error code, provider/profile/configuration identity, generation attempt, latency, and coarse byte/duration buckets; never audio, transcript, audio/output fingerprints, candidate/session/question ids, provider raw output, or credentials |
 | Session lifecycle | session created/started/paused/resumed/completed counters | Track whether candidates can get through the core flow | Do not log answers or generated coaching |
 | AI generation | request count, failure count, latency by operation | Detect provider or prompt-contract failures | Prompt and response bodies stay out of ordinary logs |

@@ -71,6 +71,22 @@ describe("candidate resume document route", () => {
         expect(unauthorizedRequest.bodyUsed).toBe(false);
     });
 
+    it("denies exhausted durable capacity before consuming document bytes", async () => {
+        const deniedRequest = request(pdfBytes("private content"), "application/pdf", "resume.pdf");
+        const response = await handleCandidateResumeDocumentProcessRequest(deniedRequest, dependencies({
+            claimOperation: vi.fn(async () => ({
+                outcome: "capacity_limited" as const,
+                claimGeneration: 0,
+                artifactId: null,
+                claimExpiresAt: null,
+            })),
+        }));
+
+        expect(response.status).toBe(503);
+        await expect(response.json()).resolves.toMatchObject({ code: "RESUME_CAPACITY_LIMITED" });
+        expect(deniedRequest.bodyUsed).toBe(false);
+    });
+
     it("bounds the actual stream without relying on Content-Length", async () => {
         const createOrRecoverReviewArtifact = vi.fn();
         const oversized = new Uint8Array(CANDIDATE_RESUME_DOCUMENT_MAX_BYTES + 1);
@@ -128,17 +144,28 @@ function dependencies(overrides: {
     createOrRecoverReviewArtifact?: CandidateResumeDocumentRouteDependencies["artifactRepository"]["createOrRecoverReviewArtifact"];
     extractPdfText?: CandidateResumeDocumentRouteDependencies["extractPdfText"];
     disposeSource?: CandidateResumeDocumentRouteDependencies["disposeSource"];
+    claimOperation?: CandidateResumeDocumentRouteDependencies["operationRepository"]["claimOperation"];
 } = {}): CandidateResumeDocumentRouteDependencies {
     return {
         now: new Date("2026-07-21T15:00:00.000Z"),
         resolveIdentity: overrides.resolveIdentity ?? vi.fn(async () => ({ candidateProfileId, setupOwnerKey })),
         artifactRepository: {
             createOrRecoverReviewArtifact: overrides.createOrRecoverReviewArtifact ?? vi.fn(async () => artifact()),
+            recoverSelectedArtifact: vi.fn(async () => artifact()),
         },
         selectionRepository: {
             beginSelectionOperation: vi.fn(async () => ({ revision: 1 })),
-            finalizeSelectionOperation: vi.fn(async () => true),
             abandonSelectionOperation: vi.fn(async () => false),
+        },
+        operationRepository: {
+            claimOperation: overrides.claimOperation ?? vi.fn(async () => ({
+                outcome: "acquired" as const,
+                claimGeneration: 1,
+                artifactId: null,
+                claimExpiresAt: "2026-07-21T15:02:00.000Z",
+            })),
+            completeOperationAndPublish: vi.fn(async () => "completed" as const),
+            failOperation: vi.fn(async () => "failed" as const),
         },
         extractPdfText: overrides.extractPdfText,
         disposeSource: overrides.disposeSource,

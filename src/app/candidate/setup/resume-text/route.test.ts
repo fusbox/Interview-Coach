@@ -78,6 +78,34 @@ describe("candidate resume text routes", () => {
         expect(createOrRecoverReviewArtifact).not.toHaveBeenCalled();
     });
 
+    it("replays the exact selected artifact without consuming the pasted-text body", async () => {
+        const replayRequest = new Request(`${origin}/candidate/setup/resume-text`, {
+            method: "POST",
+            headers: {
+                Origin: origin,
+                "Content-Type": "application/json",
+                "X-Candidate-Resume-Selection-Operation": operationId,
+            },
+            body: "not-json-and-must-not-be-read",
+        });
+        const createOrRecoverReviewArtifact = vi.fn();
+        const response = await handleCandidateResumeTextProcessRequest(replayRequest, dependencies({
+            createOrRecoverReviewArtifact,
+            claimOperation: vi.fn(async () => ({
+                outcome: "replayed" as const,
+                claimGeneration: 1,
+                artifactId,
+                claimExpiresAt: "2026-07-21T12:00:30.000Z",
+            })),
+            recoverSelectedArtifact: vi.fn(async () => artifact()),
+        }));
+
+        expect(response.status).toBe(201);
+        expect(replayRequest.bodyUsed).toBe(false);
+        expect(createOrRecoverReviewArtifact).not.toHaveBeenCalled();
+        await expect(response.json()).resolves.toMatchObject({ artifact: { artifactId } });
+    });
+
     it("rejects missing operation identity and late superseded results", async () => {
         const missingOperation = new Request(`${origin}/candidate/setup/resume-text`, {
             method: "POST",
@@ -92,7 +120,7 @@ describe("candidate resume text routes", () => {
                 source: "pasted_text",
                 text: "Inventory lead.",
             }),
-            dependencies({ finalizeSelectionOperation: vi.fn(async () => false) }),
+            dependencies({ completeOperationAndPublish: vi.fn(async () => "superseded" as const) }),
         );
         expect(response.status).toBe(409);
         await expect(response.json()).resolves.toMatchObject({ code: "RESUME_SELECTION_STALE" });
@@ -216,13 +244,16 @@ function dependencies(overrides: {
     createOrRecoverReviewArtifact?: CandidateResumeTextRouteDependencies["artifactRepository"]["createOrRecoverReviewArtifact"];
     acceptReview?: CandidateResumeTextRouteDependencies["artifactRepository"]["acceptReview"];
     clearSelection?: CandidateResumeTextRouteDependencies["selectionRepository"]["clearSelection"];
-    finalizeSelectionOperation?: CandidateResumeTextRouteDependencies["selectionRepository"]["finalizeSelectionOperation"];
+    claimOperation?: CandidateResumeTextRouteDependencies["operationRepository"]["claimOperation"];
+    completeOperationAndPublish?: CandidateResumeTextRouteDependencies["operationRepository"]["completeOperationAndPublish"];
+    recoverSelectedArtifact?: CandidateResumeTextRouteDependencies["artifactRepository"]["recoverSelectedArtifact"];
 } = {}): CandidateResumeTextRouteDependencies {
     return {
         now: new Date("2026-07-21T12:00:00.000Z"),
         resolveIdentity: overrides.resolveIdentity ?? vi.fn(async () => ({ candidateProfileId, setupOwnerKey })),
         artifactRepository: {
             createOrRecoverReviewArtifact: overrides.createOrRecoverReviewArtifact ?? vi.fn(async () => artifact()),
+            recoverSelectedArtifact: overrides.recoverSelectedArtifact ?? vi.fn(async () => artifact()),
             acceptReview: overrides.acceptReview ?? vi.fn(async () => ({ outcome: "accepted" as const, artifact: artifact({
                 revision: 2,
                 reviewState: "accepted",
@@ -231,9 +262,19 @@ function dependencies(overrides: {
         },
         selectionRepository: {
             beginSelectionOperation: vi.fn(async () => ({ revision: 1 })),
-            finalizeSelectionOperation: overrides.finalizeSelectionOperation ?? vi.fn(async () => true),
             abandonSelectionOperation: vi.fn(async () => false),
             clearSelection: overrides.clearSelection ?? vi.fn(async () => ({ revision: 2 })),
+        },
+        operationRepository: {
+            claimOperation: overrides.claimOperation ?? vi.fn(async () => ({
+                outcome: "acquired" as const,
+                claimGeneration: 1,
+                artifactId: null,
+                claimExpiresAt: "2026-07-21T12:00:30.000Z",
+            })),
+            completeOperationAndPublish: overrides.completeOperationAndPublish
+                ?? vi.fn(async () => "completed" as const),
+            failOperation: vi.fn(async () => "failed" as const),
         },
     };
 }

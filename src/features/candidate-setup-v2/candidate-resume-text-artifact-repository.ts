@@ -268,6 +268,20 @@ export function createCandidateResumeTextArtifactRepository(client: CandidateRes
             ]);
             return result.rows[0] ? toCandidateResumeTextArtifact(result.rows[0]) : null;
         },
+
+        async recoverSelectedArtifact(input: {
+            candidateProfileId: string;
+            setupOwnerKey: string;
+            artifactId: string;
+        }): Promise<CandidateResumeTextArtifact | null> {
+            const current = await readOwnedArtifactWithIdentity(
+                client,
+                normalizeRequiredId(input.candidateProfileId),
+                normalizeSetupOwnerKey(input.setupOwnerKey),
+                normalizeRequiredId(input.artifactId),
+            );
+            return current?.artifact ?? null;
+        },
     };
 }
 

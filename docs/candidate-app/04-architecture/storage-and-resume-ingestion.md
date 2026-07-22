@@ -1,7 +1,7 @@
 # Storage And Resume Ingestion
 
-Date: 2026-07-21
-Status: Ratified V2 architecture contract; ingestion, recovery/presentation, and integrated milestone audit implemented through Slice 177
+Date: 2026-07-22
+Status: Ratified V2 architecture contract; ingestion, recovery/presentation, integrated milestone audit, and durable operations implemented through Slice 178
 
 ## Purpose
 
@@ -14,15 +14,17 @@ Every resume source enters one server-owned processing pipeline. Source acquisit
 The shared sequence is:
 
 1. authorize the candidate and intended prep context;
-2. acquire bounded source content;
-3. validate the declared type and inspect the actual content;
-4. extract or OCR text when the source is binary;
-5. parse the text into a safe textual representation;
-6. scrub direct PII under a versioned code-owned policy;
-7. normalize and enforce the processed-text limit;
-8. discard all source bytes and prove disposal before allowing a durable write;
-9. persist or idempotently recover a candidate-owned processed draft for review;
-10. let the candidate review or correct the processed text before it becomes active resume context.
+2. admit or replay the source-specific operation through the durable candidate/setup-owned lease ledger;
+3. acquire bounded source content only after admission;
+4. validate the declared type and inspect the actual content;
+5. extract or OCR text when the source is binary;
+6. parse the text into a safe textual representation;
+7. scrub direct PII under a versioned code-owned policy;
+8. normalize and enforce the processed-text limit;
+9. discard all source bytes and prove disposal before allowing a durable write;
+10. persist or idempotently recover a candidate-owned processed draft for review;
+11. atomically publish the current lease holder's artifact into the exact pending setup selection;
+12. let the candidate review or correct the processed text before it becomes active resume context.
 
 Question generation, hints, coaching, evaluation, and dashboard reads consume only the accepted processed text snapshot. They never consume an uploaded file, captured image, unprocessed paste, temporary object path, or OCR/parser response.
 
@@ -38,9 +40,11 @@ Slice 176 adds a separate candidate/setup-context selection record around the im
 
 Slice 177 closes the integrated local milestone. A seeded browser test now proves PII-safe review, refresh and fresh-browser/mobile recovery, acceptance, initial landing labeling, and clean-slate revisit after consumption. The audit also prevents post-paint browser-draft recovery from overwriting newer user edits, makes the historical answer-attempt backfill monotonic under later voice-source triggers, proves the optimized route-module boundary, and removes manual resume fixtures from the public web root. See [resume ingestion milestone evidence](../05-quality/resume-ingestion-milestone.md).
 
+Slice 178 adds migration `036` and a metadata-only `candidate_resume_ingestion_operations` ledger in front of all three browser acquisition routes. Candidate/setup ownership, per-source global capacity, per-candidate recent-attempt limits, one active setup-owner lease, exact replay, and three-generation stale recovery are serialized in Postgres before request bytes are read. Only an unexpired current generation can atomically publish its artifact into the exact pending selection. Route diagnostics contain only allowlisted outcome, reason, status, claim generation, coarse size/page classes, and latency. Upgrade and fresh-database smokes prove concurrent admission, denial without body consumption, exact replay, cross-owner rejection, rate/capacity limits, stale recovery, and late-generation fencing.
+
 The accepted artifact reference and safe `candidateLabel` are copied into the immutable initial session snapshot. Follow-up intents and follow-up session snapshots carry the same reference and label from their source prep context. Initial and follow-up ready landings show the label, falling back to the legacy truthful `Included` fact only for older V2 snapshots that predate the label. The full processed text remains server-owned session context for generation/coaching and is not exposed by a label/read endpoint.
 
-The shared processor accepts trusted-host text, but host-side resume lookup and staging have not yet been wired. Deployed parser/OCR resource, throttling, accessibility, disposal evidence, and resume revision/question reconciliation remain later gates or slices.
+The shared processor accepts trusted-host text, but host-side resume lookup and staging have not yet been wired. Deployed parser/OCR hard containment, alert delivery, accessibility/disposal evidence, and resume revision/question reconciliation remain later gates or slices.
 
 ## Input Modes
 
@@ -166,6 +170,28 @@ Candidate-visible failures use bounded reason codes such as:
 
 Raw parser/OCR/provider errors, extracted text, removed identifiers, file paths, URLs, and source fingerprints do not enter browser errors or logs. A retry is a new acquisition unless an idempotent request can recover an already-saved processed draft whose source disposal succeeded.
 
+## Durable Admission And Operations
+
+Resume ingestion uses a separate metadata-only operation ledger before source content is read. The browser operation UUID is an idempotency command key, not identity or authorization. Candidate identity and the server-derived setup owner are proven first; the database then atomically admits, replays, defers, or denies the operation under one cross-instance lock.
+
+The first code-owned policy is intentionally conservative:
+
+| Source | Global active leases | Per-owner attempts / 10 minutes | Lease |
+| --- | ---: | ---: | ---: |
+| Pasted text | 32 | 20 | 30 seconds |
+| PDF/DOCX document | 4 | 8 | 120 seconds |
+| Photo OCR | 2 | 6 | 60 seconds |
+
+One candidate/setup owner may hold only one active resume-ingestion lease across all sources. A completed operation UUID replays the exact candidate-owned artifact without rereading the request body. An unexpired duplicate reports in progress. An expired matching operation may advance to the next claim generation, up to three generations. Cross-candidate, cross-owner, or cross-source reuse of an operation UUID fails closed. Recent-attempt and global-capacity denials do not consume the request body.
+
+Only the current unexpired generation may atomically mark an operation completed and publish its artifact into the exact pending setup selection. Clearing or replacing the selection makes the result `superseded`; lease expiry or a newer generation makes it `stale`. Either case can leave only an unselected candidate-owned processed artifact after source disposal. It cannot restore discarded UI state or become setup/session input. Photo provider work retains its 45-second transport timeout inside the 60-second lease. In-process document parsing is admitted under the longer lease and three-generation ceiling; deployed parser process isolation and hard resource enforcement remain release gates.
+
+The durable ledger stores the candidate/setup ownership keys needed for enforcement plus source kind, lifecycle, claim generation/lease, safe terminal reason, coarse input-size class, bounded page count, duration, and optional completed artifact pointer. It stores no resume text, filename, source bytes, removed PII, source fingerprint, provider payload, URL, or browser/session credential.
+
+Terminal operation rows currently have no scheduled retention job. Before production volume, define a bounded cleanup policy that preserves active leases and any completed operation still needed for exact current-selection replay; cleanup must not infer lifecycle from age alone.
+
+Each identity-authorized operation that reaches durable admission emits exactly one best-effort `candidate_resume_ingestion` diagnostic. Pre-identity security denials intentionally do not create candidate-operation telemetry. The allowlist is source, outcome, safe reason, HTTP status, claim generation, duration and latency class, input-size class, and page-count class. It excludes candidate/setup/operation/artifact ids, filenames, content, fingerprints, provider exception detail, and request metadata. Diagnostic delivery never changes ingestion correctness.
+
 ## Accessibility And Device Behavior
 
 - Every source control has a programmatic label and keyboard path.
@@ -188,7 +214,8 @@ Raw parser/OCR/provider errors, extracted text, removed identifiers, file paths,
 2. Completed in Slice 174: add bounded PDF/DOCX acquisition and extraction using the same service and disposal-before-persistence invariant.
 3. Completed in Slice 175: add ordered photo acquisition/OCR using the same service and disposal invariant.
 4. Completed in Slice 176: add durable selection/labels, cross-device unfinished-review recovery, accepted artifact propagation, exact setup consumption, and clean-slate generic setup after consumption. Deployed accessibility/browser/provider evidence remains an explicit release gate.
-5. Separately design resume revision and question reconciliation; do not couple it to initial ingestion.
+5. Completed in Slice 178: add cross-instance admission leases, replay/recovery fencing, coarse operation metadata, and safe structured diagnostics across paste/document/photo ingestion.
+6. Separately design resume revision and question reconciliation; do not couple it to initial ingestion.
 
 ## Release Gates
 
@@ -200,4 +227,4 @@ Raw parser/OCR/provider errors, extracted text, removed identifiers, file paths,
 - Candidate review occurs before processed text becomes active resume context.
 - Privacy/subprocessor review covers any extraction or OCR provider before production enablement.
 - Production enables only an exact ratified OCR provider/profile and never permits the fixture runtime.
-- Production review approves parser process isolation or an equivalent malicious-document containment boundary, per-candidate throttling, and deployed CPU/memory/timeout evidence. Current in-process extraction bounds reduce risk but are not a malware scanner or sandbox.
+- Production review approves parser process isolation or an equivalent malicious-document containment boundary and deployed CPU/memory/timeout evidence. Durable app-level admission bounds reduce load and replay risk but are not a malware scanner, process sandbox, ingress body limit, or infrastructure circuit breaker.

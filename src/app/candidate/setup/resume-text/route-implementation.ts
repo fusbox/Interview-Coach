@@ -5,6 +5,13 @@ import {
     createCandidateResumeTextArtifactRepository,
     type CandidateResumeTextArtifact,
 } from "@/features/candidate-setup-v2/candidate-resume-text-artifact-repository";
+import { createCandidateResumeIngestionOperationRepository } from "@/features/candidate-setup-v2/candidate-resume-ingestion-operation-repository";
+import {
+    beginCandidateResumeIngestion,
+    completeCandidateResumeIngestion,
+    failCandidateResumeIngestion,
+    type CandidateResumeIngestionRouteDependencies,
+} from "@/features/candidate-setup-v2/candidate-resume-ingestion-route";
 import {
     CANDIDATE_RESUME_TEXT_SOURCE_MAX_LENGTH,
     CandidateResumeTextProcessingError,
@@ -24,15 +31,15 @@ const CANDIDATE_RESUME_TEXT_REQUEST_MAX_BYTES = CANDIDATE_RESUME_TEXT_SOURCE_MAX
 
 type CandidateResumeArtifactRepository = Pick<
     ReturnType<typeof createCandidateResumeTextArtifactRepository>,
-    "createOrRecoverReviewArtifact" | "acceptReview"
+    "createOrRecoverReviewArtifact" | "acceptReview" | "recoverSelectedArtifact"
 >;
 
 type CandidateResumeSelectionRepository = Pick<
     ReturnType<typeof createCandidateSetupResumeSelectionRepository>,
-    "beginSelectionOperation" | "finalizeSelectionOperation" | "abandonSelectionOperation" | "clearSelection"
+    "beginSelectionOperation" | "abandonSelectionOperation" | "clearSelection"
 >;
 
-export type CandidateResumeTextRouteDependencies = {
+export type CandidateResumeTextRouteDependencies = CandidateResumeIngestionRouteDependencies & {
     now: Date;
     resolveIdentity: (request: Request) => Promise<CandidateSetupRouteIdentity | null>;
     artifactRepository: CandidateResumeArtifactRepository;
@@ -48,18 +55,6 @@ export async function handleCandidateResumeTextProcessRequest(
         return guard;
     }
 
-    const bodyResult = await readBoundedJsonRequest(request);
-    if (!bodyResult.success) {
-        if (bodyResult.reason === "too_large") {
-            return Response.json({ error: "Resume text is too large.", code: "RESUME_TOO_LARGE" }, { status: 413 });
-        }
-        return Response.json({ error: "Resume text could not be read.", code: "INVALID_RESUME_TEXT" }, { status: 400 });
-    }
-    const record = toRecord(bodyResult.value);
-    if (record.source !== "pasted_text") {
-        return Response.json({ error: "That resume source is not available here.", code: "INVALID_RESUME_TEXT" }, { status: 400 });
-    }
-
     const operationId = readCandidateResumeSelectionOperationId(
         request.headers.get(CANDIDATE_RESUME_SELECTION_OPERATION_HEADER),
     );
@@ -67,13 +62,50 @@ export async function handleCandidateResumeTextProcessRequest(
         return Response.json({ error: "Resume processing request is missing its operation key." }, { status: 400 });
     }
 
-    try {
-        await dependencies.selectionRepository.beginSelectionOperation({
-            candidateProfileId: guard.candidateProfileId,
-            setupOwnerKey: guard.setupOwnerKey,
-            operationId,
-            now: dependencies.now,
+    const admission = await beginCandidateResumeIngestion({
+        operationId,
+        identity: guard,
+        source: "pasted_text",
+        dependencies,
+    });
+    if (admission.kind === "denied") return admission.response;
+    if (admission.kind === "replayed") {
+        return Response.json({ artifact: toPublicArtifact(admission.artifact) }, {
+            status: admission.artifact.reviewState === "accepted" ? 200 : 201,
+            headers: { "Cache-Control": "no-store" },
         });
+    }
+
+    const bodyResult = await readBoundedJsonRequest(request);
+    if (!bodyResult.success) {
+        const status = bodyResult.reason === "too_large" ? 413 : 400;
+        await failCandidateResumeIngestion({
+            context: admission.context,
+            dependencies,
+            terminalReason: bodyResult.reason === "too_large" ? "too_large" : "invalid_request",
+            statusCode: status,
+            inputBytes: bodyResult.byteCount,
+            pageCount: 0,
+        });
+        if (bodyResult.reason === "too_large") {
+            return Response.json({ error: "Resume text is too large.", code: "RESUME_TOO_LARGE" }, { status: 413 });
+        }
+        return Response.json({ error: "Resume text could not be read.", code: "INVALID_RESUME_TEXT" }, { status: 400 });
+    }
+    const record = toRecord(bodyResult.value);
+    if (record.source !== "pasted_text") {
+        await failCandidateResumeIngestion({
+            context: admission.context,
+            dependencies,
+            terminalReason: "invalid_request",
+            statusCode: 400,
+            inputBytes: bodyResult.byteCount,
+            pageCount: 0,
+        });
+        return Response.json({ error: "That resume source is not available here.", code: "INVALID_RESUME_TEXT" }, { status: 400 });
+    }
+
+    try {
         const artifact = await dependencies.artifactRepository.createOrRecoverReviewArtifact({
             candidateProfileId: guard.candidateProfileId,
             source: "pasted_text",
@@ -81,31 +113,29 @@ export async function handleCandidateResumeTextProcessRequest(
             candidateLabel: "Pasted resume",
             now: dependencies.now,
         });
-        const selected = await dependencies.selectionRepository.finalizeSelectionOperation({
-            candidateProfileId: guard.candidateProfileId,
-            setupOwnerKey: guard.setupOwnerKey,
-            operationId,
-            artifactId: artifact.artifactId,
-            now: dependencies.now,
+        const completionFailure = await completeCandidateResumeIngestion({
+            context: admission.context,
+            dependencies,
+            artifact,
+            inputBytes: bodyResult.byteCount,
+            pageCount: 0,
         });
-        if (!selected) {
-            return Response.json({
-                error: "A newer resume choice replaced this one. Review the current setup selection.",
-                code: "RESUME_SELECTION_STALE",
-            }, { status: 409 });
-        }
+        if (completionFailure) return completionFailure;
         return Response.json({ artifact: toPublicArtifact(artifact) }, {
             status: artifact.reviewState === "accepted" ? 200 : 201,
             headers: { "Cache-Control": "no-store" },
         });
     } catch (error) {
-        await dependencies.selectionRepository.abandonSelectionOperation({
-            candidateProfileId: guard.candidateProfileId,
-            setupOwnerKey: guard.setupOwnerKey,
-            operationId,
-            now: dependencies.now,
-        }).catch(() => undefined);
-        return createCandidateResumeTextFailureResponse(error);
+        const response = createCandidateResumeTextFailureResponse(error);
+        await failCandidateResumeIngestion({
+            context: admission.context,
+            dependencies,
+            terminalReason: classifyTextFailure(error),
+            statusCode: response.status,
+            inputBytes: bodyResult.byteCount,
+            pageCount: 0,
+        });
+        return response;
     }
 }
 
@@ -188,6 +218,9 @@ export function createDefaultCandidateResumeTextRouteDependencies(): CandidateRe
         resolveIdentity: (request) => resolveCandidateSetupRouteIdentity(request, client),
         artifactRepository: createCandidateResumeTextArtifactRepository(client),
         selectionRepository: createCandidateSetupResumeSelectionRepository(client),
+        operationRepository: createCandidateResumeIngestionOperationRepository(client),
+        clock: Date.now,
+        onDiagnostic: (event) => console.info("candidate_resume_ingestion", event),
     };
 }
 
@@ -210,11 +243,11 @@ async function guardCandidateResumeMutation(
 }
 
 async function readBoundedJsonRequest(request: Request): Promise<
-    | { success: true; value: unknown }
-    | { success: false; reason: "invalid" | "too_large" }
+    | { success: true; value: unknown; byteCount: number }
+    | { success: false; reason: "invalid" | "too_large"; byteCount: number }
 > {
     if (!request.body) {
-        return { success: false, reason: "invalid" };
+        return { success: false, reason: "invalid", byteCount: 0 };
     }
 
     const reader = request.body.getReader();
@@ -228,7 +261,7 @@ async function readBoundedJsonRequest(request: Request): Promise<
             totalBytes += result.value.byteLength;
             if (totalBytes > CANDIDATE_RESUME_TEXT_REQUEST_MAX_BYTES) {
                 await reader.cancel().catch(() => undefined);
-                return { success: false, reason: "too_large" };
+                return { success: false, reason: "too_large", byteCount: totalBytes };
             }
             chunks.push(result.value);
         }
@@ -240,12 +273,21 @@ async function readBoundedJsonRequest(request: Request): Promise<
             offset += chunk.byteLength;
         }
         const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-        return { success: true, value: JSON.parse(text) as unknown };
+        return { success: true, value: JSON.parse(text) as unknown, byteCount: totalBytes };
     } catch {
-        return { success: false, reason: "invalid" };
+        return { success: false, reason: "invalid", byteCount: totalBytes };
     } finally {
         reader.releaseLock();
     }
+}
+
+function classifyTextFailure(error: unknown) {
+    if (error instanceof CandidateResumeTextProcessingError) {
+        if (error.code === "RESUME_TOO_LARGE") return "too_large" as const;
+        if (error.code === "EMPTY_EXTRACTION") return "empty_extraction" as const;
+        return "extraction_failed" as const;
+    }
+    return "persistence_failed" as const;
 }
 
 function createCandidateResumeTextFailureResponse(error: unknown) {

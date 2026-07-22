@@ -1,7 +1,7 @@
 # Local Dev Bootstrap
 
 Status: Active cleanroom V2 bootstrap
-Last updated: 2026-07-19
+Last updated: 2026-07-22
 
 ## Purpose
 
@@ -227,7 +227,9 @@ Current candidate V2 local development depends on these scripts:
 | Apply candidate processed-resume artifacts | `npm run db:apply-candidate-resume-processed-artifacts` |
 | Allow processed PDF/DOCX provenance | `npm run db:apply-candidate-resume-document-upload` |
 | Allow processed photo-OCR provenance | `npm run db:apply-candidate-resume-photo-ocr` |
-| Validate processed-resume ownership, document/photo provenance, review fencing, and immutability | `npm run db:smoke-candidate-resume-processed-artifacts` |
+| Apply setup-owned resume selection recovery | `npm run db:apply-candidate-setup-resume-selections` |
+| Apply durable resume-ingestion admission/operation leases | `npm run db:apply-candidate-resume-ingestion-operations` |
+| Validate processed-resume ownership, provenance, review fencing, admission limits, replay, and stale recovery | `npm run db:smoke-candidate-resume-processed-artifacts` |
 | Apply evaluator-run generations and claim fencing | `npm run db:apply-candidate-answer-evaluator-run-claims-schema` |
 | Apply immutable evaluator configuration manifests | `npm run db:apply-candidate-answer-evaluator-configuration-schema` |
 | Apply only V2 prep-context propagation schema | `npm run db:apply-candidate-prep-context-propagation-schema` |
@@ -526,7 +528,7 @@ Use those files when comparing against V1 behavior. Do not treat them as current
 For current V2 local development:
 
 - smoke Postgres is running;
-- `db:migrate` has applied through `035_candidate_setup_resume_selections.sql`;
+- `db:migrate` has applied through `036_candidate_resume_ingestion_operations.sql`;
 - local candidate dev seed is present;
 - `db:smoke-candidate-readiness` passes;
 - the app is launched with `npm run dev`;

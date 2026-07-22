@@ -9,6 +9,13 @@ import {
     createCandidateResumeTextArtifactRepository,
     type CandidateResumeTextArtifact,
 } from "@/features/candidate-setup-v2/candidate-resume-text-artifact-repository";
+import { createCandidateResumeIngestionOperationRepository } from "@/features/candidate-setup-v2/candidate-resume-ingestion-operation-repository";
+import {
+    beginCandidateResumeIngestion,
+    completeCandidateResumeIngestion,
+    failCandidateResumeIngestion,
+    type CandidateResumeIngestionRouteDependencies,
+} from "@/features/candidate-setup-v2/candidate-resume-ingestion-route";
 import {
     CANDIDATE_RESUME_PHOTO_MAX_BYTES_PER_PAGE,
     CANDIDATE_RESUME_PHOTO_MAX_PAGES,
@@ -37,15 +44,15 @@ import { isTrustedSameOriginMutationRequest } from "@/lib/server/trusted-mutatio
 
 type CandidateResumeArtifactRepository = Pick<
     ReturnType<typeof createCandidateResumeTextArtifactRepository>,
-    "createOrRecoverReviewArtifact"
+    "createOrRecoverReviewArtifact" | "recoverSelectedArtifact"
 >;
 
 type CandidateResumeSelectionRepository = Pick<
     ReturnType<typeof createCandidateSetupResumeSelectionRepository>,
-    "beginSelectionOperation" | "finalizeSelectionOperation" | "abandonSelectionOperation"
+    "beginSelectionOperation" | "abandonSelectionOperation"
 >;
 
-export type CandidateResumePhotoRouteDependencies = {
+export type CandidateResumePhotoRouteDependencies = CandidateResumeIngestionRouteDependencies & {
     now: Date;
     resolveIdentity: (request: Request) => Promise<CandidateSetupRouteIdentity | null>;
     artifactRepository: CandidateResumeArtifactRepository;
@@ -76,24 +83,42 @@ export async function handleCandidateResumePhotoProcessRequest(
         return photoFailure("UNSUPPORTED_RESUME_TYPE");
     }
 
-    const sourceResult = await readBoundedResumePhotoRequest(request, contentType);
-    if (!sourceResult.success) return photoFailure(sourceResult.code);
-
     const operationId = readCandidateResumeSelectionOperationId(
         request.headers.get(CANDIDATE_RESUME_SELECTION_OPERATION_HEADER),
     );
     if (!operationId) {
-        await sourceResult.dispose();
         return Response.json({ error: "Resume processing request is missing its operation key." }, { status: 400 });
     }
 
-    try {
-        await dependencies.selectionRepository.beginSelectionOperation({
-            candidateProfileId: identity.candidateProfileId,
-            setupOwnerKey: identity.setupOwnerKey,
-            operationId,
-            now: dependencies.now,
+    const admission = await beginCandidateResumeIngestion({
+        operationId,
+        identity,
+        source: "photo_capture",
+        dependencies,
+    });
+    if (admission.kind === "denied") return admission.response;
+    if (admission.kind === "replayed") {
+        return Response.json({ artifact: toPublicArtifact(admission.artifact) }, {
+            status: admission.artifact.reviewState === "accepted" ? 200 : 201,
+            headers: { "Cache-Control": "no-store" },
         });
+    }
+
+    const sourceResult = await readBoundedResumePhotoRequest(request, contentType);
+    if (!sourceResult.success) {
+        const response = photoFailure(sourceResult.code);
+        await failCandidateResumeIngestion({
+            context: admission.context,
+            dependencies,
+            terminalReason: classifyPhotoFailure(sourceResult.code),
+            statusCode: response.status,
+            inputBytes: sourceResult.totalBytes,
+            pageCount: sourceResult.pageCount,
+        });
+        return response;
+    }
+
+    try {
         const artifact = await processCandidateResumePhotoUpload({
             candidateProfileId: identity.candidateProfileId,
             pages: sourceResult.pages,
@@ -103,43 +128,44 @@ export async function handleCandidateResumePhotoProcessRequest(
             ocrRuntime: dependencies.ocrRuntime,
             disposeSource: sourceResult.dispose,
         });
-        const selected = await dependencies.selectionRepository.finalizeSelectionOperation({
-            candidateProfileId: identity.candidateProfileId,
-            setupOwnerKey: identity.setupOwnerKey,
-            operationId,
-            artifactId: artifact.artifactId,
-            now: dependencies.now,
+        const completionFailure = await completeCandidateResumeIngestion({
+            context: admission.context,
+            dependencies,
+            artifact,
+            inputBytes: sourceResult.totalBytes,
+            pageCount: sourceResult.pages.length,
         });
-        if (!selected) {
-            return Response.json({
-                error: "A newer resume choice replaced this one. Review the current setup selection.",
-                code: "RESUME_SELECTION_STALE",
-            }, { status: 409 });
-        }
+        if (completionFailure) return completionFailure;
         return Response.json({ artifact: toPublicArtifact(artifact) }, {
             status: artifact.reviewState === "accepted" ? 200 : 201,
             headers: { "Cache-Control": "no-store" },
         });
     } catch (error) {
-        await dependencies.selectionRepository.abandonSelectionOperation({
-            candidateProfileId: identity.candidateProfileId,
-            setupOwnerKey: identity.setupOwnerKey,
-            operationId,
-            now: dependencies.now,
-        }).catch(() => undefined);
+        let response: Response;
         if (error instanceof CandidateResumePhotoProcessingError) {
-            return photoFailure(error.code);
-        }
-        if (error instanceof CandidateResumeArtifactRepositoryError && error.code === "NOT_FOUND") {
-            return Response.json({
+            response = photoFailure(error.code);
+        } else if (error instanceof CandidateResumeArtifactRepositoryError && error.code === "NOT_FOUND") {
+            response = Response.json({
                 error: "Resume review could not be found.",
                 code: "RESUME_REVIEW_NOT_FOUND",
             }, { status: 404 });
+        } else {
+            response = Response.json({
+                error: "I could not save this resume review. Your setup is still available.",
+                code: "RESUME_PERSISTENCE_FAILED",
+            }, { status: 503 });
         }
-        return Response.json({
-            error: "I could not save this resume review. Your setup is still available.",
-            code: "RESUME_PERSISTENCE_FAILED",
-        }, { status: 503 });
+        await failCandidateResumeIngestion({
+            context: admission.context,
+            dependencies,
+            terminalReason: error instanceof CandidateResumePhotoProcessingError
+                ? classifyPhotoFailure(error.code)
+                : "persistence_failed",
+            statusCode: response.status,
+            inputBytes: sourceResult.totalBytes,
+            pageCount: sourceResult.pages.length,
+        });
+        return response;
     } finally {
         await sourceResult.dispose().catch(() => undefined);
     }
@@ -163,15 +189,18 @@ export function createDefaultCandidateResumePhotoRouteDependencies(): CandidateR
         resolveIdentity: (request) => resolveCandidateSetupRouteIdentity(request, client),
         artifactRepository: createCandidateResumeTextArtifactRepository(client),
         selectionRepository: createCandidateSetupResumeSelectionRepository(client),
+        operationRepository: createCandidateResumeIngestionOperationRepository(client),
+        clock: Date.now,
+        onDiagnostic: (event) => console.info("candidate_resume_ingestion", event),
         ocrRuntime,
     };
 }
 
 async function readBoundedResumePhotoRequest(request: Request, contentType: string): Promise<
-    | { success: true; pages: CandidateResumePhotoPage[]; dispose: () => Promise<void> }
-    | { success: false; code: CandidateResumePhotoProcessingErrorCode }
+    | { success: true; pages: CandidateResumePhotoPage[]; totalBytes: number; dispose: () => Promise<void> }
+    | { success: false; code: CandidateResumePhotoProcessingErrorCode; totalBytes: number; pageCount: number }
 > {
-    if (!request.body) return { success: false, code: "UNREADABLE_IMAGE" };
+    if (!request.body) return { success: false, code: "UNREADABLE_IMAGE", totalBytes: 0, pageCount: 0 };
 
     const requestChunks: Buffer[] = [];
     const pageBuffers: Buffer[] = [];
@@ -193,7 +222,7 @@ async function readBoundedResumePhotoRequest(request: Request, contentType: stri
             },
         });
     } catch {
-        return { success: false, code: "UNREADABLE_IMAGE" };
+        return { success: false, code: "UNREADABLE_IMAGE", totalBytes: 0, pageCount: 0 };
     }
 
     parser.on("file", (fieldName, stream, info) => {
@@ -275,9 +304,25 @@ async function readBoundedResumePhotoRequest(request: Request, contentType: stri
     const dispose = createIdempotentDisposer(pageBuffers);
     if (failureCode || pages.length === 0) {
         await dispose();
-        return { success: false, code: failureCode ?? "UNREADABLE_IMAGE" };
+        return {
+            success: false,
+            code: failureCode ?? "UNREADABLE_IMAGE",
+            totalBytes: totalPageBytes,
+            pageCount: pages.length,
+        };
     }
-    return { success: true, pages, dispose };
+    return { success: true, pages, totalBytes: totalPageBytes, dispose };
+}
+
+function classifyPhotoFailure(code: CandidateResumePhotoProcessingErrorCode) {
+    if (code === "UNSUPPORTED_RESUME_TYPE") return "unsupported_type" as const;
+    if (code === "RESUME_TOO_LARGE" || code === "TOO_MANY_PAGES" || code === "EXTRACTED_TEXT_TOO_LARGE") return "too_large" as const;
+    if (code === "UNREADABLE_IMAGE") return "unreadable_source" as const;
+    if (code === "EMPTY_EXTRACTION") return "empty_extraction" as const;
+    if (code === "OCR_NOT_CONFIGURED" || code === "OCR_TEMPORARILY_UNAVAILABLE") return "provider_unavailable" as const;
+    if (code === "OCR_FAILED") return "provider_rejected" as const;
+    if (code === "SOURCE_DISPOSAL_FAILED") return "disposal_failed" as const;
+    return "extraction_failed" as const;
 }
 
 function createIdempotentDisposer(buffers: Buffer[]) {

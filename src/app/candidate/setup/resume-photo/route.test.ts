@@ -136,11 +136,21 @@ function dependencies(overrides: {
         resolveIdentity: overrides.resolveIdentity ?? vi.fn(async () => ({ candidateProfileId, setupOwnerKey })),
         artifactRepository: {
             createOrRecoverReviewArtifact: overrides.createOrRecoverReviewArtifact ?? vi.fn(async () => artifact()),
+            recoverSelectedArtifact: vi.fn(async () => artifact()),
         },
         selectionRepository: {
             beginSelectionOperation: vi.fn(async () => ({ revision: 1 })),
-            finalizeSelectionOperation: vi.fn(async () => true),
             abandonSelectionOperation: vi.fn(async () => false),
+        },
+        operationRepository: {
+            claimOperation: vi.fn(async () => ({
+                outcome: "acquired" as const,
+                claimGeneration: 1,
+                artifactId: null,
+                claimExpiresAt: "2026-07-21T18:01:00.000Z",
+            })),
+            completeOperationAndPublish: vi.fn(async () => "completed" as const),
+            failOperation: vi.fn(async () => "failed" as const),
         },
         ocrRuntime: {
             provider: "fixture",

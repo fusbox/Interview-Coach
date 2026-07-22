@@ -5,6 +5,13 @@ import {
     createCandidateResumeTextArtifactRepository,
     type CandidateResumeTextArtifact,
 } from "@/features/candidate-setup-v2/candidate-resume-text-artifact-repository";
+import { createCandidateResumeIngestionOperationRepository } from "@/features/candidate-setup-v2/candidate-resume-ingestion-operation-repository";
+import {
+    beginCandidateResumeIngestion,
+    completeCandidateResumeIngestion,
+    failCandidateResumeIngestion,
+    type CandidateResumeIngestionRouteDependencies,
+} from "@/features/candidate-setup-v2/candidate-resume-ingestion-route";
 import {
     CANDIDATE_RESUME_DOCUMENT_MAX_BYTES,
     CANDIDATE_RESUME_DOCX_MIME_TYPE,
@@ -30,15 +37,15 @@ const CANDIDATE_RESUME_DOCUMENT_NAME_MAX_BYTES = 512;
 
 type CandidateResumeArtifactRepository = Pick<
     ReturnType<typeof createCandidateResumeTextArtifactRepository>,
-    "createOrRecoverReviewArtifact"
+    "createOrRecoverReviewArtifact" | "recoverSelectedArtifact"
 >;
 
 type CandidateResumeSelectionRepository = Pick<
     ReturnType<typeof createCandidateSetupResumeSelectionRepository>,
-    "beginSelectionOperation" | "finalizeSelectionOperation" | "abandonSelectionOperation"
+    "beginSelectionOperation" | "abandonSelectionOperation"
 >;
 
-export type CandidateResumeDocumentRouteDependencies = {
+export type CandidateResumeDocumentRouteDependencies = CandidateResumeIngestionRouteDependencies & {
     now: Date;
     resolveIdentity: (request: Request) => Promise<CandidateSetupRouteIdentity | null>;
     artifactRepository: CandidateResumeArtifactRepository;
@@ -71,26 +78,43 @@ export async function handleCandidateResumeDocumentProcessRequest(
         return documentFailure("UNSUPPORTED_RESUME_TYPE");
     }
 
-    const sourceResult = await readBoundedDocumentRequest(request);
-    if (!sourceResult.success) {
-        return documentFailure(sourceResult.reason === "too_large" ? "RESUME_TOO_LARGE" : "UNREADABLE_DOCUMENT");
-    }
-
     const operationId = readCandidateResumeSelectionOperationId(
         request.headers.get(CANDIDATE_RESUME_SELECTION_OPERATION_HEADER),
     );
     if (!operationId) {
-        sourceResult.bytes.fill(0);
         return Response.json({ error: "Resume processing request is missing its operation key." }, { status: 400 });
     }
 
-    try {
-        await dependencies.selectionRepository.beginSelectionOperation({
-            candidateProfileId: identity.candidateProfileId,
-            setupOwnerKey: identity.setupOwnerKey,
-            operationId,
-            now: dependencies.now,
+    const admission = await beginCandidateResumeIngestion({
+        operationId,
+        identity,
+        source: "document_upload",
+        dependencies,
+    });
+    if (admission.kind === "denied") return admission.response;
+    if (admission.kind === "replayed") {
+        return Response.json({ artifact: toPublicArtifact(admission.artifact) }, {
+            status: admission.artifact.reviewState === "accepted" ? 200 : 201,
+            headers: { "Cache-Control": "no-store" },
         });
+    }
+
+    const sourceResult = await readBoundedDocumentRequest(request);
+    if (!sourceResult.success) {
+        const response = documentFailure(sourceResult.reason === "too_large" ? "RESUME_TOO_LARGE" : "UNREADABLE_DOCUMENT");
+        await failCandidateResumeIngestion({
+            context: admission.context,
+            dependencies,
+            terminalReason: sourceResult.reason === "too_large" ? "too_large" : "unreadable_source",
+            statusCode: response.status,
+            inputBytes: sourceResult.byteCount,
+            pageCount: 0,
+        });
+        return response;
+    }
+
+    const inputBytes = sourceResult.byteCount;
+    try {
         const artifact = await processCandidateResumeDocumentUpload({
             candidateProfileId: identity.candidateProfileId,
             sourceBytes: sourceResult.bytes,
@@ -104,43 +128,40 @@ export async function handleCandidateResumeDocumentProcessRequest(
             disposeSource: dependencies.disposeSource,
         });
 
-        const selected = await dependencies.selectionRepository.finalizeSelectionOperation({
-            candidateProfileId: identity.candidateProfileId,
-            setupOwnerKey: identity.setupOwnerKey,
-            operationId,
-            artifactId: artifact.artifactId,
-            now: dependencies.now,
+        const completionFailure = await completeCandidateResumeIngestion({
+            context: admission.context,
+            dependencies,
+            artifact,
+            inputBytes,
+            pageCount: 0,
         });
-        if (!selected) {
-            return Response.json({
-                error: "A newer resume choice replaced this one. Review the current setup selection.",
-                code: "RESUME_SELECTION_STALE",
-            }, { status: 409 });
-        }
+        if (completionFailure) return completionFailure;
 
         return Response.json({ artifact: toPublicArtifact(artifact) }, {
             status: artifact.reviewState === "accepted" ? 200 : 201,
             headers: { "Cache-Control": "no-store" },
         });
     } catch (error) {
-        await dependencies.selectionRepository.abandonSelectionOperation({
-            candidateProfileId: identity.candidateProfileId,
-            setupOwnerKey: identity.setupOwnerKey,
-            operationId,
-            now: dependencies.now,
-        }).catch(() => undefined);
+        let response: Response;
         if (error instanceof CandidateResumeDocumentProcessingError) {
-            return documentFailure(error.code);
+            response = documentFailure(error.code);
+        } else if (error instanceof CandidateResumeArtifactRepositoryError && error.code === "NOT_FOUND") {
+            response = Response.json({ error: "Resume review could not be found.", code: "RESUME_REVIEW_NOT_FOUND" }, { status: 404 });
+        } else {
+            response = Response.json({
+                error: "I could not save this resume review. Your setup is still available.",
+                code: "RESUME_PERSISTENCE_FAILED",
+            }, { status: 503 });
         }
-        if (error instanceof CandidateResumeArtifactRepositoryError) {
-            if (error.code === "NOT_FOUND") {
-                return Response.json({ error: "Resume review could not be found.", code: "RESUME_REVIEW_NOT_FOUND" }, { status: 404 });
-            }
-        }
-        return Response.json({
-            error: "I could not save this resume review. Your setup is still available.",
-            code: "RESUME_PERSISTENCE_FAILED",
-        }, { status: 503 });
+        await failCandidateResumeIngestion({
+            context: admission.context,
+            dependencies,
+            terminalReason: classifyDocumentFailure(error),
+            statusCode: response.status,
+            inputBytes,
+            pageCount: 0,
+        });
+        return response;
     }
 }
 
@@ -155,15 +176,18 @@ export function createDefaultCandidateResumeDocumentRouteDependencies(): Candida
         resolveIdentity: (request) => resolveCandidateSetupRouteIdentity(request, client),
         artifactRepository: createCandidateResumeTextArtifactRepository(client),
         selectionRepository: createCandidateSetupResumeSelectionRepository(client),
+        operationRepository: createCandidateResumeIngestionOperationRepository(client),
+        clock: Date.now,
+        onDiagnostic: (event) => console.info("candidate_resume_ingestion", event),
     };
 }
 
 async function readBoundedDocumentRequest(request: Request): Promise<
-    | { success: true; bytes: Uint8Array }
-    | { success: false; reason: "invalid" | "too_large" }
+    | { success: true; bytes: Uint8Array; byteCount: number }
+    | { success: false; reason: "invalid" | "too_large"; byteCount: number }
 > {
     if (!request.body) {
-        return { success: false, reason: "invalid" };
+        return { success: false, reason: "invalid", byteCount: 0 };
     }
 
     const reader = request.body.getReader();
@@ -179,13 +203,13 @@ async function readBoundedDocumentRequest(request: Request): Promise<
                 result.value.fill(0);
                 zeroChunks(chunks);
                 await reader.cancel().catch(() => undefined);
-                return { success: false, reason: "too_large" };
+                return { success: false, reason: "too_large", byteCount: totalBytes };
             }
             chunks.push(result.value);
         }
 
         if (totalBytes === 0) {
-            return { success: false, reason: "invalid" };
+            return { success: false, reason: "invalid", byteCount: 0 };
         }
         const bytes = new Uint8Array(totalBytes);
         let offset = 0;
@@ -194,13 +218,25 @@ async function readBoundedDocumentRequest(request: Request): Promise<
             chunk.fill(0);
             offset += chunk.byteLength;
         }
-        return { success: true, bytes };
+        return { success: true, bytes, byteCount: totalBytes };
     } catch {
         zeroChunks(chunks);
-        return { success: false, reason: "invalid" };
+        return { success: false, reason: "invalid", byteCount: totalBytes };
     } finally {
         reader.releaseLock();
     }
+}
+
+function classifyDocumentFailure(error: unknown) {
+    if (error instanceof CandidateResumeDocumentProcessingError) {
+        if (error.code === "UNSUPPORTED_RESUME_TYPE") return "unsupported_type" as const;
+        if (error.code === "RESUME_TOO_LARGE") return "too_large" as const;
+        if (error.code === "UNREADABLE_DOCUMENT") return "unreadable_source" as const;
+        if (error.code === "EMPTY_EXTRACTION") return "empty_extraction" as const;
+        if (error.code === "SOURCE_DISPOSAL_FAILED") return "disposal_failed" as const;
+        return "extraction_failed" as const;
+    }
+    return "persistence_failed" as const;
 }
 
 function readDocumentMimeType(value: string | null): CandidateResumeDocumentMimeType | null {

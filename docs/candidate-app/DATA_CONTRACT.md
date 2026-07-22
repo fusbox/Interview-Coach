@@ -458,6 +458,38 @@ Rules:
 
 Migration `032_candidate_resume_processed_artifacts.sql` implements the first durable form for `pasted_text` and `trusted_host`; migrations `033_candidate_resume_document_upload.sql` and `034_candidate_resume_photo_ocr.sql` widen only the same provenance constraint to `document_upload` and `photo_capture` without adding raw-source columns. Migration `035_candidate_setup_resume_selections.sql` adds the text-free, lifecycle-fenced setup selection and consumption pointers. `POST /candidate/setup/resume-text` proves same-origin candidate identity before reading bounded pasted source, processes it under exact code-owned policy versions, and creates or recovers an `awaiting_review` artifact without persisting raw source. `POST /candidate/setup/resume-document` proves the same identity before reading an actually bounded 5 MiB stream, accepts only actual PDF/DOCX signatures/containers, extracts text under `candidate_resume_document_extraction_v1`, disposes app-owned binary buffers, and only then creates or recovers the same processed artifact. `POST /candidate/setup/resume-photo` proves identity before streaming a bounded multipart batch, accepts at most four exact-order JPEG/PNG/WebP/HEIC/HEIF pages, allows any one page to consume the 12 MiB aggregate source ceiling, checks actual signatures/container brands, and calls one exact-profile OCR runtime. The provider must return one same-order page result per source image. App-owned request/page buffers are zero-filled before only combined text enters the shared direct-PII processor and artifact repository. Document and photo source fingerprints cover exact source bytes plus their extraction/OCR configuration identity and are never returned to the browser. `POST /candidate/setup/resume-text/[artifactId]/accept` revision-fences candidate review and re-scrubs edits before acceptance. Identity-backed setup start requires an accepted artifact reference and reloads its canonical processed text through the active selection by candidate, owner key, artifact id, version, and revision; raw `CandidateSetupPayload.resumeText` without that reference is rejected before prep or wording work. The non-production identity-less browser bridge remains a compatibility exception only.
 
+### CandidateResumeIngestionOperation
+
+Migration `036_candidate_resume_ingestion_operations.sql` owns cross-instance admission and publication fencing for browser paste, document, and photo processing. This is an operational command ledger, not a resume-content store.
+
+```ts
+type CandidateResumeIngestionOperation = {
+    operationId: string;
+    candidateProfileId: string;
+    setupOwnerKey: string;
+    source: "pasted_text" | "document_upload" | "photo_capture";
+    lifecycleState: "processing" | "completed" | "failed" | "superseded";
+    claimGeneration: number; // 1..3
+    claimExpiresAt: string;
+    artifactId: string | null;
+    terminalReason: string | null; // allowlisted operational category only
+    inputSizeClass: "unknown" | "tiny" | "small" | "medium" | "large" | "maximum";
+    pageCount: number; // 0..4
+    durationMs: number | null;
+};
+```
+
+Contract rules:
+
+- the operation UUID is unique across candidates, setup owners, and sources; changed ownership or source is an idempotency/ownership conflict;
+- one owner has at most one unexpired processing lease across all resume sources;
+- source-specific global active and owner-window limits are decided in one database-serialized claim boundary;
+- completed replay returns only the exact owned artifact and skips request-body consumption and provider/parser work;
+- expired work may advance generation up to three, but only the current unexpired generation may atomically complete the operation and activate the pending setup selection;
+- stale or superseded workers cannot publish, even when they finish extraction or OCR after losing ownership;
+- the row never stores source text/bytes, OCR output, filenames, removed PII, fingerprints, provider payloads, or browser credentials.
+- terminal rows require a bounded operational-retention job before production volume; active leases and completed operations still backing exact current-selection replay must be retained.
+
 ### CandidateHostLaunchSession
 
 `candidate_launch_sessions` is the durable exchange boundary between a verified host token and the Interview Coach candidate session. It is not a copy of the host authentication session.
@@ -644,10 +676,13 @@ Rules:
   - `planProgress`: unfinished or remaining Coach Plan work for the selected target interview context, sourced from an active setup-created round first, then skipped/unanswered planned questions, then completed-plan or first-round fallback;
   - `coachGuidedFocus`: feedback-based practice for the selected target interview context, sourced from candidate-safe coaching on a submitted answer.
   The primary action should prioritize resuming active rounds, then finishing planned coverage, then feedback-based focus, then first/new-round setup. This shape prevents the dashboard from conflating "continue the plan" with "practice what the coach noticed." Both are derived reads, not persisted dashboard conclusions.
-- `candidate_qa_eval_case` is the V2 QA/evaluation export case shape for answer-quality review. It is derived from `candidate_practice_sessions` only when a submitted answer and exact slot-mapped worded question exist. It carries a stable case id, stable input fingerprint, redacted candidate identity, optional role-profile link, interview stage, question count, compact setup context, question text/category/purpose, submitted answer text/mode/submitted-at, expected signal applicability, and privacy fingerprints for JD/resume context. It should include full candidate answer text because the evaluator job requires it, but it should not repeat full JD/resume blobs when fingerprints and compact excerpts are sufficient for review.
+- `candidate_qa_eval_case`, `candidate_qa_eval_run`, and `candidate_qa_eval_comparison` are historical answer-only TypeScript export shapes. They remain useful design evidence for fixed-input identity, but they are not the authoritative V2 workbench contract because they omit current evidence-first layers, invited answer persistence, Coach Update artifacts, and immutable question-wording outputs. Do not build new persistence around these compatibility snapshots.
+
+- The authoritative QA source is the exact immutable serving artifact: a candidate-led or invited answer attempt plus evaluator run, one Coach Update artifact plus its accepted run references, one candidate prep-context baseline question-wording snapshot, or one generated recruiter invitation question set. QA workflow persistence stores source references, copied non-content configuration/filter facts, structured review judgments, findings, remediation hypotheses, and recheck links. It must not duplicate candidate, answer, JD, processed-resume, coaching, prompt, or raw-provider content. Authorized detail reads resolve only rubric-required source content just in time. See [AI Eval Operator Workbench](./05-quality/ai-eval-operator-workbench.md).
+
 - `candidate_qa_eval_run` is one model/prompt/evaluator response against one fixed `candidate_qa_eval_case`. It carries model provider/name, prompt version, evaluator version, optional params, requested/completed timestamps, optional latency and token usage, parsed coach feedback, parsed evidence, and validation flags for case mapping, observed-only scoring, and candidate-safe projection language. It is the right home for internal evidence scores and model metadata. It is not a candidate-facing read model.
 - `candidate_qa_eval_comparison` compares two `candidate_qa_eval_run` records only when their `caseId` and `inputFingerprint` match. A/B comparison means comparing different model or model/prompt responses to the same fixed prompt/context/input case, not comparing two candidate answers. Mismatched inputs must be flagged rather than silently compared.
-- V2 QA/evaluation export shapes intentionally do not carry a source-app or app-name field. The candidate/recruiter app distinction is a V1 routing and ownership concern, not a V2 answer-evaluator distinction. When a future shared invited/candidate runtime needs different permissions, that should be modeled through session/audience/access boundaries rather than treating AI calls as separate app sources.
+- V2 QA records do not carry a generic source-app/app-name axis. They do retain a bounded audience/source kind because candidate-led and invited answer coaching share one evaluator job while using different ownership tables and access contracts. Question wording likewise distinguishes candidate baseline and generated recruiter invitation sources without treating them as different model jobs.
 - The V2 feedback interaction contract preserves V1's useful submit -> coaching -> candidate choice cadence, but V2 feedback content is rebuilt from the new evaluation specs. New V2 code should not restore candidate-facing `oneBigUpgrade`, hidden scores, or the legacy feedback drawer schema as the durable contract.
 - This table does not replace the legacy/live `sessions`, `questions`, `answers`, or evaluation rows yet. Live answer runtime, provider generation, dashboard reads, and summary/debrief persistence remain separate slices.
 - Browser session storage remains a development bridge until all session progress and answer-draft persistence is identity-backed.
