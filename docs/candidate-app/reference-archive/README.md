@@ -1,7 +1,7 @@
 # Candidate App Reference Archive
 
 Status: Historical reference
-Last updated: 2026-07-18
+Last updated: 2026-07-23
 
 This folder holds useful but non-current candidate app material.
 
@@ -11,6 +11,7 @@ Use these files to understand V1 behavior, earlier candidate-module planning, or
 
 - [Handoff Pre-Compaction Snapshot](handoff-pre-compaction-2026-07-12.md): full detailed handoff and completed-slice ledger before the active handoff was compressed into a resumption contract.
 - [Handoff Pre-Compaction Snapshot, 2026-07-18](handoff-pre-compaction-2026-07-18.md): Slices 85-133, the production host-launch/evaluator/Coach Update milestone, full phase narrative, and the open-risk ledger before the second compaction.
+- [Handoff Pre-Compaction Snapshot, 2026-07-23](handoff-pre-compaction-2026-07-23.md): full current-state, risk, phase, and Slice 134-186 ledger before the production-UI parallel-workstream compaction.
 - [Current Foundation](architecture/current-foundation.md): earlier standalone candidate repo foundation notes.
 - [Candidate-Driven Implementation Plan](architecture/candidate-driven-implementation-plan.md): pre-cleanroom shared-host plan.
 - [Practice Session Draft Contract](architecture/practice-session-draft-contract.md): server-backed `/practice` draft model from the V1/interim candidate app.

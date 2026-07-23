@@ -1,7 +1,7 @@
 # Interview Coach Documentation
 
 Status: Active index and documentation-migration ledger
-Last updated: 2026-07-18
+Last updated: 2026-07-23
 
 The current product direction is the candidate V2 cleanroom rebuild on `feature/candidate-v2-rebuild`, while the deployed recruiter-led application remains an important behavior reference. Active V2 docs currently live under `docs/candidate-app` and will be promoted to this level after the active set is thinned and all links are mapped.
 
@@ -43,6 +43,12 @@ The implementation and current tests outrank historical documentation when they 
 
 ### Wave 2: Thin `candidate-app`
 
+Progress in the 2026-07-23 pass:
+
+- archived the full handoff through Slice 186 and reduced the active resumption contract;
+- added an explicit core/UI worktree and integration contract;
+- refreshed the active candidate index around the AI-eval and production-UI streams.
+
 Keep and eventually promote:
 
 - `SPEC.md`, `DATA_CONTRACT.md`, `HANDOFF.md`, and a single root `README.md`;
@@ -70,6 +76,13 @@ Security cleanup requiring an explicit pass:
 - remove tracked staging CSV exports from the current tip after confirming no active contract depends on them;
 - decide whether repository-history remediation is required for candidate/job discovery rows;
 - keep future probe output ignored and local-only.
+
+Next Wave 2 actions:
+
+- move the already-retired `00-working-backlog.md` into the candidate reference archive and repair the remaining Azure/architecture links;
+- consolidate `REVIEWER-HANDOFF.md`, `START-WORK-PASS.md`, and `10-agent-workflows/workpass.md`;
+- archive superseded dashboard briefs and disposable specs only after their durable product/design statements are absorbed;
+- perform the explicit security disposition for tracked staging CSV exports before moving or deleting them.
 
 ### Wave 3: Promote The Active Candidate Stack
 

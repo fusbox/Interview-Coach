@@ -1,7 +1,7 @@
 # Interview Coach V2 Documentation
 
-Status: Active subtree pending promotion to `docs/*`
-Last updated: 2026-07-18
+Status: Active V2 documentation index
+Last updated: 2026-07-23
 
 This subtree contains the cleanroom candidate V2 contracts and the recruiter/invited convergence direction that now follows them. The active stack is intentionally small; detailed docs are read only when their subsystem is in scope.
 
@@ -12,7 +12,7 @@ This subtree contains the cleanroom candidate V2 contracts and the recruiter/inv
 3. [DATA_CONTRACT](./DATA_CONTRACT.md): durable state, ownership, lineage, and payload shapes.
 4. [Local Dev Bootstrap](./09-dev/local-dev-bootstrap.md): environment, database, migrations, dev identity, and validation.
 
-For branch review or integration, use [Reviewer Handoff](./REVIEWER-HANDOFF.md) but verify every command against Local Dev Bootstrap; consolidation of those two docs is part of the documentation cleanup roadmap.
+For branch review or integration, start from HANDOFF and verify every command against Local Dev Bootstrap. `REVIEWER-HANDOFF.md`, `START-WORK-PASS.md`, and `10-agent-workflows/workpass.md` are transitional and must not override the active stack.
 
 ## Read By Concern
 
@@ -32,6 +32,15 @@ For branch review or integration, use [Reviewer Handoff](./REVIEWER-HANDOFF.md) 
 - [Evidence-First Dashboard Architecture](./04-architecture/evidence-first-dashboard-information-architecture.md)
 - [Live Evaluator Runbook](./05-quality/live-evaluator-validation-runbook.md)
 - [Live Coach Update Runbook](./05-quality/live-coach-update-validation-runbook.md)
+- [AI Eval Operator Workbench](./05-quality/ai-eval-operator-workbench.md)
+- [Evidence-First Coaching Scenario Lab](./05-quality/evidence-first-coaching-scenario-lab.md)
+
+### Production UI
+
+- [Production UI Workstream](./03-design/production-ui-workstream.md)
+- [Design System Foundation](./03-design/design-system-foundation.md)
+- [Coach Update Card Spec](./03-design/coach-update-v2-card-spec.md)
+- [Pre-Session And Loader UX](./03-design/pre-session-and-loader-ux.md)
 
 ### Security, Operations, And Quality
 
@@ -58,4 +67,4 @@ For branch review or integration, use [Reviewer Handoff](./REVIEWER-HANDOFF.md) 
 - [Repository documentation cleanup roadmap](../README.md#cleanup-and-promotion-roadmap)
 - [Accepted initial V2 rebuild plan](../superpowers/plans/2026-07-06-parallel-v2-rebuild.md)
 
-The next cleanup wave will consolidate execution docs, extract durable preparedness content into the active contracts, archive superseded dashboard/planning material, and then promote the remaining active tree to `docs/*`.
+The 2026-07-23 cleanup pass archived the full Slice 1-186 handoff ledger and reduced the live handoff to current truth, parallel work lanes, release risks, and milestone ranges. The next cleanup wave should consolidate execution docs, archive the retired working backlog and superseded dashboard/planning material after link repair, classify tracked staging CSVs through a security pass, and then promote the remaining active tree to `docs/*`.
