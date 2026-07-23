@@ -18,6 +18,8 @@ describe("recruiter route boundary", () => {
     it.each([
         ["/recruiter", "/recruiter"],
         ["/recruiter/dashboard?tab=active", "/recruiter/dashboard?tab=active"],
+        ["/qa/ai-eval?view=inbox", "/qa/ai-eval?view=inbox"],
+        ["/qa/ai-eval/export", "/recruiter"],
         ["/candidate/dashboard", "/recruiter"],
         ["https://evil.example/recruiter", "/recruiter"],
         ["//evil.example/recruiter", "/recruiter"],

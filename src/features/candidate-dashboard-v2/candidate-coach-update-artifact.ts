@@ -581,6 +581,10 @@ function readCandidateSafeContent(value: unknown): CandidateCoachUpdateContent |
     return isCandidateCoachUpdateContent(value) && !containsProhibitedGeneratedLanguage(value) ? value : null;
 }
 
+export function parseCandidateCoachUpdateContent(value: unknown): CandidateCoachUpdateContent | null {
+    return readCandidateSafeContent(value);
+}
+
 function isCandidateCoachUpdateContent(value: unknown): value is CandidateCoachUpdateContent {
     return isCandidateCoachUpdateContentV1(value) || isCandidateCoachUpdateContentV2(value);
 }

@@ -1,6 +1,6 @@
 # AI Eval Operator Workbench
 
-Status: Ratified product direction and working implementation contract
+Status: Implemented through the first usable operator review loop; remediation and recheck remain next
 Last updated: 2026-07-22
 
 ## Purpose
@@ -134,6 +134,18 @@ eligible exact output
     -> record verification outcome
 ```
 
+### Implemented Operator Surface
+
+`/qa/ai-eval` now implements the first usable loop over all three workbench surfaces. It provides:
+
+- a metadata-only source inbox for eligible candidate-led and invited answer evaluations, candidate Coach Updates, candidate baseline question wording, and generated recruiter question sets;
+- exact-source idempotent promotion into a filterable review queue;
+- candidate-visible output first, followed by structured evidence and configuration drill-down;
+- explicit draft review start, revision-fenced saves, atomic draft-plus-finding commands, surface-specific layer judgments, reusable labeled findings with bounded source pointers, and immutable submission;
+- truthful failed-source, access-denied, stale-conflict, invalid-change, and content-free read/write unavailable states.
+
+The initial filters cover surface, source kind, review lifecycle, and source lifecycle. Audience, provider/configuration, category/stage, assignment/priority, finding/remediation, and date filters remain legitimate operational refinements after real operator use demonstrates which ones earn permanent UI space. The UI does not expose candidate identity, broad export, remediation controls, recheck execution, or same-input model comparison.
+
 ### Queue
 
 The queue should support operator-oriented filtering by:
@@ -208,6 +220,8 @@ A remediation hypothesis records:
 - the changed configuration, code, prompt, schema, or reference version;
 - lifecycle state: `observed`, `triaged`, `planned`, `changed`, `ready_for_recheck`, `verified`, `wont_fix`, or `duplicate`.
 
+The target, title, hypothesis, expected change, and regression-risk statement form immutable hypothesis identity. Creation carries an operator-scoped request key: an exact response-lost replay returns the existing remediation and changed reuse fails closed. Only findings from submitted reviews may be linked. Linking a finding moves its original work item into `remediation_in_progress`; closing one remediation must not claim the work item is verified while any other linked remediation remains open. Once all linked remediations are terminal, the work item is `verified` if at least one verified remediation covers it and otherwise `closed`.
+
 Initial target components include:
 
 - context assembly;
@@ -227,7 +241,9 @@ Initial target components include:
 - UI rendering only;
 - insufficient product specification or test coverage.
 
-A recheck links the remediation to a later exact output/configuration and records whether the expected failure class is fixed, unchanged, regressed, or unable to assess. This is sequential verification, not yet a blind A/B experiment.
+A submitted finding may be promoted into one immutable regression case anchored to its original exact work item. Promotion is idempotent and stores no copied source content. The operator should promote the smallest representative set that proves the remediation's important failure classes rather than every linked finding.
+
+A recheck links one promoted regression case to a separately submitted review of a later exact output from the same surface and records whether the original failure class is `fixed`, `unchanged`, `regressed`, or `unable_to_assess`. The original output cannot verify itself. Rechecks are immutable, exact-command-idempotent, and metadata-audited. A remediation may enter `verified` only after every promoted regression case has a latest `fixed` recheck plus a governed change reference and verification note. `unchanged`, `regressed`, `unable_to_assess`, missing coverage, or an open overlapping remediation cannot produce a verified claim. This is sequential human verification, not provider execution, automatic judging, or a blind A/B experiment.
 
 ## Source And Persistence Boundary
 
@@ -252,9 +268,13 @@ Recommended durable workflow tables are:
 - `ai_eval_failure_label_catalog`: versioned active/retired reusable failure labels bound to one review layer;
 - `ai_eval_findings`: immutable submitted finding rows with failure-label version, layer, source reference, and rationale;
 - `ai_eval_remediations`: hypothesis, target component, owner, lifecycle, changed configuration/code reference, risk, and verification note;
-- a finding/remediation link and recheck link so one engine change may address several reviewed cases without duplicating their source content.
+- `ai_eval_regression_cases`: immutable representative promotion of one submitted finding and its original exact work item;
+- `ai_eval_rechecks`: immutable human verification against one later same-surface submitted review;
+- a finding/remediation link so one engine change may address several reviewed cases without duplicating their source content.
 
 Core workflow fields should be relational and queryable. Surface-specific layer judgments may use schema-validated `jsonb` because answer coaching, Coach Update, and question wording have intentionally different rubrics that will evolve. Database checks must enforce valid surface/source combinations and exactly one source reference.
+
+Promotion is idempotent by exact source: retrying the same promotion returns the existing work item and never creates a second review unit. Saving current draft fields and adding a finding is one atomic command. Finding creation carries a client-generated request key scoped to its draft review, so an exact lost-response replay recovers the saved revision and one finding; a reused key with changed review or finding content fails closed without advancing the revision. Removing an underlying candidate or invitation serving source cascades through its QA work item, reviews, and findings so the quality workflow cannot obstruct an approved source-data deletion. Metadata-only audit retention remains a separate operations/policy decision.
 
 ## Access, Privacy, And Audit
 
@@ -268,9 +288,11 @@ Every source-detail read, review mutation/submission, finding mutation, remediat
 - raw file/photo/audio inputs, assembled prompts, provider credentials, raw provider responses, and bearer/session material remain prohibited;
 - broad export is deferred until redaction, audit, retention, and authorization behavior are separately accepted.
 
-## Same-Input A/B Decision Gate
+## Deferred Same-Input A/B Work
 
-After the queue, detail, structured review, remediation, and recheck loop are usable, estimate A/B as an enhancement. Fold it into the same milestone only if all of the following are true:
+Same-input alternate-profile execution and blind pairwise review are deferred beyond the current V2 completion path. The immediate quality priority is the code-owned [Evidence-First Coaching Scenario Lab](./evidence-first-coaching-scenario-lab.md), which rapidly exercises the serving coaching pipeline across varied synthetic evidence without requiring browser navigation.
+
+Any later A/B enhancement must still satisfy all of the following:
 
 - one exact governed input can be reconstructed from immutable source facts without retaining a raw prompt or prohibited payload;
 - an alternate profile is explicitly approved for QA-only execution;
@@ -278,13 +300,18 @@ After the queue, detail, structured review, remediation, and recheck loop are us
 - blind pairwise UI does not delay remediation work;
 - token/cost, retention, provider, and access controls are accepted.
 
-Otherwise defer the runner. Configuration identity and recheck lineage must still be designed so later comparison outputs can attach without replacing the workbench schema.
+Configuration identity and recheck lineage remain compatible with later comparison outputs, but no A/B runner, alternate profile, or pairwise UI is part of the current QA milestone or scenario-lab work.
 
 ## Acceptance Sequence
 
 1. Ratify this workflow, rubric boundaries, source matrix, access policy, and A/B gate.
-2. Add durable work-item/review/finding/remediation schema plus individually granted authorization and source read models.
-3. Land the smallest useful queue and detail workbench for all three surfaces.
-4. Land review submission, finding capture, remediation mapping, and recheck linkage.
-5. Run a QA milestone audit with representative candidate-led, invited, Coach Update, failed-output, and question-set cases.
-6. Decide whether A/B is a small follow-on or a deferred enhancement based on the working foundation.
+2. Add durable work-item/review/finding/remediation schema plus individually granted authorization and source read models. Completed in Slice 180.
+3. Land the smallest useful queue and detail workbench for all three surfaces. Completed in Slice 181.
+4. Land review submission and reusable finding capture. Completed in Slice 181.
+5. Land remediation mapping and recheck linkage. Completed in Slice 182.
+6. Audit the landed workbench with representative candidate-led, invited, Coach Update, failed-output, and generated-question sources. Completed in Slice 183; see [milestone evidence](./ai-eval-operator-milestone.md).
+7. Land scenario authoring, immutable staging, broad baseline corpus, durable run lifecycle, deterministic execution, and `/qa/ai-eval` Scenarios/Runs workspaces. Completed in Slice 184; see [Scenario lab](./evidence-first-coaching-scenario-lab.md).
+8. Land the explicitly gated production-profile runner and complete candidate-visible output inspection across session, summary, and dashboard layers. Completed in Slice 185; browser requests queue only, while the separately confirmed worker owns provider execution and recovery.
+9. Execute a representative credentialed calibration gate through the exact serving profiles. Completed in Slice 186 with two accepted four-case runs; see [Scenario Lab Milestone Evidence](./ai-eval-scenario-lab-milestone.md).
+10. Complete the full credentialed baseline, explicit provider-fault matrix, semantic-failure triage, and representative regression promotion before provider/model promotion or release evidence.
+11. Reconsider A/B only as explicitly deferred later work.

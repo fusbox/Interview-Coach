@@ -54,14 +54,15 @@ Requirements:
 
 - Candidate practice data should be private to the candidate by default.
 - Recruiters, employers, hiring managers, and other hiring-decision participants should not receive candidate app practice questions, answers, transcripts, coaching, summaries, audio, or resume context unless a future requirement explicitly changes that posture and receives policy review.
-- Admin and QA access is allowed for authorized operational support and quality review, but it must be narrow, logged, justified, role-controlled, and disclosed.
-- Support access outside approved admin/QA roles must be explicitly reviewed before production enablement.
+- Operational support and quality-review access may be allowed only through a separately governed, narrow, logged, justified, and disclosed authorization boundary. The AI-eval workbench specifically requires a manually provisioned individual operator grant; recruiter, admin, and legacy QA roles do not imply access.
+- Any other support-access mechanism must be explicitly reviewed before production enablement.
 
 Initial product posture:
 
 - Candidate app output visibility should remain conservative: no hiring-decision user should see candidate practice data.
 - Business operations users, recruiters, employers, and hiring-decision users should not see candidate practice data.
-- Authorized admin and QA users may see candidate practice data only under approved support/quality controls.
+- Individually authorized support or AI-eval operators may see candidate practice data only under the approved purpose-specific controls.
+- AI-eval remediation, regression-case, and recheck rows store opaque source/review references and operator decisions only. They must not copy answer, coaching, Coach Update, JD, resume, prompt, raw-provider, or question content; exact content remains a just-in-time authorized detail read.
 - A separate review question should evaluate whether recruiter-led app visibility into candidate question and answer transcript text remains necessary.
 
 ### AI Feature Disclosure

@@ -19,7 +19,9 @@ describe("candidate dev seed", () => {
         expect(packageJson.scripts["db:smoke-candidate-preview-seed"]).not.toContain("--smoke-defaults");
         expect(packageJson.scripts["db:smoke-candidate-setup-summary"]).toContain("db/validation/005_candidate_setup_to_summary_smoke.sql");
         expect(packageJson.scripts["db:smoke-candidate-setup-summary"]).toContain("--smoke-defaults");
-        expect(packageJson.scripts["db:seed"]).toBe("npm run db:seed-candidate-dev");
+        expect(packageJson.scripts["db:seed"]).toBe(
+            "npm run db:seed-candidate-dev && npm run db:seed-recruiter-dev"
+        );
     });
 
     it("seeds deterministic candidates, identities, drafts, and sessions for local ownership testing", async () => {

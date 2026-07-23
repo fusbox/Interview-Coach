@@ -54,6 +54,22 @@ insert into public.app_user_roles (user_id, role)
 values ('20000000-0000-4000-8000-000000000001', 'recruiter')
 on conflict (user_id, role) do nothing;
 
+insert into public.ai_eval_operator_grants (
+  user_id,
+  granted_by_user_id,
+  reason
+)
+select
+  '20000000-0000-4000-8000-000000000001',
+  '20000000-0000-4000-8000-000000000001',
+  'Local development AI-eval operator'
+where not exists (
+  select 1
+  from public.ai_eval_operator_grants operator_grant
+  where operator_grant.user_id = '20000000-0000-4000-8000-000000000001'
+    and operator_grant.lifecycle_state = 'active'
+);
+
 insert into public.recruiter_profiles (
   recruiter_id,
   first_name,

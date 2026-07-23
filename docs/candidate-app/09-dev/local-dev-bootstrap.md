@@ -51,6 +51,101 @@ npm run db:smoke-recruiter-auth
 The final command proves password verification, role recovery, hashed durable session recovery,
 and revocation against the disposable database. It does not send invitations or email.
 
+The same local-only recruiter fixture receives a separate active individual AI-eval operator grant.
+The grant is not an app role: recruiter, admin, and legacy QA roles do not grant workbench access.
+Validate the Slice 180-185 persistence, access, operator-surface, remediation, recheck, synthetic scenario, and live-execution control boundaries with:
+
+```powershell
+npm run test:ai-eval-workbench
+npm run db:smoke-ai-eval-remediation-recheck
+npm run db:smoke-ai-eval-scenario-workspace
+```
+
+The database smoke uses a rollback-only generated recruiter question set. It proves named-grant
+authorization, rejection of role-only access, source-derived queue metadata, exact just-in-time source
+reading, metadata-only audit, submitted-review/finding immutability, idempotent remediation creation,
+regression-case promotion, governed lifecycle changes, rejection of premature verification and original-output
+reuse, later same-surface recheck, exact recheck replay, truthful work-item reconciliation, and immediate
+revocation. The focused suite also covers `/qa/ai-eval` grant enforcement, source discovery,
+user-visible-first detail, safe failure, review, finding, remediation, and recheck contracts. It does not call a model. After
+the local recruiter seed is applied, sign in with the local recruiter fixture and open `/qa/ai-eval`;
+its separate grant permits the workbench even though app roles alone do not. Deployed access must be granted and
+revoked as an explicit `ai_eval_operator_grants` operation by an authorized database operator until a
+separately governed administration surface exists.
+
+The scenario smoke applies migrations `039-040` and proves the versioned 32-case baseline, complete coverage manifest,
+operator-owned draft replay/conflict/revision, exact-revision immutable staging, one durable run with
+per-case/layer recovery, credentialed preview/queue/claim and provider-operation checkpoint recovery,
+guarded terminalization, 30-day artifact retention, content-free audit metadata, and immediate grant
+revocation. It uses deterministic fixtures and does not call Gemini. In the browser, Scenarios can run
+one, selected, or the complete baseline immediately; queued or recoverable contract-fixture work can also
+be processed independently of the browser with:
+
+```powershell
+npm run qa:ai-eval:scenario-worker
+```
+
+Contract-fixture results may contain both passing and failing semantic assertions because the deterministic
+adapter is not tuned to impersonate production model reasoning. The mode proves orchestration, assertion,
+projection, persistence, and recovery behavior. Do not interpret any fixture result as live-provider or
+coaching-quality acceptance.
+
+### Credentialed AI-Eval Scenario Runs
+
+The `/qa/ai-eval` Scenarios workspace may preview and queue selected, tagged, or full-corpus credentialed
+runs. A browser request never calls Gemini. Provider execution occurs only in the explicit worker process
+below, and live mode does not fall back to the disposable smoke database.
+
+Set the exact serving profiles, credential, operator-reviewed current token prices, and conservative process
+ceilings in the worker environment. The app server needs the same values to render an actionable preview;
+restart it after changing `.env.local`.
+
+```text
+CANDIDATE_ANSWER_ANALYSIS_PROVIDER=google_genai
+CANDIDATE_ANSWER_ANALYSIS_PROFILE=google_gemini_2_5_flash_v1
+CANDIDATE_COACH_UPDATE_PROVIDER=google_genai
+CANDIDATE_COACH_UPDATE_PROFILE=google_gemini_2_5_flash_coach_update_v1
+GEMINI_API_KEY=<credential>
+AI_EVAL_SCENARIO_LIVE_ENABLED=true
+AI_EVAL_SCENARIO_INPUT_USD_PER_MILLION_TOKENS=<approved-current-rate>
+AI_EVAL_SCENARIO_OUTPUT_USD_PER_MILLION_TOKENS=<approved-current-rate>
+AI_EVAL_SCENARIO_MAX_ESTIMATED_COST_USD=<per-run-ceiling>
+AI_EVAL_SCENARIO_MAX_CALLS=<per-run-call-ceiling>
+AI_EVAL_SCENARIO_LIVE_CONCURRENCY=1
+DATABASE_URL=<explicit-target-postgres-uri>
+```
+
+Review the frozen preview and acknowledge it in `/qa/ai-eval`, then process exactly one queued live run.
+The worker loads `.env.local` via `loadEnvConfig`. Prefer the dedicated live script on Windows PowerShell,
+where `npm run … -- --flags` is easy to mis-invoke and can silently run fixture mode instead:
+
+```powershell
+npm run qa:ai-eval:scenario-worker:live
+```
+
+Equivalent explicit form:
+
+```powershell
+npx tsx scripts/run-ai-eval-scenario-worker.ts --live --confirm-live --once
+```
+
+To process only one reviewed run id:
+
+```powershell
+npx tsx scripts/run-ai-eval-scenario-worker.ts --live --confirm-live --run-id=<run-uuid>
+```
+
+Confirm the printed npm/tsx command line includes `--live --confirm-live` before waiting on results.
+A response of `{"status":"idle"}` with no `--live` in the command means the worker looked for fixture
+work only and did not claim your credentialed queue.
+
+Missing gates, profile/configuration drift, absent pricing or ceilings, estimated cost/calls above the
+configured limit, a missing explicit `DATABASE_URL`, or an omitted `--confirm-live` fail before a provider
+call. Concurrency is clamped to `1-4`; begin corpus calibration at `1`. Accepted evaluator and Coach Update
+operations recover from their durable validated checkpoints. A narrow at-least-once billing window remains
+if a provider accepts a request and the worker dies before Postgres records that checkpoint. Automated tests,
+builds, app startup, and browser routes never invoke the live worker.
+
 Validate the V2 invited-practice persistence foundation independently with:
 
 ```powershell
@@ -528,7 +623,7 @@ Use those files when comparing against V1 behavior. Do not treat them as current
 For current V2 local development:
 
 - smoke Postgres is running;
-- `db:migrate` has applied through `036_candidate_resume_ingestion_operations.sql`;
+- `db:migrate` has applied through `037_ai_eval_operator_workbench_foundation.sql`;
 - local candidate dev seed is present;
 - `db:smoke-candidate-readiness` passes;
 - the app is launched with `npm run dev`;

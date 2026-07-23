@@ -8,7 +8,9 @@ export function resolveRecruiterReturnTarget(value: unknown): string {
     try {
         const url = new URL(value, "https://interview-coach.invalid");
         if (url.origin !== "https://interview-coach.invalid") return DEFAULT_RECRUITER_RETURN_TARGET;
-        if (url.pathname !== "/recruiter" && !url.pathname.startsWith("/recruiter/")) {
+        const recruiterTarget = url.pathname === "/recruiter" || url.pathname.startsWith("/recruiter/");
+        const aiEvalTarget = url.pathname === "/qa/ai-eval";
+        if (!recruiterTarget && !aiEvalTarget) {
             return DEFAULT_RECRUITER_RETURN_TARGET;
         }
         return `${url.pathname}${url.search}`;

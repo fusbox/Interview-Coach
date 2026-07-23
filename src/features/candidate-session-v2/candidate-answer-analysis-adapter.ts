@@ -229,11 +229,25 @@ export function createCandidateAnswerAnalysisProjectionFromEvaluatorRun(input: {
     run: AcceptedEvidenceFirstEvaluatorRun;
     answer: CandidateAnswerAnalysisProviderResult["answer"];
 }): CandidateAnswerAnalysisProviderResult {
-    const candidateFeedback = input.run.accepted.candidateProjection;
+    return createCandidateAnswerAnalysisProjectionFromAcceptedFeedback({
+        analyzedAt: input.run.completedAt,
+        answer: input.answer,
+        candidateFeedback: input.run.accepted.candidateProjection,
+        intervention: input.run.accepted.feedback.feedbackPlan.intervention,
+    });
+}
+
+export function createCandidateAnswerAnalysisProjectionFromAcceptedFeedback(input: {
+    analyzedAt: string;
+    answer: CandidateAnswerAnalysisProviderResult["answer"];
+    candidateFeedback: CandidateSafeFeedbackProjection;
+    intervention: FeedbackCompositionOutput["feedbackPlan"]["intervention"];
+}): CandidateAnswerAnalysisProviderResult {
+    const candidateFeedback = input.candidateFeedback;
     return {
         status: "answer_analysis_provider_result",
         provider: providerName,
-        analyzedAt: input.run.completedAt,
+        analyzedAt: input.analyzedAt,
         answer: input.answer,
         coachFeedback: {
             acknowledgement: candidateFeedback.acknowledgement,
@@ -246,11 +260,11 @@ export function createCandidateAnswerAnalysisProjectionFromEvaluatorRun(input: {
         },
         evidence: [],
         evidenceFirst: {
-            contractVersion: input.run.contractVersion,
-            inputFingerprint: input.run.inputFingerprint,
+            contractVersion: EVIDENCE_FIRST_EVALUATOR_CONTRACT_VERSION,
+            inputFingerprint: candidateFeedback.inputFingerprint,
             candidateFeedback,
             interaction: {
-                intervention: input.run.accepted.feedback.feedbackPlan.intervention,
+                intervention: input.intervention,
             },
         },
     };

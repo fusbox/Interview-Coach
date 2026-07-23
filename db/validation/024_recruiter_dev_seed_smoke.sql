@@ -3,6 +3,7 @@ declare
   user_count integer;
   role_count integer;
   profile_count integer;
+  ai_eval_grant_count integer;
 begin
   select count(*) into user_count
   from public.app_users u
@@ -23,7 +24,12 @@ begin
   from public.recruiter_profiles
   where recruiter_id = '20000000-0000-4000-8000-000000000001';
 
-  if user_count <> 1 or role_count <> 1 or profile_count <> 1 then
+  select count(*) into ai_eval_grant_count
+  from public.ai_eval_operator_grants
+  where user_id = '20000000-0000-4000-8000-000000000001'
+    and lifecycle_state = 'active';
+
+  if user_count <> 1 or role_count <> 1 or profile_count <> 1 or ai_eval_grant_count <> 1 then
     raise exception 'Recruiter development seed is incomplete.';
   end if;
 end $$;
