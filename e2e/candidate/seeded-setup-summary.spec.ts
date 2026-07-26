@@ -145,12 +145,13 @@ test("resume review recovers across browsers, propagates by reference, and clear
     page,
 }) => {
     test.setTimeout(180_000);
-    const role = `Resume Milestone Specialist ${Date.now()}`;
+    const runId = Date.now();
+    const role = `Resume Milestone Specialist ${runId}`;
     const rawResume = [
         "Dev Candidate Alternate",
         "candidate-dev-alt@talentarbor.local | 312-555-0144",
         "123 Main Street, Chicago, IL 60601",
-        "Inventory Coordinator | Example Distribution | 2022-2026",
+        `Inventory Coordinator | Example Distribution ${runId} | 2022-2026`,
         "Reviewed shipment records, resolved discrepancies, and documented accurate outcomes.",
     ].join("\n");
 

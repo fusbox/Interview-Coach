@@ -17,7 +17,10 @@ import type {
     CandidateQuestionWordingResult,
     CandidateQuestionWordingUnavailableResult,
 } from "./candidate-question-wording";
-import type { CandidateAnswerAnalysisProviderResult } from "./candidate-answer-analysis-adapter";
+import {
+    parseStoredCandidateAnswerAnalysisProviderResult,
+    type CandidateAnswerAnalysisProviderResult,
+} from "./candidate-answer-analysis-adapter";
 import type { CandidateFeedbackActionEvent } from "./candidate-feedback-interaction";
 import type { CandidateLedSessionCompletionSnapshot } from "@/features/interview-session-v2/session-completion-contract";
 import type { CandidateSetupStartClaim } from "@/features/candidate-setup-v2/candidate-setup-start-request";
@@ -753,7 +756,14 @@ function normalizeCandidateAnswerAnalysisSnapshots(value: unknown): CandidateAns
         return {};
     }
 
-    return value as CandidateAnswerAnalysisSnapshots;
+    return Object.fromEntries(
+        Object.entries(value).flatMap(([slotId, snapshot]) => {
+            const parsed = parseStoredCandidateAnswerAnalysisProviderResult(snapshot);
+            return parsed && parsed.answer.slotId === slotId
+                ? [[slotId, parsed]]
+                : [];
+        }),
+    );
 }
 
 function normalizeCandidateFeedbackActionEvents(value: unknown): CandidateFeedbackActionEvents {

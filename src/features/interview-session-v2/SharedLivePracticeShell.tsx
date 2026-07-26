@@ -16,7 +16,7 @@ import {
     Volume2,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import {
     type SessionQuestionAudioLifecycle,
@@ -84,6 +84,7 @@ export function SharedLivePracticeShell({
     continueWithoutCoachingError = null,
     onSubmit,
 }: SharedLivePracticeShellProps) {
+    const questionHeadingRef = useRef<HTMLHeadingElement | null>(null);
     const currentQuestion = facts.questions[facts.currentQuestionIndex] ?? null;
     const nextQuestion = facts.questions[facts.currentQuestionIndex + 1] ?? null;
     const audioSessionId = facts.sessionId;
@@ -123,6 +124,7 @@ export function SharedLivePracticeShell({
 
     useEffect(() => {
         window.scrollTo({ top: 0 });
+        questionHeadingRef.current?.focus();
     }, [currentQuestion?.questionKey]);
 
     useEffect(() => {
@@ -244,7 +246,13 @@ export function SharedLivePracticeShell({
                             </button>
                         ) : null}
                     </div>
-                    <h1 id="session-live-question-title">{currentQuestion.questionText}</h1>
+                    <h1
+                        id="session-live-question-title"
+                        ref={questionHeadingRef}
+                        tabIndex={-1}
+                    >
+                        {currentQuestion.questionText}
+                    </h1>
                 </section>
 
                 <section

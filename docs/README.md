@@ -78,6 +78,7 @@ Every active document must have one clear job. Slice history and long validation
 
 - [Design System Foundation](./03-design/design-system-foundation.md)
 - [Production UI Workstream](./03-design/production-ui-workstream.md)
+- [Candidate Production UI Milestone](./05-quality/candidate-production-ui-milestone.md)
 - [Coach Update Card And Transcript Canvas](./03-design/coach-update-v2-card-spec.md)
 
 The extracted design-system source, experiments, and UI lab remain under `.untracked`. The tracked design contracts govern production implementation.

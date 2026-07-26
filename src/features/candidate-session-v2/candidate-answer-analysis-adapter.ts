@@ -199,6 +199,28 @@ export function parseCandidateAnswerAnalysisProviderResult(
     value: unknown,
     request: CandidateAnswerAnalysisRequest,
 ): CandidateAnswerAnalysisProviderResult | null {
+    const parsed = parseStoredCandidateAnswerAnalysisProviderResult(value);
+    if (!parsed) {
+        return null;
+    }
+
+    if (
+        parsed.answer.slotId !== request.answerSubmission.slotId
+        || parsed.answer.questionIndex !== request.answerSubmission.questionIndex
+        || (
+            request.answerSubmission.answerAttemptId
+            && parsed.answer.answerAttemptId !== request.answerSubmission.answerAttemptId
+        )
+    ) {
+        return null;
+    }
+
+    return parsed;
+}
+
+export function parseStoredCandidateAnswerAnalysisProviderResult(
+    value: unknown,
+): CandidateAnswerAnalysisProviderResult | null {
     if (!isObject(value) || value.status !== "answer_analysis_provider_result" || value.provider !== providerName) {
         return null;
     }
@@ -213,17 +235,6 @@ export function parseCandidateAnswerAnalysisProviderResult(
         || !answer
         || !coachFeedback
         || !evidenceFirst
-    ) {
-        return null;
-    }
-
-    if (
-        answer.slotId !== request.answerSubmission.slotId
-        || answer.questionIndex !== request.answerSubmission.questionIndex
-        || (
-            request.answerSubmission.answerAttemptId
-            && answer.answerAttemptId !== request.answerSubmission.answerAttemptId
-        )
     ) {
         return null;
     }

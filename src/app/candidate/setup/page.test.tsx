@@ -182,7 +182,7 @@ it("changes the recommended question count when the interview stage changes", ()
     expect(screen.getByText(/you can choose a different count/i)).toBeInTheDocument();
 });
 
-it("shows a progress transition after setup submission", () => {
+it("shows a progress transition after setup submission", async () => {
     const createSession = vi.fn(() => new Promise<never>(() => {}));
     render(<CandidateSetupExperience createSession={createSession} />);
 
@@ -193,6 +193,7 @@ it("shows a progress transition after setup submission", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Required fields are marked with an asterisk.");
     expect(screen.getByLabelText("Target role *")).toHaveAttribute("aria-invalid", "true");
     expect(screen.getByLabelText("Job description *")).toHaveAttribute("aria-invalid", "true");
+    await waitFor(() => expect(screen.getByLabelText("Target role *")).toHaveFocus());
 
     fireEvent.change(screen.getByLabelText("Target role *"), {
         target: { value: "Customer service representative" },
@@ -234,6 +235,7 @@ it("shows setup contract errors before posting invalid setup input", async () =>
     expect(createSession).not.toHaveBeenCalled();
     expect(screen.getByRole("alert")).toHaveTextContent("Job description must be 12,000 characters or fewer.");
     expect(screen.getByLabelText("Job description *")).toHaveAttribute("aria-invalid", "true");
+    await waitFor(() => expect(screen.getByLabelText("Job description *")).toHaveFocus());
 });
 
 it("requires resume processing and acceptance before submitting the reviewed artifact", async () => {

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createSessionRuntimeFacts } from "./session-runtime-facts";
@@ -77,6 +77,33 @@ describe("SharedLivePracticeShell", () => {
         expect(prefetch).toHaveBeenCalledTimes(2);
         expect(playOnce).toHaveBeenCalledOnce();
         expect(stop).not.toHaveBeenCalled();
+    });
+
+    it("moves focus to the active question when question navigation changes", async () => {
+        const initialFacts = createFacts("candidate_led");
+        const view = render(
+            <SharedLivePracticeShell
+                facts={initialFacts}
+                answerMode="text"
+                draftText=""
+                onDraftChange={vi.fn()}
+                onSubmit={vi.fn()}
+            />,
+        );
+
+        await waitFor(() => expect(screen.getByRole("heading", { name: "Question 2" })).toHaveFocus());
+
+        view.rerender(
+            <SharedLivePracticeShell
+                facts={{ ...initialFacts, currentQuestionIndex: 2 }}
+                answerMode="text"
+                draftText=""
+                onDraftChange={vi.fn()}
+                onSubmit={vi.fn()}
+            />,
+        );
+
+        await waitFor(() => expect(screen.getByRole("heading", { name: "Question 3" })).toHaveFocus());
     });
 
     it("supports an explicit adapter-owned link exit", () => {

@@ -27,6 +27,7 @@ import {
     type CandidateSetupTransition,
     type CandidateSetupResumeArtifactReference,
 } from "./candidate-setup-contract";
+import { CandidateBrandHeader } from "@/features/candidate-v2/CandidateBrandHeader";
 import type { CandidateSetupSessionCreationResult } from "./candidate-setup-session-creation";
 import type { CandidateExistingPrepContextSummary } from "./candidate-setup-prep-context-repository";
 import type { CandidateTrustedSetupContext } from "./candidate-setup-entry-context";
@@ -171,6 +172,8 @@ export function CandidateSetupExperience({
     const [pendingSetupTransition, setPendingSetupTransition] = useState<CandidateSetupTransition | null>(null);
     const [existingContextError, setExistingContextError] = useState("");
     const existingContextDialogRef = useRef<HTMLDialogElement | null>(null);
+    const targetRoleInputRef = useRef<HTMLInputElement | null>(null);
+    const jobDescriptionInputRef = useRef<HTMLTextAreaElement | null>(null);
     const setupStartRequestRef = useRef<{ requestSignature: string; idempotencyKey: string } | null>(null);
     const resumeSelectionClearRef = useRef<Promise<void>>(Promise.resolve());
     const userEditedSetupFieldsRef = useRef<Set<SetupHydrationField>>(new Set());
@@ -540,6 +543,7 @@ export function CandidateSetupExperience({
             setAttemptedStart(true);
             setSetupValidationMessage("");
             setSetupValidationFields(new Set());
+            focusFirstInvalidSetupField();
             return;
         }
         const setupInput = {
@@ -557,6 +561,7 @@ export function CandidateSetupExperience({
             setSetupError("");
             setSetupValidationFields(new Set(Object.keys(fieldErrors)));
             setSetupValidationMessage(toSetupValidationMessage(fieldErrors));
+            focusFirstInvalidSetupField(Object.keys(fieldErrors));
             return;
         }
 
@@ -706,7 +711,20 @@ export function CandidateSetupExperience({
             setAttemptedStart(true);
             setSetupValidationMessage("");
             setSetupValidationFields(new Set());
+            focusFirstInvalidSetupField();
         }
+    }
+
+    function focusFirstInvalidSetupField(fields: string[] = []) {
+        const shouldFocusRole = !targetRole.trim() || fields.includes("targetRole");
+        const shouldFocusJobDescription = !jobDescription.trim() || fields.includes("jobDescription");
+        window.requestAnimationFrame(() => {
+            if (shouldFocusRole) {
+                targetRoleInputRef.current?.focus();
+            } else if (shouldFocusJobDescription) {
+                jobDescriptionInputRef.current?.focus();
+            }
+        });
     }
 
     function clearSetupValidation() {
@@ -756,6 +774,7 @@ export function CandidateSetupExperience({
 
     return (
         <main className="setup-page">
+            <CandidateBrandHeader />
             <section className="setup-hero app-grid">
                 <div className="setup-hero__copy">
                     <h1 className="setup-page-title">Practice Setup</h1>
@@ -798,6 +817,7 @@ export function CandidateSetupExperience({
                                 <label className="setup-field setup-field--full">
                                     <span>Target role *</span>
                                     <input
+                                        ref={targetRoleInputRef}
                                         name="targetRole"
                                         required
                                         maxLength={CANDIDATE_SETUP_LIMITS.targetRole + 1}
@@ -805,7 +825,10 @@ export function CandidateSetupExperience({
                                         className={isTargetRoleInvalid ? "is-required-missing" : undefined}
                                         value={targetRole}
                                         readOnly={Boolean(trustedSetupContext)}
-                                        aria-describedby={trustedSetupContext ? "trusted-role-context" : undefined}
+                                        aria-describedby={[
+                                            trustedSetupContext ? "trusted-role-context" : null,
+                                            isTargetRoleInvalid ? "setup-required-guidance" : null,
+                                        ].filter(Boolean).join(" ") || undefined}
                                         onChange={(event) => {
                                             userEditedSetupFieldsRef.current.add("targetRole");
                                             clearSetupValidation();
@@ -819,6 +842,7 @@ export function CandidateSetupExperience({
                                 <label className="setup-field setup-field--full">
                                     <span>Job description *</span>
                                     <textarea
+                                        ref={jobDescriptionInputRef}
                                         name="jobDescription"
                                         required
                                         maxLength={CANDIDATE_SETUP_LIMITS.jobDescription + 1}
@@ -826,7 +850,10 @@ export function CandidateSetupExperience({
                                         className={isJobDescriptionInvalid ? "is-required-missing" : undefined}
                                         value={jobDescription}
                                         readOnly={Boolean(trustedSetupContext)}
-                                        aria-describedby={trustedSetupContext ? "trusted-role-context" : undefined}
+                                        aria-describedby={[
+                                            trustedSetupContext ? "trusted-role-context" : null,
+                                            isJobDescriptionInvalid ? "setup-required-guidance" : null,
+                                        ].filter(Boolean).join(" ") || undefined}
                                         onChange={(event) => {
                                             userEditedSetupFieldsRef.current.add("jobDescription");
                                             clearSetupValidation();
@@ -1188,6 +1215,7 @@ export function CandidateSetupExperience({
                     </div>
 
                     <div
+                        id="setup-required-guidance"
                         className={
                             isPreparing
                                 ? "setup-loading-card is-active"

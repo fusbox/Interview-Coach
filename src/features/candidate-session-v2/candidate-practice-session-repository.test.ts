@@ -250,6 +250,16 @@ describe("candidate practice session repository", () => {
                         updatedAt: "2026-07-09T20:00:00.000Z",
                     },
                 },
+                answer_analysis_snapshots_json: {
+                    "slot-3": {
+                        status: "answer_analysis_provider_result",
+                        provider: "candidate_v2_answer_evaluator",
+                        answer: {
+                            slotId: "slot-3",
+                            questionIndex: 2,
+                        },
+                    },
+                },
             }],
         }));
         const repository = createCandidatePracticeSessionRepository({ query });
@@ -278,6 +288,7 @@ describe("candidate practice session repository", () => {
                     updatedAt: "2026-07-09T20:00:00.000Z",
                 },
             },
+            answerAnalysisSnapshots: {},
         });
         expect(query).toHaveBeenCalledWith(expect.stringContaining("from public.candidate_practice_sessions"), [
             "11111111-1111-4111-8111-111111111111",

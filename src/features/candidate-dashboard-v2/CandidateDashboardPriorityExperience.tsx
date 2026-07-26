@@ -11,6 +11,7 @@ import {
     Play,
     RefreshCw,
     Route,
+    Target,
     X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -20,6 +21,7 @@ import {
     useMemo,
     useRef,
     useState,
+    type CSSProperties,
     type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 
@@ -109,6 +111,11 @@ export function CandidateDashboardPriorityExperience({
                 />
             </section>
 
+            <CandidateDashboardPreparedness
+                preparedness={dashboard.questionPreparedness}
+                onOpenPlan={() => setIsCoachPlanOpen(true)}
+            />
+
             {isCoachUpdateOpen && dashboard.coachUpdateDetail ? (
                 <CandidateCoachUpdateDialog
                     detail={dashboard.coachUpdateDetail}
@@ -124,6 +131,102 @@ export function CandidateDashboardPriorityExperience({
             ) : null}
         </>
     );
+}
+
+function CandidateDashboardPreparedness({
+    preparedness,
+    onOpenPlan,
+}: {
+    preparedness: CandidateDashboardV2ReadModel["questionPreparedness"];
+    onOpenPlan: () => void;
+}) {
+    if (!preparedness) return null;
+
+    const { coverage, achievement, questions } = preparedness;
+    const practicedCount = coverage.attemptedQuestionCount;
+    const totalCount = coverage.canonicalQuestionCount;
+    const coveragePercent = totalCount > 0
+        ? Math.round((practicedCount / totalCount) * 100)
+        : 0;
+
+    return (
+        <section className="candidate-preparedness" aria-labelledby="candidate-preparedness-title">
+            <header className="candidate-preparedness__header">
+                <div>
+                    <p className="type-eyebrow">Progress toward preparedness</p>
+                    <h2 id="candidate-preparedness-title">See where your practice is taking you.</h2>
+                    <p>
+                        Coverage shows what you have practiced. Each question keeps the strongest level you have reached.
+                    </p>
+                </div>
+                <button className="candidate-dashboard-reference-action" type="button" onClick={onOpenPlan}>
+                    View Coach Plan
+                    <ArrowRight size={16} aria-hidden="true" />
+                </button>
+            </header>
+
+            <div className="candidate-preparedness__body">
+                <div
+                    className="candidate-preparedness__coverage"
+                    role="img"
+                    aria-label={`${practicedCount} of ${totalCount} planned questions practiced`}
+                    style={{ "--candidate-coverage": `${coveragePercent}%` } as CSSProperties}
+                >
+                    <span aria-hidden="true">
+                        <strong>{practicedCount}</strong>
+                        <small>of {totalCount}</small>
+                    </span>
+                    <p>questions practiced</p>
+                </div>
+
+                <div className="candidate-preparedness__achievement">
+                    <p className="type-eyebrow">Highest level reached</p>
+                    <dl>
+                        <div data-band="strong">
+                            <dt>Strong</dt>
+                            <dd>{achievement.strong}</dd>
+                        </div>
+                        <div data-band="clear">
+                            <dt>Clear</dt>
+                            <dd>{achievement.clear}</dd>
+                        </div>
+                        <div data-band="emerging">
+                            <dt>Emerging</dt>
+                            <dd>{achievement.emerging}</dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <ol className="candidate-preparedness__questions" aria-label="Question preparedness">
+                    {questions.map((question) => (
+                        <li key={question.questionKey} data-state={question.state} data-band={question.band ?? undefined}>
+                            <span aria-hidden="true">
+                                {question.state === "rated" ? (
+                                    <Target size={16} />
+                                ) : question.questionNumber}
+                            </span>
+                            <div>
+                                <p>Question {question.questionNumber}</p>
+                                <strong>{getPreparednessLabel(question.state, question.band)}</strong>
+                            </div>
+                        </li>
+                    ))}
+                </ol>
+            </div>
+        </section>
+    );
+}
+
+function getPreparednessLabel(
+    state: NonNullable<CandidateDashboardV2ReadModel["questionPreparedness"]>["questions"][number]["state"],
+    band: NonNullable<CandidateDashboardV2ReadModel["questionPreparedness"]>["questions"][number]["band"],
+) {
+    if (state === "rated" && band) {
+        return band.charAt(0).toUpperCase() + band.slice(1);
+    }
+    if (state === "incomplete") return "Needs a complete answer";
+    if (state === "evaluation_unavailable") return "Coaching unavailable";
+    return "Not practiced yet";
 }
 
 export function createCandidateCoachUpdateSeenStorageKey(dashboard: CandidateDashboardV2ReadModel) {
@@ -334,7 +437,7 @@ function CandidateDashboardCoachPlanPanel({
                         <ArrowRight size={16} aria-hidden="true" />
                     </button>
                 ) : null}
-                {dashboard.coachPlan ? (
+                {dashboard.coachPlan && !dashboard.questionPreparedness ? (
                     <button className="candidate-dashboard-reference-action" type="button" onClick={onOpen}>
                         View Coach Plan
                         <ArrowRight size={16} aria-hidden="true" />

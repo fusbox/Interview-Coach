@@ -1,7 +1,6 @@
 "use client";
 
 import { ArrowLeft, Clock3, LockKeyhole, Play, Sparkles } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
@@ -9,6 +8,7 @@ import {
     toSessionQuestionAudioTarget,
     type SessionQuestionAudioLifecycle,
 } from "@/features/interview-session-v2/session-question-audio-contract";
+import { CandidateBrandHeader } from "@/features/candidate-v2/CandidateBrandHeader";
 
 export type CandidatePreSessionQuestion = {
     id: string;
@@ -100,17 +100,7 @@ export function CandidatePreSessionLanding({
             inert={isPreparing ? true : undefined}
             aria-hidden={isPreparing || undefined}
         >
-            <header className="candidate-pre-session__brand app-grid" aria-label="TalentArbor">
-                <Image
-                    src="/TA-logo.webp"
-                    alt="TalentArbor"
-                    width={300}
-                    height={70}
-                    className="candidate-pre-session__brand-mark"
-                    priority
-                    unoptimized
-                />
-            </header>
+            <CandidateBrandHeader />
             <div className="candidate-pre-session__layout app-grid">
                 <section className="candidate-pre-session__intro" aria-labelledby="candidate-pre-session-title">
                     <h1 id="candidate-pre-session-title">{heading}</h1>
@@ -204,14 +194,18 @@ export function CandidatePreSessionLanding({
                             aria-label="Start follow-up practice"
                             action={startActionUrl}
                             method="post"
+                            onSubmit={() => {
+                                setIsPreparing(true);
+                                void questionAudio?.unlock();
+                            }}
                         >
                             <button
                                 className="candidate-button candidate-button--primary"
                                 type="submit"
-                                onClick={() => void questionAudio?.unlock()}
+                                disabled={isPreparing}
                             >
                                 <Play size={16} aria-hidden="true" />
-                                Start practice
+                                {isPreparing ? "Starting practice" : "Start practice"}
                             </button>
                         </form>
                     ) : (

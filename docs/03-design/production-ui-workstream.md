@@ -1,7 +1,7 @@
 # Production UI Workstream
 
-Status: Active operating contract
-Last updated: 2026-07-25
+Status: Active operating contract; first candidate integration milestone completed
+Last updated: 2026-07-26
 
 ## Purpose
 
@@ -96,3 +96,9 @@ An accepted UI commit may enter the core branch when:
 - the canonical docs are updated on the integration branch.
 
 Full milestone and release gates remain governed by the senior-pass skills and [Production Hardening And Deployment Controls](../07-ops/production-hardening-and-deployment-controls.md).
+
+## First Integration Evidence
+
+Slice 194 exercised this operating model on the core/integration branch as the sole shared-file writer. It integrated candidate setup, pre-session landing, live practice, and dashboard composition without moving or duplicating domain behavior. The accepted evidence and bounded follow-ups are recorded in [Candidate Production UI Milestone](../05-quality/candidate-production-ui-milestone.md).
+
+Future UI work should use that milestone as a behavioral and validation baseline, not as a pixel-locked endpoint. Invited, recruiter, QA, Coach Update detail, and remaining provisional surfaces still require their own state inventories and acceptance evidence.

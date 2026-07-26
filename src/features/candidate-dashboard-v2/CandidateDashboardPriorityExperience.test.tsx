@@ -145,7 +145,83 @@ describe("CandidateDashboardPriorityExperience", () => {
         fireEvent.keyDown(document, { key: "Escape" });
         expect(screen.queryByRole("dialog", { name: "Your plan for Material Handler I" })).not.toBeInTheDocument();
     });
+
+    it("presents plan coverage separately from highest-earned preparedness", () => {
+        render(<CandidateDashboardPriorityExperience dashboard={createReadyDashboard({
+            questionPreparedness: {
+                status: "candidate_question_preparedness_progress",
+                source: {
+                    persistence: "read_time_projection",
+                    durableFacts: [
+                        "candidate_practice_plan_baselines",
+                        "candidate_practice_sessions",
+                        "candidate_answer_attempts",
+                        "candidate_answer_evaluation_runs",
+                    ],
+                    bandSelection: "highest_earned",
+                    regressionPolicy: "deferred_keep_highest",
+                },
+                coverage: {
+                    canonicalQuestionCount: 3,
+                    unpracticedQuestionCount: 1,
+                    attemptedQuestionCount: 2,
+                    evaluatedQuestionCount: 2,
+                    incompleteQuestionCount: 0,
+                    evaluationUnavailableQuestionCount: 0,
+                },
+                achievement: {
+                    emerging: 0,
+                    clear: 1,
+                    strong: 1,
+                },
+                questions: [
+                    createPreparednessQuestion({ questionKey: "slot-1", questionNumber: 1, band: "strong" }),
+                    createPreparednessQuestion({ questionKey: "slot-2", questionNumber: 2, band: "clear" }),
+                    createPreparednessQuestion({
+                        questionKey: "slot-3",
+                        questionNumber: 3,
+                        state: "not_practiced",
+                        band: null,
+                    }),
+                ],
+            },
+        })} />);
+
+        const progress = screen.getByRole("region", { name: "See where your practice is taking you." });
+        expect(within(progress).getByRole("img", { name: "2 of 3 planned questions practiced" })).toBeInTheDocument();
+        expect(progress.querySelector('.candidate-preparedness__achievement [data-band="strong"] dd')).toHaveTextContent("1");
+        expect(progress.querySelector('.candidate-preparedness__achievement [data-band="clear"] dd')).toHaveTextContent("1");
+        expect(within(progress).getByText("Not practiced yet")).toBeInTheDocument();
+
+        fireEvent.click(within(progress).getByRole("button", { name: "View Coach Plan" }));
+        expect(screen.getByRole("dialog", { name: "Your plan for Material Handler I" })).toBeInTheDocument();
+    });
 });
+
+function createPreparednessQuestion({
+    questionKey,
+    questionNumber,
+    state = "rated",
+    band,
+}: {
+    questionKey: string;
+    questionNumber: number;
+    state?: "not_practiced" | "evaluation_unavailable" | "incomplete" | "rated";
+    band: "emerging" | "clear" | "strong" | null;
+}): NonNullable<CandidateDashboardV2ReadModel["questionPreparedness"]>["questions"][number] {
+    return {
+        questionKey,
+        questionNumber,
+        category: questionNumber === 2 ? "behavioral" : "screening",
+        questionText: `Question ${questionNumber}`,
+        attemptCount: state === "not_practiced" ? 0 : 1,
+        evaluatedAttemptCount: state === "not_practiced" ? 0 : 1,
+        state,
+        band,
+        highestEarnedAttemptId: band ? `attempt-${questionNumber}` : null,
+        latestAttempt: null,
+    };
+}
 
 function createReadyDashboard(
     overrides: Partial<CandidateDashboardV2ReadModel> = {},

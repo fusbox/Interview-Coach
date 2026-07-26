@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import {
     CandidatePreSessionLanding,
@@ -32,5 +32,28 @@ describe("candidate practice transition copy", () => {
 
         expect(screen.getByText("resume.pdf")).toBeInTheDocument();
         expect(screen.queryByText("Included")).not.toBeInTheDocument();
+    });
+
+    it("locks a follow-up launch after submission begins", () => {
+        const unlock = vi.fn();
+        render(<CandidatePreSessionLanding
+            variant="follow_up"
+            targetRole="Quality inspector"
+            stageLabel="Screening call"
+            questionCount={1}
+            resumeIncluded={false}
+            startActionUrl="/candidate/practice/ready/intent-1/start"
+            questionAudio={{
+                unlock,
+                prefetch: vi.fn(),
+                playOnce: vi.fn(),
+            }}
+        />);
+
+        fireEvent.submit(screen.getByRole("form", { name: "Start follow-up practice" }));
+
+        expect(unlock).toHaveBeenCalledOnce();
+        expect(screen.getByText("Starting practice").closest("button")).toBeDisabled();
+        expect(screen.getByRole("heading", { name: "Entering practice space" })).toBeInTheDocument();
     });
 });

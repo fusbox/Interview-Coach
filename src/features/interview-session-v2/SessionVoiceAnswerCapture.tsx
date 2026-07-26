@@ -287,11 +287,12 @@ export function SessionVoiceAnswerCapture({
             ) : null}
 
             {phase === "recording" ? (
-                <div className="session-voice-answer__recording" role="status" aria-live="polite">
+                <div className="session-voice-answer__recording">
+                    <span className="sr-only" role="status" aria-live="polite">Recording started.</span>
                     <span className="session-voice-answer__recording-dot" aria-hidden="true" />
                     <div>
                         <strong>Recording</strong>
-                        <span>{formatDuration(elapsedMs)} of 3:00</span>
+                        <span aria-hidden="true">{formatDuration(elapsedMs)} of 3:00</span>
                     </div>
                     <button className="candidate-button candidate-button--primary" type="button" onClick={stopRecording}>
                         <Square size={16} aria-hidden="true" />

@@ -297,87 +297,83 @@ function createDefaultCandidateDashboardPageDependencies(): CandidateDashboardPa
 
     return {
         async resolveDashboardModel({ selectedRoleProfileId, selectedLegacyTargetRole }) {
-            try {
-                const { headers } = await import("next/headers");
-                const requestHeaders = await headers();
-                const candidateProfileId = await resolveCandidateProfileIdFromRequestHeaders(
-                    requestHeaders.get("cookie"),
-                    queryClient,
-                );
+            const { headers } = await import("next/headers");
+            const requestHeaders = await headers();
+            const candidateProfileId = await resolveCandidateProfileIdFromRequestHeaders(
+                requestHeaders.get("cookie"),
+                queryClient,
+            );
 
-                if (!candidateProfileId) {
-                    return null;
-                }
-
-                const normalizedSelectedRoleProfileId = normalizeCandidateRoleProfileId(selectedRoleProfileId);
-                const [
-                    candidatePracticeSessions,
-                    selectedContextSessions,
-                    coachUpdateArtifacts,
-                    candidateIdentity,
-                    practicePlanBaselines,
-                    answerAttempts,
-                    evaluationRuns,
-                ] = await Promise.all([
-                    practiceSessionRepository.listAllPracticeSessionsForCandidate({ candidateProfileId }),
-                    normalizedSelectedRoleProfileId
-                        ? practiceSessionRepository.listPracticeSessionsForCandidateRoleProfile({
-                            candidateProfileId,
-                            roleProfileId: normalizedSelectedRoleProfileId,
-                        })
-                        : Promise.resolve([]),
-                    coachUpdateArtifactRepository.listLatestArtifactAttempts({ candidateProfileId }),
-                    readCandidateDashboardIdentity(queryClient, candidateProfileId),
-                    practicePlanBaselineRepository.listForCandidate({ candidateProfileId }),
-                    answerHistoryRepository
-                        .listAnswerAttemptsForCandidate({ candidateProfileId })
-                        .catch(() => null),
-                    answerHistoryRepository.listEvaluationRunsForCandidate({
-                        candidateProfileId,
-                        purpose: "candidate_coaching",
-                    }).catch(() => null),
-                ]);
-                const practiceSessions = mergeCandidatePracticeSessions(
-                    candidatePracticeSessions,
-                    selectedContextSessions,
-                );
-
-                return createCandidateDashboardV2ReadModel({
-                    candidateProfileId,
-                    practiceSessions,
-                    coachUpdateArtifacts,
-                    candidateIdentity,
-                    practicePlanBaselines,
-                    answerAttempts,
-                    acceptedEvaluationRuns: evaluationRuns?.flatMap((run) => {
-                        if (run.lifecycleState !== "completed" || !run.result || !run.completedAt) {
-                            return [];
-                        }
-                        const accepted = parseAcceptedEvidenceFirstEvaluatorRun(run.result);
-                        if (
-                            !accepted
-                            || accepted.evaluationRunId !== run.candidateAnswerEvaluationRunId
-                            || accepted.inputFingerprint !== run.inputFingerprint
-                        ) {
-                            return [];
-                        }
-                        return [{
-                            candidateAnswerAttemptId: run.candidateAnswerAttemptId,
-                            candidateAnswerEvaluationRunId: run.candidateAnswerEvaluationRunId,
-                            completedAt: run.completedAt,
-                            extraction: {
-                                answerUsability: accepted.accepted.extraction.answerUsability,
-                                technicalAccuracy: accepted.accepted.extraction.technicalAccuracy,
-                            },
-                            criteria: accepted.accepted.criteria,
-                        }];
-                    }) ?? null,
-                    selectedRoleProfileId,
-                    selectedLegacyTargetRole,
-                });
-            } catch {
+            if (!candidateProfileId) {
                 return null;
             }
+
+            const normalizedSelectedRoleProfileId = normalizeCandidateRoleProfileId(selectedRoleProfileId);
+            const [
+                candidatePracticeSessions,
+                selectedContextSessions,
+                coachUpdateArtifacts,
+                candidateIdentity,
+                practicePlanBaselines,
+                answerAttempts,
+                evaluationRuns,
+            ] = await Promise.all([
+                practiceSessionRepository.listAllPracticeSessionsForCandidate({ candidateProfileId }),
+                normalizedSelectedRoleProfileId
+                    ? practiceSessionRepository.listPracticeSessionsForCandidateRoleProfile({
+                        candidateProfileId,
+                        roleProfileId: normalizedSelectedRoleProfileId,
+                    })
+                    : Promise.resolve([]),
+                coachUpdateArtifactRepository.listLatestArtifactAttempts({ candidateProfileId }),
+                readCandidateDashboardIdentity(queryClient, candidateProfileId),
+                practicePlanBaselineRepository.listForCandidate({ candidateProfileId }),
+                answerHistoryRepository
+                    .listAnswerAttemptsForCandidate({ candidateProfileId })
+                    .catch(() => null),
+                answerHistoryRepository.listEvaluationRunsForCandidate({
+                    candidateProfileId,
+                    purpose: "candidate_coaching",
+                }).catch(() => null),
+            ]);
+            const practiceSessions = mergeCandidatePracticeSessions(
+                candidatePracticeSessions,
+                selectedContextSessions,
+            );
+
+            return createCandidateDashboardV2ReadModel({
+                candidateProfileId,
+                practiceSessions,
+                coachUpdateArtifacts,
+                candidateIdentity,
+                practicePlanBaselines,
+                answerAttempts,
+                acceptedEvaluationRuns: evaluationRuns?.flatMap((run) => {
+                    if (run.lifecycleState !== "completed" || !run.result || !run.completedAt) {
+                        return [];
+                    }
+                    const accepted = parseAcceptedEvidenceFirstEvaluatorRun(run.result);
+                    if (
+                        !accepted
+                        || accepted.evaluationRunId !== run.candidateAnswerEvaluationRunId
+                        || accepted.inputFingerprint !== run.inputFingerprint
+                    ) {
+                        return [];
+                    }
+                    return [{
+                        candidateAnswerAttemptId: run.candidateAnswerAttemptId,
+                        candidateAnswerEvaluationRunId: run.candidateAnswerEvaluationRunId,
+                        completedAt: run.completedAt,
+                        extraction: {
+                            answerUsability: accepted.accepted.extraction.answerUsability,
+                            technicalAccuracy: accepted.accepted.extraction.technicalAccuracy,
+                        },
+                        criteria: accepted.accepted.criteria,
+                    }];
+                }) ?? null,
+                selectedRoleProfileId,
+                selectedLegacyTargetRole,
+            });
         },
         resolveNextRoundBuilder: nextRoundRuntime.loadBuilder,
     };
