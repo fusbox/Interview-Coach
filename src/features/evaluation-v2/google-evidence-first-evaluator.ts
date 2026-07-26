@@ -31,7 +31,7 @@ import {
 export const GOOGLE_EVIDENCE_FIRST_PROFILE_ID = "google_gemini_2_5_flash_v1" as const;
 export const GOOGLE_EVIDENCE_FIRST_PROVIDER = "google_genai" as const;
 export const GOOGLE_EVIDENCE_FIRST_MODEL = "gemini-2.5-flash" as const;
-export const GOOGLE_EVIDENCE_FIRST_ADAPTER_VERSION = "google_genai_evidence_first_adapter_v10" as const;
+export const GOOGLE_EVIDENCE_FIRST_ADAPTER_VERSION = "google_genai_evidence_first_adapter_v15" as const;
 export const GOOGLE_EVIDENCE_FIRST_PROFILE_ENV = "CANDIDATE_ANSWER_ANALYSIS_PROFILE" as const;
 export const GOOGLE_GENAI_API_KEY_ENV = "GEMINI_API_KEY" as const;
 
@@ -79,8 +79,8 @@ const PROVIDER_SCHEMA_KEYWORDS = new Set([
 ]);
 
 const extractionDescriptor = createModelDescriptor({
-    promptVersion: "candidate_evidence_extraction_google_v2",
-    responseSchemaVersion: "evidence_extraction_provider_output_v2",
+    promptVersion: "candidate_evidence_extraction_google_v3",
+    responseSchemaVersion: "evidence_extraction_provider_output_v3",
     reasoningPosture: "low",
     thinkingBudget: 512,
     temperature: 0,
@@ -97,8 +97,8 @@ const verificationDescriptor = createModelDescriptor({
 });
 
 const compositionDescriptor = createModelDescriptor({
-    promptVersion: "candidate_feedback_composition_google_v4",
-    responseSchemaVersion: "feedback_composition_provider_output_v2",
+    promptVersion: "candidate_feedback_composition_google_v8",
+    responseSchemaVersion: "feedback_composition_provider_output_v3",
     reasoningPosture: "low",
     thinkingBudget: 512,
     temperature: 0.2,
@@ -434,7 +434,7 @@ function hasGroundedCategorySkillSignal(
         case "behavioral":
             return observedSignals.has("has_personal_action");
         case "technical_role_specific":
-            return observedSignals.has("has_correct_concept")
+            return observedSignals.has("has_relevant_role_knowledge")
                 || observedSignals.has("has_practical_application");
         case "case_scenario":
             return observedSignals.has("has_recommendation")
@@ -470,6 +470,7 @@ function hydrateFeedbackComposition(value: unknown, task: FeedbackComposerTask) 
     if (!isRecord(envelope)) return envelope;
 
     const usabilityStatus = task.input.answerUsability.status;
+    const directive = task.input.coachingDirective;
     const boundedCandidateFeedback = isRecord(envelope.candidateFeedback)
         ? {
             ...envelope.candidateFeedback,
@@ -494,39 +495,27 @@ function hydrateFeedbackComposition(value: unknown, task: FeedbackComposerTask) 
                 : envelope.candidateFeedback.deliveryNote,
         }
         : envelope.candidateFeedback;
-    const candidateFeedback = usabilityStatus !== "usable" && isRecord(boundedCandidateFeedback)
-        ? { ...boundedCandidateFeedback, primaryStrength: null }
+    const candidateFeedback = isRecord(boundedCandidateFeedback)
+        ? {
+            ...boundedCandidateFeedback,
+            ...(usabilityStatus !== "usable" ? { primaryStrength: null } : {}),
+            ...(!directive.content.requireBiggestUpgrade ? { biggestUpgrade: null } : {}),
+            ...(!directive.content.requireRedoPrompt ? { redoPrompt: null } : {}),
+            ...(!directive.content.allowPatternSuggestion ? { patternSuggestion: null } : {}),
+        }
         : boundedCandidateFeedback;
-    const hasPrimaryUpgrade = isRecord(candidateFeedback)
-        && typeof candidateFeedback.biggestUpgrade === "string"
-        && candidateFeedback.biggestUpgrade.trim().length > 0;
     const feedbackPlan = isRecord(envelope.feedbackPlan)
         ? {
             ...envelope.feedbackPlan,
             centralRead: clampGeneratedText(envelope.feedbackPlan.centralRead, 280),
-            ...(usabilityStatus === "sensitive_disclosure"
-                ? {
-                    primaryAnchor: { kind: "privacy_reframe", id: "privacy_reframe" },
-                    intervention: "professional_reframe",
-                }
-                : {}),
-            ...(usabilityStatus !== "usable" && isRecord(envelope.feedbackPlan.signal)
-                ? {
-                    signal: {
-                        ...envelope.feedbackPlan.signal,
-                        valence: "insufficient",
-                        detectability: usabilityStatus === "thin" ? "thin" : envelope.feedbackPlan.signal.detectability,
-                    },
-                }
-                : {}),
-            ...(usabilityStatus === "usable"
-                && envelope.feedbackPlan.intervention === "affirm_and_continue"
-                && hasPrimaryUpgrade
-                ? { intervention: "polish_then_continue" }
-                : {}),
+            signal: directive.signal,
+            primaryAnchor: directive.primaryAnchor,
+            intervention: directive.intervention,
         }
         : envelope.feedbackPlan;
-    const claimEvidence = usabilityStatus !== "usable" && isRecord(envelope.claimEvidence)
+    const claimEvidence = isRecord(envelope.claimEvidence)
+        && isRecord(candidateFeedback)
+        && candidateFeedback.primaryStrength === null
         ? { ...envelope.claimEvidence, primaryStrengthSpanIds: [] }
         : envelope.claimEvidence;
 

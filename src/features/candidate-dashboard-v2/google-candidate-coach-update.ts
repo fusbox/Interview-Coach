@@ -20,7 +20,7 @@ import {
 
 export const GOOGLE_CANDIDATE_COACH_UPDATE_PROVIDER = "google_genai" as const;
 export const GOOGLE_CANDIDATE_COACH_UPDATE_MODEL = "gemini-2.5-flash" as const;
-export const GOOGLE_CANDIDATE_COACH_UPDATE_PROFILE_ID = "google_gemini_2_5_flash_coach_update_v1" as const;
+export const GOOGLE_CANDIDATE_COACH_UPDATE_PROFILE_ID = "google_gemini_2_5_flash_coach_update_v4" as const;
 export const GOOGLE_CANDIDATE_COACH_UPDATE_PROFILE_ENV = "CANDIDATE_COACH_UPDATE_PROFILE" as const;
 export const GOOGLE_CANDIDATE_COACH_UPDATE_API_KEY_ENV = "GEMINI_API_KEY" as const;
 
@@ -77,10 +77,29 @@ export const GOOGLE_CANDIDATE_COACH_UPDATE_SYSTEM_INSTRUCTION = Object.freeze([
     "Use direct, warm, plain language addressed to the candidate as you.",
     "Do not score, grade, rank, pass, fail, or make hiring-readiness claims.",
     "Do not invent answer details, evidence, strengths, weaknesses, outcomes, or technical conclusions.",
-    "Ground the round summary and primary focus only in the accepted coaching supplied for this round.",
-    "For repeat practice, describe progression, stability, or unresolved evidence only when supported by the supplied current and prior coaching facts.",
+    "The per-question framing and roundFraming are code-owned and authoritative. Use them to express the already-determined coaching posture; do not recalculate valence by counting or stacking criteria, gaps, or questions.",
+    "Ground the round summary and primary focus only in the accepted coaching, code-owned framing, answer-usability status, technical-accuracy status, pattern gap, and qualitative criterion appraisals supplied for this round.",
+    "For move_on, affirm what worked and use the supplied strongResponsePattern as the concrete example when available. Do not invent an improvement, caveat, or next-fix requirement.",
+    "For polish, present the supplied focus as one optional refinement without implying remediation.",
+    "For remediate, present the accepted gap and next-practice focus directly without adding unrelated improvements.",
+    "The primaryFocus must follow roundFraming.primaryQuestionNumber and roundFraming.posture. If the round posture is move_on, write a carry-forward pattern rather than an improvement recommendation.",
+    "Treat each question independently before synthesizing the round. Do not say each, every, or all answers shared a strength unless every question's accepted facts support it.",
+    "When a round is mixed, name the clearest shared or highest-priority coaching need without promoting thin, generic, off-topic, or non-answer evidence into a strength.",
+    "For repeat practice, compare current and prior pattern gaps and qualitative criterion appraisals. Describe improvement when the current accepted facts clearly resolve or strengthen the prior gap; describe stability or unresolved evidence only when those facts support it.",
     "Treat repetition as effort, not automatic improvement. Use a neutral comparison when evidence is insufficient.",
+    "Technical accuracy statuses are authoritative boundaries. Supported may be described as supported, contradicted must preserve the correction need, and not_assessed must never be rewritten as correct technical understanding or an exact factual upgrade.",
+    "Never expose internal status labels or tell the candidate that technical accuracy was not assessed. Apply that boundary silently and coach from the observable answer evidence.",
+    "When a round mixes supported, contradicted, and not_assessed technical answers, preserve those distinctions in the summary rather than flattening them into generic technical praise.",
+    "For not_assessed technical answers, describe only observable behavior: the steps explained, practical use named, uncertainty acknowledged, or verification planned. Do not call the candidate's reasoning, choice, understanding, knowledge, or technical approach strong, sound, right, or correct.",
     "Return exactly one question update for each input question, in the same order and with the same questionNumber.",
+]);
+
+export const GOOGLE_CANDIDATE_COACH_UPDATE_REPAIR_INSTRUCTION = Object.freeze([
+    "The prior draft was rejected by application validation for unsafe candidate-facing language.",
+    "Rewrite the full output while preserving the supplied accepted coaching facts.",
+    "For not_assessed technical answers, use neutral observation such as: You explained the steps you would take; You named what you would verify; You connected the answer to a practical use.",
+    "Do not validate a technical conclusion, choice, understanding, knowledge, reasoning, or approach as strong, sound, right, correct, or accurate.",
+    "Do not mention technical accuracy being assessed or not assessed, and do not expose any internal status label.",
 ]);
 
 export const GOOGLE_CANDIDATE_COACH_UPDATE_CONFIGURATION_MANIFEST = Object.freeze({
@@ -93,6 +112,7 @@ export const GOOGLE_CANDIDATE_COACH_UPDATE_CONFIGURATION_MANIFEST = Object.freez
     providerRequestVersion: CANDIDATE_COACH_UPDATE_PROVIDER_REQUEST_VERSION,
     providerOutputVersion: CANDIDATE_COACH_UPDATE_PROVIDER_OUTPUT_VERSION,
     systemInstructionFingerprint: hashJson(GOOGLE_CANDIDATE_COACH_UPDATE_SYSTEM_INSTRUCTION),
+    repairInstructionFingerprint: hashJson(GOOGLE_CANDIDATE_COACH_UPDATE_REPAIR_INSTRUCTION),
     responseSchemaFingerprint: hashJson(GOOGLE_CANDIDATE_COACH_UPDATE_RESPONSE_SCHEMA),
     generation: GOOGLE_CANDIDATE_COACH_UPDATE_GENERATION_SETTINGS,
 });
@@ -115,7 +135,7 @@ export function createGoogleCandidateCoachUpdateAdapter({
             profileId: GOOGLE_CANDIDATE_COACH_UPDATE_PROFILE_ID,
             configurationFingerprint: GOOGLE_CANDIDATE_COACH_UPDATE_CONFIGURATION_FINGERPRINT,
         },
-        async generate(request, { signal }) {
+        async generate(request, { signal, repairCandidateLanguage }) {
             const providerRequest: GenerateContentParameters = {
                 model: GOOGLE_CANDIDATE_COACH_UPDATE_MODEL,
                 contents: [{
@@ -123,7 +143,7 @@ export function createGoogleCandidateCoachUpdateAdapter({
                     parts: [{ text: renderUntrustedRequest(request) }],
                 }],
                 config: {
-                    systemInstruction: renderSystemInstruction(),
+                    systemInstruction: renderSystemInstruction(repairCandidateLanguage),
                     responseMimeType: GOOGLE_CANDIDATE_COACH_UPDATE_GENERATION_SETTINGS.responseMimeType,
                     responseJsonSchema: GOOGLE_CANDIDATE_COACH_UPDATE_RESPONSE_SCHEMA,
                     temperature: GOOGLE_CANDIDATE_COACH_UPDATE_GENERATION_SETTINGS.temperature,
@@ -183,8 +203,11 @@ export function createGoogleCandidateCoachUpdateTransport(apiKey: string): Googl
     };
 }
 
-function renderSystemInstruction() {
-    return GOOGLE_CANDIDATE_COACH_UPDATE_SYSTEM_INSTRUCTION.join("\n");
+function renderSystemInstruction(repairCandidateLanguage = false) {
+    return [
+        ...GOOGLE_CANDIDATE_COACH_UPDATE_SYSTEM_INSTRUCTION,
+        ...(repairCandidateLanguage ? GOOGLE_CANDIDATE_COACH_UPDATE_REPAIR_INSTRUCTION : []),
+    ].join("\n");
 }
 
 function renderUntrustedRequest(request: CandidateCoachUpdateProviderRequest) {

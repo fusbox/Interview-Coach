@@ -1,190 +1,29 @@
 /* Typography tokens.
-   Atkinson Hyperlegible Next drives body/UI; IBM Plex Sans supplies display character. */
+   Sans (body/UI): Atkinson Hyperlegible Next — var(--font-sans)
+   Display (headings, eyebrows, stats): IBM Plex Sans — var(--font-display) */
 
 :root {
     --font-sans: 'Atkinson Hyperlegible Next', ui-sans-serif, system-ui, sans-serif;
     --font-display: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
 
-    /* Weights */
+    /* Weights (source: index.css) */
     --font-weight-normal: 400; /* @kind font */
     --font-weight-medium: 500; /* @kind font */
     --font-weight-semibold: 600; /* @kind font */
     --font-weight-bold: 700; /* @kind font */
+    --font-weight-black: 900; /* @kind font */
 
-    /* 1. Fluid Responsive Role Scale (using clamp) */
-    --type-display-xl-size: clamp(2.25rem, 4.5vw + 1rem, 3.25rem); /* @kind font */
-    --type-display-xl-line: 0.98; /* @kind font */
-    --type-display-xl-weight: 700; /* @kind font */
-    --type-display-xl-tracking: -0.01em; /* @kind font */
-
-    /* Added step: Display Large (36px max) bridging the scale gap */
-    --type-display-lg-size: clamp(1.75rem, 2.5vw + 1rem, 2.25rem); /* @kind font */
-    --type-display-lg-line: 1.05; /* @kind font */
-    --type-display-lg-weight: 700; /* @kind font */
-    --type-display-lg-tracking: 0; /* @kind font */
-
-    --type-display-md-size: clamp(1.35rem, 1.5vw + 0.9rem, 1.625rem); /* @kind font */
-    --type-display-md-line: 1.12; /* @kind font */
-    --type-display-md-weight: 700; /* @kind font */
-    --type-display-md-tracking: 0; /* @kind font */
-
-    --type-title-size: 1.0625rem; /* @kind font */
-    --type-title-line: 1.25; /* @kind font */
-    --type-title-weight: 700; /* @kind font */
-
-    /* 2. Tuned Body Line-Heights for Interactive UI */
-    --type-body-lg-size: 1.0625rem; /* @kind font */
-    --type-body-lg-line: 1.6; /* @kind font */
-    --type-body-md-size: 0.875rem; /* @kind font */
-    --type-body-md-line: 1.5; /* @kind font */
-    --type-body-sm-size: 0.8125rem; /* @kind font */
-    --type-body-sm-line: 1.45; /* @kind font */
-
-    --type-label-size: 0.75rem; /* @kind font */
-    --type-label-line: 1.2; /* @kind font */
-    --type-label-weight: 600; /* @kind font */
-
-    --type-eyebrow-size: 0.75rem; /* @kind font */
-    --type-eyebrow-line: 1.2; /* @kind font */
-    --type-eyebrow-weight: 700; /* @kind font */
-    --type-eyebrow-tracking: 0.24em; /* @kind font */
-
-    --type-metric-value-size: 1.875rem; /* @kind font */
-    --type-metric-value-line: 1; /* @kind font */
-    --type-metric-value-weight: 700; /* @kind font */
-
-    /* Micro type */
+    /* Micro type (tailwind.config extension) */
     --text-micro-size: 0.625rem; /* @kind font */
-    --text-micro-line: 1.2; /* @kind font */
+    --text-micro-line: 1rem; /* @kind font */
     --text-micro-tracking: 0.05em; /* @kind font */
-
-    /* 3. Density Mode Presets */
-    --leading-compact: 1.35;
-    --leading-normal: 1.5;
-    --leading-relaxed: 1.65;
 }
 
 body {
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
 }
 
 h1, .font-display {
     font-family: var(--font-display);
-}
-
-/* 4. Tabular Numbers Capability */
-.font-tabular, .type-numeric {
-    font-variant-numeric: tabular-nums lining-nums;
-    font-feature-settings: "tnum" 1, "lnum" 1;
-}
-
-/* 5. Text Wrap & Widow Control Utility Classes */
-.type-balance {
-    text-wrap: balance;
-}
-
-.type-pretty {
-    text-wrap: pretty;
-}
-
-/* Composite Role Classes */
-.type-display-xl {
-    font-family: var(--font-display);
-    font-size: var(--type-display-xl-size);
-    line-height: var(--type-display-xl-line);
-    font-weight: var(--type-display-xl-weight);
-    letter-spacing: var(--type-display-xl-tracking);
-    color: rgb(var(--candidate-display-foreground));
-    text-wrap: balance;
-}
-
-.type-display-lg {
-    font-family: var(--font-display);
-    font-size: var(--type-display-lg-size);
-    line-height: var(--type-display-lg-line);
-    font-weight: var(--type-display-lg-weight);
-    letter-spacing: var(--type-display-lg-tracking);
-    color: rgb(var(--candidate-display-foreground));
-    text-wrap: balance;
-}
-
-.type-display-md {
-    font-family: var(--font-display);
-    font-size: var(--type-display-md-size);
-    line-height: var(--type-display-md-line);
-    font-weight: var(--type-display-md-weight);
-    letter-spacing: var(--type-display-md-tracking);
-    color: rgb(var(--candidate-display-foreground));
-    text-wrap: balance;
-}
-
-.type-title {
-    font-family: var(--font-display);
-    font-size: var(--type-title-size);
-    line-height: var(--type-title-line);
-    font-weight: var(--type-title-weight);
-    text-wrap: balance;
-}
-
-.type-body-lg {
-    font-family: var(--font-sans);
-    font-size: var(--type-body-lg-size);
-    line-height: var(--type-body-lg-line);
-    font-weight: var(--font-weight-normal);
-    text-wrap: pretty;
-}
-
-.type-body-md {
-    font-family: var(--font-sans);
-    font-size: var(--type-body-md-size);
-    line-height: var(--type-body-md-line);
-    font-weight: var(--font-weight-normal);
-    text-wrap: pretty;
-}
-
-.type-body-sm {
-    font-family: var(--font-sans);
-    font-size: var(--type-body-sm-size);
-    line-height: var(--type-body-sm-line);
-    font-weight: var(--font-weight-normal);
-    text-wrap: pretty;
-}
-
-.type-label {
-    font-family: var(--font-sans);
-    font-size: var(--type-label-size);
-    line-height: var(--type-label-line);
-    font-weight: var(--type-label-weight);
-}
-
-.type-eyebrow {
-    font-family: var(--font-sans);
-    font-size: var(--type-eyebrow-size);
-    line-height: var(--type-eyebrow-line);
-    font-weight: var(--type-eyebrow-weight);
-    letter-spacing: var(--type-eyebrow-tracking);
-    text-transform: uppercase;
-}
-
-.type-metric-value {
-    font-family: var(--font-display);
-    font-size: var(--type-metric-value-size);
-    line-height: var(--type-metric-value-line);
-    font-weight: var(--type-metric-value-weight);
-    font-variant-numeric: tabular-nums lining-nums;
-}
-
-/* Density Modifiers */
-.leading-compact {
-    line-height: var(--leading-compact) !important;
-}
-
-.leading-normal {
-    line-height: var(--leading-normal) !important;
-}
-
-.leading-relaxed {
-    line-height: var(--leading-relaxed) !important;
 }

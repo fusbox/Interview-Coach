@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { aiEvalScenarioBaselineCases } from "./ai-eval-scenario-baseline";
 import type { AiEvalScenarioRunDetail } from "./ai-eval-scenario-repository";
 import {
+    executeAiEvalScenarioRunCase,
     runAiEvalScenarioFixtureJobById,
     runNextAiEvalScenarioFixtureJob,
     runNextAiEvalScenarioLiveJob,
@@ -25,6 +26,59 @@ const run = {
 };
 
 describe("AI-eval scenario fixture worker", () => {
+    it("persists a produced layer failure without failing sibling layers", async () => {
+        const scenario = aiEvalScenarioBaselineCases.find((item) => item.scenarioKey === "strong_content_typed")!;
+        const runCase: AiEvalScenarioRunDetail["cases"][number] = {
+            runCaseId: "case-1",
+            scenarioVersionId: "version-1",
+            scenario,
+            inputFingerprint: "b".repeat(64),
+            ordinal: 1,
+            lifecycleState: "running",
+            assertionResult: null,
+            assertionReasons: [],
+            errorCode: null,
+            layers: scenario.intendedOutputLayers.map((outputLayer, index) => ({
+                runLayerId: `layer-${index}`,
+                outputLayer,
+                lifecycleState: "running",
+                assertionResult: null,
+                assertionReasons: [],
+                candidateVisible: outputLayer !== "evaluator_diagnostics",
+                output: null,
+                diagnostics: null,
+                errorCode: null,
+            })),
+        };
+        const repository = repositoryFixture({ ...run, cases: [runCase] });
+        const executor = {
+            async execute() {
+                return {
+                    scenarioKey: scenario.scenarioKey,
+                    layers: scenario.intendedOutputLayers.map((outputLayer) => ({
+                        outputLayer,
+                        assertionResult: outputLayer === "coach_update" ? "fail" as const : "review_required" as const,
+                        assertionReasons: [],
+                        output: {},
+                        diagnostics: null,
+                        errorCode: outputLayer === "coach_update" ? "COACH_UPDATE_FAILED" : null,
+                    })),
+                };
+            },
+        };
+
+        await executeAiEvalScenarioRunCase(repository, executor, runCase);
+
+        const coachLayer = runCase.layers.find((layer) => layer.outputLayer === "coach_update")!;
+        expect(repository.failLayer).toHaveBeenCalledTimes(1);
+        expect(repository.failLayer).toHaveBeenCalledWith(
+            coachLayer.runLayerId,
+            "COACH_UPDATE_FAILED",
+        );
+        expect(repository.completeLayer).toHaveBeenCalledTimes(runCase.layers.length - 1);
+        expect(repository.finalizeCase).toHaveBeenCalledWith(runCase.runCaseId);
+    });
+
     it("claims, executes, and finalizes a durable run without a browser owner", async () => {
         const scenario = aiEvalScenarioBaselineCases.find((item) => item.scenarioKey === "strong_content_typed")!;
         const repository = repositoryFixture({
@@ -184,7 +238,7 @@ function liveRepositoryFixture() {
         ...run,
         runId: "live-run",
         executionMode: "credentialed_live" as const,
-        profileId: "google_gemini_2_5_flash_v1+google_gemini_2_5_flash_coach_update_v1",
+        profileId: "google_gemini_2_5_flash_v1+google_gemini_2_5_flash_coach_update_v4",
     };
     return {
         claimNextLiveRun: vi.fn(async () => liveRun),
@@ -212,7 +266,7 @@ function readyLiveEnv() {
         CANDIDATE_ANSWER_ANALYSIS_PROVIDER: "google_genai",
         CANDIDATE_ANSWER_ANALYSIS_PROFILE: "google_gemini_2_5_flash_v1",
         CANDIDATE_COACH_UPDATE_PROVIDER: "google_genai",
-        CANDIDATE_COACH_UPDATE_PROFILE: "google_gemini_2_5_flash_coach_update_v1",
+        CANDIDATE_COACH_UPDATE_PROFILE: "google_gemini_2_5_flash_coach_update_v4",
         GEMINI_API_KEY: "test-only-not-used",
     };
 }

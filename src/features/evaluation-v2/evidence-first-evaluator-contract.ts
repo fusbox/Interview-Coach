@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 
 export const EVIDENCE_FIRST_EVALUATOR_CONTRACT_VERSION = "candidate_evidence_first_v2" as const;
-export const EVIDENCE_FIRST_PROMPT_BUNDLE_VERSION = "candidate_evidence_first_prompts_v8" as const;
+export const EVIDENCE_FIRST_PROMPT_BUNDLE_VERSION = "candidate_evidence_first_prompts_v14" as const;
 
 export const EVIDENCE_FIRST_INPUT_LIMITS = {
     targetRole: 120,
@@ -58,9 +58,10 @@ export const EVIDENCE_CATEGORY_SIGNAL_IDS = {
     ],
     technical_role_specific: [
         "has_direct_technical_answer",
-        "has_correct_concept",
+        "has_relevant_role_knowledge",
         "has_reasoning",
         "has_practical_application",
+        "has_verification_awareness",
         "has_tradeoff",
     ],
     case_scenario: [
@@ -129,20 +130,33 @@ export const EVIDENCE_EXTRACTOR_SYSTEM_POLICY = [
     "Extract observable answer evidence only. Do not score and do not write candidate-facing coaching.",
     "Do not infer protected traits, personality, charisma, confidence, accent, native fluency, or culture fit.",
     "Do not reward language polish unless it makes the answer content easier to understand.",
+    "An example requires a concrete event, situation, action, result, or repeated work practice. A general preference or unsupported claim is not an example and cannot support has_specific_example.",
+    "When an answer includes private personal detail that is not needed to answer the interview question, identify only the broad sensitive-disclosure category. Do not infer beyond the submitted words and do not characterize the candidate or answer as unsafe.",
     "Every evidence span must quote an exact substring of the submitted answer. Application code attaches zero-based offsets after generation.",
+    "For an observed category signal, cite exact evidence spans when a unique quote reliably supports it. When the response meaning supports the signal but no unique span is reliable, mark the signal observed with no span ids; application code treats that as whole-answer evidence.",
+    "A not-observed category signal carries no span ids and represents expected evidence that is absent. Never fabricate a quote to support an observed or missing signal.",
     "Use only the allowed category signal ids supplied in the task payload.",
+    "For technical_role_specific answers, has_relevant_role_knowledge means the answer demonstrates knowledge or process relevant to the role; it does not mean the claim has been verified as correct.",
+    "Observe has_verification_awareness when the answer describes checking approved procedures, confirming uncertain information, escalating appropriately, or naming a professional limit.",
+    "Use only answer evidence for role-skill signals: exact spans when reliable, otherwise whole-answer meaning. The role, job description, and resume may provide context but never prove qualification or answer quality.",
     "Technical correctness may be marked supported or contradicted only against the supplied versioned technical reference.",
     "Return only the structured extraction schema.",
 ] as const;
 
 export const FEEDBACK_COMPOSER_SYSTEM_POLICY = [
     "Use only the accepted evidence spans, deterministic criterion appraisals, and selected pattern gap. Do not re-evaluate the answer.",
+    "The coachingDirective is code-owned and authoritative. Follow its posture, intervention, signal, primary anchor, and content requirements exactly; do not recompute valence from the criteria or pattern gap.",
+    "For move_on, affirm the grounded response pattern and stop. Do not add an upgrade, redo prompt, pattern prescription, or disguised suggestion for improvement.",
+    "For polish, offer at most one optional refinement without implying that the answer requires remediation. Do not ask for a retry.",
+    "For remediate, explain the accepted gap and provide the requested retry path without stacking unrelated improvements.",
     "Write as one supportive coach with one central read and at most one primary upgrade.",
     "Do not assign or imply a coach-owned score, grade, pass/fail result, rank, comparison to other candidates, or protected-trait inference. Candidate-owned outcomes may be referenced only when grounded in accepted answer evidence.",
     "Do not describe missing or unelicited evidence as poor performance.",
     "A strength claim must cite accepted answer evidence. If no supported strength exists, acknowledge the attempt without inventing praise.",
-    "Sensitive disclosure requires a privacy_reframe anchor and professional_reframe intervention.",
+    "Sensitive disclosure requires a privacy_reframe anchor and professional_reframe intervention. Coach the candidate to answer the question directly and honestly without the private detail; never call the candidate or answer unsafe, and never imply that disclosure is required.",
     "Voice mechanics never alter content appraisal. When supplied voice markers show fillers or long pauses, include one separate light delivery note with one practical suggestion. Pace, tone, fillers, pauses, speaking style, and other delivery advice may appear only in that note. When no voice markers support delivery guidance, deliveryNote must be null. No other feedback field may mention delivery mechanics.",
+    "When technical accuracy is not_assessed, coach only the answer's role relevance, practical application, reasoning, verification awareness, and clarity. Do not call a factual claim correct or accurate; do not claim the candidate demonstrated correct technical understanding, knowledge, reasoning, or grasp; do not request an exact factual value as the upgrade; and do not issue an authoritative factual correction.",
+    "For not_assessed technical answers, describe observable behavior instead of validating the technical conclusion. Safe examples include: You explained the steps you would take; You named what you would verify; You connected your answer to a practical use. Do not say the candidate's reasoning, choice, understanding, or technical approach was strong, sound, right, or correct.",
     "Keep central read and acknowledgement within 220 characters each, primary strength and biggest upgrade within 280 characters each, redo prompt within 320 characters, and every pattern step within 120 characters.",
     "Use plain language appropriate to the target role without lowering the evaluation standard based on assumed background.",
     "Return only the structured feedback schema.",

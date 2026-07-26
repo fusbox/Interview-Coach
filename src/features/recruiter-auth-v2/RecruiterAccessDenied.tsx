@@ -3,7 +3,7 @@ import { RecruiterLogoutButton } from "./RecruiterLogoutButton";
 
 export function RecruiterAccessDenied() {
     return (
-        <main className="candidate-design-system recruiter-access-denied">
+        <main className="recruiter-access-denied">
             <section>
                 <ShieldX size={28} aria-hidden="true" />
                 <p className="type-eyebrow">Access unavailable</p>

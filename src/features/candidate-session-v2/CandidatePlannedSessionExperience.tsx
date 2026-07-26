@@ -433,7 +433,7 @@ export function CandidatePlannedSessionExperience({
 
     if (!hasCheckedStorage) {
         return (
-            <main className="candidate-design-system planned-session-page">
+            <main className="planned-session-page">
                 <section className="planned-session-card" aria-live="polite">
                     <p className="type-eyebrow">Practice session</p>
                     <h1>Loading your practice plan.</h1>
@@ -444,7 +444,7 @@ export function CandidatePlannedSessionExperience({
 
     if (!session) {
         return (
-            <main className="candidate-design-system planned-session-page">
+            <main className="planned-session-page">
                 <section className="planned-session-card planned-session-card--missing">
                     <p className="type-eyebrow">Practice session</p>
                     <h1>I need the setup details for this practice round.</h1>

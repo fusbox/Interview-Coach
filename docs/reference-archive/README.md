@@ -1,11 +1,11 @@
-# Documentation Reference Archive
+# Interview Coach Reference Archives
 
-Status: Historical material, not active implementation instruction
+Status: Historical reference index
+Last updated: 2026-07-26
 
-This directory preserves earlier product, architecture, design, and quality material that remains useful for behavior archaeology or deployment history but no longer describes the active candidate V2 rebuild.
+Nothing under this directory governs current implementation. Read archive material only when the active milestone explicitly requires behavior archaeology, prior-plan comparison, or historical evidence.
 
-## Collections
+- [Candidate V1 And Interim V2](./candidate-interim/README.md): pre-cleanroom candidate contracts, score-era dashboard concepts, retired work planning, integration notes, and compacted handoffs.
+- [Recruiter-Led V1 And Shared App](./recruiter-v1/README.md): deployed/pilot recruiter behavior, invited-candidate UX, former architecture, Postgres migration, and quality material.
 
-- [Recruiter-led V1/shared app](./recruiter-v1/README.md): the former top-level `01-project` through `05-quality` documentation tree.
-
-Active documentation begins at [the docs index](../README.md).
+Current truth begins at [Documentation Authority Index](../README.md).

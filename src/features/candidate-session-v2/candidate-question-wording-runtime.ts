@@ -20,7 +20,7 @@ export const CANDIDATE_QUESTION_WORDING_PROVIDER_ENV = "CANDIDATE_QUESTION_WORDI
 export const CANDIDATE_QUESTION_WORDING_FAULT_MODE_ENV = "CANDIDATE_QUESTION_WORDING_FAULT_MODE" as const;
 export const CANDIDATE_QUESTION_WORDING_PROVIDER_REQUEST_VERSION = "candidate_question_wording_provider_request_v1" as const;
 export const CANDIDATE_QUESTION_WORDING_PROVIDER_OUTPUT_VERSION = "candidate_question_wording_provider_output_v1" as const;
-export const CANDIDATE_QUESTION_WORDING_PRODUCTION_PROMPT_VERSION = "candidate_question_wording_prompt_v1" as const;
+export const CANDIDATE_QUESTION_WORDING_PRODUCTION_PROMPT_VERSION = "candidate_question_wording_prompt_v2" as const;
 export const CANDIDATE_QUESTION_WORDING_RUNTIME_TIMEOUT_MS = 20_000;
 
 export type CandidateQuestionWordingRuntimeMetadata = {

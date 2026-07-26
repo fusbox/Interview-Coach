@@ -1,14 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import type { CandidateAnswerAnalysisProviderResult } from "@/features/candidate-session-v2/candidate-answer-analysis-adapter";
+import { createCandidateAnswerAnalysisProviderResultFixture } from "@/features/candidate-session-v2/candidate-answer-analysis-test-fixture";
+import { createCandidateAnswerCoachingFacts } from "@/features/candidate-session-v2/candidate-coaching-facts";
 import {
     createSessionRuntimeFacts,
     type SessionRuntimeFactQuestion,
 } from "./session-runtime-facts";
 
-const analysisSnapshot: CandidateAnswerAnalysisProviderResult = {
-    status: "answer_analysis_provider_result",
-    provider: "candidate_v2_answer_evaluator",
+const analysisSnapshot = createCandidateAnswerAnalysisProviderResultFixture({
     analyzedAt: "2026-07-10T22:03:00.000Z",
     answer: {
         slotId: "slot-1",
@@ -19,14 +18,7 @@ const analysisSnapshot: CandidateAnswerAnalysisProviderResult = {
         observation: "The answer would be stronger with the result.",
         nextPracticeFocus: "Add what changed after you made the decision.",
     },
-    evidence: [
-        {
-            criterionId: "answer_specificity",
-            applicability: "observed",
-            score: 3.4,
-        },
-    ],
-};
+});
 
 describe("session runtime facts", () => {
     it("normalizes candidate-led practice-session facts into the shared runtime shape", () => {
@@ -42,37 +34,7 @@ describe("session runtime facts", () => {
                     submittedAt: "2026-07-10T22:02:00.000Z",
                     lifecycleStatus: "pending_analysis",
                 },
-                coachingFacts: {
-                    status: "candidate_answer_coaching_facts",
-                    provider: "candidate_v2_answer_evaluator",
-                    analyzedAt: "2026-07-10T22:03:00.000Z",
-                    answer: {
-                        slotId: "slot-1",
-                        questionIndex: 0,
-                    },
-                    coachFeedback: analysisSnapshot.coachFeedback,
-                    overallRead: {
-                        band: "clear",
-                        headline: "Clear evidence",
-                        description: "The practiced answer gives the coach enough evidence to show a clear pattern.",
-                        observedCount: 1,
-                        excludedCount: 0,
-                    },
-                    criteriaFacts: [
-                        {
-                            criterionId: "answer_specificity",
-                            applicability: "observed",
-                            band: "clear",
-                            evidenceState: "observed",
-                        },
-                    ],
-                    coverage: {
-                        observedCriteriaIds: ["answer_specificity"],
-                        notElicitedCriteriaIds: [],
-                        insufficientDataCriteriaIds: [],
-                        unscoreableCriteriaIds: [],
-                    },
-                },
+                coachingFacts: createCandidateAnswerCoachingFacts(analysisSnapshot),
             },
         ];
 

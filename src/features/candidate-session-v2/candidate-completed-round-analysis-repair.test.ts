@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { CandidateAnswerAnalysisProviderResult } from "./candidate-answer-analysis-adapter";
+import { createCandidateAnswerAnalysisProviderResultFixture } from "./candidate-answer-analysis-test-fixture";
 import {
     candidateAnswerAnalysisFixtureRunMetadata,
     runFixtureEvidenceFirstEvaluator,
@@ -327,9 +328,7 @@ function createRejectedRun(attempt: CandidateAnswerAttemptRecord): CandidateAnsw
 }
 
 function createProjection(attempt: CandidateAnswerAttemptRecord): CandidateAnswerAnalysisProviderResult {
-    return {
-        status: "answer_analysis_provider_result",
-        provider: "candidate_v2_answer_evaluator",
+    return createCandidateAnswerAnalysisProviderResultFixture({
         analyzedAt: "2026-07-17T17:10:05.000Z",
         answer: {
             slotId: attempt.questionSlotId,
@@ -343,6 +342,5 @@ function createProjection(attempt: CandidateAnswerAttemptRecord): CandidateAnswe
             observation: "Your answer names the main idea.",
             nextPracticeFocus: "Add one concrete example.",
         },
-        evidence: [],
-    };
+    });
 }

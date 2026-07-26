@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createFixtureCandidateQuestionWordingResult } from "@/features/candidate-session-v2/candidate-question-wording";
 import { createCandidateQuestionPlan } from "@/features/candidate-session-v2/candidate-question-plan";
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
+import { createCandidateAnswerAnalysisProviderResultFixture } from "@/features/candidate-session-v2/candidate-answer-analysis-test-fixture";
 import {
     createCandidateFollowUpPracticeIntentRecord,
     parseCandidateFollowUpPracticeIntent,
@@ -403,9 +404,7 @@ function createPracticeSession({
             status: "pending_analysis" as const,
         }])),
         answerIdempotencyRecords: {},
-        answerAnalysisSnapshots: Object.fromEntries(analyzedSlotIds.map((slotId) => [slotId, {
-            status: "answer_analysis_provider_result" as const,
-            provider: "candidate_v2_answer_evaluator" as const,
+        answerAnalysisSnapshots: Object.fromEntries(analyzedSlotIds.map((slotId) => [slotId, createCandidateAnswerAnalysisProviderResultFixture({
             analyzedAt: "2026-07-11T12:02:00.000Z",
             answer: {
                 slotId,
@@ -416,8 +415,7 @@ function createPracticeSession({
                 observation: "The answer shows the task but needs a clearer result.",
                 nextPracticeFocus: "Add the result of the safety step.",
             },
-            evidence: [],
-        }])),
+        })])),
         feedbackActionEvents: {},
         completionSnapshot: {
             status: "candidate_session_completed",

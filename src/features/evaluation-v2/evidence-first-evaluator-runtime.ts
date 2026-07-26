@@ -468,6 +468,7 @@ async function composeFeedback(input: {
     nowMs: () => number;
 }) {
     const stagePolicy = EVIDENCE_FIRST_RUNTIME_POLICY.stages.feedbackComposition;
+    let repairIssueCodes: readonly string[] | undefined;
     for (let attempt = 1; attempt <= stagePolicy.maxAttempts; attempt += 1) {
         let response: EvidenceFirstStageAdapterResult;
         try {
@@ -475,7 +476,11 @@ async function composeFeedback(input: {
                 stage: "feedback_composition",
                 stagePolicy,
                 adapter: input.adapter,
-                task: createFeedbackComposerTask({ evaluationCase: input.evaluationCase, appraisal: input.appraisal }),
+                task: createFeedbackComposerTask({
+                    evaluationCase: input.evaluationCase,
+                    appraisal: input.appraisal,
+                    repairIssueCodes,
+                }),
                 attempt,
                 attempts: input.attempts,
                 tokenUsage: input.tokenUsage,
@@ -511,11 +516,27 @@ async function composeFeedback(input: {
             errorCode,
             failureClass: invalidSchema ? "invalid_schema" : "validation_rejected",
         });
+        const repairableIssueCodes = feedback.issues
+            .map((issue) => issue.code)
+            .filter(isRepairableFeedbackLanguageIssue);
+        const mayRepair = repairableIssueCodes.length > 0
+            && repairableIssueCodes.length === feedback.issues.length
+            && attempt < stagePolicy.maxAttempts
+            && input.remainingBudgetMs() > 0;
+        if (mayRepair) {
+            repairIssueCodes = repairableIssueCodes;
+            continue;
+        }
         if (!invalidSchema || attempt >= stagePolicy.maxAttempts) {
             throw runtimeError("rejected", errorCode, "feedback_composition", false, input.attempts);
         }
     }
     throw runtimeError("failed", "FEEDBACK_COMPOSITION_EXHAUSTED", "feedback_composition", true, input.attempts);
+}
+
+function isRepairableFeedbackLanguageIssue(code: string) {
+    return code === "candidate_feedback_ungrounded_technical_correctness"
+        || code === "candidate_feedback_ungrounded_exact_technical_fact_request";
 }
 
 type MutableTokenUsage = { inputTokens: number; outputTokens: number; totalTokens: number };

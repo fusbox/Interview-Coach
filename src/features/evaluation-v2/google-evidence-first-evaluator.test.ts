@@ -8,6 +8,8 @@ import {
 } from "@/features/candidate-session-v2/candidate-answer-analysis-fixture";
 
 import {
+    EVIDENCE_EXTRACTOR_SYSTEM_POLICY,
+    FEEDBACK_COMPOSER_SYSTEM_POLICY,
     createEvidenceExtractorTask,
     createEvidenceVerifierTask,
 } from "./evidence-first-evaluator-contract";
@@ -42,7 +44,7 @@ describe("Google evidence-first evaluator adapter", () => {
             evidenceExtractor: {
                 provider: "google_genai",
                 model: "gemini-2.5-flash",
-                promptVersion: "candidate_evidence_extraction_google_v2",
+                promptVersion: "candidate_evidence_extraction_google_v3",
                 generation: {
                     reasoningPosture: "low",
                     thinkingBudget: 512,
@@ -59,7 +61,7 @@ describe("Google evidence-first evaluator adapter", () => {
                 generation: { reasoningPosture: "medium", thinkingBudget: 1024 },
             },
             feedbackComposer: {
-                promptVersion: "candidate_feedback_composition_google_v4",
+                promptVersion: "candidate_feedback_composition_google_v8",
                 generation: { reasoningPosture: "low", thinkingBudget: 512, temperature: 0.2 },
             },
         });
@@ -79,6 +81,18 @@ describe("Google evidence-first evaluator adapter", () => {
             ],
         });
         expect(evaluator.runMetadata.configurationFingerprint).toMatch(/^[a-f0-9]{64}$/);
+        expect(EVIDENCE_EXTRACTOR_SYSTEM_POLICY.join("\n")).toContain(
+            "has_relevant_role_knowledge means",
+        );
+        expect(EVIDENCE_EXTRACTOR_SYSTEM_POLICY.join("\n")).toContain(
+            "never prove qualification",
+        );
+        expect(FEEDBACK_COMPOSER_SYSTEM_POLICY.join("\n")).toContain(
+            "technical accuracy is not_assessed",
+        );
+        expect(FEEDBACK_COMPOSER_SYSTEM_POLICY.join("\n")).toContain(
+            "Do not call a factual claim correct or accurate",
+        );
     });
 
     it("selects credentials only through explicit server environment and never exposes the key", () => {
@@ -358,7 +372,7 @@ describe("Google evidence-first evaluator adapter", () => {
         });
 
         expect(result.value).toMatchObject({
-            feedbackPlan: { signal: { valence: "insufficient", detectability: "thin" } },
+            feedbackPlan: { signal: { valence: "growth", detectability: "thin" } },
             candidateFeedback: { primaryStrength: null },
             claimEvidence: { primaryStrengthSpanIds: [] },
         });
@@ -401,7 +415,7 @@ describe("Google evidence-first evaluator adapter", () => {
         });
     });
 
-    it("normalizes usable affirm-plus-upgrade feedback to a polish intervention", async () => {
+    it("overrides model-authored affirmation with the code-owned remediation posture", async () => {
         const request = createRequest();
         const evaluationCase = createFixtureEvidenceFirstEvaluationCase(request);
         const fixtureRun = await runFixtureEvidenceFirstEvaluator(request);
@@ -428,7 +442,10 @@ describe("Google evidence-first evaluator adapter", () => {
         });
 
         expect(result.value).toMatchObject({
-            feedbackPlan: { intervention: "polish_then_continue" },
+            feedbackPlan: {
+                intervention: "revise_answer",
+                signal: { valence: "growth", detectability: "clear" },
+            },
             candidateFeedback: { biggestUpgrade: providerValue.candidateFeedback.biggestUpgrade },
         });
         expect(validateFeedbackComposition({
@@ -456,9 +473,6 @@ describe("Google evidence-first evaluator adapter", () => {
         const feedback = structuredClone(fixtureRun.accepted.feedback);
         feedback.candidateFeedback.acknowledgement = "You gave a concrete example from school.";
         feedback.candidateFeedback.primaryStrength = "You improved on-time completion by 20% and earned one of the highest grades.";
-        feedback.candidateFeedback.biggestUpgrade = "Add the percentage of milestones completed on time.";
-        feedback.candidateFeedback.redoPrompt = null;
-        feedback.feedbackPlan.intervention = "polish_then_continue";
         feedback.claimEvidence.acknowledgementSpanIds = [appraisal.evidence.evidenceSpans[0].id];
         feedback.claimEvidence.primaryStrengthSpanIds = [appraisal.evidence.evidenceSpans[0].id];
 

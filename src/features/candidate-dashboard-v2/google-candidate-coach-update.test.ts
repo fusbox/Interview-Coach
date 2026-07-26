@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import type { GenerateContentParameters, GenerateContentResponse } from "@google/genai";
 import { describe, expect, it, vi } from "vitest";
 
+import { createCandidateAnswerAnalysisProviderResultFixture } from "@/features/candidate-session-v2/candidate-answer-analysis-test-fixture";
 import type { CandidateCoachUpdateSynthesisInput } from "./candidate-coach-update-artifact";
 import {
     CandidateCoachUpdateRuntimeError,
@@ -50,7 +51,7 @@ describe("Google candidate Coach Update adapter", () => {
         expect(adapter?.metadata).toMatchObject({
             provider: "google_genai",
             modelName: GOOGLE_CANDIDATE_COACH_UPDATE_MODEL,
-            promptVersion: "candidate_coach_update_synthesis_prompt_v1",
+            promptVersion: "candidate_coach_update_synthesis_prompt_v4",
         });
         expect(JSON.stringify(adapter)).not.toContain("server-only-secret");
     });
@@ -121,7 +122,7 @@ describe("Google candidate Coach Update adapter", () => {
             },
         });
         expect(result.content).toMatchObject({
-            status: "candidate_coach_update_content_v2",
+            status: "candidate_coach_update_content_v3",
             questions: [{
                 questionKey: "slot-1",
                 answer: { candidateAnswerAttemptId: "attempt-current" },
@@ -256,9 +257,7 @@ function createInput(): CandidateCoachUpdateSynthesisInput {
 }
 
 function createAnalysis() {
-    return {
-        status: "answer_analysis_provider_result" as const,
-        provider: "candidate_v2_answer_evaluator" as const,
+    return createCandidateAnswerAnalysisProviderResultFixture({
         analyzedAt: "2026-07-17T12:02:00.000Z",
         answer: { slotId: "slot-1", questionIndex: 0 },
         coachFeedback: {
@@ -266,11 +265,7 @@ function createAnalysis() {
             observation: "The response connects the action to the role.",
             nextPracticeFocus: "Name the result of the action.",
         },
-        evidence: [
-            { criterionId: "answer_focus", applicability: "observed" as const, score: 3 },
-            { criterionId: "impact", applicability: "not_elicited" as const },
-        ],
-    };
+    });
 }
 
 function createTransport(responses: GenerateContentResponse[]) {

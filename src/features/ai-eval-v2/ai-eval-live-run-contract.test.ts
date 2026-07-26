@@ -19,7 +19,7 @@ const liveEnv = {
     CANDIDATE_ANSWER_ANALYSIS_PROVIDER: "google_genai",
     CANDIDATE_ANSWER_ANALYSIS_PROFILE: "google_gemini_2_5_flash_v1",
     CANDIDATE_COACH_UPDATE_PROVIDER: "google_genai",
-    CANDIDATE_COACH_UPDATE_PROFILE: "google_gemini_2_5_flash_coach_update_v1",
+    CANDIDATE_COACH_UPDATE_PROFILE: "google_gemini_2_5_flash_coach_update_v4",
     GEMINI_API_KEY: "test-only-not-used",
 };
 

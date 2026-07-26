@@ -19,6 +19,11 @@ import {
     type PatternGap,
     type UniversalCriterionId,
 } from "./evidence-first-evaluator-contract";
+import {
+    findProhibitedCandidateJudgments,
+    findUngroundedTechnicalCoachingClaims,
+} from "./candidate-generated-language-policy";
+import { deriveQuestionPreparedness } from "./question-preparedness";
 
 export const EVIDENCE_FIRST_FEEDBACK_FORBIDDEN_PATTERNS = [
     /\b(?:i|we|the coach)\s+(?:would\s+)?(?:score|grade|rate|rank)(?:d|s|ing)?\b/i,
@@ -35,8 +40,52 @@ export const EVIDENCE_FIRST_FEEDBACK_FORBIDDEN_PATTERNS = [
     /\byou seem (?:young|old|anxious|confident|shy|introverted|extroverted)\b/i,
 ] as const;
 
+const evidenceFirstFeedbackSourceVocabulary = [
+    /\b(?:score|grade|rate|rank)(?:d|s|ing)?\b/i,
+    /\b(?:score|grade|rate|rank)(?:d|s|ing)?\b|\b(?:pass|fail)(?:ed|s|ing)?\b/i,
+    /\b(?:score|grade|rating)\b/i,
+    /\b\d+(?:\.\d+)?\s*\/\s*(?:5|10|100)\b/i,
+    /\b(?:pass|fail)(?:ed|s|ing)?\b/i,
+    /\b(?:weak|bad|weakness(?:es)?)\b/i,
+    /\b(?:most candidates|other candidates|compared (?:with|to))\b/i,
+    /\bpercentile\b/i,
+    /\b(?:accent|native fluency|native speaker|english proficiency|grammar|english(?: language)?)\b/i,
+    /\b(?:personality|charisma|appearance)\b/i,
+    /\b(?:race|religion|national origin|gender expression|family status|age)\b/i,
+    /\b(?:young|old|anxious|confident|shy|introverted|extroverted)\b/i,
+] as const;
+
+export function containsEvidenceFirstFeedbackForbiddenLanguage(
+    value: string,
+    sourceText = "",
+) {
+    return findProhibitedCandidateJudgments(
+        [value],
+        { sourceTexts: sourceText ? [sourceText] : [] },
+    ).length > 0
+        || EVIDENCE_FIRST_FEEDBACK_FORBIDDEN_PATTERNS.some((pattern, index) => (
+            pattern.test(value)
+            && !(sourceText && evidenceFirstFeedbackSourceVocabulary[index]?.test(sourceText))
+        ));
+}
+
 type QuestionCategory = EvidenceFirstEvaluationCase["providerInput"]["question"]["category"];
 type EvidenceSpan = EvidenceExtractionOutput["evidenceSpans"][number];
+
+export type CoachingCompletionPosture = "move_on" | "polish" | "remediate";
+
+export type CoachingCompletionDirective = {
+    posture: CoachingCompletionPosture;
+    intervention: FeedbackCompositionOutput["feedbackPlan"]["intervention"];
+    signal: FeedbackCompositionOutput["feedbackPlan"]["signal"];
+    primaryAnchor: FeedbackCompositionOutput["feedbackPlan"]["primaryAnchor"];
+    content: {
+        requirePrimaryStrength: boolean;
+        requireBiggestUpgrade: boolean;
+        requireRedoPrompt: boolean;
+        allowPatternSuggestion: boolean;
+    };
+};
 
 export type EvidenceValidationIssue = {
     code: string;
@@ -200,8 +249,8 @@ export function validateAndAppraiseEvidence(input: {
         return rejectEvidence(input.evaluationCase.inputFingerprint, [{ code: "invalid_extraction_schema" }], true);
     }
 
-    const evidence = parsed.data;
-    const issues = validateEvidenceFacts(input.evaluationCase, evidence);
+    const providerEvidence = parsed.data;
+    const issues = validateEvidenceFacts(input.evaluationCase, providerEvidence);
     if (issues.length > 0) {
         return rejectEvidence(
             input.evaluationCase.inputFingerprint,
@@ -210,10 +259,10 @@ export function validateAndAppraiseEvidence(input: {
         );
     }
 
-    if (evidence.unsafeInferenceFlags.length > 0) {
+    if (providerEvidence.unsafeInferenceFlags.length > 0) {
         return rejectEvidence(
             input.evaluationCase.inputFingerprint,
-            evidence.unsafeInferenceFlags.map((flag) => ({
+            providerEvidence.unsafeInferenceFlags.map((flag) => ({
                 code: "unsafe_inference",
                 path: flag,
             })),
@@ -221,6 +270,10 @@ export function validateAndAppraiseEvidence(input: {
         );
     }
 
+    const evidence = normalizeAnswerUsability(
+        providerEvidence,
+        input.evaluationCase.providerInput.question.category,
+    );
     const criteria = appraiseCriteria(evidence, input.evaluationCase.providerInput.question.category);
     const patternGap = detectPatternGap(evidence, input.evaluationCase.providerInput.question.category, criteria);
     const appraisal: EvidenceFirstAppraisal = {
@@ -271,8 +324,11 @@ export function resolveEvidenceVerification(input: {
 export function createFeedbackComposerTask(input: {
     evaluationCase: EvidenceFirstEvaluationCase;
     appraisal: AcceptedEvidenceFirstAppraisal;
+    repairIssueCodes?: readonly string[];
 }) {
     assertMatchingFingerprint(input.evaluationCase.inputFingerprint, input.appraisal.inputFingerprint);
+    const repairIssueCodes = Array.from(new Set(input.repairIssueCodes ?? []));
+    const coachingDirective = resolveCoachingCompletionDirective(input.appraisal);
 
     return {
         task: "compose_candidate_feedback" as const,
@@ -287,6 +343,9 @@ export function createFeedbackComposerTask(input: {
                 interviewStage: input.evaluationCase.providerInput.roleContext.interviewStage,
             },
             answerUsability: input.appraisal.evidence.answerUsability,
+            technicalAccuracy: {
+                status: input.appraisal.evidence.technicalAccuracy.status,
+            },
             acceptedEvidenceSpans: input.appraisal.evidence.answerUsability.status === "sensitive_disclosure"
                 ? []
                 : input.appraisal.evidence.evidenceSpans,
@@ -294,7 +353,111 @@ export function createFeedbackComposerTask(input: {
             sensitiveContentFlags: input.appraisal.evidence.sensitiveContentFlags,
             criteria: input.appraisal.criteria,
             patternGap: input.appraisal.patternGap,
+            coachingDirective,
             voiceMarkers: input.evaluationCase.providerInput.voiceMarkers,
+            ...(repairIssueCodes.length > 0
+                ? {
+                    repairDirective: {
+                        issueCodes: repairIssueCodes,
+                        requirements: [
+                            "Rewrite the candidate-facing coaching using only observable process, practical application, verification behavior, and answer structure.",
+                            "Do not validate the candidate's technical conclusion, choice, understanding, knowledge, or reasoning.",
+                            "Do not request an exact technical fact or supply an authoritative correction.",
+                        ],
+                    },
+                }
+                : {}),
+        },
+    };
+}
+
+export function resolveCoachingCompletionDirective(
+    appraisal: Pick<AcceptedEvidenceFirstAppraisal, "evidence" | "criteria" | "patternGap">,
+): CoachingCompletionDirective {
+    const usability = appraisal.evidence.answerUsability.status;
+    if (usability === "sensitive_disclosure") {
+        return {
+            posture: "remediate",
+            intervention: "professional_reframe",
+            signal: { valence: "insufficient", detectability: "clear" },
+            primaryAnchor: { kind: "privacy_reframe", id: "privacy_reframe" },
+            content: {
+                requirePrimaryStrength: false,
+                requireBiggestUpgrade: true,
+                requireRedoPrompt: true,
+                allowPatternSuggestion: true,
+            },
+        };
+    }
+    const preparedness = deriveQuestionPreparedness({
+        answerUsability: appraisal.evidence.answerUsability,
+        technicalAccuracy: appraisal.evidence.technicalAccuracy,
+        criteria: appraisal.criteria,
+    });
+    if (preparedness.status === "incomplete") {
+        return {
+            posture: "remediate",
+            intervention: "build_missing_signal",
+            signal: {
+                valence: "insufficient",
+                detectability: usability === "thin" ? "thin" : "clear",
+            },
+            primaryAnchor: { kind: "pattern_gap", id: appraisal.patternGap.id },
+            content: {
+                requirePrimaryStrength: false,
+                requireBiggestUpgrade: true,
+                requireRedoPrompt: true,
+                allowPatternSuggestion: true,
+            },
+        };
+    }
+    if (preparedness.band === "emerging") {
+        const isThin = usability === "thin";
+        return {
+            posture: "remediate",
+            intervention: isThin ? "build_missing_signal" : "revise_answer",
+            signal: {
+                valence: "growth",
+                detectability: isThin ? "thin" : "clear",
+            },
+            primaryAnchor: { kind: "pattern_gap", id: appraisal.patternGap.id },
+            content: {
+                requirePrimaryStrength: false,
+                requireBiggestUpgrade: true,
+                requireRedoPrompt: true,
+                allowPatternSuggestion: true,
+            },
+        };
+    }
+    if (preparedness.band === "clear") {
+        return {
+            posture: "polish",
+            intervention: "polish_then_continue",
+            signal: { valence: "mixed", detectability: "moderate" },
+            primaryAnchor: { kind: "pattern_gap", id: appraisal.patternGap.id },
+            content: {
+                requirePrimaryStrength: false,
+                requireBiggestUpgrade: true,
+                requireRedoPrompt: false,
+                allowPatternSuggestion: false,
+            },
+        };
+    }
+
+    const observed = appraisal.criteria.filter((criterion) => criterion.applicability === "observed");
+    const primaryCriterion = observed.find((criterion) => criterion.band === "strong");
+    return {
+        posture: "move_on",
+        intervention: "affirm_and_continue",
+        signal: { valence: "strength", detectability: "clear" },
+        primaryAnchor: primaryCriterion
+            ? { kind: "criterion", id: primaryCriterion.criterionId }
+            : { kind: "pattern_gap", id: appraisal.patternGap.id },
+        content: {
+            requirePrimaryStrength: true,
+            requireBiggestUpgrade: false,
+            requireRedoPrompt: false,
+            allowPatternSuggestion: false,
         },
     };
 }
@@ -309,7 +472,10 @@ export function validateFeedbackComposition(input: {
         return { status: "feedback_rejected", issues: [{ code: "invalid_feedback_schema" }] };
     }
 
-    const feedback = parsed.data;
+    const feedback = applyCoachingCompletionDirective(
+        parsed.data,
+        input.appraisal,
+    );
     const issues: EvidenceValidationIssue[] = [];
     if (
         feedback.inputFingerprint !== input.evaluationCase.inputFingerprint
@@ -342,10 +508,16 @@ export function validateFeedbackComposition(input: {
     }
 
     validateFeedbackAnchor(input.appraisal, feedback, issues);
+    validateCoachingCompletionDirective(input.appraisal, feedback, issues);
     validateInterventionCompleteness(feedback, issues);
     validateDeliveryGuidancePlacement(feedback, issues);
     validateDeliveryNote(input.evaluationCase, feedback, issues);
-    validateCandidateLanguage(feedback.candidateFeedback, issues);
+    validateCandidateLanguage(
+        feedback.candidateFeedback,
+        input.evaluationCase,
+        input.appraisal,
+        issues,
+    );
 
     if (issues.length > 0) {
         return { status: "feedback_rejected", issues: dedupeIssues(issues) };
@@ -405,9 +577,6 @@ function validateEvidenceFacts(
             issues.push({ code: "duplicate_category_signal_id", path: signal.id });
         }
         categorySignalIds.add(signal.id);
-        if (signal.status === "observed" && signal.evidenceSpanIds.length === 0) {
-            issues.push({ code: "observed_signal_requires_evidence", path: signal.id });
-        }
         if (signal.status !== "observed" && signal.evidenceSpanIds.length > 0) {
             issues.push({ code: "unobserved_signal_has_evidence", path: signal.id });
         }
@@ -445,6 +614,112 @@ function validateEvidenceFacts(
     return dedupeIssues(issues);
 }
 
+function applyCoachingCompletionDirective(
+    feedback: FeedbackCompositionOutput,
+    appraisal: AcceptedEvidenceFirstAppraisal,
+): FeedbackCompositionOutput {
+    const directive = resolveCoachingCompletionDirective(appraisal);
+    const primaryStrength = appraisal.evidence.answerUsability.status === "usable"
+        ? feedback.candidateFeedback.primaryStrength
+        : null;
+    return {
+        ...feedback,
+        feedbackPlan: {
+            ...feedback.feedbackPlan,
+            signal: directive.signal,
+            primaryAnchor: directive.primaryAnchor,
+            intervention: directive.intervention,
+        },
+        candidateFeedback: {
+            ...feedback.candidateFeedback,
+            primaryStrength,
+            biggestUpgrade: directive.content.requireBiggestUpgrade
+                ? feedback.candidateFeedback.biggestUpgrade
+                : null,
+            redoPrompt: directive.content.requireRedoPrompt
+                ? feedback.candidateFeedback.redoPrompt
+                : null,
+            patternSuggestion: directive.content.allowPatternSuggestion
+                ? feedback.candidateFeedback.patternSuggestion
+                : null,
+        },
+        claimEvidence: {
+            ...feedback.claimEvidence,
+            primaryStrengthSpanIds: primaryStrength
+                ? feedback.claimEvidence.primaryStrengthSpanIds
+                : [],
+        },
+    };
+}
+
+function normalizeAnswerUsability(
+    evidence: EvidenceExtractionOutput,
+    category: QuestionCategory,
+): EvidenceExtractionOutput {
+    if (
+        evidence.answerUsability.status !== "usable"
+        || category === "screening"
+        || !evidence.observableMarkers.isVeryShort
+    ) {
+        return evidence;
+    }
+
+    const markers = evidence.observableMarkers;
+    const hasUniversalDevelopmentEvidence = (
+        markers.hasExample
+        || markers.hasPersonalAction
+        || markers.hasOutcomeOrTakeaway
+        || markers.hasTradeoffOrConstraint
+        || markers.hasRoleRelevantSkillSignal
+    );
+    if (hasUniversalDevelopmentEvidence || hasSubstantiveCategorySignal(evidence, category)) {
+        return evidence;
+    }
+
+    return {
+        ...evidence,
+        answerUsability: {
+            status: "thin",
+            reasonCode: "code_thin_without_development_evidence",
+        },
+    };
+}
+
+function hasSubstantiveCategorySignal(
+    evidence: EvidenceExtractionOutput,
+    category: Exclude<QuestionCategory, "screening">,
+) {
+    switch (category) {
+        case "behavioral":
+            return [
+                "has_personal_action",
+                "has_result",
+                "has_learning",
+                "has_constraint",
+            ].some((signal) => hasObservedSignal(evidence, signal));
+        case "culture_fit":
+            return ["has_specific_example", "has_role_connection"]
+                .some((signal) => hasObservedSignal(evidence, signal));
+        case "case_scenario":
+            return [
+                "has_problem_framing",
+                "has_priority",
+                "has_stakeholder_awareness",
+                "has_tradeoff",
+                "has_recommendation",
+                "has_next_step",
+            ].some((signal) => hasObservedSignal(evidence, signal));
+        case "technical_role_specific":
+            return [
+                "has_relevant_role_knowledge",
+                "has_reasoning",
+                "has_practical_application",
+                "has_verification_awareness",
+                "has_tradeoff",
+            ].some((signal) => hasObservedSignal(evidence, signal));
+    }
+}
+
 function appraiseCriteria(evidence: EvidenceExtractionOutput, category: QuestionCategory): CriterionAppraisal[] {
     if (evidence.answerUsability.status === "sensitive_disclosure") {
         return UNIVERSAL_CRITERION_IDS.map((criterionId) => insufficientCriterion(
@@ -469,23 +744,12 @@ function appraiseCriteria(evidence: EvidenceExtractionOutput, category: Question
         ));
     }
     if (evidence.answerUsability.status === "thin") {
-        return UNIVERSAL_CRITERION_IDS.map((criterionId) => (
-            criterionId === "role_skill_signal"
-                && category === "technical_role_specific"
-                && evidence.technicalAccuracy.status === "not_assessed"
-                ? {
-                    criterionId,
-                    applicability: "unscoreable",
-                    evidenceSpanIds: [],
-                    reasonCode: "technical_reference_not_supplied",
-                }
-                : observedCriterion(
-                    criterionId,
-                    "emerging",
-                    evidence,
-                    criterionEvidenceMarkers(criterionId),
-                    "thin_answer_insufficient_evidence",
-                )
+        return UNIVERSAL_CRITERION_IDS.map((criterionId) => observedCriterion(
+            criterionId,
+            "emerging",
+            evidence,
+            criterionEvidenceMarkers(criterionId),
+            "thin_answer_insufficient_evidence",
         ));
     }
 
@@ -526,7 +790,7 @@ function appraiseAnswerFocus(evidence: EvidenceExtractionOutput): CriterionAppra
 function appraiseOrganization(evidence: EvidenceExtractionOutput, category: QuestionCategory): CriterionAppraisal {
     const signalCount = countObservedSignals(evidence, organizationSignals(category));
     const strongThreshold = category === "screening" ? 0 : 3;
-    const band = category === "screening"
+    const uncappedBand = category === "screening"
         ? evidence.observableMarkers.hasDirectAnswer && !evidence.observableMarkers.isOverlyLong
             ? "strong"
             : evidence.observableMarkers.answeredQuestion
@@ -537,6 +801,11 @@ function appraiseOrganization(evidence: EvidenceExtractionOutput, category: Ques
             : signalCount >= 2
                 ? "clear"
                 : "emerging";
+    const band = category === "technical_role_specific"
+        && evidence.technicalAccuracy.status === "contradicted"
+        && uncappedBand === "strong"
+        ? "clear"
+        : uncappedBand;
     return observedCriterion(
         "organization",
         band,
@@ -591,26 +860,32 @@ function appraiseRoleSkillSignal(
             "scenario_problem_framing_missing",
         );
     }
-    if (category === "technical_role_specific" && evidence.technicalAccuracy.status === "not_assessed") {
-        return {
-            criterionId: "role_skill_signal",
-            applicability: "unscoreable",
-            evidenceSpanIds: [],
-            reasonCode: "technical_reference_not_supplied",
-        };
-    }
     if (category === "technical_role_specific") {
+        const hasKnowledge = hasObservedSignal(evidence, "has_relevant_role_knowledge");
+        const hasApplication = hasObservedSignal(evidence, "has_practical_application");
+        const hasReasoning = hasObservedSignal(evidence, "has_reasoning");
+        const hasVerification = hasObservedSignal(evidence, "has_verification_awareness");
+        const hasDirectAnswer = hasObservedSignal(evidence, "has_direct_technical_answer");
         const band = evidence.technicalAccuracy.status === "contradicted"
             ? "emerging"
-            : hasObservedSignal(evidence, "has_reasoning") && hasObservedSignal(evidence, "has_practical_application")
+            : hasKnowledge && hasApplication && (hasReasoning || hasVerification)
                 ? "strong"
-                : "clear";
+                : hasKnowledge || hasApplication || (hasDirectAnswer && (hasReasoning || hasVerification))
+                    ? "clear"
+                    : "emerging";
         return observedCriterion(
             "role_skill_signal",
             band,
             evidence,
             ["role_skill_signal", "reasoning", "practical_application"],
             `technical_role_skill_${band}`,
+            [
+                "has_direct_technical_answer",
+                "has_relevant_role_knowledge",
+                "has_reasoning",
+                "has_practical_application",
+                "has_verification_awareness",
+            ],
         );
     }
     const band = evidence.observableMarkers.hasRoleRelevantSkillSignal
@@ -632,7 +907,7 @@ function appraiseImpactJudgmentTakeaway(
     category: QuestionCategory,
 ): CriterionAppraisal {
     const signals = impactSignals(category);
-    const signalCount = countObservedSignals(evidence, signals);
+    const signalCount = countQualifyingImpactSignals(evidence, category, signals);
     if (
         category === "screening"
         && signalCount === 0
@@ -653,6 +928,7 @@ function appraiseImpactJudgmentTakeaway(
         evidence,
         ["outcome", "takeaway", "tradeoff", "recommendation", "next_step", "learning", "self_awareness"],
         `impact_judgment_${category}_${band}`,
+        signals,
     );
 }
 
@@ -719,7 +995,31 @@ function detectPatternGap(
                 "category_lens",
             );
         }
-        if (!hasObservedSignal(evidence, "has_reasoning")) {
+        if (
+            !hasObservedSignal(evidence, "has_relevant_role_knowledge")
+            && !hasObservedSignal(evidence, "has_practical_application")
+        ) {
+            return patternGap(
+                "missing_role_specific_evidence",
+                "high",
+                "Name the relevant tool, process, or knowledge and show how it applies to the work.",
+                ["direct answer", "role-specific detail", "practical application"],
+                "category_lens",
+            );
+        }
+        if (!hasObservedSignal(evidence, "has_practical_application")) {
+            return patternGap(
+                "missing_practical_application",
+                "medium",
+                "Connect the role-specific point to how you have used it or would use it in practice.",
+                ["role-specific point", "practical application", "reason or check"],
+                "category_lens",
+            );
+        }
+        if (
+            !hasObservedSignal(evidence, "has_reasoning")
+            && !hasObservedSignal(evidence, "has_verification_awareness")
+        ) {
             return patternGap(
                 "missing_reasoning",
                 "medium",
@@ -790,10 +1090,21 @@ function detectPatternGap(
         );
     }
 
+    const clearCriterion = criteria.find((criterion) => criterion.band === "clear");
+    if (clearCriterion) {
+        return patternGap(
+            `polish_${clearCriterion.criterionId}`,
+            "low",
+            "Offer one optional refinement, then carry the effective answer forward.",
+            ["direct point", "one refined detail", "clear takeaway"],
+            "criterion_appraisal",
+        );
+    }
+
     return patternGap(
         "reinforce_effective_pattern",
         "low",
-        "Keep the answer's effective structure and make the key point easy to recognize.",
+        "No remediation is needed. Carry this effective response pattern forward.",
         ["direct point", "supporting evidence", "clear takeaway"],
         "criterion_appraisal",
     );
@@ -856,6 +1167,51 @@ function validateFeedbackAnchor(
         && (anchor.kind !== "privacy_reframe" || anchor.id !== "privacy_reframe")
     ) {
         issues.push({ code: "sensitive_disclosure_requires_privacy_reframe" });
+    }
+}
+
+function validateCoachingCompletionDirective(
+    appraisal: AcceptedEvidenceFirstAppraisal,
+    feedback: FeedbackCompositionOutput,
+    issues: EvidenceValidationIssue[],
+) {
+    const directive = resolveCoachingCompletionDirective(appraisal);
+    if (feedback.feedbackPlan.intervention !== directive.intervention) {
+        issues.push({ code: "feedback_intervention_mismatch", path: directive.intervention });
+    }
+    if (
+        feedback.feedbackPlan.signal.valence !== directive.signal.valence
+        || feedback.feedbackPlan.signal.detectability !== directive.signal.detectability
+    ) {
+        issues.push({ code: "feedback_signal_mismatch", path: directive.posture });
+    }
+    if (
+        feedback.feedbackPlan.primaryAnchor.kind !== directive.primaryAnchor.kind
+        || feedback.feedbackPlan.primaryAnchor.id !== directive.primaryAnchor.id
+    ) {
+        issues.push({ code: "feedback_anchor_directive_mismatch", path: directive.primaryAnchor.id });
+    }
+
+    const candidate = feedback.candidateFeedback;
+    if (directive.content.requirePrimaryStrength && !candidate.primaryStrength) {
+        issues.push({ code: "move_on_missing_strength" });
+    }
+    if (directive.content.requireBiggestUpgrade !== Boolean(candidate.biggestUpgrade)) {
+        issues.push({
+            code: directive.content.requireBiggestUpgrade
+                ? "directive_missing_upgrade"
+                : "directive_forbids_upgrade",
+        });
+    }
+    if (directive.content.requireRedoPrompt !== Boolean(candidate.redoPrompt)) {
+        issues.push({
+            code: directive.content.requireRedoPrompt
+                ? "directive_missing_redo"
+                : "directive_forbids_redo",
+        });
+    }
+    if (!directive.content.allowPatternSuggestion && candidate.patternSuggestion) {
+        issues.push({ code: "directive_forbids_pattern_suggestion" });
     }
 }
 
@@ -943,6 +1299,8 @@ function containsDeliveryMechanicsGuidance(value: string) {
 
 function validateCandidateLanguage(
     feedback: FeedbackCompositionOutput["candidateFeedback"],
+    evaluationCase: EvidenceFirstEvaluationCase,
+    appraisal: AcceptedEvidenceFirstAppraisal,
     issues: EvidenceValidationIssue[],
 ) {
     const text = [
@@ -954,9 +1312,19 @@ function validateCandidateLanguage(
         ...(feedback.patternSuggestion?.steps ?? []),
         feedback.deliveryNote?.message,
     ].filter((value): value is string => Boolean(value)).join(" ");
-    for (const pattern of EVIDENCE_FIRST_FEEDBACK_FORBIDDEN_PATTERNS) {
-        if (pattern.test(text)) {
-            issues.push({ code: "candidate_feedback_forbidden_language", path: pattern.source });
+    if (containsEvidenceFirstFeedbackForbiddenLanguage(text, evaluationCase.providerInput.answer.text)) {
+        issues.push({ code: "candidate_feedback_forbidden_language" });
+    }
+    if (
+        evaluationCase.providerInput.question.category === "technical_role_specific"
+        && appraisal.evidence.technicalAccuracy.status === "not_assessed"
+    ) {
+        for (const finding of findUngroundedTechnicalCoachingClaims([text])) {
+            issues.push({
+                code: finding.ruleId === "technical_correctness_implied"
+                    ? "candidate_feedback_ungrounded_technical_correctness"
+                    : "candidate_feedback_ungrounded_exact_technical_fact_request",
+            });
         }
     }
 }
@@ -967,14 +1335,20 @@ function observedCriterion(
     evidence: EvidenceExtractionOutput,
     markers: EvidenceSpan["marker"][],
     reasonCode: string,
+    categorySignalIds: readonly string[] = [],
 ): CriterionAppraisal {
+    const markerSpanIds = evidence.evidenceSpans
+        .filter((span) => markers.includes(span.marker))
+        .map((span) => span.id);
+    const categorySignalSpanIds = evidence.categorySignals
+        .filter((signal) => categorySignalIds.includes(signal.id) && signal.status === "observed")
+        .flatMap((signal) => signal.evidenceSpanIds);
+
     return {
         criterionId,
         applicability: "observed",
         band,
-        evidenceSpanIds: evidence.evidenceSpans
-            .filter((span) => markers.includes(span.marker))
-            .map((span) => span.id),
+        evidenceSpanIds: Array.from(new Set([...markerSpanIds, ...categorySignalSpanIds])),
         reasonCode,
     };
 }
@@ -1012,7 +1386,13 @@ function organizationSignals(category: QuestionCategory): readonly string[] {
         case "behavioral":
             return ["has_context", "has_personal_action", "has_result"];
         case "technical_role_specific":
-            return ["has_direct_technical_answer", "has_reasoning", "has_practical_application"];
+            return [
+                "has_direct_technical_answer",
+                "has_relevant_role_knowledge",
+                "has_reasoning",
+                "has_practical_application",
+                "has_verification_awareness",
+            ];
         case "case_scenario":
             return ["has_problem_framing", "has_priority", "has_recommendation", "has_next_step"];
         case "culture_fit":
@@ -1039,6 +1419,24 @@ function impactSignals(category: QuestionCategory): readonly string[] {
 
 function countObservedSignals(evidence: EvidenceExtractionOutput, ids: readonly string[]) {
     return ids.filter((id) => hasObservedSignal(evidence, id)).length;
+}
+
+function countQualifyingImpactSignals(
+    evidence: EvidenceExtractionOutput,
+    category: QuestionCategory,
+    ids: readonly string[],
+) {
+    const observedSignals = evidence.categorySignals.filter(
+        (signal) => ids.includes(signal.id) && signal.status === "observed",
+    );
+    if (category !== "technical_role_specific" || evidence.technicalAccuracy.status !== "contradicted") {
+        return observedSignals.length;
+    }
+
+    const contradictedSpanIds = new Set(evidence.technicalAccuracy.evidenceSpanIds);
+    return observedSignals.filter((signal) => (
+        signal.evidenceSpanIds.some((spanId) => !contradictedSpanIds.has(spanId))
+    )).length;
 }
 
 function hasObservedSignal(evidence: EvidenceExtractionOutput, id: string) {
@@ -1110,7 +1508,7 @@ function hasCategorySignalGrounding(
                 case "behavioral":
                     return observed("has_personal_action");
                 case "technical_role_specific":
-                    return observed("has_correct_concept") || observed("has_practical_application");
+                    return observed("has_relevant_role_knowledge") || observed("has_practical_application");
                 case "case_scenario":
                     return observed("has_recommendation") || observed("has_next_step");
                 case "culture_fit":

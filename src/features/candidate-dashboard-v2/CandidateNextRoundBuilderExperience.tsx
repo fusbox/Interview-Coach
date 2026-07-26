@@ -374,9 +374,9 @@ function CandidateNextRoundBuilderDialog({
         void mutate({ kind: "reorder", orderedItemIds });
     };
     const anchoredStyle = anchorRect ? ({
-        "--candidate-next-round-anchor-top": `${Math.max(anchorRect.top - 20, 12)}px`,
-        "--candidate-next-round-anchor-right": `${Math.max(window.innerWidth - anchorRect.right, 12)}px`,
-        "--candidate-next-round-anchor-width": `${anchorRect.width}px`,
+        "--next-round-anchor-top": `${Math.max(anchorRect.top - 20, 12)}px`,
+        "--next-round-anchor-right": `${Math.max(window.innerWidth - anchorRect.right, 12)}px`,
+        "--next-round-anchor-width": `${anchorRect.width}px`,
     } as CSSProperties) : undefined;
 
     return (

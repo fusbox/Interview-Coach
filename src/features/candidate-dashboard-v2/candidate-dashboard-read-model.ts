@@ -6,6 +6,7 @@ import {
     type CandidatePracticeNext,
 } from "@/features/candidate-session-v2/candidate-completed-round-read-model";
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
+import type { CandidateAnswerAttemptRecord } from "@/features/candidate-session-v2/candidate-answer-history";
 import type { CandidatePracticePlanBaselineRecord } from "@/features/candidate-setup-v2/candidate-practice-plan-baseline-repository";
 import {
     createCandidateCoachPlanReference,
@@ -21,6 +22,11 @@ import {
     normalizeCandidateRoleProfileId,
     normalizeCandidateTargetInterviewId,
 } from "./candidate-dashboard-route";
+import {
+    createCandidateQuestionPreparednessProgress,
+    type CandidateQuestionPreparednessAcceptedRun,
+    type CandidateQuestionPreparednessProgress,
+} from "./candidate-question-preparedness-progress";
 
 export type CandidateDashboardV2ReadModel = {
     status: "candidate_dashboard_v2_read_model";
@@ -51,6 +57,7 @@ export type CandidateDashboardV2ReadModel = {
     practiceNext: CandidatePracticeNext;
     practiceDirection: CandidateDashboardPracticeDirection;
     coachPlan: CandidateCoachPlanReference | null;
+    questionPreparedness: CandidateQuestionPreparednessProgress | null;
 };
 
 export type CandidateDashboardIdentity = {
@@ -181,6 +188,8 @@ export function createCandidateDashboardV2ReadModel({
     coachUpdateArtifacts = [],
     candidateIdentity,
     practicePlanBaselines = [],
+    answerAttempts = [],
+    acceptedEvaluationRuns = [],
 }: {
     candidateProfileId: string;
     practiceSessions: CandidatePracticeSessionRecord[];
@@ -189,6 +198,8 @@ export function createCandidateDashboardV2ReadModel({
     coachUpdateArtifacts?: CandidateCoachUpdateArtifactRecord[];
     candidateIdentity?: Partial<CandidateDashboardIdentity> | null;
     practicePlanBaselines?: CandidatePracticePlanBaselineRecord[];
+    answerAttempts?: CandidateAnswerAttemptRecord[] | null;
+    acceptedEvaluationRuns?: CandidateQuestionPreparednessAcceptedRun[] | null;
 }): CandidateDashboardV2ReadModel {
     const candidateSessions = practiceSessions.filter((session) => session.candidateProfileId === candidateProfileId);
     const selectedContextKey = selectTargetInterviewContextKey({
@@ -235,6 +246,15 @@ export function createCandidateDashboardV2ReadModel({
             && baseline.roleProfileId === resolvedSelectedRoleProfileId
         )) ?? null,
     });
+    const questionPreparedness = answerAttempts && acceptedEvaluationRuns
+        ? createCandidateQuestionPreparednessProgress({
+            candidateProfileId,
+            practiceSessions: scopedCandidateSessions,
+            coachPlan,
+            answerAttempts,
+            acceptedRuns: acceptedEvaluationRuns,
+        })
+        : null;
 
     return {
         status: "candidate_dashboard_v2_read_model",
@@ -279,6 +299,7 @@ export function createCandidateDashboardV2ReadModel({
             practiceNext: latestPracticeNext,
         }),
         coachPlan,
+        questionPreparedness,
     };
 }
 

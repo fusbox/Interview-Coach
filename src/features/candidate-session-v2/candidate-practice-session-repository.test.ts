@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { createCandidateAnswerAnalysisProviderResultFixture } from "./candidate-answer-analysis-test-fixture";
 import { createCandidatePracticeSessionRepository } from "./candidate-practice-session-repository";
 import { createCandidateQuestionPlan } from "./candidate-question-plan";
 import { createFixtureCandidateQuestionWordingResult } from "./candidate-question-wording";
@@ -488,9 +489,7 @@ describe("candidate practice session repository", () => {
     });
 
     it("persists one answer analysis snapshot by candidate-owned session and slot", async () => {
-        const analysisSnapshot = {
-            status: "answer_analysis_provider_result" as const,
-            provider: "candidate_v2_answer_evaluator" as const,
+        const analysisSnapshot = createCandidateAnswerAnalysisProviderResultFixture({
             analyzedAt: "2026-07-09T20:02:00.000Z",
             answer: {
                 slotId: "slot-1",
@@ -501,14 +500,7 @@ describe("candidate practice session repository", () => {
                 observation: "The answer would be stronger with the result of your choice.",
                 nextPracticeFocus: "Add what changed after you set the priority.",
             },
-            evidence: [
-                {
-                    criterionId: "answer_specificity",
-                    applicability: "observed" as const,
-                    score: 3,
-                },
-            ],
-        };
+        });
         const query = vi.fn(async () => ({
             rows: [{
                 answer_analysis_snapshots_json: {

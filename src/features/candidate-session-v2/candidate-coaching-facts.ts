@@ -1,22 +1,15 @@
-import {
-    buildCandidateEvaluationRead,
-    deriveCriteriaBand,
-    summarizeEvidenceSet,
-    type CriteriaBand,
-    type EvaluationEvidenceItem,
-} from "@/features/evaluation-v2/evaluation-domain";
-
 import type {
     CandidateAnswerAnalysisCoachFeedback,
     CandidateAnswerAnalysisProviderName,
     CandidateAnswerAnalysisProviderResult,
+    CandidateEvidenceFirstCriterionAppraisal,
 } from "./candidate-answer-analysis-adapter";
 
 export type CandidateAnswerCoachingFact = {
-    criterionId: string;
-    applicability: EvaluationEvidenceItem["applicability"];
-    band: CriteriaBand;
-    evidenceState: EvaluationEvidenceItem["applicability"];
+    criterionId: CandidateEvidenceFirstCriterionAppraisal["criterionId"];
+    applicability: CandidateEvidenceFirstCriterionAppraisal["applicability"];
+    band: CandidateEvidenceFirstCriterionAppraisal["band"] | null;
+    reasonCode: string;
 };
 
 export type CandidateAnswerCoachingFacts = {
@@ -25,12 +18,16 @@ export type CandidateAnswerCoachingFacts = {
     analyzedAt: string;
     answer: CandidateAnswerAnalysisProviderResult["answer"];
     coachFeedback: CandidateAnswerAnalysisCoachFeedback;
-    overallRead: {
-        band: CriteriaBand;
-        headline: string;
-        description: string;
-        observedCount: number;
-        excludedCount: number;
+    supportedStrength: string | null;
+    interaction: {
+        intervention: CandidateAnswerAnalysisProviderResult["evidenceFirst"]["interaction"]["intervention"];
+        posture: "move_on" | "polish" | "remediate";
+    };
+    appraisal: {
+        answerUsability: CandidateAnswerAnalysisProviderResult["evidenceFirst"]["appraisal"]["answerUsability"];
+        technicalAccuracy: CandidateAnswerAnalysisProviderResult["evidenceFirst"]["appraisal"]["technicalAccuracy"];
+        questionPreparedness: CandidateAnswerAnalysisProviderResult["evidenceFirst"]["appraisal"]["questionPreparedness"];
+        patternGap: CandidateAnswerAnalysisProviderResult["evidenceFirst"]["appraisal"]["patternGap"];
     };
     criteriaFacts: CandidateAnswerCoachingFact[];
     coverage: {
@@ -44,11 +41,7 @@ export type CandidateAnswerCoachingFacts = {
 export function createCandidateAnswerCoachingFacts(
     analysisSnapshot: CandidateAnswerAnalysisProviderResult,
 ): CandidateAnswerCoachingFacts {
-    const evidenceSummary = summarizeEvidenceSet(analysisSnapshot.evidence);
-    const overallRead = buildCandidateEvaluationRead({
-        label: "Answer coaching",
-        evidence: analysisSnapshot.evidence,
-    });
+    const appraisal = analysisSnapshot.evidenceFirst.appraisal;
 
     return {
         status: "candidate_answer_coaching_facts",
@@ -56,39 +49,45 @@ export function createCandidateAnswerCoachingFacts(
         analyzedAt: analysisSnapshot.analyzedAt,
         answer: analysisSnapshot.answer,
         coachFeedback: analysisSnapshot.coachFeedback,
-        overallRead: {
-            band: overallRead.band,
-            headline: overallRead.headline,
-            description: overallRead.description,
-            observedCount: evidenceSummary.observedCount,
-            excludedCount: evidenceSummary.excludedCount,
+        supportedStrength: analysisSnapshot.evidenceFirst.candidateFeedback.primaryStrength,
+        interaction: {
+            intervention: analysisSnapshot.evidenceFirst.interaction.intervention,
+            posture: coachingPostureForIntervention(analysisSnapshot.evidenceFirst.interaction.intervention),
         },
-        criteriaFacts: analysisSnapshot.evidence.map(toCandidateAnswerCoachingFact),
+        appraisal: {
+            answerUsability: appraisal.answerUsability,
+            technicalAccuracy: appraisal.technicalAccuracy,
+            questionPreparedness: appraisal.questionPreparedness,
+            patternGap: appraisal.patternGap,
+        },
+        criteriaFacts: appraisal.criteria.map((criterion) => ({
+            criterionId: criterion.criterionId,
+            applicability: criterion.applicability,
+            band: criterion.band ?? null,
+            reasonCode: criterion.reasonCode,
+        })),
         coverage: {
-            observedCriteriaIds: getCriterionIdsByApplicability(analysisSnapshot.evidence, "observed"),
-            notElicitedCriteriaIds: getCriterionIdsByApplicability(analysisSnapshot.evidence, "not_elicited"),
-            insufficientDataCriteriaIds: getCriterionIdsByApplicability(analysisSnapshot.evidence, "insufficient_data"),
-            unscoreableCriteriaIds: getCriterionIdsByApplicability(analysisSnapshot.evidence, "unscoreable"),
+            observedCriteriaIds: getCriterionIdsByApplicability(appraisal.criteria, "observed"),
+            notElicitedCriteriaIds: getCriterionIdsByApplicability(appraisal.criteria, "not_elicited"),
+            insufficientDataCriteriaIds: getCriterionIdsByApplicability(appraisal.criteria, "insufficient_data"),
+            unscoreableCriteriaIds: getCriterionIdsByApplicability(appraisal.criteria, "unscoreable"),
         },
     };
 }
 
-function toCandidateAnswerCoachingFact(evidence: EvaluationEvidenceItem): CandidateAnswerCoachingFact {
-    return {
-        criterionId: evidence.criterionId,
-        applicability: evidence.applicability,
-        band: evidence.applicability === "observed"
-            ? deriveCriteriaBand([evidence])
-            : "not_enough_evidence",
-        evidenceState: evidence.applicability,
-    };
+function coachingPostureForIntervention(
+    intervention: CandidateAnswerAnalysisProviderResult["evidenceFirst"]["interaction"]["intervention"],
+): CandidateAnswerCoachingFacts["interaction"]["posture"] {
+    if (intervention === "affirm_and_continue") return "move_on";
+    if (intervention === "polish_then_continue") return "polish";
+    return "remediate";
 }
 
 function getCriterionIdsByApplicability(
-    evidence: EvaluationEvidenceItem[],
-    applicability: EvaluationEvidenceItem["applicability"],
+    criteria: CandidateEvidenceFirstCriterionAppraisal[],
+    applicability: CandidateEvidenceFirstCriterionAppraisal["applicability"],
 ) {
-    return evidence
-        .filter((item) => item.applicability === applicability)
-        .map((item) => item.criterionId);
+    return criteria
+        .filter((criterion) => criterion.applicability === applicability)
+        .map((criterion) => criterion.criterionId);
 }

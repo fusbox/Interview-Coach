@@ -151,7 +151,7 @@ describe("candidate Coach Update generation", () => {
             validation: expect.objectContaining({
                 disposition: "accepted",
                 provider: runtime.metadata.provider,
-                providerRequestVersion: "candidate_coach_update_provider_request_v1",
+                providerRequestVersion: "candidate_coach_update_provider_request_v2",
                 rawOutputStored: false,
                 promptStored: false,
             }),
@@ -188,7 +188,7 @@ function createInput(overrides: Partial<CandidateCoachUpdateSynthesisInput> = {}
 
 function createValidContent() {
     return {
-        status: "candidate_coach_update_content_v2" as const,
+        status: "candidate_coach_update_content_v3" as const,
         targetRole: "Material Handler",
         title: "Material Handler practice update",
         summary: "I reviewed your practiced answer.",
@@ -208,7 +208,6 @@ function createValidContent() {
                 acknowledgement: "You gave me a direct starting point.",
                 observation: "Your answer connects to the role.",
                 nextPracticeFocus: "Add one concrete result.",
-                overallBand: "clear" as const,
             },
             comparison: {
                 kind: "first_practice" as const,
@@ -228,7 +227,7 @@ function createRuntime(
     synthesize = vi.fn(async () => ({
         content: createValidContent(),
         validation: {
-            providerRequestVersion: "candidate_coach_update_provider_request_v1" as const,
+            providerRequestVersion: "candidate_coach_update_provider_request_v2" as const,
             providerOutputVersion: "candidate_coach_update_provider_output_v1" as const,
             timeoutMs: 12_000,
             transportAttemptCount: 1 as const,
@@ -276,7 +275,7 @@ function createArtifact({ lifecycleState = "requested" }: {
         generationAttempt: 1,
         lifecycleState,
         candidateSafeContent: completed ? {
-            status: "candidate_coach_update_content_v1",
+            status: "candidate_coach_update_content_v3",
             targetRole: "Material Handler",
             title: "Material Handler practice update",
             summary: "I reviewed this round.",

@@ -2,8 +2,9 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 
 export const AI_EVAL_SCENARIO_SCHEMA_VERSION = "ai_eval_scenario_v1" as const;
-export const AI_EVAL_SCENARIO_SUITE_VERSION = "evidence_first_scenario_baseline_v2" as const;
-export const AI_EVAL_SCENARIO_BASELINE_VERSION_NUMBER = 2;
+export const AI_EVAL_SCENARIO_SUITE_VERSION = "evidence_first_scenario_baseline_v7" as const;
+export const AI_EVAL_SCENARIO_BASELINE_VERSION_NUMBER = 7;
+export const AI_EVAL_SCENARIO_VISIBLE_BASELINE_MIN_VERSION_NUMBER = 5;
 export const AI_EVAL_SCENARIO_RETENTION_DAYS = 30;
 
 export const AI_EVAL_SCENARIO_KINDS = ["atomic_answer", "round_journey"] as const;
@@ -134,6 +135,11 @@ export const aiEvalAtomicAnswerScenarioSchema = scenarioBase.extend({
         mode: candidateAnswerModeSchema,
     }).strict(),
     technicalReference: z.string().trim().max(8_000).nullable(),
+    voiceMarkers: z.object({
+        fillerWordCount: z.number().int().nonnegative(),
+        longPauseCount: z.number().int().nonnegative(),
+        wordsPerMinute: z.number().positive().nullable(),
+    }).strict().nullable().optional(),
     priorAttempts: z.array(priorAttemptSchema).max(8),
     expected: expectedBehaviorSchema,
 }).strict().superRefine((value, context) => {

@@ -2,59 +2,147 @@
    (Tailwind @apply expanded to plain CSS). */
 
 .glass-card {
-    background: linear-gradient(to bottom right, hsl(var(--brand-glass-start)), hsl(var(--brand-glass-end)));
+    background: linear-gradient(to bottom right, rgb(var(--brand-glass-start)), rgb(var(--brand-glass-end)));
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgb(255 255 255 / 0.2);
     box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
 }
 
 .glass-overlay {
-    background: hsl(var(--surface-base) / 0.4);
+    background: rgb(var(--surface-base) / 0.4);
     backdrop-filter: blur(40px);
     -webkit-backdrop-filter: blur(40px);
 }
 
-.candidate-design-system {
-    background: rgb(var(--candidate-background));
-    color: rgb(var(--candidate-foreground));
-}
-
-/* Candidate surfaces */
+/* Application surfaces.
+   Neutral cards are token-driven (rgb(var(--surface…))) so they adopt the
+   darker ground automatically under .dark — no per-surface dark rule needed.
+   Tinted/colored surfaces below carry an explicit .dark recipe. */
 .surface-base {
-    border: 1px solid rgb(var(--candidate-border) / 0.78);
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(249, 251, 253, 0.96));
-    box-shadow: var(--candidate-shadow-card);
-    border-radius: var(--radius-widget);
+    border: 1px solid rgb(var(--border) / 0.78);
+    background: linear-gradient(135deg, rgb(var(--surface) / 0.96), rgb(var(--surface-alt) / 0.97));
+    box-shadow: var(--shadow-card);
+    border-radius: 1.75rem;
 }
 
 .surface-elevated {
-    border: 1px solid rgb(var(--candidate-border) / 0.82);
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(250, 252, 255, 0.98));
-    box-shadow: var(--candidate-shadow-panel);
+    border: 1px solid rgb(var(--border) / 0.82);
+    background: linear-gradient(135deg, rgb(var(--surface-elevated) / 0.98), rgb(var(--surface) / 0.98));
+    box-shadow: var(--shadow-panel);
     border-radius: 2rem;
 }
 
+/* Blue — a colored feature surface (white ink). Same solid-fill tokens as spotlight. */
 .surface-blue {
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: linear-gradient(135deg, rgba(9, 81, 199, 0.96), rgba(38, 116, 242, 0.94));
-    box-shadow: var(--candidate-shadow-panel);
-    border-radius: var(--radius-widget);
-    color: white;
+    border: 1px solid rgb(255 255 255 / 0.08);
+    background: linear-gradient(135deg, rgb(var(--primary-solid-deep)), rgb(var(--primary-solid)));
+    box-shadow: var(--shadow-panel);
+    border-radius: 1.75rem;
+    color: rgb(255 255 255);
 }
 
 .surface-orange {
-    border: 1px solid rgba(249, 85, 0, 0.14);
-    background: linear-gradient(135deg, rgba(255, 245, 239, 0.96), rgba(255, 234, 224, 0.94));
-    box-shadow: var(--candidate-shadow-soft);
+    border: 1px solid rgb(249 85 0 / 0.14);
+    background: linear-gradient(135deg, rgb(255 245 239 / 0.96), rgb(255 234 224 / 0.94));
+    box-shadow: var(--shadow-soft);
     border-radius: 1.5rem;
+}
+.dark .surface-orange {
+    border-color: rgb(var(--secondary-brand) / 0.24);
+    background: linear-gradient(135deg, rgb(var(--secondary-soft) / 0.9), rgb(var(--surface-alt)));
 }
 
 .surface-sky {
-    background: linear-gradient(135deg, rgba(246, 250, 255, 0.98), rgba(232, 241, 255, 0.92));
-    box-shadow: 0 5px 14px rgba(12, 97, 233, 0.07);
+    background: linear-gradient(135deg, rgb(246 250 255 / 0.98), rgb(232 241 255 / 0.92));
+    box-shadow: 0 5px 14px rgb(12 97 233 / 0.07);
     border-radius: 1.35rem;
 }
+.dark .surface-sky {
+    background: linear-gradient(135deg, rgb(var(--primary-soft) / 0.7), rgb(var(--surface-alt)));
+    box-shadow: none;
+}
+
+/* Spotlight — the one high-emphasis feature surface: brand blue → deep brand,
+   white text. Its own class so the gradient lives in the token layer, not inline.
+   Uses the solid-fill tokens (not --primary/--primary-deep) so dark mode gets a
+   deep, contrast-checked blue instead of a brightened one glaring against the ground. */
+.surface-spotlight {
+    background: linear-gradient(150deg, rgb(var(--primary-solid)), rgb(var(--primary-solid-deep)));
+    border: 1px solid rgb(255 255 255 / 0.08);
+    box-shadow: var(--shadow-panel);
+    border-radius: var(--radius-panel);
+    color: rgb(255 255 255);
+}
+
+/* Calm — near-white general-purpose card. Most cards live here.
+   Token-driven, so it darkens under .dark with no separate rule. */
+.surface-calm {
+    border: 1px solid rgb(var(--border) / 0.78);
+    background: linear-gradient(135deg, rgb(var(--surface) / 0.96), rgb(var(--surface-alt) / 0.97));
+    box-shadow: var(--shadow-card);
+    border-radius: var(--radius-card);
+}
+
+/* Feature — mid-weight anchors, no gradient: soft blue tint or deep slate. */
+.surface-feature-tint {
+    border: 1px solid rgb(var(--primary) / 0.14);
+    background: rgb(var(--primary-soft) / 0.55);
+    box-shadow: var(--shadow-soft);
+    border-radius: var(--radius-card);
+}
+.dark .surface-feature-tint {
+    border-color: rgb(var(--primary) / 0.3);
+    background: rgb(var(--primary-soft) / 0.85);
+}
+/* Feature-dark — a deep slate anchor with white ink. In light it uses the ink
+   color; under .dark that token flips near-white, so pin an explicit deep
+   navy (darker than --surface) to preserve the dark-on-white-ink contract. */
+.surface-feature-dark {
+    background: rgb(var(--foreground));
+    box-shadow: var(--shadow-panel);
+    border-radius: var(--radius-card);
+    color: rgb(255 255 255);
+}
+.dark .surface-feature-dark {
+    background: linear-gradient(135deg, rgb(var(--surface-subtle)), rgb(var(--background)));
+    border: 1px solid rgb(var(--border) / 0.6);
+}
+
+/* Glass-on-color — a child of any colored/dark surface. Translucent, never an
+   opaque white card. --glass-ink / --glass-tint are the on-glass text + hairline. */
+.on-color-glass {
+    background: rgb(255 255 255 / 0.10);
+    border: 1px solid rgb(var(--glass-tint) / 0.18);
+    border-radius: var(--radius-widget);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: rgb(var(--glass-ink));
+}
+.on-color-glass-strong {
+    background: rgb(255 255 255 / 0.16);
+    border: 1px solid rgb(var(--glass-tint) / 0.28);
+    border-radius: var(--radius-widget);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: rgb(var(--glass-ink));
+}
+
+/* Dense in-card micro-label — denser sibling of .eyebrow, built on --text-micro-*. */
+.label-micro {
+    font-family: var(--font-display);
+    font-size: var(--text-micro-size);
+    line-height: var(--text-micro-line);
+    font-weight: 700;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: rgb(var(--muted));
+}
+
+/* Body copy scale */
+.type-body-sm { font-size: 13px; line-height: 1.6; }
+.type-body-md { font-size: 14.5px; line-height: 1.6; }
+.type-body-lg { font-size: 16px; line-height: 1.7; }
 
 /* Candidate type patterns */
 .eyebrow {
@@ -62,7 +150,7 @@
     font-weight: 700;
     letter-spacing: 0.32em;
     text-transform: uppercase;
-    color: rgb(var(--candidate-muted));
+    color: rgb(var(--muted));
 }
 
 .display-hero {
@@ -70,7 +158,7 @@
     font-size: clamp(3rem, 9vw, 6rem);
     line-height: 0.92;
     letter-spacing: 0;
-    color: rgb(var(--candidate-display-foreground));
+    color: rgb(var(--foreground));
 }
 
 .section-title {
@@ -78,19 +166,18 @@
     font-size: clamp(1.75rem, 4vw, 2.5rem);
     line-height: 1.02;
     letter-spacing: 0;
-    color: rgb(var(--candidate-display-foreground));
 }
 
 .copy-lg {
     font-size: 1.0625rem;
     line-height: 1.9;
-    color: rgb(var(--candidate-muted));
+    color: rgb(var(--muted));
 }
 
 .copy-sm {
     font-size: 0.9375rem;
     line-height: 1.8;
-    color: rgb(var(--candidate-muted));
+    color: rgb(var(--muted));
 }
 
 .feature-title {
@@ -98,11 +185,11 @@
     font-weight: 600;
     line-height: 1.55;
     letter-spacing: 0;
-    color: rgb(var(--candidate-foreground));
+    color: rgb(var(--foreground));
 }
 
 .feature-body {
     font-size: 0.9rem;
     line-height: 1.75;
-    color: rgb(var(--candidate-muted));
+    color: rgb(var(--muted));
 }

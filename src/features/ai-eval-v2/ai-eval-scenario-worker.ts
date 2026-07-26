@@ -121,7 +121,7 @@ async function executeClaimedRun(
 
     for (const runCase of detail.cases) {
         if (runCase.lifecycleState === "completed") continue;
-        await executeRunCase(repository, executor, runCase);
+        await executeAiEvalScenarioRunCase(repository, executor, runCase);
     }
     const finalized = await repository.finalizeRun(claimed.runId);
     return {
@@ -187,7 +187,7 @@ async function executeClaimedLiveRun(
         const pendingCases = detail.cases.filter((runCase) => runCase.lifecycleState !== "completed");
         await runWithConcurrency(pendingCases, input.concurrency, async (runCase) => {
             if (!claimHealthy) throw new Error("AI_EVAL_LIVE_RUN_CLAIM_LOST");
-            await executeRunCase(input.repository, executor, runCase);
+            await executeAiEvalScenarioRunCase(input.repository, executor, runCase);
         });
         if (!claimHealthy) throw new Error("AI_EVAL_LIVE_RUN_CLAIM_LOST");
         const finalized = await input.repository.finalizeLiveRun(detail.runId);
@@ -222,12 +222,12 @@ async function runWithConcurrency<T>(
     }));
 }
 
-async function executeRunCase(
+export async function executeAiEvalScenarioRunCase(
     repository: Pick<
         AiEvalScenarioRepository,
         "markCaseRunning" | "completeLayer" | "failLayer" | "finalizeCase"
     >,
-    executor: ReturnType<typeof createAiEvalScenarioFixtureExecutor>,
+    executor: Pick<ReturnType<typeof createAiEvalScenarioFixtureExecutor>, "execute">,
     runCase: AiEvalScenarioRunDetail["cases"][number],
 ) {
     await repository.markCaseRunning(runCase.runCaseId);
@@ -248,6 +248,10 @@ async function executeRunCase(
         const produced = execution.layers.find((layer) => layer.outputLayer === persistedLayer.outputLayer);
         if (!produced) {
             await repository.failLayer(persistedLayer.runLayerId, "FIXTURE_LAYER_NOT_PRODUCED");
+            continue;
+        }
+        if (produced.errorCode) {
+            await repository.failLayer(persistedLayer.runLayerId, produced.errorCode);
             continue;
         }
         await repository.completeLayer({

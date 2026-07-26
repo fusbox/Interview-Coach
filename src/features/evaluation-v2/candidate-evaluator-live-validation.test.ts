@@ -258,6 +258,10 @@ describe("candidate evaluator live validation", () => {
         expect(containsForbiddenCandidateLanguage("This amounts to a medical diagnosis.")).toBe(true);
         expect(containsForbiddenCandidateLanguage("Your grammar needs improvement.")).toBe(true);
         expect(containsForbiddenCandidateLanguage("Your English is clear enough.")).toBe(true);
+        expect(containsForbiddenCandidateLanguage(
+            "You said you passed the interview.",
+            "I passed the interview.",
+        )).toBe(false);
     });
 });
 

@@ -1,104 +1,125 @@
-# Interview Coach Documentation
+# Interview Coach V2 Documentation
 
-Status: Active index and documentation-migration ledger
-Last updated: 2026-07-23
+Status: Canonical documentation authority index
+Last updated: 2026-07-26
 
-The current product direction is the candidate V2 cleanroom rebuild on `feature/candidate-v2-rebuild`, while the deployed recruiter-led application remains an important behavior reference. Active V2 docs currently live under `docs/candidate-app` and will be promoted to this level after the active set is thinned and all links are mapped.
+This is the one active documentation root for the clean V2 rebuild. It covers candidate-led practice, recruiter-invited practice, standalone recruiter operations, shared session/evaluation behavior, and release preparation.
 
-## Active Context Stack
+Agents should not broad-scan the documentation tree. Start with the authority stack, then read only the subsystem documents linked from the active work.
+
+## Authority Stack
 
 Read these first, in order:
 
-1. [Candidate V2 handoff](./candidate-app/HANDOFF.md): current truth, phase progress, risks, and the next slice.
-2. [Candidate V2 spec](./candidate-app/SPEC.md): product intent, user journeys, and non-goals.
-3. [Candidate V2 data contract](./candidate-app/DATA_CONTRACT.md): durable vocabulary, state, persistence, and payload boundaries.
-4. [Candidate docs index](./candidate-app/README.md): targeted architecture, quality, security, operations, and decision references.
-5. [Local development bootstrap](./candidate-app/09-dev/local-dev-bootstrap.md): current database, environment, dev-launch, and validation commands.
+1. [HANDOFF](./HANDOFF.md): current implementation truth, active milestone, phase progress, risks, and next work.
+2. [SPEC](./SPEC.md): product behavior, claims, journeys, and non-goals.
+3. [DATA_CONTRACT](./DATA_CONTRACT.md): durable vocabulary, state, ownership, lineage, and payload boundaries.
+4. [Local Dev Bootstrap](./09-dev/local-dev-bootstrap.md): environment, database, migrations, dev identity, and executable verification.
+5. The active subsystem contract linked from `HANDOFF`.
+6. [Autonomous Development Operating Model](./07-ops/autonomous-development-operating-model.md) when executing an approved multi-slice milestone.
+7. [Production UI Workstream](./03-design/production-ui-workstream.md) when changing tracked product UI.
 
-The implementation and current tests outrank historical documentation when they conflict. Update the active contract or record a deliberate deferral instead of allowing silent drift.
+When sources conflict, use this order:
+
+1. Product intent and user safety
+2. Durable invariants and current repository evidence
+3. `SPEC.md` and `DATA_CONTRACT.md`
+4. Ratified ADRs and active subsystem contracts
+5. `HANDOFF.md` execution wording
+6. Historical plans and V1/reference behavior
+
+Name and resolve conflicts before implementation. Do not silently combine incompatible directions.
 
 ## Documentation Lifecycle
 
-| Label | Meaning |
-| --- | --- |
-| Active | Governs current implementation or immediate execution. |
-| Supporting | Supplies detail for an active contract or release gate. |
-| Transitional | Still useful, but should be consolidated or archived before promotion. |
-| Historical | Behavior archaeology only; not current implementation instruction. |
-| Local-only | Discovery/design output that must not be committed without review. |
+| Label | Meaning | Agent use |
+| --- | --- | --- |
+| Canonical | Governs current product, data, or execution truth | Read by default when in scope |
+| Supporting | Supplies detail for one canonical contract | Read only for that subsystem |
+| Operational | Executable runbook, validation, incident, or release procedure | Read when running the operation |
+| Transitional | Contains durable content still being consolidated | Do not treat as authority |
+| Historical | Behavior archaeology, prior plans, or milestone history | Read only when explicitly comparing prior behavior |
+| Local-only | Discovery output, imports, credentials, or design experiments | Keep outside tracked docs |
+
+Every active document must have one clear job. Slice history and long validation evidence belong in milestone evidence or the reference archive, not product contracts.
+
+## Read By Concern
+
+### Product, Identity, And Setup
+
+- [Practice Setup Scope](./02-requirements/practice-setup-scope.md)
+- [Authenticated Candidate Access](./02-requirements/authenticated-candidate-access.md)
+- [Host Launch Implementation](./09-dev/host-launch-api-implementation.md)
+- [Host Launch Acceptance](./09-dev/host-launch-live-acceptance.md)
+- [Storage And Resume Ingestion](./04-architecture/storage-and-resume-ingestion.md)
+
+### Planning, Session, Evaluation, And Dashboard
+
+- [Practice Plan Baseline And Round Selection](./04-architecture/practice-plan-baseline-and-round-selection.md)
+- [Question Category Contract](./04-architecture/question-category-contract.md)
+- [Question Preparedness Progress](./04-architecture/question-preparedness-progress-contract.md)
+- [Evidence-First Evaluator Contract](./05-quality/evidence-first-evaluator-contract.md)
+- [Production Evaluator Integration](./05-quality/production-evaluator-integration-contract.md)
+- [Evidence-First Dashboard Architecture](./04-architecture/evidence-first-dashboard-information-architecture.md)
+- [Coach Update Card And Transcript Canvas](./03-design/coach-update-v2-card-spec.md)
+- [AI-Eval Operator Workbench](./05-quality/ai-eval-operator-workbench.md)
+- [Evidence-First Coaching Scenario Lab](./05-quality/evidence-first-coaching-scenario-lab.md)
+
+### Invited Practice And Recruiter
+
+- [Invited Practice Identity And Session Foundation](./04-architecture/invited-practice-identity-session-foundation.md)
+- [Invited Practice Access And Entry](./04-architecture/invited-practice-access-and-entry.md)
+- [Invited Practice Live Runtime](./04-architecture/invited-practice-live-runtime.md)
+- [Invited Practice Completion And Repeat](./04-architecture/invited-practice-completion-and-repeat.md)
+- [Recruiter V2 Delivery And Host Integration](./04-architecture/recruiter-v2-delivery-and-host-integration.md)
+- [Recruiter Standalone Milestone](./05-quality/recruiter-standalone-flow-milestone.md)
+
+### Production UI
+
+- [Design System Foundation](./03-design/design-system-foundation.md)
+- [Production UI Workstream](./03-design/production-ui-workstream.md)
+- [Coach Update Card And Transcript Canvas](./03-design/coach-update-v2-card-spec.md)
+
+The extracted design-system source, experiments, and UI lab remain under `.untracked`. The tracked design contracts govern production implementation.
+
+### Security, Quality, And Operations
+
+- [Security And Privacy Index](./06-security/README.md)
+- [Threat Model](./06-security/threat-model.md)
+- [Privacy And Consent Requirements](./06-security/privacy-disclosures-and-consent-requirements.md)
+- [Test Strategy](./05-quality/test-strategy.md)
+- [Accessibility Baseline](./05-quality/accessibility-baseline.md)
+- [Production Hardening And Deployment Controls](./07-ops/production-hardening-and-deployment-controls.md)
+- [Observability Plan](./07-ops/candidate-observability-plan.md)
+- [Incident Runbook](./07-ops/candidate-incident-runbook.md)
+- [AI-Eval Worker And Retention](./07-ops/ai-eval-worker-and-retention.md)
+- [Decision Records](./08-decisions/README.md)
+
+## Autonomous Work
+
+- [Operating Model](./07-ops/autonomous-development-operating-model.md)
+- [Milestone Template](./07-ops/autonomous-milestone-template.md)
+- [Subagent Assignment Template](./07-ops/subagent-assignment-template.md)
+- `.agents/skills/autonomous-milestone-run`: orchestrates internal slices and existing senior passes
+- `.agents/skills/senior-slice-pass`: before and after each meaningful slice
+- `.agents/skills/senior-milestone-pass`: before commit, push, or phase movement
+- `.agents/skills/senior-release-pass`: before deployment, pilot, migration, or release decisions
+
+`HANDOFF.md` owns the active milestone instance, internal slice status, shared-file claims, current risks, and verdict. Do not create a second active backlog.
 
 ## Reference Archives
 
-- [Recruiter-led V1/shared app docs](./reference-archive/recruiter-v1/README.md): former top-level project, requirements, design, architecture, Postgres migration, and quality material.
-- [Candidate V1/interim archive](./candidate-app/reference-archive/README.md): earlier candidate-module plans, contracts, SQL, and full handoff snapshots.
-- [Accepted V2 rebuild plan](./superpowers/plans/2026-07-06-parallel-v2-rebuild.md): initial cleanroom sequence; current numbered execution lives in the handoff.
+- [Candidate V1 and interim V2 archive](./reference-archive/candidate-interim/README.md)
+- [Recruiter-led V1/shared app archive](./reference-archive/recruiter-v1/README.md)
 
-## Cleanup And Promotion Roadmap
+Reference archives are excluded from the default documentation link gate and agent reading path. V1 remains valuable for behavior comparison, but it is never a current contract by default.
 
-### Wave 1: Completed In This Pass
+## Maintenance Rules
 
-- Compacted `HANDOFF.md` and archived its full Slice 85-133 ledger.
-- Moved the former top-level recruiter-era `01-project` through `05-quality` tree intact under `reference-archive/recruiter-v1`.
-- Reframed this index around the active candidate V2 stack.
-
-### Wave 2: Thin `candidate-app`
-
-Progress in the 2026-07-23 pass:
-
-- archived the full handoff through Slice 186 and reduced the active resumption contract;
-- added an explicit core/UI worktree and integration contract;
-- refreshed the active candidate index around the AI-eval and production-UI streams.
-
-Keep and eventually promote:
-
-- `SPEC.md`, `DATA_CONTRACT.md`, `HANDOFF.md`, and a single root `README.md`;
-- current setup/auth requirements;
-- evidence-first dashboard, question-category, host-launch/prep-context, and V1-reference architecture contracts;
-- evaluator/Coach Update contracts and live-validation runbooks;
-- security/privacy, observability, incident, release, and local-dev instructions;
-- ratified ADRs that still explain current architecture.
-
-Consolidate before promotion:
-
-- `REVIEWER-HANDOFF.md`, `START-WORK-PASS.md`, and `10-agent-workflows/workpass.md` into the root index, local bootstrap, and repository-local senior-pass skills;
-- preparedness inventories/maps into `DATA_CONTRACT.md` plus the dashboard architecture contract;
-- old dashboard briefs, disposable specs, and UX-contract fragments into the current design/product contracts;
-- Azure integration notes and stale backlog mechanics into current ops/release documentation.
-
-Archive after durable content is extracted:
-
-- `00-working-backlog.md` and superseded sequence plans;
-- pre-cleanroom candidate contracts and old route assumptions;
-- superseded ADRs, one-off audits, obsolete mockups, and fixture-era implementation notes.
-
-Security cleanup requiring an explicit pass:
-
-- remove tracked staging CSV exports from the current tip after confirming no active contract depends on them;
-- decide whether repository-history remediation is required for candidate/job discovery rows;
-- keep future probe output ignored and local-only.
-
-Next Wave 2 actions:
-
-- move the already-retired `00-working-backlog.md` into the candidate reference archive and repair the remaining Azure/architecture links;
-- consolidate `REVIEWER-HANDOFF.md`, `START-WORK-PASS.md`, and `10-agent-workflows/workpass.md`;
-- archive superseded dashboard briefs and disposable specs only after their durable product/design statements are absorbed;
-- perform the explicit security disposition for tracked staging CSV exports before moving or deleting them.
-
-### Wave 3: Promote The Active Candidate Stack
-
-After Wave 2 and classification of the current untracked design imports:
-
-1. Move active `candidate-app/*` anchors and numbered subdirectories to `docs/*`.
-2. Update repository, code-comment, Markdown, and runbook links in one mechanical change.
-3. Add redirect/stub files only where external tooling or durable links require them.
-4. Run the documentation link check before removing the now-empty `candidate-app` directory.
-
-### Wave 4: Retire Residue
-
-- Remove stale compatibility docs only after their code paths are retired or explicitly preserved.
-- Keep dated milestone evidence in the reference archive rather than the active handoff.
-- Review the active stack at each phase boundary and archive documents that no longer answer a live implementation or release question.
-
-## Maintenance Rule
-
-Every active document must have one clear job. If content belongs to product truth, durable data, immediate execution, a ratified decision, or an operational gate, put it in that governing document. Otherwise archive it or keep it local-only.
+- Update `SPEC.md` when product behavior or claims change.
+- Update `DATA_CONTRACT.md` when durable vocabulary, ownership, lifecycle, or lineage changes.
+- Update `HANDOFF.md` only for changed current truth, active milestone status, phase movement, risks, and concise milestone evidence.
+- Put detailed validation in subsystem contracts, runbooks, or dated milestone artifacts.
+- Keep raw staging queries, credentials, candidate/job rows, provider output, and design imports out of tracked docs.
+- Run `npm run docs:check` after documentation moves or link changes.
+- Archive a document when it no longer answers a live product, implementation, validation, or release question.

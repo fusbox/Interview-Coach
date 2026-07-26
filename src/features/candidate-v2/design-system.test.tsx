@@ -1,37 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { CandidateV2Surface, candidateV2Classes, candidateV2Tokens } from "./design-system";
+import { CandidateV2Surface, candidateV2Classes } from "./design-system";
 
-describe("candidate V2 design system primitives", () => {
-    it("names the tracked candidate token contract used by V2 route shells", () => {
-        expect(candidateV2Tokens).toEqual({
-            background: "--candidate-background",
-            surface: "--candidate-surface",
-            border: "--candidate-border",
-            foreground: "--candidate-foreground",
-            displayForeground: "--candidate-display-foreground",
-            muted: "--candidate-muted",
-            primary: "--candidate-primary",
-            primarySoft: "--candidate-primary-soft",
-            shadowCard: "--candidate-shadow-card",
-            fontSans: "--font-sans",
-            fontDisplay: "--font-display",
-            gridMax: "--candidate-grid-max",
-            gridGap: "--candidate-grid-gap",
-            publicMax: "--layout-public-max",
-            appMax: "--layout-app-max",
-            readableMax: "--layout-readable-max",
-            formMax: "--layout-form-max",
-            sessionMax: "--layout-session-max",
-            sidebarWidth: "--layout-sidebar-width",
-            railWidth: "--layout-rail-width",
-            headerHeight: "--layout-header-height",
-        });
-    });
-
+describe("application design system primitives", () => {
     it("exposes the route-shell class recipes without relying on untracked files", () => {
-        expect(candidateV2Classes.page).toContain("candidate-design-system");
-        expect(candidateV2Classes.page).toContain("page-center-frame");
+        expect(candidateV2Classes.page).toBe("page-center-frame");
         expect(candidateV2Classes.surfaceCard).toBe("surface-card");
         expect(candidateV2Classes.eyebrow).toBe("type-eyebrow");
         expect(candidateV2Classes.title).toBe("type-display-md");

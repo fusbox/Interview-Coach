@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { createCandidateAnswerAnalysisProviderResultFixture } from "@/features/candidate-session-v2/candidate-answer-analysis-test-fixture";
 import type { CandidateCoachUpdateSynthesisInput } from "./candidate-coach-update-artifact";
 import {
     CANDIDATE_COACH_UPDATE_PROVIDER_OUTPUT_VERSION,
@@ -38,6 +39,35 @@ describe("candidate Coach Update synthesis runtime", () => {
             kind: "repeat_practice",
             priorComparableAttemptCount: 1,
         });
+        expect(providerRequest.questions[0].acceptedCoaching).toMatchObject({
+            framing: {
+                posture: "remediate",
+                intervention: "revise_answer",
+            },
+            answerUsability: {
+                status: "usable",
+                reasonCode: "fixture_usable_answer",
+            },
+            technicalAccuracy: {
+                status: "not_assessed",
+            },
+            patternGap: {
+                id: "strengthen_evidence_specificity",
+                severity: "medium",
+            },
+            criteria: expect.arrayContaining([
+                {
+                    criterionId: "answer_focus",
+                    applicability: "observed",
+                    band: "clear",
+                },
+            ]),
+        });
+        expect(providerRequest.roundFraming).toMatchObject({
+            posture: "remediate",
+            primaryQuestionNumber: 1,
+        });
+        expect(serializedRequest).not.toMatch(/overallRead|overallBand|averageScore|numericEvidence/);
         expect(result.content.questions[0]).toMatchObject({
             answer: { candidateAnswerAttemptId: "attempt-current" },
             source: { candidatePracticeSessionId: "source-session", questionKey: "source-slot" },
@@ -121,6 +151,88 @@ describe("candidate Coach Update synthesis runtime", () => {
         }
     });
 
+    it("allows score-like wording when the provider faithfully recapitulates supplied context", async () => {
+        const input = createInput();
+        input.questions[0]!.questionText = "Tell me about the assessment where you scored 92%.";
+        const request = createCandidateCoachUpdateProviderRequest(input);
+        const runtime = createCandidateCoachUpdateSynthesisRuntime({
+            adapter: createAdapter(async () => ({
+                rawText: JSON.stringify({
+                    ...createValidOutput(request),
+                    summary: "You scored 92% on the assessment.",
+                }),
+            })),
+        });
+
+        await expect(runtime.synthesize(input)).resolves.toMatchObject({
+            content: {
+                summary: "You scored 92% on the assessment.",
+            },
+        });
+    });
+
+    it("repairs generated technical-boundary language once while preserving fail-closed validation", async () => {
+        const input = createInput();
+        input.questions[0]!.category = "technical_role_specific";
+        const generate = vi.fn(async (
+            request: CandidateCoachUpdateProviderRequest,
+            context: { repairCandidateLanguage: boolean },
+        ) => {
+            const output = createValidOutput(request);
+            output.questionUpdates[0]!.comparisonMessage = context.repairCandidateLanguage
+                ? "You explained the steps you would take and named what you would verify."
+                : "Your reasoning for the equipment choice was strong, demonstrating an understanding of the process.";
+            return {
+                rawText: JSON.stringify(output),
+                tokenUsage: { inputTokens: 10, outputTokens: 4 },
+            };
+        });
+        const recordTelemetry = vi.fn();
+        const runtime = createCandidateCoachUpdateSynthesisRuntime({
+            adapter: createAdapter(generate),
+            recordTelemetry,
+        });
+
+        const result = await runtime.synthesize(input);
+
+        expect(generate).toHaveBeenCalledTimes(2);
+        expect(generate.mock.calls.map((call) => call[1].repairCandidateLanguage)).toEqual([false, true]);
+        expect(result.validation).toMatchObject({
+            transportAttemptCount: 2,
+            tokenUsage: { inputTokens: 20, outputTokens: 8 },
+        });
+        expect(result.content.questions[0].comparison.message)
+            .toBe("You explained the steps you would take and named what you would verify.");
+        expect(recordTelemetry).toHaveBeenCalledWith(expect.objectContaining({
+            outcome: "accepted",
+            transportAttemptCount: 2,
+        }));
+    });
+
+    it("repairs leaked internal technical-assessment status language", async () => {
+        const input = createInput();
+        const generate = vi.fn(async (
+            request: CandidateCoachUpdateProviderRequest,
+            context: { repairCandidateLanguage: boolean },
+        ) => {
+            const output = createValidOutput(request);
+            output.summary = context.repairCandidateLanguage
+                ? "You explained a practical workflow and named the steps you would take."
+                : "Your answer was usable, and technical accuracy was not assessed.";
+            return { rawText: JSON.stringify(output) };
+        });
+        const runtime = createCandidateCoachUpdateSynthesisRuntime({
+            adapter: createAdapter(generate),
+        });
+
+        const result = await runtime.synthesize(input);
+
+        expect(generate).toHaveBeenCalledTimes(2);
+        expect(result.content.summary)
+            .toBe("You explained a practical workflow and named the steps you would take.");
+        expect(result.validation.transportAttemptCount).toBe(2);
+    });
+
     it("aborts one transport attempt at the timeout and never performs an internal retry", async () => {
         let aborted = false;
         const generate = vi.fn(async (_request: CandidateCoachUpdateProviderRequest, context: { signal: AbortSignal }) => (
@@ -176,7 +288,7 @@ describe("candidate Coach Update synthesis runtime", () => {
                 explicitLocalDev: true,
             });
             await expect(fixtureRuntime?.synthesize(createInput())).resolves.toMatchObject({
-                content: { status: "candidate_coach_update_content_v2" },
+                content: { status: "candidate_coach_update_content_v3" },
             });
         }
     });
@@ -204,7 +316,7 @@ describe("candidate Coach Update synthesis runtime", () => {
         });
 
         await expect(runtime.synthesize(createInput())).resolves.toMatchObject({
-            content: { status: "candidate_coach_update_content_v2" },
+            content: { status: "candidate_coach_update_content_v3" },
         });
     });
 });
@@ -268,6 +380,7 @@ function createInput(
                 candidateAnswerEvaluationRunId: "run-current",
             },
             acceptedAnalysis: createAnalysis("The response connects the action to the role."),
+            transcriptCanvas: null,
             source: { candidatePracticeSessionId: "source-session", questionKey: "source-slot" },
             priorComparableAttempts: [createPriorAttempt(1)],
         } as CandidateCoachUpdateSynthesisInput["questions"][number]],
@@ -287,13 +400,11 @@ function createPriorAttempt(index: number) {
             candidateAnswerEvaluationRunId: `run-prior-${index}`,
         },
         acceptedAnalysis: createAnalysis(`Earlier observation ${index}`),
-    } as CandidateCoachUpdateSynthesisInput["questions"][number]["priorComparableAttempts"][number];
+    } as unknown as CandidateCoachUpdateSynthesisInput["questions"][number]["priorComparableAttempts"][number];
 }
 
 function createAnalysis(observation: string) {
-    return {
-        status: "answer_analysis_provider_result" as const,
-        provider: "candidate_v2_answer_evaluator" as const,
+    return createCandidateAnswerAnalysisProviderResultFixture({
         analyzedAt: "2026-07-16T12:02:00.000Z",
         answer: { slotId: "slot-1", questionIndex: 0 },
         coachFeedback: {
@@ -301,9 +412,5 @@ function createAnalysis(observation: string) {
             observation,
             nextPracticeFocus: "Name the result of the action.",
         },
-        evidence: [
-            { criterionId: "answer_focus", applicability: "observed" as const, score: 3 },
-            { criterionId: "impact", applicability: "not_elicited" as const },
-        ],
-    };
+    });
 }

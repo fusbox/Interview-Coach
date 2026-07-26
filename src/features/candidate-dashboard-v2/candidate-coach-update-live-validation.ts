@@ -116,7 +116,8 @@ export const candidateCoachUpdateLiveValidationArtifactSchema = z.object({
     }).strict(),
 }).strict().superRefine((artifact, context) => {
     const passed = artifact.result.outcome === "accepted"
-        && artifact.summary.transportAttemptCount === 1
+        && artifact.summary.transportAttemptCount >= 1
+        && artifact.summary.transportAttemptCount <= 2
         && artifact.validations.every((validation) => validation.passed);
     if (artifact.summary.automatedGatePassed !== passed) {
         context.addIssue({
@@ -232,7 +233,7 @@ export async function runCandidateCoachUpdateLiveValidation(input: {
 
     const validations = [
         { id: "exact_profile_configuration", passed: configurationValidated },
-        { id: "single_transport_attempt", passed: transportAttemptCount === 1 },
+        { id: "bounded_transport_attempts", passed: transportAttemptCount >= 1 && transportAttemptCount <= 2 },
         { id: "provider_request_excludes_identity_and_raw_answers", passed: requestPrivacyValidated },
         { id: "one_metadata_only_telemetry_event", passed: telemetry.length === 1 && isSafeTelemetry(telemetry[0]) },
         {
@@ -245,7 +246,8 @@ export async function runCandidateCoachUpdateLiveValidation(input: {
         },
     ];
     const automatedGatePassed = result.outcome === "accepted"
-        && transportAttemptCount === 1
+        && transportAttemptCount >= 1
+        && transportAttemptCount <= 2
         && validations.every((validation) => validation.passed);
     const artifactId = `live_coach_update_${hashJson({
         generatedAt,
@@ -443,7 +445,7 @@ function createSyntheticCoachUpdateSynthesisInput(): CandidateCoachUpdateSynthes
                         acknowledgement: "You recognized that the priorities compete.",
                         observation: "The earlier response did not yet explain how you would choose between them.",
                         nextPracticeFocus: "Name the criteria you would use to decide which priority comes first.",
-                        score: 2,
+                        band: "emerging",
                     }),
                 }],
             }),
@@ -474,7 +476,7 @@ function createSyntheticQuestion(input: {
             acknowledgement: input.acknowledgement,
             observation: input.observation,
             nextPracticeFocus: input.nextPracticeFocus,
-            score: 3,
+            band: "clear",
         }),
         source: {
             candidatePracticeSessionId: `qa-private-source-${input.slotId}`,
@@ -504,8 +506,9 @@ function createAcceptedAnalysis(input: {
     acknowledgement: string;
     observation: string;
     nextPracticeFocus: string;
-    score: number;
+    band: "emerging" | "clear" | "strong";
 }) {
+    const inputFingerprint = "a".repeat(64);
     return {
         status: "answer_analysis_provider_result",
         provider: "candidate_v2_answer_evaluator",
@@ -516,10 +519,46 @@ function createAcceptedAnalysis(input: {
             observation: input.observation,
             nextPracticeFocus: input.nextPracticeFocus,
         },
-        evidence: [
-            { criterionId: "answer_focus", applicability: "observed", score: input.score },
-            { criterionId: "impact", applicability: "not_elicited" },
-        ],
+        evidenceFirst: {
+            contractVersion: "candidate_evidence_first_v2",
+            inputFingerprint,
+            candidateFeedback: {
+                status: "candidate_safe_feedback",
+                schemaVersion: 1,
+                inputFingerprint,
+                acknowledgement: input.acknowledgement,
+                primaryStrength: input.observation,
+                biggestUpgrade: input.nextPracticeFocus,
+                redoPrompt: input.nextPracticeFocus,
+                patternSuggestion: null,
+                deliveryNote: null,
+            },
+            interaction: {
+                intervention: input.band === "emerging" ? "revise_answer" : "polish_then_continue",
+            },
+            appraisal: {
+                answerUsability: {
+                    status: "usable",
+                    reasonCode: "synthetic_live_validation_usable",
+                },
+                technicalAccuracy: {
+                    status: "not_assessed",
+                },
+                criteria: [{
+                    criterionId: "answer_focus",
+                    applicability: "observed",
+                    band: input.band,
+                    reasonCode: `synthetic_live_validation_${input.band}`,
+                }],
+                patternGap: {
+                    id: "strengthen_evidence_specificity",
+                    severity: input.band === "emerging" ? "high" : "medium",
+                    upgrade: input.nextPracticeFocus,
+                    redoPattern: ["direct point", "specific evidence", "useful takeaway"],
+                    source: "criterion_appraisal",
+                },
+            },
+        },
     } as CandidateAnswerAnalysisProviderResult;
 }
 

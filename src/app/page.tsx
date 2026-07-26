@@ -69,7 +69,7 @@ const trustPoints = [
 
 export default function Home() {
     return (
-        <main className="candidate-design-system public-page">
+        <main className="public-page">
             <header className="public-header">
                 <div className="public-header__inner">
                     <Link href="/" aria-label="TalentArbor Interview Coach" className="brand-lockup">

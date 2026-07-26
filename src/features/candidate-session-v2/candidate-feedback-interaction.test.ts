@@ -1,14 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import type { CandidateAnswerAnalysisProviderResult } from "./candidate-answer-analysis-adapter";
+import { createCandidateAnswerAnalysisProviderResultFixture } from "./candidate-answer-analysis-test-fixture";
 import {
     createCandidateFeedbackActionEvent,
     createCandidateFeedbackInteraction,
 } from "./candidate-feedback-interaction";
 
-const baseAnalysisSnapshot: CandidateAnswerAnalysisProviderResult = {
-    status: "answer_analysis_provider_result",
-    provider: "candidate_v2_answer_evaluator",
+const baseAnalysisSnapshot = createCandidateAnswerAnalysisProviderResultFixture({
     analyzedAt: "2026-07-10T17:20:00.000Z",
     answer: {
         slotId: "slot-1",
@@ -22,14 +20,16 @@ const baseAnalysisSnapshot: CandidateAnswerAnalysisProviderResult = {
         observation: "The answer would be stronger if you named the result of your action.",
         nextPracticeFocus: "Add what changed after you handled the situation.",
     },
-    evidence: [
-        {
-            criterionId: "answer_specificity",
-            applicability: "observed",
-            score: 3,
+    evidenceFirst: {
+        candidateFeedback: {
+            acknowledgement: "You gave a concrete example from your work.",
+            primaryStrength: null,
+            biggestUpgrade: "The answer would be stronger if you named the result of your action.",
+            redoPrompt: "Add what changed after you handled the situation.",
         },
-    ],
-};
+        intervention: "polish_then_continue",
+    },
+});
 
 describe("candidate feedback interaction contract", () => {
     it("creates a staged feedback contract from the current minimal V2 analysis snapshot", () => {
@@ -70,12 +70,12 @@ describe("candidate feedback interaction contract", () => {
                 },
                 {
                     id: "content_coaching",
-                    title: "What to strengthen",
+                    title: "One useful focus",
                     body: "The answer would be stronger if you named the result of your action.",
                 },
                 {
                     id: "next_step",
-                    title: "What to do next",
+                    title: "Try the answer again",
                     body: "Add what changed after you handled the situation.",
                     actions: [
                         {
@@ -104,20 +104,24 @@ describe("candidate feedback interaction contract", () => {
         });
     });
 
-    it("accepts richer future analysis pulses without changing the interaction grammar", () => {
+    it("accepts richer evidence-first feedback without changing the interaction grammar", () => {
         const interaction = createCandidateFeedbackInteraction({
-            analysisSnapshot: {
-                ...baseAnalysisSnapshot,
-                contentPulse: {
-                    title: "Make the example easier to follow",
-                    body: "Start with the situation, then name the action you took and the result.",
+            analysisSnapshot: createCandidateAnswerAnalysisProviderResultFixture({
+                answer: baseAnalysisSnapshot.answer,
+                evidenceFirst: {
+                    candidateFeedback: {
+                        acknowledgement: "You gave a concrete example from your work.",
+                        primaryStrength: "Start with the situation, then name the action you took and the result.",
+                        biggestUpgrade: "Make the result easier to find.",
+                        redoPrompt: "Try the answer once more with the result included.",
+                        deliveryNote: {
+                            status: "light_note",
+                            message: "Your answer can stay conversational while still naming the sequence clearly.",
+                        },
+                    },
+                    intervention: "polish_then_continue",
                 },
-                deliveryPulse: {
-                    title: "Keep the pace steady",
-                    body: "Your answer can stay conversational while still naming the sequence clearly.",
-                },
-                recommendation: "Try the answer once more with the result included.",
-            } as CandidateAnswerAnalysisProviderResult,
+            }),
             isLastQuestion: false,
         });
 
@@ -128,7 +132,7 @@ describe("candidate feedback interaction contract", () => {
             "next_step",
         ]);
         expect(interaction.stages[1]).toMatchObject({
-            title: "Make the example easier to follow",
+            title: "What is working",
             body: "Start with the situation, then name the action you took and the result.",
             actions: [
                 {
@@ -142,7 +146,7 @@ describe("candidate feedback interaction contract", () => {
             ],
         });
         expect(interaction.stages[2]).toMatchObject({
-            title: "Keep the pace steady",
+            title: "How it came across",
             body: "Your answer can stay conversational while still naming the sequence clearly.",
             actions: [
                 {
@@ -158,7 +162,7 @@ describe("candidate feedback interaction contract", () => {
         expect(interaction.stages[3].body).toBe("Try the answer once more with the result included.");
     });
 
-    it("does not offer retry when a legacy analysis lacks immutable attempt identity", () => {
+    it("does not offer retry when the analysis lacks immutable attempt identity", () => {
         const interaction = createCandidateFeedbackInteraction({
             analysisSnapshot: {
                 ...baseAnalysisSnapshot,
@@ -178,10 +182,13 @@ describe("candidate feedback interaction contract", () => {
         const interaction = createCandidateFeedbackInteraction({
             analysisSnapshot: {
                 ...baseAnalysisSnapshot,
-                nextAction: {
-                    actionType: "redo_answer",
+                evidenceFirst: {
+                    ...baseAnalysisSnapshot.evidenceFirst,
+                    interaction: {
+                        intervention: "revise_answer",
+                    },
                 },
-            } as CandidateAnswerAnalysisProviderResult,
+            },
             isLastQuestion: false,
         });
 
@@ -218,8 +225,7 @@ describe("candidate feedback interaction contract", () => {
                     nextPracticeFocus: "Legacy recommendation must not render.",
                 },
                 evidenceFirst: {
-                    contractVersion: "candidate_evidence_first_v2",
-                    inputFingerprint: "a".repeat(64),
+                    ...baseAnalysisSnapshot.evidenceFirst,
                     candidateFeedback: {
                         status: "candidate_safe_feedback",
                         schemaVersion: 1,

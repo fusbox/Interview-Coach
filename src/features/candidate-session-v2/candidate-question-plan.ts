@@ -89,16 +89,16 @@ export const candidateQuestionPlanCategoryDetails: Record<CandidateQuestionPlanC
     },
     technical_role_specific: {
         label: "Technical / Role-Specific",
-        purpose: "Role knowledge, tools, processes, and job-specific judgment.",
-        definition: "Role-specific questions test the knowledge and judgment needed to perform this kind of work.",
+        purpose: "Role knowledge, tools, processes, practical application, and job-specific judgment.",
+        definition: "Role-specific questions ask candidates to demonstrate how they use or verify the knowledge and judgment needed for this kind of work.",
         answerShape: [
-            "State the relevant knowledge, tool, or process accurately.",
-            "Explain how you have applied it or would apply it in practice.",
-            "Be clear about limits and how you would verify what you do not know.",
+            "Name the relevant knowledge, tool, process, or judgment.",
+            "Explain how you have used it or would apply it in practice.",
+            "Be clear about limits, approved procedures, and how you would verify what you do not know.",
         ],
         watchFor: [
             "Vague familiarity without a practical example.",
-            "Claiming expertise you cannot explain or support.",
+            "Claiming expertise without explaining application, reasoning, or verification.",
         ],
     },
 };

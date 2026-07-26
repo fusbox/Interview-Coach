@@ -3,6 +3,10 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 
 import { createCandidateAnswerCoachingFacts } from "@/features/candidate-session-v2/candidate-coaching-facts";
+import {
+    findProhibitedCandidateJudgments,
+    findUngroundedTechnicalCoachingClaims,
+} from "@/features/evaluation-v2/candidate-generated-language-policy";
 
 import {
     candidateCoachUpdateFixtureMetadata,
@@ -15,9 +19,10 @@ export const CANDIDATE_COACH_UPDATE_PROVIDER_ENV = "CANDIDATE_COACH_UPDATE_PROVI
 export const CANDIDATE_COACH_UPDATE_FAULT_MODE_ENV = "CANDIDATE_COACH_UPDATE_FAULT_MODE";
 export const CANDIDATE_COACH_UPDATE_RUNTIME_TIMEOUT_MS = 12_000;
 export const CANDIDATE_COACH_UPDATE_CLAIM_LEASE_MS = 120_000;
-export const CANDIDATE_COACH_UPDATE_PROVIDER_REQUEST_VERSION = "candidate_coach_update_provider_request_v1";
+export const CANDIDATE_COACH_UPDATE_PROVIDER_REQUEST_VERSION = "candidate_coach_update_provider_request_v2";
 export const CANDIDATE_COACH_UPDATE_PROVIDER_OUTPUT_VERSION = "candidate_coach_update_provider_output_v1";
-export const CANDIDATE_COACH_UPDATE_PRODUCTION_PROMPT_VERSION = "candidate_coach_update_synthesis_prompt_v1";
+export const CANDIDATE_COACH_UPDATE_PRODUCTION_PROMPT_VERSION = "candidate_coach_update_synthesis_prompt_v4";
+export const CANDIDATE_COACH_UPDATE_MAX_TRANSPORT_ATTEMPTS = 2;
 
 const MAX_COMPARABLE_ATTEMPTS_PER_QUESTION = 3;
 
@@ -35,6 +40,11 @@ export type CandidateCoachUpdateProviderRequest = {
     synthesisInputFingerprint: string;
     targetRole: string;
     answeredCount: number;
+    roundFraming: {
+        posture: CandidateCoachUpdateCoachingPosture;
+        primaryQuestionNumber: number;
+        strongResponsePatternExample: string | null;
+    };
     questions: Array<{
         questionNumber: number;
         category: string;
@@ -56,13 +66,33 @@ export type CandidateCoachUpdateProviderRequest = {
     }>;
 };
 
+type CandidateCoachUpdateCoachingPosture = "move_on" | "polish" | "remediate";
+
 type CandidateCoachUpdateProviderCoaching = {
     acknowledgement: string;
     observation: string;
     nextPracticeFocus: string;
-    overallBand: "not_enough_evidence" | "emerging" | "clear" | "strong";
-    observedCriteriaCount: number;
-    excludedCriteriaCount: number;
+    framing: {
+        posture: CandidateCoachUpdateCoachingPosture;
+        intervention: "affirm_and_continue" | "polish_then_continue" | "revise_answer" | "professional_reframe" | "build_missing_signal";
+        strongResponsePattern: string | null;
+    };
+    answerUsability: {
+        status: "usable" | "thin" | "non_answer" | "off_topic" | "transcription_unclear" | "sensitive_disclosure";
+        reasonCode: string;
+    };
+    technicalAccuracy: {
+        status: "supported" | "contradicted" | "not_assessed";
+    };
+    patternGap: {
+        id: string;
+        severity: "low" | "medium" | "high";
+    };
+    criteria: Array<{
+        criterionId: string;
+        applicability: "observed" | "not_elicited" | "insufficient_data" | "unscoreable";
+        band: "emerging" | "clear" | "strong" | null;
+    }>;
 };
 
 export type CandidateCoachUpdateProviderTransportResult = {
@@ -77,7 +107,10 @@ export type CandidateCoachUpdateProviderAdapter = {
     metadata: CandidateCoachUpdateRuntimeMetadata;
     generate: (
         request: CandidateCoachUpdateProviderRequest,
-        context: { signal: AbortSignal },
+        context: {
+            signal: AbortSignal;
+            repairCandidateLanguage: boolean;
+        },
     ) => Promise<CandidateCoachUpdateProviderTransportResult>;
 };
 
@@ -94,7 +127,7 @@ export type CandidateCoachUpdateRuntimeTelemetry = {
     errorCode: string | null;
     retryable: boolean;
     latencyMs: number;
-    transportAttemptCount: 1;
+    transportAttemptCount: 1 | 2;
     tokenUsage: {
         inputTokens: number | null;
         outputTokens: number | null;
@@ -107,7 +140,7 @@ export type CandidateCoachUpdateSynthesisRuntimeResult = {
         providerRequestVersion: typeof CANDIDATE_COACH_UPDATE_PROVIDER_REQUEST_VERSION;
         providerOutputVersion: typeof CANDIDATE_COACH_UPDATE_PROVIDER_OUTPUT_VERSION;
         timeoutMs: number;
-        transportAttemptCount: 1;
+        transportAttemptCount: 1 | 2;
         latencyMs: number;
         tokenUsage: {
             inputTokens: number | null;
@@ -172,36 +205,47 @@ type CandidateCoachUpdateProviderOutput = z.infer<typeof providerOutputSchema>;
 export function createCandidateCoachUpdateProviderRequest(
     input: CandidateCoachUpdateSynthesisInput,
 ): CandidateCoachUpdateProviderRequest {
+    const questions = input.questions.map((question) => {
+        const currentCoaching = createCandidateAnswerCoachingFacts(question.acceptedAnalysis);
+        const recentPrior = question.priorComparableAttempts.slice(-MAX_COMPARABLE_ATTEMPTS_PER_QUESTION);
+        return {
+            questionNumber: question.questionNumber,
+            category: boundText(question.category, 120),
+            questionText: boundText(question.questionText, 4_000),
+            answer: {
+                mode: question.answerAttempt.mode,
+            },
+            acceptedCoaching: toProviderCoaching(currentCoaching),
+            comparison: {
+                kind: question.priorComparableAttempts.length > 0 ? "repeat_practice" as const : "first_practice" as const,
+                priorComparableAttemptCount: question.priorComparableAttempts.length,
+                recentComparableAttempts: recentPrior.map((prior) => ({
+                    answer: {
+                        mode: prior.answerAttempt.mode,
+                    },
+                    acceptedCoaching: toProviderCoaching(
+                        createCandidateAnswerCoachingFacts(prior.acceptedAnalysis),
+                    ),
+                })),
+            },
+        };
+    });
+    const primaryQuestion = selectPrimaryFramingQuestion(questions);
+
     return {
         status: CANDIDATE_COACH_UPDATE_PROVIDER_REQUEST_VERSION,
         synthesisInputFingerprint: input.synthesisInputFingerprint,
         targetRole: boundText(input.targetRole, 120),
         answeredCount: input.answeredCount,
-        questions: input.questions.map((question) => {
-            const currentCoaching = createCandidateAnswerCoachingFacts(question.acceptedAnalysis);
-            const recentPrior = question.priorComparableAttempts.slice(-MAX_COMPARABLE_ATTEMPTS_PER_QUESTION);
-            return {
-                questionNumber: question.questionNumber,
-                category: boundText(question.category, 120),
-                questionText: boundText(question.questionText, 4_000),
-                answer: {
-                    mode: question.answerAttempt.mode,
-                },
-                acceptedCoaching: toProviderCoaching(currentCoaching),
-                comparison: {
-                    kind: question.priorComparableAttempts.length > 0 ? "repeat_practice" : "first_practice",
-                    priorComparableAttemptCount: question.priorComparableAttempts.length,
-                    recentComparableAttempts: recentPrior.map((prior) => ({
-                        answer: {
-                            mode: prior.answerAttempt.mode,
-                        },
-                        acceptedCoaching: toProviderCoaching(
-                            createCandidateAnswerCoachingFacts(prior.acceptedAnalysis),
-                        ),
-                    })),
-                },
-            };
-        }),
+        roundFraming: {
+            posture: primaryQuestion.acceptedCoaching.framing.posture,
+            primaryQuestionNumber: primaryQuestion.questionNumber,
+            strongResponsePatternExample: questions
+                .map((question) => question.acceptedCoaching.framing.strongResponsePattern)
+                .find((pattern): pattern is string => Boolean(pattern))
+                ?? null,
+        },
+        questions,
     };
 }
 
@@ -228,7 +272,8 @@ export function createCandidateCoachUpdateSynthesisRuntime({
             const controller = new AbortController();
             const startedAt = now();
             let timer: ReturnType<typeof setTimeout> | undefined;
-            let transportResult: CandidateCoachUpdateProviderTransportResult | null = null;
+            let transportAttemptCount: 1 | 2 = 1;
+            let tokenUsage = normalizeTokenUsage();
 
             try {
                 const timeout = new Promise<never>((_, reject) => {
@@ -237,39 +282,58 @@ export function createCandidateCoachUpdateSynthesisRuntime({
                         reject(new CandidateCoachUpdateRuntimeError("timeout"));
                     }, timeoutMs);
                 });
-                transportResult = await Promise.race([
-                    adapter.generate(request, { signal: controller.signal }),
-                    timeout,
-                ]);
-                const output = parseProviderOutput(transportResult.rawText, request);
-                const content = composeCandidateCoachUpdateContent(input, output);
-                if (!validateCandidateCoachUpdateContent({ input, content })) {
-                    throw new CandidateCoachUpdateRuntimeError("unsafe_candidate_language");
-                }
+                for (let attempt = 1; attempt <= CANDIDATE_COACH_UPDATE_MAX_TRANSPORT_ATTEMPTS; attempt += 1) {
+                    transportAttemptCount = attempt as 1 | 2;
+                    const transportResult = await Promise.race([
+                        adapter.generate(request, {
+                            signal: controller.signal,
+                            repairCandidateLanguage: attempt > 1,
+                        }),
+                        timeout,
+                    ]);
+                    tokenUsage = addTokenUsage(tokenUsage, transportResult.tokenUsage);
+                    try {
+                        const output = parseProviderOutput(transportResult.rawText, request);
+                        const content = composeCandidateCoachUpdateContent(input, output);
+                        if (!validateCandidateCoachUpdateContent({ input, content })) {
+                            throw new CandidateCoachUpdateRuntimeError("unsafe_candidate_language");
+                        }
 
-                const latencyMs = Math.max(0, now() - startedAt);
-                const tokenUsage = normalizeTokenUsage(transportResult.tokenUsage);
-                await safelyRecordTelemetry(recordTelemetry, createTelemetry({
-                    input,
-                    metadata: adapter.metadata,
-                    outcome: "accepted",
-                    error: null,
-                    latencyMs,
-                    tokenUsage,
-                }));
-                return {
-                    content,
-                    validation: {
-                        providerRequestVersion: CANDIDATE_COACH_UPDATE_PROVIDER_REQUEST_VERSION,
-                        providerOutputVersion: CANDIDATE_COACH_UPDATE_PROVIDER_OUTPUT_VERSION,
-                        timeoutMs,
-                        transportAttemptCount: 1,
-                        latencyMs,
-                        tokenUsage,
-                        rawOutputStored: false,
-                        promptStored: false,
-                    },
-                };
+                        const latencyMs = Math.max(0, now() - startedAt);
+                        await safelyRecordTelemetry(recordTelemetry, createTelemetry({
+                            input,
+                            metadata: adapter.metadata,
+                            outcome: "accepted",
+                            error: null,
+                            latencyMs,
+                            transportAttemptCount,
+                            tokenUsage,
+                        }));
+                        return {
+                            content,
+                            validation: {
+                                providerRequestVersion: CANDIDATE_COACH_UPDATE_PROVIDER_REQUEST_VERSION,
+                                providerOutputVersion: CANDIDATE_COACH_UPDATE_PROVIDER_OUTPUT_VERSION,
+                                timeoutMs,
+                                transportAttemptCount,
+                                latencyMs,
+                                tokenUsage,
+                                rawOutputStored: false,
+                                promptStored: false,
+                            },
+                        };
+                    } catch (error) {
+                        const runtimeError = normalizeRuntimeError(error);
+                        if (
+                            runtimeError.kind === "unsafe_candidate_language"
+                            && attempt < CANDIDATE_COACH_UPDATE_MAX_TRANSPORT_ATTEMPTS
+                        ) {
+                            continue;
+                        }
+                        throw runtimeError;
+                    }
+                }
+                throw new CandidateCoachUpdateRuntimeError("unsafe_candidate_language");
             } catch (error) {
                 const runtimeError = normalizeRuntimeError(error);
                 const latencyMs = Math.max(0, now() - startedAt);
@@ -279,7 +343,8 @@ export function createCandidateCoachUpdateSynthesisRuntime({
                     outcome: runtimeError.lifecycleState,
                     error: runtimeError,
                     latencyMs,
-                    tokenUsage: normalizeTokenUsage(transportResult?.tokenUsage),
+                    transportAttemptCount,
+                    tokenUsage,
                 }));
                 throw runtimeError;
             } finally {
@@ -381,7 +446,7 @@ function composeCandidateCoachUpdateContent(
     output: CandidateCoachUpdateProviderOutput,
 ): CandidateCoachUpdateContent {
     return {
-        status: "candidate_coach_update_content_v2",
+        status: "candidate_coach_update_content_v3",
         targetRole: input.targetRole,
         title: output.title,
         summary: output.summary,
@@ -403,7 +468,6 @@ function composeCandidateCoachUpdateContent(
                     acknowledgement: coaching.coachFeedback.acknowledgement,
                     observation: coaching.coachFeedback.observation,
                     nextPracticeFocus: coaching.coachFeedback.nextPracticeFocus,
-                    overallBand: coaching.overallRead.band,
                 },
                 comparison: {
                     kind: question.priorComparableAttempts.length > 0 ? "repeat_practice" : "first_practice",
@@ -444,7 +508,30 @@ function parseProviderOutput(
     ) {
         throw new CandidateCoachUpdateRuntimeError("question_mapping_mismatch");
     }
-    if (containsProhibitedGeneratedLanguage([
+    if (findProhibitedCandidateJudgments([
+        parsed.data.title,
+        parsed.data.summary,
+        parsed.data.primaryFocus,
+        ...parsed.data.questionUpdates.map((question) => question.comparisonMessage),
+    ], {
+        sourceTexts: [
+            request.targetRole,
+            ...request.questions.flatMap((question) => [
+                question.questionText,
+                question.acceptedCoaching.acknowledgement,
+                question.acceptedCoaching.observation,
+                question.acceptedCoaching.nextPracticeFocus,
+                ...question.comparison.recentComparableAttempts.flatMap((attempt) => [
+                    attempt.acceptedCoaching.acknowledgement,
+                    attempt.acceptedCoaching.observation,
+                    attempt.acceptedCoaching.nextPracticeFocus,
+                ]),
+            ]),
+        ],
+    }).length > 0) {
+        throw new CandidateCoachUpdateRuntimeError("unsafe_candidate_language");
+    }
+    if (containsInternalTechnicalAssessmentStatus([
         parsed.data.title,
         parsed.data.summary,
         parsed.data.primaryFocus,
@@ -452,7 +539,40 @@ function parseProviderOutput(
     ])) {
         throw new CandidateCoachUpdateRuntimeError("unsafe_candidate_language");
     }
+    const unassessedTechnicalQuestions = request.questions
+        .map((question, index) => ({ question, update: parsed.data.questionUpdates[index] }))
+        .filter(({ question }) => (
+            question.category === "Technical / Role-Specific"
+            || question.category === "technical_role_specific"
+        ))
+        .filter(({ question }) => question.acceptedCoaching.technicalAccuracy.status === "not_assessed");
+    if (unassessedTechnicalQuestions.some(({ update }) => (
+        findUngroundedTechnicalCoachingClaims([update.comparisonMessage]).length > 0
+    ))) {
+        throw new CandidateCoachUpdateRuntimeError("unsafe_candidate_language");
+    }
+    const technicalQuestions = request.questions.filter((question) => (
+        question.category === "Technical / Role-Specific"
+        || question.category === "technical_role_specific"
+    ));
+    if (
+        technicalQuestions.length > 0
+        && technicalQuestions.every((question) => question.acceptedCoaching.technicalAccuracy.status === "not_assessed")
+        && findUngroundedTechnicalCoachingClaims([
+            parsed.data.summary,
+            parsed.data.primaryFocus,
+        ]).length > 0
+    ) {
+        throw new CandidateCoachUpdateRuntimeError("unsafe_candidate_language");
+    }
     return parsed.data;
+}
+
+function containsInternalTechnicalAssessmentStatus(values: readonly string[]) {
+    return values.some((value) => (
+        /\btechnical accuracy\b.{0,24}\bnot assessed\b/i.test(value)
+        || /\bnot assessed\b.{0,24}\btechnical accuracy\b/i.test(value)
+    ));
 }
 
 function createFixtureProviderOutput(
@@ -464,8 +584,13 @@ function createFixtureProviderOutput(
         synthesisInputFingerprint: request.synthesisInputFingerprint,
         title: `${request.targetRole} practice update`,
         summary: `I reviewed your ${request.answeredCount} practiced ${questionNoun} and connected each update to accepted coaching evidence.`,
-        primaryFocus: request.questions[0]?.acceptedCoaching.nextPracticeFocus
-            ?? "Keep building practice evidence one answer at a time.",
+        primaryFocus: request.roundFraming.posture === "move_on"
+            ? request.roundFraming.strongResponsePatternExample
+                ?? "Carry this effective response pattern into the next question."
+            : request.questions.find(
+                (question) => question.questionNumber === request.roundFraming.primaryQuestionNumber,
+            )?.acceptedCoaching.nextPracticeFocus
+                ?? "Keep building practice evidence one answer at a time.",
         questionUpdates: request.questions.map((question) => ({
             questionNumber: question.questionNumber,
             comparisonMessage: question.comparison.priorComparableAttemptCount > 0
@@ -482,10 +607,37 @@ function toProviderCoaching(
         acknowledgement: facts.coachFeedback.acknowledgement,
         observation: facts.coachFeedback.observation,
         nextPracticeFocus: facts.coachFeedback.nextPracticeFocus,
-        overallBand: facts.overallRead.band,
-        observedCriteriaCount: facts.overallRead.observedCount,
-        excludedCriteriaCount: facts.overallRead.excludedCount,
+        framing: {
+            posture: facts.interaction.posture,
+            intervention: facts.interaction.intervention,
+            strongResponsePattern: facts.supportedStrength,
+        },
+        answerUsability: facts.appraisal.answerUsability,
+        technicalAccuracy: facts.appraisal.technicalAccuracy,
+        patternGap: {
+            id: facts.appraisal.patternGap.id,
+            severity: facts.appraisal.patternGap.severity,
+        },
+        criteria: facts.criteriaFacts.map((criterion) => ({
+            criterionId: criterion.criterionId,
+            applicability: criterion.applicability,
+            band: criterion.band ?? null,
+        })),
     };
+}
+
+function selectPrimaryFramingQuestion(
+    questions: CandidateCoachUpdateProviderRequest["questions"],
+) {
+    const primary = (
+        questions.find((question) => question.acceptedCoaching.framing.posture === "remediate")
+        ?? questions.find((question) => question.acceptedCoaching.framing.posture === "polish")
+        ?? questions[0]
+    );
+    if (!primary) {
+        throw new Error("Coach Update requires at least one practiced question.");
+    }
+    return primary;
 }
 
 function createTelemetry({
@@ -494,6 +646,7 @@ function createTelemetry({
     outcome,
     error,
     latencyMs,
+    transportAttemptCount,
     tokenUsage,
 }: {
     input: CandidateCoachUpdateSynthesisInput;
@@ -501,6 +654,7 @@ function createTelemetry({
     outcome: CandidateCoachUpdateRuntimeTelemetry["outcome"];
     error: CandidateCoachUpdateRuntimeError | null;
     latencyMs: number;
+    transportAttemptCount: 1 | 2;
     tokenUsage: CandidateCoachUpdateRuntimeTelemetry["tokenUsage"];
 }): CandidateCoachUpdateRuntimeTelemetry {
     return {
@@ -511,7 +665,7 @@ function createTelemetry({
         errorCode: error?.errorCode ?? null,
         retryable: error?.retryable ?? false,
         latencyMs,
-        transportAttemptCount: 1,
+        transportAttemptCount,
         tokenUsage,
     };
 }
@@ -540,19 +694,28 @@ function normalizeTokenUsage(value?: CandidateCoachUpdateProviderTransportResult
     };
 }
 
+function addTokenUsage(
+    current: CandidateCoachUpdateRuntimeTelemetry["tokenUsage"],
+    next?: CandidateCoachUpdateProviderTransportResult["tokenUsage"],
+) {
+    const normalizedNext = normalizeTokenUsage(next);
+    return {
+        inputTokens: addNullableCounts(current.inputTokens, normalizedNext.inputTokens),
+        outputTokens: addNullableCounts(current.outputTokens, normalizedNext.outputTokens),
+    };
+}
+
+function addNullableCounts(current: number | null, next: number | null) {
+    if (current === null && next === null) return null;
+    return (current ?? 0) + (next ?? 0);
+}
+
 function readTokenCount(value: unknown) {
     return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : null;
 }
 
 function boundText(value: string, maximumLength: number) {
     return value.trim().slice(0, maximumLength);
-}
-
-function containsProhibitedGeneratedLanguage(values: string[]) {
-    return values.some((value) => (
-        /\b(score|scored|scoring|grade|graded|grading|percentile|rank|ranked|ranking|pass|passed|passing|fail|failed|failing)\b/i.test(value)
-        || /\b\d{1,3}\s*%\b/.test(value)
-    ));
 }
 
 function errorCodeForKind(kind: CandidateCoachUpdateRuntimeErrorKind) {

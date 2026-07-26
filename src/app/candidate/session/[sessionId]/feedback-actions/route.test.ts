@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { createCandidateAnswerAnalysisProviderResultFixture } from "@/features/candidate-session-v2/candidate-answer-analysis-test-fixture";
+
 import { handleCandidateFeedbackActionRequest } from "./route-implementation";
 
-const analysisSnapshot = {
-    status: "answer_analysis_provider_result" as const,
-    provider: "candidate_v2_answer_evaluator" as const,
+const analysisSnapshot = createCandidateAnswerAnalysisProviderResultFixture({
     analyzedAt: "2026-07-10T20:02:00.000Z",
     answer: {
         slotId: "slot-1",
@@ -15,14 +15,7 @@ const analysisSnapshot = {
         observation: "The answer would be stronger with the result of your choice.",
         nextPracticeFocus: "Add what changed after you set the priority.",
     },
-    evidence: [
-        {
-            criterionId: "answer_specificity",
-            applicability: "observed" as const,
-            score: 3,
-        },
-    ],
-};
+});
 
 describe("/candidate/session/[sessionId]/feedback-actions route", () => {
     it("persists a selected feedback action after candidate-owned analysis exists", async () => {

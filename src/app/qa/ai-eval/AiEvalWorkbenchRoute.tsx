@@ -38,6 +38,7 @@ import {
     createAiEvalScenarioRepository,
     type AiEvalScenarioVersion,
 } from "@/features/ai-eval-v2/ai-eval-scenario-repository";
+import { AI_EVAL_SCENARIO_VISIBLE_BASELINE_MIN_VERSION_NUMBER } from "@/features/ai-eval-v2/ai-eval-scenario-contract";
 import {
     createAiEvalLiveCostPreview,
     readAiEvalLiveExecutionPolicy,
@@ -85,7 +86,9 @@ export async function renderAiEvalWorkbenchRoute(
         let unavailable = false;
         try {
             scenarioData = await (dependencies.loadScenarioData ?? loadScenarioWorkspaceData)(access.user.id, scenarioFilters);
-        } catch {
+            scenarioData = applyScenarioLabPresentationPolicy(scenarioData);
+        } catch (error) {
+            reportWorkbenchLoadFailure("scenario_workspace", error);
             unavailable = true;
         }
         return (
@@ -104,7 +107,8 @@ export async function renderAiEvalWorkbenchRoute(
     let unavailable = false;
     try {
         data = await (dependencies.loadData ?? loadWorkbenchData)(access.user.id, filters);
-    } catch {
+    } catch (error) {
+        reportWorkbenchLoadFailure("review_workbench", error);
         unavailable = true;
     }
 
@@ -113,6 +117,39 @@ export async function renderAiEvalWorkbenchRoute(
             <AiEvalWorkbenchExperience {...data} filters={filters} unavailable={unavailable} />
         </AiEvalShell>
     );
+}
+
+function applyScenarioLabPresentationPolicy(
+    data: AiEvalScenarioWorkspaceData,
+): AiEvalScenarioWorkspaceData {
+    const versions = data.versions.filter(
+        (version) => version.sourceKind !== "baseline"
+            || version.versionNumber >= AI_EVAL_SCENARIO_VISIBLE_BASELINE_MIN_VERSION_NUMBER,
+    );
+    const visibleVersionIds = new Set(versions.map((version) => version.scenarioVersionId));
+    const livePreviewVersionIds = data.livePreview
+        ? [...data.livePreview.requestedVersionIds, ...data.livePreview.expandedVersionIds]
+        : [];
+
+    return {
+        ...data,
+        versions,
+        livePreview: livePreviewVersionIds.every((id) => visibleVersionIds.has(id))
+            ? data.livePreview
+            : null,
+    };
+}
+
+function reportWorkbenchLoadFailure(
+    area: "scenario_workspace" | "review_workbench",
+    error: unknown,
+) {
+    const errorCode = error instanceof Error && error.message.includes("scenario suite manifest drift")
+        ? "baseline_manifest_drift"
+        : error instanceof Error && error.message.includes("scenario version drift")
+            ? "baseline_version_drift"
+            : "data_load_failed";
+    console.warn("ai_eval_workbench_load_failed", { area, errorCode });
 }
 
 async function loadScenarioWorkspaceData(

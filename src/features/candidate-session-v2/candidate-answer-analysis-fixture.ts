@@ -30,11 +30,11 @@ export const candidateAnswerAnalysisFixtureProfile: EvidenceFirstEvaluatorProfil
     evaluatorVersion: EVIDENCE_FIRST_EVALUATOR_CONTRACT_VERSION,
     promptBundleVersion: EVIDENCE_FIRST_PROMPT_BUNDLE_VERSION,
     serviceMode: "local_fixture",
-    adapterVersion: "candidate_answer_analysis_fixture_v1",
+    adapterVersion: "candidate_answer_analysis_fixture_v2",
     evidenceExtractor: {
         provider: "deterministic_local_fixture",
         model: "fixture_evidence_extractor_v1",
-        promptVersion: "fixture_evidence_extractor_prompt_v1",
+        promptVersion: "fixture_evidence_extractor_prompt_v2",
         responseSchemaVersion: "evidence_extraction_output_v1",
         generation: deterministicFixtureGeneration,
     },
@@ -62,9 +62,10 @@ const categorySignalIds = {
     behavioral: ["has_context", "has_personal_action", "has_result", "has_learning", "has_constraint"],
     technical_role_specific: [
         "has_direct_technical_answer",
-        "has_correct_concept",
+        "has_relevant_role_knowledge",
         "has_reasoning",
         "has_practical_application",
+        "has_verification_awareness",
         "has_tradeoff",
     ],
     case_scenario: [
@@ -169,6 +170,9 @@ function createFixtureExtraction(
 ): EvidenceExtractionOutput {
     const answerText = request.answer.text;
     const wordCount = answerText.trim().split(/\s+/).filter(Boolean).length;
+    const technicalSignals = request.question.category === "technical_role_specific"
+        ? createTechnicalFixtureSignals(answerText, wordCount)
+        : null;
 
     return {
         status: "evidence_extraction_output",
@@ -186,8 +190,12 @@ function createFixtureExtraction(
             hasSpecificDetails: false,
             hasPersonalAction: false,
             hasOutcomeOrTakeaway: false,
-            hasTradeoffOrConstraint: false,
-            hasRoleRelevantSkillSignal: false,
+            hasTradeoffOrConstraint: technicalSignals?.some((signal) => (
+                signal.id === "has_tradeoff" && signal.status === "observed"
+            )) ?? false,
+            hasRoleRelevantSkillSignal: technicalSignals?.some((signal) => (
+                signal.id === "has_relevant_role_knowledge" && signal.status === "observed"
+            )) ?? false,
             isOverlyLong: wordCount > 220,
             isVeryShort: wordCount < 12,
         },
@@ -198,7 +206,7 @@ function createFixtureExtraction(
             start: 0,
             end: answerText.length,
         }],
-        categorySignals: categorySignalIds[request.question.category].map((id) => ({
+        categorySignals: technicalSignals ?? categorySignalIds[request.question.category].map((id) => ({
             id,
             status: "not_observed" as const,
             evidenceSpanIds: [],
@@ -212,6 +220,33 @@ function createFixtureExtraction(
         sensitiveContentFlags: [],
         unsafeInferenceFlags: [],
     };
+}
+
+function createTechnicalFixtureSignals(answerText: string, wordCount: number): EvidenceExtractionOutput["categorySignals"] {
+    const normalized = answerText.toLowerCase();
+    const observed = (id: string) => ({
+        id,
+        status: "observed" as const,
+        evidenceSpanIds: ["fixture-direct-answer"],
+    });
+    const notObserved = (id: string) => ({
+        id,
+        status: "not_observed" as const,
+        evidenceSpanIds: [],
+    });
+    const hasRoleEvidence = wordCount >= 8;
+    const hasReasoning = /\b(because|so that|so |before|after|while|to make sure|in order to)\b/.test(normalized);
+    const hasVerification = /\b(check|confirm|verify|review|approved|authorized|procedure|escalat)/.test(normalized);
+    const hasTradeoff = /\b(but|tradeoff|risk|instead|while)\b/.test(normalized);
+
+    return [
+        observed("has_direct_technical_answer"),
+        hasRoleEvidence ? observed("has_relevant_role_knowledge") : notObserved("has_relevant_role_knowledge"),
+        hasReasoning ? observed("has_reasoning") : notObserved("has_reasoning"),
+        hasRoleEvidence ? observed("has_practical_application") : notObserved("has_practical_application"),
+        hasVerification ? observed("has_verification_awareness") : notObserved("has_verification_awareness"),
+        hasTradeoff ? observed("has_tradeoff") : notObserved("has_tradeoff"),
+    ];
 }
 
 function createFixtureFeedback(

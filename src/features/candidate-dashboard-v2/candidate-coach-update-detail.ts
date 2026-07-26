@@ -33,7 +33,6 @@ export type CandidateCoachUpdateQuestionDetail = {
         acknowledgement: string;
         observation: string;
         nextPracticeFocus: string;
-        overallBand: "not_enough_evidence" | "emerging" | "clear" | "strong";
     };
     comparison: {
         kind: "first_practice" | "repeat_practice";

@@ -360,13 +360,13 @@ To map the user actions in the candidate-led application module, we needed speci
 2. The **Settings and Admin Surface** for a standalone module, detailing local configurations sorted by release posture (Current vs. Future/Deferred).
 
 ### Decision
-- **Written Specifications**: Created `docs/candidate-app/settings_admin_spec.md` (detailing configuration postures and implementation plans) and `docs/candidate-app/reference_library_spec.md` (detailing contextual flow designs).
+- **Written Specifications**: Created the now-historical `docs/reference-archive/candidate-interim/product/settings_admin_spec.md` and `docs/reference-archive/candidate-interim/product/reference_library_spec.md`.
 - **Settings Demo Route**: Implemented a stateful settings sandbox at `/candidate/settings-demo` that stages AI coaching dials, recruiter platform sync, accessibility scaling, and local/server data wipes.
 - **Header & Switcher Refactor**: Removed the dashboard feed banner and relocated settings, resumes, and reference drawer controls to a unified setup utility line under the role switcher. Created an expandable notification alert in the header.
 
 ### Consequences
 - Allows stakeholders to test font scaling, contrast swaps, recruiter sync, JSON mock database exports, and state deletions in a stateful playground page.
-- Establishes a clear blueprints directory (`docs/candidate-app`) for developers building out features in production.
+- Established an early candidate blueprint directory that has since been consolidated into the canonical `docs/` stack.
 - Ensures a completely green build state verified by Next.js and TypeScript compiler passes.
 
 ## ADR-026: Candidate Session Q&A Demo Staging

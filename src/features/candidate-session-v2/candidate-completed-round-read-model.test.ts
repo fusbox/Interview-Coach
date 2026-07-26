@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vitest";
 
+import { createCandidateAnswerAnalysisProviderResultFixture } from "./candidate-answer-analysis-test-fixture";
 import { createCandidateCompletedRoundReadModels } from "./candidate-completed-round-read-model";
 import { createCandidateQuestionPlan } from "./candidate-question-plan";
 import type { CandidatePracticeSessionRecord } from "./candidate-practice-session-repository";
 
-const analysisSnapshot = {
-    status: "answer_analysis_provider_result" as const,
-    provider: "candidate_v2_answer_evaluator" as const,
+const analysisSnapshot = createCandidateAnswerAnalysisProviderResultFixture({
     analyzedAt: "2026-07-10T22:03:00.000Z",
     answer: {
         slotId: "slot-1",
@@ -17,14 +16,7 @@ const analysisSnapshot = {
         observation: "Add a specific example from the shift.",
         nextPracticeFocus: "Name one task you handled well and what changed.",
     },
-    evidence: [
-        {
-            criterionId: "answer_specificity",
-            applicability: "observed" as const,
-            score: 3,
-        },
-    ],
-};
+});
 
 describe("candidate completed round read model", () => {
     it("bridges a completed candidate practice session into dashboard and post-round review models", () => {
@@ -82,7 +74,6 @@ describe("candidate completed round read model", () => {
                             acknowledgement: "You gave a direct answer.",
                             observation: "Add a specific example from the shift.",
                             nextPracticeFocus: "Name one task you handled well and what changed.",
-                            overallBand: "clear",
                         },
                     },
                     {

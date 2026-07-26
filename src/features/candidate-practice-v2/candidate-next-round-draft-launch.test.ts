@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
+import { createCandidateAnswerAnalysisProviderResultFixture } from "@/features/candidate-session-v2/candidate-answer-analysis-test-fixture";
 import type { CandidateNextRoundDraftRecord } from "./candidate-next-round-draft";
 import type { CandidatePracticeIntentRecord } from "./candidate-follow-up-practice-intent";
 import { launchCandidateNextRoundDraft } from "./candidate-next-round-draft-launch";
@@ -284,9 +285,7 @@ function createSourceSession(): CandidatePracticeSessionRecord {
         },
         answerIdempotencyRecords: {},
         answerAnalysisSnapshots: {
-            "slot-1": {
-                status: "answer_analysis_provider_result",
-                provider: "candidate_v2_answer_evaluator",
+            "slot-1": createCandidateAnswerAnalysisProviderResultFixture({
                 analyzedAt: "2026-07-15T11:02:00.000Z",
                 answer: {
                     slotId: "slot-1",
@@ -300,8 +299,7 @@ function createSourceSession(): CandidatePracticeSessionRecord {
                     observation: "Your role interest is clear.",
                     nextPracticeFocus: "Add one supporting example.",
                 },
-                evidence: [],
-            },
+            }),
         },
         feedbackActionEvents: {},
         completionSnapshot: null,

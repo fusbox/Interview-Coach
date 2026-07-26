@@ -28,7 +28,10 @@ import { CandidateTranscriptCanvas } from "@/features/candidate-dashboard-v2/Can
 import { normalizeCandidateTranscriptCanvasProjection } from "@/features/candidate-dashboard-v2/candidate-transcript-canvas";
 import {
     candidateSafeFeedbackProjectionSchema,
+    criterionAppraisalSchema,
+    evidenceExtractionOutputSchema,
     feedbackCompositionOutputSchema,
+    patternGapSchema,
 } from "@/features/evaluation-v2/evidence-first-evaluator-contract";
 
 import {
@@ -927,11 +930,25 @@ function createAcceptedFeedbackInteraction(payload: Record<string, unknown>) {
     const accepted = record(result.accepted);
     const candidateFeedback = candidateSafeFeedbackProjectionSchema.safeParse(accepted.candidateProjection);
     const feedback = feedbackCompositionOutputSchema.safeParse(accepted.feedback);
+    const extraction = evidenceExtractionOutputSchema.safeParse(accepted.extraction);
+    const criteria = array(accepted.criteria)
+        .map((criterion) => criterionAppraisalSchema.safeParse(criterion));
+    const patternGap = patternGapSchema.safeParse(accepted.patternGap);
     const slotId = readText(answer.slotId, question.slotId);
     const questionIndex = readNonNegativeInteger(answer.questionIndex, question.index);
     const analyzedAt = readText(result.completedAt, answer.submittedAt);
 
-    if (!candidateFeedback.success || !feedback.success || !slotId || questionIndex === null || !analyzedAt) {
+    if (
+        !candidateFeedback.success
+        || !feedback.success
+        || !extraction.success
+        || criteria.length === 0
+        || criteria.some((criterion) => !criterion.success)
+        || !patternGap.success
+        || !slotId
+        || questionIndex === null
+        || !analyzedAt
+    ) {
         return null;
     }
 
@@ -960,6 +977,14 @@ function createAcceptedFeedbackInteraction(payload: Record<string, unknown>) {
             },
             candidateFeedback: candidateFeedback.data,
             intervention: feedback.data.feedbackPlan.intervention,
+            appraisal: {
+                answerUsability: extraction.data.answerUsability,
+                technicalAccuracy: {
+                    status: extraction.data.technicalAccuracy.status,
+                },
+                criteria: criteria.map((criterion) => criterion.data!),
+                patternGap: patternGap.data,
+            },
         }),
         isLastQuestion: questionCount > 0 && questionIndex === questionCount - 1,
     });

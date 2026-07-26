@@ -8,7 +8,7 @@ import { RecruiterLogoutButton } from "./RecruiterLogoutButton";
 
 export function RecruiterShell({ user, children }: { user: AppUser; children: ReactNode }) {
     return (
-        <div className="candidate-design-system recruiter-shell">
+        <div className="recruiter-shell">
             <header className="recruiter-shell__header">
                 <Link href="/recruiter" aria-label="Interview Coach recruiter home">
                     <Image

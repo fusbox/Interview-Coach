@@ -140,6 +140,90 @@ describe("evidence-first evaluator runtime", () => {
         });
     });
 
+    it("repairs ungrounded no-reference technical coaching once and revalidates the rewrite", async () => {
+        const evaluationCase = createNoReferenceTechnicalCase();
+        const extraction = createTechnicalExtraction(
+            evaluationCase.inputFingerprint,
+            evaluationCase.providerInput.answer.text,
+        );
+        extraction.technicalAccuracy = { status: "not_assessed", referenceConceptIds: [], evidenceSpanIds: [] };
+        const composer = vi.fn()
+            .mockImplementationOnce(async ({ task }: AdapterCall) => ({
+                value: {
+                    ...createFeedback(task.inputFingerprint, readPatternGapId(task.input)),
+                    candidateFeedback: {
+                        ...createFeedback(task.inputFingerprint, readPatternGapId(task.input)).candidateFeedback,
+                        primaryStrength: "Your reasoning for the inspection choice was strong, demonstrating an understanding of the process.",
+                    },
+                },
+            }))
+            .mockImplementationOnce(async ({ task }: AdapterCall) => ({
+                value: {
+                    ...createFeedback(task.inputFingerprint, readPatternGapId(task.input)),
+                    candidateFeedback: {
+                        ...createFeedback(task.inputFingerprint, readPatternGapId(task.input)).candidateFeedback,
+                        primaryStrength: "You explained the inspection steps and named what you would verify.",
+                    },
+                },
+            }));
+
+        const result = await runEvidenceFirstEvaluator({
+            evaluationRunId: "run-feedback-repair",
+            evaluationCase,
+            profile,
+            adapters: createAdapters(async () => ({ value: extraction }), composer),
+            requestedAt: "2026-07-16T12:00:00.000Z",
+        });
+
+        expect(composer).toHaveBeenCalledTimes(2);
+        expect(composer.mock.calls[1][0].task.input).toMatchObject({
+            repairDirective: {
+                issueCodes: ["candidate_feedback_ungrounded_technical_correctness"],
+            },
+        });
+        expect(result.stages.slice(-2)).toMatchObject([
+            {
+                stage: "feedback_composition",
+                attempt: 1,
+                outcome: "rejected",
+                errorCode: "CANDIDATE_FEEDBACK_UNGROUNDED_TECHNICAL_CORRECTNESS",
+            },
+            { stage: "feedback_composition", attempt: 2, outcome: "accepted" },
+        ]);
+        expect(result.accepted.candidateProjection.primaryStrength)
+            .toBe("You explained the inspection steps and named what you would verify.");
+    });
+
+    it("remains fail-closed when the bounded technical-language rewrite is still ungrounded", async () => {
+        const evaluationCase = createNoReferenceTechnicalCase();
+        const extraction = createTechnicalExtraction(
+            evaluationCase.inputFingerprint,
+            evaluationCase.providerInput.answer.text,
+        );
+        extraction.technicalAccuracy = { status: "not_assessed", referenceConceptIds: [], evidenceSpanIds: [] };
+        const composer = vi.fn(async ({ task }: AdapterCall) => ({
+            value: {
+                ...createFeedback(task.inputFingerprint, readPatternGapId(task.input)),
+                candidateFeedback: {
+                    ...createFeedback(task.inputFingerprint, readPatternGapId(task.input)).candidateFeedback,
+                    primaryStrength: "Your technical reasoning was strong and demonstrated a clear understanding.",
+                },
+            },
+        }));
+
+        await expect(runEvidenceFirstEvaluator({
+            evaluationRunId: "run-feedback-repair-rejected",
+            evaluationCase,
+            profile,
+            adapters: createAdapters(async () => ({ value: extraction }), composer),
+            requestedAt: "2026-07-16T12:00:00.000Z",
+        })).rejects.toMatchObject({
+            disposition: "rejected",
+            errorCode: "CANDIDATE_FEEDBACK_UNGROUNDED_TECHNICAL_CORRECTNESS",
+        });
+        expect(composer).toHaveBeenCalledTimes(2);
+    });
+
     it("does not retry a fingerprint mismatch or persist candidate feedback", async () => {
         const evaluationCase = createCase();
         const extractor = vi.fn(async () => ({
@@ -347,6 +431,30 @@ function createTechnicalCase() {
     });
 }
 
+function createNoReferenceTechnicalCase() {
+    return createEvidenceFirstEvaluationCase({
+        answerAttemptId: "attempt-technical-no-reference",
+        question: {
+            slotId: "slot-technical-no-reference",
+            questionIndex: 0,
+            category: "technical_role_specific",
+            questionText: "How do you inspect a finished package?",
+            plannedPurpose: "Show job-specific inspection judgment.",
+        },
+        answer: {
+            mode: "text",
+            text: "I compare the label to the work order and ask the lead if a requirement is unclear.",
+            submittedAt: "2026-07-16T11:59:00.000Z",
+        },
+        roleContext: {
+            targetRole: "Quality Control Inspector",
+            interviewStage: "first_interview",
+            jobDescription: "Inspect labels and finished packaging.",
+            resumeText: null,
+        },
+    });
+}
+
 function createExtraction(inputFingerprint: string, answerText: string): EvidenceExtractionOutput {
     return {
         status: "evidence_extraction_output",
@@ -393,9 +501,10 @@ function createTechnicalExtraction(inputFingerprint: string, answerText: string)
         questionCategory: "technical_role_specific",
         categorySignals: [
             { id: "has_direct_technical_answer", status: "not_observed", evidenceSpanIds: [] },
-            { id: "has_correct_concept", status: "not_observed", evidenceSpanIds: [] },
+            { id: "has_relevant_role_knowledge", status: "not_observed", evidenceSpanIds: [] },
             { id: "has_reasoning", status: "not_observed", evidenceSpanIds: [] },
             { id: "has_practical_application", status: "not_observed", evidenceSpanIds: [] },
+            { id: "has_verification_awareness", status: "not_observed", evidenceSpanIds: [] },
             { id: "has_tradeoff", status: "not_observed", evidenceSpanIds: [] },
         ],
         technicalAccuracy: {

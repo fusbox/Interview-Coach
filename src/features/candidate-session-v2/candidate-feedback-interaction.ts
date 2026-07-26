@@ -61,38 +61,12 @@ export type CandidateFeedbackActionEvent = {
     selectedAt: string;
 };
 
-type CandidateFeedbackPulse = {
-    title?: string;
-    body?: string;
-};
-
-type CandidateFeedbackPlan = {
-    intervention?: {
-        type?: string;
-    };
-};
-
-type CandidateFeedbackNextAction = {
-    actionType?: string;
-};
-
-type CandidateFeedbackInteractionAnalysis = CandidateAnswerAnalysisProviderResult & {
-    contentPulse?: CandidateFeedbackPulse;
-    deliveryPulse?: CandidateFeedbackPulse | null;
-    feedbackPlan?: CandidateFeedbackPlan;
-    nextAction?: CandidateFeedbackNextAction;
-    recommendation?: string;
-};
-
 type CreateCandidateFeedbackInteractionInput = {
     analysisSnapshot: CandidateAnswerAnalysisProviderResult;
     isLastQuestion: boolean;
 };
 
 const retryPrimaryInterventions = new Set([
-    "repair_foundation",
-    "sharpen_signal",
-    "redo_answer",
     "revise_answer",
     "professional_reframe",
     "build_missing_signal",
@@ -102,8 +76,7 @@ export function createCandidateFeedbackInteraction({
     analysisSnapshot,
     isLastQuestion,
 }: CreateCandidateFeedbackInteractionInput): CandidateFeedbackInteraction {
-    const analysis = analysisSnapshot as CandidateFeedbackInteractionAnalysis;
-    const stageDrafts = createStageDrafts(analysis);
+    const stageDrafts = createStageDrafts(analysisSnapshot);
     const stages = stageDrafts.map((stage, index) => ({
         ...stage,
         actions: createStageActions({
@@ -111,8 +84,7 @@ export function createCandidateFeedbackInteraction({
             nextStageId: stageDrafts[index + 1]?.id,
             isLastStage: index === stageDrafts.length - 1,
             isLastQuestion,
-            shouldRetryBePrimary: shouldRetryBePrimary(analysis),
-            shouldPauseBePrimary: shouldPauseBePrimary(analysis),
+            shouldRetryBePrimary: shouldRetryBePrimary(analysisSnapshot),
             canRetry: Boolean(analysisSnapshot.answer.answerAttemptId),
         }),
     }));
@@ -183,57 +155,23 @@ export function isCandidateFeedbackActionEventAllowed(input: {
     );
 }
 
-function createStageDrafts(analysis: CandidateFeedbackInteractionAnalysis): Omit<CandidateFeedbackInteractionStage, "actions">[] {
-    if (analysis.evidenceFirst) {
-        const feedback = analysis.evidenceFirst.candidateFeedback;
-        const guidance: NonNullable<CandidateFeedbackInteractionStage["guidance"]> = [];
-        if (feedback.biggestUpgrade) {
-            guidance.push({
-                label: "Try next",
-                body: feedback.biggestUpgrade,
-            });
-        }
-        if (feedback.patternSuggestion) {
-            guidance.push({
-                label: feedback.patternSuggestion.patternName,
-                body: "Use this structure when you try the answer again.",
-                steps: feedback.patternSuggestion.steps,
-            });
-        }
-
-        const stages: Omit<CandidateFeedbackInteractionStage, "actions">[] = [
-            {
-                id: "acknowledgement",
-                label: "Coach read",
-                title: "First, here is what I heard.",
-                body: feedback.acknowledgement,
-            },
-            {
-                id: "content_coaching",
-                label: "Answer coaching",
-                title: feedback.primaryStrength ? "What is working" : "One useful focus",
-                body: feedback.primaryStrength ?? feedback.biggestUpgrade ?? feedback.acknowledgement,
-                ...(guidance.length > 0 ? { guidance } : {}),
-            },
-        ];
-
-        if (feedback.deliveryNote) {
-            stages.push({
-                id: "delivery_coaching",
-                label: "Delivery coaching",
-                title: "How it came across",
-                body: feedback.deliveryNote.message,
-            });
-        }
-
-        stages.push({
-            id: "next_step",
-            label: "Next step",
-            title: feedback.redoPrompt ? "Try the answer again" : "Carry this forward",
-            body: feedback.redoPrompt ?? feedback.biggestUpgrade ?? feedback.acknowledgement,
+function createStageDrafts(
+    analysis: CandidateAnswerAnalysisProviderResult,
+): Omit<CandidateFeedbackInteractionStage, "actions">[] {
+    const feedback = analysis.evidenceFirst.candidateFeedback;
+    const guidance: NonNullable<CandidateFeedbackInteractionStage["guidance"]> = [];
+    if (feedback.biggestUpgrade) {
+        guidance.push({
+            label: "Try next",
+            body: feedback.biggestUpgrade,
         });
-
-        return stages;
+    }
+    if (feedback.patternSuggestion) {
+        guidance.push({
+            label: feedback.patternSuggestion.patternName,
+            body: "Use this structure when you try the answer again.",
+            steps: feedback.patternSuggestion.steps,
+        });
     }
 
     const stages: Omit<CandidateFeedbackInteractionStage, "actions">[] = [
@@ -241,30 +179,31 @@ function createStageDrafts(analysis: CandidateFeedbackInteractionAnalysis): Omit
             id: "acknowledgement",
             label: "Coach read",
             title: "First, here is what I heard.",
-            body: analysis.coachFeedback.acknowledgement,
+            body: feedback.acknowledgement,
         },
         {
             id: "content_coaching",
             label: "Answer coaching",
-            title: analysis.contentPulse?.title ?? "What to strengthen",
-            body: analysis.contentPulse?.body ?? analysis.coachFeedback.observation,
+            title: feedback.primaryStrength ? "What is working" : "One useful focus",
+            body: feedback.primaryStrength ?? feedback.biggestUpgrade ?? feedback.acknowledgement,
+            ...(guidance.length > 0 ? { guidance } : {}),
         },
     ];
 
-    if (analysis.deliveryPulse?.body) {
+    if (feedback.deliveryNote) {
         stages.push({
             id: "delivery_coaching",
             label: "Delivery coaching",
-            title: analysis.deliveryPulse.title ?? "How it came across",
-            body: analysis.deliveryPulse.body,
+            title: "How it came across",
+            body: feedback.deliveryNote.message,
         });
     }
 
     stages.push({
         id: "next_step",
         label: "Next step",
-        title: "What to do next",
-        body: analysis.recommendation ?? analysis.coachFeedback.nextPracticeFocus,
+        title: feedback.redoPrompt ? "Try the answer again" : "Carry this forward",
+        body: feedback.redoPrompt ?? feedback.biggestUpgrade ?? feedback.acknowledgement,
     });
 
     return stages;
@@ -276,7 +215,6 @@ function createStageActions({
     isLastStage,
     isLastQuestion,
     shouldRetryBePrimary,
-    shouldPauseBePrimary,
     canRetry,
 }: {
     currentStageId: CandidateFeedbackInteractionStageId;
@@ -284,7 +222,6 @@ function createStageActions({
     isLastStage: boolean;
     isLastQuestion: boolean;
     shouldRetryBePrimary: boolean;
-    shouldPauseBePrimary: boolean;
     canRetry: boolean;
 }): CandidateFeedbackAction[] {
     if (!isLastStage && nextStageId) {
@@ -297,19 +234,6 @@ function createStageActions({
                 targetStageId: nextStageId,
             },
             createSkipAction(isLastQuestion),
-        ];
-    }
-
-    if (shouldPauseBePrimary) {
-        return [
-            {
-                kind: "pause_session",
-                label: "Pause session",
-                emphasis: "primary",
-                transition: "pause_session",
-            },
-            createContinueOrFinishAction(isLastQuestion, "secondary"),
-            ...(canRetry ? [createRetryAction("utility")] : []),
         ];
     }
 
@@ -374,20 +298,6 @@ function createRetryAction(emphasis: CandidateFeedbackAction["emphasis"]): Candi
     };
 }
 
-function shouldRetryBePrimary(analysis: CandidateFeedbackInteractionAnalysis) {
-    const evidenceFirstIntervention = analysis.evidenceFirst?.interaction.intervention;
-    if (evidenceFirstIntervention && retryPrimaryInterventions.has(evidenceFirstIntervention)) {
-        return true;
-    }
-
-    if (analysis.nextAction?.actionType === "redo_answer") {
-        return true;
-    }
-
-    const interventionType = analysis.feedbackPlan?.intervention?.type;
-    return Boolean(interventionType && retryPrimaryInterventions.has(interventionType));
-}
-
-function shouldPauseBePrimary(analysis: CandidateFeedbackInteractionAnalysis) {
-    return analysis.nextAction?.actionType === "pause_session";
+function shouldRetryBePrimary(analysis: CandidateAnswerAnalysisProviderResult) {
+    return retryPrimaryInterventions.has(analysis.evidenceFirst.interaction.intervention);
 }

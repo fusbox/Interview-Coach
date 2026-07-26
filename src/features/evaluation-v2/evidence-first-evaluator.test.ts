@@ -13,6 +13,8 @@ import {
     createEvidenceFirstQaCaseCapture,
     createEvidenceFirstQaRunCapture,
     createFeedbackComposerTask,
+    containsEvidenceFirstFeedbackForbiddenLanguage,
+    resolveCoachingCompletionDirective,
     resolveEvidenceVerification,
     validateAndAppraiseEvidence,
     validateFeedbackComposition,
@@ -20,6 +22,21 @@ import {
 } from "./evidence-first-evaluator";
 
 describe("evidence-first evaluator contract", () => {
+    it("does not reject score-like language when it faithfully recapitulates candidate-provided context", () => {
+        expect(containsEvidenceFirstFeedbackForbiddenLanguage(
+            "You scored 100% on the required safety assessment.",
+            "I scored 100% on the required safety assessment.",
+        )).toBe(false);
+        expect(containsEvidenceFirstFeedbackForbiddenLanguage(
+            "You scored 100% on this practice.",
+            "I completed the required safety assessment.",
+        )).toBe(true);
+        expect(containsEvidenceFirstFeedbackForbiddenLanguage(
+            "Answer directly without discussing your family status.",
+            "I left my last role because of a change in my family status.",
+        )).toBe(false);
+    });
+
     it("fingerprints the complete resolved stage configuration without content or credentials", () => {
         const profile = createModelProfile();
         const descriptor = createEvaluatorRunDescriptor(profile);
@@ -128,7 +145,7 @@ describe("evidence-first evaluator contract", () => {
         expect(findCriterion(result, "evidence_specificity")).toMatchObject({ applicability: "not_elicited" });
         expect(findCriterion(result, "evidence_specificity")).not.toHaveProperty("band");
         expect(findCriterion(result, "role_skill_signal")).toMatchObject({ applicability: "not_elicited" });
-        expect(result.patternGap).toMatchObject({ id: "reinforce_effective_pattern", severity: "low" });
+        expect(result.patternGap).toMatchObject({ id: "polish_answer_focus", severity: "low" });
     });
 
     it("does not promote a thin answer from isolated direct-answer evidence", () => {
@@ -162,7 +179,67 @@ describe("evidence-first evaluator contract", () => {
         ));
     });
 
-    it("keeps technical role skill unscoreable for a thin answer without a trusted reference", () => {
+    it("normalizes a provider-authored usable generic preference to thin when no development evidence exists", () => {
+        const answerText = "I like positive teams where everyone communicates and supports each other.";
+        const evaluationCase = createCase({ answerText, category: "culture_fit" });
+        const direct = createSpan(answerText, answerText, "direct_answer", "direct");
+        const detail = createSpan(answerText, "positive teams", "specific_detail", "detail");
+        const extraction = createExtraction(evaluationCase, {
+            answerUsability: { status: "usable", reasonCode: "provider_usable" },
+            observableMarkers: {
+                answeredQuestion: true,
+                hasDirectAnswer: true,
+                hasSpecificDetails: true,
+                isVeryShort: true,
+            },
+            evidenceSpans: [direct, detail],
+            categorySignals: [
+                { id: "has_motivation", status: "observed", evidenceSpanIds: [direct.id] },
+                { id: "has_self_awareness", status: "observed", evidenceSpanIds: [direct.id] },
+            ],
+        });
+
+        const result = validateAndAppraiseEvidence({ evaluationCase, value: extraction });
+
+        expect(result.disposition).toBe("accepted");
+        if (result.disposition !== "accepted") {
+            throw new Error("Expected normalized thin appraisal.");
+        }
+        expect(result.evidence.answerUsability).toEqual({
+            status: "thin",
+            reasonCode: "code_thin_without_development_evidence",
+        });
+        expect(result.criteria.every((criterion) => (
+            criterion.applicability === "observed" && criterion.band === "emerging"
+        ))).toBe(true);
+        expect(resolveCoachingCompletionDirective(result)).toMatchObject({
+            posture: "remediate",
+            intervention: "build_missing_signal",
+        });
+    });
+
+    it("derives completion posture from the code-owned question-preparedness band", () => {
+        const { appraisal } = createAcceptedBehavioralAppraisal();
+        const withBands = (bands: Array<"strong" | "clear" | "emerging">): AcceptedEvidenceFirstAppraisal => ({
+            ...appraisal,
+            criteria: appraisal.criteria.map((criterion, index) => ({
+                ...criterion,
+                applicability: "observed",
+                band: bands[index] ?? "strong",
+            })),
+        });
+
+        expect(resolveCoachingCompletionDirective(withBands(["strong", "strong", "strong", "strong", "strong"])))
+            .toMatchObject({ posture: "move_on", intervention: "affirm_and_continue" });
+        expect(resolveCoachingCompletionDirective(withBands(["strong", "clear", "strong", "strong", "strong"])))
+            .toMatchObject({ posture: "move_on", intervention: "affirm_and_continue" });
+        expect(resolveCoachingCompletionDirective(withBands(["strong", "clear", "emerging", "clear", "clear"])))
+            .toMatchObject({ posture: "polish", intervention: "polish_then_continue" });
+        expect(resolveCoachingCompletionDirective(withBands(["clear", "emerging", "emerging", "clear", "emerging"])))
+            .toMatchObject({ posture: "remediate", intervention: "revise_answer" });
+    });
+
+    it("keeps technical role skill emerging for a thin answer without a trusted reference", () => {
         const answerText = "It makes queries faster.";
         const evaluationCase = createCase({ answerText, category: "technical_role_specific" });
         const direct = createSpan(answerText, answerText, "direct_answer", "direct");
@@ -189,9 +266,10 @@ describe("evidence-first evaluator contract", () => {
         }
         expect(findCriterion(result, "role_skill_signal")).toEqual({
             criterionId: "role_skill_signal",
-            applicability: "unscoreable",
+            applicability: "observed",
+            band: "emerging",
             evidenceSpanIds: [],
-            reasonCode: "technical_reference_not_supplied",
+            reasonCode: "thin_answer_insufficient_evidence",
         });
         expect(findCriterion(result, "answer_focus")).toMatchObject({
             applicability: "observed",
@@ -285,7 +363,7 @@ describe("evidence-first evaluator contract", () => {
         });
     });
 
-    it("keeps technical role-skill evidence unscoreable when no versioned reference exists", () => {
+    it("appraises technical role-skill evidence independently when no versioned reference exists", () => {
         const answerText = "An index is a lookup structure. It can speed reads but adds write cost.";
         const evaluationCase = createCase({ answerText, category: "technical_role_specific" });
         const direct = createSpan(answerText, "An index is a lookup structure.", "direct_answer", "direct");
@@ -297,10 +375,12 @@ describe("evidence-first evaluator contract", () => {
                 hasDirectAnswer: true,
                 hasTradeoffOrConstraint: true,
                 hasSpecificDetails: true,
+                hasRoleRelevantSkillSignal: true,
             },
             evidenceSpans: [direct, detail, tradeoff],
             categorySignals: [
                 { id: "has_direct_technical_answer", status: "observed", evidenceSpanIds: [direct.id] },
+                { id: "has_relevant_role_knowledge", status: "observed", evidenceSpanIds: [detail.id] },
                 { id: "has_reasoning", status: "not_observed", evidenceSpanIds: [] },
                 { id: "has_tradeoff", status: "observed", evidenceSpanIds: [tradeoff.id] },
             ],
@@ -314,10 +394,81 @@ describe("evidence-first evaluator contract", () => {
         }
         expect(findCriterion(result, "role_skill_signal")).toEqual({
             criterionId: "role_skill_signal",
-            applicability: "unscoreable",
-            evidenceSpanIds: [],
-            reasonCode: "technical_reference_not_supplied",
+            applicability: "observed",
+            band: "clear",
+            evidenceSpanIds: [direct.id, detail.id],
+            reasonCode: "technical_role_skill_clear",
         });
+        expect(result.evidence.technicalAccuracy.status).toBe("not_assessed");
+    });
+
+    it("recognizes a strong applied role-skill answer without claiming technical correctness", () => {
+        const answerText = "I compare each label with the work order, scan the lot number, and hold any mismatch while I verify the approved procedure.";
+        const evaluationCase = createCase({ answerText, category: "technical_role_specific" });
+        const direct = createSpan(answerText, "I compare each label with the work order", "direct_answer", "direct");
+        const knowledge = createSpan(answerText, "compare each label with the work order", "role_skill_signal", "knowledge");
+        const application = createSpan(answerText, "scan the lot number", "practical_application", "application");
+        const verification = createSpan(
+            answerText,
+            "hold any mismatch while I verify the approved procedure",
+            "reasoning",
+            "verification",
+        );
+        const extraction = createExtraction(evaluationCase, {
+            observableMarkers: {
+                answeredQuestion: true,
+                hasDirectAnswer: true,
+                hasRoleRelevantSkillSignal: true,
+            },
+            evidenceSpans: [direct, knowledge, application, verification],
+            categorySignals: [
+                { id: "has_direct_technical_answer", status: "observed", evidenceSpanIds: [direct.id] },
+                { id: "has_relevant_role_knowledge", status: "observed", evidenceSpanIds: [knowledge.id] },
+                { id: "has_reasoning", status: "observed", evidenceSpanIds: [verification.id] },
+                { id: "has_practical_application", status: "observed", evidenceSpanIds: [application.id] },
+                { id: "has_verification_awareness", status: "observed", evidenceSpanIds: [verification.id] },
+            ],
+        });
+
+        const result = validateAndAppraiseEvidence({ evaluationCase, value: extraction });
+
+        expect(result.disposition).toBe("accepted");
+        if (result.disposition !== "accepted") throw new Error("Expected accepted technical appraisal.");
+        expect(findCriterion(result, "role_skill_signal")).toMatchObject({
+            applicability: "observed",
+            band: "strong",
+            reasonCode: "technical_role_skill_strong",
+        });
+        expect(result.evidence.technicalAccuracy.status).toBe("not_assessed");
+    });
+
+    it("does not infer role skill from resume context when the answer lacks role evidence", () => {
+        const answerText = "I would try my best and ask someone what to do.";
+        const evaluationCase = createCase({
+            answerText,
+            category: "technical_role_specific",
+            resumeText: "Five years of warehouse quality inspection experience.",
+        });
+        const direct = createSpan(answerText, answerText, "direct_answer", "direct");
+        const extraction = createExtraction(evaluationCase, {
+            observableMarkers: { answeredQuestion: true, hasDirectAnswer: true },
+            evidenceSpans: [direct],
+            categorySignals: [
+                { id: "has_direct_technical_answer", status: "observed", evidenceSpanIds: [direct.id] },
+                { id: "has_relevant_role_knowledge", status: "not_observed", evidenceSpanIds: [] },
+                { id: "has_practical_application", status: "not_observed", evidenceSpanIds: [] },
+            ],
+        });
+
+        const result = validateAndAppraiseEvidence({ evaluationCase, value: extraction });
+
+        expect(result.disposition).toBe("accepted");
+        if (result.disposition !== "accepted") throw new Error("Expected accepted technical appraisal.");
+        expect(findCriterion(result, "role_skill_signal")).toMatchObject({
+            applicability: "observed",
+            band: "emerging",
+        });
+        expect(result.patternGap.id).toBe("missing_role_specific_evidence");
     });
 
     it("requires verification before coaching from a contradicted technical claim", () => {
@@ -334,12 +485,29 @@ describe("evidence-first evaluator contract", () => {
             },
         });
         const direct = createSpan(answerText, answerText, "direct_answer", "direct");
+        const roleKnowledge = createSpan(
+            answerText,
+            "Indexing encrypts the database",
+            "role_skill_signal",
+            "role-knowledge",
+        );
+        const reasoning = createSpan(
+            answerText,
+            "so searches are more secure",
+            "reasoning",
+            "reasoning",
+        );
         const extraction = createExtraction(evaluationCase, {
-            observableMarkers: { answeredQuestion: true, hasDirectAnswer: true },
-            evidenceSpans: [direct],
+            observableMarkers: {
+                answeredQuestion: true,
+                hasDirectAnswer: true,
+                hasRoleRelevantSkillSignal: true,
+            },
+            evidenceSpans: [direct, roleKnowledge, reasoning],
             categorySignals: [
                 { id: "has_direct_technical_answer", status: "observed", evidenceSpanIds: [direct.id] },
-                { id: "has_correct_concept", status: "not_observed", evidenceSpanIds: [] },
+                { id: "has_relevant_role_knowledge", status: "observed", evidenceSpanIds: [roleKnowledge.id] },
+                { id: "has_reasoning", status: "observed", evidenceSpanIds: [reasoning.id] },
             ],
             technicalAccuracy: {
                 status: "contradicted",
@@ -357,6 +525,11 @@ describe("evidence-first evaluator contract", () => {
         if (pending.disposition !== "verification_required") {
             throw new Error("Expected verification gate.");
         }
+        expect(pending.criteria.find((criterion) => criterion.criterionId === "organization")).toMatchObject({
+            applicability: "observed",
+            band: "clear",
+            reasonCode: "organization_technical_role_specific_clear",
+        });
         const accepted = resolveEvidenceVerification({
             pending,
             value: {
@@ -369,6 +542,67 @@ describe("evidence-first evaluator contract", () => {
             },
         });
         expect(accepted.disposition).toBe("accepted");
+    });
+
+    it("does not promote impact judgment from the same technical evidence that is contradicted", () => {
+        const answerText = "An index encrypts table data. It improves every operation without adding storage or slowing writes.";
+        const evaluationCase = createCase({
+            answerText,
+            category: "technical_role_specific",
+            technicalReference: {
+                source: "curated",
+                version: "database-indexing-v1",
+                expectedConcepts: [
+                    { id: "lookup_structure", description: "An index is a separate lookup structure." },
+                    { id: "write_storage_tradeoff", description: "Indexes use storage and add write-maintenance cost." },
+                ],
+                acceptableAlternatives: [],
+                commonMisconceptions: [
+                    "An index encrypts table data.",
+                    "An index has no storage or write cost.",
+                ],
+            },
+        });
+        const direct = createSpan(answerText, "An index encrypts table data.", "direct_answer", "direct");
+        const tradeoff = createSpan(
+            answerText,
+            "without adding storage or slowing writes",
+            "tradeoff",
+            "tradeoff",
+        );
+        const extraction = createExtraction(evaluationCase, {
+            observableMarkers: {
+                answeredQuestion: true,
+                hasDirectAnswer: true,
+                hasTradeoffOrConstraint: true,
+            },
+            evidenceSpans: [direct, tradeoff],
+            categorySignals: [
+                { id: "has_direct_technical_answer", status: "observed", evidenceSpanIds: [direct.id] },
+                { id: "has_tradeoff", status: "observed", evidenceSpanIds: [tradeoff.id] },
+            ],
+            technicalAccuracy: {
+                status: "contradicted",
+                referenceConceptIds: ["lookup_structure", "write_storage_tradeoff"],
+                evidenceSpanIds: [direct.id, tradeoff.id],
+            },
+        });
+
+        const pending = validateAndAppraiseEvidence({ evaluationCase, value: extraction });
+
+        expect(pending.disposition).toBe("verification_required");
+        if (pending.disposition !== "verification_required") {
+            throw new Error("Expected verification gate.");
+        }
+        expect(pending.criteria.find((criterion) => (
+            criterion.criterionId === "impact_judgment_takeaway"
+        ))).toEqual({
+            criterionId: "impact_judgment_takeaway",
+            applicability: "observed",
+            band: "emerging",
+            evidenceSpanIds: [tradeoff.id],
+            reasonCode: "impact_judgment_technical_role_specific_emerging",
+        });
     });
 
     it("routes a sensitive disclosure to a privacy reframe rather than a low band", () => {
@@ -422,6 +656,53 @@ describe("evidence-first evaluator contract", () => {
         });
     });
 
+    it("accepts whole-answer category evidence without inventing an exact span", () => {
+        const evaluationCase = createCase({
+            answerText: "I coordinated with the team so the work stayed on schedule.",
+            category: "behavioral",
+        });
+        const extraction = createExtraction(evaluationCase, {
+            observableMarkers: {
+                hasExample: true,
+            },
+            categorySignals: [{
+                id: "has_context",
+                status: "observed",
+                evidenceSpanIds: [],
+            }],
+        });
+
+        expect(validateAndAppraiseEvidence({ evaluationCase, value: extraction })).toMatchObject({
+            disposition: "accepted",
+            evidence: {
+                categorySignals: [{
+                    id: "has_context",
+                    status: "observed",
+                    evidenceSpanIds: [],
+                }],
+            },
+        });
+    });
+
+    it("rejects exact evidence attached to a signal that was not observed", () => {
+        const answerText = "I coordinated with the team.";
+        const evaluationCase = createCase({ answerText, category: "behavioral" });
+        const context = createSpan(answerText, answerText, "context", "context");
+        const extraction = createExtraction(evaluationCase, {
+            evidenceSpans: [context],
+            categorySignals: [{
+                id: "has_context",
+                status: "not_observed",
+                evidenceSpanIds: [context.id],
+            }],
+        });
+
+        expect(validateAndAppraiseEvidence({ evaluationCase, value: extraction })).toMatchObject({
+            disposition: "rejected",
+            issues: [{ code: "unobserved_signal_has_evidence", path: "has_context" }],
+        });
+    });
+
     it("rejects unsupported praise and score language before candidate projection", () => {
         const { evaluationCase, appraisal } = createAcceptedBehavioralAppraisal();
         const feedback = createFeedback(evaluationCase, appraisal, {
@@ -440,13 +721,25 @@ describe("evidence-first evaluator contract", () => {
 
     it("rejects delivery-mechanics advice outside the voice-only delivery note", () => {
         const { evaluationCase, appraisal } = createAcceptedBehavioralAppraisal();
-        const feedback = createFeedback(evaluationCase, appraisal, {
+        const clearAppraisal: AcceptedEvidenceFirstAppraisal = {
+            ...appraisal,
+            criteria: appraisal.criteria.map((criterion) => ({
+                ...criterion,
+                applicability: "observed",
+                band: "clear",
+            })),
+        };
+        const feedback = createFeedback(evaluationCase, clearAppraisal, {
             primaryStrength: null,
             primaryStrengthSpanIds: [],
             biggestUpgrade: "Practice speaking clearly and at a steady pace.",
         });
 
-        expect(validateFeedbackComposition({ evaluationCase, appraisal, value: feedback })).toMatchObject({
+        expect(validateFeedbackComposition({
+            evaluationCase,
+            appraisal: clearAppraisal,
+            value: feedback,
+        })).toMatchObject({
             status: "feedback_rejected",
             issues: expect.arrayContaining([{ code: "delivery_guidance_outside_delivery_note" }]),
         });
@@ -523,7 +816,7 @@ describe("evidence-first evaluator contract", () => {
             profile: {
                 profileId: "pipeline-a",
                 evaluatorVersion: "candidate_evidence_first_v2",
-                promptBundleVersion: "candidate_evidence_first_prompts_v8",
+                promptBundleVersion: "candidate_evidence_first_prompts_v14",
                 serviceMode: "test",
                 adapterVersion: "test_adapter_v1",
                 evidenceExtractor: {
@@ -569,7 +862,7 @@ function createModelProfile() {
     return {
         profileId: "google_gemini_2_5_flash_v1",
         evaluatorVersion: "candidate_evidence_first_v2" as const,
-        promptBundleVersion: "candidate_evidence_first_prompts_v8" as const,
+        promptBundleVersion: "candidate_evidence_first_prompts_v14" as const,
         serviceMode: "gemini_api",
         adapterVersion: "google_genai_evidence_first_adapter_v1",
         evidenceExtractor: {
@@ -630,6 +923,7 @@ function createCase(input: {
     answerText: string;
     category?: EvidenceFirstEvaluationCase["providerInput"]["question"]["category"];
     technicalReference?: EvidenceFirstEvaluationCase["providerInput"]["technicalReference"];
+    resumeText?: string | null;
 }) {
     return createEvidenceFirstEvaluationCase({
         answerAttemptId: "attempt-1",
@@ -649,7 +943,7 @@ function createCase(input: {
             targetRole: "Customer Service Representative",
             interviewStage: "first_interview",
             jobDescription: "Support customers, document issues, and follow through.",
-            resumeText: null,
+            resumeText: input.resumeText ?? null,
         },
         technicalReference: input.technicalReference,
     });

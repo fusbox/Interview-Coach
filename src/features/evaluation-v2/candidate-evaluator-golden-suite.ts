@@ -406,7 +406,7 @@ export const candidateEvaluatorGoldenCases: readonly CandidateEvaluatorGoldenCas
         },
         roleContext: customerServiceRoleContext,
         expectation: {
-            allowedUsability: ["usable"],
+            allowedUsability: ["thin"],
             markerValues: {
                 answeredQuestion: true,
                 hasDirectAnswer: true,
@@ -418,9 +418,9 @@ export const candidateEvaluatorGoldenCases: readonly CandidateEvaluatorGoldenCas
                 has_role_connection: ["not_observed"],
             },
             criterionAppraisals: criteria({
-                answer_focus: observed("strong"),
-                organization: observed("emerging", "clear"),
-                evidence_specificity: observed("emerging", "clear"),
+                answer_focus: emerging,
+                organization: emerging,
+                evidence_specificity: emerging,
                 role_skill_signal: emerging,
                 impact_judgment_takeaway: observed("emerging", "clear"),
             }),

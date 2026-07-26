@@ -109,77 +109,15 @@ describe("candidate answer analysis adapter", () => {
         });
     });
 
-    it("parses provider results that map back to the requested answer and evidence contract", () => {
-        expect(parseCandidateAnswerAnalysisProviderResult({
-            status: "answer_analysis_provider_result",
-            provider: "candidate_v2_answer_evaluator",
-            analyzedAt: "2026-07-10T15:02:00.000Z",
-            answer: {
-                slotId: "slot-2",
-                questionIndex: 1,
-            },
-            coachFeedback: {
-                acknowledgement: "You named a practical first step.",
-                observation: "The answer would be stronger with the result of your choice.",
-                nextPracticeFocus: "Add what changed after you set the priority.",
-            },
-            evidence: [
-                {
-                    criterionId: "answer_specificity",
-                    applicability: "observed",
-                    score: 3,
-                },
-                {
-                    criterionId: "outcome_impact",
-                    applicability: "not_elicited",
-                },
-            ],
-        }, analysisRequest)).toEqual({
-            status: "answer_analysis_provider_result",
-            provider: "candidate_v2_answer_evaluator",
-            analyzedAt: "2026-07-10T15:02:00.000Z",
-            answer: {
-                slotId: "slot-2",
-                questionIndex: 1,
-            },
-            coachFeedback: {
-                acknowledgement: "You named a practical first step.",
-                observation: "The answer would be stronger with the result of your choice.",
-                nextPracticeFocus: "Add what changed after you set the priority.",
-            },
-            evidence: [
-                {
-                    criterionId: "answer_specificity",
-                    applicability: "observed",
-                    score: 3,
-                },
-                {
-                    criterionId: "outcome_impact",
-                    applicability: "not_elicited",
-                },
-            ],
-        });
-    });
-
     it("fails closed when provider output maps to a different answer", () => {
-        expect(parseCandidateAnswerAnalysisProviderResult({
-            status: "answer_analysis_provider_result",
-            provider: "candidate_v2_answer_evaluator",
-            analyzedAt: "2026-07-10T15:02:00.000Z",
-            answer: {
-                slotId: "slot-3",
-                questionIndex: 2,
-            },
-            coachFeedback: {
-                acknowledgement: "You named a practical first step.",
-                observation: "The answer would be stronger with the result of your choice.",
-                nextPracticeFocus: "Add what changed after you set the priority.",
-            },
-            evidence: [],
-        }, analysisRequest)).toBeNull();
+        const providerResult = createEvidenceFirstProviderResult();
+        providerResult.answer.slotId = "slot-3";
+        providerResult.answer.questionIndex = 2;
+
+        expect(parseCandidateAnswerAnalysisProviderResult(providerResult, analysisRequest)).toBeNull();
     });
 
-    it("fails closed when excluded evidence carries a numeric score", () => {
+    it("fails closed for the retired numeric-evidence-only result shape", () => {
         expect(parseCandidateAnswerAnalysisProviderResult({
             status: "answer_analysis_provider_result",
             provider: "candidate_v2_answer_evaluator",
@@ -193,13 +131,7 @@ describe("candidate answer analysis adapter", () => {
                 observation: "The answer would be stronger with the result of your choice.",
                 nextPracticeFocus: "Add what changed after you set the priority.",
             },
-            evidence: [
-                {
-                    criterionId: "outcome_impact",
-                    applicability: "not_elicited",
-                    score: 1,
-                },
-            ],
+            evidence: [{ criterionId: "outcome_impact", applicability: "observed", score: 4 }],
         }, analysisRequest)).toBeNull();
     });
 
@@ -236,10 +168,46 @@ describe("candidate answer analysis adapter", () => {
         });
         expect(result?.evidenceFirst).toMatchObject({
             interaction: { intervention: "revise_answer" },
+            appraisal: {
+                answerUsability: { status: "usable" },
+                technicalAccuracy: { status: "not_assessed" },
+                criteria: expect.arrayContaining([expect.objectContaining({
+                    criterionId: "impact_judgment_takeaway",
+                    applicability: "observed",
+                    band: "emerging",
+                })]),
+                questionPreparedness: {
+                    status: "rated",
+                    band: "emerging",
+                },
+                patternGap: { id: "missing_outcome" },
+            },
         });
         expect(result?.evidenceFirst).not.toHaveProperty("feedbackPlan");
-        expect(result?.evidenceFirst).not.toHaveProperty("criteria");
-        expect(result?.evidenceFirst).not.toHaveProperty("patternGap");
+        expect(result).not.toHaveProperty("evidence");
+    });
+
+    it("reconstructs question preparedness from accepted V2 criterion facts when the stored projection predates it", () => {
+        const providerResult = createEvidenceFirstProviderResult();
+        delete (providerResult.evidenceFirst.appraisal as Partial<
+            typeof providerResult.evidenceFirst.appraisal
+        >).questionPreparedness;
+
+        const result = parseCandidateAnswerAnalysisProviderResult(providerResult, {
+            ...analysisRequest,
+            answerSubmission: {
+                ...analysisRequest.answerSubmission,
+                answerAttemptId: "11111111-1111-4111-8111-111111111111",
+                attemptNumber: 1,
+                trigger: "initial_submit",
+                supersedesAnswerAttemptId: null,
+            },
+        });
+
+        expect(result?.evidenceFirst.appraisal.questionPreparedness).toMatchObject({
+            status: "rated",
+            band: "emerging",
+        });
     });
 
     it("fails closed when evidence-first feedback has a different input fingerprint", () => {
@@ -276,16 +244,9 @@ function createEvidenceFirstProviderResult() {
             observation: "The answer would be stronger with the result of your choice.",
             nextPracticeFocus: "Add what changed after you set the priority.",
         },
-        evidence: [],
         evidenceFirst: {
             contractVersion: "candidate_evidence_first_v2",
             inputFingerprint,
-            feedbackPlan: {
-                centralRead: "The answer explains the action but not the result.",
-                signal: { valence: "mixed", detectability: "moderate" },
-                primaryAnchor: { kind: "pattern_gap", id: "missing_outcome" },
-                intervention: "revise_answer",
-            },
             candidateFeedback: {
                 status: "candidate_safe_feedback",
                 schemaVersion: 1,
@@ -300,19 +261,47 @@ function createEvidenceFirstProviderResult() {
                 },
                 deliveryNote: null,
             },
-            criteria: [{
-                criterionId: "impact_judgment_takeaway",
-                applicability: "observed",
-                band: "emerging",
-                evidenceSpanIds: ["span-1"],
-                reasonCode: "result_not_named",
-            }],
-            patternGap: {
-                id: "missing_outcome",
-                severity: "medium",
-                upgrade: "Add the result of the priority decision.",
-                redoPattern: ["Name the action", "Name the result"],
-                source: "criterion_appraisal",
+            interaction: {
+                intervention: "revise_answer",
+            },
+            appraisal: {
+                answerUsability: {
+                    status: "usable",
+                    reasonCode: "fixture_usable_answer",
+                },
+                technicalAccuracy: {
+                    status: "not_assessed",
+                },
+                criteria: [
+                    "answer_focus",
+                    "organization",
+                    "evidence_specificity",
+                    "role_skill_signal",
+                    "impact_judgment_takeaway",
+                ].map((criterionId) => ({
+                    criterionId,
+                    applicability: "observed",
+                    band: "emerging",
+                    reasonCode: criterionId === "impact_judgment_takeaway"
+                        ? "result_not_named"
+                        : `fixture_${criterionId}`,
+                })),
+                questionPreparedness: {
+                    status: "rated",
+                    policyVersion: "candidate_question_preparedness_v1",
+                    band: "emerging",
+                    ratedCriterionCount: 5,
+                    notElicitedCriterionCount: 0,
+                    unavailableCriterionCount: 0,
+                    constraints: [],
+                },
+                patternGap: {
+                    id: "missing_outcome",
+                    severity: "medium",
+                    upgrade: "Add the result of the priority decision.",
+                    redoPattern: ["Name the action", "Name the result"],
+                    source: "criterion_appraisal",
+                },
             },
         },
     };

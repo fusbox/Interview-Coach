@@ -96,7 +96,7 @@ function createArtifact(): CandidateCoachUpdateArtifactRecord {
         generationAttempt: 1,
         lifecycleState: "completed",
         candidateSafeContent: {
-            status: "candidate_coach_update_content_v1",
+            status: "candidate_coach_update_content_v3",
             targetRole: "Material Handler I",
             title: "Material Handler I practice update",
             summary: "I reviewed your practiced answer.",
@@ -116,7 +116,6 @@ function createArtifact(): CandidateCoachUpdateArtifactRecord {
                     acknowledgement: "You chose a relevant work example.",
                     observation: "Your answer includes the task, but the result is still missing.",
                     nextPracticeFocus: "Add the result of the inventory count.",
-                    overallBand: "clear",
                 },
                 comparison: {
                     kind: "first_practice",
@@ -127,6 +126,7 @@ function createArtifact(): CandidateCoachUpdateArtifactRecord {
                     candidatePracticeSessionId: "session-1",
                     questionKey: "slot-1",
                 },
+                transcriptCanvas: null,
             }],
         },
         validation: { disposition: "accepted" },

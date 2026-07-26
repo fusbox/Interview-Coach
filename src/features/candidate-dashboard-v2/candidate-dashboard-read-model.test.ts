@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { createCandidateQuestionPlan } from "@/features/candidate-session-v2/candidate-question-plan";
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
+import { createCandidateAnswerAnalysisProviderResultFixture } from "@/features/candidate-session-v2/candidate-answer-analysis-test-fixture";
 
 import type { CandidateCoachUpdateArtifactRecord } from "./candidate-coach-update-artifact";
 import { createCandidateDashboardV2ReadModel } from "./candidate-dashboard-read-model";
@@ -118,6 +119,21 @@ describe("candidate dashboard V2 read model", () => {
             "older-session",
         ]);
         expect(model.postRoundReviews).toHaveLength(2);
+    });
+
+    it("keeps the dashboard available when optional preparedness history cannot be read", () => {
+        const model = createCandidateDashboardV2ReadModel({
+            candidateProfileId: "candidate-1",
+            practiceSessions: [createActiveSession()],
+            answerAttempts: null,
+            acceptedEvaluationRuns: null,
+        });
+
+        expect(model.activeRound).toMatchObject({
+            status: "candidate_dashboard_active_round",
+            candidatePracticeSessionId: "active-session",
+        });
+        expect(model.questionPreparedness).toBeNull();
     });
 
     it("scopes dashboard guidance to one selected target interview context before choosing next actions", () => {
@@ -866,9 +882,7 @@ function createCompletedSession({
         },
         answerIdempotencyRecords: {},
         answerAnalysisSnapshots: {
-            "slot-1": {
-                status: "answer_analysis_provider_result",
-                provider: "candidate_v2_answer_evaluator",
+            "slot-1": createCandidateAnswerAnalysisProviderResultFixture({
                 analyzedAt: "2026-07-11T11:31:00.000Z",
                 answer: {
                     slotId: "slot-1",
@@ -879,12 +893,7 @@ function createCompletedSession({
                     observation: "The answer connects to the job, but it can use one sharper detail.",
                     nextPracticeFocus: focus,
                 },
-                evidence: [{
-                    criterionId: "focus_relevance",
-                    applicability: "observed",
-                    score: 3.5,
-                }],
-            },
+            }),
         },
         feedbackActionEvents: {},
         completionSnapshot: {
@@ -938,7 +947,7 @@ function createCoachUpdateArtifact({
         generationAttempt,
         lifecycleState: "completed",
         candidateSafeContent: {
-            status: "candidate_coach_update_content_v1",
+            status: "candidate_coach_update_content_v3",
             targetRole: "Material Handler I",
             title: "Material Handler I practice update",
             summary: "I reviewed your practiced answer.",
@@ -958,7 +967,6 @@ function createCoachUpdateArtifact({
                     acknowledgement: "You gave me a direct starting point.",
                     observation: "Your answer connects to the role.",
                     nextPracticeFocus: "Add one concrete result.",
-                    overallBand: "clear",
                 },
                 comparison: {
                     kind: "first_practice",
@@ -969,6 +977,7 @@ function createCoachUpdateArtifact({
                     candidatePracticeSessionId: sourceSessionId,
                     questionKey: "slot-1",
                 },
+                transcriptCanvas: null,
             }],
         },
         validation: { disposition: "accepted" },

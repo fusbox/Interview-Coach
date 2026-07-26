@@ -26,6 +26,18 @@ describe("Google candidate question wording adapter", () => {
         expect(GOOGLE_CANDIDATE_QUESTION_WORDING_CONFIGURATION_MANIFEST.responseSchemaFingerprint).toBe(
             createHash("sha256").update(JSON.stringify(GOOGLE_CANDIDATE_QUESTION_WORDING_RESPONSE_SCHEMA)).digest("hex"),
         );
+        expect(GOOGLE_CANDIDATE_QUESTION_WORDING_PROFILE_ID).toBe(
+            "google_gemini_2_5_flash_question_wording_v2",
+        );
+        expect(GOOGLE_CANDIDATE_QUESTION_WORDING_SYSTEM_INSTRUCTION.join("\n")).toContain(
+            "prefer demonstrated tool or process use",
+        );
+        expect(GOOGLE_CANDIDATE_QUESTION_WORDING_SYSTEM_INSTRUCTION.join("\n")).toContain(
+            "Do not ask for exact numerical standards",
+        );
+        expect(GOOGLE_CANDIDATE_QUESTION_WORDING_SYSTEM_INSTRUCTION.join("\n")).toContain(
+            "do not use your own knowledge",
+        );
     });
 
     it("selects one exact server profile without retaining its credential", () => {

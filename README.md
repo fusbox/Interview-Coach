@@ -9,7 +9,7 @@ This repository contains two important product generations:
 - the recruiter-led V1 application, including recruiter-created invitations and invited candidate practice; and
 - the cleanroom candidate V2 rebuild on `feature/candidate-v2-rebuild`, with host-authenticated setup, evidence-first coaching, Coach Update, follow-up practice, and a candidate dashboard.
 
-V2 intentionally reuses proven V1 behavior only after review. Current candidate implementation truth lives in [docs/candidate-app/HANDOFF.md](docs/candidate-app/HANDOFF.md).
+V2 intentionally reuses proven V1 behavior only after review. Current implementation truth lives in [docs/HANDOFF.md](docs/HANDOFF.md).
 
 ## Stack
 
@@ -31,7 +31,7 @@ V2 intentionally reuses proven V1 behavior only after review. Current candidate 
 npm install
 ```
 
-2. Configure `.env.local` and the disposable PostgreSQL database using [Local Dev Bootstrap](docs/candidate-app/09-dev/local-dev-bootstrap.md).
+2. Configure `.env.local` and the disposable PostgreSQL database using [Local Dev Bootstrap](docs/09-dev/local-dev-bootstrap.md).
 
 3. Start the app:
 
@@ -76,10 +76,10 @@ Full-repository checks can include unrelated V1 or local prototype debt. Do not 
 ## Documentation
 
 - [Documentation index and cleanup roadmap](docs/README.md)
-- [Candidate V2 handoff](docs/candidate-app/HANDOFF.md)
-- [Candidate V2 spec](docs/candidate-app/SPEC.md)
-- [Candidate V2 data contract](docs/candidate-app/DATA_CONTRACT.md)
-- [Candidate V2 docs by concern](docs/candidate-app/README.md)
+- [Candidate V2 handoff](docs/HANDOFF.md)
+- [Candidate V2 spec](docs/SPEC.md)
+- [Candidate V2 data contract](docs/DATA_CONTRACT.md)
+- [Candidate V2 docs by concern](docs/README.md)
 - [Recruiter-led V1/shared app archive](docs/reference-archive/recruiter-v1/README.md)
 - [Contributing guide](CONTRIBUTING.md)
 

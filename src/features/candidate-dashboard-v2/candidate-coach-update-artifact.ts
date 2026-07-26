@@ -11,6 +11,7 @@ import type {
 import { createCandidateAnswerCoachingFacts } from "@/features/candidate-session-v2/candidate-coaching-facts";
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 import { parseAcceptedEvidenceFirstEvaluatorRun } from "@/features/evaluation-v2/evidence-first-evaluator-runtime";
+import { findProhibitedCandidateJudgments } from "@/features/evaluation-v2/candidate-generated-language-policy";
 
 import {
     createCandidateTranscriptCanvasProjection,
@@ -61,19 +62,8 @@ export type CandidateCoachUpdateArtifactRecord = {
     updatedAt: string;
 };
 
-export type CandidateCoachUpdateContent = CandidateCoachUpdateContentV1 | CandidateCoachUpdateContentV2;
-
-export type CandidateCoachUpdateContentV1 = {
-    status: "candidate_coach_update_content_v1";
-    targetRole: string;
-    title: string;
-    summary: string;
-    primaryFocus: string;
-    questions: CandidateCoachUpdateContentQuestionV1[];
-};
-
-export type CandidateCoachUpdateContentV2 = {
-    status: "candidate_coach_update_content_v2";
+export type CandidateCoachUpdateContent = {
+    status: "candidate_coach_update_content_v3";
     targetRole: string;
     title: string;
     summary: string;
@@ -96,7 +86,6 @@ type CandidateCoachUpdateContentQuestionBase = {
         acknowledgement: string;
         observation: string;
         nextPracticeFocus: string;
-        overallBand: "not_enough_evidence" | "emerging" | "clear" | "strong";
     };
     comparison: {
         kind: "first_practice" | "repeat_practice";
@@ -108,8 +97,6 @@ type CandidateCoachUpdateContentQuestionBase = {
         questionKey: string;
     };
 };
-
-export type CandidateCoachUpdateContentQuestionV1 = CandidateCoachUpdateContentQuestionBase;
 
 export type CandidateCoachUpdateContentQuestion = CandidateCoachUpdateContentQuestionBase & {
     transcriptCanvas: CandidateTranscriptCanvasProjection | null;
@@ -302,7 +289,7 @@ export function createCandidateCoachUpdateSynthesisInput({
 
 export function createFixtureCandidateCoachUpdateContent(
     input: CandidateCoachUpdateSynthesisInput,
-): CandidateCoachUpdateContentV2 {
+): CandidateCoachUpdateContent {
     const questions = input.questions.map((question) => {
         const coaching = createCandidateAnswerCoachingFacts(question.acceptedAnalysis);
         const priorCount = question.priorComparableAttempts.length;
@@ -321,7 +308,6 @@ export function createFixtureCandidateCoachUpdateContent(
                 acknowledgement: coaching.coachFeedback.acknowledgement,
                 observation: coaching.coachFeedback.observation,
                 nextPracticeFocus: coaching.coachFeedback.nextPracticeFocus,
-                overallBand: coaching.overallRead.band,
             },
             comparison: {
                 kind: priorCount > 0 ? "repeat_practice" as const : "first_practice" as const,
@@ -337,7 +323,7 @@ export function createFixtureCandidateCoachUpdateContent(
     const questionNoun = input.answeredCount === 1 ? "question" : "questions";
 
     return {
-        status: "candidate_coach_update_content_v2",
+        status: "candidate_coach_update_content_v3",
         targetRole: input.targetRole,
         title: `${input.targetRole} practice update`,
         summary: `I reviewed your ${input.answeredCount} practiced ${questionNoun} and connected each update to accepted coaching evidence.`,
@@ -353,10 +339,10 @@ export function validateCandidateCoachUpdateContent({
     input: CandidateCoachUpdateSynthesisInput;
     content: CandidateCoachUpdateContent;
 }) {
-    return isCandidateCoachUpdateContentV2(content)
+    return isCandidateCoachUpdateContent(content)
         && content.targetRole === input.targetRole
         && content.questions.length === input.questions.length
-        && !containsProhibitedGeneratedLanguage(content)
+        && !containsProhibitedGeneratedLanguage(content, input)
         && content.questions.every((question, index) => {
             const source = input.questions[index];
             return question.questionKey === source.questionKey
@@ -367,7 +353,10 @@ export function validateCandidateCoachUpdateContent({
         });
 }
 
-function containsProhibitedGeneratedLanguage(content: CandidateCoachUpdateContent) {
+function containsProhibitedGeneratedLanguage(
+    content: CandidateCoachUpdateContent,
+    input?: CandidateCoachUpdateSynthesisInput,
+) {
     const generatedText = [
         content.title,
         content.summary,
@@ -379,10 +368,23 @@ function containsProhibitedGeneratedLanguage(content: CandidateCoachUpdateConten
             question.comparison.message,
         ]),
     ];
-    return generatedText.some((value) => (
-        /\b(score|scored|scoring|grade|graded|grading|percentile|rank|ranked|ranking|pass|passed|passing|fail|failed|failing)\b/i.test(value)
-        || /\b\d{1,3}\s*%\b/.test(value)
-    ));
+    const sourceTexts = input
+        ? [
+            input.targetRole,
+            ...input.questions.flatMap((question) => [
+                question.questionText,
+                question.answerAttempt.answerText,
+                ...question.priorComparableAttempts.map((attempt) => attempt.answerAttempt.answerText),
+            ]),
+        ]
+        : [
+            content.targetRole,
+            ...content.questions.flatMap((question) => [
+                question.questionText,
+                question.answer.text,
+            ]),
+        ];
+    return findProhibitedCandidateJudgments(generatedText, { sourceTexts }).length > 0;
 }
 
 export function normalizeCandidateCoachUpdateArtifactRecord(value: unknown): CandidateCoachUpdateArtifactRecord | null {
@@ -444,7 +446,7 @@ export function normalizeCandidateCoachUpdateArtifactRecord(value: unknown): Can
     if (record.lifecycleState === "requested" && (record.candidateSafeContent || record.completedAt || record.errorCode)) return null;
     if ((record.lifecycleState === "failed" || record.lifecycleState === "rejected") && (!record.completedAt || !record.errorCode)) return null;
     if (
-        record.candidateSafeContent?.status === "candidate_coach_update_content_v2"
+        record.candidateSafeContent?.status === "candidate_coach_update_content_v3"
         && record.candidateSafeContent.questions.some((question) => (
             question.transcriptCanvas
             && (
@@ -586,14 +588,10 @@ export function parseCandidateCoachUpdateContent(value: unknown): CandidateCoach
 }
 
 function isCandidateCoachUpdateContent(value: unknown): value is CandidateCoachUpdateContent {
-    return isCandidateCoachUpdateContentV1(value) || isCandidateCoachUpdateContentV2(value);
-}
-
-function isCandidateCoachUpdateContentV1(value: unknown): value is CandidateCoachUpdateContentV1 {
     if (
         !isRecord(value)
         || !hasExactKeys(value, ["status", "targetRole", "title", "summary", "primaryFocus", "questions"])
-        || value.status !== "candidate_coach_update_content_v1"
+        || value.status !== "candidate_coach_update_content_v3"
         || !readString(value.targetRole)
         || !readString(value.title)
         || !readString(value.summary)
@@ -602,26 +600,10 @@ function isCandidateCoachUpdateContentV1(value: unknown): value is CandidateCoac
         || value.questions.length === 0
     ) return false;
 
-    return value.questions.every((question) => isCandidateCoachUpdateQuestionBase(question, false));
+    return value.questions.every((question) => isCandidateCoachUpdateQuestionBase(question));
 }
 
-function isCandidateCoachUpdateContentV2(value: unknown): value is CandidateCoachUpdateContentV2 {
-    if (
-        !isRecord(value)
-        || !hasExactKeys(value, ["status", "targetRole", "title", "summary", "primaryFocus", "questions"])
-        || value.status !== "candidate_coach_update_content_v2"
-        || !readString(value.targetRole)
-        || !readString(value.title)
-        || !readString(value.summary)
-        || !readString(value.primaryFocus)
-        || !Array.isArray(value.questions)
-        || value.questions.length === 0
-    ) return false;
-
-    return value.questions.every((question) => isCandidateCoachUpdateQuestionBase(question, true));
-}
-
-function isCandidateCoachUpdateQuestionBase(value: unknown, expectsTranscriptCanvas: boolean) {
+function isCandidateCoachUpdateQuestionBase(value: unknown) {
     const expectedKeys = [
         "questionKey",
         "questionNumber",
@@ -631,7 +613,7 @@ function isCandidateCoachUpdateQuestionBase(value: unknown, expectsTranscriptCan
         "coaching",
         "comparison",
         "source",
-        ...(expectsTranscriptCanvas ? ["transcriptCanvas"] : []),
+        "transcriptCanvas",
     ];
     const question = value;
     if (
@@ -648,11 +630,10 @@ function isCandidateCoachUpdateQuestionBase(value: unknown, expectsTranscriptCan
         || !readExactNonBlankString(question.answer.text)
         || !readTimestamp(question.answer.submittedAt)
         || !isRecord(question.coaching)
-        || !hasExactKeys(question.coaching, ["acknowledgement", "observation", "nextPracticeFocus", "overallBand"])
+        || !hasExactKeys(question.coaching, ["acknowledgement", "observation", "nextPracticeFocus"])
         || !readString(question.coaching.acknowledgement)
         || !readString(question.coaching.observation)
         || !readString(question.coaching.nextPracticeFocus)
-        || !["not_enough_evidence", "emerging", "clear", "strong"].includes(String(question.coaching.overallBand))
         || !isRecord(question.comparison)
         || !hasExactKeys(question.comparison, ["kind", "priorComparableAttemptCount", "message"])
         || !["first_practice", "repeat_practice"].includes(String(question.comparison.kind))
@@ -665,8 +646,7 @@ function isCandidateCoachUpdateQuestionBase(value: unknown, expectsTranscriptCan
     ) return false;
 
     if (
-        expectsTranscriptCanvas
-        && question.transcriptCanvas !== null
+        question.transcriptCanvas !== null
         && !normalizeCandidateTranscriptCanvasProjection(question.transcriptCanvas, {
             candidateAnswerAttemptId: readString(question.answer.candidateAnswerAttemptId)!,
             text: readExactNonBlankString(question.answer.text)!,

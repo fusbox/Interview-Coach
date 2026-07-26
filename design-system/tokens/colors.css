@@ -1,169 +1,187 @@
-/* Color tokens — copied verbatim from Interview-Coach-Recruiter-postgres/src/index.css.
-   Convention (as in source): HSL triplets, consumed as hsl(var(--token)).
-   Candidate tokens are RGB triplets, consumed as rgb(var(--candidate-token)). */
+/* Global color tokens.
+   Every value is stored as an RGB triplet and consumed as
+   rgb(var(--token) / <alpha-value>). OKLCH may be used while authoring and
+   calibrating palettes, but committed runtime values use this one format. */
 
 :root {
-    /* Neutral foundation */
-    --background: 0 0% 100%; /* @kind color */
-    --foreground: 222.2 84% 4.9%; /* @kind color */
-    --card: 0 0% 100%; /* @kind color */
-    --card-foreground: 222.2 84% 4.9%; /* @kind color */
-    --popover: 0 0% 100%; /* @kind color */
-    --popover-foreground: 222.2 84% 4.9%; /* @kind color */
-    --muted: 210 40% 96.1%; /* @kind color */
-    --muted-foreground: 215.4 16.3% 46.9%; /* @kind color */
-    --border: 214.3 31.8% 91.4%; /* @kind color */
-    --input: 214.3 31.8% 91.4%; /* @kind color */
+    /* Brand and neutral */
+    --background: 248 250 252; /* @kind color */
+    --surface: 255 255 255; /* @kind color */
+    --surface-subtle: 248 250 252; /* @kind color */
+    --surface-alt: 247 249 252; /* @kind color */
+    --surface-elevated: 252 253 255; /* @kind color */
+    --border: 213 220 232; /* @kind color */
+    --foreground: 18 32 57; /* @kind color */
+    --muted: 89 105 132; /* @kind color */
+    --placeholder: 149 163 184; /* @kind color */
+    --primary: 11 87 206; /* @kind color */
+    --primary-hover: 0 71 189; /* @kind color */
+    --primary-active: 0 54 172; /* @kind color */
+    --primary-deep: 0 40 159; /* @kind color */
+    --primary-soft: 227 241 255; /* @kind color */
+    --secondary-brand: 232 116 46; /* @kind color */
+    --secondary-soft: 255 234 220; /* @kind color */
+    --accent: 23 160 121; /* @kind color */
+    --accent-soft: 219 248 235; /* @kind color */
+    --success: 27 160 96; /* @kind color */
 
-    /* Semantic actions */
-    --primary: 217 90% 43%; /* @kind color */
-    --primary-foreground: 210 40% 98%; /* @kind color */
-    --secondary: 210 40% 96.1%; /* @kind color */
-    --secondary-foreground: 222.2 47.4% 11.2%; /* @kind color */
-    --accent: 210 40% 96.1%; /* @kind color */
-    --accent-foreground: 222.2 47.4% 11.2%; /* @kind color */
-    --destructive: 0 84.2% 60.2%; /* @kind color */
-    --destructive-text: 0 66% 38%; /* @kind color */
-    --destructive-foreground: 210 40% 98%; /* @kind color */
-    --ring: 222.2 84% 4.9%; /* @kind color */
+    /* ── Solid-fill family — for a color used as a SOLID BACKGROUND under
+       white/near-white foreground text or icons (buttons, spotlight,
+       badges). Distinct from --primary/--accent above, which are tuned to
+       be a bright FOREGROUND against the page's own background (text,
+       icons, links, thin strokes) — brightening those for dark mode is
+       correct, but reusing that brightened value as a fill's background
+       breaks contrast for the text sitting on top of it, and glares
+       against a dark ground. Light values mirror --primary/--accent
+       exactly; dark values stay deep and are contrast-checked (>=4.5:1
+       against white). */
+    --primary-solid: 11 87 206; /* @kind color */
+    --primary-solid-hover: 0 71 189; /* @kind color */
+    --primary-solid-active: 0 54 172; /* @kind color */
+    --primary-solid-deep: 0 40 159; /* @kind color */
+    --accent-solid: 23 160 121; /* @kind color */
 
-    /* Brand */
-    --primary-deep: 225 100% 31%; /* @kind color */
-    --brand-orange: 23 80% 55%; /* @kind color */
-    --brand-glass-start: 214 80% 95%; /* @kind color */
-    --brand-glass-end: 214 80% 90%; /* @kind color */
+    /* On-glass ink + hairline (over colored surfaces) */
+    --glass-ink: 255 255 255; /* @kind color */
+    --glass-tint: 255 255 255; /* @kind color */
 
-    /* Canonical semantics */
-    --surface-base: 0 0% 100%; /* @kind color */
-    --surface-subtle: 210 40% 98%; /* @kind color */
-    --surface-platinum: 215 25% 50%; /* @kind color */
-    --surface-raised: 0 0% 100%; /* @kind color */
-    --surface-overlay: 0 0% 100%; /* @kind color */
+    /* Structural primitives used by shared components. */
+    --card: 255 255 255; /* @kind color */
+    --card-foreground: 2 8 23; /* @kind color */
+    --popover: 255 255 255; /* @kind color */
+    --popover-foreground: 2 8 23; /* @kind color */
+    --input: 226 232 240; /* @kind color */
+    --primary-foreground: 248 250 252; /* @kind color */
+    --secondary: 241 245 249; /* @kind color */
+    --secondary-foreground: 15 23 42; /* @kind color */
+    --accent-foreground: 15 23 42; /* @kind color */
+    --accent-alt: 124 59 237; /* @kind color */
+    --accent-alt-solid: 124 59 237; /* @kind color, solid-fill variant, see note above */
+    --destructive: 239 68 68; /* @kind color */
+    --destructive-foreground: 248 250 252; /* @kind color */
+    --ring: 11 87 208; /* @kind color */
+    --muted-foreground: 100 116 139; /* @kind color */
+    --brand-orange: 232 119 48; /* @kind color */
+    --brand-glass-start: 232 241 252; /* @kind color */
+    --brand-glass-end: 209 227 250; /* @kind color */
+    --surface-base: 255 255 255; /* @kind color */
+    --surface-platinum: 96 122 159; /* @kind color */
+    --surface-raised: 255 255 255; /* @kind color */
+    --surface-overlay: 255 255 255; /* @kind color */
+    --text-primary: 2 8 23; /* @kind color */
+    --text-secondary: 100 116 139; /* @kind color */
+    --text-muted: 100 116 139; /* @kind color */
+    --text-inverse: 255 255 255; /* @kind color */
+    --state-success: 37 147 110; /* @kind color */
+    --state-warning: 245 159 10; /* @kind color */
+    --state-critical: 239 68 68; /* @kind color */
+    --state-info: 11 87 208; /* @kind color */
+    --success-foreground: 255 255 255; /* @kind color */
+    --warning: 245 159 10; /* @kind color */
+    --warning-foreground: 15 23 41; /* @kind color */
+    --chart-1: 231 110 80; /* @kind color */
+    --chart-2: 42 157 144; /* @kind color */
+    --chart-3: 39 71 84; /* @kind color */
+    --chart-4: 232 196 104; /* @kind color */
+    --chart-5: 244 164 98; /* @kind color */
 
-    --text-primary: 222.2 84% 4.9%; /* @kind color */
-    --text-secondary: 215.4 16.3% 46.9%; /* @kind color */
-    --text-muted: 215.4 16.3% 46.9%; /* @kind color */
-    --text-inverse: 0 0% 100%; /* @kind color */
-
-    --state-success: 139 53% 34%; /* @kind color */ /* #298646, nudged leaf green */
-    --state-warning: 47 76% 52%; /* @kind color */ /* #E2B926, nudged gold */
-    --state-critical: 0 84.2% 60.2%; /* @kind color */
-    --state-info: 217 90% 43%; /* @kind color */
-
-    --readiness-high: 160 60% 36%; /* @kind color */
-    --readiness-medium: 38 92% 50%; /* @kind color */
-    --readiness-low: 0 84.2% 60.2%; /* @kind color */
-    --readiness-unknown: 214.3 31.8% 91.4%; /* @kind color */
-    --accent-alt: 262 83% 58%; /* @kind color */
-
-    /* ── Preparedness ramp — CANONICAL (botanical growth scale) ──────────────
-       Locked selection: "A✷ · Ripening, warm start". Ordered, positive-only —
-       even the lowest state is neutral slate, never a red mark. Expressed in
-       OKLCH (full color values, not triplets) so the ramp reads as one ordered
-       family: lightness carries the order, hue drifts slate → warm → green.
-       Each step ships a -dot (the mark), -tint (chip bg) and -text (label). */
-    --prep-not-practiced:      oklch(0.72 0.02 240);  /* @kind color */ /* slate, dormant */
-    --prep-not-practiced-tint: #F1F5F9;               /* @kind color */
-    --prep-not-practiced-text: oklch(0.46 0.03 240);  /* @kind color */
-    --prep-emerging:      oklch(0.82 0.09 100);       /* @kind color */ /* warm shoot */
-    --prep-emerging-tint: oklch(0.96 0.035 100);      /* @kind color */
-    --prep-emerging-text: oklch(0.44 0.07 100);       /* @kind color */
-    --prep-clear:      oklch(0.62 0.15 143);          /* @kind color */ /* established green */
-    --prep-clear-tint: oklch(0.94 0.07 143);          /* @kind color */
-    --prep-clear-text: oklch(0.42 0.10 143);          /* @kind color */
-    --prep-strong:      oklch(0.50 0.12 160);         /* @kind color */ /* deep brand green */
-    --prep-strong-tint: oklch(0.93 0.05 160);         /* @kind color */
-    --prep-strong-text: oklch(0.36 0.10 160);         /* @kind color */
-
-    --success: 139 53% 34%; /* @kind color */
-    --success-soft: 130 59% 92%; /* @kind color */
-    --success-text: 141 67% 20%; /* @kind color */
-    --success-foreground: 0 0% 100%; /* @kind color */
-    --warning: 47 76% 52%; /* @kind color */
-    --warning-soft: 45 80% 90%; /* @kind color */
-    --warning-text: 48 83% 23%; /* @kind color */
-    --warning-foreground: 222 47% 11%; /* @kind color */
-
-    --chart-1: 12 76% 61%; /* @kind color */
-    --chart-2: 173 58% 39%; /* @kind color */
-    --chart-3: 197 37% 24%; /* @kind color */
-    --chart-4: 43 74% 66%; /* @kind color */
-    --chart-5: 27 87% 67%; /* @kind color */
-
-    /* Candidate design-system bridge (RGB triplets — original prototype language
-       used by all job-seeker surfaces) */
-    --candidate-background: 248 250 252; /* @kind color */
-    --candidate-surface: 255 255 255; /* @kind color */
-    --candidate-border: 213 220 232; /* @kind color */
-    --candidate-foreground: 18 32 57; /* @kind color */
-    --candidate-display-foreground: 30 46 74; /* @kind color */
-    --candidate-muted: 89 105 132; /* @kind color */
-    --candidate-placeholder: 149 163 184; /* @kind color */
-    --candidate-primary: 11 87 206; /* @kind color */
-    --candidate-primary-hover: 0 71 189; /* @kind color */
-    --candidate-primary-active: 0 54 172; /* @kind color */
-    --candidate-primary-deep: 0 40 159; /* @kind color */
-    --candidate-on-primary: 255 255 255; /* @kind color */
-    --candidate-primary-soft: 227 241 255; /* @kind color */
-    --candidate-primary-wash: 238 247 255; /* @kind color */
-    --candidate-secondary-brand: 232 116 46; /* @kind color */
-    --candidate-secondary-soft: 255 234 220; /* @kind color */
-    --candidate-accent: 23 160 121; /* @kind color */
-    --candidate-accent-soft: 219 248 235; /* @kind color */
-    --candidate-accent-wash: 234 252 244; /* @kind color */
-    --candidate-success: 27 160 96; /* @kind color */
+    /* Preparedness ramp - ordered and positive-only.
+       Perceptual lightness carries the order; hue moves slate to warm to green.
+       This is the only preparedness color model. */
+    --prep-not-practiced:      154 167 176;  /* @kind color */
+    --prep-not-practiced-tint: 241 245 249;               /* @kind color */
+    --prep-not-practiced-text: 73 91 103;  /* @kind color */
+    --prep-emerging:      209 198 129;       /* @kind color */
+    --prep-emerging-tint: 247 243 216;      /* @kind color */
+    --prep-emerging-text: 92 83 33;       /* @kind color */
+    --prep-clear:      71 156 68;          /* @kind color */
+    --prep-clear-tint: 209 248 205;          /* @kind color */
+    --prep-clear-text: 39 90 37;          /* @kind color */
+    --prep-strong:      0 119 75;         /* @kind color */
+    --prep-strong-tint: 204 243 221;         /* @kind color */
+    --prep-strong-text: 0 76 42;         /* @kind color */
 }
 
+/* Dark theme - first pass.
+   One navy-blue family (~215-220°) derived from the brand. Brand blue is
+   BRIGHTENED so it stays legible on a dark ground; the prep ramp is
+   re-tuned (lighter marks, darker tints), never inverted. Tune against real
+   screens as production surfaces land. */
 .dark {
-    --background: 222.2 84% 4.9%; /* @kind color */
-    --foreground: 210 40% 98%; /* @kind color */
-    --card: 222.2 84% 4.9%; /* @kind color */
-    --card-foreground: 210 40% 98%; /* @kind color */
-    --popover: 222.2 84% 4.9%; /* @kind color */
-    --popover-foreground: 210 40% 98%; /* @kind color */
-    --muted: 217.2 32.6% 17.5%; /* @kind color */
-    --muted-foreground: 215 20.2% 65.1%; /* @kind color */
-    --border: 217.2 32.6% 17.5%; /* @kind color */
-    --input: 217.2 32.6% 17.5%; /* @kind color */
-    --primary: 210 40% 98%; /* @kind color */
-    --primary-foreground: 222.2 47.4% 11.2%; /* @kind color */
-    --secondary: 217.2 32.6% 17.5%; /* @kind color */
-    --secondary-foreground: 210 40% 98%; /* @kind color */
-    --accent: 217.2 32.6% 17.5%; /* @kind color */
-    --accent-foreground: 210 40% 98%; /* @kind color */
-    --accent-alt: 262 70% 68%; /* @kind color */
-    --destructive: 0 62.8% 30.6%; /* @kind color */
-    --destructive-text: 0 72% 76%; /* @kind color */
-    --destructive-foreground: 210 40% 98%; /* @kind color */
-    --ring: 212.7 26.8% 83.9%; /* @kind color */
-    --primary-deep: 225 90% 58%; /* @kind color */
-    --brand-orange: 20 100% 49%; /* @kind color */
-    --brand-glass-start: 222 47% 7%; /* @kind color */
-    --brand-glass-end: 222 47% 13%; /* @kind color */
-    --surface-base: 222.2 84% 4.9%; /* @kind color */
-    --surface-subtle: 217.2 32.6% 17.5%; /* @kind color */
-    --surface-platinum: 217 33% 14%; /* @kind color */
-    --surface-raised: 217.2 32.6% 17.5%; /* @kind color */
-    --surface-overlay: 222.2 84% 4.9%; /* @kind color */
-    --text-primary: 210 40% 98%; /* @kind color */
-    --text-secondary: 215 20.2% 65.1%; /* @kind color */
-    --text-muted: 215 20.2% 65.1%; /* @kind color */
-    --text-inverse: 222.2 84% 4.9%; /* @kind color */
-    --state-success: 160 60% 40%; /* @kind color */
-    --state-warning: 38 92% 55%; /* @kind color */
-    --state-critical: 0 62.8% 30.6%; /* @kind color */
-    --state-info: 210 40% 98%; /* @kind color */
-    --readiness-high: 160 60% 40%; /* @kind color */
-    --readiness-medium: 38 92% 55%; /* @kind color */
-    --readiness-low: 0 62.8% 30.6%; /* @kind color */
-    --readiness-unknown: 217.2 32.6% 17.5%; /* @kind color */
-    --success: 160 60% 40%; /* @kind color */
-    --success-foreground: 222 47% 7%; /* @kind color */
-    --warning: 38 92% 55%; /* @kind color */
-    --warning-foreground: 222 47% 7%; /* @kind color */
-    --chart-1: 220 70% 50%; /* @kind color */
-    --chart-2: 160 60% 45%; /* @kind color */
-    --chart-3: 30 80% 55%; /* @kind color */
-    --chart-4: 280 65% 60%; /* @kind color */
-    --chart-5: 340 75% 55%; /* @kind color */
+    /* Brand + neutral (RGB) */
+    --background: 12 18 32; /* @kind color */
+    --surface: 20 28 46; /* @kind color */
+    --surface-subtle: 16 23 39; /* @kind color */
+    --surface-alt: 24 33 52; /* @kind color */
+    --surface-elevated: 28 38 58; /* @kind color */
+    --border: 42 54 78; /* @kind color */
+    --foreground: 226 232 243; /* @kind color */
+    --muted: 148 163 188; /* @kind color */
+    --placeholder: 96 110 136; /* @kind color */
+    --primary: 96 156 255; /* @kind color */
+    --primary-hover: 128 178 255; /* @kind color */
+    --primary-active: 158 196 255; /* @kind color */
+    --primary-deep: 64 124 232; /* @kind color */
+    --primary-soft: 28 42 74; /* @kind color */
+    --secondary-brand: 245 142 82; /* @kind color */
+    --secondary-soft: 58 40 28; /* @kind color */
+    --accent: 52 200 160; /* @kind color */
+    --accent-soft: 22 48 42; /* @kind color */
+    --success: 62 190 122; /* @kind color */
+    --primary-solid: 34 68 132; /* @kind color, ~9.4:1 vs white */
+    --primary-solid-hover: 44 82 152; /* @kind color */
+    --primary-solid-active: 24 50 104; /* @kind color */
+    --primary-solid-deep: 16 28 58; /* @kind color, ~16.8:1 vs white */
+    --accent-solid: 20 110 88; /* @kind color, ~6.2:1 vs white */
+    --glass-ink: 226 232 243; /* @kind color */
+    --glass-tint: 226 232 243; /* @kind color */
+
+    /* Structural primitives */
+    --card: 11 17 30; /* @kind color */
+    --card-foreground: 241 245 249; /* @kind color */
+    --popover: 11 17 30; /* @kind color */
+    --popover-foreground: 241 245 249; /* @kind color */
+    --input: 34 47 68; /* @kind color */
+    --primary-foreground: 11 17 30; /* @kind color */
+    --secondary: 34 47 68; /* @kind color */
+    --secondary-foreground: 241 245 249; /* @kind color */
+    --accent-foreground: 241 245 249; /* @kind color */
+    --accent-alt: 158 116 231; /* @kind color */
+    --accent-alt-solid: 83 31 173; /* @kind color, deep purple fill, contrast-checked vs white */
+    --destructive: 187 43 43; /* @kind color */
+    --destructive-foreground: 248 250 252; /* @kind color */
+    --ring: 85 147 246; /* @kind color */
+    --muted-foreground: 163 176 194; /* @kind color */
+    --brand-orange: 255 102 26; /* @kind color */
+    --brand-glass-start: 16 25 45; /* @kind color */
+    --brand-glass-end: 24 37 67; /* @kind color */
+    --surface-base: 11 17 30; /* @kind color */
+    --surface-platinum: 117 136 163; /* @kind color */
+    --surface-raised: 24 33 47; /* @kind color */
+    --surface-overlay: 11 17 30; /* @kind color */
+    --text-primary: 241 245 249; /* @kind color */
+    --text-secondary: 163 176 194; /* @kind color */
+    --text-muted: 133 150 173; /* @kind color */
+    --text-inverse: 11 17 30; /* @kind color */
+    --state-success: 52 178 136; /* @kind color */
+    --state-warning: 244 174 52; /* @kind color */
+    --state-critical: 221 60 60; /* @kind color */
+    --state-info: 85 147 246; /* @kind color */
+    --success-foreground: 11 17 30; /* @kind color */
+    --warning: 244 174 52; /* @kind color */
+    --warning-foreground: 11 17 30; /* @kind color */
+
+    /* Preparedness ramp — dark (re-tuned, not inverted) */
+    --prep-not-practiced:      124 136 145; /* @kind color */
+    --prep-not-practiced-tint: 32 42 50; /* @kind color */
+    --prep-not-practiced-text: 179 192 202; /* @kind color */
+    --prep-emerging:      205 192 114;      /* @kind color */
+    --prep-emerging-tint: 59 54 21;      /* @kind color */
+    --prep-emerging-text: 226 214 144;      /* @kind color */
+    --prep-clear:      96 182 93;         /* @kind color */
+    --prep-clear-tint: 24 57 23;         /* @kind color */
+    --prep-clear-text: 158 226 154;         /* @kind color */
+    --prep-strong:      53 170 118;        /* @kind color */
+    --prep-strong-tint: 13 57 38;        /* @kind color */
+    --prep-strong-text: 138 228 181;        /* @kind color */
 }

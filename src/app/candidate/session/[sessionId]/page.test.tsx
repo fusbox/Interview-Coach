@@ -5,6 +5,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { CandidatePlannedSessionExperience } from "@/features/candidate-session-v2/CandidatePlannedSessionExperience";
 import { CandidatePreSessionLanding } from "@/features/candidate-session-v2/CandidatePreSessionLanding";
 import type { CandidateAnswerAnalysisProviderResult } from "@/features/candidate-session-v2/candidate-answer-analysis-adapter";
+import { createCandidateAnswerAnalysisProviderResultFixture } from "@/features/candidate-session-v2/candidate-answer-analysis-test-fixture";
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 import { candidateAnswerAnalysisFixtureRunMetadata } from "@/features/candidate-session-v2/candidate-answer-analysis-fixture";
 import type { CandidateAnswerEvaluationRunRecord } from "@/features/candidate-session-v2/candidate-answer-history";
@@ -789,10 +790,10 @@ it("continues from saved coaching to the next live question", async () => {
 
     expect(screen.getByRole("heading", { name: "First, here is what I heard." })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Explore feedback" }));
-    const strengtheningHeading = await screen.findByRole("heading", { name: "What to strengthen" });
+    const strengtheningHeading = await screen.findByRole("heading", { name: "One useful focus" });
     await waitFor(() => expect(strengtheningHeading).toHaveFocus());
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    const nextStepHeading = await screen.findByRole("heading", { name: "What to do next" });
+    const nextStepHeading = await screen.findByRole("heading", { name: "Try the answer again" });
     await waitFor(() => expect(nextStepHeading).toHaveFocus());
     fireEvent.click(screen.getByRole("button", { name: "Continue to next question" }));
 
@@ -946,9 +947,9 @@ it("reopens a coached answer and submits the retry as a linked attempt", async (
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Explore feedback" }));
-    await screen.findByRole("heading", { name: "What to strengthen" });
+    await screen.findByRole("heading", { name: "One useful focus" });
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    await screen.findByRole("heading", { name: "What to do next" });
+    await screen.findByRole("heading", { name: "Try the answer again" });
     fireEvent.click(screen.getByRole("button", { name: "Retry my answer" }));
 
     const answer = await screen.findByRole("textbox", { name: "Type your answer" });
@@ -1067,9 +1068,9 @@ it("finishes the session from the last staged coaching step", async () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Explore feedback" }));
-    await screen.findByRole("heading", { name: "What to strengthen" });
+    await screen.findByRole("heading", { name: "One useful focus" });
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    await screen.findByRole("heading", { name: "What to do next" });
+    await screen.findByRole("heading", { name: "Try the answer again" });
     fireEvent.click(screen.getByRole("button", { name: "Finish session" }));
 
     expect(await screen.findByRole("heading", { name: "Preparing your Coach Plan" })).toBeInTheDocument();
@@ -1214,9 +1215,7 @@ function createSession(overrides: Partial<CandidateProvisionalSessionRecord> = {
 }
 
 function createAnalysisSnapshot(slotId: string, questionIndex: number): CandidateAnswerAnalysisProviderResult {
-    return {
-        status: "answer_analysis_provider_result",
-        provider: "candidate_v2_answer_evaluator",
+    return createCandidateAnswerAnalysisProviderResultFixture({
         analyzedAt: "2026-07-13T18:03:00.000Z",
         answer: {
             slotId,
@@ -1227,14 +1226,16 @@ function createAnalysisSnapshot(slotId: string, questionIndex: number): Candidat
             observation: "The answer would be stronger with a concrete outcome.",
             nextPracticeFocus: "Add what changed after your action.",
         },
-        evidence: [
-            {
-                criterionId: "answer_specificity",
-                applicability: "observed",
-                score: 3,
+        evidenceFirst: {
+            candidateFeedback: {
+                acknowledgement: "You named a practical first step.",
+                primaryStrength: null,
+                biggestUpgrade: "The answer would be stronger with a concrete outcome.",
+                redoPrompt: "Add what changed after your action.",
             },
-        ],
-    };
+            intervention: "polish_then_continue",
+        },
+    });
 }
 
 function createAnswerSubmission(slotId: string, questionIndex: number) {

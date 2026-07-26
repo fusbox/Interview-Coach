@@ -1,0 +1,17 @@
+# Decision Records
+
+This folder contains architecture decision records for choices that should remain easy to revisit.
+
+Current decisions:
+
+- [ADR-0001: Separate Candidate App Repository](./ADR-0001-separate-candidate-app-repository.md) - superseded by ADR-0006 for deployment/repo strategy
+- [ADR-0002: Postgres-Only Backend Direction](./ADR-0002-postgres-only-backend-direction.md)
+- [ADR-0003: Dev Auth And Mock Candidate Mode](./ADR-0003-dev-auth-and-mock-candidate-mode.md) - superseded by the V2 dev host-launch/session contract
+- [ADR-0004: Multiple Active Practice Drafts](./ADR-0004-multiple-active-practice-drafts.md)
+- [ADR-0005: Processed Resume Retention By Default](./ADR-0005-processed-resume-retention-by-default.md)
+- [ADR-0006: Shared Host And Azure Branch Integration](./ADR-0006-shared-host-and-azure-branch-integration.md)
+- [ADR-0007: Lightweight Candidate Documentation Stack](./ADR-0007-lightweight-candidate-doc-stack.md)
+- [ADR-0008: Coach Plan Dashboard Home Base](./ADR-0008-coach-plan-dashboard-home-base.md)
+- [ADR-0009: Parallel V2 Rebuild](./ADR-0009-parallel-v2-rebuild.md)
+- [ADR-0010: Evidence-First Dashboard And Practice Assembly](./ADR-0010-evidence-first-dashboard-and-practice-assembly.md)
+- [ADR-0011: Transcript-First Voice Answers](./ADR-0011-transcript-first-voice-answers.md)

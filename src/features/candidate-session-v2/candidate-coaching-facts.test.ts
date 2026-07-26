@@ -1,11 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import type { CandidateAnswerAnalysisProviderResult } from "./candidate-answer-analysis-adapter";
+import { createCandidateAnswerAnalysisProviderResultFixture } from "./candidate-answer-analysis-test-fixture";
 import { createCandidateAnswerCoachingFacts } from "./candidate-coaching-facts";
 
-const analysisSnapshot: CandidateAnswerAnalysisProviderResult = {
-    status: "answer_analysis_provider_result",
-    provider: "candidate_v2_answer_evaluator",
+const analysisSnapshot = createCandidateAnswerAnalysisProviderResultFixture({
     analyzedAt: "2026-07-10T21:00:00.000Z",
     answer: {
         slotId: "slot-1",
@@ -16,22 +14,45 @@ const analysisSnapshot: CandidateAnswerAnalysisProviderResult = {
         observation: "The answer would be stronger if you named the result.",
         nextPracticeFocus: "Add what changed after you made the decision.",
     },
-    evidence: [
-        {
-            criterionId: "answer_specificity",
-            applicability: "observed",
-            score: 3.4,
-        },
-        {
-            criterionId: "outcome_impact",
-            applicability: "not_elicited",
-        },
-        {
-            criterionId: "delivery_clarity",
-            applicability: "unscoreable",
-        },
-    ],
-};
+    evidenceFirst: {
+        technicalAccuracyStatus: "supported",
+        criteria: [
+            {
+                criterionId: "answer_focus",
+                applicability: "observed",
+                band: "clear",
+                evidenceSpanIds: [],
+                reasonCode: "direct_answer",
+            },
+            {
+                criterionId: "impact_judgment_takeaway",
+                applicability: "not_elicited",
+                evidenceSpanIds: [],
+                reasonCode: "question_did_not_elicit_impact",
+            },
+            {
+                criterionId: "organization",
+                applicability: "unscoreable",
+                evidenceSpanIds: [],
+                reasonCode: "transcription_unclear",
+            },
+            {
+                criterionId: "evidence_specificity",
+                applicability: "observed",
+                band: "clear",
+                evidenceSpanIds: [],
+                reasonCode: "specificity_clear",
+            },
+            {
+                criterionId: "role_skill_signal",
+                applicability: "observed",
+                band: "strong",
+                evidenceSpanIds: [],
+                reasonCode: "role_skill_strong",
+            },
+        ],
+    },
+});
 
 describe("candidate answer coaching facts", () => {
     it("maps an accepted analysis snapshot into candidate-safe downstream facts", () => {
@@ -48,84 +69,116 @@ describe("candidate answer coaching facts", () => {
                 observation: "The answer would be stronger if you named the result.",
                 nextPracticeFocus: "Add what changed after you made the decision.",
             },
-            overallRead: {
-                band: "clear",
-                headline: "Clear evidence",
-                description: "The practiced answer gives the coach enough evidence to show a clear pattern.",
-                observedCount: 1,
-                excludedCount: 2,
+            supportedStrength: "You kept the answer connected to the question.",
+            interaction: {
+                intervention: "revise_answer",
+                posture: "remediate",
+            },
+            appraisal: {
+                answerUsability: {
+                    status: "usable",
+                    reasonCode: "fixture_usable_answer",
+                },
+                technicalAccuracy: {
+                    status: "supported",
+                },
+                questionPreparedness: {
+                    status: "rated",
+                    policyVersion: "candidate_question_preparedness_v1",
+                    band: "clear",
+                    ratedCriterionCount: 3,
+                    notElicitedCriterionCount: 1,
+                    unavailableCriterionCount: 1,
+                    constraints: [],
+                },
+                patternGap: {
+                    id: "strengthen_evidence_specificity",
+                    severity: "medium",
+                    upgrade: "Add one concrete detail.",
+                    redoPattern: ["direct point", "specific evidence", "useful takeaway"],
+                    source: "criterion_appraisal",
+                },
             },
             criteriaFacts: [
                 {
-                    criterionId: "answer_specificity",
+                    criterionId: "answer_focus",
                     applicability: "observed",
                     band: "clear",
-                    evidenceState: "observed",
+                    reasonCode: "direct_answer",
                 },
                 {
-                    criterionId: "outcome_impact",
+                    criterionId: "impact_judgment_takeaway",
                     applicability: "not_elicited",
-                    band: "not_enough_evidence",
-                    evidenceState: "not_elicited",
+                    band: null,
+                    reasonCode: "question_did_not_elicit_impact",
                 },
                 {
-                    criterionId: "delivery_clarity",
+                    criterionId: "organization",
                     applicability: "unscoreable",
-                    band: "not_enough_evidence",
-                    evidenceState: "unscoreable",
+                    band: null,
+                    reasonCode: "transcription_unclear",
+                },
+                {
+                    criterionId: "evidence_specificity",
+                    applicability: "observed",
+                    band: "clear",
+                    reasonCode: "specificity_clear",
+                },
+                {
+                    criterionId: "role_skill_signal",
+                    applicability: "observed",
+                    band: "strong",
+                    reasonCode: "role_skill_strong",
                 },
             ],
             coverage: {
-                observedCriteriaIds: ["answer_specificity"],
-                notElicitedCriteriaIds: ["outcome_impact"],
+                observedCriteriaIds: ["answer_focus", "evidence_specificity", "role_skill_signal"],
+                notElicitedCriteriaIds: ["impact_judgment_takeaway"],
                 insufficientDataCriteriaIds: [],
-                unscoreableCriteriaIds: ["delivery_clarity"],
+                unscoreableCriteriaIds: ["organization"],
             },
         });
     });
 
-    it("does not expose raw scores or score averages in candidate-safe facts", () => {
+    it("does not expose raw scores, score averages, or a synthetic overall band", () => {
         const facts = createCandidateAnswerCoachingFacts(analysisSnapshot);
         const serializedFacts = JSON.stringify(facts);
 
-        expect(serializedFacts).not.toMatch(/"score"|"averageScore"|average/i);
-        expect(serializedFacts).not.toContain("3.4");
+        expect(serializedFacts).not.toMatch(/"score"|"averageScore"|"overallRead"|"overallBand"|average/i);
     });
 
-    it("treats non-observed evidence as coverage context rather than weak performance", () => {
-        const facts = createCandidateAnswerCoachingFacts({
-            ...analysisSnapshot,
-            evidence: [
+    it("preserves non-observed criteria as coverage context without inventing a weak band", () => {
+        const facts = createCandidateAnswerCoachingFacts(createCandidateAnswerAnalysisProviderResultFixture({
+            evidenceFirst: {
+                criteria: [
                 {
-                    criterionId: "outcome_impact",
+                    criterionId: "impact_judgment_takeaway",
                     applicability: "not_elicited",
+                    evidenceSpanIds: [],
+                    reasonCode: "not_elicited",
                 },
                 {
-                    criterionId: "delivery_clarity",
+                    criterionId: "organization",
                     applicability: "insufficient_data",
+                    evidenceSpanIds: [],
+                    reasonCode: "insufficient_data",
                 },
-            ],
-        });
+                ],
+            },
+        }));
 
-        expect(facts.overallRead).toEqual({
-            band: "not_enough_evidence",
-            headline: "More practice needed",
-            description: "The coach needs more answer evidence before showing a pattern.",
-            observedCount: 0,
-            excludedCount: 2,
-        });
         expect(facts.criteriaFacts).toEqual([
             {
-                criterionId: "outcome_impact",
+                criterionId: "impact_judgment_takeaway",
                 applicability: "not_elicited",
-                band: "not_enough_evidence",
-                evidenceState: "not_elicited",
+                band: null,
+                reasonCode: "not_elicited",
             },
             {
-                criterionId: "delivery_clarity",
+                criterionId: "organization",
                 applicability: "insufficient_data",
-                band: "not_enough_evidence",
-                evidenceState: "insufficient_data",
+                band: null,
+                reasonCode: "insufficient_data",
             },
         ]);
     });

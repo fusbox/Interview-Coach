@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { CandidateCoachPlanReference } from "@/features/candidate-dashboard-v2/candidate-coach-plan-reference";
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
+import { createCandidateAnswerAnalysisProviderResultFixture } from "@/features/candidate-session-v2/candidate-answer-analysis-test-fixture";
 
 import { createCandidateNextRoundBuilderModel } from "./candidate-next-round-builder";
 import type { CandidateNextRoundDraftRecord } from "./candidate-next-round-draft";
@@ -294,9 +295,7 @@ function createSubmission(answerAttemptId: string, submittedAt: string) {
 }
 
 function createAnalysis(answerAttemptId: string, analyzedAt: string) {
-    return {
-        status: "answer_analysis_provider_result" as const,
-        provider: "candidate_v2_answer_evaluator" as const,
+    return createCandidateAnswerAnalysisProviderResultFixture({
         analyzedAt,
         answer: {
             slotId: "slot-1",
@@ -310,6 +309,5 @@ function createAnalysis(answerAttemptId: string, analyzedAt: string) {
             observation: "Your role interest is clear.",
             nextPracticeFocus: "Add one example.",
         },
-        evidence: [],
-    };
+    });
 }

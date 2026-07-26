@@ -19,7 +19,7 @@ export function InvitedPracticePause({
     }, []);
 
     return (
-        <main className="candidate-design-system invited-practice-pause candidate-app-shell">
+        <main className="invited-practice-pause candidate-app-shell">
             <header className="candidate-pre-session__brand app-grid" aria-label="TalentArbor">
                 <Image
                     src="/TA-logo.webp"

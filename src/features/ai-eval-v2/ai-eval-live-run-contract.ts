@@ -192,7 +192,9 @@ export function createAiEvalLiveCostPreview(input: {
         || input.policy.maxCalls === null) {
         throw new Error(`AI_EVAL_LIVE_POLICY_NOT_READY:${input.policy.reasons.join(",")}`);
     }
-    const atomic = input.versions.filter((version) => version.scenario.kind === "atomic_answer");
+    const atomic = input.versions.filter((version): version is AiEvalScenarioVersionInput & {
+        scenario: Extract<AiEvalScenarioVersionInput["scenario"], { kind: "atomic_answer" }>;
+    } => version.scenario.kind === "atomic_answer");
     const journeys = input.versions.filter((version): version is AiEvalScenarioVersionInput & {
         scenario: Extract<AiEvalScenarioVersionInput["scenario"], { kind: "round_journey" }>;
     } => version.scenario.kind === "round_journey");
@@ -200,15 +202,23 @@ export function createAiEvalLiveCostPreview(input: {
         throw new Error("AI_EVAL_LIVE_SELECTION_EMPTY");
     }
 
-    const minimumCalls = atomic.length * 3 + journeys.length;
-    const maximumCalls = atomic.length * 6 + journeys.length;
+    const priorAttemptCount = atomic.reduce(
+        (total, version) => total + version.scenario.priorAttempts.length,
+        0,
+    );
+    const minimumCalls = atomic.length * 3 + priorAttemptCount * 2 + journeys.length;
+    const maximumCalls = atomic.length * 6 + priorAttemptCount * 5 + journeys.length;
     const maximumInput = atomic.reduce((total, version) => {
         const scenarioTokens = estimateTokens(JSON.stringify(version.scenario));
-        return total + ((scenarioTokens + 16_000) * 5) + scenarioTokens + 12_000;
+        const currentAnswerAndCoachUpdate = ((scenarioTokens + 16_000) * 5) + scenarioTokens + 12_000;
+        const priorAttemptEvaluations = version.scenario.priorAttempts.length
+            * ((scenarioTokens + 16_000) * 5);
+        return total + currentAnswerAndCoachUpdate + priorAttemptEvaluations;
     }, 0) + journeys.reduce((total, version) => (
         total + 16_000 + version.scenario.atomicCaseKeys.length * 4_000
     ), 0);
     const maximumOutput = atomic.length * ((5 * 4_096) + 2_048)
+        + priorAttemptCount * (5 * 4_096)
         + journeys.length * 2_048;
     const maximumEstimatedCostUsd = roundMoney(
         (maximumInput * input.policy.inputUsdPerMillionTokens

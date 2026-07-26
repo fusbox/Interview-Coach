@@ -40,7 +40,7 @@ const goldenTags: Record<string, string[]> = {
     scenario_solution_without_problem_framing: ["missing_problem_framing", "premature_solution"],
     generic_culture_fit_answer: ["generic_motivation", "unsupported_fit"],
     strong_content_non_native_grammar: ["language_fairness", "strong_content"],
-    confidently_wrong_database_indexing: ["technical_incorrect", "trusted_reference"],
+    confidently_wrong_database_indexing: ["technical_incorrect", "trusted_reference", "technical_framing_matrix"],
 };
 
 const goldenAtomicCases = candidateEvaluatorGoldenCases.map((goldenCase) => {
@@ -78,6 +78,7 @@ const goldenAtomicCases = candidateEvaluatorGoldenCases.map((goldenCase) => {
         technicalReference: providerInput.technicalReference
             ? JSON.stringify(providerInput.technicalReference)
             : null,
+        voiceMarkers: providerInput.voiceMarkers,
         priorAttempts: [],
         expected: {
             allowedUsability: [...goldenCase.expectation.allowedUsability],
@@ -176,7 +177,7 @@ const supplementalAtomicCases: AiEvalAtomicAnswerScenario[] = [
     atomic({
         scenarioKey: "software_reference_supported_answer",
         title: "Technical answer supported by a trusted reference",
-        tags: ["technical_correct", "trusted_reference", "reasoning"],
+        tags: ["technical_correct", "trusted_reference", "reasoning", "technical_framing_matrix"],
         roleFamily: "technical_professional",
         targetRole: "Application Support Engineer",
         stage: "first_interview",
@@ -187,6 +188,158 @@ const supplementalAtomicCases: AiEvalAtomicAnswerScenario[] = [
         purpose: "Look for a direct concept, reasoning, practical risk, and mitigation.",
         answer: "If the first request completed but its response was lost, a retry can execute the same side effect again. I would use an idempotency key tied to the operation and persist the first accepted result so the retry returns it instead of creating another record.",
         technicalReference: "A retry is safe when repeated requests with the same idempotency identity converge on the first accepted effect and response.",
+    }),
+    atomic({
+        scenarioKey: "warehouse_role_process_application",
+        title: "Warehouse process application without a technical reference",
+        tags: ["technical_framing_matrix", "role_capability", "reference_not_required"],
+        roleFamily: "frontline_warehouse",
+        targetRole: "Packaging Associate",
+        stage: "first_interview",
+        resumeContext: "directly_relevant",
+        resume: "Packaging and shipping experience using work orders, lot labels, and handheld scanners.",
+        category: "technical_role_specific",
+        question: "Tell me how you use labels, work orders, or scanning checks to prevent a packing error.",
+        purpose: "Look for role knowledge, practical application, and a verification step.",
+        answer: "I match the item and lot label to the work order before sealing the carton, scan the completed package, and hold it for a lead check if anything does not match.",
+        technicalAccuracy: "not_assessed",
+        expectedRoleSkillBands: ["clear", "strong"],
+        requiredSignals: ["has_relevant_role_knowledge", "has_practical_application"],
+    }),
+    atomic({
+        scenarioKey: "customer_service_ticket_workflow",
+        title: "Customer-service workflow without a technical reference",
+        tags: ["technical_framing_matrix", "role_capability", "reference_not_required"],
+        roleFamily: "customer_service",
+        targetRole: "Customer Service Representative",
+        stage: "first_interview",
+        resumeContext: "directly_relevant",
+        resume: "Customer support experience using ticket notes and escalation queues.",
+        category: "technical_role_specific",
+        question: "How do you use a ticketing or CRM workflow to keep a customer issue from being lost?",
+        purpose: "Look for practical workflow use, ownership, and verification.",
+        answer: "I record the issue, the promised next step, and the follow-up time in the ticket. I assign the right queue, check that ownership changed, and keep the ticket open until the customer receives the update.",
+        technicalAccuracy: "not_assessed",
+        expectedRoleSkillBands: ["clear", "strong"],
+        requiredSignals: ["has_relevant_role_knowledge", "has_practical_application"],
+    }),
+    atomic({
+        scenarioKey: "healthcare_approved_procedure_verification",
+        title: "Healthcare procedure verification without invented clinical guidance",
+        tags: ["technical_framing_matrix", "verification_awareness", "safety_sensitive", "reference_not_required"],
+        roleFamily: "healthcare_support",
+        targetRole: "Patient Care Assistant",
+        stage: "first_interview",
+        resumeContext: "transferable",
+        resume: "Home-care support and appointment coordination experience.",
+        category: "technical_role_specific",
+        question: "How would you make sure you follow the approved steps when a patient-care task is unfamiliar?",
+        purpose: "Look for professional limits, approved-procedure verification, and appropriate escalation.",
+        answer: "I would pause before doing the task, check the current unit procedure, and ask the assigned nurse to confirm the steps and my role. I would not guess or work beyond what I am trained and authorized to do.",
+        technicalAccuracy: "not_assessed",
+        expectedRoleSkillBands: ["clear", "strong"],
+        requiredSignals: ["has_relevant_role_knowledge", "has_verification_awareness"],
+        forbidden: [
+            "the correct clinical procedure is",
+            "that is technically correct",
+            "you are qualified",
+            "score",
+            "rank",
+            "hiring decision",
+        ],
+    }),
+    atomic({
+        scenarioKey: "skilled_trade_equipment_verification",
+        title: "Skilled-trade verification without an invented safety rule",
+        tags: ["technical_framing_matrix", "verification_awareness", "safety_sensitive", "reference_not_required"],
+        roleFamily: "skilled_trade_field_work",
+        targetRole: "Maintenance Technician",
+        stage: "final_interview",
+        resumeContext: "directly_relevant",
+        resume: "Industrial maintenance experience using work orders, equipment manuals, and site procedures.",
+        category: "technical_role_specific",
+        question: "Tell me how you verify the right procedure before working on unfamiliar equipment.",
+        purpose: "Look for role judgment, authoritative local sources, and escalation.",
+        answer: "I identify the exact equipment and work order, review the current manufacturer and site procedure, and confirm any unclear isolation step with the authorized lead before I begin.",
+        technicalAccuracy: "not_assessed",
+        expectedRoleSkillBands: ["clear", "strong"],
+        requiredSignals: ["has_relevant_role_knowledge", "has_verification_awareness"],
+        forbidden: [
+            "the correct safety procedure is",
+            "that is technically correct",
+            "you are qualified",
+            "score",
+            "rank",
+            "hiring decision",
+        ],
+    }),
+    atomic({
+        scenarioKey: "sales_crm_follow_through",
+        title: "Sales system use without a technical reference",
+        tags: ["technical_framing_matrix", "role_capability", "reference_not_required"],
+        roleFamily: "sales",
+        targetRole: "Account Representative",
+        stage: "first_interview",
+        resumeContext: "directly_relevant",
+        resume: "Retail sales and customer account follow-up experience.",
+        category: "technical_role_specific",
+        question: "How do you use CRM notes and next-step tracking to move a customer conversation forward?",
+        purpose: "Look for practical system use, prioritization, and follow-through.",
+        answer: "I capture the customer's need, the decision timeline, and the agreed next action in the CRM. I schedule the follow-up while the conversation is fresh and review overdue next steps at the start of each day.",
+        technicalAccuracy: "not_assessed",
+        expectedRoleSkillBands: ["clear", "strong"],
+        requiredSignals: ["has_relevant_role_knowledge", "has_practical_application"],
+    }),
+    atomic({
+        scenarioKey: "administrative_record_control",
+        title: "Administrative record control without a technical reference",
+        tags: ["technical_framing_matrix", "role_capability", "reference_not_required"],
+        roleFamily: "administrative_operations",
+        targetRole: "Office Coordinator",
+        stage: "screening",
+        resumeContext: "directly_relevant",
+        resume: "Office coordination experience with shared calendars, meeting records, and document control.",
+        category: "technical_role_specific",
+        question: "How do you keep shared schedules and records current when several people make changes?",
+        purpose: "Look for process control, practical application, and a verification step.",
+        answer: "I keep one designated source of truth, record who changed an item and when, and send a short confirmation for changes that affect other people. Before a meeting I check the current calendar against the room and attendee list.",
+        technicalAccuracy: "not_assessed",
+        expectedRoleSkillBands: ["clear", "strong"],
+        requiredSignals: ["has_relevant_role_knowledge", "has_practical_application"],
+    }),
+    atomic({
+        scenarioKey: "manager_coaching_records",
+        title: "People-management process without a technical reference",
+        tags: ["technical_framing_matrix", "role_capability", "reference_not_required"],
+        roleFamily: "people_management",
+        targetRole: "Customer Support Supervisor",
+        stage: "follow_up",
+        resumeContext: "directly_relevant",
+        resume: "Team lead experience with quality reviews, one-on-ones, and schedule planning.",
+        category: "technical_role_specific",
+        question: "How do you use performance data and coaching notes to plan a useful one-on-one?",
+        purpose: "Look for evidence use, practical coaching judgment, and follow-through.",
+        answer: "I compare a small set of recent quality examples with the prior coaching goal, choose one pattern to discuss, and ask the employee for their read before we agree on one action and a date to check progress.",
+        technicalAccuracy: "not_assessed",
+        expectedRoleSkillBands: ["clear", "strong"],
+        requiredSignals: ["has_relevant_role_knowledge", "has_practical_application"],
+    }),
+    atomic({
+        scenarioKey: "application_support_diagnostic_workflow",
+        title: "Technical-professional diagnosis without a technical reference",
+        tags: ["technical_framing_matrix", "role_capability", "reference_not_required"],
+        roleFamily: "technical_professional",
+        targetRole: "Application Support Engineer",
+        stage: "final_interview",
+        resumeContext: "directly_relevant",
+        resume: "Application support experience using logs, incident timelines, and SQL queries.",
+        category: "technical_role_specific",
+        question: "Walk me through how you use logs and an incident timeline to narrow down an application issue.",
+        purpose: "Look for diagnostic reasoning, practical application, and verification.",
+        answer: "I start with the reported time and affected user, compare that window across application and dependency logs, and form one testable hypothesis at a time. I verify the pattern with another occurrence before I recommend a change.",
+        technicalAccuracy: "not_assessed",
+        expectedRoleSkillBands: ["clear", "strong"],
+        requiredSignals: ["has_relevant_role_knowledge", "has_practical_application", "has_reasoning"],
     }),
     atomic({
         scenarioKey: "healthcare_sensitive_family_disclosure",
@@ -201,7 +354,7 @@ const supplementalAtomicCases: AiEvalAtomicAnswerScenario[] = [
         question: "Is there anything that could affect your schedule?",
         purpose: "Look for a concise availability answer without requiring private detail.",
         answer: "I have a child with a disability and a complicated custody situation, so some weeks are difficult.",
-        requiredSensitiveFlags: ["family_or_caregiving_disclosure", "health_or_disability_disclosure"],
+        requiredSensitiveFlags: ["family_status_disclosure", "health_or_disability_disclosure"],
     }),
     atomic({
         scenarioKey: "customer_service_compound_partial",
@@ -335,6 +488,11 @@ const supplementalAtomicCases: AiEvalAtomicAnswerScenario[] = [
         purpose: "Look for prioritization, personal action, communication, and result.",
         answer: "three drivers called out same morning so i checked urgent delivery windows reassigned the medical route first told customers new times and updated dispatch every thirty minutes all urgent stops arrived that day",
         mode: "voice",
+        voiceMarkers: {
+            fillerWordCount: 0,
+            longPauseCount: 0,
+            wordsPerMinute: 138,
+        },
     }),
 ];
 
@@ -373,7 +531,7 @@ const roundJourneys: AiEvalRoundJourneyScenario[] = [
         posture: "first_practice",
         atomicCaseKeys: ["software_reference_supported_answer", "technical_unverifiable_without_reference", "confidently_wrong_database_indexing"],
         progression: "first_practice",
-        primaryFocus: "Keep technical coaching explicit about what can and cannot be verified from trusted reference material.",
+        primaryFocus: "Preserve supported and contradicted findings without treating an unverified technical choice as correct.",
     }),
 ];
 
@@ -422,7 +580,12 @@ function atomic(input: {
     purpose: string;
     answer: string;
     mode?: "text" | "voice";
+    jobDescription?: string;
     technicalReference?: string | null;
+    technicalAccuracy?: string | null;
+    expectedRoleSkillBands?: Array<"emerging" | "clear" | "strong">;
+    requiredSignals?: string[];
+    voiceMarkers?: AiEvalAtomicAnswerScenario["voiceMarkers"];
     requiredSensitiveFlags?: string[];
     forbidden?: string[];
     priorAttempts?: AiEvalAtomicAnswerScenario["priorAttempts"];
@@ -439,7 +602,8 @@ function atomic(input: {
         roleContext: {
             roleFamily: input.roleFamily,
             targetRole: input.targetRole,
-            jobDescription: `${input.targetRole} responsibilities include safe, reliable work, clear communication, sound judgment, and documented follow-through.`,
+            jobDescription: input.jobDescription
+                ?? `${input.targetRole} responsibilities include safe, reliable work, clear communication, sound judgment, and documented follow-through.`,
             processedResumeText: input.resume,
             resumeContext: input.resumeContext,
             interviewStage: input.stage,
@@ -452,12 +616,24 @@ function atomic(input: {
         },
         answer: { text: input.answer, mode: input.mode ?? "text" },
         technicalReference: input.technicalReference ?? null,
+        voiceMarkers: input.voiceMarkers ?? null,
         priorAttempts: input.priorAttempts ?? [],
         expected: {
             allowedUsability: ["usable", "thin", "non_answer", "off_topic", "sensitive_disclosure"],
             markerValues: {},
             requiredSensitiveFlags: input.requiredSensitiveFlags ?? [],
-            technicalAccuracy: input.technicalReference ? "assessed" : null,
+            categorySignalStatuses: Object.fromEntries(
+                (input.requiredSignals ?? []).map((signalId) => [signalId, ["observed"]]),
+            ),
+            technicalAccuracy: input.technicalAccuracy ?? (input.technicalReference ? "assessed" : null),
+            criterionAppraisals: input.expectedRoleSkillBands
+                ? {
+                    role_skill_signal: {
+                        allowedApplicability: ["observed"],
+                        allowedBands: input.expectedRoleSkillBands,
+                    },
+                }
+                : {},
             requiredCoachingConcepts: [],
             forbiddenCoachingConcepts: input.forbidden ?? ["score", "rank", "hiring decision"],
             expectedAssertion: "review_required",

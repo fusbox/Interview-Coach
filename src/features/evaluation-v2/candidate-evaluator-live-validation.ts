@@ -16,7 +16,7 @@ import {
     type AcceptedEvidenceFirstEvaluatorRun,
     type EvidenceFirstEvaluatorRuntimeAdapters,
 } from "./evidence-first-evaluator-runtime";
-import { EVIDENCE_FIRST_FEEDBACK_FORBIDDEN_PATTERNS } from "./evidence-first-evaluator";
+import { containsEvidenceFirstFeedbackForbiddenLanguage } from "./evidence-first-evaluator";
 import {
     CANDIDATE_EVALUATOR_GOLDEN_SUITE_VERSION,
     candidateEvaluatorGoldenCases,
@@ -754,9 +754,15 @@ function createAcceptedValidations(
         ),
         fact(
             "candidate_language_safe",
-            !containsForbiddenCandidateLanguage(projectionText),
+            !containsForbiddenCandidateLanguage(
+                projectionText,
+                goldenCase.evaluationCase.providerInput.answer.text,
+            ),
             ["no_forbidden_language"],
-            [containsForbiddenCandidateLanguage(projectionText) ? "forbidden_language_found" : "no_forbidden_language"],
+            [containsForbiddenCandidateLanguage(
+                projectionText,
+                goldenCase.evaluationCase.providerInput.answer.text,
+            ) ? "forbidden_language_found" : "no_forbidden_language"],
         ),
         fact(
             "technical_reference_boundary",
@@ -926,9 +932,14 @@ function flattenCandidateProjection(
     ].filter((value): value is string => Boolean(value)).join(" ");
 }
 
-export function containsForbiddenCandidateLanguage(value: string) {
-    return EVIDENCE_FIRST_FEEDBACK_FORBIDDEN_PATTERNS.some((pattern) => pattern.test(value))
-        || /\b(?:improve your english|medical diagnosis|diagnos(?:e|ed) you|legal advice|lawyer|illegal)\b/i.test(value);
+export function containsForbiddenCandidateLanguage(value: string, sourceText = "") {
+    const restrictedProfessionalAdvice = /\b(?:improve your english|medical diagnosis|diagnos(?:e|ed) you|legal advice|lawyer|illegal)\b/i;
+    const sourceVocabulary = /\b(?:english|medical|diagnosis|diagnos(?:e|ed)|legal|lawyer|illegal)\b/i;
+    return containsEvidenceFirstFeedbackForbiddenLanguage(value, sourceText)
+        || (
+            restrictedProfessionalAdvice.test(value)
+            && !(sourceText && sourceVocabulary.test(sourceText))
+        );
 }
 
 function fact(id: string, passed: boolean, expected: readonly string[], actual: readonly string[]) {

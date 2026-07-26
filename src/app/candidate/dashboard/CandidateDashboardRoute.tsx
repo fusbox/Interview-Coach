@@ -22,6 +22,8 @@ import {
 import {
     createCandidatePracticeSessionRepository,
 } from "@/features/candidate-session-v2/candidate-practice-session-repository";
+import { createCandidateAnswerHistoryRepository } from "@/features/candidate-session-v2/candidate-answer-history-repository";
+import { parseAcceptedEvidenceFirstEvaluatorRun } from "@/features/evaluation-v2/evidence-first-evaluator-runtime";
 import { createCandidatePracticePlanBaselineRepository } from "@/features/candidate-setup-v2/candidate-practice-plan-baseline-repository";
 import type { CandidateNextRoundBuilderModel } from "@/features/candidate-practice-v2/candidate-next-round-builder";
 import { createCandidateNextRoundRuntime } from "@/features/candidate-practice-v2/candidate-next-round-runtime";
@@ -103,7 +105,7 @@ function CandidateDashboardHome({
 }) {
     const hasSelectedContext = Boolean(dashboard?.selectedTargetInterview);
     const page = (
-        <main className="candidate-design-system candidate-dashboard-page">
+        <main className="candidate-dashboard-page">
             <CandidateDashboardShellHeader dashboard={dashboard} hasNextRoundBuilder={Boolean(nextRoundBuilder)} />
             <section className="candidate-dashboard-shell">
                 {dashboard && hasSelectedContext ? (
@@ -288,6 +290,7 @@ function createDefaultCandidateDashboardPageDependencies(): CandidateDashboardPa
 
     const queryClient = createLazyPostgresQueryClient(databaseUrl);
     const practiceSessionRepository = createCandidatePracticeSessionRepository(queryClient);
+    const answerHistoryRepository = createCandidateAnswerHistoryRepository(queryClient);
     const practicePlanBaselineRepository = createCandidatePracticePlanBaselineRepository(queryClient);
     const coachUpdateArtifactRepository = createCandidateCoachUpdateArtifactRepository(queryClient);
     const nextRoundRuntime = createCandidateNextRoundRuntime(databaseUrl);
@@ -307,7 +310,15 @@ function createDefaultCandidateDashboardPageDependencies(): CandidateDashboardPa
                 }
 
                 const normalizedSelectedRoleProfileId = normalizeCandidateRoleProfileId(selectedRoleProfileId);
-                const [candidatePracticeSessions, selectedContextSessions, coachUpdateArtifacts, candidateIdentity, practicePlanBaselines] = await Promise.all([
+                const [
+                    candidatePracticeSessions,
+                    selectedContextSessions,
+                    coachUpdateArtifacts,
+                    candidateIdentity,
+                    practicePlanBaselines,
+                    answerAttempts,
+                    evaluationRuns,
+                ] = await Promise.all([
                     practiceSessionRepository.listAllPracticeSessionsForCandidate({ candidateProfileId }),
                     normalizedSelectedRoleProfileId
                         ? practiceSessionRepository.listPracticeSessionsForCandidateRoleProfile({
@@ -318,6 +329,13 @@ function createDefaultCandidateDashboardPageDependencies(): CandidateDashboardPa
                     coachUpdateArtifactRepository.listLatestArtifactAttempts({ candidateProfileId }),
                     readCandidateDashboardIdentity(queryClient, candidateProfileId),
                     practicePlanBaselineRepository.listForCandidate({ candidateProfileId }),
+                    answerHistoryRepository
+                        .listAnswerAttemptsForCandidate({ candidateProfileId })
+                        .catch(() => null),
+                    answerHistoryRepository.listEvaluationRunsForCandidate({
+                        candidateProfileId,
+                        purpose: "candidate_coaching",
+                    }).catch(() => null),
                 ]);
                 const practiceSessions = mergeCandidatePracticeSessions(
                     candidatePracticeSessions,
@@ -330,6 +348,30 @@ function createDefaultCandidateDashboardPageDependencies(): CandidateDashboardPa
                     coachUpdateArtifacts,
                     candidateIdentity,
                     practicePlanBaselines,
+                    answerAttempts,
+                    acceptedEvaluationRuns: evaluationRuns?.flatMap((run) => {
+                        if (run.lifecycleState !== "completed" || !run.result || !run.completedAt) {
+                            return [];
+                        }
+                        const accepted = parseAcceptedEvidenceFirstEvaluatorRun(run.result);
+                        if (
+                            !accepted
+                            || accepted.evaluationRunId !== run.candidateAnswerEvaluationRunId
+                            || accepted.inputFingerprint !== run.inputFingerprint
+                        ) {
+                            return [];
+                        }
+                        return [{
+                            candidateAnswerAttemptId: run.candidateAnswerAttemptId,
+                            candidateAnswerEvaluationRunId: run.candidateAnswerEvaluationRunId,
+                            completedAt: run.completedAt,
+                            extraction: {
+                                answerUsability: accepted.accepted.extraction.answerUsability,
+                                technicalAccuracy: accepted.accepted.extraction.technicalAccuracy,
+                            },
+                            criteria: accepted.accepted.criteria,
+                        }];
+                    }) ?? null,
                     selectedRoleProfileId,
                     selectedLegacyTargetRole,
                 });

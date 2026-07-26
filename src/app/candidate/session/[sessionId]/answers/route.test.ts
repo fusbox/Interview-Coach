@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { createCandidateAnswerAnalysisProviderResultFixture } from "@/features/candidate-session-v2/candidate-answer-analysis-test-fixture";
+
 import { handleCandidateAnswerSubmitRequest, resolveCandidateAnswerSubmitIdentityFromDevLaunchCookie } from "./route-implementation";
 
 describe("/candidate/session/[sessionId]/answers route", () => {
@@ -796,9 +798,7 @@ function createFeedbackRetrySession(answerAttemptId: string) {
             },
         },
         answerAnalysisSnapshots: {
-            "slot-1": {
-                status: "answer_analysis_provider_result" as const,
-                provider: "candidate_v2_answer_evaluator" as const,
+            "slot-1": createCandidateAnswerAnalysisProviderResultFixture({
                 analyzedAt: "2026-07-14T18:01:00.000Z",
                 answer: {
                     slotId: "slot-1",
@@ -812,8 +812,7 @@ function createFeedbackRetrySession(answerAttemptId: string) {
                     observation: "Add one concrete result.",
                     nextPracticeFocus: "Try it again with the result.",
                 },
-                evidence: [],
-            },
+            }),
         },
         feedbackActionEvents: {
             "slot-1": {

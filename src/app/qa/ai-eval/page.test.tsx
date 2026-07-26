@@ -29,11 +29,23 @@ vi.mock("next/navigation", () => ({
 describe("AI-eval workbench page", () => {
     it("renders the staged scenario library without loading production review content", async () => {
         const loadData = vi.fn();
+        const versionFive = scenarioVersion();
+        const historicalVersions = [1, 2, 3, 4].map((versionNumber) => ({
+            ...versionFive,
+            scenarioVersionId: `00000000-0000-4000-8000-${String(versionNumber).padStart(12, "0")}`,
+            versionNumber,
+        }));
+        const customVersion = {
+            ...versionFive,
+            scenarioVersionId: "00000000-0000-4000-8000-000000000018",
+            sourceKind: "operator" as const,
+            versionNumber: 1,
+        };
         render(await renderAiEvalWorkbenchRoute({ view: "scenarios" }, {
             resolveAccess: async () => authorizedAccess(),
             loadData,
             loadScenarioData: async () => ({
-                versions: [scenarioVersion()],
+                versions: [...historicalVersions, versionFive, customVersion],
                 drafts: [],
                 runs: [],
                 selectedRun: null,
@@ -41,10 +53,43 @@ describe("AI-eval workbench page", () => {
         }));
 
         expect(loadData).not.toHaveBeenCalled();
-        expect(screen.getByRole("heading", { name: "Exercise the coaching system." })).toBeInTheDocument();
+        expect(screen.getByText(/40 baseline cases|1 baseline case/)).toBeInTheDocument();
         expect(screen.getByRole("heading", { name: aiEvalScenarioBaselineCases[0]!.title })).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: "Run baseline" })).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: "Clone" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Run all baseline" })).toBeInTheDocument();
+        expect(screen.getByRole("columnheader", { name: "v5" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Clone v5" })).toBeInTheDocument();
+        expect(screen.getByRole("columnheader", { name: "Custom" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Clone custom" })).toBeInTheDocument();
+        for (const versionNumber of [1, 2, 3, 4]) {
+            expect(screen.queryByRole("columnheader", { name: `v${versionNumber}` })).not.toBeInTheDocument();
+            expect(screen.queryByRole("button", { name: `Clone v${versionNumber}` })).not.toBeInTheDocument();
+        }
+    });
+
+    it("uses full-baseline ordinals for scenario order and visible case numbers", async () => {
+        const first = scenarioVersion();
+        const second = {
+            ...scenarioVersion(),
+            scenarioVersionId: "00000000-0000-4000-8000-000000000027",
+            scenario: aiEvalScenarioBaselineCases[1]!,
+            inputFingerprint: "e".repeat(64),
+        };
+        render(await renderAiEvalWorkbenchRoute({ view: "scenarios" }, {
+            resolveAccess: async () => authorizedAccess(),
+            loadScenarioData: async () => ({
+                versions: [second, first],
+                drafts: [],
+                runs: [],
+                selectedRun: null,
+            }),
+        }));
+
+        expect(screen.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent)).toEqual([
+            aiEvalScenarioBaselineCases[0]!.title,
+            aiEvalScenarioBaselineCases[1]!.title,
+        ]);
+        expect(screen.getByText("#1")).toBeInTheDocument();
+        expect(screen.getByText("#2")).toBeInTheDocument();
     });
 
     it("shows a frozen live estimate and explicit acknowledgement before a browser can queue it", async () => {
@@ -101,10 +146,41 @@ describe("AI-eval workbench page", () => {
             }),
         }));
 
-        expect(screen.getByRole("heading", { name: "1 cases, up to 6 provider calls" })).toBeInTheDocument();
-        expect(screen.getByText(/No provider call has been made/)).toBeInTheDocument();
-        expect(screen.getByRole("checkbox", { name: /reviewed this estimate/i })).toBeRequired();
-        expect(screen.getByRole("button", { name: "Queue credentialed run" })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Live estimate" })).toBeInTheDocument();
+        expect(screen.getByText(/Live ready/)).toBeInTheDocument();
+        expect(screen.getByRole("checkbox", { name: /reviewed the estimate/i })).toBeRequired();
+        expect(screen.getByRole("button", { name: "Queue live run" })).toBeInTheDocument();
+    });
+
+    it("drops a bookmarked live preview when it references a hidden historical scenario version", async () => {
+        const currentVersion = scenarioVersion();
+        const historicalVersion = {
+            ...currentVersion,
+            scenarioVersionId: "00000000-0000-4000-8000-000000000019",
+            versionNumber: 4,
+        };
+        render(await renderAiEvalWorkbenchRoute({ view: "scenarios" }, {
+            resolveAccess: async () => authorizedAccess(),
+            loadScenarioData: async () => ({
+                versions: [historicalVersion, currentVersion],
+                drafts: [],
+                runs: [],
+                selectedRun: null,
+                livePreview: {
+                    scope: "selected",
+                    tag: null,
+                    requestedVersionIds: [historicalVersion.scenarioVersionId],
+                    requestedTitles: [historicalVersion.scenario.title],
+                    expandedVersionIds: [historicalVersion.scenarioVersionId],
+                    dependencyTitles: [],
+                    preview: livePreview(),
+                },
+            }),
+        }));
+
+        expect(screen.queryByRole("heading", { name: "Live estimate" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("columnheader", { name: "v4" })).not.toBeInTheDocument();
+        expect(screen.getByRole("columnheader", { name: "v5" })).toBeInTheDocument();
     });
 
     it("renders every persisted layer from the selected scenario run", async () => {
@@ -119,11 +195,17 @@ describe("AI-eval workbench page", () => {
             }),
         }));
 
-        expect(screen.getByRole("heading", { name: "Inspect every delivered layer." })).toBeInTheDocument();
-        expect(screen.getByText("Candidate-visible outputs")).toBeInTheDocument();
+        expect(screen.getByText(/1 run/)).toBeInTheDocument();
+        expect(screen.queryByText("Candidate-visible outputs")).not.toBeInTheDocument();
         expect(screen.getByText("Session Coaching")).toBeInTheDocument();
         expect(screen.getByText(/feedback_interaction_ready/)).toBeInTheDocument();
-        expect(screen.getByText("Internal evaluator diagnostics")).toBeInTheDocument();
+        expect(screen.getByText("Diagnostics")).toBeInTheDocument();
+        const scenario = run.cases[0]!.scenario;
+        expect(scenario.kind).toBe("atomic_answer");
+        if (scenario.kind === "atomic_answer") {
+            expect(screen.getByRole("region", { name: "Case question and answer" })).toHaveTextContent(scenario.question.text);
+            expect(screen.getByRole("region", { name: "Case question and answer" })).toHaveTextContent(scenario.answer.text);
+        }
     });
 
     it("renders candidate-visible answer coaching before evidence and configuration", async () => {
@@ -144,7 +226,7 @@ describe("AI-eval workbench page", () => {
         expect(screen.getByRole("heading", { name: "How did you improve the inspection process?" })).toBeInTheDocument();
         expect(screen.getByText("I introduced a checklist and defects fell by 20 percent.")).toBeInTheDocument();
         expect(screen.getByText("That gives the interviewer a concrete action and result.")).toBeInTheDocument();
-        expect(screen.getByText("Use a clearer sequence and name the result.")).toBeInTheDocument();
+        expect(screen.getAllByText("Use a clearer sequence and name the result.")).toHaveLength(2);
         expect(screen.getByText("Situation, action, result")).toBeInTheDocument();
         expect(screen.getByText("State the situation briefly.")).toBeInTheDocument();
         expect(screen.getByText("Your delivery was clear and easy to follow.")).toBeInTheDocument();
@@ -561,8 +643,52 @@ function detail(overrides: Partial<AiEvalWorkItem> = {}): AiEvalWorkItemDetail {
                                 primaryStrengthSpanIds: ["span-2"],
                             },
                         },
-                        extraction: { observableMarkers: { hasOutcomeOrTakeaway: true } },
-                        criteria: [],
+                        extraction: {
+                            status: "evidence_extraction_output",
+                            schemaVersion: 1,
+                            inputFingerprint: "a".repeat(64),
+                            questionCategory: "behavioral",
+                            answerUsability: {
+                                status: "usable",
+                                reasonCode: "direct_behavioral_example",
+                            },
+                            observableMarkers: {
+                                answeredQuestion: true,
+                                hasDirectAnswer: true,
+                                hasExample: true,
+                                hasSpecificDetails: true,
+                                hasPersonalAction: true,
+                                hasOutcomeOrTakeaway: true,
+                                hasTradeoffOrConstraint: false,
+                                hasRoleRelevantSkillSignal: true,
+                                isOverlyLong: false,
+                                isVeryShort: false,
+                            },
+                            evidenceSpans: [],
+                            categorySignals: [],
+                            technicalAccuracy: {
+                                status: "not_assessed",
+                                referenceConceptIds: [],
+                                evidenceSpanIds: [],
+                            },
+                            missingEvidence: [],
+                            sensitiveContentFlags: [],
+                            unsafeInferenceFlags: [],
+                        },
+                        criteria: [{
+                            criterionId: "answer_focus",
+                            applicability: "observed",
+                            band: "clear",
+                            evidenceSpanIds: [],
+                            reasonCode: "direct_answer",
+                        }],
+                        patternGap: {
+                            id: "strengthen_sequence",
+                            severity: "medium",
+                            upgrade: "Use a clearer sequence and name the result.",
+                            redoPattern: ["situation", "action", "result"],
+                            source: "criterion_appraisal",
+                        },
                     },
                 },
                 validation: { disposition: "accepted" },
@@ -620,10 +746,35 @@ function scenarioVersion(): AiEvalScenarioVersion {
         sourceDraftId: null,
         sourceKind: "baseline",
         scenario: aiEvalScenarioBaselineCases[0]!,
-        versionNumber: 1,
+        versionNumber: 5,
         inputFingerprint: "c".repeat(64),
         stagedAt: "2026-07-22T12:00:00.000Z",
     };
+}
+
+function livePreview() {
+    return {
+        version: "ai_eval_live_cost_preview_v1",
+        selectionFingerprint: "b".repeat(64),
+        requestedCaseCount: 1,
+        expandedCaseCount: 1,
+        dependencyCaseCount: 0,
+        atomicCaseCount: 1,
+        journeyCaseCount: 0,
+        profileId: "live-profile",
+        configurationFingerprint: "a".repeat(64),
+        calls: { minimum: 3, maximum: 6 },
+        tokens: { maximumInput: 10_000, maximumOutput: 4_000 },
+        pricing: {
+            currency: "USD",
+            source: "operator_configured",
+            inputUsdPerMillionTokens: 0.1,
+            outputUsdPerMillionTokens: 0.4,
+        },
+        maximumEstimatedCostUsd: 0.0026,
+        limits: { maxCalls: 10, maxEstimatedCostUsd: 5 },
+        withinLimits: true,
+    } as const;
 }
 
 function scenarioRun(): AiEvalScenarioRunDetail {

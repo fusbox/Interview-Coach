@@ -40,7 +40,7 @@ export function RecruiterLoginExperience({ nextTarget }: { nextTarget: string })
     }
 
     return (
-        <main className="candidate-design-system recruiter-login-page">
+        <main className="recruiter-login-page">
             <header className="recruiter-login-page__header">
                 <Link href="/" aria-label="TalentArbor Interview Coach home">
                     <Image

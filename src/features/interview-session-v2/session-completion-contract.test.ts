@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { createCandidateAnswerAnalysisProviderResultFixture } from "@/features/candidate-session-v2/candidate-answer-analysis-test-fixture";
+import { createCandidateAnswerCoachingFacts } from "@/features/candidate-session-v2/candidate-coaching-facts";
 import { createCandidateLedSessionCompletion, createInvitedSessionCompletion } from "./session-completion-contract";
 import { createSessionRuntimeFacts } from "./session-runtime-facts";
 
@@ -24,34 +26,20 @@ describe("session completion contract", () => {
                         submittedAt: "2026-07-10T22:01:00.000Z",
                         lifecycleStatus: "analysis_saved",
                     },
-                    coachingFacts: {
-                        status: "candidate_answer_coaching_facts",
-                        provider: "candidate_v2_answer_evaluator",
-                        analyzedAt: "2026-07-10T22:02:00.000Z",
-                        answer: {
-                            slotId: "slot-1",
-                            questionIndex: 0,
-                        },
-                        coachFeedback: {
+                    coachingFacts: createCandidateAnswerCoachingFacts(
+                        createCandidateAnswerAnalysisProviderResultFixture({
+                            analyzedAt: "2026-07-10T22:02:00.000Z",
+                            answer: {
+                                slotId: "slot-1",
+                                questionIndex: 0,
+                            },
+                            coachFeedback: {
                             acknowledgement: "You gave a direct answer.",
                             observation: "Add a specific example.",
                             nextPracticeFocus: "Name one task you handled well.",
-                        },
-                        overallRead: {
-                            band: "clear",
-                            headline: "Clear evidence",
-                            description: "The answer gives the coach usable evidence.",
-                            observedCount: 1,
-                            excludedCount: 0,
-                        },
-                        criteriaFacts: [],
-                        coverage: {
-                            observedCriteriaIds: ["answer_specificity"],
-                            notElicitedCriteriaIds: [],
-                            insufficientDataCriteriaIds: [],
-                            unscoreableCriteriaIds: [],
-                        },
-                    },
+                            },
+                        }),
+                    ),
                 },
                 {
                     questionKey: "slot-2",

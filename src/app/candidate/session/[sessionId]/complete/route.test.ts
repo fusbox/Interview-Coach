@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { createCandidateAnswerAnalysisProviderResultFixture } from "@/features/candidate-session-v2/candidate-answer-analysis-test-fixture";
+
 import {
     createDefaultCandidateSessionCompleteDependencies,
     handleCandidateSessionCompleteRequest,
 } from "./route-implementation";
 
-const analysisSnapshot = {
-    status: "answer_analysis_provider_result" as const,
-    provider: "candidate_v2_answer_evaluator" as const,
+const analysisSnapshot = createCandidateAnswerAnalysisProviderResultFixture({
     analyzedAt: "2026-07-10T22:03:00.000Z",
     answer: {
         slotId: "slot-1",
@@ -18,14 +18,7 @@ const analysisSnapshot = {
         observation: "Add a specific example.",
         nextPracticeFocus: "Name one task you handled well.",
     },
-    evidence: [
-        {
-            criterionId: "answer_specificity",
-            applicability: "observed" as const,
-            score: 3,
-        },
-    ],
-};
+});
 
 describe("/candidate/session/[sessionId]/complete route", () => {
     afterEach(() => {
@@ -55,7 +48,7 @@ describe("/candidate/session/[sessionId]/complete route", () => {
         expect(createDefaultCandidateSessionCompleteDependencies().ensureCoachUpdateArtifact).toBeUndefined();
 
         vi.stubEnv("CANDIDATE_COACH_UPDATE_PROVIDER", "google_genai");
-        vi.stubEnv("CANDIDATE_COACH_UPDATE_PROFILE", "google_gemini_2_5_flash_coach_update_v1");
+        vi.stubEnv("CANDIDATE_COACH_UPDATE_PROFILE", "google_gemini_2_5_flash_coach_update_v4");
         vi.stubEnv("GEMINI_API_KEY", "server-only-key");
         expect(createDefaultCandidateSessionCompleteDependencies().ensureCoachUpdateArtifact).toEqual(expect.any(Function));
     });

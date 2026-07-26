@@ -1,15 +1,25 @@
 import type { CandidateSetupPayload } from "@/features/candidate-setup-v2/candidate-setup-contract";
-import type { EvaluationEvidenceItem } from "@/features/evaluation-v2/evaluation-domain";
 import {
     EVIDENCE_FIRST_EVALUATOR_CONTRACT_VERSION,
     candidateSafeFeedbackProjectionSchema,
     createEvidenceFirstEvaluationCase,
+    criterionAppraisalSchema,
+    evidenceExtractionOutputSchema,
     feedbackCompositionOutputSchema,
+    patternGapSchema,
     type CandidateSafeFeedbackProjection,
+    type CriterionAppraisal,
+    type EvidenceExtractionOutput,
     type EvidenceFirstEvaluationCase,
     type FeedbackCompositionOutput,
+    type PatternGap,
 } from "@/features/evaluation-v2/evidence-first-evaluator-contract";
 import type { AcceptedEvidenceFirstEvaluatorRun } from "@/features/evaluation-v2/evidence-first-evaluator-runtime";
+import {
+    deriveQuestionPreparedness,
+    questionPreparednessResultSchema,
+    type QuestionPreparednessResult,
+} from "@/features/evaluation-v2/question-preparedness";
 
 import type { CandidateAnswerAnalysisRequest, CandidateAnswerMode } from "./candidate-answer-lifecycle";
 import {
@@ -59,6 +69,8 @@ export type CandidateAnswerAnalysisProviderRequest = {
         interviewStage: CandidateSetupPayload["interviewStage"];
         questionCount: number;
     };
+    technicalReference?: EvidenceFirstEvaluationCase["providerInput"]["technicalReference"];
+    voiceMarkers?: EvidenceFirstEvaluationCase["providerInput"]["voiceMarkers"];
 };
 
 export type CandidateAnswerAnalysisCoachFeedback = {
@@ -74,7 +86,18 @@ export type CandidateEvidenceFirstAnalysisSnapshot = {
     interaction: {
         intervention: FeedbackCompositionOutput["feedbackPlan"]["intervention"];
     };
+    appraisal: {
+        answerUsability: EvidenceExtractionOutput["answerUsability"];
+        technicalAccuracy: {
+            status: EvidenceExtractionOutput["technicalAccuracy"]["status"];
+        };
+        criteria: CandidateEvidenceFirstCriterionAppraisal[];
+        questionPreparedness: QuestionPreparednessResult;
+        patternGap: PatternGap;
+    };
 };
+
+export type CandidateEvidenceFirstCriterionAppraisal = Omit<CriterionAppraisal, "evidenceSpanIds">;
 
 export type CandidateAnswerAnalysisProviderResult = {
     status: "answer_analysis_provider_result";
@@ -88,17 +111,10 @@ export type CandidateAnswerAnalysisProviderResult = {
         trigger?: "initial_submit" | "feedback_retry";
     };
     coachFeedback: CandidateAnswerAnalysisCoachFeedback;
-    evidence: EvaluationEvidenceItem[];
-    evidenceFirst?: CandidateEvidenceFirstAnalysisSnapshot;
+    evidenceFirst: CandidateEvidenceFirstAnalysisSnapshot;
 };
 
 const providerName: CandidateAnswerAnalysisProviderName = "candidate_v2_answer_evaluator";
-const evidenceApplicabilities = new Set([
-    "observed",
-    "not_elicited",
-    "insufficient_data",
-    "unscoreable",
-]);
 
 export function createCandidateAnswerAnalysisProviderRequest({
     request,
@@ -174,6 +190,8 @@ export function createCandidateAnswerEvidenceFirstEvaluationCase(
             jobDescription: request.setupContext.jobDescription,
             resumeText: request.setupContext.resumeText?.trim() || null,
         },
+        technicalReference: request.technicalReference ?? null,
+        voiceMarkers: request.voiceMarkers ?? null,
     });
 }
 
@@ -188,17 +206,13 @@ export function parseCandidateAnswerAnalysisProviderResult(
     const analyzedAt = readNonEmptyString(value.analyzedAt);
     const answer = parseAnswerReference(value.answer);
     const coachFeedback = parseCoachFeedback(value.coachFeedback);
-    const evidence = parseEvidenceItems(value.evidence);
-    const evidenceFirst = typeof value.evidenceFirst === "undefined"
-        ? undefined
-        : parseEvidenceFirstSnapshot(value.evidenceFirst);
+    const evidenceFirst = parseEvidenceFirstSnapshot(value.evidenceFirst);
 
     if (
         !analyzedAt
         || !answer
         || !coachFeedback
-        || !evidence
-        || (typeof value.evidenceFirst !== "undefined" && !evidenceFirst)
+        || !evidenceFirst
     ) {
         return null;
     }
@@ -220,8 +234,7 @@ export function parseCandidateAnswerAnalysisProviderResult(
         analyzedAt,
         answer,
         coachFeedback,
-        evidence,
-        ...(evidenceFirst ? { evidenceFirst } : {}),
+        evidenceFirst,
     };
 }
 
@@ -234,6 +247,14 @@ export function createCandidateAnswerAnalysisProjectionFromEvaluatorRun(input: {
         answer: input.answer,
         candidateFeedback: input.run.accepted.candidateProjection,
         intervention: input.run.accepted.feedback.feedbackPlan.intervention,
+        appraisal: {
+            answerUsability: input.run.accepted.extraction.answerUsability,
+            technicalAccuracy: {
+                status: input.run.accepted.extraction.technicalAccuracy.status,
+            },
+            criteria: input.run.accepted.criteria,
+            patternGap: input.run.accepted.patternGap,
+        },
     });
 }
 
@@ -242,6 +263,14 @@ export function createCandidateAnswerAnalysisProjectionFromAcceptedFeedback(inpu
     answer: CandidateAnswerAnalysisProviderResult["answer"];
     candidateFeedback: CandidateSafeFeedbackProjection;
     intervention: FeedbackCompositionOutput["feedbackPlan"]["intervention"];
+    appraisal: {
+        answerUsability: EvidenceExtractionOutput["answerUsability"];
+        technicalAccuracy: {
+            status: EvidenceExtractionOutput["technicalAccuracy"]["status"];
+        };
+        criteria: CriterionAppraisal[];
+        patternGap: PatternGap;
+    };
 }): CandidateAnswerAnalysisProviderResult {
     const candidateFeedback = input.candidateFeedback;
     return {
@@ -258,13 +287,28 @@ export function createCandidateAnswerAnalysisProjectionFromAcceptedFeedback(inpu
                 ?? candidateFeedback.biggestUpgrade
                 ?? "Carry the same clear structure into the next answer.",
         },
-        evidence: [],
         evidenceFirst: {
             contractVersion: EVIDENCE_FIRST_EVALUATOR_CONTRACT_VERSION,
             inputFingerprint: candidateFeedback.inputFingerprint,
             candidateFeedback,
             interaction: {
                 intervention: input.intervention,
+            },
+            appraisal: {
+                answerUsability: input.appraisal.answerUsability,
+                technicalAccuracy: input.appraisal.technicalAccuracy,
+                criteria: input.appraisal.criteria.map((criterion) => ({
+                    criterionId: criterion.criterionId,
+                    applicability: criterion.applicability,
+                    ...(criterion.band ? { band: criterion.band } : {}),
+                    reasonCode: criterion.reasonCode,
+                })),
+                questionPreparedness: deriveQuestionPreparedness({
+                    answerUsability: input.appraisal.answerUsability,
+                    technicalAccuracy: input.appraisal.technicalAccuracy,
+                    criteria: input.appraisal.criteria,
+                }),
+                patternGap: input.appraisal.patternGap,
             },
         },
     };
@@ -316,18 +360,15 @@ function parseEvidenceFirstSnapshot(value: unknown): CandidateEvidenceFirstAnaly
     const explicitInteraction = isObject(value.interaction)
         ? feedbackCompositionOutputSchema.shape.feedbackPlan.shape.intervention.safeParse(value.interaction.intervention)
         : null;
-    const legacyInteraction = isObject(value.feedbackPlan)
-        ? feedbackCompositionOutputSchema.shape.feedbackPlan.shape.intervention.safeParse(value.feedbackPlan.intervention)
-        : null;
     const intervention = explicitInteraction?.success
         ? explicitInteraction.data
-        : legacyInteraction?.success
-            ? legacyInteraction.data
-            : null;
+        : null;
+    const appraisal = parseCandidateEvidenceFirstAppraisal(value.appraisal);
     if (
         !inputFingerprint
         || !candidateFeedback.success
         || !intervention
+        || !appraisal
         || candidateFeedback.data.inputFingerprint !== inputFingerprint
     ) {
         return null;
@@ -338,6 +379,49 @@ function parseEvidenceFirstSnapshot(value: unknown): CandidateEvidenceFirstAnaly
         inputFingerprint,
         candidateFeedback: candidateFeedback.data,
         interaction: { intervention },
+        appraisal,
+    };
+}
+
+function parseCandidateEvidenceFirstAppraisal(
+    value: unknown,
+): CandidateEvidenceFirstAnalysisSnapshot["appraisal"] | null {
+    if (!isObject(value) || !isObject(value.technicalAccuracy)) {
+        return null;
+    }
+    const answerUsability = evidenceExtractionOutputSchema.shape.answerUsability.safeParse(value.answerUsability);
+    const technicalAccuracyStatus = evidenceExtractionOutputSchema.shape.technicalAccuracy.shape.status.safeParse(
+        value.technicalAccuracy.status,
+    );
+    const criteria = Array.isArray(value.criteria)
+        ? value.criteria.map((criterion) => criterionAppraisalSchema.omit({ evidenceSpanIds: true }).safeParse(criterion))
+        : [];
+    const patternGap = patternGapSchema.safeParse(value.patternGap);
+    if (
+        !answerUsability.success
+        || !technicalAccuracyStatus.success
+        || criteria.length === 0
+        || criteria.some((criterion) => !criterion.success)
+        || !patternGap.success
+    ) {
+        return null;
+    }
+    const parsedCriteria = criteria.map((criterion) => criterion.data!);
+    const questionPreparedness = questionPreparednessResultSchema.safeParse(value.questionPreparedness);
+    const resolvedQuestionPreparedness = questionPreparedness.success
+        ? questionPreparedness.data
+        : deriveQuestionPreparedness({
+            answerUsability: answerUsability.data,
+            technicalAccuracy: { status: technicalAccuracyStatus.data },
+            criteria: parsedCriteria,
+        });
+
+    return {
+        answerUsability: answerUsability.data,
+        technicalAccuracy: { status: technicalAccuracyStatus.data },
+        criteria: parsedCriteria,
+        questionPreparedness: resolvedQuestionPreparedness,
+        patternGap: patternGap.data,
     };
 }
 
@@ -359,53 +443,6 @@ function parseCoachFeedback(value: unknown): CandidateAnswerAnalysisCoachFeedbac
         observation,
         nextPracticeFocus,
     };
-}
-
-function parseEvidenceItems(value: unknown): EvaluationEvidenceItem[] | null {
-    if (!Array.isArray(value)) {
-        return null;
-    }
-
-    const evidence = value.map(parseEvidenceItem);
-    if (evidence.some((item) => item === null)) {
-        return null;
-    }
-
-    return evidence as EvaluationEvidenceItem[];
-}
-
-function parseEvidenceItem(value: unknown): EvaluationEvidenceItem | null {
-    if (!isObject(value)) {
-        return null;
-    }
-
-    const criterionId = readNonEmptyString(value.criterionId);
-    const applicability = readEvidenceApplicability(value.applicability);
-    if (!criterionId || !applicability) {
-        return null;
-    }
-
-    if (applicability !== "observed") {
-        return typeof value.score === "undefined"
-            ? { criterionId, applicability }
-            : null;
-    }
-
-    if (typeof value.score !== "number" || !Number.isFinite(value.score)) {
-        return null;
-    }
-
-    return {
-        criterionId,
-        applicability,
-        score: value.score,
-    };
-}
-
-function readEvidenceApplicability(value: unknown): EvaluationEvidenceItem["applicability"] | null {
-    return typeof value === "string" && evidenceApplicabilities.has(value)
-        ? value as EvaluationEvidenceItem["applicability"]
-        : null;
 }
 
 function readNonEmptyString(value: unknown) {

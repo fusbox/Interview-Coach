@@ -29,7 +29,14 @@ import { createCandidateTranscriptCanvasProjection } from "@/features/candidate-
 import { createInvitedPracticeDebrief } from "@/features/recruiter-invites-v2/invited-practice-debrief";
 import type { InvitedPracticeSessionRuntimeRecord } from "@/features/recruiter-invites-v2/invited-practice-session-runtime-repository";
 import type { AcceptedEvidenceFirstEvaluatorRun } from "@/features/evaluation-v2/evidence-first-evaluator-runtime";
-import type { EvidenceFirstEvaluatorConfigurationManifest } from "@/features/evaluation-v2/evidence-first-evaluator-contract";
+import {
+    evidenceFirstEvaluationCaseSchema,
+    type EvidenceFirstEvaluatorConfigurationManifest,
+} from "@/features/evaluation-v2/evidence-first-evaluator-contract";
+import {
+    findProhibitedCandidateJudgments,
+    findUngroundedTechnicalCoachingClaims,
+} from "@/features/evaluation-v2/candidate-generated-language-policy";
 
 import {
     AI_EVAL_SCENARIO_OUTPUT_LAYERS,
@@ -47,6 +54,7 @@ export type AiEvalScenarioLayerExecution = {
     assertionReasons: string[];
     output: Record<string, unknown>;
     diagnostics: Record<string, unknown> | null;
+    errorCode: string | null;
 };
 
 export type AiEvalScenarioFixtureExecution = {
@@ -159,7 +167,9 @@ async function executeAtomicScenario(
 ) {
     const now = dependencies.now();
     const sessionId = stableUuid(`${scenario.scenarioKey}:session`);
-    const answerAttemptId = stableUuid(`${scenario.scenarioKey}:answer:1`);
+    const currentAttemptNumber = scenario.priorAttempts.length + 1;
+    const currentTrigger = currentAttemptNumber === 1 ? "initial_submit" : "feedback_retry";
+    const answerAttemptId = stableUuid(`${scenario.scenarioKey}:answer:${currentAttemptNumber}`);
     const questionSlotId = scenario.question.lineageKey;
     const request: CandidateAnswerAnalysisProviderRequest = {
         status: "answer_analysis_provider_requested",
@@ -172,8 +182,8 @@ async function executeAtomicScenario(
             text: scenario.answer.text,
             submittedAt: now,
             answerAttemptId,
-            attemptNumber: 1,
-            trigger: "initial_submit",
+            attemptNumber: currentAttemptNumber,
+            trigger: currentTrigger,
         },
         question: {
             slotId: questionSlotId,
@@ -189,6 +199,8 @@ async function executeAtomicScenario(
             interviewStage: scenario.roleContext.interviewStage,
             questionCount: 1,
         },
+        technicalReference: parseScenarioTechnicalReference(scenario),
+        voiceMarkers: scenario.voiceMarkers ?? null,
     };
     const evaluation = await dependencies.evaluateAtomic({
         scenario,
@@ -202,8 +214,8 @@ async function executeAtomicScenario(
             slotId: questionSlotId,
             questionIndex: 0,
             answerAttemptId,
-            attemptNumber: 1,
-            trigger: "initial_submit",
+            attemptNumber: currentAttemptNumber,
+            trigger: currentTrigger,
         },
     });
     const answerAttempt = createAnswerAttemptRecord({
@@ -218,6 +230,68 @@ async function executeAtomicScenario(
         requestedAt: now,
         metadata: evaluation.metadata,
     });
+    const priorComparableAttempts = await Promise.all(
+        scenario.priorAttempts.map(async (prior, index) => {
+            const priorAnswerAttemptId = stableUuid(`${scenario.scenarioKey}:prior:${index}`);
+            const submittedAt = new Date(Date.parse(now) - (scenario.priorAttempts.length - index) * 86_400_000)
+                .toISOString();
+            const priorRequest: CandidateAnswerAnalysisProviderRequest = {
+                ...request,
+                requestedAt: submittedAt,
+                answer: {
+                    ...request.answer,
+                    mode: prior.answerMode,
+                    text: prior.answerText,
+                    submittedAt,
+                    answerAttemptId: priorAnswerAttemptId,
+                    attemptNumber: index + 1,
+                    trigger: index === 0 ? "initial_submit" : "feedback_retry",
+                },
+            };
+            const priorEvaluation = await dependencies.evaluateAtomic({
+                scenario,
+                request: priorRequest,
+                operationKey: `answer_evaluation:${scenario.scenarioKey}:prior:${index + 1}`,
+            });
+            const priorAnalysis = createCandidateAnswerAnalysisProjectionFromEvaluatorRun({
+                run: priorEvaluation.acceptedRun,
+                answer: {
+                    slotId: questionSlotId,
+                    questionIndex: 0,
+                    answerAttemptId: priorAnswerAttemptId,
+                    attemptNumber: index + 1,
+                    trigger: index === 0 ? "initial_submit" : "feedback_retry",
+                },
+            });
+            const priorAnswerAttempt: CandidateAnswerAttemptRecord = {
+                ...answerAttempt,
+                candidateAnswerAttemptId: priorAnswerAttemptId,
+                mode: prior.answerMode,
+                answerText: prior.answerText,
+                submittedAt,
+                attemptNumber: index + 1,
+                trigger: index === 0 ? "initial_submit" : "feedback_retry",
+                supersedesCandidateAnswerAttemptId: index === 0
+                    ? null
+                    : stableUuid(`${scenario.scenarioKey}:prior:${index - 1}`),
+                idempotencyKey: `scenario:${scenario.scenarioKey}:prior:${index + 1}`,
+                payloadFingerprint: hash({
+                    answerText: prior.answerText,
+                    answerMode: prior.answerMode,
+                }),
+            };
+            return {
+                answerAttempt: priorAnswerAttempt,
+                acceptedEvaluationRun: createEvaluationRunRecord({
+                    acceptedRun: priorEvaluation.acceptedRun,
+                    answerAttemptId: priorAnswerAttemptId,
+                    requestedAt: submittedAt,
+                    metadata: priorEvaluation.metadata,
+                }),
+                acceptedAnalysis: priorAnalysis,
+            };
+        }),
+    );
     const transcriptCanvas = createCandidateTranscriptCanvasProjection({
         acceptedRun,
         evaluation: {
@@ -243,17 +317,25 @@ async function executeAtomicScenario(
         analysis,
         transcriptCanvas,
         acceptedRun,
+        priorComparableAttempts,
         now,
     });
-    const coachUpdateSynthesis = await dependencies.synthesizeCoachUpdate({
-        synthesisInput: coachUpdateInput,
-        operationKey: `coach_update:atomic:${scenario.scenarioKey}`,
-    });
-    const coachUpdate = coachUpdateSynthesis.result.content;
     const sessionCoaching = createCandidateFeedbackInteraction({
         analysisSnapshot: analysis,
         isLastQuestion: true,
     });
+    let coachUpdateSynthesis: Awaited<ReturnType<AiEvalScenarioExecutorDependencies["synthesizeCoachUpdate"]>> | null = null;
+    let coachUpdate: CandidateCoachUpdateContent | null = null;
+    let coachUpdateErrorCode: string | null = null;
+    try {
+        coachUpdateSynthesis = await dependencies.synthesizeCoachUpdate({
+            synthesisInput: coachUpdateInput,
+            operationKey: `coach_update:atomic:${scenario.scenarioKey}`,
+        });
+        coachUpdate = coachUpdateSynthesis.result.content;
+    } catch (error) {
+        coachUpdateErrorCode = safeLayerErrorCode(error);
+    }
     const contractAssertions = assertAtomicContract({
         scenario,
         acceptedRun,
@@ -290,8 +372,9 @@ async function executeAtomicScenario(
                     outcome: stage.outcome,
                 })),
                 evaluatorMetrics: acceptedRun.metrics,
-                coachUpdateMetrics: coachUpdateSynthesis.result.validation,
-                coachUpdateProfileId: coachUpdateSynthesis.metadata.profileId,
+                coachUpdateMetrics: coachUpdateSynthesis?.result.validation ?? null,
+                coachUpdateProfileId: coachUpdateSynthesis?.metadata.profileId ?? null,
+                coachUpdateErrorCode,
                 rawProviderOutputStored: false,
                 assembledPromptStored: false,
             },
@@ -302,7 +385,9 @@ async function executeAtomicScenario(
             projection: transcriptCanvas,
             fallbackReason: transcriptCanvas ? null : "No safe exact-span annotation was admitted.",
         }, contractAssertions.reviewReasons),
-        coach_update: reviewLayer("coach_update", coachUpdate, contractAssertions.reviewReasons),
+        coach_update: coachUpdate
+            ? reviewLayer("coach_update", coachUpdate, contractAssertions.reviewReasons)
+            : failedLayer("coach_update", coachUpdateErrorCode ?? "COACH_UPDATE_SYNTHESIS_FAILED"),
         invited_completion: reviewLayer("invited_completion", invitedDebrief, contractAssertions.reviewReasons),
         candidate_dashboard: reviewLayer("candidate_dashboard", {
             dashboardUpdate: completedRound.dashboardUpdate,
@@ -330,34 +415,65 @@ async function createRoundJourneyLayers(
 ): Promise<AiEvalScenarioLayerExecution[]> {
     const now = dependencies.now();
     const synthesisInput = createRoundCoachUpdateInput(scenario, atomicFixtures, now);
-    const coachUpdateSynthesis = await dependencies.synthesizeCoachUpdate({
-        synthesisInput,
-        operationKey: `coach_update:journey:${scenario.scenarioKey}`,
-    });
-    const coachUpdate = coachUpdateSynthesis.result.content;
+    let coachUpdateSynthesis: Awaited<ReturnType<AiEvalScenarioExecutorDependencies["synthesizeCoachUpdate"]>> | null = null;
+    let coachUpdate: CandidateCoachUpdateContent | null = null;
+    let coachUpdateErrorCode: string | null = null;
+    try {
+        coachUpdateSynthesis = await dependencies.synthesizeCoachUpdate({
+            synthesisInput,
+            operationKey: `coach_update:journey:${scenario.scenarioKey}`,
+        });
+        coachUpdate = coachUpdateSynthesis.result.content;
+    } catch (error) {
+        coachUpdateErrorCode = safeLayerErrorCode(error);
+    }
     const invited = atomicFixtures.map((fixture) => fixture.layers.invited_completion.output);
     const dashboards = atomicFixtures.map((fixture) => fixture.layers.candidate_dashboard.output);
-    const coachUpdateText = JSON.stringify(coachUpdate).toLowerCase();
-    const hardFailures = [
-        ...scenario.expected.requiredCoachUpdateConcepts
-            .filter((concept) => !coachUpdateText.includes(concept.toLowerCase()))
-            .map((concept) => `Required Coach Update concept was missing: ${concept}.`),
-        ...scenario.expected.forbiddenCoachUpdateConcepts
-            .filter((concept) => coachUpdateText.includes(concept.toLowerCase()))
-            .map((concept) => `Forbidden Coach Update concept was present: ${concept}.`),
-    ];
+    const coachUpdateText = coachUpdate ? collectGeneratedCandidateText({ coachUpdate }).join("\n").toLowerCase() : "";
+    const sourceText = atomicFixtures.map((fixture) => fixture.answerAttempt.answerText).join("\n").toLowerCase();
+    const hardFailures = coachUpdate
+        ? [
+            ...scenario.expected.requiredCoachUpdateConcepts
+                .filter((concept) => !coachUpdateText.includes(concept.toLowerCase()))
+                .map((concept) => `Required Coach Update concept was missing: ${concept}.`),
+            ...scenario.expected.forbiddenCoachUpdateConcepts
+                .filter((concept) => (
+                    !sourceText.includes(concept.toLowerCase())
+                    && coachUpdateText.includes(concept.toLowerCase())
+                ))
+                .map((concept) => `Forbidden Coach Update concept was present in app-authored coaching: ${concept}.`),
+            ...findProhibitedCandidateJudgments(collectGeneratedCandidateText({ coachUpdate }), {
+                sourceTexts: atomicFixtures.flatMap((fixture) => [
+                    fixture.answerAttempt.answerText,
+                    fixture.coachUpdateInput.questions[0]?.questionText ?? "",
+                ]),
+            })
+                .map((judgment) => `App-authored Coach Update used prohibited judgment language: ${judgment.ruleId}.`),
+            ...assertRoundCoachUpdateSemantics({
+                scenario,
+                synthesisInput,
+                coachUpdate,
+            }),
+        ]
+        : [];
     const reviewReasons = [
         ...hardFailures,
-        "Round-level progression language and teaching priority require operator review.",
+        coachUpdate
+            ? "Round-level progression language and teaching priority require operator review."
+            : "Round Coach Update was unavailable; retained downstream evidence still requires operator review.",
         `Expected progression posture: ${scenario.expected.progression}.`,
     ];
     const outputs: Partial<Record<AiEvalScenarioOutputLayer, Record<string, unknown>>> = {
-        coach_update: {
-            status: "scenario_round_coach_update_v1",
-            targetRole: scenario.targetRole,
-            posture: scenario.posture,
-            content: coachUpdate,
-        },
+        ...(coachUpdate
+            ? {
+                coach_update: {
+                    status: "scenario_round_coach_update_v1",
+                    targetRole: scenario.targetRole,
+                    posture: scenario.posture,
+                    content: coachUpdate,
+                },
+            }
+            : {}),
         invited_completion: {
             status: "scenario_round_invited_completion_v1",
             targetRole: scenario.targetRole,
@@ -368,15 +484,19 @@ async function createRoundJourneyLayers(
             status: "scenario_round_candidate_dashboard_v1",
             targetRole: scenario.targetRole,
             coachUpdate,
+            coachUpdateState: coachUpdate ? "ready" : "unavailable",
             atomicDashboardProjections: dashboards,
         },
     };
     return scenario.intendedOutputLayers.map((outputLayer) => {
+        if (outputLayer === "coach_update" && !coachUpdate) {
+            return failedLayer("coach_update", coachUpdateErrorCode ?? "COACH_UPDATE_SYNTHESIS_FAILED");
+        }
         const output = outputs[outputLayer];
         if (!output) throw new Error(`ROUND_JOURNEY_LAYER_UNSUPPORTED:${outputLayer}`);
         return layer(outputLayer, hardFailures.length ? "fail" : "review_required", reviewReasons, output, outputLayer === "coach_update" ? {
-            coachUpdateMetrics: coachUpdateSynthesis.result.validation,
-            coachUpdateProfileId: coachUpdateSynthesis.metadata.profileId,
+            coachUpdateMetrics: coachUpdateSynthesis?.result.validation ?? null,
+            coachUpdateProfileId: coachUpdateSynthesis?.metadata.profileId ?? null,
             rawProviderOutputStored: false,
             assembledPromptStored: false,
         } : null);
@@ -395,13 +515,15 @@ function createAnswerAttemptRecord(input: {
         candidateProfileId: stableUuid(`${input.scenario.scenarioKey}:candidate`),
         questionSlotId: input.scenario.question.lineageKey,
         questionIndex: 0,
-        attemptNumber: 1,
-        trigger: "initial_submit",
-        supersedesCandidateAnswerAttemptId: null,
+        attemptNumber: input.scenario.priorAttempts.length + 1,
+        trigger: input.scenario.priorAttempts.length === 0 ? "initial_submit" : "feedback_retry",
+        supersedesCandidateAnswerAttemptId: input.scenario.priorAttempts.length === 0
+            ? null
+            : stableUuid(`${input.scenario.scenarioKey}:prior:${input.scenario.priorAttempts.length - 1}`),
         mode: input.scenario.answer.mode,
         answerText: input.scenario.answer.text,
         submittedAt: input.submittedAt,
-        idempotencyKey: `scenario:${input.scenario.scenarioKey}:answer:1`,
+        idempotencyKey: `scenario:${input.scenario.scenarioKey}:answer:${input.scenario.priorAttempts.length + 1}`,
         payloadFingerprint: hash(input.scenario.answer),
         sourceVoiceTranscriptionRunId: input.scenario.answer.mode === "voice"
             ? stableUuid(`${input.scenario.scenarioKey}:transcription`)
@@ -451,6 +573,7 @@ function createCoachUpdateInput(input: {
     analysis: ReturnType<typeof createCandidateAnswerAnalysisProjectionFromEvaluatorRun>;
     transcriptCanvas: ReturnType<typeof createCandidateTranscriptCanvasProjection>;
     acceptedRun: AcceptedEvidenceFirstEvaluatorRun;
+    priorComparableAttempts: CandidateCoachUpdateSynthesisInput["questions"][number]["priorComparableAttempts"];
     now: string;
 }): CandidateCoachUpdateSynthesisInput {
     return {
@@ -477,18 +600,7 @@ function createCoachUpdateInput(input: {
                 candidatePracticeSessionId: input.sessionId,
                 questionKey: input.scenario.question.lineageKey,
             },
-            priorComparableAttempts: input.scenario.priorAttempts.map((prior, index) => ({
-                answerAttempt: {
-                    ...input.answerAttempt,
-                    candidateAnswerAttemptId: stableUuid(`${input.scenario.scenarioKey}:prior:${index}`),
-                    answerText: prior.answerText,
-                    mode: prior.answerMode,
-                    attemptNumber: index + 1,
-                    submittedAt: new Date(Date.parse(input.now) - (index + 1) * 86_400_000).toISOString(),
-                },
-                acceptedEvaluationRun: input.evaluationRun,
-                acceptedAnalysis: input.analysis,
-            })),
+            priorComparableAttempts: input.priorComparableAttempts,
         }],
     };
 }
@@ -657,7 +769,7 @@ function assertAtomicContract(input: {
     acceptedRun: AcceptedEvidenceFirstEvaluatorRun;
     sessionCoaching: ReturnType<typeof createCandidateFeedbackInteraction>;
     transcriptCanvas: ReturnType<typeof createCandidateTranscriptCanvasProjection>;
-    coachUpdate: CandidateCoachUpdateContent;
+    coachUpdate: CandidateCoachUpdateContent | null;
     invitedDebrief: NonNullable<ReturnType<typeof createInvitedPracticeDebrief>>;
     completedRound: NonNullable<ReturnType<typeof createCandidateCompletedRoundReadModels>>;
 }) {
@@ -671,7 +783,7 @@ function assertAtomicContract(input: {
     if (input.transcriptCanvas && input.transcriptCanvas.inputFingerprint !== input.acceptedRun.inputFingerprint) {
         hardFailures.push("Transcript evidence drifted from the accepted evaluator input fingerprint.");
     }
-    if (input.coachUpdate.questions.length !== 1 || input.invitedDebrief.questions.length !== 1) {
+    if ((input.coachUpdate && input.coachUpdate.questions.length !== 1) || input.invitedDebrief.questions.length !== 1) {
         hardFailures.push("Candidate-visible projections did not preserve the one-question fixture boundary.");
     }
     if (input.completedRound.postRoundReview.questions[0]?.answer?.text !== input.scenario.answer.text) {
@@ -733,17 +845,37 @@ function assertAtomicContract(input: {
     if (expected.deliveryNote !== null && Boolean(projection.deliveryNote) !== (expected.deliveryNote === "present")) {
         hardFailures.push(`Candidate delivery note was ${projection.deliveryNote ? "present" : "absent"}; expected ${expected.deliveryNote}.`);
     }
-    const candidateText = JSON.stringify({
+    const generatedCandidateText = collectGeneratedCandidateText({
         sessionCoaching: input.sessionCoaching,
         coachUpdate: input.coachUpdate,
         invitedDebrief: input.invitedDebrief,
-        dashboard: input.completedRound,
-    }).toLowerCase();
+        completedRound: input.completedRound,
+    });
+    const candidateText = generatedCandidateText.join("\n").toLowerCase();
+    const sourceText = input.scenario.answer.text.toLowerCase();
     for (const concept of expected.requiredCoachingConcepts) {
         if (!candidateText.includes(concept.toLowerCase())) hardFailures.push(`Required coaching concept was missing: ${concept}.`);
     }
     for (const concept of expected.forbiddenCoachingConcepts) {
-        if (candidateText.includes(concept.toLowerCase())) hardFailures.push(`Forbidden coaching concept was present: ${concept}.`);
+        if (
+            !sourceText.includes(concept.toLowerCase())
+            && candidateText.includes(concept.toLowerCase())
+        ) {
+            hardFailures.push(`Forbidden coaching concept was present in app-authored coaching: ${concept}.`);
+        }
+    }
+    for (const judgment of findProhibitedCandidateJudgments(generatedCandidateText, {
+        sourceTexts: [input.scenario.question.text, input.scenario.answer.text],
+    })) {
+        hardFailures.push(`App-authored coaching used prohibited judgment language: ${judgment.ruleId}.`);
+    }
+    if (
+        input.scenario.question.category === "technical_role_specific"
+        && extraction.technicalAccuracy.status === "not_assessed"
+    ) {
+        for (const claim of findUngroundedTechnicalCoachingClaims(generatedCandidateText)) {
+            hardFailures.push(`Unreferenced technical coaching crossed its grounding boundary: ${claim.ruleId}.`);
+        }
     }
     return {
         hardFailures,
@@ -753,6 +885,61 @@ function assertAtomicContract(input: {
     };
 }
 
+function assertRoundCoachUpdateSemantics(input: {
+    scenario: AiEvalRoundJourneyScenario;
+    synthesisInput: CandidateCoachUpdateSynthesisInput;
+    coachUpdate: CandidateCoachUpdateContent;
+}) {
+    const failures: string[] = [];
+    const comparisonText = input.coachUpdate.questions
+        .map((question) => question.comparison.message)
+        .join(" ");
+    if (input.scenario.expected.progression === "improved") {
+        if (!/\b(?:improv|clearer|stronger|more specific|more complete|added|developed|now includes?)\w*\b/i.test(comparisonText)) {
+            failures.push("Improved repeat practice did not acknowledge the supported progression.");
+        }
+        if (/\b(?:remains? consistent|stayed the same|no meaningful change|unchanged)\b/i.test(comparisonText)) {
+            failures.push("Improved repeat practice was incorrectly described as stable or unchanged.");
+        }
+    }
+
+    const usabilityStatuses = input.synthesisInput.questions
+        .map((question) => question.acceptedAnalysis.evidenceFirst.appraisal.answerUsability.status);
+    if (
+        usabilityStatuses.some((status) => status !== "usable")
+        && /\b(?:each|every|all)\b.{0,80}\b(?:answer|response|experience)\w*\b.{0,80}\b(?:show|share|demonstrate|include|provide|connect)\w*\b/i
+            .test(input.coachUpdate.summary)
+    ) {
+        failures.push("The round summary promoted a shared strength across thin, generic, or unusable evidence.");
+    }
+
+    const technicalStatuses = input.synthesisInput.questions
+        .filter((question) => (
+            question.category === "technical_role_specific"
+            || question.category === "Technical / Role-Specific"
+        ))
+        .map((question) => question.acceptedAnalysis.evidenceFirst.appraisal.technicalAccuracy.status);
+    const technicalStatusSet = new Set(technicalStatuses);
+    if (
+        technicalStatusSet.has("supported")
+        && technicalStatusSet.has("contradicted")
+        && technicalStatusSet.has("not_assessed")
+    ) {
+        const technicalText = [
+            input.coachUpdate.summary,
+            input.coachUpdate.primaryFocus,
+            ...input.coachUpdate.questions.map((question) => question.comparison.message),
+        ].join(" ");
+        if (!/\b(?:support|confirm|match|ground)\w*\b/i.test(technicalText)) {
+            failures.push("The mixed technical round did not preserve its supported evidence.");
+        }
+        if (!/\b(?:contradict|correct|revision|revise|did not match|does not match)\w*\b/i.test(technicalText)) {
+            failures.push("The mixed technical round did not preserve its contradicted evidence.");
+        }
+    }
+    return failures;
+}
+
 function layer(
     outputLayer: AiEvalScenarioOutputLayer,
     assertionResult: AiEvalScenarioAssertionResult,
@@ -760,7 +947,7 @@ function layer(
     output: Record<string, unknown>,
     diagnostics: Record<string, unknown> | null,
 ): AiEvalScenarioLayerExecution {
-    return { outputLayer, assertionResult, assertionReasons, output, diagnostics };
+    return { outputLayer, assertionResult, assertionReasons, output, diagnostics, errorCode: null };
 }
 
 function reviewLayer(
@@ -769,6 +956,118 @@ function reviewLayer(
     reasons: string[],
 ) {
     return layer(outputLayer, "review_required", reasons, output, null);
+}
+
+function failedLayer(
+    outputLayer: AiEvalScenarioOutputLayer,
+    errorCode: string,
+): AiEvalScenarioLayerExecution {
+    return {
+        outputLayer,
+        assertionResult: "fail",
+        assertionReasons: [`${outputLayer} could not be produced: ${errorCode}.`],
+        output: {
+            status: "scenario_output_layer_unavailable",
+            errorCode,
+        },
+        diagnostics: null,
+        errorCode,
+    };
+}
+
+function collectGeneratedCandidateText(input: {
+    sessionCoaching?: ReturnType<typeof createCandidateFeedbackInteraction> | null;
+    coachUpdate?: CandidateCoachUpdateContent | null;
+    invitedDebrief?: NonNullable<ReturnType<typeof createInvitedPracticeDebrief>> | null;
+    completedRound?: NonNullable<ReturnType<typeof createCandidateCompletedRoundReadModels>> | null;
+}) {
+    const values: string[] = [];
+    for (const stage of input.sessionCoaching?.stages ?? []) {
+        values.push(stage.label, stage.title, stage.body);
+        for (const guidance of stage.guidance ?? []) {
+            values.push(guidance.label, guidance.body, ...(guidance.steps ?? []));
+        }
+        values.push(...stage.actions.map((action) => action.label));
+    }
+    values.push(...(input.sessionCoaching?.globalActions ?? []).map((action) => action.label));
+
+    const coachUpdate = input.coachUpdate;
+    if (coachUpdate) {
+        values.push(coachUpdate.title, coachUpdate.summary, coachUpdate.primaryFocus);
+        for (const question of coachUpdate.questions) {
+            values.push(
+                question.coaching.acknowledgement,
+                question.coaching.observation,
+                question.coaching.nextPracticeFocus,
+                question.comparison.message,
+            );
+        }
+    }
+
+    for (const question of input.invitedDebrief?.questions ?? []) {
+        if (question.coaching) {
+            values.push(
+                question.coaching.acknowledgement,
+                question.coaching.observation,
+                question.coaching.nextPracticeFocus,
+            );
+        }
+    }
+
+    const completedRound = input.completedRound;
+    if (completedRound) {
+        values.push(
+            completedRound.dashboardUpdate.title,
+            completedRound.dashboardUpdate.body,
+            completedRound.practiceNext.label,
+            completedRound.practiceNext.reason,
+        );
+        const preview = completedRound.dashboardUpdate.coachingPreview;
+        if (preview) values.push(preview.observation, preview.nextPracticeFocus);
+        for (const question of completedRound.postRoundReview.questions) {
+            if (question.coaching) {
+                values.push(
+                    question.coaching.acknowledgement,
+                    question.coaching.observation,
+                    question.coaching.nextPracticeFocus,
+                );
+            }
+        }
+    }
+
+    return values.filter((value) => value.trim().length > 0);
+}
+
+function parseScenarioTechnicalReference(
+    scenario: AiEvalAtomicAnswerScenario,
+): CandidateAnswerAnalysisProviderRequest["technicalReference"] {
+    const rawReference = scenario.technicalReference?.trim();
+    if (!rawReference) return null;
+
+    try {
+        const parsed = evidenceFirstEvaluationCaseSchema.shape.providerInput.shape.technicalReference
+            .safeParse(JSON.parse(rawReference));
+        if (parsed.success && parsed.data) return parsed.data;
+    } catch {
+        // Supplemental operator-authored references are accepted as plain text.
+    }
+
+    return {
+        source: "domain_reference",
+        version: `scenario_${scenario.scenarioKey}_v1`,
+        expectedConcepts: [{
+            id: "scenario_reference",
+            description: rawReference.slice(0, 2_000),
+        }],
+        acceptableAlternatives: [],
+        commonMisconceptions: [],
+    };
+}
+
+function safeLayerErrorCode(error: unknown) {
+    const message = error instanceof Error ? error.message : "SCENARIO_OUTPUT_LAYER_FAILED";
+    const candidate = message.split(":", 1)[0]?.trim().toUpperCase().replace(/[^A-Z0-9_]/g, "_") ?? "";
+    return /^[A-Z][A-Z0-9_]{0,79}$/.test(candidate) ? candidate : "SCENARIO_OUTPUT_LAYER_FAILED";
 }
 
 function stableUuid(value: string) {

@@ -755,7 +755,7 @@ export function CandidateSetupExperience({
     }
 
     return (
-        <main className="candidate-design-system setup-page">
+        <main className="setup-page">
             <section className="setup-hero app-grid">
                 <div className="setup-hero__copy">
                     <h1 className="setup-page-title">Practice Setup</h1>

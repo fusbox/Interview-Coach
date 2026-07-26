@@ -142,6 +142,7 @@ it("renders the V2 dashboard read boundary when completed-round facts are availa
                     },
                 },
                 coachPlan: null,
+                questionPreparedness: null,
             }),
         },
     }));
@@ -271,7 +272,6 @@ it("does not render the legacy latest-round transcript without a synthesized Coa
                                 acknowledgement: "You chose a relevant work example.",
                                 observation: "Your answer includes the task, but the result is still missing.",
                                 nextPracticeFocus: "Add the result of the inventory count.",
-                                overallBand: "clear",
                             },
                         },
                         {
@@ -315,6 +315,7 @@ it("does not render the legacy latest-round transcript without a synthesized Coa
                     },
                 },
                 coachPlan: null,
+                questionPreparedness: null,
             }),
         },
     }));
@@ -422,7 +423,6 @@ it("opens the exact Coach Update artifact from the sparse feedback card", async 
                                 acknowledgement: "You chose a relevant work example.",
                                 observation: "Your answer includes the task, but the result is still missing.",
                                 nextPracticeFocus: "Add the result of the inventory count.",
-                                overallBand: "clear",
                             },
                             comparison: {
                                 kind: "first_practice",
@@ -507,6 +507,7 @@ it("opens the exact Coach Update artifact from the sparse feedback card", async 
                     },
                 },
                 coachPlan: null,
+                questionPreparedness: null,
             }),
         },
     }));
@@ -642,6 +643,7 @@ it("renders selected target interview context and switch links", async () => {
                     coachGuidedFocus: null,
                 },
                 coachPlan: null,
+                questionPreparedness: null,
             }),
         },
     }));
@@ -751,6 +753,7 @@ it("loads the durable builder only for the selected opaque prep context", async 
             coachGuidedFocus: null,
         },
         coachPlan: null,
+        questionPreparedness: null,
     } as CandidateDashboardV2ReadModel;
 
     render(await renderCandidateDashboardPage({
@@ -867,6 +870,7 @@ it("renders selected-context active round resume details", async () => {
                     coachGuidedFocus: null,
                 },
                 coachPlan: null,
+                questionPreparedness: null,
             }),
         },
     }));

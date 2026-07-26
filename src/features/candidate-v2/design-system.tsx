@@ -1,31 +1,7 @@
 import type { ReactNode } from "react";
 
-export const candidateV2Tokens = {
-    background: "--candidate-background",
-    surface: "--candidate-surface",
-    border: "--candidate-border",
-    foreground: "--candidate-foreground",
-    displayForeground: "--candidate-display-foreground",
-    muted: "--candidate-muted",
-    primary: "--candidate-primary",
-    primarySoft: "--candidate-primary-soft",
-    shadowCard: "--candidate-shadow-card",
-    fontSans: "--font-sans",
-    fontDisplay: "--font-display",
-    gridMax: "--candidate-grid-max",
-    gridGap: "--candidate-grid-gap",
-    publicMax: "--layout-public-max",
-    appMax: "--layout-app-max",
-    readableMax: "--layout-readable-max",
-    formMax: "--layout-form-max",
-    sessionMax: "--layout-session-max",
-    sidebarWidth: "--layout-sidebar-width",
-    railWidth: "--layout-rail-width",
-    headerHeight: "--layout-header-height",
-} as const;
-
 export const candidateV2Classes = {
-    page: "candidate-design-system page-center-frame",
+    page: "page-center-frame",
     surfaceCard: "surface-card",
     eyebrow: "type-eyebrow",
     title: "type-display-md",

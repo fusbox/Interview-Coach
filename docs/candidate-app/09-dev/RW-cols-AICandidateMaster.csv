@@ -1,7 +1,0 @@
-COLUMN_NAME,DATA_TYPE,CHARACTER_MAXIMUM_LENGTH,IS_NULLABLE,ORDINAL_POSITION
-CandidateID,int,,NO,1
-Name,varchar,100,YES,2
-Email,varchar,255,YES,3
-phone,varchar,15,YES,4
-LinkID,uniqueidentifier,,YES,5
-AICandidateID,int,,NO,6

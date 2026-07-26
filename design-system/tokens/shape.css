@@ -1,64 +1,14 @@
-/* Shape tokens.
-   Primitive radii define the allowed values; semantic roles define object silhouettes. */
+/* Radii tiers (source: index.css) */
 :root {
-    --radius-0: 0; /* @kind radius */
-    --radius-4: 0.25rem;    /* 4px @kind radius */
-    --radius-8: 0.5rem;     /* 8px @kind radius */
-    --radius-12: 0.75rem;   /* 12px @kind radius */
-    --radius-16: 1rem;      /* 16px @kind radius */
-    --radius-24: 1.5rem;    /* 24px @kind radius */
-    --radius-32: 2rem;      /* 32px @kind radius */
-    --radius-40: 2.5rem;    /* 40px @kind radius */
-    --radius-full: 9999px;  /* @kind radius */
-
-    /* Compatibility aliases used by existing components and shadcn-style primitives. */
-    --radius-sm: var(--radius-4);
-    --radius-md: var(--radius-8);
-    --radius-lg: var(--radius-12);
-    --radius-xl: var(--radius-16);
-    --radius-2xl: var(--radius-24);
-    --radius-3xl: var(--radius-40);
+    --radius-sm: 0.25rem;   /* 4px */
+    --radius-md: 0.5rem;    /* 8px (default) */
+    --radius-lg: 0.75rem;   /* 12px */
+    --radius-xl: 1rem;      /* 16px */
+    --radius-2xl: 1.5rem;   /* 24px */
+    --radius-3xl: 2.5rem;   /* 40px */
     --radius: var(--radius-md);
 
-    /* Semantic object roles */
-    --radius-control: var(--radius-12); /* buttons, segmented controls @kind radius */
-    --radius-control-strong: var(--radius-16); /* prominent app controls @kind radius */
-    --radius-input: var(--radius-16); /* fields, search, selectors @kind radius */
-    --radius-row: var(--radius-12); /* table rows and list items @kind radius */
-    --radius-card-compact: var(--radius-16); /* recruiter/admin cards @kind radius */
-    --radius-card: var(--radius-24); /* default app cards @kind radius */
-    --radius-widget: var(--radius-card); /* candidate dashboard widgets; same 24px default card radius @kind radius */
-    --radius-panel: var(--radius-32); /* larger candidate panels @kind radius */
-    --radius-session: var(--radius-40); /* focused session prompt shell @kind radius */
-    --radius-dialog: var(--radius-32); /* centered modal surfaces @kind radius */
-    --radius-sheet-top: var(--radius-32) var(--radius-32) 0 0; /* mobile bottom sheets @kind radius */
-    --radius-popover: var(--radius-16); /* floating menus and popovers @kind radius */
-    --radius-icon-capsule: var(--radius-16); /* icon in tinted square @kind radius */
-    --radius-launcher: var(--radius-full); /* avatar-style launchers @kind radius */
-    --radius-pill: var(--radius-full); /* chips, badges, pill CTAs @kind radius */
-    --radius-nested-offset: var(--radius-12); /* inner surface inside a card @kind radius */
-
-    /* Candidate compatibility aliases; semantic source of truth is above. */
-    --candidate-radius-card: var(--radius-widget);
-    --candidate-radius-panel: var(--radius-panel);
-}
-
-.shape-control {
-    border-radius: var(--radius-control);
-}
-
-.shape-card {
-    border-radius: var(--radius-card);
-}
-
-.shape-widget {
-    border-radius: var(--radius-widget);
-}
-
-.shape-panel {
-    border-radius: var(--radius-panel);
-}
-
-.shape-pill {
-    border-radius: var(--radius-pill);
+    /* Surface radii */
+    --radius-card: 1.75rem;   /* 28px */
+    --radius-panel: 2rem;     /* 32px */
 }

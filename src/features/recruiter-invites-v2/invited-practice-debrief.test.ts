@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { createCandidateAnswerAnalysisProviderResultFixture } from "@/features/candidate-session-v2/candidate-answer-analysis-test-fixture";
 import type { InvitedPracticeSessionRuntimeRecord } from "./invited-practice-session-runtime-repository";
 import { createInvitedPracticeDebrief } from "./invited-practice-debrief";
 
@@ -98,9 +99,7 @@ function completedSession(): InvitedPracticeSessionRuntimeRecord {
         },
         answerIdempotencyRecords: {},
         answerAnalysisSnapshots: {
-            "slot-1": {
-                status: "answer_analysis_provider_result",
-                provider: "candidate_v2_answer_evaluator",
+            "slot-1": createCandidateAnswerAnalysisProviderResultFixture({
                 analyzedAt: "2026-07-20T00:05:05.000Z",
                 answer: { slotId: "slot-1", questionIndex: 1 },
                 coachFeedback: {
@@ -108,8 +107,7 @@ function completedSession(): InvitedPracticeSessionRuntimeRecord {
                     observation: "Your example is relevant.",
                     nextPracticeFocus: "Add the outcome.",
                 },
-                evidence: [],
-            },
+            }),
         },
         feedbackActionEvents: {},
         completionSnapshot: {

@@ -8,7 +8,7 @@ import { getAppUserDisplayName } from "@/features/recruiter-auth-v2/app-user";
 
 export function AiEvalShell({ user, children }: { user: AppUser; children: ReactNode }) {
     return (
-        <div className="candidate-design-system ai-eval-shell">
+        <div className="ai-eval-shell">
             <header className="ai-eval-shell__header">
                 <div className="ai-eval-shell__brand">
                     <Link href="/qa/ai-eval" aria-label="AI quality workbench home">

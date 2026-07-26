@@ -73,7 +73,6 @@ export type CandidatePostRoundReviewQuestion = {
         acknowledgement: string;
         observation: string;
         nextPracticeFocus: string;
-        overallBand: "not_enough_evidence" | "emerging" | "clear" | "strong";
     };
     attemptContext?: CandidateQuestionAttemptContext;
 };
@@ -133,7 +132,6 @@ export function createCandidateCompletedRoundReadModels(
                         acknowledgement: coachingFacts.coachFeedback.acknowledgement,
                         observation: coachingFacts.coachFeedback.observation,
                         nextPracticeFocus: coachingFacts.coachFeedback.nextPracticeFocus,
-                        overallBand: coachingFacts.overallRead.band,
                     },
                 }
                 : {}),

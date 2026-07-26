@@ -1,0 +1,89 @@
+/* Temporary compatibility roles for provisional UI.
+   These names keep current screens stable while production surfaces move to
+   the lean role vocabulary. Do not add new product styling here. Remove a
+   token when its final surface no longer references it. */
+:root {
+    /* Transitional color roles */
+    --primary-wash: 238 247 255;
+    --accent-wash: 234 252 244;
+    --surface-canvas: 247 249 252;
+    --border-subtle: 220 227 236;
+    --border-default: 207 216 229;
+    --destructive-text: 161 33 33;
+    --error-soft: 254 242 242;
+    --state-error: var(--state-critical);
+    --success-soft: 223 247 227;
+    --success-text: 17 85 41;
+    --warning-soft: 250 240 209;
+    --warning-text: 107 88 10;
+    --feedback-caution-text: 155 62 8;
+
+    /* Transitional type roles */
+    --type-display-xl-size: clamp(2.25rem, 4.5vw + 1rem, 3.25rem);
+    --type-display-lg-size: clamp(1.75rem, 2.5vw + 1rem, 2.25rem);
+    --type-display-lg-line: 1.05;
+    --type-display-md-size: clamp(1.35rem, 1.5vw + 0.9rem, 1.625rem);
+    --type-display-md-line: 1.12;
+    --type-display-sm-size: 1.25rem;
+    --type-display-sm-line: 1.2;
+    --type-title-size: 1.0625rem;
+    --type-title-line: 1.25;
+    --type-title-md-size: 1.125rem;
+    --type-body-lg-size: 1.0625rem;
+    --type-body-lg-line: 1.6;
+    --type-body-md-size: 0.875rem;
+    --type-body-md-line: 1.5;
+    --type-body-sm-size: 0.8125rem;
+    --type-body-sm-line: 1.45;
+    --type-body-size: 0.9375rem;
+    --type-body-line: 1.6;
+    --type-label-size: 0.75rem;
+    --type-label-line: 1.2;
+    --type-eyebrow-size: 0.75rem;
+    --type-metric-value-size: 1.875rem;
+
+    /* Transitional spacing and layout roles */
+    --space-0-5: 0.125rem;
+    --space-1-5: 0.375rem;
+    --space-10: 2.5rem;
+    --space-12: 3rem;
+    --space-16: 4rem;
+    --layout-public-max: 80rem;
+    --layout-app-max: 88rem;
+    --layout-session-max: 64rem;
+    --layout-header-height: 4.5rem;
+
+    /* Transitional shape roles */
+    --radius-8: var(--radius-md);
+    --radius-12: var(--radius-lg);
+    --radius-16: var(--radius-xl);
+    --radius-button: var(--radius-control);
+    --radius-input: var(--radius-xl);
+    --radius-session: var(--radius-panel);
+    --radius-popover: var(--radius-widget);
+    --radius-icon-capsule: var(--radius-widget);
+    --radius-pill: var(--radius-control);
+    --radius-modal: var(--radius-panel);
+
+    /* Transitional elevation, motion, and icon roles */
+    --elevation-widget: var(--elevation-card);
+    --elevation-overlay: var(--shadow-floating);
+    --elevation-hover: var(--shadow-raised-2);
+    --elevation-action: var(--elevation-cta);
+    --motion-feedback-duration: var(--duration-base);
+    --motion-hover-lift: -2px;
+    --icon-md: 2.5rem;
+}
+
+.dark {
+    --surface-canvas: 12 18 32;
+    --border-subtle: 42 54 78;
+    --border-default: 58 72 98;
+    --destructive-text: 238 150 150;
+    --error-soft: 57 25 31;
+    --success-soft: 20 55 39;
+    --success-text: 134 239 172;
+    --warning-soft: 58 47 21;
+    --warning-text: 250 204 87;
+    --feedback-caution-text: 251 146 60;
+}

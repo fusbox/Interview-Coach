@@ -43,9 +43,9 @@ describe("CandidateNextRoundBuilderExperience", () => {
 
         const dialog = screen.getByRole("dialog", { name: "Next practice round" });
         expect(dialog).toHaveClass("is-anchored");
-        expect(dialog.style.getPropertyValue("--candidate-next-round-anchor-right"))
+        expect(dialog.style.getPropertyValue("--next-round-anchor-right"))
             .toBe(`${window.innerWidth - triggerRect.right}px`);
-        expect(dialog.style.getPropertyValue("--candidate-next-round-anchor-width")).toBe("180px");
+        expect(dialog.style.getPropertyValue("--next-round-anchor-width")).toBe("180px");
         matchMedia.mockRestore();
     });
 

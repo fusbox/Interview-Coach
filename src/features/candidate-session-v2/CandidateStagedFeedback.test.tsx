@@ -1,7 +1,7 @@
 import { render, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { CandidateAnswerAnalysisProviderResult } from "./candidate-answer-analysis-adapter";
+import { createCandidateAnswerAnalysisProviderResultFixture } from "./candidate-answer-analysis-test-fixture";
 import {
     createCandidateFeedbackActionEvent,
     createCandidateFeedbackInteraction,
@@ -62,9 +62,7 @@ describe("candidate staged feedback recovery", () => {
     });
 });
 
-const analysisSnapshot: CandidateAnswerAnalysisProviderResult = {
-    status: "answer_analysis_provider_result",
-    provider: "candidate_v2_answer_evaluator",
+const analysisSnapshot = createCandidateAnswerAnalysisProviderResultFixture({
     analyzedAt: "2026-07-20T11:00:00.000Z",
     answer: {
         slotId: "slot-1",
@@ -78,5 +76,4 @@ const analysisSnapshot: CandidateAnswerAnalysisProviderResult = {
         observation: "Add one specific result.",
         nextPracticeFocus: "Name what changed after your action.",
     },
-    evidence: [],
-};
+});

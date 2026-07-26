@@ -7,6 +7,7 @@ import {
     runFixtureEvidenceFirstEvaluator,
 } from "@/features/candidate-session-v2/candidate-answer-analysis-fixture";
 import type { CandidateAnswerAnalysisProviderRequest } from "@/features/candidate-session-v2/candidate-answer-analysis-adapter";
+import { createCandidateAnswerAnalysisProviderResultFixture } from "@/features/candidate-session-v2/candidate-answer-analysis-test-fixture";
 import type { EvidenceFirstEvaluatorResolvedConfigurationManifest } from "@/features/evaluation-v2/evidence-first-evaluator-contract";
 import {
     createCandidateAnswerAnalysisDevelopmentRuntime,
@@ -90,7 +91,7 @@ describe("/candidate/session/[sessionId]/answers/[slotId]/analysis route", () =>
             contractVersion: "candidate_evidence_first_v2",
             accepted: {
                 feedback: {
-                    feedbackPlan: { intervention: "revise_answer" },
+                    feedbackPlan: { intervention: "build_missing_signal" },
                 },
                 candidateProjection: {
                     status: "candidate_safe_feedback",
@@ -393,9 +394,7 @@ describe("/candidate/session/[sessionId]/answers/[slotId]/analysis route", () =>
     });
 
     it("persists a valid provider result as an isolated V2 analysis snapshot", async () => {
-        const analysisSnapshot = {
-            status: "answer_analysis_provider_result" as const,
-            provider: "candidate_v2_answer_evaluator" as const,
+        const analysisSnapshot = createCandidateAnswerAnalysisProviderResultFixture({
             analyzedAt: "2026-07-09T20:03:00.000Z",
             answer: {
                 slotId: "slot-1",
@@ -406,14 +405,7 @@ describe("/candidate/session/[sessionId]/answers/[slotId]/analysis route", () =>
                 observation: "The answer would be stronger with the result of your choice.",
                 nextPracticeFocus: "Add what changed after you set the priority.",
             },
-            evidence: [
-                {
-                    criterionId: "answer_specificity",
-                    applicability: "observed" as const,
-                    score: 3,
-                },
-            ],
-        };
+        });
         const saveAnswerAnalysisSnapshot = vi.fn(async () => ({
             "slot-1": analysisSnapshot,
         }));
@@ -618,7 +610,7 @@ describe("/candidate/session/[sessionId]/answers/[slotId]/analysis route", () =>
         const savedProjection = saveAnswerAnalysisSnapshot.mock.calls[0][0].analysisSnapshot;
         expect(savedProjection.evidenceFirst).toMatchObject({
             candidateFeedback: { status: "candidate_safe_feedback" },
-            interaction: { intervention: "revise_answer" },
+            interaction: { intervention: "build_missing_signal" },
         });
         expect(savedProjection.evidenceFirst).not.toHaveProperty("feedbackPlan");
         expect(savedProjection.evidenceFirst).not.toHaveProperty("criteria");
@@ -728,9 +720,7 @@ describe("/candidate/session/[sessionId]/answers/[slotId]/analysis route", () =>
     });
 
     it("replays completed answer analysis with the same idempotency key and submitted answer payload", async () => {
-        const analysisSnapshot = {
-            status: "answer_analysis_provider_result" as const,
-            provider: "candidate_v2_answer_evaluator" as const,
+        const analysisSnapshot = createCandidateAnswerAnalysisProviderResultFixture({
             analyzedAt: "2026-07-09T20:03:00.000Z",
             answer: {
                 slotId: "slot-1",
@@ -741,8 +731,7 @@ describe("/candidate/session/[sessionId]/answers/[slotId]/analysis route", () =>
                 observation: "The answer would be stronger with the result of your choice.",
                 nextPracticeFocus: "Add what changed after you set the priority.",
             },
-            evidence: [],
-        };
+        });
         const responseBody = {
             status: "answer_analysis_saved",
             analysisSnapshot,

@@ -18,7 +18,7 @@ import {
 
 export const GOOGLE_CANDIDATE_QUESTION_WORDING_PROVIDER = "google_genai" as const;
 export const GOOGLE_CANDIDATE_QUESTION_WORDING_MODEL = "gemini-2.5-flash" as const;
-export const GOOGLE_CANDIDATE_QUESTION_WORDING_PROFILE_ID = "google_gemini_2_5_flash_question_wording_v1" as const;
+export const GOOGLE_CANDIDATE_QUESTION_WORDING_PROFILE_ID = "google_gemini_2_5_flash_question_wording_v2" as const;
 export const GOOGLE_CANDIDATE_QUESTION_WORDING_PROFILE_ENV = "CANDIDATE_QUESTION_WORDING_PROFILE" as const;
 export const GOOGLE_CANDIDATE_QUESTION_WORDING_API_KEY_ENV = "GEMINI_API_KEY" as const;
 
@@ -79,12 +79,15 @@ export const GOOGLE_CANDIDATE_QUESTION_WORDING_SYSTEM_INSTRUCTION = Object.freez
     "Use clear, respectful language. Prefer one focused prompt over stacked multi-part questions.",
     "Do not mention scoring, ranking, grading, hiring decisions, STAR, PERMA, category labels, plan slots, or implementation terms.",
     "Do not invent employer facts, candidate history, credentials, tools, schedules, or requirements that are not supported by the supplied data.",
-    "Screening asks about interest, alignment, background, or supported logistics; behavioral asks for a real past example; culture_fit explores work style or motivation; case_scenario presents a realistic supported situation; technical_role_specific asks about relevant tools, processes, knowledge, safety, quality, or judgment.",
+    "Screening asks about interest, alignment, background, or supported logistics; behavioral asks for a real past example; culture_fit explores work style or motivation; case_scenario presents a realistic supported situation.",
+    "For technical_role_specific slots, prefer demonstrated tool or process use, practical application, role judgment, diagnosis, verification, escalation, or learning. Invite a concrete experience when useful.",
+    "Do not ask for exact numerical standards, legal or regulatory requirements, clinical instructions, hazardous-work procedures, or other authoritative factual recall. In regulated, safety-sensitive, or employer-specific contexts, ask how the candidate follows, verifies, or escalates approved procedures.",
+    "Do not treat the resume as proof of qualification and do not use your own knowledge, the job description, or the resume as an authoritative technical reference.",
     "Each questionText must be a complete question between 8 and 500 characters.",
 ]);
 
 export const GOOGLE_CANDIDATE_QUESTION_WORDING_CONFIGURATION_MANIFEST = Object.freeze({
-    status: "candidate_question_wording_configuration_manifest_v1" as const,
+    status: "candidate_question_wording_configuration_manifest_v2" as const,
     provider: GOOGLE_CANDIDATE_QUESTION_WORDING_PROVIDER,
     profileId: GOOGLE_CANDIDATE_QUESTION_WORDING_PROFILE_ID,
     model: GOOGLE_CANDIDATE_QUESTION_WORDING_MODEL,

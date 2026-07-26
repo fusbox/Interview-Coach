@@ -4,7 +4,7 @@ import { RecruiterLogoutButton } from "@/features/recruiter-auth-v2/RecruiterLog
 
 export function AiEvalAccessDenied() {
     return (
-        <main className="candidate-design-system ai-eval-access-denied">
+        <main className="ai-eval-access-denied">
             <section>
                 <ShieldX size={28} aria-hidden="true" />
                 <p className="type-eyebrow">Access unavailable</p>

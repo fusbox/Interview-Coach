@@ -4,7 +4,6 @@ import {
     Beaker,
     CheckCircle2,
     ClipboardCheck,
-    Copy,
     FileJson,
     Inbox,
     Play,
@@ -20,6 +19,7 @@ import {
     runAiEvalScenariosAction,
 } from "@/app/qa/ai-eval/actions";
 
+import { AiEvalScenarioCaseList } from "./AiEvalScenarioCaseList";
 import type {
     AiEvalLiveCostPreview,
     AiEvalLiveExecutionPolicy,
@@ -28,6 +28,10 @@ import {
     readAiEvalScenarioRunMetrics,
     type AiEvalScenarioRunComparison,
 } from "./ai-eval-scenario-run-comparison";
+import {
+    aiEvalScenarioBaselineCases,
+    aiEvalScenarioBaselineManifest,
+} from "./ai-eval-scenario-baseline";
 
 import type {
     AiEvalScenarioDraft,
@@ -93,25 +97,14 @@ export function AiEvalScenarioWorkspaceExperience({
 
     return (
         <main className="ai-eval-workbench ai-eval-scenario-workspace">
-            <header className="ai-eval-workbench__intro">
-                <div>
-                    <p className="type-eyebrow">Synthetic scenario lab</p>
-                    <h1>{filters.view === "scenarios" ? "Exercise the coaching system." : "Inspect every delivered layer."}</h1>
-                    <p>
-                        {filters.view === "scenarios"
-                            ? "Stage reproducible candidate situations and run them through the same projections used by the app."
-                            : "Compare the persisted evaluator, session, transcript, summary, and dashboard outputs case by case."}
-                    </p>
-                </div>
-                <dl aria-label="Scenario workspace count">
-                    <div>
-                        <dt>{filters.view === "scenarios" ? "Baseline cases" : "Runs"}</dt>
-                        <dd>{filters.view === "scenarios" ? baselineCount : runs.length}</dd>
-                    </div>
-                </dl>
-            </header>
-
-            <WorkspaceNavigation active={filters.view} />
+            <div className="ai-eval-scenario-pagehead">
+                <WorkspaceNavigation active={filters.view} />
+                <p className="ai-eval-scenario-pagehead__count" aria-live="polite">
+                    {filters.view === "scenarios"
+                        ? `${baselineCount} baseline case${baselineCount === 1 ? "" : "s"}`
+                        : `${runs.length} run${runs.length === 1 ? "" : "s"}`}
+                </p>
+            </div>
             {noticeText(filters.notice) ? (
                 <p className={`ai-eval-notice ${filters.notice === "conflict" || filters.notice === "invalid" ? "is-warning" : ""}`} role="status">
                     {noticeText(filters.notice)}
@@ -163,164 +156,141 @@ function ScenarioWorkspace({
     livePreview?: AiEvalLiveSelectionPreview | null;
 }) {
     const tags = Array.from(new Set(versions.flatMap((version) => version.scenario.tags))).sort();
-    return (
-        <div className={`ai-eval-scenario-layout ${selectedDraft ? "has-editor" : ""}`}>
-            <aside className="ai-eval-scenario-drafts" aria-label="Scenario drafts">
-                <header>
-                    <div>
-                        <p className="type-eyebrow">Working copies</p>
-                        <h2>Drafts</h2>
-                    </div>
-                    <form action={createAiEvalScenarioDraftAction}>
-                        <input type="hidden" name="creationRequestKey" value={randomUUID()} />
-                        <button type="submit" className="icon-button" title="Create scenario" aria-label="Create scenario">
-                            <Plus size={17} />
-                        </button>
-                    </form>
-                </header>
-                {drafts.length ? (
-                    <ol>
-                        {drafts.map((draft) => (
-                            <li key={draft.draftId}>
-                                <Link
-                                    href={`/qa/ai-eval?view=scenarios&draft=${encodeURIComponent(draft.draftId)}`}
-                                    className={selectedDraft?.draftId === draft.draftId ? "is-selected" : ""}
-                                >
-                                    <strong>{draft.scenario.title}</strong>
-                                    <span>{humanize(draft.scenario.kind)} | Revision {draft.revision}</span>
-                                    <span>Updated {formatDate(draft.updatedAt)}</span>
-                                </Link>
-                            </li>
-                        ))}
-                    </ol>
-                ) : <p className="ai-eval-scenario-empty">Create a scenario or clone a baseline case to begin.</p>}
-            </aside>
+    const baselineOrdinals = new Map(
+        aiEvalScenarioBaselineManifest.members.map((member) => [member.scenarioKey, member.ordinal]),
+    );
+    const caseOptions = versions.map((version) => ({
+        scenarioVersionId: version.scenarioVersionId,
+        scenarioKey: version.scenario.scenarioKey,
+        title: version.scenario.title,
+        sourceKind: version.sourceKind,
+        versionNumber: version.versionNumber,
+        kindLabel: humanize(version.scenario.kind),
+        audienceLabel: version.scenario.audiences.map(humanize).join(", "),
+        rationale: version.scenario.rationale,
+        baselineOrdinal: version.sourceKind === "baseline"
+            ? baselineOrdinals.get(version.scenario.scenarioKey) ?? null
+            : null,
+    }));
 
-            <section className="ai-eval-scenario-library" aria-label="Staged scenario library">
-                <header className="ai-eval-scenario-section-heading">
-                    <div>
-                        <p className="type-eyebrow">Reproducible inputs</p>
-                        <h2>Scenario library</h2>
+    return (
+        <div className={`ai-eval-scenario-layout ${selectedDraft ? "has-editor" : ""} ${drafts.length || selectedDraft ? "has-rail" : ""}`}>
+            <section className="ai-eval-scenario-workflow" aria-label="Scenario run setup">
+                <div className="ai-eval-scenario-toolbar" aria-label="Run actions">
+                    <div className="ai-eval-scenario-toolbar__group">
+                        <span className="ai-eval-scenario-toolbar__label">1. Select cases</span>
+                        <span className="ai-eval-scenario-toolbar__hint">Select one or more case versions from the scenario list, then choose a run path.</span>
                     </div>
-                    <form id="ai-eval-selected-run" action={runAiEvalScenariosAction}>
-                        <input type="hidden" name="creationRequestKey" value={randomUUID()} />
-                        <input type="hidden" name="runScope" value="selected" />
-                        <button type="submit" className="button button--secondary"><Play size={16} />Run selected</button>
-                    </form>
-                    <form action={runAiEvalScenariosAction}>
-                        <input type="hidden" name="creationRequestKey" value={randomUUID()} />
-                        <input type="hidden" name="runScope" value="full_baseline" />
-                        <button type="submit" className="button button--primary"><Play size={16} />Run baseline</button>
-                    </form>
-                </header>
-                <section className="ai-eval-live-run-control" aria-labelledby="live-run-title">
-                    <div>
-                        <p className="type-eyebrow">Credentialed provider run</p>
-                        <h3 id="live-run-title">Preview cost before queuing live work.</h3>
-                        <p>The browser can queue a reviewed request. Only the separately confirmed worker can make provider calls.</p>
+                    <div className="ai-eval-scenario-toolbar__group">
+                        <span className="ai-eval-scenario-toolbar__label">2. Fixture run</span>
+                        <div className="ai-eval-scenario-toolbar__actions">
+                            <form id="ai-eval-selected-run" action={runAiEvalScenariosAction}>
+                                <input type="hidden" name="creationRequestKey" value={randomUUID()} />
+                                <input type="hidden" name="runScope" value="selected" />
+                                <button type="submit" className="button button--secondary">Run selected</button>
+                            </form>
+                            <form action={runAiEvalScenariosAction}>
+                                <input type="hidden" name="creationRequestKey" value={randomUUID()} />
+                                <input type="hidden" name="runScope" value="full_baseline" />
+                                <button type="submit" className="button button--secondary">Run all baseline</button>
+                            </form>
+                        </div>
                     </div>
-                    <div className="ai-eval-live-run-control__actions">
-                        <button type="submit" className="button button--secondary" form="ai-eval-live-selected-preview">
-                            Preview selected live
-                        </button>
-                        <form action="/qa/ai-eval" method="get">
-                            <input type="hidden" name="view" value="scenarios" />
-                            <input type="hidden" name="liveScope" value="tag" />
-                            <label htmlFor="ai-eval-live-tag">Tag</label>
-                            <select id="ai-eval-live-tag" name="liveTag" required defaultValue="">
-                                <option value="" disabled>Select tag</option>
-                                {tags.map((tag) => <option key={tag} value={tag}>{humanize(tag)}</option>)}
-                            </select>
-                            <button type="submit" className="button button--secondary">Preview tag</button>
-                        </form>
-                        <form action="/qa/ai-eval" method="get">
-                            <input type="hidden" name="view" value="scenarios" />
-                            <button type="submit" name="liveScope" value="full_corpus" className="button button--secondary">
-                                Preview full corpus
+                    <div className="ai-eval-scenario-toolbar__group ai-eval-scenario-toolbar__group--live">
+                        <span className="ai-eval-scenario-toolbar__label">3. Live Gemini</span>
+                        <div className="ai-eval-scenario-toolbar__actions">
+                            <button type="submit" className="button button--primary" form="ai-eval-live-selected-preview">
+                                Preview selected
                             </button>
-                        </form>
-                    </div>
-                    {!livePolicy?.ready ? (
-                        <p className="ai-eval-live-run-control__status is-blocked">
-                            Live execution is unavailable: {(livePolicy?.reasons ?? ["LIVE_POLICY_UNAVAILABLE"]).map(humanize).join(", ")}.
+                            <form className="ai-eval-scenario-toolbar__tag" action="/qa/ai-eval" method="get">
+                                <input type="hidden" name="view" value="scenarios" />
+                                <input type="hidden" name="liveScope" value="tag" />
+                                <label className="sr-only" htmlFor="ai-eval-live-tag">Tag</label>
+                                <select id="ai-eval-live-tag" name="liveTag" required defaultValue="">
+                                    <option value="" disabled>Tag…</option>
+                                    {tags.map((tag) => <option key={tag} value={tag}>{humanize(tag)}</option>)}
+                                </select>
+                                <button type="submit" className="button button--secondary">Preview tag</button>
+                            </form>
+                            <form action="/qa/ai-eval" method="get">
+                                <input type="hidden" name="view" value="scenarios" />
+                                <button type="submit" name="liveScope" value="full_corpus" className="button button--secondary">
+                                    Preview all
+                                </button>
+                            </form>
+                        </div>
+                        <p className={`ai-eval-scenario-toolbar__status ${livePolicy?.ready ? "" : "is-blocked"}`}>
+                            {livePolicy?.ready
+                                ? "Live ready · queuing only; worker makes the call"
+                                : `Live blocked · ${(livePolicy?.reasons ?? ["LIVE_POLICY_UNAVAILABLE"]).map(humanize).join(", ")}`}
                         </p>
-                    ) : <p className="ai-eval-live-run-control__status">Live gate is configured. No provider call has been made.</p>}
-                </section>
+                    </div>
+                </div>
+
                 {livePreview ? <LiveRunPreview selection={livePreview} /> : null}
+
                 <form id="ai-eval-live-selected-preview" action="/qa/ai-eval" method="get">
                     <input type="hidden" name="view" value="scenarios" />
                     <input type="hidden" name="liveScope" value="selected" />
                 </form>
-                <ol className="ai-eval-scenario-grid">
-                    {versions.map((version) => (
-                        <li key={version.scenarioVersionId} className="ai-eval-scenario-card">
-                            <label className="ai-eval-scenario-card__select">
-                                <input
-                                    type="checkbox"
-                                    name="scenarioVersionId"
-                                    value={version.scenarioVersionId}
-                                    form="ai-eval-selected-run"
-                                />
-                                <span>Select</span>
-                            </label>
-                            <label className="ai-eval-scenario-card__select ai-eval-scenario-card__select--live">
-                                <input
-                                    type="checkbox"
-                                    name="scenarioVersionId"
-                                    value={version.scenarioVersionId}
-                                    form="ai-eval-live-selected-preview"
-                                />
-                                <span>Live</span>
-                            </label>
-                            <div className="ai-eval-scenario-card__heading">
-                                <span className={`ai-eval-chip is-${version.sourceKind}`}>{version.sourceKind}</span>
-                                <span>v{version.versionNumber}</span>
-                            </div>
-                            <h3>{version.scenario.title}</h3>
-                            <p>{version.scenario.rationale}</p>
-                            <dl>
-                                <div><dt>Kind</dt><dd>{humanize(version.scenario.kind)}</dd></div>
-                                <div><dt>Audience</dt><dd>{version.scenario.audiences.map(humanize).join(", ")}</dd></div>
-                                <div><dt>Layers</dt><dd>{version.scenario.intendedOutputLayers.length}</dd></div>
-                            </dl>
-                            <div className="ai-eval-scenario-card__actions">
-                                <form action={createAiEvalScenarioDraftAction}>
-                                    <input type="hidden" name="creationRequestKey" value={randomUUID()} />
-                                    <input type="hidden" name="sourceVersionId" value={version.scenarioVersionId} />
-                                    <button type="submit" className="button button--quiet"><Copy size={15} />Clone</button>
-                                </form>
-                                <form action={runAiEvalScenariosAction}>
-                                    <input type="hidden" name="creationRequestKey" value={randomUUID()} />
-                                    <input type="hidden" name="runScope" value="selected" />
-                                    <input type="hidden" name="scenarioVersionId" value={version.scenarioVersionId} />
-                                    <button type="submit" className="button button--quiet"><Play size={15} />Run one</button>
-                                </form>
-                            </div>
-                        </li>
-                    ))}
-                </ol>
             </section>
 
-            {selectedDraft ? <ScenarioEditor draft={selectedDraft} /> : null}
+            <section className="ai-eval-scenario-library" aria-label="Scenario cases">
+                <AiEvalScenarioCaseList
+                    versions={caseOptions}
+                    fixtureFormId="ai-eval-selected-run"
+                    liveFormId="ai-eval-live-selected-preview"
+                />
+            </section>
+
+            {(drafts.length > 0 || selectedDraft) ? (
+                <aside className="ai-eval-scenario-rail" aria-label="Drafts and editor">
+                    <div className="ai-eval-scenario-drafts">
+                        <header>
+                            <h2>Drafts</h2>
+                            <form action={createAiEvalScenarioDraftAction}>
+                                <input type="hidden" name="creationRequestKey" value={randomUUID()} />
+                                <button type="submit" className="icon-button" title="Blank draft" aria-label="Create blank draft">
+                                    <Plus size={17} />
+                                </button>
+                            </form>
+                        </header>
+                        {drafts.length ? (
+                            <ol>
+                                {drafts.map((draft) => (
+                                    <li key={draft.draftId}>
+                                        <Link
+                                            href={`/qa/ai-eval?view=scenarios&draft=${encodeURIComponent(draft.draftId)}`}
+                                            className={selectedDraft?.draftId === draft.draftId ? "is-selected" : ""}
+                                        >
+                                            <strong>{draft.scenario.title}</strong>
+                                            <span>r{draft.revision} · {formatDate(draft.updatedAt)}</span>
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ol>
+                        ) : (
+                            <p className="ai-eval-scenario-empty">Clone a case to edit it.</p>
+                        )}
+                    </div>
+                    {selectedDraft ? <ScenarioEditor draft={selectedDraft} /> : null}
+                </aside>
+            ) : null}
         </div>
     );
 }
 
 function ScenarioEditor({ draft }: { draft: AiEvalScenarioDraft }) {
     return (
-        <aside className="ai-eval-scenario-editor" aria-label="Scenario editor">
+        <div className="ai-eval-scenario-editor" aria-label="Scenario editor">
             <header>
-                <div>
-                    <p className="type-eyebrow">Editable draft</p>
-                    <h2>{draft.scenario.title}</h2>
-                </div>
-                <FileJson size={22} aria-hidden="true" />
+                <h2>{draft.scenario.title}</h2>
+                <FileJson size={18} aria-hidden="true" />
             </header>
-            <p>Scenario identity is fixed after creation. Save changes before or while staging this revision.</p>
             <form action={mutateAiEvalScenarioDraftAction}>
                 <input type="hidden" name="draftId" value={draft.draftId} />
                 <input type="hidden" name="revision" value={draft.revision} />
-                <label htmlFor="scenario-json">Validated scenario JSON</label>
+                <label className="sr-only" htmlFor="scenario-json">Scenario JSON</label>
                 <textarea
                     id="scenario-json"
                     name="scenarioJson"
@@ -330,14 +300,14 @@ function ScenarioEditor({ draft }: { draft: AiEvalScenarioDraft }) {
                 />
                 <div className="ai-eval-scenario-editor__actions">
                     <button type="submit" name="intent" value="save" className="button button--secondary">
-                        <Save size={16} />Save draft
+                        <Save size={16} />Save
                     </button>
                     <button type="submit" name="intent" value="stage" className="button button--primary">
-                        <CheckCircle2 size={16} />Stage revision
+                        <CheckCircle2 size={16} />Stage
                     </button>
                 </div>
             </form>
-        </aside>
+        </div>
     );
 }
 
@@ -345,27 +315,24 @@ function LiveRunPreview({ selection }: { selection: AiEvalLiveSelectionPreview }
     const preview = selection.preview;
     return (
         <section className="ai-eval-live-preview" aria-labelledby="live-preview-title">
-            <header>
-                <div>
-                    <p className="type-eyebrow">Server-derived live preview</p>
-                    <h3 id="live-preview-title">{preview.expandedCaseCount} cases, up to {preview.calls.maximum} provider calls</h3>
-                </div>
-                <strong>{formatUsd(preview.maximumEstimatedCostUsd)} maximum estimate</strong>
-            </header>
-            <dl>
-                <div><dt>Requested</dt><dd>{preview.requestedCaseCount}</dd></div>
-                <div><dt>Added dependencies</dt><dd>{preview.dependencyCaseCount}</dd></div>
-                <div><dt>Call envelope</dt><dd>{preview.calls.minimum}-{preview.calls.maximum}</dd></div>
-                <div><dt>Token envelope</dt><dd>{formatInteger(preview.tokens.maximumInput + preview.tokens.maximumOutput)}</dd></div>
-                <div><dt>Input rate</dt><dd>{formatUsd(preview.pricing.inputUsdPerMillionTokens)}/1M</dd></div>
-                <div><dt>Output rate</dt><dd>{formatUsd(preview.pricing.outputUsdPerMillionTokens)}/1M</dd></div>
-            </dl>
-            <p><strong>Requested:</strong> {selection.requestedTitles.join(", ")}</p>
-            {selection.dependencyTitles.length ? <p><strong>Required journey dependencies:</strong> {selection.dependencyTitles.join(", ")}</p> : null}
-            <p className={preview.withinLimits ? "" : "is-warning"}>
-                Configured ceilings: {preview.limits.maxCalls} calls and {formatUsd(preview.limits.maxEstimatedCostUsd)} per run.
-            </p>
-            <form action={runAiEvalLiveScenariosAction}>
+            <div className="ai-eval-live-preview__summary">
+                <h2 id="live-preview-title">Live estimate</h2>
+                <p>
+                    <strong>{preview.expandedCaseCount}</strong> cases
+                    {preview.dependencyCaseCount > 0 ? ` (+${preview.dependencyCaseCount} deps)` : ""}
+                    {" · "}
+                    <strong>{preview.calls.minimum}–{preview.calls.maximum}</strong> calls
+                    {" · "}
+                    <strong>{formatUsd(preview.maximumEstimatedCostUsd)}</strong> max
+                </p>
+                <p className="ai-eval-live-preview__titles">{selection.requestedTitles.join(" · ")}</p>
+                {!preview.withinLimits ? (
+                    <p className="is-warning">
+                        Over ceiling ({preview.limits.maxCalls} calls / {formatUsd(preview.limits.maxEstimatedCostUsd)}). Raise limits or shrink selection.
+                    </p>
+                ) : null}
+            </div>
+            <form className="ai-eval-live-preview__queue" action={runAiEvalLiveScenariosAction}>
                 <input type="hidden" name="creationRequestKey" value={randomUUID()} />
                 <input type="hidden" name="selectionFingerprint" value={preview.selectionFingerprint} />
                 {selection.requestedVersionIds.map((id) => (
@@ -373,10 +340,10 @@ function LiveRunPreview({ selection }: { selection: AiEvalLiveSelectionPreview }
                 ))}
                 <label className="ai-eval-live-preview__acknowledgement">
                     <input type="checkbox" name="liveAcknowledgement" value="confirmed" required />
-                    <span>I reviewed this estimate and understand that the confirmed worker will spend credentialed provider calls.</span>
+                    <span>I reviewed the estimate. The worker will spend credentialed calls.</span>
                 </label>
                 <button type="submit" className="button button--primary" disabled={!preview.withinLimits}>
-                    Queue credentialed run
+                    Queue live run
                 </button>
             </form>
         </section>
@@ -395,20 +362,19 @@ function RunWorkspace({
     return (
         <div className={`ai-eval-scenario-run-layout ${selectedRun ? "has-selection" : ""}`}>
             <aside className="ai-eval-scenario-runs" aria-label="Scenario runs">
-                <header><p className="type-eyebrow">Durable history</p><h2>Runs</h2></header>
+                <header><h2>Runs</h2></header>
                 {runs.length ? <ol>{runs.map((run) => (
                     <li key={run.runId}>
                         <Link href={`/qa/ai-eval?view=runs&run=${encodeURIComponent(run.runId)}`} className={selectedRun?.runId === run.runId ? "is-selected" : ""}>
                             <span className="ai-eval-list__topline"><strong>{run.caseCount} cases</strong><span className={`ai-eval-chip is-${run.lifecycleState}`}>{humanize(run.lifecycleState)}</span></span>
-                            <span>{run.completedCaseCount} complete | {run.failedCaseCount} failed</span>
-                            <span>{formatDate(run.requestedAt)}</span>
+                            <span>{run.completedCaseCount}/{run.caseCount} done · {formatDate(run.requestedAt)}</span>
                         </Link>
                     </li>
-                ))}</ol> : <p className="ai-eval-scenario-empty">No scenario runs have been submitted.</p>}
+                ))}</ol> : <p className="ai-eval-scenario-empty">No runs yet.</p>}
             </aside>
             <section className="ai-eval-scenario-run-detail" aria-label="Selected scenario run">
                 {selectedRun ? <RunDetail run={selectedRun} runs={runs} comparison={comparison} /> : (
-                    <div className="ai-eval-case-empty"><Beaker size={24} /><h2>Select a run to inspect its outputs.</h2></div>
+                    <div className="ai-eval-case-empty"><Beaker size={24} /><h2>Select a run</h2></div>
                 )}
             </section>
         </div>
@@ -428,18 +394,23 @@ function RunDetail({
         && candidate.executionMode === "credentialed_live"
         && candidate.profileId === run.profileId
         && candidate.configurationFingerprint === run.configurationFingerprint);
+    const runScenariosByKey = new Map(
+        [
+            ...aiEvalScenarioBaselineCases,
+            ...run.cases.map((runCase) => runCase.scenario),
+        ].map((scenario) => [scenario.scenarioKey, scenario]),
+    );
     return (
         <>
             <header className="ai-eval-scenario-run-detail__header">
                 <div>
-                    <p className="type-eyebrow">{run.executionMode === "credentialed_live" ? "Credentialed live run" : "Contract fixture run"}</p>
-                    <h2>{run.caseCount} scenario cases</h2>
+                    <h2>{run.caseCount} cases · {run.executionMode === "credentialed_live" ? "Live" : "Fixture"}</h2>
+                    <p className="ai-eval-scenario-run-detail__meta">
+                        Retained until {formatDate(run.retentionExpiresAt)}
+                    </p>
                 </div>
                 <span className={`ai-eval-chip is-${run.lifecycleState}`}>{humanize(run.lifecycleState)}</span>
             </header>
-            <p className="ai-eval-scenario-run-detail__meta">
-                Profile {run.profileId} | Retained until {formatDate(run.retentionExpiresAt)}
-            </p>
             {run.costPreview ? <RunCostSummary run={run} /> : null}
             {run.executionMode === "credentialed_live" && comparableRuns.length ? (
                 <form className="ai-eval-run-comparison-picker" action="/qa/ai-eval" method="get">
@@ -467,16 +438,19 @@ function RunDetail({
                                 {humanize(runCase.assertionResult ?? runCase.lifecycleState)}
                             </span>
                         </header>
+                        <RunCaseInput
+                            scenario={runCase.scenario}
+                            runScenariosByKey={runScenariosByKey}
+                        />
                         {runCase.assertionReasons.map((reason) => <p key={reason}>{reason}</p>)}
                         <div className="ai-eval-scenario-layers">
-                            <p className="type-eyebrow">Candidate-visible outputs</p>
                             {runCase.layers.filter((layer) => layer.candidateVisible).map((layer) => (
                                 <RunLayerDetail key={layer.runLayerId} layer={layer} />
                             ))}
                         </div>
                         {runCase.layers.some((layer) => !layer.candidateVisible) ? (
                             <details className="ai-eval-scenario-diagnostics">
-                                <summary>Internal evaluator diagnostics</summary>
+                                <summary>Diagnostics</summary>
                                 {runCase.layers.filter((layer) => !layer.candidateVisible).map((layer) => (
                                     <RunLayerDetail key={layer.runLayerId} layer={layer} />
                                 ))}
@@ -489,18 +463,62 @@ function RunDetail({
     );
 }
 
+function RunCaseInput({
+    scenario,
+    runScenariosByKey,
+}: {
+    scenario: AiEvalScenarioRunDetail["cases"][number]["scenario"];
+    runScenariosByKey: Map<string, AiEvalScenarioRunDetail["cases"][number]["scenario"]>;
+}) {
+    const atomicScenarios = scenario.kind === "atomic_answer"
+        ? [scenario]
+        : scenario.atomicCaseKeys.flatMap((scenarioKey) => {
+            const dependency = runScenariosByKey.get(scenarioKey);
+            return dependency?.kind === "atomic_answer" ? [dependency] : [];
+        });
+
+    return (
+        <section className="ai-eval-run-case-input" aria-label="Case question and answer">
+            {atomicScenarios.length ? atomicScenarios.map((atomicScenario, index) => (
+                <article key={atomicScenario.scenarioKey}>
+                    <div className="ai-eval-run-case-input__prompt">
+                        <p className="type-eyebrow">
+                            {atomicScenarios.length > 1 ? `Question ${index + 1}` : "Question"}
+                        </p>
+                        <h4>{atomicScenario.question.text}</h4>
+                    </div>
+                    <div className="ai-eval-run-case-input__answer">
+                        <p className="type-eyebrow">
+                            {atomicScenario.answer.mode === "voice" ? "Voice transcript" : "Answer"}
+                        </p>
+                        <blockquote>{atomicScenario.answer.text}</blockquote>
+                        {atomicScenario.voiceMarkers ? (
+                            <p className="ai-eval-run-case-input__voice-markers">
+                                STT markers: {atomicScenario.voiceMarkers.fillerWordCount} filler words
+                                {" / "}{atomicScenario.voiceMarkers.longPauseCount} long pauses
+                                {" / "}{atomicScenario.voiceMarkers.wordsPerMinute ?? "unknown"} WPM
+                            </p>
+                        ) : null}
+                    </div>
+                </article>
+            )) : (
+                <p>Referenced question and answer inputs were not included in this run.</p>
+            )}
+        </section>
+    );
+}
+
 function RunCostSummary({ run }: { run: AiEvalScenarioRunDetail }) {
     const preview = run.costPreview!;
     const actual = readAiEvalScenarioRunMetrics(run);
     return (
-        <section className="ai-eval-run-cost-summary" aria-label="Live run execution metrics">
+        <section className="ai-eval-run-cost-summary" aria-label="Live run metrics">
             <dl>
-                <div><dt>Estimated maximum</dt><dd>{formatUsd(preview.maximumEstimatedCostUsd)}</dd></div>
-                <div><dt>Actual calls</dt><dd>{actual.calls}</dd></div>
-                <div><dt>Actual tokens</dt><dd>{formatInteger(actual.totalTokens)}</dd></div>
-                <div><dt>Provider latency</dt><dd>{formatDuration(actual.latencyMs)}</dd></div>
+                <div><dt>Est. max</dt><dd>{formatUsd(preview.maximumEstimatedCostUsd)}</dd></div>
+                <div><dt>Calls</dt><dd>{actual.calls}</dd></div>
+                <div><dt>Tokens</dt><dd>{formatInteger(actual.totalTokens)}</dd></div>
+                <div><dt>Latency</dt><dd>{formatDuration(actual.latencyMs)}</dd></div>
             </dl>
-            <p>Actual metrics come from accepted runtime metadata and are diagnostic, not billing records.</p>
         </section>
     );
 }

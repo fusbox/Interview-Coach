@@ -1,0 +1,41 @@
+/* ─────────────────────────────────────────────────────────────
+   SEMANTIC ROLE LAYER
+
+   Thin aliases over the primitive tiers declared in shape.css,
+   elevation.css and motion.css. Author UI against THESE roles —
+   not the raw primitives — so a future re-tier is a one-line
+   change instead of a component-wide sweep.
+
+   Extracted into its own file (was co-located in each primitive
+   file) so the role vocabulary reads as one intentional contract,
+   independent of the scales it maps onto. Load AFTER the primitive
+   token files. (var() resolves lazily, so cascade order isn't
+   strictly required, but keep it after for clarity.)
+   ───────────────────────────────────────────────────────────── */
+:root {
+    /* ── Radii · map onto shape.css primitives ──────────────── */
+    --radius-control: 9999px;                        /* pills: buttons, chips, badges, toggles */
+    --radius-chip:    var(--radius-md);              /* 8px  — dense inline tags */
+    --radius-row:     var(--radius-lg);              /* 12px — list rows, activity items */
+    --radius-widget:  var(--radius-xl);              /* 16px — nested tiles/widgets inside a card */
+
+    /* ── Elevations · map onto elevation.css primitives ─────── */
+    /* One resting elevation per surface-prominence tier. */
+    --elevation-row:   var(--shadow-soft);  /* list rows, quiet chips */
+    --elevation-card:  var(--shadow-card);  /* Tier 3 calm card */
+    --elevation-panel: var(--shadow-panel); /* Tier 1/2 feature + spotlight */
+    --elevation-cta:   var(--shadow-cta);   /* primary action glow */
+
+    /* ── Motion · duration + ease paired by intent (motion.css) ── */
+    /* Controls move fast & standard; surfaces move slower & emphasized. */
+    --motion-control-duration: var(--duration-base); /* @kind other */
+    --motion-control-ease:     var(--ease-standard); /* @kind other */
+    --motion-surface-duration: var(--duration-slow); /* @kind other */
+    --motion-surface-ease:     var(--ease-emphasized); /* @kind other */
+
+    /* Control sizing - single height baseline for application CTAs.
+       Primary and secondary pill buttons share one resting height.
+       (Previously drifted to 50px/46px per-instance; 44px is canonical —
+       matches the shadcn --radius-md button "lg"/"comfortable" tiers.) */
+    --button-height: 44px; /* @kind spacing */
+}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { CandidateAnswerAnalysisProviderResult } from "@/features/candidate-session-v2/candidate-answer-analysis-adapter";
+import { createCandidateAnswerAnalysisProviderResultFixture } from "@/features/candidate-session-v2/candidate-answer-analysis-test-fixture";
 import {
     candidateAnswerAnalysisFixtureRunMetadata,
     runFixtureEvidenceFirstEvaluator,
@@ -142,7 +143,7 @@ describe("candidate Coach Update artifact input", () => {
         });
         expect(input?.questions[0]?.acceptedAnalysis.evidenceFirst).not.toHaveProperty("feedbackPlan");
         expect(createFixtureCandidateCoachUpdateContent(input!)).toMatchObject({
-            status: "candidate_coach_update_content_v2",
+            status: "candidate_coach_update_content_v3",
             questions: [expect.objectContaining({
                 transcriptCanvas: expect.objectContaining({ evaluationRunId: "run-internal" }),
             })],
@@ -455,9 +456,7 @@ function createRun({
 }
 
 function createAnalysis(attemptId: string, inputFingerprint: string): CandidateAnswerAnalysisProviderResult {
-    return {
-        status: "answer_analysis_provider_result",
-        provider: "candidate_v2_answer_evaluator",
+    return createCandidateAnswerAnalysisProviderResultFixture({
         analyzedAt: "2026-07-15T12:02:01.000Z",
         answer: {
             slotId: "slot-1",
@@ -471,24 +470,15 @@ function createAnalysis(attemptId: string, inputFingerprint: string): CandidateA
             observation: "Your answer is direct and could use one concrete detail.",
             nextPracticeFocus: "Add one concrete detail and its result.",
         },
-        evidence: [],
         evidenceFirst: {
-            contractVersion: "candidate_evidence_first_v2",
             inputFingerprint,
             candidateFeedback: {
-                status: "candidate_safe_feedback",
-                schemaVersion: 1,
-                inputFingerprint,
                 acknowledgement: "You gave me a direct starting point.",
                 primaryStrength: "Your response is direct.",
                 biggestUpgrade: "Add one concrete detail.",
                 redoPrompt: "Try it again with one result.",
-                patternSuggestion: null,
-                deliveryNote: null,
             },
-            interaction: {
-                intervention: "revise_answer",
-            },
+            intervention: "revise_answer",
         },
-    };
+    });
 }

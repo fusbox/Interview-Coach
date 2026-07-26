@@ -271,6 +271,7 @@ function createReadyDashboard(
             },
         },
         coachPlan: createCoachPlanReference(),
+        questionPreparedness: null,
     };
 
     return { ...dashboard, ...overrides };
@@ -394,7 +395,6 @@ function createDetailItem({
             acknowledgement: "You gave me a direct starting point.",
             observation: `Observation ${questionNumber}`,
             nextPracticeFocus: "Practice one clearer result.",
-            overallBand: "clear",
         },
         comparison: {
             kind: "first_practice",

@@ -154,7 +154,7 @@ export function SharedLivePracticeShell({
 
     if (!currentQuestion) {
         return (
-            <main className="candidate-design-system session-live-shell session-live-shell--missing">
+            <main className="session-live-shell session-live-shell--missing">
                 <section className="session-live-shell__missing" role="status">
                     <p className="type-eyebrow">Practice space</p>
                     <h1>Your questions are not available yet.</h1>
@@ -170,7 +170,7 @@ export function SharedLivePracticeShell({
     }
 
     return (
-        <main className="candidate-design-system session-live-shell">
+        <main className="session-live-shell">
             <header className="session-live-shell__header">
                 <div className="session-live-shell__header-row app-grid">
                     <div className="session-live-shell__identity">
