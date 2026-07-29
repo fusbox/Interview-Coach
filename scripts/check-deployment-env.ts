@@ -293,6 +293,19 @@ function validateDatabaseUrl(env: Environment, state: MutableValidation, target:
             "Remote PostgreSQL URL does not declare sslmode; confirm the provider enforces TLS.",
         );
     }
+
+    if (!isLocalHostname(url.hostname)) {
+        const databaseRole = decodeURIComponent(url.username).split(".", 1)[0];
+        if (databaseRole !== "interview_coach_runtime") {
+            addError(
+                state,
+                target,
+                variable,
+                "UNAPPROVED_DATABASE_ROLE",
+                "Remote application processes must connect as interview_coach_runtime, not an owner or administrative role.",
+            );
+        }
+    }
 }
 
 function validateHttpsOrigin(

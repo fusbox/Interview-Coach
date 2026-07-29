@@ -79,9 +79,12 @@ it("lets visitors step through prepare chapter stages", async () => {
 
     const prepare = document.getElementById("prepare");
     expect(prepare).not.toBeNull();
+    expect(prepare).toHaveClass("is-handoff-pending");
     const chapter = within(prepare as HTMLElement);
 
-    expect(chapter.getByRole("heading", { name: /^prepare$/i })).toBeInTheDocument();
+    // Prepare stays inert until HIW docks; content is in the DOM but not exposed yet.
+    expect(chapter.getByText("01", { selector: ".lab-chapter__index" })).toBeInTheDocument();
+    expect(chapter.getByText(/^prepare$/i, { selector: ".lab-chapter__label" })).toBeInTheDocument();
     expect(chapter.getByText(/what are you interviewing for/i)).toBeInTheDocument();
     expect(
         chapter.getByText(/tell us what you’re interviewing for/i, { selector: ".lab-chapter__beat-title" }),

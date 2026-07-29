@@ -1,7 +1,7 @@
 # Local Dev Bootstrap
 
 Status: Active cleanroom V2 bootstrap
-Last updated: 2026-07-28
+Last updated: 2026-07-29
 
 ## Purpose
 
@@ -31,6 +31,19 @@ values. Delete the snapshot after use. The initial Vercel promotion needs only t
 target. TalentArbor launch, the credentialed AI-eval scenario worker, and its retention process are
 independently validated later with `npm run env:check:host-launch`,
 `npm run env:check:ai-eval-worker`, and `npm run env:check:ai-eval-retention`.
+
+Remote application environments use `DATABASE_URL` only with the non-owner
+`interview_coach_runtime` role. Operator migrations prefer `DATABASE_MIGRATION_URL`, which must
+never be added to Vercel or another application runtime. The local disposable database remains
+admin-owned for migration and seed commands, while migration 046 and its smoke prove the same
+runtime grants and RLS posture through `SET ROLE`.
+
+```powershell
+npm run db:smoke-database-access-hardening
+```
+
+Supabase staging setup, runtime-role provisioning, Data API disablement, rollback, and company-release
+follow-ups live in [Database Access Hardening](../07-ops/database-access-hardening.md).
 
 ## The Commands You Usually Need
 

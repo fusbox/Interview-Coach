@@ -1,7 +1,7 @@
 # Candidate Production Hardening And Deployment Controls
 
 Status: Ratified baseline; deployment acceptance pending
-Last updated: 2026-07-28
+Last updated: 2026-07-29
 
 ## Purpose
 
@@ -20,6 +20,7 @@ npm run lint
 npm run typecheck
 npm run test:candidate
 npm run db:smoke-candidate-readiness
+npm run db:smoke-database-access-hardening
 npm run test:e2e:candidate-seeded
 npm run test:e2e:candidate-production
 ```
@@ -79,12 +80,13 @@ High-severity immediate alerts remain appropriate for suspected cross-candidate 
 | --- | --- | --- |
 | Local development | dev host launch plus fixture providers; local smoke Postgres | `.env.local` only; no committed secrets; direct `/candidate/dev/launch`; deterministic candidates |
 | CI production smoke | optimized production runtime with launch/database/provider secrets blank | isolated output and port; dev/prototype routes 404; no external network dependency |
-| TA staging | production launch verifier, TA MSSQL lookup, staging Postgres, approved Gemini profiles | HTTPS; host-minted two-minute single-use launch; sensitive-query redaction; least-privilege DB users; staging-only secrets; metadata telemetry and alert test |
+| TA staging | production launch verifier, TA MSSQL lookup, staging Postgres, approved Gemini profiles | HTTPS; host-minted two-minute single-use launch; sensitive-query redaction; disabled Supabase Data API; non-owner `interview_coach_runtime`; RLS/grant/function smoke; staging-only secrets; metadata telemetry and alert test |
 | Production | same contracts as accepted staging with production-owned secret instances | explicit promotion evidence, secret rotation procedure, backup/rollback owner, post-deploy smoke, senior release approval |
 
 Configuration groups:
 
-- Postgres: `DATABASE_URL`.
+- Postgres runtime: `DATABASE_URL` using only `interview_coach_runtime`.
+- Postgres operator: local/CI-only `DATABASE_MIGRATION_URL` plus ephemeral `DATABASE_RUNTIME_PASSWORD`; neither belongs in Vercel or application runtime.
 - Host verification/session: `CANDIDATE_HOST_LAUNCH_SECRET`, `CANDIDATE_HOST_LAUNCH_EXPECTED_ISSUER`, `CANDIDATE_HOST_LAUNCH_EXPECTED_WORKSPACE=talentarbor`, `CANDIDATE_HOST_LAUNCH_MAX_TOKEN_LIFETIME_SECONDS`, `CANDIDATE_HOST_LAUNCH_CLOCK_SKEW_SECONDS`, and `CANDIDATE_HOST_LAUNCH_SESSION_TTL_SECONDS`.
 - App-owned candidate accounts: `CANDIDATE_ACCOUNT_EMAIL_PROVIDER=smtp`, `CANDIDATE_ACCOUNT_PUBLIC_ORIGIN`, optional `CANDIDATE_ACCOUNT_FROM_EMAIL`, `CANDIDATE_EMAIL_VERIFICATION_TTL_SECONDS`, and explicit deployed versions for `CANDIDATE_TERMS_VERSION`, `CANDIDATE_PRIVACY_VERSION`, `CANDIDATE_COOKIE_VERSION`, `CANDIDATE_RESPONSIBLE_AI_VERSION`, and `CANDIDATE_CONTACT_AUTHORIZATION_VERSION`.
 - TA MSSQL: `CANDIDATE_HOST_LAUNCH_TA_SQL_SERVER`, `_PORT`, `_DATABASE`, `_USER`, `_PASSWORD`, `_ENCRYPT`, `_TRUST_SERVER_CERTIFICATE`, `_CONNECT_TIMEOUT_MS`, `_REQUEST_TIMEOUT_MS`, and `_POOL_MAX`.
@@ -94,6 +96,11 @@ Configuration groups:
 The host/integration owner owns token minting, issuer, secret synchronization, quick-link behavior, and upstream query redaction. The IC deployment owner owns verifier/session settings, Postgres, MSSQL read credentials, provider profiles, telemetry, and rollback. Security owns secret-store and rotation policy. Product/AI owners approve serving profiles and candidate-facing behavior.
 
 Fixture/fault modes, `CANDIDATE_ACCOUNT_EMAIL_PROVIDER=fixture`, and `CANDIDATE_HOST_LAUNCH_DEV_MODE` must be unavailable when `NODE_ENV=production`.
+
+The current RLS policy contains the database service role and denies Supabase/browser roles; it does
+not express candidate ownership because the app does not propagate Supabase Auth identity to
+PostgreSQL. The server access resolver and ownership-scoped queries remain mandatory. See
+[Database Access Hardening](./database-access-hardening.md).
 
 ## Rollback Contract
 

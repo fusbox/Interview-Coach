@@ -78,7 +78,8 @@ function getPostgresPoolConfig(env, options) {
 
     const databaseUrl = options.localSmokeOnly
         ? getSmokeDatabaseUrl()
-        : readOptionalEnv(env, "DATABASE_URL")
+        : readOptionalEnv(env, "DATABASE_MIGRATION_URL")
+            ?? readOptionalEnv(env, "DATABASE_URL")
             ?? (options.smokeDefaults ? getSmokeDatabaseUrl() : undefined);
     const shared = {
         max: parsePositiveInt(readOptionalEnv(env, "POSTGRES_POOL_MAX"), 2, "POSTGRES_POOL_MAX"),
@@ -182,8 +183,8 @@ Usage:
   node scripts/run-postgres-sql.mjs --file db/seeds/003_recruiter_dev_seed.sql --local-smoke-only
 
 Connection:
-  Uses DATABASE_URL or POSTGRES_* values. With --smoke-defaults, uses the local disposable smoke DB
-  only when DATABASE_URL is absent. --local-smoke-only always uses the disposable local DB and is
-  disabled when NODE_ENV=production.
+  Uses operator-only DATABASE_MIGRATION_URL when present, then DATABASE_URL or POSTGRES_* values.
+  With --smoke-defaults, uses the local disposable smoke DB only when neither URL is present.
+  --local-smoke-only always uses the disposable local DB and is disabled when NODE_ENV=production.
 `);
 }

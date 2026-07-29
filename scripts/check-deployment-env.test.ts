@@ -11,7 +11,7 @@ import {
 } from "./check-deployment-env";
 
 const validVercelEnvironment = {
-    DATABASE_URL: "postgresql://app:secret@db.example.com:5432/interview_coach?sslmode=require",
+    DATABASE_URL: "postgresql://interview_coach_runtime:secret@db.example.com:5432/interview_coach?sslmode=require",
     NEXT_PUBLIC_APP_URL: "https://interviewcoach.example.com",
     CANDIDATE_ACCOUNT_PUBLIC_ORIGIN: "https://interviewcoach.example.com",
     ENCRYPTION_SECRET: "0123456789abcdef0123456789abcdef",
@@ -87,6 +87,36 @@ describe("deployment environment preflight", () => {
             ["CANDIDATE_PRIVACY_VERSION", "REQUIRED"],
         ]));
         expect(JSON.stringify(result)).not.toContain(secret);
+    });
+
+    it("rejects an owner or administrative database role for remote application targets", () => {
+        const result = validateDeploymentEnvironment({
+            env: {
+                ...validVercelEnvironment,
+                DATABASE_URL: "postgresql://postgres.projectref:secret@pooler.supabase.com:5432/postgres?sslmode=require",
+            },
+            targets: ["vercel-app"],
+        });
+
+        expect(result.ok).toBe(false);
+        expect(result.errors).toContainEqual(expect.objectContaining({
+            target: "vercel-app",
+            variable: "DATABASE_URL",
+            code: "UNAPPROVED_DATABASE_ROLE",
+        }));
+    });
+
+    it("accepts the Supavisor username form for the approved runtime role", () => {
+        const result = validateDeploymentEnvironment({
+            env: {
+                ...validVercelEnvironment,
+                DATABASE_URL: "postgresql://interview_coach_runtime.projectref:secret@pooler.supabase.com:6543/postgres?sslmode=require",
+            },
+            targets: ["vercel-app"],
+        });
+
+        expect(result.ok).toBe(true);
+        expect(result.errors).toEqual([]);
     });
 
     it("treats Vercel sensitive markers as presence-only in snapshot mode", () => {

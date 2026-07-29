@@ -12,6 +12,10 @@ type LabChapterProps = {
     outcome: string;
     flip?: boolean;
     beats: LabBeat[];
+    /** 0–1 after HIW has fully exited; first chapter eases in already settled. */
+    handoffProgress?: number;
+    /** When true, ignore scroll-arrive until handoffProgress rises (Prepare after HIW). */
+    handoffGated?: boolean;
 };
 
 function clamp01(value: number) {
@@ -54,6 +58,8 @@ export function LabChapter({
     outcome,
     flip = false,
     beats,
+    handoffProgress = 0,
+    handoffGated = false,
 }: LabChapterProps) {
     const rootRef = useRef<HTMLElement | null>(null);
     const pinRef = useRef<HTMLDivElement | null>(null);
@@ -64,6 +70,10 @@ export function LabChapter({
     const [headingRise, setHeadingRise] = useState(24);
     const [contentOpacity, setContentOpacity] = useState(0);
     const [reducedMotion, setReducedMotion] = useState(false);
+    const handoffRef = useRef(handoffProgress);
+    handoffRef.current = handoffProgress;
+    const gatedRef = useRef(handoffGated);
+    gatedRef.current = handoffGated;
 
     useEffect(() => {
         const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -87,21 +97,31 @@ export function LabChapter({
             const section = root.getBoundingClientRect();
             const total = Math.max(root.offsetHeight - vh, 1);
             const scrolled = clamp01(-section.top / total);
+            const handoff = clamp01(handoffRef.current);
+            const gated = gatedRef.current;
 
-            // Header peeks from bottom toward the HIW ceiling.
             const arriveSpan = Math.max(vh - ceiling, 120);
             const arrive = clamp01(1 - (pinTop - ceiling) / arriveSpan);
-            setHeadingOpacity(arrive);
-            setHeadingRise((1 - arrive) * 22);
 
-            // Content fades in once the header is near its ceiling.
-            const reveal = reducedMotion ? (arrive > 0.5 ? 1 : 0) : clamp01((arrive - 0.72) / 0.28);
-            setContentOpacity(reveal);
+            if (gated) {
+                // Prepare: no peek-travel. Opacity is driven only by post-HIW handoff ease.
+                setHeadingOpacity(handoff);
+                setHeadingRise(0);
+                setContentOpacity(handoff);
+            } else {
+                setHeadingOpacity(arrive);
+                setHeadingRise((1 - arrive) * 22);
+                const arriveReveal = reducedMotion
+                    ? arrive > 0.5
+                        ? 1
+                        : 0
+                    : clamp01((arrive - 0.72) / 0.28);
+                setContentOpacity(arriveReveal);
+            }
 
             const isPinned = pinTop <= ceiling + 2 && section.bottom > vh + 8;
             setPinned(isPinned);
 
-            // Beat scrub across the chapter's sticky travel.
             const nextProgress = scrolled;
             const nextActive = Math.min(
                 beats.length - 1,
@@ -118,7 +138,7 @@ export function LabChapter({
             window.removeEventListener("scroll", onScroll);
             window.removeEventListener("resize", onScroll);
         };
-    }, [beats.length, reducedMotion]);
+    }, [beats.length, reducedMotion, handoffProgress]);
 
     useEffect(() => {
         const root = rootRef.current as (HTMLElement & { __selectBeat?: (index: number) => void }) | null;
@@ -134,38 +154,64 @@ export function LabChapter({
         };
     }, [beats.length, reducedMotion]);
 
+    // Keep gated chapter in sync even between scroll events (handoff is time-eased in parent).
+    useEffect(() => {
+        if (!handoffGated) {
+            return;
+        }
+        const handoff = clamp01(handoffProgress);
+        setHeadingOpacity(handoff);
+        setHeadingRise(0);
+        setContentOpacity(handoff);
+    }, [handoffGated, handoffProgress]);
+
     const beat = beats[active] ?? beats[0];
     const beatLocal = beats.length > 0 ? Math.max(0, (progress - 0.08) / 0.84) * beats.length - active : 0;
     const peekNext = !reducedMotion && contentOpacity > 0.6 && active < beats.length - 1 && beatLocal >= 0.72;
     const nextBeat = peekNext ? beats[active + 1] : null;
     const indexLabel = String(chapterIndex + 1).padStart(2, "0");
+    const handoffHidden = handoffGated && headingOpacity < 0.02;
 
     return (
         <section
             ref={rootRef}
             id={id}
-            className={`lab-chapter${flip ? " lab-chapter--flip" : ""}${pinned ? " is-pinned" : ""}`}
+            className={`lab-chapter${flip ? " lab-chapter--flip" : ""}${pinned ? " is-pinned" : ""}${
+                handoffGated ? (handoffHidden ? " is-handoff-pending" : " is-handoff-ready") : ""
+            }`}
             style={{ minHeight: `${Math.max(beats.length + 1, 2) * 100}vh` }}
             aria-labelledby={`${id}-heading`}
             data-chapter-index={chapterIndex}
         >
-            <div ref={pinRef} className="lab-chapter__pin">
+            <div
+                ref={pinRef}
+                className="lab-chapter__pin"
+                style={
+                    handoffGated
+                        ? {
+                              opacity: headingOpacity,
+                              visibility: handoffHidden ? "hidden" : "visible",
+                              pointerEvents: handoffHidden ? "none" : "auto",
+                          }
+                        : undefined
+                }
+            >
                 <div className="lab-chapter__mesh" aria-hidden="true" />
                 <div className="lab-chapter__layout">
                     <header
                         className="lab-chapter__heading"
                         style={{
-                            opacity: headingOpacity,
+                            opacity: handoffGated ? 1 : headingOpacity,
                             transform: `translateY(${headingRise.toFixed(2)}vh)`,
                         }}
                     >
-                        <p className="lab-chapter__index">{indexLabel}</p>
                         <h2 id={`${id}-heading`} className="lab-chapter__name">
-                            {label}
+                            <span className="lab-chapter__index">{indexLabel}</span>
+                            <span className="lab-chapter__label">{label}</span>
                         </h2>
                     </header>
 
-                    <div className="lab-chapter__body" style={{ opacity: contentOpacity }}>
+                    <div className="lab-chapter__body" style={{ opacity: handoffGated ? 1 : contentOpacity }}>
                         <div className="lab-chapter__copy">
                             <p className="lab-chapter__claim">{heading}</p>
                             <div key={`copy-${beat.id}`} className="lab-chapter__beat-block">

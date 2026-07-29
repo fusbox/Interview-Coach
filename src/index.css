@@ -1533,9 +1533,12 @@ select {
 }
 
 .lab-sequence {
+    /* Overlap last intro viewport so Prepare's pin is already at ceiling when HIW exits. */
     position: relative;
+    z-index: 1;
     display: grid;
     gap: 0;
+    margin-top: -100svh;
 }
 
 .lab-intro {
@@ -1552,6 +1555,8 @@ select {
     justify-items: center;
     overflow: hidden;
     background: rgb(var(--background));
+    /* Keep chapter sequence painted underneath until HIW docks. */
+    isolation: isolate;
 }
 
 .lab-intro__hero {
@@ -1596,7 +1601,9 @@ select {
     opacity: 0;
     pointer-events: none;
     transform: translateY(-0.35rem);
-    transition: opacity 220ms ease, transform 220ms ease;
+    transition:
+        opacity 520ms cubic-bezier(0.16, 1, 0.3, 1),
+        transform 520ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .lab-hiw-dock:not(.is-docked) {
@@ -1610,6 +1617,11 @@ select {
     pointer-events: auto;
     transform: none;
     max-height: none;
+}
+
+/* Opacity/transform driven by scroll while leaving Improve — disable CSS tween fight. */
+.lab-hiw-dock.is-docked.is-scroll-scrubbed {
+    transition: none;
 }
 
 .lab-hiw-dock__title {
@@ -1635,6 +1647,16 @@ select {
     min-height: calc(100svh - var(--lab-ceiling));
     width: 100%;
     padding-block: var(--space-6) var(--space-10);
+}
+
+.lab-chapter.is-handoff-pending .lab-chapter__pin {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.lab-chapter.is-handoff-ready .lab-chapter__pin {
+    will-change: opacity;
 }
 
 .lab-chapter__mesh {
@@ -1666,21 +1688,16 @@ select {
 
 .lab-chapter__heading {
     display: grid;
-    gap: var(--space-1);
     align-content: start;
     will-change: opacity, transform;
-}
-
-.lab-chapter__index {
-    margin: 0;
-    color: rgb(var(--primary));
-    font-family: var(--font-display);
-    font-size: 0.75rem;
-    font-weight: 800;
-    letter-spacing: 0.1em;
+    transition: opacity 720ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .lab-chapter__name {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-2);
     margin: 0;
     color: rgb(var(--primary-deep));
     font-family: var(--font-display);
@@ -1690,13 +1707,23 @@ select {
     line-height: 1.05;
 }
 
+.lab-chapter__index {
+    color: rgb(var(--primary));
+    font: inherit;
+    letter-spacing: inherit;
+}
+
+.lab-chapter__label {
+    color: inherit;
+}
+
 .lab-chapter__body {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: var(--space-6);
     align-items: start;
     min-width: 0;
-    transition: opacity 160ms linear;
+    transition: opacity 720ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .lab-chapter__copy {
@@ -1813,7 +1840,9 @@ select {
 
 .lab-chapter__stage-stack {
     position: relative;
-    width: min(100%, 22.5rem);
+    width: fit-content;
+    max-width: min(100%, 22.5rem);
+    justify-self: center;
 }
 
 .lab-chapter__stage-peek {
@@ -1856,9 +1885,11 @@ select {
 
 @media (min-width: 960px) {
     .lab-chapter__layout {
-        grid-template-columns: minmax(8rem, 10rem) minmax(0, 1fr);
-        gap: var(--space-8) var(--space-10);
+        /* Wider chapter rail + larger gutter so inline "01 Prepare" clears the body. */
+        grid-template-columns: minmax(12rem, 14rem) minmax(0, 1fr);
+        gap: var(--space-8) var(--space-12);
         align-items: start;
+        justify-content: center;
     }
 
     .lab-chapter__body {
@@ -1893,11 +1924,15 @@ select {
 }
 
 .lab-phone {
+    --lab-phone-max-width: 22.5rem;
+    --lab-phone-screen-height: 40rem;
+    /* Pin padding + device chrome + small breathing room under the dock. */
+    --lab-phone-fit-chrome: 5.5rem;
     display: grid;
     justify-items: stretch;
     margin: 0;
     /* Shared marketing mock viewport — all stages anchor here. */
-    width: min(100%, 22.5rem);
+    width: min(100%, var(--lab-phone-max-width));
 }
 
 .lab-phone__device {
@@ -1919,13 +1954,37 @@ select {
     border-radius: var(--radius-panel);
     background: rgb(var(--background));
     width: 100%;
-    height: 40rem;
-    min-height: 40rem;
-    max-height: 40rem;
+    height: var(--lab-phone-screen-height);
+    min-height: var(--lab-phone-screen-height);
+    max-height: var(--lab-phone-screen-height);
 }
 
 .lab-phone__caption {
     display: none;
+}
+
+/*
+ * 3-column chapter layout + enough viewport height: scale the phone so the full
+ * device frame fits in the sticky pin (avoids clipped bottoms at 100% zoom).
+ * Below the height floor, keep the canonical mock size and allow clipping.
+ */
+@media (min-width: 960px) and (min-height: 42rem) {
+    .lab-chapter__stage .lab-phone {
+        width: min(
+            100%,
+            var(--lab-phone-max-width),
+            calc(
+                (100svh - var(--lab-ceiling) - var(--lab-phone-fit-chrome)) * 22.5 / 40
+            )
+        );
+    }
+
+    .lab-chapter__stage .lab-phone__screen {
+        height: auto;
+        min-height: 0;
+        max-height: none;
+        aspect-ratio: 22.5 / 40;
+    }
 }
 
 .lab-screen {

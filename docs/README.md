@@ -1,7 +1,7 @@
 # Interview Coach V2 Documentation
 
 Status: Canonical documentation authority index
-Last updated: 2026-07-26
+Last updated: 2026-07-29
 
 This is the one active documentation root for the clean V2 rebuild. It covers candidate-led practice, recruiter-invited practice, standalone recruiter operations, shared session/evaluation behavior, and release preparation.
 
@@ -91,6 +91,7 @@ The extracted design-system source, experiments, and UI lab remain under `.untra
 - [Test Strategy](./05-quality/test-strategy.md)
 - [Accessibility Baseline](./05-quality/accessibility-baseline.md)
 - [Production Hardening And Deployment Controls](./07-ops/production-hardening-and-deployment-controls.md)
+- [Database Access Hardening](./07-ops/database-access-hardening.md)
 - [Observability Plan](./07-ops/candidate-observability-plan.md)
 - [Incident Runbook](./07-ops/candidate-incident-runbook.md)
 - [AI-Eval Worker And Retention](./07-ops/ai-eval-worker-and-retention.md)

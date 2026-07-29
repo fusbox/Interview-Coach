@@ -1,7 +1,7 @@
 # Candidate App Data Contract
 
 Status: Canonical system truth
-Last updated: 2026-07-20
+Last updated: 2026-07-29
 
 ## Purpose
 
@@ -34,6 +34,14 @@ V2 dashboard and session work should move toward:
 - derived dashboard read models that can explain every visible claim.
 
 If an evidence-first result is adapted into the old `AnalysisResult` shape, that adapter is a bridge for existing rendering or AI-quality review. It is not the durable V2 evaluation contract.
+
+### Database Execution Boundary
+
+Application requests reach PostgreSQL only through trusted server-side `pg` connections. Browser identity is proved by app-owned or host-launch sessions before an ownership-scoped repository query. Supabase Auth claims and `auth.uid()` are not part of this data contract.
+
+Migration `046_database_access_hardening.sql` separates the schema owner from the `interview_coach_runtime` execution role, removes public and Supabase Data API object access, enables RLS on every current public application table, gives only the runtime role an all-row staging policy, fixes every public `SECURITY DEFINER` search path, and grants direct function execution from a reviewed caller allowlist. The all-row policy is role containment, not candidate/recruiter row ownership. Server authorization remains mandatory.
+
+Migration commands prefer the operator-only `DATABASE_MIGRATION_URL`; runtime code uses `DATABASE_URL`. Remote deployment preflight requires the `interview_coach_runtime` username. New tables must explicitly enable RLS, and new directly called functions must receive an explicit grant before the hardening smoke passes. See [Database Access Hardening](./07-ops/database-access-hardening.md).
 
 ### Answer Attempt And Evaluator Run
 
