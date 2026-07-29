@@ -14,8 +14,7 @@ It does not approve a pilot or release. Real TA launch acceptance, organizationa
 Before deployment promotion:
 
 ```powershell
-vercel env pull ".env.vercel.production.local" --environment=production
-npm run env:check:vercel
+npm run env:check:azure-staging
 npm run lint
 npm run typecheck
 npm run test:candidate
@@ -25,17 +24,14 @@ npm run test:e2e:candidate-seeded
 npm run test:e2e:candidate-production
 ```
 
-The first command creates an ignored local snapshot of the environment currently configured on the
-linked Vercel project. Vercel replaces Sensitive values with `[SENSITIVE]` in that snapshot, so
-`env:check:vercel` proves required-variable presence and validates only values Vercel leaves readable.
-The strict `npm run env:check` mode must also run inside the deployment build/runtime environment,
-where it can validate shapes, bounds, canonical origins, exact provider/profile identities, and the
-absence of local fixture/fault controls without printing values.
-`vercel-app` covers the candidate, invited-candidate, and recruiter web deployment. Run `host-launch`,
-`ai-eval-worker`, and `ai-eval-retention` separately only when those add-ons are being deployed; they
-have different owners, secrets, and runtime postures and do not belong in the first Vercel promotion.
-The committed [.env.example](../../.env.example) is the complete current/future variable manifest, not
-a file to upload with blank placeholders.
+The Azure staging check reads the ignored `.env.azure-staging.local` operator snapshot and validates
+the candidate, invited-candidate, recruiter, and TalentArbor host-launch boundaries together. It
+validates shapes, bounds, canonical origins, exact provider/profile identities, MSSQL controls, and
+the absence of local fixture/fault controls without printing values. Run the same strict command
+where the real Azure settings are available. AI-eval worker, retention, operator database, and
+technical-reference discovery credentials have different owners and runtime postures and are not
+part of this web-app handoff. The committed [.env.example](../../.env.example) is the Azure staging
+variable manifest, not a file to upload with blank placeholders.
 
 `test:e2e:candidate-production` creates isolated optimized output, starts `next start` on a free port, and then removes that output. It proves the public shell at desktop and mobile, WCAG 2.2 A/AA axe rules, no horizontal overflow, bounded local navigation/resource metrics, and production denial of dev launch and candidate prototype routes. It deliberately blanks database, launch, and Gemini credentials.
 

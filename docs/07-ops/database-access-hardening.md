@@ -51,12 +51,12 @@ Remove-Item Env:DATABASE_RUNTIME_PASSWORD
 
 The provisioner verifies the new login without printing the password or connection URI. With the Supavisor shared pooler, the application username is `interview_coach_runtime.<project-ref>`; direct connections use `interview_coach_runtime`.
 
-5. Build the runtime URI with that user and password. For Vercel/serverless traffic, Supavisor transaction mode on port `6543` is the default target; session mode on `5432` remains acceptable when a persistent-session constraint is proven. Keep TLS enabled.
-6. Replace Vercel `DATABASE_URL` with the runtime URI. Never deploy the owner URI.
-7. Pull the Vercel environment snapshot and run:
+5. Build the runtime URI with that user and password. For serverless traffic, Supavisor transaction mode on port `6543` is the default target; session mode on `5432` remains acceptable when a persistent-session constraint is proven. Keep TLS enabled.
+6. Set Azure staging `DATABASE_URL` to the runtime URI. Never deploy the owner URI.
+7. Populate the ignored Azure staging operator snapshot and run:
 
 ```powershell
-npm run env:check:vercel
+npm run env:check:azure-staging
 ```
 
 The check rejects a remote URL whose database user is not `interview_coach_runtime` (with an optional Supavisor project suffix).

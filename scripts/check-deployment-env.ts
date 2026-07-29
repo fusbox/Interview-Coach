@@ -13,6 +13,11 @@ export const DEPLOYMENT_ENV_TARGETS = [
 
 export type DeploymentEnvTarget = typeof DEPLOYMENT_ENV_TARGETS[number];
 
+export const AZURE_STAGING_ENV_TARGETS = [
+    "vercel-app",
+    "host-launch",
+] as const satisfies readonly DeploymentEnvTarget[];
+
 export type DeploymentEnvFinding = {
     target: DeploymentEnvTarget;
     variable: string;
@@ -684,16 +689,16 @@ function parseCliOptions(args: string[]): CliOptions {
             addCliTarget(options.targets, argument.slice("--target=".length));
             continue;
         }
-        if (argument === "--env-file") {
-            options.envFile = requireCliValue("--env-file", args[++index]);
+        if (argument === "--settings-file") {
+            options.envFile = requireCliValue("--settings-file", args[++index]);
             continue;
         }
         if (argument === "--allow-redacted") {
             options.allowRedactedValues = true;
             continue;
         }
-        if (argument.startsWith("--env-file=")) {
-            options.envFile = requireCliValue("--env-file", argument.slice("--env-file=".length));
+        if (argument.startsWith("--settings-file=")) {
+            options.envFile = requireCliValue("--settings-file", argument.slice("--settings-file=".length));
             continue;
         }
         throw new Error(`Unknown argument "${argument}".`);
@@ -764,19 +769,22 @@ function printHelp() {
 
 Usage:
   npm run env:check
+  npm run env:check:azure-staging
   npm run env:check:vercel
   npm run env:check:host-launch
   npm run env:check:ai-eval-worker
   npm run env:check:ai-eval-retention
-  npx tsx scripts/check-deployment-env.ts --target all --env-file .env.all-production.local
+  npx tsx scripts/check-deployment-env.ts --target all --settings-file .env.all-production.local
 
 Targets:
   vercel-app        Candidate, recruiter, and invited-candidate web application.
-  host-launch       Future TalentArbor signed launch and MSSQL context add-on.
+  host-launch       TalentArbor signed launch and MSSQL context add-on.
   ai-eval-worker    Separate credentialed scenario worker service.
   ai-eval-retention Separate scheduled scenario-retention process.
 
-The Vercel snapshot command allows Vercel's [SENSITIVE] markers and therefore
+The Azure staging command validates the web app and host-launch targets together
+from the ignored .env.azure-staging.local operator snapshot. The Vercel snapshot
+command allows Vercel's [SENSITIVE] markers and therefore
 checks presence only for masked values. The strict default command validates
 real values inherited from the current process. An explicit env file overrides
 variables inherited from the current shell.

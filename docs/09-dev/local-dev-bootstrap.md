@@ -11,30 +11,25 @@ Older candidate docs and SQL helpers may still describe the V1 `/practice` -> `/
 
 ## Deployment Environment Preflight
 
-`.env.example` is the active V2 environment manifest. It is organized by deployment target so the
-current Vercel web app does not inherit future host-launch or AI-eval-worker credentials. Before
-promotion, link this checkout to the intended Vercel project once, then pull and validate the
-environment actually configured there:
+`.env.example` is the active Azure staging handoff manifest. It contains only the shared candidate,
+invited-candidate, and recruiter web app plus TalentArbor host-launch variables. Configure the real
+values in Azure App Settings or the approved secret store. To validate a local operator snapshot,
+create the ignored `.env.azure-staging.local` file from the example and run:
 
 ```powershell
-vercel link
-vercel env pull ".env.vercel.production.local" --environment=production
-npm run env:check:vercel
+npm run env:check:azure-staging
 ```
 
-`vercel link` is unnecessary after `.vercel/project.json` exists. The pulled file is an ignored local
-snapshot of Vercel production settings, not the app's development `.env.local`. Vercel masks
-Sensitive values as `[SENSITIVE]`; snapshot mode therefore proves their presence but cannot validate
-their contents. Strict `npm run env:check` must also execute where the real deployment values are
-available. Both modes report variable names and safe reason codes only and never print configured
-values. Delete the snapshot after use. The initial Vercel promotion needs only the `vercel-app`
-target. TalentArbor launch, the credentialed AI-eval scenario worker, and its retention process are
-independently validated later with `npm run env:check:host-launch`,
-`npm run env:check:ai-eval-worker`, and `npm run env:check:ai-eval-retention`.
+The snapshot is not the app's development `.env.local`, is ignored by Git, and must be deleted when
+the handoff check is complete. The check validates the web app and host-launch boundaries together,
+reports variable names and safe reason codes only, and never prints configured values. The same
+strict check should run where the real Azure settings are available. AI-eval worker, retention,
+operator database, technical-reference discovery, and local validation credentials are separate
+operational contracts and deliberately do not appear in the Azure staging manifest.
 
 Remote application environments use `DATABASE_URL` only with the non-owner
 `interview_coach_runtime` role. Operator migrations prefer `DATABASE_MIGRATION_URL`, which must
-never be added to Vercel or another application runtime. The local disposable database remains
+never be added to Azure or another application runtime. The local disposable database remains
 admin-owned for migration and seed commands, while migration 046 and its smoke prove the same
 runtime grants and RLS posture through `SET ROLE`.
 

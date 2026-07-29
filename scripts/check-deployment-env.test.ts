@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-    DEPLOYMENT_ENV_TARGETS,
+    AZURE_STAGING_ENV_TARGETS,
     parseEnvFileContents,
     validateDeploymentEnvironment,
     type DeploymentEnvTarget,
@@ -168,6 +168,34 @@ describe("deployment environment preflight", () => {
         expect(result.targets).toEqual(["host-launch"]);
     });
 
+    it("validates the Azure staging web app and host-launch boundaries together", () => {
+        const result = validateDeploymentEnvironment({
+            env: {
+                ...validVercelEnvironment,
+                CANDIDATE_HOST_LAUNCH_SECRET: "0123456789abcdef0123456789abcdef",
+                CANDIDATE_HOST_LAUNCH_EXPECTED_ISSUER: "talentarbor",
+                CANDIDATE_HOST_LAUNCH_EXPECTED_WORKSPACE: "talentarbor",
+                CANDIDATE_HOST_LAUNCH_CLOCK_SKEW_SECONDS: "30",
+                CANDIDATE_HOST_LAUNCH_MAX_TOKEN_LIFETIME_SECONDS: "120",
+                CANDIDATE_HOST_LAUNCH_SESSION_TTL_SECONDS: "604800",
+                CANDIDATE_HOST_LAUNCH_TA_SQL_SERVER: "sql.example.internal",
+                CANDIDATE_HOST_LAUNCH_TA_SQL_PORT: "1433",
+                CANDIDATE_HOST_LAUNCH_TA_SQL_DATABASE: "TalentArborStaging",
+                CANDIDATE_HOST_LAUNCH_TA_SQL_USER: "interview_coach_reader",
+                CANDIDATE_HOST_LAUNCH_TA_SQL_PASSWORD: "sql-secret",
+                CANDIDATE_HOST_LAUNCH_TA_SQL_ENCRYPT: "true",
+                CANDIDATE_HOST_LAUNCH_TA_SQL_TRUST_SERVER_CERTIFICATE: "false",
+                CANDIDATE_HOST_LAUNCH_TA_SQL_CONNECT_TIMEOUT_MS: "5000",
+                CANDIDATE_HOST_LAUNCH_TA_SQL_REQUEST_TIMEOUT_MS: "8000",
+                CANDIDATE_HOST_LAUNCH_TA_SQL_POOL_MAX: "4",
+            },
+            targets: AZURE_STAGING_ENV_TARGETS,
+        });
+
+        expect(result.ok).toBe(true);
+        expect(result.targets).toEqual(AZURE_STAGING_ENV_TARGETS);
+    });
+
     it("validates worker and retention configuration as separate deployable processes", () => {
         const env = {
             DATABASE_URL: validVercelEnvironment.DATABASE_URL,
@@ -211,13 +239,13 @@ QUOTED="line\\nvalue"
         });
     });
 
-    it("keeps the committed manifest complete for every current and future target", () => {
+    it("keeps the committed manifest complete and scoped to Azure staging", () => {
         const manifest = parseEnvFileContents(
             readFileSync(resolve(process.cwd(), ".env.example"), "utf8"),
         );
         const requiredVariables = new Set<string>();
 
-        for (const target of DEPLOYMENT_ENV_TARGETS) {
+        for (const target of AZURE_STAGING_ENV_TARGETS) {
             const result = validateDeploymentEnvironment({ env: {}, targets: [target] });
             for (const finding of result.errors) {
                 if (finding.code === "REQUIRED") requiredVariables.add(finding.variable);
@@ -231,5 +259,10 @@ QUOTED="line\\nvalue"
         expect(manifest).not.toHaveProperty("SESSION_REPOSITORY_BACKEND");
         expect(manifest).not.toHaveProperty("CANDIDATE_AUTH_MODE");
         expect(manifest).not.toHaveProperty("NEXT_PUBLIC_BASE_URL");
+        expect(manifest).not.toHaveProperty("DATABASE_MIGRATION_URL");
+        expect(manifest).not.toHaveProperty("DATABASE_RUNTIME_PASSWORD");
+        expect(manifest).not.toHaveProperty("ONET_API_KEY");
+        expect(manifest).not.toHaveProperty("AI_EVAL_SCENARIO_LIVE_ENABLED");
+        expect(manifest).not.toHaveProperty("CANDIDATE_HOST_LAUNCH_DEV_SECRET");
     });
 });
