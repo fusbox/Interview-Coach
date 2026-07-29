@@ -1,14 +1,17 @@
-import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-v2/host-launch-route";
-import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidate-auth-v2/dev-host-launch-cookie-identity";
 import type { CandidatePostgresQueryClient } from "@/features/candidate-auth-v2/candidate-postgres-runtime";
+import { resolveCandidateRouteAccess } from "@/features/candidate-auth-v2/candidate-route-access";
 import {
     createCandidateSetupDraftOwnerKey,
     createCandidateSetupEntryRepository,
+    type CandidateTrustedSetupContext,
 } from "./candidate-setup-entry-context";
 
 export type CandidateSetupRouteIdentity = {
     candidateProfileId: string;
     setupOwnerKey: string;
+    accessSource?: "app_account" | "host_launch" | "dev_host_launch";
+    candidateLaunchSessionId?: string | null;
+    trustedSetupContext?: CandidateTrustedSetupContext | null;
 };
 
 export async function resolveCandidateSetupRouteIdentity(
@@ -16,34 +19,31 @@ export async function resolveCandidateSetupRouteIdentity(
     client: CandidatePostgresQueryClient,
 ): Promise<CandidateSetupRouteIdentity | null> {
     const cookieHeader = request.headers.get("Cookie");
-    const devIdentity = resolveCandidateDevHostLaunchCookieIdentity(cookieHeader);
-    if (devIdentity) {
+    const access = await resolveCandidateRouteAccess(cookieHeader, client);
+    if (!access) {
+        return null;
+    }
+    if (access.source !== "host_launch") {
         return {
-            candidateProfileId: devIdentity.candidateProfileId,
-            setupOwnerKey: createCandidateSetupDraftOwnerKey(devIdentity.candidateProfileId, null),
+            candidateProfileId: access.candidateProfileId,
+            setupOwnerKey: createCandidateSetupDraftOwnerKey(access.candidateProfileId, null),
+            accessSource: access.source,
+            candidateLaunchSessionId: access.source === "dev_host_launch"
+                ? access.candidateLaunchSessionId
+                : null,
+            trustedSetupContext: null,
         };
     }
 
-    const candidateLaunchSessionId = readCookieValue(cookieHeader, CANDIDATE_HOST_LAUNCH_SESSION_COOKIE);
-    if (!candidateLaunchSessionId) {
-        return null;
-    }
-    const entry = await createCandidateSetupEntryRepository(client).resolveLaunchEntry(candidateLaunchSessionId);
-    return entry
+    const entry = await createCandidateSetupEntryRepository(client)
+        .resolveLaunchEntry(access.candidateLaunchSessionId);
+    return entry && entry.candidateProfileId === access.candidateProfileId
         ? {
             candidateProfileId: entry.candidateProfileId,
             setupOwnerKey: createCandidateSetupDraftOwnerKey(entry.candidateProfileId, entry.trustedSetupContext),
+            accessSource: access.source,
+            candidateLaunchSessionId: entry.candidateLaunchSessionId,
+            trustedSetupContext: entry.trustedSetupContext,
         }
         : null;
-}
-
-function readCookieValue(cookieHeader: string | null, name: string) {
-    if (!cookieHeader) {
-        return null;
-    }
-    const cookie = cookieHeader
-        .split(";")
-        .map((part) => part.trim())
-        .find((part) => part.startsWith(`${name}=`));
-    return cookie ? decodeURIComponent(cookie.slice(name.length + 1)) : null;
 }

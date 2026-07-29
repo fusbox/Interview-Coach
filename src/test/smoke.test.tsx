@@ -7,9 +7,9 @@ it("renders the public Interview Coach root page", () => {
 
     expect(
         screen.getByRole("heading", {
-            name: "Interview Coach",
+            name: "Practice with a coach, not a score.",
             level: 1,
         }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Built to be flexible, designed for you." })).toBeInTheDocument();
+    expect(screen.getByText("Interview Coach", { selector: ".marketing-hero__brand" })).toBeInTheDocument();
 });

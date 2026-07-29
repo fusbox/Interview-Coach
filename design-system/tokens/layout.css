@@ -1,6 +1,9 @@
 /* Global layout frame. */
 :root {
     --grid-max: 76rem; /* @kind spacing */
+    --grid-workflow-max: 70rem; /* @kind spacing */
+    --grid-form-flow-max: 56rem; /* @kind spacing */
+    --grid-focused-max: 64rem; /* @kind spacing */
     --grid-gap: 1rem; /* @kind spacing */
 }
 
@@ -11,13 +14,27 @@
 }
 
 .app-grid {
-    width: min(100% - 2rem, var(--grid-max));
+    --app-grid-max: var(--grid-max);
+
+    width: min(100% - 2rem, var(--app-grid-max));
     margin-inline: auto;
+}
+
+.app-grid--workflow {
+    --app-grid-max: var(--grid-workflow-max);
+}
+
+.app-grid--form-flow {
+    --app-grid-max: var(--grid-form-flow-max);
+}
+
+.app-grid--focused {
+    --app-grid-max: var(--grid-focused-max);
 }
 
 @media (min-width: 768px) {
     .app-grid {
-        width: min(100% - 3rem, var(--grid-max));
+        width: min(100% - 3rem, var(--app-grid-max));
     }
 }
 

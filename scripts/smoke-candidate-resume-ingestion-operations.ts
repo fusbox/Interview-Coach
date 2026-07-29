@@ -85,6 +85,34 @@ async function main() {
         assert.equal(replay.artifactId, artifact.artifactId);
         assert.equal((await artifacts.recoverSelectedArtifact({ candidateProfileId, setupOwnerKey, artifactId: artifact.artifactId }))?.artifactId, artifact.artifactId);
 
+        const accepted = await artifacts.acceptReview({
+            candidateProfileId,
+            setupOwnerKey,
+            artifactId: artifact.artifactId,
+            expectedVersion: artifact.version,
+            expectedRevision: artifact.revision,
+            reviewedText: artifact.normalizedText,
+            now: new Date(baseTime.getTime() + 250),
+        });
+        assert.equal(accepted.outcome, "accepted");
+        const replacement = await artifacts.acceptReview({
+            candidateProfileId,
+            setupOwnerKey,
+            artifactId: accepted.artifact.artifactId,
+            expectedVersion: accepted.artifact.version,
+            expectedRevision: accepted.artifact.revision,
+            reviewedText: `${accepted.artifact.normalizedText} Trained new hires.`,
+            now: new Date(baseTime.getTime() + 275),
+        });
+        assert.equal(replacement.outcome, "accepted");
+        assert.equal(replacement.artifact.version, accepted.artifact.version + 1);
+        assert.notEqual(replacement.artifact.artifactId, accepted.artifact.artifactId);
+        assert.equal((await artifacts.recoverSelectedArtifact({
+            candidateProfileId,
+            setupOwnerKey,
+            artifactId: replacement.artifact.artifactId,
+        }))?.artifactId, replacement.artifact.artifactId);
+
         const ownershipConflict = await operations.claimOperation({
             operationId,
             candidateProfileId: candidateIds[1]!,
@@ -184,7 +212,7 @@ async function main() {
         });
         assert.equal(rateSecond.outcome, "rate_limited");
 
-        console.log("Candidate resume ingestion operations smoke passed: concurrent admission, owner/global/rate limits, replay, ownership, and stale recovery.");
+        console.log("Candidate resume ingestion operations smoke passed: concurrent admission, owner/global/rate limits, replay, accepted-edit replacement, ownership, and stale recovery.");
     } finally {
         await pool.query("delete from public.candidate_profiles where candidate_profile_id = any($1::uuid[])", [candidateIds]).catch(() => undefined);
         await pool.end();

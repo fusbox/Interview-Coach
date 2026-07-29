@@ -20,7 +20,7 @@ describe("candidate dev seed", () => {
         expect(packageJson.scripts["db:smoke-candidate-setup-summary"]).toContain("db/validation/005_candidate_setup_to_summary_smoke.sql");
         expect(packageJson.scripts["db:smoke-candidate-setup-summary"]).toContain("--smoke-defaults");
         expect(packageJson.scripts["db:seed"]).toBe(
-            "npm run db:seed-candidate-dev && npm run db:seed-recruiter-dev"
+            "npm run db:seed-candidate-dev && npm run db:seed-candidate-app-account-dev && npm run db:seed-recruiter-dev"
         );
     });
 

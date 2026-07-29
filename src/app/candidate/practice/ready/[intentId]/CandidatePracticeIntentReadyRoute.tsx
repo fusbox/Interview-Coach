@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
-import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-v2/host-launch-route";
-import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidate-auth-v2/dev-host-launch-cookie-identity";
+import { resolveCandidateOwnedCookieIdentity } from "@/features/candidate-auth-v2/candidate-route-authorization";
 import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-auth-v2/production-host-launch-runtime";
 import {
     createCandidatePracticeIntentRepository,
@@ -18,15 +17,19 @@ import { isSessionQuestionAudioRuntimeAvailable } from "@/features/interview-ses
 
 type CandidatePracticeIntentReadyPageProps = {
     params: Promise<{ intentId: string }> | { intentId: string };
+    authorizedCandidateProfileId?: string;
 };
 
 export default async function CandidatePracticeIntentReadyPage({
     params,
+    authorizedCandidateProfileId,
 }: CandidatePracticeIntentReadyPageProps) {
     const { intentId } = await params;
     return renderCandidatePracticeIntentReadyPage({
         intentId,
-        dependencies: createDefaultCandidatePracticeIntentReadyPageDependencies(),
+        dependencies: createDefaultCandidatePracticeIntentReadyPageDependencies(
+            authorizedCandidateProfileId,
+        ),
     });
 }
 
@@ -119,7 +122,9 @@ function PracticeIntentReadyRecoveryState() {
     );
 }
 
-function createDefaultCandidatePracticeIntentReadyPageDependencies(): CandidatePracticeIntentReadyPageDependencies {
+function createDefaultCandidatePracticeIntentReadyPageDependencies(
+    authorizedCandidateProfileId?: string,
+): CandidatePracticeIntentReadyPageDependencies {
     const databaseUrl = process.env[CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV]?.trim();
     if (!databaseUrl) {
         return {};
@@ -131,12 +136,8 @@ function createDefaultCandidatePracticeIntentReadyPageDependencies(): CandidateP
     return {
         async resolvePracticeIntent(intentId) {
             try {
-                const { headers } = await import("next/headers");
-                const requestHeaders = await headers();
-                const candidateProfileId = await resolveCandidateProfileIdFromRequestHeaders(
-                    requestHeaders.get("cookie"),
-                    queryClient,
-                );
+                const candidateProfileId = authorizedCandidateProfileId
+                    ?? await resolveCandidatePracticeIntentProfileIdFromCurrentRequest(queryClient);
 
                 if (!candidateProfileId) {
                     return null;
@@ -151,6 +152,17 @@ function createDefaultCandidatePracticeIntentReadyPageDependencies(): CandidateP
             }
         },
     };
+}
+
+async function resolveCandidatePracticeIntentProfileIdFromCurrentRequest(
+    client: CandidatePracticeIntentReadyQueryClient,
+) {
+    const { headers } = await import("next/headers");
+    const requestHeaders = await headers();
+    return resolveCandidateProfileIdFromRequestHeaders(
+        requestHeaders.get("cookie"),
+        client,
+    );
 }
 
 type CandidatePracticeIntentReadyQueryClient = {
@@ -180,43 +192,8 @@ async function resolveCandidateProfileIdFromRequestHeaders(
     cookieHeader: string | null,
     client: CandidatePracticeIntentReadyQueryClient,
 ) {
-    const devIdentity = resolveCandidateDevHostLaunchCookieIdentity(cookieHeader);
-    if (devIdentity) {
-        return devIdentity.candidateProfileId;
-    }
-
-    const candidateLaunchSessionId = readCookieValue(cookieHeader, CANDIDATE_HOST_LAUNCH_SESSION_COOKIE);
-    if (!candidateLaunchSessionId) {
-        return null;
-    }
-
-    const result = await client.query(`
-        select candidate_profile_id
-        from public.candidate_launch_sessions
-        where candidate_launch_session_id = $1
-          and revoked_at is null
-          and expires_at > now()
-        limit 1
-    `, [candidateLaunchSessionId]);
-
-    return readString(result.rows[0]?.candidate_profile_id);
-}
-
-function readCookieValue(cookieHeader: string | null, name: string) {
-    if (!cookieHeader) {
-        return null;
-    }
-
-    const cookie = cookieHeader
-        .split(";")
-        .map((part) => part.trim())
-        .find((part) => part.startsWith(`${name}=`));
-
-    return cookie ? decodeURIComponent(cookie.slice(name.length + 1)) : null;
-}
-
-function readString(value: unknown) {
-    return typeof value === "string" && value.trim() ? value.trim() : null;
+    const identity = await resolveCandidateOwnedCookieIdentity(cookieHeader, client);
+    return identity?.candidateProfileId ?? null;
 }
 
 function getCandidatePracticeIntentReadyRuntimeSslConfig(databaseUrl: string) {

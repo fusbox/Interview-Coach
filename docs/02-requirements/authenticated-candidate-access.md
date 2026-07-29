@@ -1,7 +1,7 @@
 # Authenticated Candidate Access
 
-Date: 2026-05-07
-Status: Current V2 requirements; upstream TalentArbor launch details remain an external acceptance gate
+Date: 2026-07-27
+Status: Current V2 requirements; app-owned candidate accounts are release scope and upstream TalentArbor launch details remain an external acceptance gate
 
 ## Purpose
 
@@ -9,15 +9,106 @@ This document defines the authenticated candidate access model for the persisted
 
 ## User Goal
 
-As a candidate, I want to launch Interview Coach from a trusted TalentArbor surface, access only my own practice data, and return later without losing setup or session progress.
+As a candidate, I want to create or use my Interview Coach account, or launch from a trusted TalentArbor surface, access only my own practice data, and return later without losing setup or session progress.
 
 ## Current Priority
 
-The first production-facing target is a TalentArbor authenticated quick-link that hands a short-lived signed launch assertion to `https://interviewcoach.talentarbor.com/candidate/launch`.
+The first release has two independent candidate entry modes with the same downstream feature access:
 
-RangamWorks uses related platform data but remains disabled until its identity namespace and source contract are independently ratified. Development uses the explicit dev host-launch fixture path; the candidate app does not maintain a second password or mock-auth product.
+- app-owned candidate registration and login;
+- a TalentArbor authenticated quick-link that hands a short-lived signed launch assertion to `https://interviewcoach.talentarbor.com/candidate/launch`.
+
+App-owned accounts are not a fallback implementation of host launch. They establish their own app user, candidate profile, and app session without token verification, MSSQL lookup, host identity mapping, or trusted-host setup staging. Host launch remains a separate entry adapter. Both resolve to the same opaque `candidateProfileId` ownership boundary after authentication.
+
+RangamWorks uses related platform data but remains disabled until its identity namespace and source contract are independently ratified. Development keeps the explicit dev host-launch fixture path for host integration testing and adds deterministic app-account fixtures for account testing.
 
 ## Entry Modes
+
+### App-Owned Candidate Account
+
+Canonical public routes are:
+
+- `/candidate/login`;
+- `/candidate/register`;
+- `/candidate/verify-email`;
+- `/candidate/forgot-password`;
+- `/candidate/reset-password`.
+
+`/candidate` remains an entry router rather than a product screen. An authenticated candidate is routed to setup when no prep context exists and otherwise to the dashboard. An unauthenticated candidate is routed to `/candidate/login` with a bounded candidate-only return target.
+
+App-owned candidate authentication reuses the shared app-auth primitives already used by recruiter access: scrypt password hashes, generic error messages, lockout controls, hashed revocable server sessions, HttpOnly cookies, email-verification/reset token tables, and metadata-only audit events. Candidate authorization additionally requires:
+
+- an active `app_users` row;
+- an explicit `candidate` role;
+- an active `candidate_profiles` row bound by `app_user_id`;
+- `candidate_profiles.workspace = "interview_coach"`.
+
+The candidate audience uses its own `ic_candidate_app_session` cookie even though its opaque token is persisted in the shared `app_sessions` table. This keeps candidate and recruiter browser sessions independent and prevents one audience login from replacing the other.
+
+Registration creates a new app user and a new app-owned candidate profile atomically. The release registration contract captures first name, last name, email, password, phone number, US ZIP code, contact-channel preferences, required platform-policy acceptance, required responsible-AI acknowledgement, and optional contact authorization. Email plus password remain the credential pair, and verified email remains the activation gate. Phone is profile and future-integration data only in this release; it is not treated as verified, used for login, or used for recovery.
+
+Personal details are split by authority:
+
+- `app_users` owns credentials-adjacent email and display-name fields;
+- the bound app-owned `candidate_profiles` row remains the downstream candidate ownership anchor;
+- a candidate-account profile extension owns normalized E.164 phone and postal data;
+- current contact-channel choices are mutable state;
+- policy acknowledgements and contact-authorization decisions are append-only, versioned receipts.
+
+Required policy acceptance and optional communications authorization are separate decisions. Contact preferences do not themselves prove consent, and selecting no optional contact channel must not prevent account creation. Production registration fails closed until the deployed Terms, Privacy Policy, Cookie Policy, and Responsible AI document versions are explicitly configured; local development may use clearly labeled local versions. Cookie Policy acknowledgement records the document shown during registration; it does not enable optional analytics, advertising, or cross-context tracking.
+
+Registration never searches for or links a host profile by email or phone. The app may treat an existing app-user email as an existing account, but email or phone alone never links candidate data, host identity, or prep history. Future TalentArbor reconciliation will require an explicit external-identity mapping and confirmed linkage process rather than changing the profile origin or copying the Interview Coach password hash.
+
+On ordinary protected `/candidate/*` requests, a present candidate app-session cookie has precedence. If it is invalid, expired, revoked, roleless, disabled, or lacks its exact app-owned profile binding, access fails closed and the request does not fall through to host-session lookup. App-owned candidate requests never invoke host token verification, host MSSQL, host launch context, or host setup staging.
+
+Email verification is required before full candidate-route authorization. Registration, verification resend, password reset, and login responses must avoid user enumeration. Tokens are random, stored only as hashes, expire independently, and are single-use. Delivery uses the app-owned mail boundary; no candidate account is considered verified merely because a provider accepted a message.
+
+Verification links render a read-only confirmation page before consuming the token so automated mail scanners cannot activate an account with a GET request. Consumption is an explicit same-origin mutation. Exact registration replay, an already-used verification link, resend cooldown, provider failure, and concurrent verification attempts must converge without duplicating the account, profile, consent receipts, or active tokens.
+
+Password recovery uses the same explicit-confirmation posture. A forgot-password request always returns the same accepted response, whether or not an eligible candidate account exists. An issued reset credential:
+
+- expires after 30 minutes by default;
+- supersedes earlier unused reset credentials for that app user;
+- is delivered only to an active, verified, app-owned candidate account;
+- is persisted only as a SHA-256 hash;
+- is consumed only by an explicit same-origin password-change mutation;
+- updates the scrypt password hash, clears login-failure lock state, marks every reset credential used, and revokes every active `app_sessions` row for that user in one transaction.
+
+Reset does not create a new session. The candidate signs in with the new password after reset, and every prior browser or device must authenticate again. This revocation applies only to the app-owned user sessions; it never reads, revokes, or refreshes TalentArbor host-launch sessions. Expired, superseded, malformed, used, and concurrently consumed credentials converge on the same nonrecovering invalid-link result.
+
+Public candidate-account mutations use database-backed bounded rate controls in addition to the per-account password lock and verification/reset issuance cooldowns. Rate-limit bucket keys contain a purpose plus a one-way request-source digest, never a raw email, IP address, token, password, name, phone number, or candidate id. Authentication audit metadata is likewise allowlisted to bounded event, outcome, reason, provider, and session-revocation facts; the dedicated audit IP/user-agent columns remain the only request-source fields. If the rate-control store is unavailable, public authentication mutations fail closed rather than running unbounded.
+
+Candidate logout is an app-account action. It is shown only when the resolved candidate access source is `app_account`, revokes the current app session, clears only `ic_candidate_app_session`, and returns to candidate login. Host-launched candidates are not shown this control because their host session has a separate owner and lifecycle.
+
+## Protected Candidate Route Boundary
+
+The shared candidate access resolver is the only identity source for candidate-owned product routes. It resolves one of `app_account`, `host_launch`, or the explicit nonproduction `dev_host_launch` fixture to one opaque `candidateProfileId`. It does not resolve invited practice access.
+
+Protected candidate-owned surfaces are:
+
+- `/candidate/setup` and its resume/start mutations;
+- `/candidate/dashboard`;
+- `/candidate/session/[sessionId]` and its draft, answer, analysis, feedback, progress, audio, transcription, completion, and Coach Update repair mutations;
+- `/candidate/practice/ready`, `/candidate/practice/ready/[intentId]`, next-round builder routes, and their creation/start/audio mutations.
+
+Public or separately authorized surfaces are:
+
+- `/candidate/login`, `/candidate/register`, `/candidate/verify-email`, and account lifecycle mutations;
+- `/candidate/launch` and `/candidate/dev/launch`;
+- `/candidate/invited/*`, which requires its own invitation audience;
+- compatibility redirects and global loading/error boundaries.
+
+Protected page requests with missing, stale, or invalid access redirect to `/candidate/login` with a bounded candidate-only return target. Protected route handlers return `401` and never redirect. The app-session cookie has precedence even when a valid host/dev cookie is also present, so an invalid app cookie is an authoritative denial.
+
+Authentication does not replace ownership. Every candidate-owned repository call must include the resolver's `candidateProfileId`; route ids and query parameters are selectors only. An owned profile mismatch returns no resource and performs no mutation. A candidate app cookie, host cookie, recruiter app cookie, and invited-session cookie are not interchangeable.
+
+`/candidate` is an entry router over this boundary:
+
+- no valid access: `/candidate/login`;
+- valid access with no active prep context: `/candidate/setup`;
+- valid access with one or more active prep contexts: `/candidate/dashboard`.
+
+An authorization or database failure must fail closed rather than being presented as a new-account empty state.
 
 ### Host Launch Token
 
@@ -153,46 +244,63 @@ These routes require candidate access:
 - `/candidate/practice/ready`
 - `/candidate/practice/ready/[intentId]`
 
-`/` remains public. `/candidate/launch` is the production exchange entry point, and `/candidate/dev/launch` is an explicit nonproduction-only entry point. Invited-candidate routes use their own invitation access boundary rather than the authenticated candidate session.
+`/` and the candidate login, registration, verification, and password-recovery routes remain public. `/candidate/launch` is the production host exchange entry point, and `/candidate/dev/launch` is an explicit nonproduction-only entry point. Invited-candidate routes use their own invitation access boundary rather than either authenticated candidate session.
 
 These route paths are top-level siblings of recruiter/admin/QA routes on `https://interviewcoach.talentarbor.com`; see [Shared Host Routing Contract](../04-architecture/shared-host-routing-contract.md).
 
 ## Access Resolution Contract
 
-Protected feature code receives an opaque `candidateProfileId` from an app-owned candidate launch session. It must not trust browser-supplied candidate IDs, raw host claims, email addresses, or provider-specific identifiers as ownership evidence.
+Protected feature code receives an opaque `candidateProfileId` from one shared candidate principal resolver. It must not know whether the principal began with an app-owned account or a host launch, and it must not trust browser-supplied candidate IDs, raw host claims, email addresses, or provider-specific identifiers as ownership evidence.
 
-The production sequence is:
+The resolver order is:
+
+1. If `ic_candidate_app_session` is present, resolve only the app-owned account path. Invalid app-account access fails closed without host fallback.
+2. Otherwise, permit the explicit nonproduction host fixture when enabled.
+3. Otherwise, resolve the production host launch-session cookie.
+
+The app-account query requires active app session, user, candidate role, and `interview_coach` profile binding. The host-session query requires an active host launch session whose candidate profile has no `app_user_id`. Host launch profile creation, refresh, and session creation also reject app-bound profiles. These symmetric guards prevent either entry adapter from acquiring the other adapter's profile.
+
+The production host-launch sequence is:
 
 1. [Production host launch verifier](../../src/features/candidate-auth-v2/production-host-launch-verifier.ts) validates the short-lived signed launch assertion.
 2. [Host launch orchestrator](../../src/features/candidate-auth-v2/host-launch-orchestrator.ts) resolves trusted TalentArbor identity/context and performs the one-time exchange.
-3. [Candidate launch session repository](../../src/features/candidate-auth-v2/candidate-launch-session-repository.ts) persists the app-owned session without storing the raw bearer token.
-4. [Candidate launch session resolver](../../src/features/candidate-auth-v2/candidate-launch-session-resolver.ts) resolves subsequent protected requests from the HttpOnly app cookie.
-5. Feature repositories fence every read and mutation by the resolved `candidateProfileId`.
+3. [Candidate launch session repository](../../src/features/candidate-auth-v2/candidate-launch-session-repository.ts) persists the host launch session without storing the raw bearer token.
+4. [Candidate launch session resolver](../../src/features/candidate-auth-v2/candidate-launch-session-resolver.ts) completes the one-time profile/session exchange.
+5. [Candidate route access](../../src/features/candidate-auth-v2/candidate-route-access.ts) resolves subsequent protected requests from the independent candidate app-session or host-session cookie.
+6. Feature repositories fence every read and mutation by the resolved `candidateProfileId`.
 
 [Candidate launch context](../../src/features/candidate-auth-v2/candidate-launch-context.ts) keeps host-derived identity and optional job context behind a server-side adapter boundary. [Production host launch runtime](../../src/features/candidate-auth-v2/production-host-launch-runtime.ts) fails closed when required production configuration is absent.
 
-Local and network-device testing use the explicit [dev host launch](../../src/features/candidate-auth-v2/dev-host-launch.ts) path. It mints fixture launch input and resolves into the same app-owned cookie/session shape; it is not a second feature-level auth model and must remain unavailable in production.
+Local and network-device host testing use the explicit [dev host launch](../../src/features/candidate-auth-v2/dev-host-launch.ts) path. It mints fixture launch input and resolves into the host-session shape; it must remain unavailable in production. App-account testing uses separately seeded app users and candidate-profile bindings and must not depend on dev host launch configuration.
 
 [Root middleware](../../src/middleware.ts) owns broad route-audience separation. Candidate, invited-candidate, recruiter, and QA access remain distinct server-side contracts even when they share domain services or UI.
 
 ## Acceptance Criteria
 
 - unauthenticated access to protected routes redirects to the appropriate entry flow
-- public CTAs preserve a safe post-login target when the TalentArbor login integration supports it
+- app-owned candidates can register, verify email, log in, log out, recover credentials, and use every candidate-owned setup, session, dashboard, and follow-up feature
+- public CTAs preserve a safe candidate-only post-login target
 - authenticated candidates can only access their own drafts, sessions, resume assets, and dashboard history
 - session ownership checks use `candidate_profile_id`
+- app-owned candidate access performs no host-token or host-data operation
+- host launch cannot resolve, refresh, or create a launch session against an app-bound candidate profile
+- matching email never merges or links host and app-owned profiles
 - local dev host launch can create repeatable test candidates through the production-shaped app-session boundary
+- local dev app-account fixtures can exercise the app-owned candidate session independently
+- password-reset replay fails, reset revokes every prior app-owned session, and the new password can establish a fresh session
+- candidate-account rate and audit records contain no raw credential, token, email, phone, name, postal, or candidate identity data
+- candidate logout is visible only to app-owned candidates and does not clear recruiter, invited-candidate, or host-launch state
 - dev host launch is impossible to enable accidentally in production
 - auth denial events are observable without logging secrets or raw resume data
 
 ## Non-Goals
 
-- recruiter login
 - recruiter invite management
 - Supabase auth
 - anonymous guest trials
-- recruiter/admin/QA auth implementation
 - final enterprise SSO implementation details beyond the confirmed redirect/handoff contract
+- automatic linking or merging between app-owned and host-launched candidate profiles
+- social login, passkeys, or multifactor authentication in the first account slice
 
 ## Open Questions
 
@@ -206,3 +314,6 @@ Local and network-device testing use the explicit [dev host launch](../../src/fe
 - Does `LoginWithType/2` support a return URL, callback URL, or signed state parameter?
 - Will the shared identity source live inside this app database or a separate candidate platform service?
 - Should candidate logout return to TalentArbor, clear only Interview Coach state, or both?
+- What sender identity and final template approval will candidate verification and password-reset email use in each environment?
+- What first-release password policy and candidate session lifetime should be ratified after usability and security review?
+- Should a later explicit account-linking flow allow a candidate to merge app-owned and TalentArbor histories after reauthentication to both identities?

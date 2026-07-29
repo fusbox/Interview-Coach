@@ -1,4 +1,4 @@
-<!-- @dsCard group="Layout" viewport="980x980" name="Layout & page frames" subtitle="Current framing compared with blank-slate composition contracts" -->
+<!-- @dsCard group="Layout" viewport="980x1080" name="Layout & page frames" subtitle="76rem workspace, 70rem workflow, 64rem focused, and 56rem form-flow frames" -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -32,6 +32,11 @@
   .pass p{font-size:11px;line-height:1.5;color:rgb(86 106 131);margin:0;}
   .note{margin:16px 0 0;padding:13px 14px;background:#F4F6F9;border-radius:14px;color:rgb(86 106 131);font-size:12px;line-height:1.55;}
   .note b{color:rgb(15 33 57);}
+  .widths{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+  .width{display:grid;gap:7px;border:1px solid rgb(213 220 232);border-radius:16px;background:#fff;padding:13px;}
+  .width strong{font-family:var(--font-display);font-size:15px;line-height:1.15;}
+  .width code{width:max-content;border-radius:6px;background:#F1F5F9;color:rgb(11 87 206);font-size:10px;padding:3px 6px;}
+  .width span{color:rgb(86 106 131);font-size:11px;line-height:1.5;}
 </style>
 </head>
 <body>
@@ -80,6 +85,32 @@
         <div class="name"><span class="title">Debrief / summary</span><span class="route">/summary and candidate summary</span></div>
         <div><span class="label">Current frame</span>Centered max-w-4xl report on glass-gradient canvas with stacked content cards, feedback request and navigation actions.</div>
         <div class="should"><span class="label">Blank-slate frame</span>Debrief report frame: one summary lead, evidence-backed coaching sections, candidate-owned privacy note, and a sticky or repeated next-practice action that reconnects to the dashboard.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="eyebrow">Content-width contracts</p>
+    <div class="widths">
+      <div class="width">
+        <strong>Broad workspace · 76rem</strong>
+        <code>.app-grid</code>
+        <span>Dashboards, tables, QA consoles, and other views whose simultaneous information density earns the width.</span>
+      </div>
+      <div class="width">
+        <strong>Workflow · 70rem</strong>
+        <code>.app-grid--workflow</code>
+        <span>Builders, invitations, and transactional flows that need a primary column plus a compact context rail.</span>
+      </div>
+      <div class="width">
+        <strong>Form flow &middot; 56rem</strong>
+        <code>.app-grid--form-flow</code>
+        <span>Sequential setup and creation tasks where one reading lane, full-span progress, and generous field measure improve completion.</span>
+      </div>
+      <div class="width">
+        <strong>Focused · 64rem</strong>
+        <code>.app-grid--focused</code>
+        <span>Landing, session, summary, and review views where concentration and readable measure matter more than density.</span>
       </div>
     </div>
   </div>

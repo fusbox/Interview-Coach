@@ -1,5 +1,4 @@
-import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-v2/host-launch-route";
-import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidate-auth-v2/dev-host-launch-cookie-identity";
+import { resolveCandidateOwnedCookieIdentity } from "@/features/candidate-auth-v2/candidate-route-authorization";
 import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-auth-v2/production-host-launch-runtime";
 import { createCandidateDashboardHref } from "@/features/candidate-dashboard-v2/candidate-dashboard-route";
 import { CandidatePlannedSessionExperience } from "@/features/candidate-session-v2/CandidatePlannedSessionExperience";
@@ -28,14 +27,16 @@ type CandidateSessionPageSearchParams = {
 export default async function CandidateSessionPage({
     params,
     searchParams,
+    authorizedCandidateProfileId,
 }: {
     params: Promise<{ sessionId: string }>;
     searchParams?: Promise<CandidateSessionPageSearchParams>;
+    authorizedCandidateProfileId?: string;
 }) {
     return renderCandidateSessionPage({
         params,
         searchParams,
-        dependencies: createDefaultCandidateSessionPageDependencies(),
+        dependencies: createDefaultCandidateSessionPageDependencies(authorizedCandidateProfileId),
     });
 }
 
@@ -89,7 +90,9 @@ function readSingleSearchParam(value: string | string[] | undefined) {
     return Array.isArray(value) ? value[0] : value;
 }
 
-function createDefaultCandidateSessionPageDependencies(): CandidateSessionPageDependencies {
+function createDefaultCandidateSessionPageDependencies(
+    authorizedCandidateProfileId?: string,
+): CandidateSessionPageDependencies {
     const databaseUrl = process.env[CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV]?.trim();
     if (!databaseUrl) {
         return {};
@@ -103,51 +106,22 @@ function createDefaultCandidateSessionPageDependencies(): CandidateSessionPageDe
     return {
         async resolveDurableSession({ sessionId }) {
             try {
-                const { headers } = await import("next/headers");
-                const requestHeaders = await headers();
-                const candidateLaunchSessionId = readCookieValue(
-                    requestHeaders.get("cookie"),
-                    CANDIDATE_HOST_LAUNCH_SESSION_COOKIE,
-                );
-                const devIdentity = resolveCandidateSessionIdentityFromDevLaunchCookie(requestHeaders.get("cookie"));
-                if (devIdentity) {
-                    const durableSession = await practiceSessionRepository.findSetupSession({
-                        candidatePracticeSessionId: sessionId,
-                        candidateProfileId: devIdentity.candidateProfileId,
-                    });
-
-                    return durableSession ? toCandidateProvisionalSession(durableSession, {
-                        evaluationRuns: await answerHistoryRepository.listEvaluationRuns({
-                            candidatePracticeSessionId: sessionId,
-                            candidateProfileId: devIdentity.candidateProfileId,
-                            purpose: "candidate_coaching",
-                        }),
-                        now: new Date(),
-                        runtimeAvailable: answerAnalysisRuntimeAvailable,
-                    }) : null;
-                }
-
-                if (!candidateLaunchSessionId) {
-                    return null;
-                }
-
-                const identity = await resolveCandidateProfileIdFromLaunchSession(
-                    queryClient,
-                    candidateLaunchSessionId,
-                );
-                if (!identity) {
+                const candidateProfileId = authorizedCandidateProfileId
+                    ?? (await resolveCandidateSessionIdentityFromCurrentRequest(queryClient))
+                        ?.candidateProfileId;
+                if (!candidateProfileId) {
                     return null;
                 }
 
                 const durableSession = await practiceSessionRepository.findSetupSession({
                     candidatePracticeSessionId: sessionId,
-                    candidateProfileId: identity.candidateProfileId,
+                    candidateProfileId,
                 });
 
                 return durableSession ? toCandidateProvisionalSession(durableSession, {
                     evaluationRuns: await answerHistoryRepository.listEvaluationRuns({
                         candidatePracticeSessionId: sessionId,
-                        candidateProfileId: identity.candidateProfileId,
+                        candidateProfileId,
                         purpose: "candidate_coaching",
                     }),
                     now: new Date(),
@@ -160,8 +134,15 @@ function createDefaultCandidateSessionPageDependencies(): CandidateSessionPageDe
     };
 }
 
-export function resolveCandidateSessionIdentityFromDevLaunchCookie(cookieHeader: string | null) {
-    return resolveCandidateDevHostLaunchCookieIdentity(cookieHeader);
+async function resolveCandidateSessionIdentityFromCurrentRequest(
+    client: CandidateSessionQueryClient,
+) {
+    const { headers } = await import("next/headers");
+    const requestHeaders = await headers();
+    return resolveCandidateOwnedCookieIdentity(
+        requestHeaders.get("cookie"),
+        client,
+    );
 }
 
 type CandidateSessionQueryClient = {
@@ -185,25 +166,6 @@ function createLazyPostgresQueryClient(databaseUrl: string): CandidateSessionQue
             return pool.query(sql, values);
         },
     };
-}
-
-async function resolveCandidateProfileIdFromLaunchSession(
-    client: CandidateSessionQueryClient,
-    candidateLaunchSessionId: string,
-) {
-    const result = await client.query(`
-        select candidate_profile_id
-        from public.candidate_launch_sessions
-        where candidate_launch_session_id = $1
-          and revoked_at is null
-          and expires_at > now()
-        limit 1
-    `, [candidateLaunchSessionId]);
-    const candidateProfileId = readString(result.rows[0]?.candidate_profile_id);
-
-    return candidateProfileId
-        ? { candidateProfileId }
-        : null;
 }
 
 export function toCandidateProvisionalSession(
@@ -237,27 +199,6 @@ export function toCandidateProvisionalSession(
         feedbackActionEvents: durableSession.feedbackActionEvents,
         voiceTranscriptDrafts: durableSession.voiceTranscriptDrafts ?? {},
     };
-}
-
-function readCookieValue(cookieHeader: string | null, name: string) {
-    if (!cookieHeader) {
-        return null;
-    }
-
-    const cookie = cookieHeader
-        .split(";")
-        .map((part) => part.trim())
-        .find((part) => part.startsWith(`${name}=`));
-
-    if (!cookie) {
-        return null;
-    }
-
-    return decodeURIComponent(cookie.slice(name.length + 1));
-}
-
-function readString(value: unknown) {
-    return typeof value === "string" && value.trim() ? value : null;
 }
 
 function getRuntimeSslConfig(databaseUrl: string) {

@@ -1,12 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { PostgresAppAuthStore } from "./postgres-app-auth-store";
 
-describe("PostgresAppAuthStore", () => {
+describe("shared PostgresAppAuthStore", () => {
     it("normalizes email and maps credential roles", async () => {
         const query = vi.fn().mockResolvedValue({
             rows: [{
                 user_id: "user-1",
                 email: "recruiter@example.com",
+                email_verified_at: new Date("2026-07-27T12:00:00.000Z"),
                 display_name: "Recruiter",
                 first_name: "Dev",
                 last_name: "Recruiter",
@@ -14,20 +15,21 @@ describe("PostgresAppAuthStore", () => {
                 password_hash: "scrypt$hash",
                 failed_login_count: "2",
                 locked_until: null,
-                roles: ["recruiter", "unsupported"],
+                roles: ["candidate", "recruiter", "unsupported"],
             }],
         });
         const store = new PostgresAppAuthStore({ query });
 
         await expect(store.findPasswordCredentialByEmail(" Recruiter@Example.com ")).resolves.toEqual({
             user: {
-                id: "user-1",
-                email: "recruiter@example.com",
+            id: "user-1",
+            email: "recruiter@example.com",
+            emailVerifiedAt: "2026-07-27T12:00:00.000Z",
                 displayName: "Recruiter",
                 firstName: "Dev",
                 lastName: "Recruiter",
                 status: "active",
-                roles: ["recruiter"],
+                roles: ["candidate", "recruiter"],
             },
             passwordHash: "scrypt$hash",
             failedLoginCount: 2,
@@ -36,6 +38,16 @@ describe("PostgresAppAuthStore", () => {
         expect(query).toHaveBeenCalledWith(expect.stringContaining("lower(u.email) = $1"), [
             "recruiter@example.com",
         ]);
+    });
+
+    it("checks the exact app-owned candidate profile binding before candidate login", async () => {
+        const query = vi.fn().mockResolvedValue({ rows: [{ "?column?": 1 }] });
+        const store = new PostgresAppAuthStore({ query });
+
+        await expect(store.isCandidateAccountEligible("user-1")).resolves.toBe(true);
+        expect(query.mock.calls[0][0]).toContain("profile.workspace = 'interview_coach'");
+        expect(query.mock.calls[0][0]).toContain("app_role.role = 'candidate'");
+        expect(query).toHaveBeenCalledWith(expect.any(String), ["user-1"]);
     });
 
     it("requires an active, unexpired, unrevoked session and rate-limits last-seen writes", async () => {

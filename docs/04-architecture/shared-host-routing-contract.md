@@ -1,6 +1,6 @@
 # Shared Host Routing Contract
 
-Last updated: 2026-07-19
+Last updated: 2026-07-27
 Status: Confirmed deployment direction
 
 ## Purpose
@@ -15,7 +15,7 @@ This document records the confirmed route and deployment shape for Interview Coa
 - The immediate recruiter V2 baseline uses app-owned authentication. A future TalentArbor recruiter exchange is reserved under `/recruiter/launch` and must bind to the same internal recruiter principal through an explicit external-identity mapping.
 - Recruiter and QA pages keep their approved relative paths: `/recruiter/dashboard`, `/recruiter/settings`, and `/qa/ai-eval`. The legacy `/recruiter/templates` surface is retired from V2 and must not be restored as a question-seeding path.
 - Candidate protected routes live under `/candidate/*`; `/candidate` itself should redirect or guard to the default candidate destination.
-- Authenticated candidate launch should land at `/candidate/dashboard`.
+- App-owned candidate login and verified host launch are independent candidate entry modes with the same downstream feature access.
 - Candidate code should be integrated into the existing Azure project/repo branch path rather than deployed as a separate Azure project.
 
 ## Route Map
@@ -24,7 +24,12 @@ This document records the confirmed route and deployment shape for Interview Coa
 | --- | --- | --- | --- |
 | `/` | Candidate/public | Public | Public Interview Coach page and funnel. |
 | `/login` | Employee auth | Public entry; app session on success | Immediate recruiter/admin/QA app-owned login. Return targets must be allowlisted internal employee routes. |
-| `/candidate` | Candidate | Candidate auth required | Namespace index only. Redirects or guards to `/candidate/dashboard`; no standalone UI. |
+| `/candidate` | Candidate | Public router | Redirects authenticated candidates to setup/dashboard and unauthenticated candidates to `/candidate/login`; no standalone UI. |
+| `/candidate/login` | Candidate account | Public entry; candidate app session on success | App-owned candidate login. Candidate-only return targets are allowlisted. |
+| `/candidate/register` | Candidate account | Public entry | Creates an app-owned candidate account and starts email verification. |
+| `/candidate/verify-email` | Candidate account | Single-use verification token | Verifies the app-owned candidate account before protected access. |
+| `/candidate/forgot-password` | Candidate account | Public entry | Enumeration-safe password-reset request. |
+| `/candidate/reset-password` | Candidate account | Single-use reset token | Replaces the app-owned password and revokes prior candidate sessions. |
 | `/candidate/launch` | Candidate | Signed host launch token required | TalentArbor launch-token handoff. Verifies host token, resolves candidate identity, sets Interview Coach candidate session, and redirects away from the token URL. RangamWorks remains disabled. |
 | `/candidate/dev/launch` | Candidate development | Explicit nonproduction fixture only | Produces production-shaped local candidate sessions; unavailable in production. |
 | `/candidate/setup` | Candidate | Candidate auth required | Self-serve candidate practice setup. |
@@ -55,7 +60,9 @@ This document records the confirmed route and deployment shape for Interview Coa
   - `/api/qa/**`
   - `/api/auth/**` only for shared or clearly routed auth concerns
 - Avoid new generic API paths such as `/api/session` unless the route resolves ownership through a shared access boundary and is tested for recruiter invite and candidate self-serve modes.
-- Shared `/api/auth/**` endpoints may establish app-owned employee sessions, but candidate launch and invite-token exchanges remain separate actor-specific boundaries.
+- `/api/candidate/auth/**` owns candidate registration, verification, login, logout, and password recovery.
+- Shared app-auth modules may implement password/session primitives, but candidate and employee routes use separate cookies and audience authorization.
+- Candidate launch and invite-token exchanges remain separate actor-specific boundaries.
 
 ## Deployment Implication
 
@@ -68,6 +75,8 @@ The standalone candidate repo can still be useful as an incubation workspace, bu
 ## Watch-Outs
 
 - Cookie names and middleware must not confuse recruiter sessions with candidate sessions.
+- A candidate app-session cookie takes precedence on ordinary candidate routes and never falls through to host lookup when invalid.
+- Host launch cannot resolve or mutate a candidate profile bound to an app user.
 - A future host recruiter identity must bind by issuer/source plus immutable external recruiter id. Never merge or authorize accounts by matching email alone.
 - Candidate dashboard must remain `/candidate/dashboard`; recruiter dashboard must remain `/recruiter/dashboard`.
 - Public `/` should not load candidate-only private data or require auth.
@@ -79,8 +88,10 @@ The standalone candidate repo can still be useful as an incubation workspace, bu
 
 ## Acceptance Criteria
 
-- `/candidate` redirects or guards to `/candidate/dashboard` without rendering a separate candidate index UI.
+- `/candidate` routes authenticated candidates to setup/dashboard and unauthenticated candidates to login without rendering a separate candidate index UI.
 - `/login` establishes only an app-owned employee session and cannot create candidate or invite-token identity.
+- `/candidate/login` establishes only an app-owned candidate session and cannot create recruiter, host-launch, or invite-token identity.
+- app-owned candidate login and registration perform no host token or MSSQL operation.
 - `/recruiter` redirects or guards to the default recruiter experience without breaking existing `/recruiter/create` links.
 - `/recruiter/launch` remains unavailable until recruiter identity, entitlement, external-identity binding, and host token claims are ratified.
 - `/recruiter/dashboard` remains recruiter-owned and renders the migrated recruiter dashboard for authenticated recruiters.

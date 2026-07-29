@@ -1,11 +1,10 @@
 import { randomUUID } from "node:crypto";
 
-import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidate-auth-v2/dev-host-launch-cookie-identity";
+import { resolveCandidateOwnedRequestIdentity } from "@/features/candidate-auth-v2/candidate-route-authorization";
 import {
     CANDIDATE_HOST_LAUNCH_DEV_MODE_ENV,
     CANDIDATE_HOST_LAUNCH_DEV_SECRET_ENV,
 } from "@/features/candidate-auth-v2/dev-host-launch";
-import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-v2/host-launch-route";
 import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-auth-v2/production-host-launch-runtime";
 import { createCandidateCoachUpdateArtifactRepository } from "@/features/candidate-dashboard-v2/candidate-coach-update-artifact-repository";
 import { createCandidateCoachUpdateSynthesisInput } from "@/features/candidate-dashboard-v2/candidate-coach-update-artifact";
@@ -284,10 +283,8 @@ export function createDefaultCandidateSessionCompleteDependencies(): Pick<
     });
 
     return {
-        resolveCandidateSessionIdentity: async (request) => {
-            const devIdentity = resolveCandidateSessionCompleteIdentityFromDevLaunchCookie(request.headers.get("Cookie"));
-            return devIdentity ?? resolveCandidateSessionIdentityFromLaunchCookie(request, queryClient);
-        },
+        resolveCandidateSessionIdentity: (request) =>
+            resolveCandidateOwnedRequestIdentity(request, queryClient),
         practiceSessionRepository,
         ...(
             answerAnalysisDependencies.practiceSessionRepository
@@ -438,53 +435,6 @@ function createLazyPostgresQueryClient(databaseUrl: string): CandidateSessionCom
             return pool.query(sql, values);
         },
     };
-}
-
-async function resolveCandidateSessionIdentityFromLaunchCookie(
-    request: Request,
-    client: CandidateSessionCompleteQueryClient,
-): Promise<CandidateSessionIdentity | null> {
-    const candidateLaunchSessionId = readCookieValue(request.headers.get("Cookie"), CANDIDATE_HOST_LAUNCH_SESSION_COOKIE);
-    if (!candidateLaunchSessionId) {
-        return null;
-    }
-
-    const result = await client.query(`
-        select candidate_profile_id
-        from public.candidate_launch_sessions
-        where candidate_launch_session_id = $1
-          and revoked_at is null
-          and expires_at > now()
-        limit 1
-    `, [candidateLaunchSessionId]);
-    const candidateProfileId = readString(result.rows[0]?.candidate_profile_id);
-
-    return candidateProfileId ? { candidateProfileId } : null;
-}
-
-export function resolveCandidateSessionCompleteIdentityFromDevLaunchCookie(cookieHeader: string | null) {
-    return resolveCandidateDevHostLaunchCookieIdentity(cookieHeader);
-}
-
-function readCookieValue(cookieHeader: string | null, name: string) {
-    if (!cookieHeader) {
-        return null;
-    }
-
-    const cookie = cookieHeader
-        .split(";")
-        .map((part) => part.trim())
-        .find((part) => part.startsWith(`${name}=`));
-
-    if (!cookie) {
-        return null;
-    }
-
-    return decodeURIComponent(cookie.slice(name.length + 1));
-}
-
-function readString(value: unknown) {
-    return typeof value === "string" && value.trim() ? value : null;
 }
 
 function getRuntimeSslConfig(databaseUrl: string) {

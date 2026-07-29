@@ -7,11 +7,15 @@ import {
     hashAppSessionToken,
 } from "./app-session";
 
-describe("recruiter app session", () => {
-    it("uses a recruiter-app cookie distinct from candidate and invited access cookies", () => {
+describe("shared app session", () => {
+    it("keeps the employee cookie distinct from candidate and invited access cookies", () => {
         expect(getAppSessionCookieName({})).toBe("ic_app_session");
+        expect(getAppSessionCookieName({})).not.toBe("ic_candidate_app_session");
         expect(getAppSessionCookieName({})).not.toBe("ic_candidate_launch_session");
         expect(getAppSessionCookieName({})).not.toBe("ic_invited_access");
+        expect(() => getAppSessionCookieName({
+            AUTH_COOKIE_NAME: "ic_candidate_app_session",
+        })).toThrow("reserved identity cookie");
         expect(() => getAppSessionCookieName({
             AUTH_COOKIE_NAME: "ic_candidate_launch_session",
         })).toThrow("reserved identity cookie");

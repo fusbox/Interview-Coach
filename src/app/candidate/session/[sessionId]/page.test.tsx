@@ -14,7 +14,6 @@ import { saveCandidateProvisionalSession } from "@/features/candidate-session-v2
 import { createCandidateQuestionPlan } from "@/features/candidate-session-v2/candidate-question-plan";
 import CandidateSessionPage, {
     renderCandidateSessionPage,
-    resolveCandidateSessionIdentityFromDevLaunchCookie,
     toCandidateProvisionalSession,
 } from "./CandidateSessionRoute";
 
@@ -1145,17 +1144,6 @@ it("maps durable answer and feedback state into recovered candidate session fact
                 canContinueWithoutCoaching: true,
             },
         },
-    });
-});
-
-it("resolves explicit dev host-launch cookies for durable session recovery", () => {
-    vi.stubEnv("CANDIDATE_HOST_LAUNCH_DEV_MODE", "true");
-    vi.stubEnv("CANDIDATE_HOST_LAUNCH_DEV_SECRET", "local-dev-shared-secret");
-
-    expect(resolveCandidateSessionIdentityFromDevLaunchCookie(
-        "ic_candidate_launch_session=dev-host-launch-100001",
-    )).toEqual({
-        candidateProfileId: "10000000-0000-4000-8000-000000000001",
     });
 });
 

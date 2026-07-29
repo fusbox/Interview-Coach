@@ -130,6 +130,65 @@ describe("candidate setup draft store", () => {
         expect(JSON.stringify(draft)).not.toContain("sourceFile");
     });
 
+    it("preserves one explicit resume input mode without requiring a raw source or artifact", () => {
+        const store = createCandidateSetupMemoryDraftStore();
+
+        const draft = saveCandidateSetupDraft(store, ownerKey, {
+            targetRole: "Quality inspector",
+            jobDescription: "Inspect products and document defects.",
+            resumeInputMode: "file",
+        });
+
+        expect(draft).toMatchObject({
+            resumeInputMode: "file",
+            resumeText: null,
+        });
+        expect(draft.resumeArtifact ?? null).toBeNull();
+        expect(toCandidateSetupDraftFormState(draft)).toMatchObject({
+            resumeInputMode: "file",
+            resumeText: "",
+            resumeArtifact: null,
+        });
+
+        expect(saveCandidateSetupDraft(store, ownerKey, {
+            targetRole: "Senior quality inspector",
+            jobDescription: "Inspect products and document defects.",
+        })).toMatchObject({
+            resumeInputMode: "file",
+        });
+    });
+
+    it("derives the resume input mode for a pre-mode browser draft from its artifact source", () => {
+        const store = createCandidateSetupBrowserDraftStore(window.localStorage);
+        const acceptedDocumentArtifact = {
+            artifactId: "20000000-0000-4000-8000-000000000002",
+            version: 1,
+            revision: 2,
+            source: "document_upload" as const,
+            candidateLabel: "resume.pdf",
+            reviewState: "accepted" as const,
+        };
+        const storedDraft = saveCandidateSetupDraft(store, ownerKey, {
+            targetRole: "Quality inspector",
+            jobDescription: "Inspect products and document defects.",
+            resumeText: "Inspected production records and documented defects.",
+            resumeArtifact: acceptedDocumentArtifact,
+        });
+        const persistedDrafts = JSON.parse(
+            window.localStorage.getItem(CANDIDATE_SETUP_DRAFT_STORAGE_KEY) ?? "{}",
+        ) as Record<string, Record<string, unknown>>;
+        delete persistedDrafts[ownerKey]?.resumeInputMode;
+        window.localStorage.setItem(CANDIDATE_SETUP_DRAFT_STORAGE_KEY, JSON.stringify(persistedDrafts));
+
+        const restored = createCandidateSetupBrowserDraftStore(window.localStorage).readDraft(ownerKey);
+
+        expect(storedDraft.resumeInputMode).toBe("file");
+        expect(restored).toMatchObject({
+            resumeInputMode: "file",
+            resumeArtifact: acceptedDocumentArtifact,
+        });
+    });
+
     it("restores the latest editable draft for the same owner key", () => {
         const store = createCandidateSetupMemoryDraftStore();
 

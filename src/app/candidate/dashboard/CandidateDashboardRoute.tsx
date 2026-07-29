@@ -1,8 +1,8 @@
 import { ArrowRight, ChevronDown, ClipboardList, Plus } from "lucide-react";
 import { redirect } from "next/navigation";
 
-import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-v2/host-launch-route";
-import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidate-auth-v2/dev-host-launch-cookie-identity";
+import { CandidateLogoutButton } from "@/features/candidate-auth-v2/CandidateLogoutButton";
+import { resolveCandidateOwnedCookieIdentity } from "@/features/candidate-auth-v2/candidate-route-authorization";
 import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-auth-v2/production-host-launch-runtime";
 import {
     createCandidateDashboardV2ReadModel,
@@ -30,16 +30,23 @@ import { createCandidateNextRoundRuntime } from "@/features/candidate-practice-v
 
 type CandidateDashboardPageProps = {
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
+    authorizedCandidateProfileId?: string;
+    showAccountLogout?: boolean;
 };
 
-export default async function CandidateDashboardPage({ searchParams }: CandidateDashboardPageProps = {}) {
+export default async function CandidateDashboardPage({
+    searchParams,
+    authorizedCandidateProfileId,
+    showAccountLogout = false,
+}: CandidateDashboardPageProps = {}) {
     const resolvedSearchParams = searchParams ? await searchParams : {};
 
     return renderCandidateDashboardPage({
-        dependencies: createDefaultCandidateDashboardPageDependencies(),
+        dependencies: createDefaultCandidateDashboardPageDependencies(authorizedCandidateProfileId),
         selectedRoleProfileId: readSearchParam(resolvedSearchParams.prep),
         selectedLegacyTargetRole: readSearchParam(resolvedSearchParams.targetRole),
         canonicalizeSelection: true,
+        showAccountLogout,
     });
 }
 
@@ -59,11 +66,13 @@ export async function renderCandidateDashboardPage({
     selectedRoleProfileId = null,
     selectedLegacyTargetRole = null,
     canonicalizeSelection = false,
+    showAccountLogout = false,
 }: {
     dependencies?: CandidateDashboardPageDependencies;
     selectedRoleProfileId?: string | null;
     selectedLegacyTargetRole?: string | null;
     canonicalizeSelection?: boolean;
+    showAccountLogout?: boolean;
 }) {
     const dashboard = dependencies.resolveDashboardModel
         ? await dependencies.resolveDashboardModel({ selectedRoleProfileId, selectedLegacyTargetRole })
@@ -93,20 +102,30 @@ export async function renderCandidateDashboardPage({
         }
     }
 
-    return <CandidateDashboardHome dashboard={dashboard} nextRoundBuilder={nextRoundBuilder} />;
+    return <CandidateDashboardHome
+        dashboard={dashboard}
+        nextRoundBuilder={nextRoundBuilder}
+        showAccountLogout={showAccountLogout}
+    />;
 }
 
 function CandidateDashboardHome({
     dashboard,
     nextRoundBuilder,
+    showAccountLogout,
 }: {
     dashboard: CandidateDashboardV2ReadModel | null;
     nextRoundBuilder: CandidateNextRoundBuilderModel | null;
+    showAccountLogout: boolean;
 }) {
     const hasSelectedContext = Boolean(dashboard?.selectedTargetInterview);
     const page = (
         <main className="candidate-dashboard-page">
-            <CandidateDashboardShellHeader dashboard={dashboard} hasNextRoundBuilder={Boolean(nextRoundBuilder)} />
+            <CandidateDashboardShellHeader
+                dashboard={dashboard}
+                hasNextRoundBuilder={Boolean(nextRoundBuilder)}
+                showAccountLogout={showAccountLogout}
+            />
             <section className="candidate-dashboard-shell">
                 {dashboard && hasSelectedContext ? (
                     <CandidateDashboardLearningLoop dashboard={dashboard} />
@@ -127,9 +146,11 @@ function CandidateDashboardHome({
 function CandidateDashboardShellHeader({
     dashboard,
     hasNextRoundBuilder,
+    showAccountLogout,
 }: {
     dashboard: CandidateDashboardV2ReadModel | null;
     hasNextRoundBuilder: boolean;
+    showAccountLogout: boolean;
 }) {
     const displayName = dashboard?.candidate.displayName;
     const email = dashboard?.candidate.email;
@@ -139,12 +160,17 @@ function CandidateDashboardShellHeader({
     return (
         <header className="candidate-dashboard-topbar" aria-label="Dashboard header">
             <div className="candidate-dashboard-topbar__inner app-grid">
-                <div
-                    className="candidate-dashboard-identity"
-                    role="img"
-                    aria-label={`Signed in as ${displayName || email || "candidate"}`}
-                >
-                    {getCandidateInitials(displayName, email)}
+                <div className="candidate-dashboard-account">
+                    <div
+                        className="candidate-dashboard-identity"
+                        role="img"
+                        aria-label={`Signed in as ${displayName || email || "candidate"}`}
+                    >
+                        {getCandidateInitials(displayName, email)}
+                    </div>
+                    {showAccountLogout ? (
+                        <CandidateLogoutButton className="candidate-dashboard-logout" iconOnly />
+                    ) : null}
                 </div>
 
                 {selectedTargetInterview ? (
@@ -282,7 +308,9 @@ function CandidateDashboardEmptyState() {
     );
 }
 
-function createDefaultCandidateDashboardPageDependencies(): CandidateDashboardPageDependencies {
+function createDefaultCandidateDashboardPageDependencies(
+    authorizedCandidateProfileId?: string,
+): CandidateDashboardPageDependencies {
     const databaseUrl = process.env[CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV]?.trim();
     if (!databaseUrl) {
         return {};
@@ -297,12 +325,8 @@ function createDefaultCandidateDashboardPageDependencies(): CandidateDashboardPa
 
     return {
         async resolveDashboardModel({ selectedRoleProfileId, selectedLegacyTargetRole }) {
-            const { headers } = await import("next/headers");
-            const requestHeaders = await headers();
-            const candidateProfileId = await resolveCandidateProfileIdFromRequestHeaders(
-                requestHeaders.get("cookie"),
-                queryClient,
-            );
+            const candidateProfileId = authorizedCandidateProfileId
+                ?? await resolveCandidateProfileIdFromCurrentRequest(queryClient);
 
             if (!candidateProfileId) {
                 return null;
@@ -379,6 +403,17 @@ function createDefaultCandidateDashboardPageDependencies(): CandidateDashboardPa
     };
 }
 
+async function resolveCandidateProfileIdFromCurrentRequest(
+    client: CandidateDashboardQueryClient,
+) {
+    const { headers } = await import("next/headers");
+    const requestHeaders = await headers();
+    return resolveCandidateProfileIdFromRequestHeaders(
+        requestHeaders.get("cookie"),
+        client,
+    );
+}
+
 function mergeCandidatePracticeSessions(
     candidateSessions: Awaited<ReturnType<ReturnType<typeof createCandidatePracticeSessionRepository>["listAllPracticeSessionsForCandidate"]>>,
     selectedContextSessions: Awaited<ReturnType<ReturnType<typeof createCandidatePracticeSessionRepository>["listPracticeSessionsForCandidateRoleProfile"]>>,
@@ -442,39 +477,8 @@ async function resolveCandidateProfileIdFromRequestHeaders(
     cookieHeader: string | null,
     client: CandidateDashboardQueryClient,
 ) {
-    const devIdentity = resolveCandidateDevHostLaunchCookieIdentity(cookieHeader);
-    if (devIdentity) {
-        return devIdentity.candidateProfileId;
-    }
-
-    const candidateLaunchSessionId = readCookieValue(cookieHeader, CANDIDATE_HOST_LAUNCH_SESSION_COOKIE);
-    if (!candidateLaunchSessionId) {
-        return null;
-    }
-
-    const result = await client.query(`
-        select candidate_profile_id
-        from public.candidate_launch_sessions
-        where candidate_launch_session_id = $1
-          and revoked_at is null
-          and expires_at > now()
-        limit 1
-    `, [candidateLaunchSessionId]);
-
-    return readString(result.rows[0]?.candidate_profile_id);
-}
-
-function readCookieValue(cookieHeader: string | null, name: string) {
-    if (!cookieHeader) {
-        return null;
-    }
-
-    const cookie = cookieHeader
-        .split(";")
-        .map((part) => part.trim())
-        .find((part) => part.startsWith(`${name}=`));
-
-    return cookie ? decodeURIComponent(cookie.slice(name.length + 1)) : null;
+    const identity = await resolveCandidateOwnedCookieIdentity(cookieHeader, client);
+    return identity?.candidateProfileId ?? null;
 }
 
 function readString(value: unknown) {

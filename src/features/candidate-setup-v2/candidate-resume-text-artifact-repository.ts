@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import {
     CANDIDATE_RESUME_DIRECT_PII_POLICY_VERSION,
     CANDIDATE_RESUME_TEXT_PROCESSING_POLICY_VERSION,
@@ -181,10 +183,117 @@ export function createCandidateResumeTextArtifactRepository(client: CandidateRes
             });
 
             if (current.artifact.reviewState === "accepted") {
-                if (processed.normalizedTextFingerprint !== current.artifact.normalizedTextFingerprint) {
+                if (processed.normalizedTextFingerprint === current.artifact.normalizedTextFingerprint) {
+                    return { outcome: "accepted", artifact: current.artifact };
+                }
+
+                const nextState = processed.policyChangedText ? "awaiting_review" : "accepted";
+                const replacement = await client.query(`
+                    with next_version as (
+                      select coalesce(max(version), 0) + 1 as version
+                      from public.candidate_resume_processed_artifacts
+                      where candidate_profile_id = $2::uuid
+                    ), replaced as (
+                      update public.candidate_resume_processed_artifacts artifact
+                      set review_state = 'replaced',
+                          replaced_at = $10::timestamptz,
+                          updated_at = $10::timestamptz
+                      where artifact.candidate_resume_artifact_id = $1::uuid
+                        and artifact.candidate_profile_id = $2::uuid
+                        and artifact.version = $3
+                        and artifact.review_revision = $4
+                        and artifact.review_state = 'accepted'
+                        and exists (
+                          select 1
+                          from public.candidate_setup_resume_selections selection
+                          where selection.candidate_profile_id = $2::uuid
+                            and selection.setup_owner_key = $11
+                            and selection.candidate_resume_artifact_id = $1::uuid
+                            and selection.lifecycle_state = 'active'
+                        )
+                      returning artifact.role_profile_id
+                    ), inserted as (
+                      insert into public.candidate_resume_processed_artifacts (
+                        candidate_profile_id,
+                        role_profile_id,
+                        version,
+                        review_revision,
+                        source,
+                        candidate_label,
+                        normalized_text,
+                        source_fingerprint,
+                        normalized_text_fingerprint,
+                        processing_policy_version,
+                        pii_policy_version,
+                        pii_redaction_counts_json,
+                        review_state,
+                        original_retained,
+                        accepted_at,
+                        created_at,
+                        updated_at
+                      )
+                      select
+                        $2::uuid,
+                        replaced.role_profile_id,
+                        next_version.version,
+                        1,
+                        $12,
+                        $13,
+                        $5,
+                        $6,
+                        $7,
+                        $14,
+                        $15,
+                        $8::jsonb,
+                        $9,
+                        false,
+                        case when $9 = 'accepted' then $10::timestamptz else null end,
+                        $10::timestamptz,
+                        $10::timestamptz
+                      from replaced
+                      cross join next_version
+                      returning *
+                    ), selected as (
+                      update public.candidate_setup_resume_selections selection
+                      set candidate_resume_artifact_id = inserted.candidate_resume_artifact_id,
+                          selection_revision = selection.selection_revision + 1,
+                          updated_at = $10::timestamptz
+                      from inserted
+                      where selection.candidate_profile_id = $2::uuid
+                        and selection.setup_owner_key = $11
+                        and selection.candidate_resume_artifact_id = $1::uuid
+                        and selection.lifecycle_state = 'active'
+                      returning inserted.candidate_resume_artifact_id
+                    )
+                    select inserted.*
+                    from inserted
+                    join selected
+                      on selected.candidate_resume_artifact_id = inserted.candidate_resume_artifact_id
+                `, [
+                    artifactId,
+                    candidateProfileId,
+                    input.expectedVersion,
+                    input.expectedRevision,
+                    processed.normalizedText,
+                    createReviewRevisionSourceFingerprint(artifactId, processed.sourceFingerprint),
+                    processed.normalizedTextFingerprint,
+                    JSON.stringify(processed.piiRedactionCounts),
+                    nextState,
+                    input.now.toISOString(),
+                    normalizeSetupOwnerKey(input.setupOwnerKey),
+                    current.artifact.source,
+                    current.artifact.candidateLabel,
+                    processed.processingPolicyVersion,
+                    processed.piiPolicyVersion,
+                ]);
+                const updated = replacement.rows[0] ? toCandidateResumeTextArtifact(replacement.rows[0]) : null;
+                if (!updated) {
                     throw new CandidateResumeArtifactRepositoryError("STALE_REVISION");
                 }
-                return { outcome: "accepted", artifact: current.artifact };
+                return {
+                    outcome: nextState === "accepted" ? "accepted" : "review_required",
+                    artifact: updated,
+                };
             }
             if (current.artifact.reviewState !== "awaiting_review") {
                 throw new CandidateResumeArtifactRepositoryError("STALE_REVISION");
@@ -283,6 +392,12 @@ export function createCandidateResumeTextArtifactRepository(client: CandidateRes
             return current?.artifact ?? null;
         },
     };
+}
+
+function createReviewRevisionSourceFingerprint(artifactId: string, sourceFingerprint: string) {
+    return createHash("sha256")
+        .update(`${artifactId}:${sourceFingerprint}`)
+        .digest("hex");
 }
 
 async function readCandidateIdentity(client: CandidateResumeTextArtifactQueryClient, candidateProfileId: string) {

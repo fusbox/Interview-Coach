@@ -58,7 +58,7 @@
     --radius-12: var(--radius-lg);
     --radius-16: var(--radius-xl);
     --radius-button: var(--radius-control);
-    --radius-input: var(--radius-xl);
+    --radius-input: var(--radius-row);
     --radius-session: var(--radius-panel);
     --radius-popover: var(--radius-widget);
     --radius-icon-capsule: var(--radius-widget);

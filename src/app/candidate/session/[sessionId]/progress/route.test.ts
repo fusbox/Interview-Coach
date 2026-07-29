@@ -1,19 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { handleCandidateSessionProgressRequest, resolveCandidateSessionProgressIdentityFromDevLaunchCookie } from "./route-implementation";
+import { handleCandidateSessionProgressRequest } from "./route-implementation";
 
 describe("/candidate/session/[sessionId]/progress route", () => {
-    it("resolves explicit dev host-launch cookies for durable progress saves", () => {
-        vi.stubEnv("CANDIDATE_HOST_LAUNCH_DEV_MODE", "true");
-        vi.stubEnv("CANDIDATE_HOST_LAUNCH_DEV_SECRET", "local-dev-shared-secret");
-
-        expect(resolveCandidateSessionProgressIdentityFromDevLaunchCookie(
-            "ic_candidate_launch_session=dev-host-launch-100001",
-        )).toEqual({
-            candidateProfileId: "10000000-0000-4000-8000-000000000001",
-        });
-    });
-
     it("persists question preview progress when candidate identity resolves", async () => {
         const saveProgress = vi.fn(async () => ({
             status: "question_preview" as const,

@@ -26,7 +26,7 @@
   .principle b{display:block;font-family:var(--font-display);font-size:14px;line-height:1.15;margin-bottom:7px;}
   .principle p{font-size:10.5px;line-height:1.45;color:var(--dash-muted);margin:0;}
   .frames{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start;}
-  .frame{border:1px solid var(--dash-line);border-radius:28px;background:linear-gradient(135deg,var(--dash-canvas),var(--dash-canvas-2));padding:18px;box-sizing:border-box;min-height:690px;box-shadow:var(--elevation-panel);}
+  .frame{border:1px solid var(--dash-line);border-radius:var(--radius-panel);background:linear-gradient(135deg,var(--dash-canvas),var(--dash-canvas-2));padding:18px;box-sizing:border-box;min-height:690px;box-shadow:var(--elevation-panel);}
   .frame-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
   .state-label{display:grid;gap:3px;}
   .state-label b{font-family:var(--font-display);font-size:15px;}
@@ -110,11 +110,11 @@
   .mastery span{display:block;width:68%;height:100%;border-radius:999px;background:linear-gradient(90deg,#17A079,#0B57CE);}
   .mini-list{display:grid;gap:7px;}
   .mini-row{height:24px;border-radius:var(--radius-row);background:#F4F7FB;display:flex;align-items:center;justify-content:space-between;padding:0 8px;font-size:9.5px;color:var(--dash-muted);}
-  .mobile-frame{border:1px solid var(--dash-line);border-radius:28px;background:linear-gradient(135deg,var(--dash-canvas),var(--dash-canvas-2));padding:18px;box-shadow:var(--elevation-panel);}
+  .mobile-frame{border:1px solid var(--dash-line);border-radius:var(--radius-panel);background:linear-gradient(135deg,var(--dash-canvas),var(--dash-canvas-2));padding:18px;box-shadow:var(--elevation-panel);}
   .mobile-layout{display:grid;grid-template-columns:360px 300px 1fr;gap:18px;align-items:start;}
   .plan-only-panel .app{min-height:580px;}
   .phone{width:300px;border-radius:34px;background:#111827;padding:8px;box-shadow:var(--elevation-overlay);}
-  .phone-inner{border-radius:28px;background:linear-gradient(135deg,#FBFCFE,#F1F6FB);padding:14px;min-height:580px;box-sizing:border-box;}
+  .phone-inner{border-radius:var(--radius-card);background:linear-gradient(135deg,#FBFCFE,#F1F6FB);padding:14px;min-height:580px;box-sizing:border-box;}
   .mobile-stack{display:grid;gap:10px;}
   .mobile-card{border:1px solid var(--dash-line);border-radius:var(--radius-widget);background:#fff;padding:12px;box-shadow:var(--elevation-card);}
   .mobile-card h3{font-family:var(--font-display);font-size:14px;margin:0 0 5px;}
@@ -129,7 +129,7 @@
   .note b{display:block;font-family:var(--font-display);font-size:14px;margin-bottom:7px;}
   .note p{font-size:11px;line-height:1.5;color:var(--dash-muted);margin:0;}
   .role-study{display:grid;grid-template-columns:1fr 320px 1fr;gap:18px;align-items:start;}
-  .role-stage{border:1px solid var(--dash-line);border-radius:28px;background:linear-gradient(135deg,#FBFCFE,#EEF4FA);padding:18px;min-height:470px;box-shadow:var(--elevation-panel);box-sizing:border-box;position:relative;overflow:hidden;}
+  .role-stage{border:1px solid var(--dash-line);border-radius:var(--radius-panel);background:linear-gradient(135deg,#FBFCFE,#EEF4FA);padding:18px;min-height:470px;box-shadow:var(--elevation-panel);box-sizing:border-box;position:relative;overflow:hidden;}
   .role-stage .app-header{position:relative;z-index:2;}
   .role-popover{position:absolute;left:30px;top:86px;width:330px;border:1px solid rgb(211 220 232 / .95);border-radius:var(--radius-widget);background:rgb(255 255 255 / .96);box-shadow:var(--elevation-overlay);padding:8px;box-sizing:border-box;z-index:3;}
   .role-popover::before{content:"";position:absolute;left:26px;top:-7px;width:14px;height:14px;border-left:1px solid rgb(211 220 232 / .95);border-top:1px solid rgb(211 220 232 / .95);background:rgb(255 255 255 / .96);transform:rotate(45deg);}
@@ -431,7 +431,7 @@
       <div class="decision-panel">
         <b>Decisions captured</b>
         <ul>
-          <li>Dashboard widgets use the default 24px card radius through <span class="code">--radius-widget</span>.</li>
+          <li>Nested dashboard widgets use the 16px <span class="code">--radius-widget</span> tier; standard outer dashboard surfaces use the 24px <span class="code">--radius-card</span> tier.</li>
           <li>Coach Update and Next Round are separate stacked widgets with linked priority states.</li>
           <li>The app frame gap is 12px, matching the gap between linked widgets and support cards.</li>
           <li>The user avatar plus current role text is the header trigger for role context.</li>

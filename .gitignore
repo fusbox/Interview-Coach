@@ -8,6 +8,7 @@ dist/
 build/
 .next/
 .next-candidate-e2e/
+.next-candidate-account-e2e/
 .next-candidate-production-smoke/
 out/
 .vercel/
@@ -119,3 +120,4 @@ db/exports/
 # impeccable-ignore-end
 
 
+.vercel

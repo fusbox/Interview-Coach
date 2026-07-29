@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { handleCandidateSetupStartRequest, resolveCandidateSetupIdentityFromDevLaunchCookie, POST } from "./route-implementation";
+import { handleCandidateSetupStartRequest, POST } from "./route-implementation";
 import {
     createFaultInjectionCandidateQuestionWordingRuntime,
     createFixtureCandidateQuestionWordingRuntime,
@@ -26,27 +26,7 @@ function createAcquiredSetupStartRequestRepository() {
 }
 
 describe("/candidate/setup/start route", () => {
-    it("resolves explicit dev host-launch fixture cookies without candidate launch-session storage", async () => {
-        vi.stubEnv("CANDIDATE_HOST_LAUNCH_DEV_MODE", "true");
-        vi.stubEnv("CANDIDATE_HOST_LAUNCH_DEV_SECRET", "local-dev-shared-secret");
-
-        await expect(resolveCandidateSetupIdentityFromDevLaunchCookie(
-            new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
-                headers: {
-                    Cookie: "ic_candidate_launch_session=dev-host-launch-100001",
-                },
-            }),
-        )).resolves.toEqual({
-            candidateProfileId: "10000000-0000-4000-8000-000000000001",
-            setupOwnerKey: "candidate:10000000-0000-4000-8000-000000000001",
-            candidateLaunchSessionId: null,
-            trustedSetupContext: null,
-            allowManualPrepContextCreation: true,
-            allowBrowserBridgeFallback: true,
-        });
-    });
-
-    it("creates a provisional session transition from valid setup input", async () => {
+    it("rejects an otherwise valid anonymous setup request at the production route", async () => {
         const response = await POST(new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
             method: "POST",
             body: JSON.stringify({
@@ -58,51 +38,10 @@ describe("/candidate/setup/start route", () => {
             }),
         }));
 
-        await expect(response.json()).resolves.toMatchObject({
-            status: "session_created",
-            sessionId: expect.any(String),
-            nextRoute: expect.stringMatching(/^\/candidate\/session\/.+/),
-            setupSnapshot: {
-                targetRole: "Customer service representative",
-                jobDescription: "Help customers resolve service questions.",
-                resumeText: null,
-                interviewStage: "first_interview",
-                questionCount: 7,
-                resumeCaptureMode: "none",
-            },
-            questionPlanSnapshot: {
-                interviewStage: "first_interview",
-                questionCount: 7,
-                categoryCounts: {
-                    screening: 2,
-                    behavioral: 2,
-                    culture_fit: 1,
-                    case_scenario: 1,
-                    technical_role_specific: 1,
-                },
-                slots: expect.arrayContaining([
-                    expect.objectContaining({ id: "slot-1", category: "screening" }),
-                    expect.objectContaining({ id: "slot-7", category: "behavioral" }),
-                ]),
-            },
-            questionWordingSnapshot: {
-                status: "questions_worded",
-                questions: expect.arrayContaining([
-                    expect.objectContaining({
-                        slotId: "slot-1",
-                        index: 0,
-                        category: "screening",
-                        questionText: "What interests you about this Customer service representative role?",
-                    }),
-                    expect.objectContaining({
-                        slotId: "slot-2",
-                        index: 1,
-                        category: "behavioral",
-                    }),
-                ]),
-            },
+        await expect(response.json()).resolves.toEqual({
+            error: "Candidate access could not be verified.",
         });
-        expect(response.status).toBe(201);
+        expect(response.status).toBe(401);
     });
 
     it("rejects invalid setup input", async () => {
@@ -1059,20 +998,22 @@ describe("/candidate/setup/start route", () => {
         expect(response.status).toBe(503);
     });
 
-    it("returns a bounded setup failure when the environment-selected wording profile is invalid", async () => {
-        vi.stubEnv("CANDIDATE_QUESTION_WORDING_PROVIDER", "google_genai");
-        vi.stubEnv("CANDIDATE_QUESTION_WORDING_PROFILE", "wrong-profile");
-        vi.stubEnv("GEMINI_API_KEY", "server-only-test-key");
-
-        const response = await POST(new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
-            method: "POST",
-            body: JSON.stringify({
-                targetRole: "Customer service representative",
-                jobDescription: "Help customers resolve service questions.",
-                interviewStage: "first_interview",
-                questionCount: 7,
+    it("returns a bounded setup failure when the selected wording runtime is unavailable", async () => {
+        const response = await handleCandidateSetupStartRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/setup/start", {
+                method: "POST",
+                body: JSON.stringify({
+                    targetRole: "Customer service representative",
+                    jobDescription: "Help customers resolve service questions.",
+                    interviewStage: "first_interview",
+                    questionCount: 7,
+                }),
             }),
-        }));
+            now: new Date("2026-07-09T16:00:00.000Z"),
+            createSessionId: () => "browser-bridge-session-id",
+            allowBrowserBridgeWithoutIdentity: true,
+            questionWordingRuntime: null,
+        });
 
         await expect(response.json()).resolves.toEqual({
             error: "Practice questions could not be prepared. Your setup is still available, so you can try again.",

@@ -1,5 +1,4 @@
-import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-v2/host-launch-route";
-import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidate-auth-v2/dev-host-launch-cookie-identity";
+import { resolveCandidateOwnedCookieIdentity } from "@/features/candidate-auth-v2/candidate-route-authorization";
 import { createCandidatePracticeSessionRepository } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 import {
     createCandidateBaselineAwarePracticeSessions,
@@ -85,26 +84,8 @@ export async function resolveCandidateNextRoundProfileId(
     cookieHeader: string | null,
     client: CandidateNextRoundRuntimeQueryClient,
 ) {
-    const devIdentity = resolveCandidateDevHostLaunchCookieIdentity(cookieHeader);
-    if (devIdentity) {
-        return devIdentity.candidateProfileId;
-    }
-
-    const candidateLaunchSessionId = readCookieValue(cookieHeader, CANDIDATE_HOST_LAUNCH_SESSION_COOKIE);
-    if (!candidateLaunchSessionId) {
-        return null;
-    }
-
-    const result = await client.query(`
-        select candidate_profile_id
-        from public.candidate_launch_sessions
-        where candidate_launch_session_id = $1
-          and revoked_at is null
-          and expires_at > now()
-        limit 1
-    `, [candidateLaunchSessionId]);
-
-    return readString(result.rows[0]?.candidate_profile_id);
+    const identity = await resolveCandidateOwnedCookieIdentity(cookieHeader, client);
+    return identity?.candidateProfileId ?? null;
 }
 
 function createLazyPostgresQueryClient(databaseUrl: string): CandidateNextRoundRuntimeQueryClient {
@@ -122,23 +103,6 @@ function createLazyPostgresQueryClient(databaseUrl: string): CandidateNextRoundR
             return pool.query(sql, values);
         },
     };
-}
-
-function readCookieValue(cookieHeader: string | null, name: string) {
-    if (!cookieHeader) {
-        return null;
-    }
-
-    const cookie = cookieHeader
-        .split(";")
-        .map((part) => part.trim())
-        .find((part) => part.startsWith(`${name}=`));
-
-    return cookie ? decodeURIComponent(cookie.slice(name.length + 1)) : null;
-}
-
-function readString(value: unknown) {
-    return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 function getRuntimeSslConfig(databaseUrl: string) {

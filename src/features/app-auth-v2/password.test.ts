@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { hashPassword, verifyPassword } from "./password";
 
-describe("recruiter password hashing", () => {
+describe("app password hashing", () => {
     it("round-trips a scrypt credential without storing the plaintext", async () => {
         const hash = await hashPassword("correct horse battery staple");
 

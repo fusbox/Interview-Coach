@@ -24,7 +24,7 @@
     --elevation-row:   var(--shadow-soft);  /* list rows, quiet chips */
     --elevation-card:  var(--shadow-card);  /* Tier 3 calm card */
     --elevation-panel: var(--shadow-panel); /* Tier 1/2 feature + spotlight */
-    --elevation-cta:   var(--shadow-cta);   /* primary action glow */
+    --elevation-cta:   var(--shadow-cta);   /* primary action drop shadow */
 
     /* ── Motion · duration + ease paired by intent (motion.css) ── */
     /* Controls move fast & standard; surfaces move slower & emphasized. */

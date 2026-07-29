@@ -21,7 +21,6 @@ import { EvidenceFirstEvaluatorRuntimeError } from "@/features/evaluation-v2/evi
 import {
     createDefaultCandidateAnswerAnalysisDependencies,
     handleCandidateAnswerAnalysisRequest,
-    resolveCandidateAnswerAnalysisIdentityFromDevLaunchCookie,
 } from "./route-implementation";
 
 afterEach(() => {
@@ -30,17 +29,6 @@ afterEach(() => {
 });
 
 describe("/candidate/session/[sessionId]/answers/[slotId]/analysis route", () => {
-    it("resolves explicit dev host-launch cookies for answer analysis requests", () => {
-        vi.stubEnv("CANDIDATE_HOST_LAUNCH_DEV_MODE", "true");
-        vi.stubEnv("CANDIDATE_HOST_LAUNCH_DEV_SECRET", "local-dev-shared-secret");
-
-        expect(resolveCandidateAnswerAnalysisIdentityFromDevLaunchCookie(
-            "ic_candidate_launch_session=dev-host-launch-100001",
-        )).toEqual({
-            candidateProfileId: "10000000-0000-4000-8000-000000000001",
-        });
-    });
-
     it("assembles no default analysis provider when provider config is missing", () => {
         vi.stubEnv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable");
         vi.stubEnv("CANDIDATE_ANSWER_ANALYSIS_PROVIDER", "");

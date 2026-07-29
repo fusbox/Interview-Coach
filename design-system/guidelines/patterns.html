@@ -83,7 +83,7 @@
     <div class="contract">
       <div>Pattern</div><div>Composed from</div><div>Contract</div><div>Primary product use</div>
       <div>Public funnel</div><div class="code">Hero, CTAs, audience routes</div><div class="muted">Define audience, promise, proof, primary/secondary CTA, route destination and marketing surface latitude.</div><div class="muted">Root and recruiter public routes if preserved as one shared landing page.</div>
-      <div>Form flow</div><div class="code">Stepper, Field, Panel, Validation</div><div class="muted">Step purpose, completion rule, validation timing, save/recovery behavior, final review and mobile order.</div><div class="muted">Recruiter invite creation and candidate initial practice setup.</div>
+      <div>Form flow</div><div class="code">Stepper, Field, Panel, Validation</div><div class="muted">Step purpose, completion rule, validation timing, save/recovery behavior, final review and responsive order. Route-gated and continuous variants both give progress the full content width; continuous timelines update on section arrival and retain explicit continuation actions.</div><div class="muted">Recruiter invite creation and candidate initial practice setup.</div>
       <div>Dashboard workbench</div><div class="code">Frame, Widget, Metric, Row, Nav</div><div class="muted">Frame, primary action, scan hierarchy, widget roles, empty/loading states and drill-in paths.</div><div class="muted">Recruiter overview, admin/QA workspaces and candidate dashboard.</div>
       <div>Candidate learning hub</div><div class="code">Widget, Category, Skill, Guidance</div><div class="muted">Coach-planned questions, education, performance feedback, practice guidance and next action launcher.</div><div class="muted">Candidate dashboard, preparedness and practice planning.</div>
       <div>Session shell</div><div class="code">Prompt, Transcript, Recorder, Controls</div><div class="muted">Stable focus, live state, turn-taking, recovery, low-motion behavior and shared candidate experience.</div><div class="muted">Core session surfaces across candidate and recruiter-hosted contexts.</div>
@@ -170,6 +170,7 @@
       <div class="rule"><b>Patterns are workflows, not pages by filename</b><p>Use the same pattern for the same user task across recruiter and candidate apps, even when route names or data sources differ.</p></div>
       <div class="rule"><b>Start from desired behavior</b><p>Do not inventory the current app first. Define what the pattern should do, then audit existing UI against that target.</p></div>
       <div class="rule"><b>Keep product exceptions named</b><p>If a candidate dashboard action widget, session surface or public marketing treatment diverges, name the pattern and repeatable reason.</p></div>
+      <div class="rule"><b>Coach voice gets a named surface</b><p>Use the coach-voice surface when the product interprets, recommends, or explains: surface-base, a 2px primary edge, calm compass avatar, and restrained raised-1 elevation. Place it on an alternate parent surface when layering is needed; do not reuse it for neutral labels or ordinary form instructions.</p></div>
       <div class="rule"><b>Cross-cutting consistency wins</b><p>Equivalent interactions should use equivalent components, placement, state labels and recovery behavior across the app.</p></div>
     </div>
   </div>

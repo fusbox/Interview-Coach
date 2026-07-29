@@ -1,5 +1,4 @@
-import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-v2/host-launch-route";
-import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidate-auth-v2/dev-host-launch-cookie-identity";
+import { resolveCandidateOwnedRequestIdentity } from "@/features/candidate-auth-v2/candidate-route-authorization";
 import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-auth-v2/production-host-launch-runtime";
 import {
     completeCandidateAnswerIdempotencyRecord,
@@ -555,10 +554,8 @@ export function createDefaultCandidateAnswerAnalysisDependencies(input?: {
         googleTransportFactory: input?.googleTransportFactory,
     });
     return {
-        resolveCandidateSessionIdentity: async (request) => {
-            const devIdentity = resolveCandidateAnswerAnalysisIdentityFromDevLaunchCookie(request.headers.get("Cookie"));
-            return devIdentity ?? resolveCandidateSessionIdentityFromLaunchCookie(request, queryClient);
-        },
+        resolveCandidateSessionIdentity: (request) =>
+            resolveCandidateOwnedRequestIdentity(request, queryClient),
         practiceSessionRepository: createCandidatePracticeSessionRepository(queryClient),
         requestAnswerAnalysis: selectedRuntime?.requestAnswerAnalysis,
         evaluationRunRepository: createCandidateAnswerHistoryRepository(queryClient),
@@ -592,53 +589,6 @@ function createLazyPostgresQueryClient(databaseUrl: string): CandidateAnswerAnal
             return pool.query(sql, values);
         },
     };
-}
-
-async function resolveCandidateSessionIdentityFromLaunchCookie(
-    request: Request,
-    client: CandidateAnswerAnalysisQueryClient,
-): Promise<CandidateSessionIdentity | null> {
-    const candidateLaunchSessionId = readCookieValue(request.headers.get("Cookie"), CANDIDATE_HOST_LAUNCH_SESSION_COOKIE);
-    if (!candidateLaunchSessionId) {
-        return null;
-    }
-
-    const result = await client.query(`
-        select candidate_profile_id
-        from public.candidate_launch_sessions
-        where candidate_launch_session_id = $1
-          and revoked_at is null
-          and expires_at > now()
-        limit 1
-    `, [candidateLaunchSessionId]);
-    const candidateProfileId = readString(result.rows[0]?.candidate_profile_id);
-
-    return candidateProfileId ? { candidateProfileId } : null;
-}
-
-export function resolveCandidateAnswerAnalysisIdentityFromDevLaunchCookie(cookieHeader: string | null) {
-    return resolveCandidateDevHostLaunchCookieIdentity(cookieHeader);
-}
-
-function readCookieValue(cookieHeader: string | null, name: string) {
-    if (!cookieHeader) {
-        return null;
-    }
-
-    const cookie = cookieHeader
-        .split(";")
-        .map((part) => part.trim())
-        .find((part) => part.startsWith(`${name}=`));
-
-    if (!cookie) {
-        return null;
-    }
-
-    return decodeURIComponent(cookie.slice(name.length + 1));
-}
-
-function readString(value: unknown) {
-    return typeof value === "string" && value.trim() ? value : null;
 }
 
 function getRuntimeSslConfig(databaseUrl: string) {

@@ -1,0 +1,11 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ctad-rim" x1="6" y1="27" x2="26" y2="5" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#7FB0FF"></stop>
+      <stop offset="100%" stop-color="#6FE0C0"></stop>
+    </linearGradient>
+  </defs>
+  <circle cx="16" cy="16" r="15" fill="url(#ctad-rim)" stroke="rgba(10,40,90,0.3)" stroke-width="1"></circle>
+  <polygon points="17.70,17.70 22.72,9.28 14.30,14.30" fill="#0C61E9" stroke="#0C61E9" stroke-width="0.9" stroke-linejoin="round"></polygon>
+  <polygon points="17.70,17.70 9.28,22.72 14.30,14.30" fill="#0C9C86" stroke="#0C9C86" stroke-width="0.9" stroke-linejoin="round"></polygon>
+</svg>

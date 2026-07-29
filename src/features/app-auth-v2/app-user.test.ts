@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { getAppUserDisplayName, type AppUser } from "./app-user";
+import { canAccessRecruiterRoutes, getAppUserDisplayName, type AppUser } from "./app-user";
 
-describe("app user display identity", () => {
+describe("shared app user display identity", () => {
     it("prefers a nonempty account display name", () => {
         expect(getAppUserDisplayName(user({ displayName: "  Fu Chen  " }))).toBe("Fu Chen");
     });
@@ -12,6 +12,11 @@ describe("app user display identity", () => {
             .toBe("Dev Recruiter");
         expect(getAppUserDisplayName(user({ displayName: "", firstName: "", lastName: "" })))
             .toBe("dev@example.invalid");
+    });
+
+    it("does not treat the candidate audience as recruiter authorization", () => {
+        expect(canAccessRecruiterRoutes(user({ roles: ["candidate"] }))).toBe(false);
+        expect(canAccessRecruiterRoutes(user({ roles: ["candidate", "recruiter"] }))).toBe(true);
     });
 });
 

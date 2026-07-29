@@ -17,16 +17,12 @@ import {
 } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-auth-v2/production-host-launch-runtime";
 import { createCandidatePostgresQueryClient } from "@/features/candidate-auth-v2/candidate-postgres-runtime";
-import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-v2/host-launch-route";
-import { isCandidateDevHostLaunchEnabled } from "@/features/candidate-auth-v2/dev-host-launch";
-import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidate-auth-v2/dev-host-launch-cookie-identity";
 import {
     createCandidateSetupPrepContextRepository,
     type CandidateSetupPrepContextResolver,
 } from "@/features/candidate-setup-v2/candidate-setup-prep-context-repository";
 import {
     applyCandidateTrustedSetupContext,
-    createCandidateSetupDraftOwnerKey,
     createCandidateSetupEntryRepository,
     type CandidateTrustedSetupContext,
 } from "@/features/candidate-setup-v2/candidate-setup-entry-context";
@@ -53,6 +49,7 @@ import {
 } from "@/features/candidate-setup-v2/candidate-setup-start-request-repository";
 import type { CandidateResumeTextArtifact } from "@/features/candidate-setup-v2/candidate-resume-text-artifact-repository";
 import { createCandidateSetupResumeSelectionRepository } from "@/features/candidate-setup-v2/candidate-setup-resume-selection-repository";
+import { resolveCandidateSetupRouteIdentity } from "@/features/candidate-setup-v2/candidate-setup-route-identity";
 
 export async function POST(request: Request) {
     try {
@@ -432,28 +429,30 @@ function createDefaultCandidateSetupStartDependencies(): Pick<
     "allowBrowserBridgeWithoutIdentity" | "resolveCandidateSetupIdentity" | "prepContextResolver" | "setupEntryRepository" | "practiceSessionRepository" | "setupStartRequestRepository" | "resumeSelectionRepository" | "questionWordingRuntime"
 > {
     const databaseUrl = process.env[CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV]?.trim();
-    const allowBrowserBridgeWithoutIdentity = process.env.NODE_ENV !== "production";
     if (!databaseUrl) {
-        return isCandidateDevHostLaunchEnabled()
-            ? {
-                allowBrowserBridgeWithoutIdentity,
-                resolveCandidateSetupIdentity: resolveCandidateSetupIdentityFromDevLaunchCookie,
-                questionWordingRuntime: createDefaultQuestionWordingRuntime(),
-            }
-            : {
-                allowBrowserBridgeWithoutIdentity,
-                questionWordingRuntime: createDefaultQuestionWordingRuntime(),
-            };
+        return {
+            allowBrowserBridgeWithoutIdentity: false,
+            questionWordingRuntime: createDefaultQuestionWordingRuntime(),
+        };
     }
 
     const queryClient = createCandidatePostgresQueryClient(databaseUrl);
 
     const setupEntryRepository = createCandidateSetupEntryRepository(queryClient);
     return {
-        allowBrowserBridgeWithoutIdentity,
+        allowBrowserBridgeWithoutIdentity: false,
         resolveCandidateSetupIdentity: async (request) => {
-            const devIdentity = await resolveCandidateSetupIdentityFromDevLaunchCookie(request);
-            return devIdentity ?? resolveCandidateSetupIdentityFromLaunchCookie(request, queryClient);
+            const identity = await resolveCandidateSetupRouteIdentity(request, queryClient);
+            return identity
+                ? {
+                    candidateProfileId: identity.candidateProfileId,
+                    setupOwnerKey: identity.setupOwnerKey,
+                    candidateLaunchSessionId: identity.candidateLaunchSessionId ?? null,
+                    trustedSetupContext: identity.trustedSetupContext ?? null,
+                    allowManualPrepContextCreation: true,
+                    allowBrowserBridgeFallback: false,
+                }
+                : null;
         },
         prepContextResolver: createCandidateSetupPrepContextRepository(queryClient),
         setupEntryRepository,
@@ -619,50 +618,6 @@ function createCandidateSetupStartFailureResponse(error: unknown) {
     return Response.json({ error: "Candidate setup could not be started." }, { status: 503 });
 }
 
-async function resolveCandidateSetupIdentityFromLaunchCookie(
-    request: Request,
-    client: ReturnType<typeof createCandidatePostgresQueryClient>,
-): Promise<CandidateSetupIdentity | null> {
-    const candidateLaunchSessionId = readCookieValue(request.headers.get("Cookie"), CANDIDATE_HOST_LAUNCH_SESSION_COOKIE);
-    if (!candidateLaunchSessionId) {
-        return null;
-    }
-
-    const entry = await createCandidateSetupEntryRepository(client)
-        .resolveLaunchEntry(candidateLaunchSessionId);
-
-    return entry
-        ? {
-            candidateProfileId: entry.candidateProfileId,
-            setupOwnerKey: createCandidateSetupDraftOwnerKey(
-                entry.candidateProfileId,
-                entry.trustedSetupContext,
-            ),
-            candidateLaunchSessionId: entry.candidateLaunchSessionId,
-            trustedSetupContext: entry.trustedSetupContext,
-            allowManualPrepContextCreation: true,
-            allowBrowserBridgeFallback: false,
-        }
-        : null;
-}
-
-function readCookieValue(cookieHeader: string | null, name: string) {
-    if (!cookieHeader) {
-        return null;
-    }
-
-    const cookie = cookieHeader
-        .split(";")
-        .map((part) => part.trim())
-        .find((part) => part.startsWith(`${name}=`));
-
-    if (!cookie) {
-        return null;
-    }
-
-    return decodeURIComponent(cookie.slice(name.length + 1));
-}
-
 function readString(value: unknown) {
     return typeof value === "string" && value.trim() ? value : null;
 }
@@ -708,19 +663,4 @@ function readSetupEntryMode(body: unknown): "trusted_host_job" | null | "invalid
         return null;
     }
     return value === "trusted_host_job" ? value : "invalid";
-}
-
-export async function resolveCandidateSetupIdentityFromDevLaunchCookie(request: Request): Promise<CandidateSetupIdentity | null> {
-    const identity = resolveCandidateDevHostLaunchCookieIdentity(request.headers.get("Cookie"));
-
-    return identity
-        ? {
-            candidateProfileId: identity.candidateProfileId,
-            setupOwnerKey: createCandidateSetupDraftOwnerKey(identity.candidateProfileId, null),
-            candidateLaunchSessionId: null,
-            trustedSetupContext: null,
-            allowManualPrepContextCreation: true,
-            allowBrowserBridgeFallback: true,
-        }
-        : null;
 }

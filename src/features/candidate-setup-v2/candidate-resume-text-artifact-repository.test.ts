@@ -7,6 +7,7 @@ import {
 
 const candidateProfileId = "10000000-0000-4000-8000-000000000001";
 const artifactId = "20000000-0000-4000-8000-000000000001";
+const replacementArtifactId = "20000000-0000-4000-8000-000000000002";
 const setupOwnerKey = `candidate:${candidateProfileId}`;
 
 describe("candidate resume text artifact repository", () => {
@@ -104,6 +105,105 @@ describe("candidate resume text artifact repository", () => {
 
         expect(result.outcome).toBe("accepted");
         expect(result.artifact).toMatchObject({ revision: 2, reviewState: "accepted" });
+    });
+
+    it("replaces an edited accepted artifact and advances the active selection", async () => {
+        const query = vi.fn()
+            .mockResolvedValueOnce({ rows: [{
+                ...artifactRow({
+                    source: "document_upload",
+                    candidate_label: "resume.pdf",
+                    review_revision: 2,
+                    review_state: "accepted",
+                    accepted_at: new Date("2026-07-21T12:01:00.000Z"),
+                }),
+                display_name: "Dev Candidate",
+                email: "dev@example.com",
+            }] })
+            .mockResolvedValueOnce({ rows: [artifactRow({
+                candidate_resume_artifact_id: replacementArtifactId,
+                source: "document_upload",
+                candidate_label: "resume.pdf",
+                version: 2,
+                review_revision: 1,
+                normalized_text: "Inventory lead who trained new hires.",
+                review_state: "accepted",
+                accepted_at: new Date("2026-07-21T12:05:00.000Z"),
+            })] });
+        const repository = createCandidateResumeTextArtifactRepository({ query });
+
+        const result = await repository.acceptReview({
+            candidateProfileId,
+            setupOwnerKey,
+            artifactId,
+            expectedVersion: 1,
+            expectedRevision: 2,
+            reviewedText: "Inventory lead who trained new hires.",
+            now: new Date("2026-07-21T12:05:00.000Z"),
+        });
+
+        expect(result.outcome).toBe("accepted");
+        expect(result.artifact).toMatchObject({
+            artifactId: replacementArtifactId,
+            version: 2,
+            revision: 1,
+            reviewState: "accepted",
+            source: "document_upload",
+            candidateLabel: "resume.pdf",
+        });
+        expect(query.mock.calls[1][0]).toContain("set review_state = 'replaced'");
+        expect(query.mock.calls[1][0]).toContain("candidate_setup_resume_selections");
+        expect(query.mock.calls[1][1]).toMatchObject({
+            0: artifactId,
+            1: candidateProfileId,
+            2: 1,
+            3: 2,
+            8: "accepted",
+            10: setupOwnerKey,
+            11: "document_upload",
+            12: "resume.pdf",
+        });
+    });
+
+    it("requires another review when an accepted-artifact edit is scrubbed", async () => {
+        const query = vi.fn()
+            .mockResolvedValueOnce({ rows: [{
+                ...artifactRow({
+                    review_revision: 2,
+                    review_state: "accepted",
+                    accepted_at: new Date("2026-07-21T12:01:00.000Z"),
+                }),
+                display_name: "Dev Candidate",
+                email: "dev@example.com",
+            }] })
+            .mockResolvedValueOnce({ rows: [artifactRow({
+                candidate_resume_artifact_id: replacementArtifactId,
+                version: 2,
+                review_revision: 1,
+                normalized_text: "Inventory lead. [Email removed]",
+                pii_redaction_counts_json: { email: 1 },
+                review_state: "awaiting_review",
+            })] });
+        const repository = createCandidateResumeTextArtifactRepository({ query });
+
+        const result = await repository.acceptReview({
+            candidateProfileId,
+            setupOwnerKey,
+            artifactId,
+            expectedVersion: 1,
+            expectedRevision: 2,
+            reviewedText: "Inventory lead. dev@example.com",
+            now: new Date("2026-07-21T12:05:00.000Z"),
+        });
+
+        expect(result.outcome).toBe("review_required");
+        expect(result.artifact).toMatchObject({
+            artifactId: replacementArtifactId,
+            version: 2,
+            revision: 1,
+            reviewState: "awaiting_review",
+        });
+        expect(query.mock.calls[1][1][8]).toBe("awaiting_review");
     });
 
     it("fails stale or unowned review operations without mutating", async () => {

@@ -12,7 +12,7 @@ const user = {
     roles: ["recruiter" as const],
 };
 
-describe("recruiter app auth", () => {
+describe("shared app auth", () => {
     let credential: PasswordCredentialRecord;
     let store: AppAuthStore;
 
@@ -26,6 +26,7 @@ describe("recruiter app auth", () => {
         store = {
             findPasswordCredentialByEmail: vi.fn().mockResolvedValue(credential),
             findUserBySessionTokenHash: vi.fn().mockResolvedValue(user),
+            isCandidateAccountEligible: vi.fn().mockResolvedValue(true),
             createSession: vi.fn().mockResolvedValue(undefined),
             revokeSession: vi.fn().mockResolvedValue(user.id),
             recordPasswordFailure: vi.fn().mockResolvedValue(undefined),
@@ -100,5 +101,42 @@ describe("recruiter app auth", () => {
             eventType: "logout",
             outcome: "success",
         }));
+    });
+
+    it("enforces candidate audience, verified email, and profile binding before session issuance", async () => {
+        const candidate = {
+            ...user,
+            roles: ["candidate" as const],
+            emailVerifiedAt: "2026-07-27T12:00:00.000Z",
+        };
+        vi.mocked(store.findPasswordCredentialByEmail).mockResolvedValue({
+            ...credential,
+            user: candidate,
+        });
+
+        await expect(authenticateWithPassword(
+            candidate.email,
+            "local-only-recruiter",
+            {},
+            { store, sessionToken: () => "candidate-session" },
+            {
+                requiredRole: "candidate",
+                requireVerifiedEmail: true,
+                requireCandidateProfile: true,
+            },
+        )).resolves.toMatchObject({ ok: true, sessionToken: "candidate-session" });
+        expect(store.isCandidateAccountEligible).toHaveBeenCalledWith(candidate.id);
+
+        vi.mocked(store.findPasswordCredentialByEmail).mockResolvedValue({
+            ...credential,
+            user: { ...candidate, emailVerifiedAt: undefined },
+        });
+        await expect(authenticateWithPassword(
+            candidate.email,
+            "local-only-recruiter",
+            {},
+            { store },
+            { requiredRole: "candidate", requireVerifiedEmail: true },
+        )).resolves.toEqual({ ok: false, status: 401, error: "Invalid email or password." });
     });
 });

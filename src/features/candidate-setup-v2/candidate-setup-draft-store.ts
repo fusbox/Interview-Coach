@@ -9,12 +9,14 @@ export const CANDIDATE_SETUP_DRAFT_STORAGE_KEY = "interview-coach:candidate-setu
 
 export type CandidateSetupDraftStatus = "draft";
 export type CandidateSetupResumeTargetScreen = "candidate_setup";
+export type CandidateSetupResumeInputMode = "paste" | "file" | "photo";
 
 export type CandidateSetupDraft = CandidateSetupPayload & {
     id: string;
     ownerKey: string;
     status: CandidateSetupDraftStatus;
     resumeTargetScreen: CandidateSetupResumeTargetScreen;
+    resumeInputMode: CandidateSetupResumeInputMode;
     createdAt: string;
     updatedAt: string;
     setupStartRequest?: CandidateSetupStartRequestMarker;
@@ -30,6 +32,7 @@ export type CandidateSetupDraftInput = {
     jobDescription?: unknown;
     resumeText?: unknown;
     resumeArtifact?: unknown;
+    resumeInputMode?: unknown;
     interviewStage?: unknown;
     questionCount?: unknown;
 };
@@ -101,6 +104,12 @@ export function saveCandidateSetupDraft(
         : hasResumeTextInput && input.resumeText !== previousDraft?.resumeText
             ? null
             : previousDraft?.resumeArtifact ?? null;
+    const resumeInputMode = normalizeResumeInputMode(
+        Object.prototype.hasOwnProperty.call(input, "resumeInputMode")
+            ? input.resumeInputMode
+            : previousDraft?.resumeInputMode,
+        resumeArtifact,
+    );
     const payload = parseCandidateSetupInput({
         targetRole: input.targetRole,
         jobDescription: input.jobDescription,
@@ -118,6 +127,7 @@ export function saveCandidateSetupDraft(
         ownerKey,
         status: "draft",
         resumeTargetScreen: "candidate_setup",
+        resumeInputMode,
         createdAt: previousDraft?.createdAt ?? timestamp,
         updatedAt: timestamp,
         ...(previousDraft && hasSameSetupPayload(previousDraft, payload) && previousDraft.setupStartRequest
@@ -165,6 +175,7 @@ export function toCandidateSetupDraftFormState(draft: CandidateSetupDraft | null
     interviewStage: CandidateSetupStageId;
     questionCount: number;
     resumeArtifact: CandidateSetupResumeArtifactReference | null;
+    resumeInputMode: CandidateSetupResumeInputMode;
 } {
     const resumeArtifact = draft?.resumeArtifact ?? null;
     return {
@@ -174,6 +185,7 @@ export function toCandidateSetupDraftFormState(draft: CandidateSetupDraft | null
         interviewStage: draft?.interviewStage ?? "first_interview",
         questionCount: draft?.questionCount ?? 7,
         resumeArtifact,
+        resumeInputMode: normalizeResumeInputMode(draft?.resumeInputMode, resumeArtifact),
     };
 }
 
@@ -212,6 +224,25 @@ function isAcceptedResumeArtifactInput(value: unknown): value is CandidateSetupR
     );
 }
 
+function normalizeResumeInputMode(
+    value: unknown,
+    resumeArtifact: unknown,
+): CandidateSetupResumeInputMode {
+    if (value === "paste" || value === "file" || value === "photo") {
+        return value;
+    }
+    if (resumeArtifact && typeof resumeArtifact === "object" && !Array.isArray(resumeArtifact)) {
+        const source = (resumeArtifact as { source?: unknown }).source;
+        if (source === "document_upload") {
+            return "file";
+        }
+        if (source === "photo_capture") {
+            return "photo";
+        }
+    }
+    return "paste";
+}
+
 function readBrowserDrafts(storage: Storage): Record<string, CandidateSetupDraft> {
     const storedDrafts = storage.getItem(CANDIDATE_SETUP_DRAFT_STORAGE_KEY);
     if (!storedDrafts) {
@@ -228,14 +259,17 @@ function readBrowserDrafts(storage: Storage): Record<string, CandidateSetupDraft
                 return [];
             }
             const draft = value as CandidateSetupDraft;
-            if (draft.resumeText && draft.resumeArtifact?.reviewState !== "accepted") {
-                return [[ownerKey, {
+            const safeDraft: CandidateSetupDraft = draft.resumeText && draft.resumeArtifact?.reviewState !== "accepted"
+                ? {
                     ...draft,
                     resumeText: null,
                     resumeCaptureMode: draft.resumeArtifact?.source ?? "none",
-                } satisfies CandidateSetupDraft]];
-            }
-            return [[ownerKey, draft]];
+                }
+                : draft;
+            return [[ownerKey, {
+                ...safeDraft,
+                resumeInputMode: normalizeResumeInputMode(safeDraft.resumeInputMode, safeDraft.resumeArtifact),
+            } satisfies CandidateSetupDraft]];
         }));
     } catch {
         return {};

@@ -11,9 +11,11 @@ It is not legal advice. It is a product and engineering artifact for surfacing p
 
 ## Source Policies Reviewed
 
+- TalentArbor terms of use: https://talentarbor.com/terms-of-use
 - TalentArbor privacy policy: https://talentarbor.com/privacy-policy
 - TalentArbor cookie policy: https://talentarbor.com/cookie-policy
 - TalentArbor Responsible AI Statement: https://talentarbor.com/ResponsibleAIStatement
+- RangamWorks terms of use: https://rangamworks.com/terms-of-use
 - RangamWorks privacy policy: https://rangamworks.com/privacy-policy
 - RangamWorks cookie policy: https://rangamworks.com/cookie-policy
 - RangamWorks Responsible AI Statement: https://rangamworks.com/ResponsibleAIStatement
@@ -289,6 +291,14 @@ Review surfaces include resume content, job descriptions, typed answers, voice t
 Any selected approach should define whether failures are fail-closed or degraded-mode, what metadata can be retained without storing raw sensitive spans, and which app surfaces must call the scrubber before AI generation or persistence.
 
 ## Consent Requirements
+
+### Required During App-Owned Registration
+
+- One required platform-policy acknowledgement links the deployed TalentArbor Terms of Use, Privacy Policy, and Cookie Policy.
+- A separate required acknowledgement explains Interview Coach AI use and links the Responsible AI Statement.
+- Registration stores the exact configured version and canonical URI of each document as separate immutable evidence.
+- Cookie Policy acknowledgement records the notice presented at account creation. It must not be interpreted as permission for optional analytics, advertising, cross-context tracking, or session replay.
+- Optional contact authorization remains separate from required policy acknowledgement and can be declined without blocking account creation.
 
 ### Required Before Practice Starts
 

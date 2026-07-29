@@ -1,5 +1,4 @@
-import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-v2/host-launch-route";
-import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidate-auth-v2/dev-host-launch-cookie-identity";
+import { resolveCandidateOwnedCookieIdentity } from "@/features/candidate-auth-v2/candidate-route-authorization";
 import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-auth-v2/production-host-launch-runtime";
 import {
     createCandidatePracticeIntentRepository,
@@ -267,12 +266,12 @@ function createDefaultCandidatePracticeIntentStartDependencies(): CandidatePract
         async resolveCandidatePracticeIntentStartIdentity() {
             const { headers } = await import("next/headers");
             const requestHeaders = await headers();
-            const candidateProfileId = await resolveCandidateProfileIdFromRequestHeaders(
+            const identity = await resolveCandidateOwnedCookieIdentity(
                 requestHeaders.get("cookie"),
                 queryClient,
             );
 
-            return candidateProfileId ? { candidateProfileId } : null;
+            return identity ? { candidateProfileId: identity.candidateProfileId } : null;
         },
         practiceIntentRepository,
         practiceSessionRepository,
@@ -321,49 +320,6 @@ function createLazyPostgresQueryClient(databaseUrl: string): CandidatePracticeIn
             return pool.query(sql, values);
         },
     };
-}
-
-async function resolveCandidateProfileIdFromRequestHeaders(
-    cookieHeader: string | null,
-    client: CandidatePracticeIntentStartQueryClient,
-) {
-    const devIdentity = resolveCandidateDevHostLaunchCookieIdentity(cookieHeader);
-    if (devIdentity) {
-        return devIdentity.candidateProfileId;
-    }
-
-    const candidateLaunchSessionId = readCookieValue(cookieHeader, CANDIDATE_HOST_LAUNCH_SESSION_COOKIE);
-    if (!candidateLaunchSessionId) {
-        return null;
-    }
-
-    const result = await client.query(`
-        select candidate_profile_id
-        from public.candidate_launch_sessions
-        where candidate_launch_session_id = $1
-          and revoked_at is null
-          and expires_at > now()
-        limit 1
-    `, [candidateLaunchSessionId]);
-
-    return readString(result.rows[0]?.candidate_profile_id);
-}
-
-function readCookieValue(cookieHeader: string | null, name: string) {
-    if (!cookieHeader) {
-        return null;
-    }
-
-    const cookie = cookieHeader
-        .split(";")
-        .map((part) => part.trim())
-        .find((part) => part.startsWith(`${name}=`));
-
-    return cookie ? decodeURIComponent(cookie.slice(name.length + 1)) : null;
-}
-
-function readString(value: unknown) {
-    return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 function getRuntimeSslConfig(databaseUrl: string) {

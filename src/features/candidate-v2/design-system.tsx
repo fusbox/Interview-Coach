@@ -7,10 +7,15 @@ export const candidateV2Classes = {
     title: "type-display-md",
     body: "type-body-md muted-copy",
     appGrid: "app-grid",
+    appGridWorkflow: "app-grid--workflow",
+    appGridFormFlow: "app-grid--form-flow",
+    appGridFocused: "app-grid--focused",
     grid12: "grid-12",
     mainRail: "layout-main-rail",
     readable: "layout-readable",
     sectionSpace: "section-space",
+    onColorGlass: "on-color-glass",
+    onColorAction: "on-color-action",
 } as const;
 
 type CandidateV2SurfaceProps = {

@@ -11,13 +11,12 @@
   .section{margin-top:18px;}
   .eyebrow{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:rgb(86 106 131);margin:0 0 10px;}
   .nested-demo{display:grid;grid-template-columns:410px 1fr;gap:18px;align-items:center;}
-  .nest-stage{position:relative;width:410px;height:250px;border-radius:var(--radius-40);border:1px solid rgb(213 220 232);background:linear-gradient(135deg,#F8FBFF,#fff);box-shadow:inset 0 1px 0 rgb(255 255 255 / .8);}
+  .nest-stage{position:relative;width:410px;height:250px;border-radius:var(--radius-panel);border:1px solid rgb(213 220 232);background:linear-gradient(135deg,#F8FBFF,#fff);box-shadow:inset 0 1px 0 rgb(255 255 255 / .8);}
   .nest{position:absolute;display:flex;align-items:flex-end;justify-content:flex-start;box-sizing:border-box;border:1px solid rgb(11 87 206 / .2);background:rgb(227 241 255 / .58);padding:10px;color:rgb(11 87 206);font:700 10px/1.2 ui-monospace,Menlo,Consolas,monospace;}
-  .r40{left:20px;top:18px;width:370px;height:214px;border-radius:var(--radius-40);}
-  .r32{left:51px;top:46px;width:308px;height:158px;border-radius:var(--radius-32);background:rgb(255 255 255 / .78);}
-  .r24{left:82px;top:72px;width:246px;height:108px;border-radius:var(--radius-24);background:rgb(227 241 255 / .74);}
-  .r16{left:115px;top:95px;width:180px;height:62px;border-radius:var(--radius-16);background:#fff;}
-  .r12{left:143px;top:112px;width:124px;height:28px;border-radius:var(--radius-12);background:rgb(255 247 242);}
+  .r32{left:20px;top:18px;width:370px;height:214px;border-radius:var(--radius-panel);background:rgb(255 255 255 / .78);}
+  .r24{left:51px;top:46px;width:308px;height:158px;border-radius:var(--radius-card);background:rgb(227 241 255 / .74);}
+  .r16{left:82px;top:72px;width:246px;height:108px;border-radius:var(--radius-widget);background:#fff;}
+  .r12{left:115px;top:95px;width:180px;height:62px;border-radius:var(--radius-row);background:rgb(255 247 242);}
   .rfull{left:162px;top:118px;width:86px;height:20px;border-radius:var(--radius-full);background:rgb(11 87 206);color:#fff;align-items:center;justify-content:center;padding:0;}
   .legend{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
   .legend div{border:1px solid rgb(213 220 232);border-radius:12px;padding:9px 10px;font-size:11px;line-height:1.35;color:rgb(86 106 131);}
@@ -39,8 +38,8 @@
   .sil .bar{height:7px;border-radius:999px;background:rgb(226 233 241);}
   .sil .cta{height:24px;border-radius:var(--radius-pill);background:rgb(11 87 206);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;}
   .sil .chip{display:inline-flex;align-items:center;border-radius:var(--radius-pill);background:rgb(255 237 225);color:rgb(147 69 21);padding:3px 7px;font-size:9px;font-weight:800;}
-  .compact{width:148px;height:92px;border-radius:var(--radius-card-compact);}
-  .comfort{width:184px;height:132px;border-radius:var(--radius-widget);}
+  .compact{width:148px;height:92px;border-radius:var(--radius-widget);}
+  .comfort{width:184px;height:132px;border-radius:var(--radius-card);}
   .focus{width:246px;height:154px;border-radius:var(--radius-session);padding:18px;}
   .overlay{width:196px;height:140px;border-radius:var(--radius-dialog);box-shadow:0 24px 55px rgb(15 33 57 / .12);padding:16px;}
   .pill-line{width:152px;height:46px;border-radius:var(--radius-pill);background:rgb(11 87 206);border-color:rgb(11 87 206);box-shadow:0 14px 28px rgb(11 87 206 / .18);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;padding:0 18px;}
@@ -58,19 +57,17 @@
     <p class="eyebrow">Primitive scale as nested-radius guidance</p>
     <div class="nested-demo">
       <div class="nest-stage" aria-label="Nested radius scale">
-        <div class="nest r40">40 session</div>
-        <div class="nest r32">32 panel/dialog</div>
-        <div class="nest r24">24 card</div>
-        <div class="nest r16">16 input/control</div>
-        <div class="nest r12">12 row</div>
+        <div class="nest r32">32 spotlight/focus</div>
+        <div class="nest r24">24 outer surface</div>
+        <div class="nest r16">16 nested card/control</div>
+        <div class="nest r12">12 input/short surface</div>
         <div class="nest rfull">pill</div>
       </div>
       <div class="legend">
-        <div><b>--radius-12</b>Rows, compact controls, small nested surfaces.</div>
-        <div><b>--radius-16</b>Inputs, strong controls, compact cards.</div>
-        <div><b>--radius-24</b>Default app cards and contained surfaces.</div>
-        <div><b>--radius-32</b>Panels, dialogs, sheets and larger explanatory regions.</div>
-        <div><b>--radius-40</b>Focused session shells only; use with restraint.</div>
+        <div><b>--radius-row · 12px</b>Input areas, rows and short contained surfaces.</div>
+        <div><b>--radius-widget · 16px</b>Nested cards, selection controls and compact summaries.</div>
+        <div><b>--radius-card · 24px</b>Standard outer surfaces, section panels and coach voice.</div>
+        <div><b>--radius-panel · 32px</b>Spotlights and deliberately prominent focus regions.</div>
         <div><b>--radius-full</b>Pills, badges, CTAs and avatar-style launchers.</div>
       </div>
     </div>
@@ -80,14 +77,12 @@
     <p class="eyebrow">Semantic shape roles</p>
     <div class="grid">
       <div>Object role</div><div>Token</div><div>Use</div>
-      <div>Control</div><div class="code">--radius-control</div><div class="muted">Buttons, segmented controls and compact toolbars. Uses the 12px primitive.</div>
-      <div>Input</div><div class="code">--radius-input</div><div class="muted">Fields, search, selectors and editable regions. Uses the 16px primitive.</div>
-      <div>Row</div><div class="code">--radius-row</div><div class="muted">Admin list rows, table row affordances and filter chips. Uses the 12px primitive.</div>
-      <div>Compact card</div><div class="code">--radius-card-compact</div><div class="muted">Recruiter, admin and QA cards where density matters. Uses the 16px primitive.</div>
-      <div>Default card</div><div class="code">--radius-card</div><div class="muted">General app card surfaces. Uses the 24px primitive.</div>
-      <div>Candidate widget</div><div class="code">--radius-widget</div><div class="muted">Candidate dashboard widgets and coach-launch surfaces. Uses the same 24px primitive as the default app card.</div>
-      <div>Panel</div><div class="code">--radius-panel</div><div class="muted">Candidate setup, debrief and large explanatory surfaces. Uses the 32px primitive.</div>
-      <div>Session shell</div><div class="code">--radius-session</div><div class="muted">Focused prompt and answer shells. Uses the 40px primitive sparingly.</div>
+      <div>Pill control</div><div class="code">--radius-control</div><div class="muted">Buttons, count controls, chips and compact toolbars remain fully rounded.</div>
+      <div>Input / row</div><div class="code">--radius-input / --radius-row</div><div class="muted">Fields, editable areas, rows and short surfaces use 12px.</div>
+      <div>Nested card / control</div><div class="code">--radius-widget</div><div class="muted">Selection controls, compact summaries and nested surfaces use 16px.</div>
+      <div>Standard outer surface</div><div class="code">--radius-card</div><div class="muted">Section panels, coach-voice surfaces and ordinary outer cards use 24px.</div>
+      <div>Spotlight / focus region</div><div class="code">--radius-panel</div><div class="muted">Spotlights and deliberately prominent focus regions use 32px.</div>
+      <div>Session shell</div><div class="code">--radius-session</div><div class="muted">Focused prompt and answer shells currently resolve to the 32px focus tier.</div>
       <div>Pill / launcher</div><div class="code">--radius-pill / --radius-launcher</div><div class="muted">Badges, chips, pill CTAs and avatar-style icon launchers.</div>
     </div>
   </div>
@@ -138,6 +133,6 @@
     </div>
   </div>
 
-  <p class="note"><b>System rule:</b> product work should choose semantic shape roles, not primitive radii. Candidate widgets now share the default 24px card radius so dashboard blocks, ordinary cards and coach-launch surfaces preserve the same stacked-block silhouette. Panels, dialogs and session shells remain intentionally larger.</p>
+  <p class="note"><b>System rule:</b> product work should choose semantic shape roles, not primitive radii. The non-pill surface ramp is 12 / 16 / 24 / 32px: short and editable surfaces, nested controls, standard outer surfaces, then spotlights. Do not introduce an intermediate 28px tier.</p>
 </body>
 </html>

@@ -203,6 +203,7 @@
         <div class="subhead"><span class="subnum">1.8</span><h3 class="subtitle">Shape</h3><p class="subpurpose">Object silhouettes: controls, rows, cards, widgets, panels, session shells, overlays and pills.</p></div>
         <div class="panel"><iframe class="embed" src="shape-radii.html" height="900" title="Shape system"></iframe></div>
         <p class="subnote"><b>Shape is applied by role.</b> Components should use semantic shape tokens such as <b>--radius-control</b>, <b>--radius-widget</b>, <b>--radius-session</b>, and <b>--radius-pill</b> instead of picking a local rounded class by taste.</p>
+        <p class="subnote"><b>Non-pill surface ramp:</b> 12px inputs and short surfaces, 16px nested cards and controls, 24px standard outer and coach-voice surfaces, and 32px spotlights and focus regions. There is no 28px tier.</p>
         <p class="rule"><b>Nested radius rule:</b> an inner surface should be visibly tighter than its parent. Avoid equal-radius card-inside-card stacks unless the inner object is intentionally floating or interactive.</p>
       </div>
 
@@ -211,7 +212,7 @@
         <div class="subhead"><span class="subnum">1.9</span><h3 class="subtitle">Elevation</h3><p class="subpurpose">Depth, borders and state changes that make hierarchy legible without card sprawl.</p></div>
         <div class="panel"><iframe class="embed" src="shape-elevation.html" height="900" title="Elevation system"></iframe></div>
         <p class="subnote"><b>Elevation is applied by role.</b> Components should use semantic roles such as <b>--elevation-row</b>, <b>--elevation-card</b>, <b>--elevation-widget</b>, <b>--elevation-overlay</b>, and <b>--elevation-cta</b>.</p>
-        <p class="rule"><b>Depth rule:</b> use borders for structure, shadows for hierarchy, floating depth for overlays, and glow only for primary actions or selected launchers. Selected states should prefer ring/border over larger shadows.</p>
+        <p class="rule"><b>Depth rule:</b> use borders for structure, shadows for hierarchy, floating depth for overlays, and the short neutral-first CTA drop shadow only for primary actions. A primary action directly on a saturated spotlight uses the opaque white, brand-blue <b>.on-color-action</b> treatment; glass remains a content-surface treatment. Selected controls use fill plus a tight contour without a visible resting border; focus rings remain separate.</p>
       </div>
 
       <!-- 1.10 Motion -->

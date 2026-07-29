@@ -1,13 +1,36 @@
 # Local Dev Bootstrap
 
 Status: Active cleanroom V2 bootstrap
-Last updated: 2026-07-22
+Last updated: 2026-07-28
 
 ## Purpose
 
 This is the current local setup path for the candidate and recruiter V2 rebuild in this repo.
 
 Older candidate docs and SQL helpers may still describe the V1 `/practice` -> `/session` -> `/summary` app. Treat those as reference material only. Current V2 work uses canonical `/candidate/*` routes, `candidate_practice_sessions` for durable rounds, and normalized answer-attempt/evaluator-run tables for immutable answer history.
+
+## Deployment Environment Preflight
+
+`.env.example` is the active V2 environment manifest. It is organized by deployment target so the
+current Vercel web app does not inherit future host-launch or AI-eval-worker credentials. Before
+promotion, link this checkout to the intended Vercel project once, then pull and validate the
+environment actually configured there:
+
+```powershell
+vercel link
+vercel env pull ".env.vercel.production.local" --environment=production
+npm run env:check:vercel
+```
+
+`vercel link` is unnecessary after `.vercel/project.json` exists. The pulled file is an ignored local
+snapshot of Vercel production settings, not the app's development `.env.local`. Vercel masks
+Sensitive values as `[SENSITIVE]`; snapshot mode therefore proves their presence but cannot validate
+their contents. Strict `npm run env:check` must also execute where the real deployment values are
+available. Both modes report variable names and safe reason codes only and never print configured
+values. Delete the snapshot after use. The initial Vercel promotion needs only the `vercel-app`
+target. TalentArbor launch, the credentialed AI-eval scenario worker, and its retention process are
+independently validated later with `npm run env:check:host-launch`,
+`npm run env:check:ai-eval-worker`, and `npm run env:check:ai-eval-retention`.
 
 ## The Commands You Usually Need
 
@@ -235,6 +258,81 @@ Each candidate receives a separate message. A successful row means the configure
 that one recipient, not that the message reached the mailbox. Do not commit `.env.local` or use the
 fixture as deployment evidence.
 
+### App-Owned Candidate Account Validation
+
+Apply and smoke the candidate account identity, lifecycle, policy, and recovery migrations:
+
+```powershell
+npm run db:smoke-candidate-app-account-lifecycle
+```
+
+For local browser validation, add this explicit nonproduction provider to `.env.local` and restart the
+dev server:
+
+```text
+CANDIDATE_ACCOUNT_EMAIL_PROVIDER=fixture
+```
+
+Then register at `/candidate/register`. A successful local fixture registration exposes a development
+verification link on the confirmation screen. Opening that link does not consume it; click `Verify
+email`, then sign in at `/candidate/login`. The candidate app-account cookie now authorizes the same
+candidate-owned setup, dashboard, ready-round, session, resume, and follow-up routes as a valid host
+launch while remaining independent of the host cookie.
+
+The lifecycle smoke also installs two verified local accounts for deterministic ownership and
+simultaneous-session validation:
+
+| Account | Email | Password |
+| --- | --- | --- |
+| Primary | `candidate-account-primary@talentarbor.local` | `local-only-candidate` |
+| Alternate | `candidate-account-alt@talentarbor.local` | `local-only-candidate` |
+
+These fixtures are local-only and intentionally distinct from the host-launch candidate fixtures. Use
+them at `/candidate/login`; do not copy their credentials or fixed policy receipts into a deployed
+environment.
+
+Password recovery starts from `/candidate/forgot-password`. With the fixture provider, the generic
+confirmation includes a development-only reset link. The reset is single-use, lasts 30 minutes by
+default, supersedes earlier unused links, changes the password atomically, and revokes every active
+app-owned session for that candidate without touching host-launch sessions. Validate the transaction
+directly with:
+
+```powershell
+npm run db:smoke-candidate-account-recovery
+```
+
+Run the complete app-owned candidate account milestone in a self-contained browser with:
+
+```powershell
+npm run test:e2e:candidate-account
+```
+
+This command always targets the named local `interviewcoach_smoke` database, applies the candidate
+account lifecycle, uses fixture email and coaching providers, starts Next on an available loopback
+port, and runs fresh registration, explicit verification, two-session password reset, reset replay
+denial, new-browser product recovery, cross-candidate ownership denial, and recruiter/candidate/host
+cookie-isolation checks. It creates one synthetic account and deletes that account and its product
+history afterward. It does not use an exported `DATABASE_URL` or alter the deterministic primary and
+alternate account histories. No separate dev server or temporary `.env.local` edits are required.
+
+Production uses `CANDIDATE_ACCOUNT_EMAIL_PROVIDER=smtp` with the same server-only SMTP credentials
+shown above, plus:
+
+```text
+CANDIDATE_ACCOUNT_PUBLIC_ORIGIN=https://interviewcoach.talentarbor.com
+CANDIDATE_EMAIL_VERIFICATION_TTL_SECONDS=86400
+CANDIDATE_PASSWORD_RESET_TTL_SECONDS=1800
+CANDIDATE_TERMS_VERSION=<deployed-document-version>
+CANDIDATE_PRIVACY_VERSION=<deployed-document-version>
+CANDIDATE_COOKIE_VERSION=<deployed-document-version>
+CANDIDATE_RESPONSIBLE_AI_VERSION=<deployed-document-version>
+CANDIDATE_CONTACT_AUTHORIZATION_VERSION=<deployed-consent-copy-version>
+```
+
+`CANDIDATE_ACCOUNT_FROM_EMAIL` may override `SMTP_FROM_EMAIL` for verification and recovery messages. Fixture
+delivery and implicit local policy versions are rejected in production. Phone is captured as profile
+and future TalentArbor-integration data; it is not verified and is not an authentication factor.
+
 ### After This Branch Changes Practice Persistence Migrations
 
 Use this when you already have the smoke DB running and only need the latest V2 practice-session, practice-intent, or answer-history shape:
@@ -274,6 +372,10 @@ npm run db:smoke-candidate-direct-intent-idempotency
 npm run db:smoke-candidate-direct-intent-concurrency
 npm run db:apply-recruiter-invited-practice-foundation
 npm run db:smoke-recruiter-invited-practice
+npm run db:apply-candidate-app-account-identity
+npm run db:smoke-candidate-app-account-identity
+npm run db:apply-candidate-app-account-lifecycle
+npm run db:smoke-candidate-app-account-lifecycle
 ```
 
 `candidate_practice_sessions` remains the durable session boundary, `candidate_practice_intents` is the durable ready-round boundary for one-question or multi-question follow-up selections, and `candidate_answer_attempts` plus `candidate_answer_evaluation_runs` preserve immutable submission and evaluator lineage. Migration 021 makes a ready intent a 24-hour, versioned one-use launch identity and atomically creates exactly one owned follow-up session while consuming that intent; duplicate or response-lost starts replay the same session. Migration 022 gives direct one-question and fixed-set creation its own candidate-owned 24-hour replay ledger: exact keyed replay returns one immutable intent, changed content conflicts before mutation, and concurrent submissions serialize to one row. Migration 015 adds sequential evaluator generations, 60-second claim leases, stale-claim recovery, and candidate-coaching completion fences. Migration 016 adds immutable evaluator configuration manifests/fingerprints; earlier V2 development rows become `pre_manifest_v2`, while new rows must carry resolved configuration. Migration 010 propagates candidate-owned prep-context identity into intents and canonical dashboard/follow-up reads, migration 011 stores only versioned candidate-safe Coach Update artifacts over those source facts, migration 019 adds exact profile/configuration identity to new Coach Update claims and replay matching without inventing metadata for earlier V2 development rows, and migration 012 idempotently repairs answered sessions that historical writes left in `planned` status.

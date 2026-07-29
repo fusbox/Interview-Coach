@@ -1,7 +1,7 @@
 # Design System Foundation
 
 Status: Current production UI contract
-Last updated: 2026-07-26
+Last updated: 2026-07-27
 
 ## Purpose
 
@@ -65,17 +65,26 @@ The tracked `/design-system` folder is active, but not every file in it has the 
 - Green is a mark, signal, or selected-state accent. It is not a default full-surface color.
 - Children placed on colored surfaces use the glass-on-color treatment rather than opaque nested cards.
 - Primary and secondary workflow buttons share the 44px pill baseline unless a distinct control role is documented.
+- A primary action placed directly on a spotlight or other saturated brand surface uses `.on-color-action`: an opaque white surface, solid brand-blue text, and the shared compact CTA elevation. This is a contrast affordance, not a glass child.
 - Use the tracked eyebrow pattern for section-level labels and `label-micro` for dense in-component metadata.
 - The preparedness ramp is `not practiced`, `emerging`, `clear`, and `strong`. It progresses from neutral slate through warm and green hues without using red or exposing a numeric score.
 - Author against semantic role tokens for shape, elevation, motion, spacing, and color. Drop to a primitive only when no role fits and record a reusable gap when the exception recurs.
+- The non-pill surface ramp is 12/16/24/32px with no 28px tier: 12px for inputs and short surfaces, 16px for nested cards and selection controls, 24px for standard outer surfaces and coach-voice surfaces, and 32px for spotlights and other singular focus regions. Pills, chips, circles, and authored identity marks retain their own role-specific silhouettes.
 
 ## Layout And Surface Roles
 
 The global layout primitives are:
 
-- `.app-grid` for the centered maximum-width frame;
+- `.app-grid` for the centered 76rem broad-workspace frame;
+- `.app-grid--workflow` with `.app-grid` for a centered 70rem builder or transactional frame with a primary column and compact context rail;
+- `.app-grid--form-flow` with `.app-grid` for a centered 56rem sequential setup or creation flow;
+- `.app-grid--focused` with `.app-grid` for a centered 64rem session, landing, summary, or review frame;
 - `.grid-12` for responsive 12-column composition;
 - `.section-space` for route-level vertical rhythm.
+
+These values are fluid ceilings, not fixed page widths. Full-width canvas or brand surfaces may remain edge-to-edge while their content uses the appropriate frame. Reading text still needs its own narrower measure inside any frame. Select the frame from the page job and simultaneous information density rather than stretching every desktop route to the broad workspace.
+
+Form flows author hierarchy through semantic spacing roles rather than page-local values: `--gap-field` for label/control/help relationships, `--gap-cluster` for related blocks, `--gap-section` for major subsections, `--gap-workflow` for sequential decisions, `--pad-card` for ordinary card interiors, and `--pad-panel` for larger setup or debrief regions. A progress stepper spans the selected form-flow frame. A continuous vertical variant places its numbered rail beside each section, distinguishes upcoming, visited, active, and completed states, and updates the active state from scroll arrival without hiding downstream content.
 
 The primary surface roles are:
 
@@ -85,6 +94,7 @@ The primary surface roles are:
 - `.surface-calm`
 - `.on-color-glass`
 - `.on-color-glass-strong`
+- `.on-color-action`
 
 Older `.surface-base`, `.surface-elevated`, `.surface-blue`, `.surface-orange`, and `.surface-sky` classes remain compatibility inputs only. Do not use them for newly productized surfaces.
 
@@ -95,6 +105,8 @@ Older `.surface-base`, `.surface-elevated`, `.surface-blue`, `.surface-orange`, 
 - Preserve loading, empty, partial, failure, retry, conflict, unauthorized, and recovered states while replacing provisional markup.
 - Promote a pattern into a shared primitive when it recurs or protects an important consistency/accessibility rule.
 - Treat a surface-specific exception as deliberate debt with a named removal or promotion trigger.
+- Apply depth through semantic elevation roles. `--elevation-cta` is reserved for primary actions and resolves to a short neutral-first drop shadow with a restrained blue tint; selected controls use fill and contour, not CTA elevation.
+- Coach-voice surfaces use the surface compass avatar variant, whose light and dark assets replace the calm mark's white needle half with the current theme's primary blue. The calm variant remains appropriate on blue spotlight surfaces; CTA remains a separate authored treatment.
 - Use `.untracked/ui-lab` for interactive visual exploration. Do not add mock routes under `src/app`.
 
 ## Verification

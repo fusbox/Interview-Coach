@@ -20,8 +20,15 @@
     --space-9: 1.5rem;   /* 24px — section-level stack gaps */
 
     /* ── Role aliases · what to author against ──────────────── */
-    --gap-field:   var(--space-3); /* label + value pairs within a field */
-    --gap-cluster: var(--space-7); /* gap between clustered blocks (cards in a stack) */
-    --pad-card:    var(--space-7); /* default inner padding for a Tier 3 card */
-    --pad-widget:  var(--space-5); /* nested widget/tile padding inside a card */
+    --gap-inline: 0.5rem;   /* 8px: icon + label and compact metadata */
+    --gap-control: 0.5rem;  /* 8px: adjacent controls */
+    --gap-field: 0.75rem;   /* 12px: label + control + hint/error */
+    --gap-cluster: 1rem;    /* 16px: related local blocks */
+    --gap-grid: 1.25rem;    /* 20px: page and dashboard grids */
+    --gap-section: 2rem;    /* 32px: major subsections */
+    --gap-workflow: 2.5rem; /* 40px: sequential workflow decisions */
+    --pad-card: 1.25rem;    /* 20px: default card/widget padding */
+    --pad-panel: 1.5rem;    /* 24px: setup, debrief, and larger panels */
+    --pad-page: 2rem;       /* 32px: protected-page edge padding */
+    --pad-widget: var(--space-5); /* nested widget/tile padding inside a card */
 }

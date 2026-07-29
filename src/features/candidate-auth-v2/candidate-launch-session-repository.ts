@@ -17,6 +17,7 @@ export function createCandidateLaunchSessionRepository(
                 join public.candidate_profiles p
                   on p.candidate_profile_id = i.candidate_profile_id
                  and p.status = 'active'
+                 and p.app_user_id is null
                 where i.provider = $1
                   and i.issuer = $2
                   and i.subject = $3
@@ -50,6 +51,7 @@ export function createCandidateLaunchSessionRepository(
                       display_name = excluded.display_name,
                       workspace = excluded.workspace
                   where candidate_profiles.status = 'active'
+                    and candidate_profiles.app_user_id is null
                 returning candidate_profile_id
             `, [
                 input.authSubject,
@@ -76,6 +78,7 @@ export function createCandidateLaunchSessionRepository(
                 where candidate_profile_id = $1
                   and auth_subject = $2
                   and status = 'active'
+                  and app_user_id is null
                 returning candidate_profile_id
             `, [
                 input.candidateProfileId,
@@ -162,7 +165,24 @@ export function createCandidateLaunchSessionRepository(
                     launch_context_snapshot_json,
                     expires_at
                   )
-                  values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13)
+                  select
+                    $1,
+                    $2,
+                    $3,
+                    $4,
+                    $5,
+                    $6,
+                    $7,
+                    $8,
+                    $9,
+                    $10,
+                    $11,
+                    $12::jsonb,
+                    $13
+                  from public.candidate_profiles profile
+                  where profile.candidate_profile_id = $1
+                    and profile.status = 'active'
+                    and profile.app_user_id is null
                   on conflict do nothing
                   returning candidate_launch_session_id, candidate_profile_id, expires_at
                 ), inserted_setup_context as (

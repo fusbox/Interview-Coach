@@ -1,7 +1,7 @@
 # Production UI Workstream
 
 Status: Active operating contract; first candidate integration milestone completed
-Last updated: 2026-07-26
+Last updated: 2026-07-27
 
 ## Purpose
 
@@ -26,6 +26,26 @@ The global runtime foundation is governed by [Design System Foundation](./design
 The latest local Claude Design snapshot currently supplies mature-but-not-final mobile references for candidate setup, the dashboard initial view, the session landing screen, and the active question screen. These are accepted production-direction inputs, not pixel-locked specifications. Other screens and experiments in the package remain exploratory until reviewed.
 
 The package is reconciled rather than copied wholesale. Its current reference screens use only tokens already present in the installed runtime. Any future token delta must be adapted to the global unprefixed RGB contract before it becomes active.
+
+#### Candidate setup source contract
+
+For `/candidate/setup`, `Candidate Setup Mobile A.dc.html` is production-ready visual authority after removing preview-only phone/OS chrome and authoring runtime. There is no separate desktop reference. Desktop and tablet are deliberate responsive derivations of the mobile hierarchy using the same DOM, controls, states, copy, and design-system roles.
+
+- Preserve the current V2 setup state machine, draft recovery, trusted-host read-only context, resume processing/review/privacy boundary, duplicate-context choice, validation focus, idempotent start, and route transition.
+- Reproduce the mobile brand row, coach spotlight, Role/Resume/Interview details panels, compact round summary, in-flow start action, and two-destination Dashboard/New role navigation.
+- Use the 56rem form-flow frame for the desktop header, spotlight, and form. The 70rem workflow frame remains available for builders with a compact context rail, while the 76rem default remains reserved for broad dashboard and operations workspaces.
+- Treat Paste text, Upload resume, and Take photo as one mutually exclusive mode selector. Only the active mode receives the selected surface; hover and keyboard focus must remain distinguishable from selection. Restore the last explicit mode with an unsubmitted draft without retaining raw source bytes.
+- Keep the photo workspace unframed inside the Resume panel. Its capture, existing-photo, review, and fallback controls provide the hierarchy; it must not inherit a decorative wash, oversized radius, or accent stripe.
+- Close the setup flow with one spotlight labeled `Your practice round`. Its glass summary presents Resume, Stage, Recommended, and Selected in that order, using the same accepted-artifact label/fallback contract as the pre-session landing. On wider screens, a compressed summary occupies the left column and the Start practice action occupies the right; on mobile they stack in that reading order. Start practice remains in normal flow and is not a second mobile footer competing with the navigation dock.
+- Keep setup as one continuous semantic form on mobile and desktop. A full-height vertical timeline occupies the left rail, marks Role, Resume, and Interview details with numbered nodes, updates its active node when a section reaches the reading position, and distinguishes completed from merely visited work.
+- Guide progression with explicit actions and preserve the complete scroll chain: valid Role/JD to Resume; accepted resume or explicit continue-without-resume to Interview details; stage to count; count to Start practice. Do not advance on processing, review-required, or failure states, steal keyboard focus, or animate when reduced motion is requested. Manual scrolling remains available and downstream content is not conditionally removed.
+- Keep resume submission action-first. Before processing, show the enabled action without coach-voiced explanatory copy. During processing, the status rail explains contact-detail removal and preparation; after processing, it tells the candidate to review and edit the prepared text before acceptance. Editing previously accepted text returns the same rail to review with `Use this resume`, removes resume inclusion from the round summary, and keeps Start practice unavailable until the replacement version is accepted. Errors remain explicit and recoverable.
+- Present Role, Resume, and Interview details as blue eyebrow labels. All three section panels use `--surface-alt`, while their text-entry and inactive-selection surfaces use `--surface-base`. Coach interpretation uses the reusable **coach-voice surface**: `--surface-base`, a 2px primary-blue edge, the surface compass mark, 24px `--radius-card`, and restrained `--shadow-raised-1` elevation. Resume processing/review status and the stage-specific count recommendation share this composition. Selected input-mode, stage, and count controls use opaque `--primary-soft` plus a tight inset/outer contour; input-mode and stage controls use 16px `--radius-widget`, while the shorter count controls keep their compact role. Inactive mode, stage, and count controls change border color only on hover, with no hover fill. Primary actions on neutral surfaces use the shared short neutral-first, faint-blue drop shadow through `--elevation-cta`. The closing spotlight's Start practice action uses the reusable opaque-white, brand-blue `.on-color-action` treatment; its four-fact summary uses `.on-color-glass`.
+- On mobile, show the candidate navigation dock on arrival and near the top, hide it during deliberate downward reading, and reveal it on upward movement or keyboard focus. Wider header navigation remains stable.
+- Use only 3, 5, 7, and 10 as promoted count choices. The planner may accept intermediate counts, but they do not express a distinct setup strategy and eight mobile pills would weaken target sizing and choice clarity.
+- Install and use the authored calm, surface, and CTA light/dark compass SVG variants as the app's coach identity. Calm belongs on the spotlight; surface uses the theme's primary-blue needle half on light coach-voice surfaces; CTA remains its own authored treatment. Do not replace them with a general icon.
+- Exclude the preview bezel, status bar, home indicator, dark-mode preview control, `<x-dc>`/`sc-*` runtime, and mock-only state handlers.
+- Verify the full resume state family, missing/invalid fields, preparing/failure states, duplicate-context dialog, narrow-mobile reflow, desktop derivation, keyboard order, focus visibility, zoom, overflow, and reduced motion.
 
 ### Core Lane
 

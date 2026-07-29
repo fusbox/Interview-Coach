@@ -1,5 +1,4 @@
-import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-v2/host-launch-route";
-import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidate-auth-v2/dev-host-launch-cookie-identity";
+import { resolveCandidateOwnedRequestIdentity } from "@/features/candidate-auth-v2/candidate-route-authorization";
 import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-auth-v2/production-host-launch-runtime";
 import {
     createCandidatePracticeSessionRepository,
@@ -155,23 +154,8 @@ export function createDefaultCandidateQuestionAudioDependencies(): SessionQuesti
 
     return {
         resolveSessionIdentity: async (request) => {
-            const devIdentity = resolveCandidateDevHostLaunchCookieIdentity(request.headers.get("cookie"));
-            if (devIdentity) return { ownerId: devIdentity.candidateProfileId };
-            const launchSessionId = readCookieValue(
-                request.headers.get("cookie"),
-                CANDIDATE_HOST_LAUNCH_SESSION_COOKIE,
-            );
-            if (!launchSessionId) return null;
-            const result = await queryClient.query(`
-                select candidate_profile_id
-                from public.candidate_launch_sessions
-                where candidate_launch_session_id = $1
-                  and revoked_at is null
-                  and expires_at > now()
-                limit 1
-            `, [launchSessionId]);
-            const ownerId = readString(result.rows[0]?.candidate_profile_id);
-            return ownerId ? { ownerId } : null;
+            const identity = await resolveCandidateOwnedRequestIdentity(request, queryClient);
+            return identity ? { ownerId: identity.candidateProfileId } : null;
         },
         sessionRepository: createCandidatePracticeSessionRepository(queryClient),
         audioRuntime,
@@ -206,18 +190,6 @@ function createLazyPostgresQueryClient(databaseUrl: string) {
             return pool.query(sql, values);
         },
     };
-}
-
-function readCookieValue(cookieHeader: string | null, name: string) {
-    const cookie = cookieHeader?.split(";")
-        .map((part) => part.trim())
-        .find((part) => part.startsWith(`${name}=`));
-    if (!cookie) return null;
-    try {
-        return decodeURIComponent(cookie.slice(name.length + 1));
-    } catch {
-        return null;
-    }
 }
 
 function readString(value: unknown) {

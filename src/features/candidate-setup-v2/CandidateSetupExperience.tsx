@@ -12,12 +12,15 @@ import {
     Loader2,
     Trash2,
     Upload,
-    User,
-    UserCheck,
     X,
 } from "lucide-react";
 import { type ChangeEvent, type FormEvent, type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 
+import {
+    WorkflowTimeline,
+    WorkflowTimelineStep,
+    type WorkflowTimelineStepState,
+} from "@/components/ui/WorkflowTimeline";
 import {
     CANDIDATE_SETUP_LIMITS,
     candidateSetupStageOptions,
@@ -28,6 +31,10 @@ import {
     type CandidateSetupResumeArtifactReference,
 } from "./candidate-setup-contract";
 import { CandidateBrandHeader } from "@/features/candidate-v2/CandidateBrandHeader";
+import { CandidateCoachAvatar } from "@/features/candidate-v2/CandidateCoachAvatar";
+import { CandidatePrimaryNavigation } from "@/features/candidate-v2/CandidatePrimaryNavigation";
+import { CandidateLogoutButton } from "@/features/candidate-auth-v2/CandidateLogoutButton";
+import { candidateV2Classes } from "@/features/candidate-v2/design-system";
 import type { CandidateSetupSessionCreationResult } from "./candidate-setup-session-creation";
 import type { CandidateExistingPrepContextSummary } from "./candidate-setup-prep-context-repository";
 import type { CandidateTrustedSetupContext } from "./candidate-setup-entry-context";
@@ -40,9 +47,11 @@ import {
     saveCandidateSetupDraft,
     toCandidateSetupDraftFormState,
     type CandidateSetupDraftStore,
+    type CandidateSetupResumeInputMode,
 } from "./candidate-setup-draft-store";
 
-type ResumeSource = "paste" | "file" | "photo";
+type ResumeSource = CandidateSetupResumeInputMode;
+type CandidateSetupWorkflowStep = 1 | 2 | 3;
 
 type SetupHydrationField = "targetRole" | "jobDescription" | "resume" | "interviewDetails";
 
@@ -77,6 +86,7 @@ type CandidateSetupExperienceProps = {
     draftStore?: CandidateSetupDraftStore;
     trustedSetupContext?: CandidateTrustedSetupContext | null;
     initialResumeArtifact?: CandidateResumeReviewArtifact | null;
+    showAccountLogout?: boolean;
 };
 
 type CandidateSetupPrepContextDecision = {
@@ -123,6 +133,7 @@ export function CandidateSetupExperience({
     draftStore,
     trustedSetupContext = null,
     initialResumeArtifact = null,
+    showAccountLogout = false,
 }: CandidateSetupExperienceProps = {}) {
     const [browserDraftStore, setBrowserDraftStore] = useState<CandidateSetupDraftStore | null>(null);
     const activeDraftStore = draftStore ?? browserDraftStore;
@@ -150,7 +161,7 @@ export function CandidateSetupExperience({
     const [selectedStage, setSelectedStage] = useState<CandidateSetupStageId>(initialDraftState.interviewStage);
     const [questionCount, setQuestionCount] = useState(initialDraftState.questionCount);
     const [resumeSource, setResumeSource] = useState<ResumeSource>(
-        toResumeUiSource(initialResumeState?.source),
+        initialResumeArtifact ? toResumeUiSource(initialResumeArtifact.source) : initialDraftState.resumeInputMode,
     );
     const [resumeAssetName, setResumeAssetName] = useState(
         initialResumeState?.source === "document_upload"
@@ -160,6 +171,7 @@ export function CandidateSetupExperience({
     );
     const [resumePhotoPages, setResumePhotoPages] = useState<ResumePhotoPage[]>([]);
     const [isResumeProcessing, setIsResumeProcessing] = useState(false);
+    const [resumeHasUnconfirmedEdits, setResumeHasUnconfirmedEdits] = useState(false);
     const [resumeReviewMessage, setResumeReviewMessage] = useState("");
     const [resumeError, setResumeError] = useState("");
     const [isPreparing, setIsPreparing] = useState(false);
@@ -167,6 +179,9 @@ export function CandidateSetupExperience({
     const [setupValidationMessage, setSetupValidationMessage] = useState("");
     const [setupValidationFields, setSetupValidationFields] = useState<Set<string>>(new Set());
     const [attemptedStart, setAttemptedStart] = useState(false);
+    const [attemptedRoleStep, setAttemptedRoleStep] = useState(false);
+    const [activeSetupStep, setActiveSetupStep] = useState<CandidateSetupWorkflowStep>(1);
+    const [completedSetupSteps, setCompletedSetupSteps] = useState<Set<CandidateSetupWorkflowStep>>(new Set());
     const [existingPrepContexts, setExistingPrepContexts] = useState<CandidateExistingPrepContextSummary[]>([]);
     const [selectedExistingRoleProfileId, setSelectedExistingRoleProfileId] = useState("");
     const [pendingSetupTransition, setPendingSetupTransition] = useState<CandidateSetupTransition | null>(null);
@@ -174,6 +189,14 @@ export function CandidateSetupExperience({
     const existingContextDialogRef = useRef<HTMLDialogElement | null>(null);
     const targetRoleInputRef = useRef<HTMLInputElement | null>(null);
     const jobDescriptionInputRef = useRef<HTMLTextAreaElement | null>(null);
+    const resumeFileInputRef = useRef<HTMLInputElement | null>(null);
+    const resumePhotoInputRef = useRef<HTMLInputElement | null>(null);
+    const interviewStageRef = useRef<HTMLFieldSetElement | null>(null);
+    const questionCountRef = useRef<HTMLFieldSetElement | null>(null);
+    const startPracticeButtonRef = useRef<HTMLButtonElement | null>(null);
+    const roleStepRef = useRef<HTMLLIElement | null>(null);
+    const resumeStepRef = useRef<HTMLLIElement | null>(null);
+    const interviewDetailsStepRef = useRef<HTMLLIElement | null>(null);
     const setupStartRequestRef = useRef<{ requestSignature: string; idempotencyKey: string } | null>(null);
     const resumeSelectionClearRef = useRef<Promise<void>>(Promise.resolve());
     const userEditedSetupFieldsRef = useRef<Set<SetupHydrationField>>(new Set());
@@ -183,14 +206,18 @@ export function CandidateSetupExperience({
         [selectedStage],
     );
     const resumeNeedsReview = isResumeProcessing
+        || resumeHasUnconfirmedEdits
         || (resumeText.trim().length > 0 && resumeArtifact?.reviewState !== "accepted")
         || (resumeSource !== "paste" && Boolean(resumeAssetName) && resumeArtifact?.reviewState !== "accepted");
+    const hasAcceptedResume = resumeArtifact?.reviewState === "accepted" && !resumeHasUnconfirmedEdits;
     const canStartPractice = targetRole.trim().length > 0
         && jobDescription.trim().length > 0
         && !resumeNeedsReview;
     const showRequiredAlert = attemptedStart && !canStartPractice;
-    const isTargetRoleMissing = showRequiredAlert && targetRole.trim().length === 0;
-    const isJobDescriptionMissing = showRequiredAlert && jobDescription.trim().length === 0;
+    const roleStepComplete = targetRole.trim().length > 0 && jobDescription.trim().length > 0;
+    const showRoleStepAlert = attemptedRoleStep && !roleStepComplete;
+    const isTargetRoleMissing = (showRequiredAlert || showRoleStepAlert) && targetRole.trim().length === 0;
+    const isJobDescriptionMissing = (showRequiredAlert || showRoleStepAlert) && jobDescription.trim().length === 0;
     const isTargetRoleInvalid = isTargetRoleMissing || setupValidationFields.has("targetRole");
     const isJobDescriptionInvalid = isJobDescriptionMissing || setupValidationFields.has("jobDescription");
 
@@ -220,7 +247,10 @@ export function CandidateSetupExperience({
         if (!userEditedSetupFieldsRef.current.has("resume")) {
             setResumeText(recoveredResume?.normalizedText ?? nextDraftState.resumeText);
             setResumeArtifact(recoveredResume);
-            setResumeSource(toResumeUiSource(recoveredResume?.source));
+            setResumeHasUnconfirmedEdits(false);
+            setResumeSource(recoveredResume
+                ? toResumeUiSource(recoveredResume.source)
+                : nextDraftState.resumeInputMode);
             setResumeAssetName(recoveredResume?.source === "document_upload"
                 || recoveredResume?.source === "photo_capture"
                 ? recoveredResume.candidateLabel
@@ -249,6 +279,99 @@ export function CandidateSetupExperience({
         }
     }, [existingPrepContexts]);
 
+    useEffect(() => {
+        const steps: Array<[CandidateSetupWorkflowStep, HTMLLIElement | null]> = [
+            [1, roleStepRef.current],
+            [2, resumeStepRef.current],
+            [3, interviewDetailsStepRef.current],
+        ];
+
+        function updateActiveStep() {
+            const availableSteps = steps.filter(
+                (entry): entry is [CandidateSetupWorkflowStep, HTMLLIElement] => Boolean(entry[1]),
+            );
+            const rects = availableSteps.map(([step, element]) => [step, element.getBoundingClientRect()] as const);
+            if (rects.every(([, rect]) => rect.width === 0 && rect.height === 0)) {
+                return;
+            }
+
+            const activationLine = Math.min(280, Math.max(112, window.innerHeight * 0.28));
+            let nextStep: CandidateSetupWorkflowStep = 1;
+            for (const [step, rect] of rects) {
+                if (rect.top <= activationLine) {
+                    nextStep = step;
+                } else {
+                    break;
+                }
+            }
+            setActiveSetupStep((current) => current === nextStep ? current : nextStep);
+        }
+
+        updateActiveStep();
+        window.addEventListener("scroll", updateActiveStep, { passive: true });
+        window.addEventListener("resize", updateActiveStep);
+        return () => {
+            window.removeEventListener("scroll", updateActiveStep);
+            window.removeEventListener("resize", updateActiveStep);
+        };
+    }, []);
+
+    function getSetupStepState(step: CandidateSetupWorkflowStep): WorkflowTimelineStepState {
+        if (activeSetupStep === step) {
+            return "active";
+        }
+        if (completedSetupSteps.has(step)) {
+            return "complete";
+        }
+        if (step < activeSetupStep) {
+            return "visited";
+        }
+        return "upcoming";
+    }
+
+    function advanceToSetupStep(
+        nextStep: CandidateSetupWorkflowStep,
+        completedStep?: CandidateSetupWorkflowStep,
+    ) {
+        if (completedStep) {
+            setCompletedSetupSteps((current) => {
+                if (current.has(completedStep)) {
+                    return current;
+                }
+                const next = new Set(current);
+                next.add(completedStep);
+                return next;
+            });
+        }
+        setActiveSetupStep(nextStep);
+        const target = nextStep === 1
+            ? roleStepRef.current
+            : nextStep === 2
+                ? resumeStepRef.current
+                : interviewDetailsStepRef.current;
+        scrollSetupTargetIntoView(target, "start");
+    }
+
+    function handleRoleStepNext() {
+        setAttemptedRoleStep(true);
+        if (!roleStepComplete) {
+            if (!targetRole.trim()) {
+                targetRoleInputRef.current?.focus();
+            } else {
+                jobDescriptionInputRef.current?.focus();
+            }
+            return;
+        }
+        advanceToSetupStep(2, 1);
+    }
+
+    function handleResumeStepContinue() {
+        if (resumeNeedsReview) {
+            return;
+        }
+        advanceToSetupStep(3, 2);
+    }
+
     function chooseStage(stage: (typeof candidateSetupStageOptions)[number]) {
         userEditedSetupFieldsRef.current.add("interviewDetails");
         setSelectedStage(stage.id);
@@ -257,6 +380,21 @@ export function CandidateSetupExperience({
             interviewStage: stage.id,
             questionCount: stage.recommendedCount,
         });
+        scrollSetupTargetIntoView(questionCountRef.current);
+    }
+
+    function openResumeSourcePicker(source: Exclude<ResumeSource, "paste">) {
+        userEditedSetupFieldsRef.current.add("resume");
+        if (!resumeArtifact && !resumeText.trim() && !resumeAssetName) {
+            setResumeSource(source);
+            saveSetupDraft({ resumeInputMode: source });
+        }
+
+        if (source === "file") {
+            resumeFileInputRef.current?.click();
+        } else {
+            resumePhotoInputRef.current?.click();
+        }
     }
 
     async function handleResumeAsset(event: ChangeEvent<HTMLInputElement>, source: ResumeSource) {
@@ -287,9 +425,10 @@ export function CandidateSetupExperience({
         setResumeAssetName(file?.name ?? "");
         setResumeText("");
         setResumeArtifact(null);
+        setResumeHasUnconfirmedEdits(false);
         setResumeReviewMessage("");
         setResumeError("");
-        saveSetupDraft({ resumeText: "", resumeArtifact: null });
+        saveSetupDraft({ resumeText: "", resumeArtifact: null, resumeInputMode: source });
 
         if (!file || source !== "file") {
             return;
@@ -317,6 +456,7 @@ export function CandidateSetupExperience({
             const result = await readCandidateResumeArtifactResponse(response);
             setResumeText(result.artifact.normalizedText);
             setResumeArtifact(result.artifact);
+            setResumeHasUnconfirmedEdits(false);
             setResumeAssetName(result.artifact.candidateLabel);
             if (result.artifact.reviewState === "accepted") {
                 setResumeReviewMessage("This accepted resume is ready to use.");
@@ -324,6 +464,7 @@ export function CandidateSetupExperience({
                     resumeText: result.artifact.normalizedText,
                     resumeArtifact: toResumeArtifactReference(result.artifact),
                 });
+                advanceToSetupStep(3, 2);
             } else {
                 setResumeReviewMessage("Review the prepared text, make any corrections, then confirm it for practice.");
                 saveSetupDraft({
@@ -346,9 +487,10 @@ export function CandidateSetupExperience({
         setResumeSource("photo");
         setResumeText("");
         setResumeArtifact(null);
+        setResumeHasUnconfirmedEdits(false);
         setResumeReviewMessage("");
         setResumeError("");
-        saveSetupDraft({ resumeText: "", resumeArtifact: null });
+        saveSetupDraft({ resumeText: "", resumeArtifact: null, resumeInputMode: "photo" });
         const remaining = Math.max(0, 4 - resumePhotoPages.length);
         const additions = files.slice(0, remaining).map((file) => ({
             id: createResumePhotoPageId(),
@@ -398,6 +540,7 @@ export function CandidateSetupExperience({
             const result = await readCandidateResumeArtifactResponse(response);
             setResumeText(result.artifact.normalizedText);
             setResumeArtifact(result.artifact);
+            setResumeHasUnconfirmedEdits(false);
             setResumeAssetName(result.artifact.candidateLabel);
             if (result.artifact.reviewState === "accepted") {
                 setResumeReviewMessage("This accepted resume is ready to use.");
@@ -405,6 +548,7 @@ export function CandidateSetupExperience({
                     resumeText: result.artifact.normalizedText,
                     resumeArtifact: toResumeArtifactReference(result.artifact),
                 });
+                advanceToSetupStep(3, 2);
             } else {
                 setResumeReviewMessage("Review the prepared text, make any corrections, then confirm it for practice.");
                 saveSetupDraft({
@@ -445,12 +589,14 @@ export function CandidateSetupExperience({
             const result = await readCandidateResumeArtifactResponse(response);
             setResumeText(result.artifact.normalizedText);
             setResumeArtifact(result.artifact);
+            setResumeHasUnconfirmedEdits(false);
             if (result.artifact.reviewState === "accepted") {
                 setResumeReviewMessage("This accepted resume is ready to use.");
                 saveSetupDraft({
                     resumeText: result.artifact.normalizedText,
                     resumeArtifact: toResumeArtifactReference(result.artifact),
                 });
+                advanceToSetupStep(3, 2);
             } else {
                 setResumeReviewMessage("Review the prepared text, make any corrections, then confirm it for practice.");
                 saveSetupDraft({
@@ -468,7 +614,9 @@ export function CandidateSetupExperience({
     }
 
     async function acceptProcessedResume() {
-        if (!resumeArtifact || resumeArtifact.reviewState !== "awaiting_review" || isResumeProcessing) {
+        const canConfirmResume = resumeArtifact?.reviewState === "awaiting_review"
+            || (resumeArtifact?.reviewState === "accepted" && resumeHasUnconfirmedEdits);
+        if (!resumeArtifact || !canConfirmResume || isResumeProcessing) {
             return;
         }
         setIsResumeProcessing(true);
@@ -490,18 +638,20 @@ export function CandidateSetupExperience({
             const result = await readCandidateResumeArtifactResponse(response);
             setResumeText(result.artifact.normalizedText);
             setResumeArtifact(result.artifact);
+            setResumeHasUnconfirmedEdits(false);
             if (result.outcome === "review_required") {
-                setResumeReviewMessage("I removed additional personal details. Review the updated text, then confirm it again.");
+                setResumeReviewMessage("Additional personal details were removed. Review and edit the updated text, then confirm it again.");
                 saveSetupDraft({
                     resumeText: "",
                     resumeArtifact: toResumeArtifactReference(result.artifact),
                 });
             } else {
-                setResumeReviewMessage("Resume ready. I will use this reviewed text to tailor your practice.");
+                setResumeReviewMessage("This reviewed resume will be used to tailor your practice.");
                 saveSetupDraft({
                     resumeText: result.artifact.normalizedText,
                     resumeArtifact: toResumeArtifactReference(result.artifact),
                 });
+                advanceToSetupStep(3, 2);
             }
         } catch (error) {
             if (
@@ -509,6 +659,7 @@ export function CandidateSetupExperience({
                 && error.code === "RESUME_REVIEW_POLICY_CHANGED"
             ) {
                 setResumeArtifact(null);
+                setResumeHasUnconfirmedEdits(false);
                 setResumeReviewMessage("Review this text again with the updated privacy protections.");
                 saveSetupDraft({ resumeText: "", resumeArtifact: null });
             }
@@ -653,6 +804,7 @@ export function CandidateSetupExperience({
                 && resumeArtifact
             ) {
                 setResumeArtifact(null);
+                setResumeHasUnconfirmedEdits(false);
                 setResumeReviewMessage("Review this text again with the current privacy protections.");
                 saveSetupDraft({ resumeText: "", resumeArtifact: null });
             }
@@ -741,6 +893,7 @@ export function CandidateSetupExperience({
         jobDescription: string;
         resumeText: string;
         resumeArtifact: CandidateSetupResumeArtifactReference | null;
+        resumeInputMode: CandidateSetupResumeInputMode;
         interviewStage: CandidateSetupStageId;
         questionCount: number;
     }> = {}) {
@@ -756,6 +909,7 @@ export function CandidateSetupExperience({
                 : resumeArtifact
                     ? toResumeArtifactReference(resumeArtifact)
                     : null,
+            resumeInputMode: overrides.resumeInputMode ?? resumeSource,
             interviewStage: overrides.interviewStage ?? selectedStage,
             questionCount: overrides.questionCount ?? questionCount,
         };
@@ -774,33 +928,42 @@ export function CandidateSetupExperience({
 
     return (
         <main className="setup-page">
-            <CandidateBrandHeader />
-            <section className="setup-hero app-grid">
-                <div className="setup-hero__copy">
-                    <h1 className="setup-page-title">Practice Setup</h1>
+            <CandidateBrandHeader
+                actions={(
+                    <>
+                        <CandidatePrimaryNavigation activeDestination="setup" />
+                        {showAccountLogout ? (
+                            <CandidateLogoutButton className="candidate-header-logout" iconOnly />
+                        ) : null}
+                    </>
+                )}
+                frame="form-flow"
+            />
+            <section className="setup-hero app-grid app-grid--form-flow">
+                <div className="setup-spotlight surface-spotlight">
+                    <div className="setup-spotlight__heading">
+                        <CandidateCoachAvatar className="setup-spotlight__avatar" />
+                        <h1 className="setup-page-title">Practice Setup</h1>
+                    </div>
+                    <p>
+                        Tell me what interview you&apos;re preparing for. I&apos;ll prepare your first round and guide what
+                        to practice after you finish it.
+                    </p>
                 </div>
-
-                <aside className="setup-progress-card" aria-label="Setup progress">
-                    <div className="setup-progress-card__icon" aria-hidden="true">
-                        <User size={20} />
-                    </div>
-                    <div>
-                        <p>
-                            Tell me what interview you are preparing for. After setup, I will prepare your first round and
-                            guide what to practice after you finish it.
-                        </p>
-                    </div>
-                </aside>
-
             </section>
 
-            <form className="setup-form app-grid" onSubmit={handleSubmit}>
-                <div className="setup-form__main">
-                    <div className="setup-panels-split">
+            <form className="setup-form app-grid app-grid--form-flow" onSubmit={handleSubmit}>
+                <WorkflowTimeline aria-label="Practice setup progress">
+                    <WorkflowTimelineStep
+                        ref={roleStepRef}
+                        number={1}
+                        state={getSetupStepState(1)}
+                        title="Role"
+                    >
                         <section className="setup-panel" aria-labelledby="role-context-label">
                             <div className="setup-section-header">
                                 <div>
-                                    <p className="type-eyebrow" id="role-context-label">
+                                    <p className="eyebrow setup-panel__eyebrow" id="role-context-label">
                                         Role
                                     </p>
                                 </div>
@@ -827,7 +990,10 @@ export function CandidateSetupExperience({
                                         readOnly={Boolean(trustedSetupContext)}
                                         aria-describedby={[
                                             trustedSetupContext ? "trusted-role-context" : null,
-                                            isTargetRoleInvalid ? "setup-required-guidance" : null,
+                                            showRoleStepAlert ? "setup-role-guidance" : null,
+                                            showRequiredAlert || setupValidationFields.has("targetRole")
+                                                ? "setup-required-guidance"
+                                                : null,
                                         ].filter(Boolean).join(" ") || undefined}
                                         onChange={(event) => {
                                             userEditedSetupFieldsRef.current.add("targetRole");
@@ -852,7 +1018,10 @@ export function CandidateSetupExperience({
                                         readOnly={Boolean(trustedSetupContext)}
                                         aria-describedby={[
                                             trustedSetupContext ? "trusted-role-context" : null,
-                                            isJobDescriptionInvalid ? "setup-required-guidance" : null,
+                                            showRoleStepAlert ? "setup-role-guidance" : null,
+                                            showRequiredAlert || setupValidationFields.has("jobDescription")
+                                                ? "setup-required-guidance"
+                                                : null,
                                         ].filter(Boolean).join(" ") || undefined}
                                         onChange={(event) => {
                                             userEditedSetupFieldsRef.current.add("jobDescription");
@@ -865,12 +1034,35 @@ export function CandidateSetupExperience({
                                     />
                                 </label>
                             </div>
-                        </section>
 
+                            <div className="setup-step-actions">
+                                {showRoleStepAlert ? (
+                                    <p className="setup-step-guidance is-alert" id="setup-role-guidance" role="alert">
+                                        Enter the target role and job description to continue.
+                                    </p>
+                                ) : <span />}
+                                <button
+                                    type="button"
+                                    className="setup-step-action setup-step-action--primary"
+                                    onClick={handleRoleStepNext}
+                                >
+                                    Next: Resume
+                                    <ArrowRight size={16} aria-hidden="true" />
+                                </button>
+                            </div>
+                        </section>
+                    </WorkflowTimelineStep>
+
+                    <WorkflowTimelineStep
+                        ref={resumeStepRef}
+                        number={2}
+                        state={getSetupStepState(2)}
+                        title="Resume"
+                    >
                         <section className="setup-panel" aria-labelledby="resume-context-label">
                             <div className="setup-section-header">
                                 <div>
-                                    <p className="type-eyebrow" id="resume-context-label">
+                                    <p className="eyebrow setup-panel__eyebrow" id="resume-context-label">
                                         Resume
                                         <span className="setup-eyebrow-note">Optional</span>
                                     </p>
@@ -897,40 +1089,64 @@ export function CandidateSetupExperience({
                                         setResumeAssetName("");
                                         setResumeText("");
                                         setResumeArtifact(null);
+                                        setResumeHasUnconfirmedEdits(false);
                                         setResumeReviewMessage("");
                                         setResumeError("");
-                                        saveSetupDraft({ resumeText: "", resumeArtifact: null });
+                                        saveSetupDraft({
+                                            resumeText: "",
+                                            resumeArtifact: null,
+                                            resumeInputMode: "paste",
+                                        });
                                     }}
                                 >
                                     <FileText size={18} aria-hidden="true" />
                                     <span>Paste text</span>
                                 </button>
 
-                                <label className={resumeSource === "file" ? "resume-source is-selected" : "resume-source"}>
+                                <button
+                                    type="button"
+                                    className={resumeSource === "file" ? "resume-source is-selected" : "resume-source"}
+                                    aria-pressed={resumeSource === "file"}
+                                    disabled={isResumeProcessing}
+                                    onClick={() => openResumeSourcePicker("file")}
+                                >
                                     <Upload size={18} aria-hidden="true" />
                                     <span>Upload resume</span>
-                                    <input
-                                        type="file"
-                                        name="resumeFile"
-                                        accept={CANDIDATE_RESUME_DOCUMENT_ACCEPT}
-                                        disabled={isResumeProcessing}
-                                        onChange={(event) => handleResumeAsset(event, "file")}
-                                    />
-                                </label>
+                                </button>
 
-                                <label className={resumeSource === "photo" ? "resume-source is-selected" : "resume-source"}>
+                                <button
+                                    type="button"
+                                    className={resumeSource === "photo" ? "resume-source is-selected" : "resume-source"}
+                                    aria-pressed={resumeSource === "photo"}
+                                    disabled={isResumeProcessing}
+                                    onClick={() => openResumeSourcePicker("photo")}
+                                >
                                     <Camera size={18} aria-hidden="true" />
                                     <span>Take photo</span>
-                                    <input
-                                        type="file"
-                                        name="resumePhoto"
-                                        accept="image/*"
-                                        capture="environment"
-                                        disabled={isResumeProcessing}
-                                        onChange={(event) => handleResumeAsset(event, "photo")}
-                                    />
-                                </label>
+                                </button>
                             </div>
+
+                            <input
+                                ref={resumeFileInputRef}
+                                className="resume-source-input"
+                                type="file"
+                                name="resumeFile"
+                                accept={CANDIDATE_RESUME_DOCUMENT_ACCEPT}
+                                tabIndex={-1}
+                                aria-hidden="true"
+                                onChange={(event) => handleResumeAsset(event, "file")}
+                            />
+                            <input
+                                ref={resumePhotoInputRef}
+                                className="resume-source-input"
+                                type="file"
+                                name="resumePhoto"
+                                accept="image/*"
+                                capture="environment"
+                                tabIndex={-1}
+                                aria-hidden="true"
+                                onChange={(event) => handleResumeAsset(event, "photo")}
+                            />
 
                             {resumeAssetName ? (
                                 <p className="resume-asset-note" aria-live="polite">
@@ -1042,7 +1258,11 @@ export function CandidateSetupExperience({
                                                 name="resumeText"
                                                 maxLength={CANDIDATE_SETUP_LIMITS.resumeText + 1}
                                                 value={resumeText}
-                                                aria-describedby="resume-review-status"
+                                                aria-describedby={
+                                                    isResumeProcessing || resumeError || resumeArtifact
+                                                        ? "resume-review-status"
+                                                        : undefined
+                                                }
                                                 onChange={(event) => {
                                                     userEditedSetupFieldsRef.current.add("resume");
                                                     clearSetupValidation();
@@ -1054,13 +1274,18 @@ export function CandidateSetupExperience({
                                                             void invalidateResumeSelection().catch(() => undefined);
                                                         }
                                                         setResumeArtifact(null);
+                                                        setResumeHasUnconfirmedEdits(false);
                                                         setResumeReviewMessage("");
                                                     } else if (resumeArtifact?.reviewState === "accepted") {
-                                                        void invalidateResumeSelection().catch(() => undefined);
-                                                        setResumeArtifact(null);
+                                                        setResumeHasUnconfirmedEdits(true);
                                                         setResumeReviewMessage("Review the updated text before using it for practice.");
                                                     }
-                                                    saveSetupDraft({ resumeText: "", resumeArtifact: null });
+                                                    saveSetupDraft(nextText.trim() && resumeArtifact?.reviewState === "accepted"
+                                                        ? {
+                                                            resumeText: resumeArtifact.normalizedText,
+                                                            resumeArtifact: toResumeArtifactReference(resumeArtifact),
+                                                        }
+                                                        : { resumeText: "", resumeArtifact: null });
                                                 }}
                                                 rows={6}
                                                 placeholder="Paste resume text here."
@@ -1068,223 +1293,278 @@ export function CandidateSetupExperience({
                                         </label>
                                     ) : null}
 
-                                    <div className="resume-review-status" id="resume-review-status" aria-live="polite">
-                                        <div>
-                                            <strong>
-                                                {isResumeProcessing
-                                                    ? "Preparing resume"
-                                                    : resumeArtifact?.reviewState === "accepted"
-                                                    ? "Resume ready"
-                                                    : resumeArtifact?.reviewState === "awaiting_review"
-                                                        ? "Review prepared text"
-                                                        : "Prepare resume text"}
-                                            </strong>
-                                            <span>
-                                                {resumeError
-                                                    || resumeReviewMessage
-                                                    || (resumeArtifact?.reviewState === "awaiting_review"
-                                                        ? "Check that the work history is accurate before confirming it."
-                                                        : "I will remove direct contact details and let you review the text before it is used.")}
-                                            </span>
-                                        </div>
-                                        {resumeArtifact?.reviewState === "accepted" ? (
-                                            <BadgeCheck size={20} aria-hidden="true" />
-                                        ) : resumeArtifact?.reviewState === "awaiting_review" ? (
-                                            <button
-                                                type="button"
-                                                className="resume-review-action"
-                                                disabled={isResumeProcessing}
-                                                onClick={acceptProcessedResume}
-                                            >
-                                                {isResumeProcessing ? "Checking" : "Use this resume"}
-                                                {isResumeProcessing ? <Loader2 className="setup-spinner" size={16} /> : <ArrowRight size={16} />}
-                                            </button>
-                                        ) : resumeSource === "paste" ? (
-                                            <button
-                                                type="button"
-                                                className="resume-review-action"
-                                                disabled={isResumeProcessing || !resumeText.trim()}
-                                                onClick={processPastedResume}
-                                            >
-                                                {isResumeProcessing ? "Preparing" : "Review resume"}
-                                                {isResumeProcessing ? <Loader2 className="setup-spinner" size={16} /> : <ArrowRight size={16} />}
-                                            </button>
-                                        ) : isResumeProcessing ? <Loader2 className="setup-spinner" size={20} aria-hidden="true" /> : null}
+                                    <div
+                                        className={[
+                                            "resume-review-status",
+                                            isResumeProcessing
+                                                ? "is-processing"
+                                                : resumeArtifact?.reviewState === "accepted" && !resumeHasUnconfirmedEdits
+                                                    ? "is-ready"
+                                                    : resumeArtifact?.reviewState === "awaiting_review" || resumeHasUnconfirmedEdits
+                                                        ? "is-review"
+                                                        : "is-action-only",
+                                            resumeError ? "is-error" : "",
+                                            isResumeProcessing || resumeArtifact ? "coach-voice-surface" : "",
+                                        ].filter(Boolean).join(" ")}
+                                        id="resume-review-status"
+                                        aria-live="polite"
+                                    >
+                                        {isResumeProcessing ? (
+                                            <>
+                                                <CandidateCoachAvatar variant="surface" className="coach-voice-surface__avatar" />
+                                                <div>
+                                                    <strong>Preparing resume text</strong>
+                                                    <span>Removing direct contact details and organizing the text for review.</span>
+                                                </div>
+                                                <Loader2 className="setup-spinner" size={20} aria-hidden="true" />
+                                            </>
+                                        ) : resumeArtifact?.reviewState === "accepted" && !resumeHasUnconfirmedEdits ? (
+                                            <>
+                                                <CandidateCoachAvatar variant="surface" className="coach-voice-surface__avatar" />
+                                                <div>
+                                                    <strong>Resume ready</strong>
+                                                    <span>{resumeReviewMessage || "This reviewed resume will be used to tailor your practice."}</span>
+                                                </div>
+                                                <BadgeCheck size={20} aria-hidden="true" />
+                                            </>
+                                        ) : resumeArtifact?.reviewState === "awaiting_review" || resumeHasUnconfirmedEdits ? (
+                                            <>
+                                                <CandidateCoachAvatar variant="surface" className="coach-voice-surface__avatar" />
+                                                <div>
+                                                    <strong>Review resume text</strong>
+                                                    <span>
+                                                        {resumeError
+                                                            || resumeReviewMessage
+                                                            || "Review and edit the prepared text as needed, then use this resume."}
+                                                    </span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    className="resume-review-action"
+                                                    disabled={isResumeProcessing}
+                                                    onClick={acceptProcessedResume}
+                                                >
+                                                    Use this resume
+                                                    <ArrowRight size={16} />
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                {resumeError ? (
+                                                    <div>
+                                                        <strong>Resume could not be prepared</strong>
+                                                        <span>{resumeError}</span>
+                                                    </div>
+                                                ) : null}
+                                                {resumeSource === "paste" ? (
+                                                    <button
+                                                        type="button"
+                                                        className="resume-review-action resume-review-action--primary"
+                                                        disabled={!resumeText.trim()}
+                                                        onClick={processPastedResume}
+                                                    >
+                                                        Upload
+                                                        <ArrowRight size={16} />
+                                                    </button>
+                                                ) : null}
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             ) : null}
+
+                            {!resumeNeedsReview ? (
+                                <div className="setup-step-actions">
+                                    <span />
+                                    <button
+                                        type="button"
+                                        className="setup-step-action setup-step-action--secondary"
+                                        onClick={handleResumeStepContinue}
+                                    >
+                                        {hasAcceptedResume
+                                            ? "Continue to interview details"
+                                            : "Continue without a resume"}
+                                        <ArrowRight size={16} aria-hidden="true" />
+                                    </button>
+                                </div>
+                            ) : null}
                         </section>
-                    </div>
+                    </WorkflowTimelineStep>
 
-                    <section className="setup-panel" aria-labelledby="practice-details-label">
-                        <div className="setup-section-header">
-                            <div>
-                                <p className="type-eyebrow" id="practice-details-label">
-                                    Interview details
-                                </p>
+                    <WorkflowTimelineStep
+                        ref={interviewDetailsStepRef}
+                        number={3}
+                        state={getSetupStepState(3)}
+                        title="Interview details"
+                    >
+                        <section className="setup-panel" aria-labelledby="practice-details-label">
+                            <div className="setup-section-header">
+                                <div>
+                                    <p className="eyebrow setup-panel__eyebrow" id="practice-details-label">
+                                        Interview details
+                                    </p>
+                                </div>
                             </div>
-                        </div>
 
-                        <div className="setup-details-split">
-                            <fieldset className="setup-fieldset">
-                                <legend>Interview stage *</legend>
-                                <div className="stage-grid">
-                                    {candidateSetupStageOptions
-                                        .filter((stage) => stage.id !== "practice_only")
-                                        .map((stage) => (
+                            <div className="setup-details-split">
+                                <fieldset ref={interviewStageRef} className="setup-fieldset">
+                                    <legend>Interview stage *</legend>
+                                    <div className="stage-grid">
+                                        {candidateSetupStageOptions
+                                            .filter((stage) => stage.id !== "practice_only")
+                                            .map((stage) => (
+                                                <button
+                                                    key={stage.id}
+                                                    type="button"
+                                                    className={selectedStage === stage.id ? "stage-card is-selected" : "stage-card"}
+                                                    aria-pressed={selectedStage === stage.id}
+                                                    onClick={() => chooseStage(stage)}
+                                                >
+                                                    <strong>{stage.label}</strong>
+                                                    <span className="stage-card__detail">{stage.detail}</span>
+                                                </button>
+                                            ))}
+                                        {candidateSetupStageOptions
+                                            .filter((stage) => stage.id === "practice_only")
+                                            .map((stage) => (
+                                                <button
+                                                    key={stage.id}
+                                                    type="button"
+                                                    className={`stage-card stage-card--full ${selectedStage === stage.id ? "is-selected" : ""}`}
+                                                    aria-pressed={selectedStage === stage.id}
+                                                    onClick={() => chooseStage(stage)}
+                                                >
+                                                    <strong>{stage.label}</strong>
+                                                    <span className="stage-card__detail">{stage.detail}</span>
+                                                </button>
+                                            ))}
+                                    </div>
+                                    <input type="hidden" name="interviewStage" value={selectedStage} required />
+                                </fieldset>
+
+                                <fieldset ref={questionCountRef} className="setup-fieldset">
+                                    <legend>Question count *</legend>
+                                    <div className="question-count-row">
+                                        {questionCountOptions.map((count) => (
                                             <button
-                                                key={stage.id}
+                                                key={count}
                                                 type="button"
-                                                className={selectedStage === stage.id ? "stage-card is-selected" : "stage-card"}
-                                                aria-pressed={selectedStage === stage.id}
-                                                onClick={() => chooseStage(stage)}
+                                                className={questionCount === count ? "count-option is-selected" : "count-option"}
+                                                aria-pressed={questionCount === count}
+                                                onClick={() => {
+                                                    userEditedSetupFieldsRef.current.add("interviewDetails");
+                                                    setQuestionCount(count);
+                                                    saveSetupDraft({ questionCount: count });
+                                                    scrollSetupTargetIntoView(startPracticeButtonRef.current);
+                                                }}
                                             >
-                                                <strong>{stage.label}</strong>
-                                                <span className="stage-card__detail">{stage.detail}</span>
+                                                {count}
                                             </button>
                                         ))}
-                                    {candidateSetupStageOptions
-                                        .filter((stage) => stage.id === "practice_only")
-                                        .map((stage) => (
-                                            <button
-                                                key={stage.id}
-                                                type="button"
-                                                className={`stage-card stage-card--full ${selectedStage === stage.id ? "is-selected" : ""}`}
-                                                aria-pressed={selectedStage === stage.id}
-                                                onClick={() => chooseStage(stage)}
-                                            >
-                                                <strong>{stage.label}</strong>
-                                                <span className="stage-card__detail">{stage.detail}</span>
-                                            </button>
-                                        ))}
-                                </div>
-                                <input type="hidden" name="interviewStage" value={selectedStage} required />
-                            </fieldset>
-
-                            <fieldset className="setup-fieldset">
-                                <legend>Question count *</legend>
-                                <div className="question-count-row">
-                                    {questionCountOptions.map((count) => (
-                                        <button
-                                            key={count}
-                                            type="button"
-                                            className={questionCount === count ? "count-option is-selected" : "count-option"}
-                                            aria-pressed={questionCount === count}
-                                            onClick={() => {
-                                                userEditedSetupFieldsRef.current.add("interviewDetails");
-                                                setQuestionCount(count);
-                                                saveSetupDraft({ questionCount: count });
-                                            }}
-                                        >
-                                            {count}
-                                        </button>
-                                    ))}
-                                </div>
-                                <input type="hidden" name="questionCount" value={questionCount} required />
-                                <p className="question-help">
-                                    {activeStage.recommendation} You can choose a different count, and after your first
-                                    session I will guide what to practice next.
-                                </p>
-                            </fieldset>
-                        </div>
-                    </section>
-                </div>
-
-                <aside className="setup-rail" aria-label="Setup summary">
-                    <div className={canStartPractice ? "setup-rail__card is-ready" : "setup-rail__card"}>
-                        <div className="setup-rail__header">
-                            <span className="setup-rail__icon" aria-hidden="true">
-                                {canStartPractice ? <BadgeCheck size={18} /> : <UserCheck size={18} />}
-                            </span>
-                            <p className="type-eyebrow">{canStartPractice ? "Ready when you are" : "Your first round"}</p>
-                        </div>
-                        <dl>
-                            <div>
-                                <dt>Stage</dt>
-                                <dd>{activeStage.label}</dd>
+                                    </div>
+                                    <input type="hidden" name="questionCount" value={questionCount} required />
+                                    <div className="question-help coach-voice-surface" role="note">
+                                        <CandidateCoachAvatar variant="surface" className="question-help__avatar coach-voice-surface__avatar" />
+                                        <p>
+                                            {activeStage.recommendation} You can choose a different count, and after your first
+                                            session I will guide what to practice next.
+                                        </p>
+                                    </div>
+                                </fieldset>
                             </div>
-                            <div>
-                                <dt>Recommended</dt>
-                                <dd>{activeStage.recommendedCount} questions</dd>
-                            </div>
-                            <div>
-                                <dt>Selected</dt>
-                                <dd>{questionCount} questions</dd>
-                            </div>
-                        </dl>
-                    </div>
 
-                    <div
-                        id="setup-required-guidance"
-                        className={
-                            isPreparing
-                                ? "setup-loading-card is-active"
-                                : setupError
-                                  ? "setup-loading-card is-alert"
-                                : setupValidationMessage
-                                  ? "setup-loading-card is-alert"
-                                : showRequiredAlert
-                                  ? "setup-loading-card is-alert"
-                                  : "setup-loading-card"
-                        }
-                        aria-live="polite"
-                        role={showRequiredAlert || setupError || setupValidationMessage ? "alert" : undefined}
-                    >
-                        {isPreparing ? (
-                            <>
-                                <Loader2 className="setup-spinner" size={18} aria-hidden="true" />
-                                <div>
-                                    <strong>Building your practice plan.</strong>
-                                    <span>Preparing the transition into your first session.</span>
-                                </div>
-                            </>
-                        ) : setupError ? (
-                            <>
-                                <span className="setup-loading-card__icon" aria-hidden="true">
-                                    <AlertCircle size={18} />
-                                </span>
-                                <div>
-                                    <span>{setupError}</span>
-                                </div>
-                            </>
-                        ) : setupValidationMessage ? (
-                            <>
-                                <span className="setup-loading-card__icon" aria-hidden="true">
-                                    <AlertCircle size={18} />
-                                </span>
-                                <div>
-                                    <span>{setupValidationMessage}</span>
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                {showRequiredAlert ? (
-                                    <span className="setup-loading-card__icon" aria-hidden="true">
-                                        <AlertCircle size={18} />
-                                    </span>
-                                ) : null}
-                                <div>
-                                    <span>
-                                        {showRequiredAlert && resumeNeedsReview
-                                            ? "Review and confirm the resume text, or clear it to continue without a resume."
-                                            : "Required fields are marked with an asterisk."}
-                                    </span>
-                                </div>
-                            </>
-                        )}
-                    </div>
+                        </section>
 
-                    <button
-                        className="setup-submit"
-                        type="submit"
-                        disabled={isPreparing}
-                        aria-disabled={!canStartPractice}
-                        onClick={handleStartPracticeClick}
-                    >
-                        {isPreparing ? "Preparing" : "Start practice"}
-                        {isPreparing ? <Loader2 className="setup-spinner" size={16} aria-hidden="true" /> : <ArrowRight size={16} />}
-                    </button>
-                </aside>
+                        <aside
+                            className="setup-rail setup-round-spotlight surface-spotlight"
+                            aria-labelledby="setup-round-summary-label"
+                        >
+                            <p className="eyebrow setup-round-spotlight__eyebrow" id="setup-round-summary-label">
+                                Your practice round
+                            </p>
+                            <div className="setup-round-spotlight__layout">
+                                <div className={`setup-rail__card ${candidateV2Classes.onColorGlass}`}>
+                                    <dl>
+                                        <div>
+                                            <dt>Resume</dt>
+                                            <dd>
+                                                {hasAcceptedResume
+                                                    ? resumeArtifact?.candidateLabel?.trim() || "Included"
+                                                    : "Not included"}
+                                            </dd>
+                                        </div>
+                                        <div>
+                                            <dt>Stage</dt>
+                                            <dd>{activeStage.label}</dd>
+                                        </div>
+                                        <div>
+                                            <dt>Recommended</dt>
+                                            <dd>{activeStage.recommendedCount}</dd>
+                                        </div>
+                                        <div>
+                                            <dt>Selected</dt>
+                                            <dd>{questionCount}</dd>
+                                        </div>
+                                    </dl>
+                                </div>
+
+                                <div className="setup-submit-zone">
+                                    <div
+                                        id="setup-required-guidance"
+                                        className={
+                                            isPreparing
+                                                ? "setup-loading-card is-active"
+                                                : setupError || setupValidationMessage || showRequiredAlert
+                                                  ? "setup-loading-card is-alert"
+                                                  : "setup-loading-card"
+                                        }
+                                        aria-live="polite"
+                                        role={showRequiredAlert || setupError || setupValidationMessage ? "alert" : undefined}
+                                    >
+                                        {isPreparing ? (
+                                            <>
+                                                <Loader2 className="setup-spinner" size={18} aria-hidden="true" />
+                                                <div>
+                                                    <strong>Preparing your first round.</strong>
+                                                    <span>This may take a moment.</span>
+                                                </div>
+                                            </>
+                                        ) : setupError || setupValidationMessage || showRequiredAlert ? (
+                                            <>
+                                                <span className="setup-loading-card__icon" aria-hidden="true">
+                                                    <AlertCircle size={18} />
+                                                </span>
+                                                <div>
+                                                    <span>
+                                                        {setupError
+                                                            || setupValidationMessage
+                                                            || (resumeNeedsReview
+                                                                ? "Review and confirm the resume text, or clear it to continue without a resume."
+                                                                : "Complete the required fields to start practice.")}
+                                                    </span>
+                                                </div>
+                                            </>
+                                        ) : null}
+                                    </div>
+
+                                    <button
+                                        ref={startPracticeButtonRef}
+                                        className={`setup-submit ${candidateV2Classes.onColorAction}`}
+                                        type="submit"
+                                        disabled={isPreparing}
+                                        aria-disabled={!canStartPractice}
+                                        onClick={handleStartPracticeClick}
+                                    >
+                                        {isPreparing ? "Preparing your first round" : "Start practice"}
+                                        {isPreparing
+                                            ? <Loader2 className="setup-spinner" size={16} aria-hidden="true" />
+                                            : <ArrowRight size={16} />}
+                                    </button>
+                                </div>
+                            </div>
+                        </aside>
+                    </WorkflowTimelineStep>
+                </WorkflowTimeline>
             </form>
 
             <dialog
@@ -1429,6 +1709,23 @@ function toSetupValidationMessage(fieldErrors: {
         ...(fieldErrors.resumeText ?? []),
         ...(fieldErrors.questionCount ?? []),
     ][0] ?? "Check the setup details and try again.";
+}
+
+function scrollSetupTargetIntoView(
+    target: HTMLElement | null,
+    block: ScrollLogicalPosition = "center",
+) {
+    if (!target || typeof target.scrollIntoView !== "function") {
+        return;
+    }
+
+    const reduceMotion = typeof window !== "undefined"
+        && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    target.scrollIntoView({
+        behavior: reduceMotion ? "auto" : "smooth",
+        block,
+        inline: "nearest",
+    });
 }
 
 function toResumeArtifactReference(

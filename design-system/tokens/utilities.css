@@ -23,14 +23,14 @@
     border: 1px solid rgb(var(--border) / 0.78);
     background: linear-gradient(135deg, rgb(var(--surface) / 0.96), rgb(var(--surface-alt) / 0.97));
     box-shadow: var(--shadow-card);
-    border-radius: 1.75rem;
+    border-radius: var(--radius-card);
 }
 
 .surface-elevated {
     border: 1px solid rgb(var(--border) / 0.82);
     background: linear-gradient(135deg, rgb(var(--surface-elevated) / 0.98), rgb(var(--surface) / 0.98));
     box-shadow: var(--shadow-panel);
-    border-radius: 2rem;
+    border-radius: var(--radius-panel);
 }
 
 /* Blue — a colored feature surface (white ink). Same solid-fill tokens as spotlight. */
@@ -38,7 +38,7 @@
     border: 1px solid rgb(255 255 255 / 0.08);
     background: linear-gradient(135deg, rgb(var(--primary-solid-deep)), rgb(var(--primary-solid)));
     box-shadow: var(--shadow-panel);
-    border-radius: 1.75rem;
+    border-radius: var(--radius-card);
     color: rgb(255 255 255);
 }
 
@@ -46,7 +46,7 @@
     border: 1px solid rgb(249 85 0 / 0.14);
     background: linear-gradient(135deg, rgb(255 245 239 / 0.96), rgb(255 234 224 / 0.94));
     box-shadow: var(--shadow-soft);
-    border-radius: 1.5rem;
+    border-radius: var(--radius-card);
 }
 .dark .surface-orange {
     border-color: rgb(var(--secondary-brand) / 0.24);
@@ -56,7 +56,7 @@
 .surface-sky {
     background: linear-gradient(135deg, rgb(246 250 255 / 0.98), rgb(232 241 255 / 0.92));
     box-shadow: 0 5px 14px rgb(12 97 233 / 0.07);
-    border-radius: 1.35rem;
+    border-radius: var(--radius-card);
 }
 .dark .surface-sky {
     background: linear-gradient(135deg, rgb(var(--primary-soft) / 0.7), rgb(var(--surface-alt)));
@@ -129,6 +129,30 @@
 }
 
 /* Dense in-card micro-label — denser sibling of .eyebrow, built on --text-micro-*. */
+/* Solid contrast action placed directly on a saturated surface. */
+.on-color-action {
+    border-color: transparent;
+    background: rgb(255 255 255);
+    color: rgb(var(--primary-solid));
+    box-shadow: var(--elevation-cta);
+    transition:
+        transform var(--motion-control-duration) var(--motion-control-ease),
+        box-shadow var(--motion-control-duration) var(--motion-control-ease);
+}
+
+.on-color-action:hover:not(:disabled):not([aria-disabled="true"]) {
+    transform: translateY(-1px);
+}
+
+.on-color-action:active:not(:disabled):not([aria-disabled="true"]) {
+    transform: translateY(0) scale(0.99);
+}
+
+.on-color-action:focus-visible {
+    outline: 3px solid rgb(255 255 255 / 0.48);
+    outline-offset: 3px;
+}
+
 .label-micro {
     font-family: var(--font-display);
     font-size: var(--text-micro-size);

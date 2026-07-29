@@ -1,64 +1,7 @@
-import { createHash } from "node:crypto";
-import { Pool } from "pg";
-
-export type RecruiterAuthQueryClient = {
-    query: (sql: string, values?: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }>;
-};
-
-type PoolState = {
-    fingerprint: string;
-    pool: Pool;
-};
-
-let poolState: PoolState | null = null;
-
-export function createRecruiterAuthQueryClient(databaseUrl: string): RecruiterAuthQueryClient {
-    return {
-        query(sql, values = []) {
-            return getPool(databaseUrl).query(sql, values);
-        },
-    };
-}
-
-export function createRecruiterAuthQueryClientFromEnv(
-    env: NodeJS.ProcessEnv = process.env,
-): RecruiterAuthQueryClient {
-    const databaseUrl = env.DATABASE_URL?.trim();
-    if (!databaseUrl) {
-        throw new Error("Recruiter authentication requires DATABASE_URL.");
-    }
-    return createRecruiterAuthQueryClient(databaseUrl);
-}
-
-function getPool(databaseUrl: string): Pool {
-    const fingerprint = createHash("sha256").update(databaseUrl).digest("hex");
-    if (poolState?.fingerprint === fingerprint) return poolState.pool;
-
-    const previous = poolState;
-    const pool = new Pool({
-        connectionString: databaseUrl,
-        ssl: getSslConfig(databaseUrl),
-        max: 2,
-        idleTimeoutMillis: 30_000,
-        connectionTimeoutMillis: 5_000,
-        statement_timeout: 15_000,
-        query_timeout: 20_000,
-        application_name: "interview-coach-recruiter-auth",
-    });
-    poolState = { fingerprint, pool };
-    if (previous) void previous.pool.end().catch(() => undefined);
-    return pool;
-}
-
-function getSslConfig(databaseUrl: string) {
-    try {
-        const mode = new URL(databaseUrl).searchParams.get("sslmode")?.toLowerCase();
-        if (mode === "disable") return false;
-        if (mode) {
-            return { rejectUnauthorized: mode === "verify-ca" || mode === "verify-full" };
-        }
-    } catch {
-        return undefined;
-    }
-    return undefined;
-}
+export {
+    createAppAuthQueryClient as createRecruiterAuthQueryClient,
+    createAppAuthQueryClientFromEnv as createRecruiterAuthQueryClientFromEnv,
+} from "@/features/app-auth-v2/app-auth-postgres-runtime";
+export type {
+    AppAuthQueryClient as RecruiterAuthQueryClient,
+} from "@/features/app-auth-v2/app-auth-postgres-runtime";

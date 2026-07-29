@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, ListChecks, Play } from "lucide-react";
 
-import { CANDIDATE_HOST_LAUNCH_SESSION_COOKIE } from "@/features/candidate-auth-v2/host-launch-route";
-import { resolveCandidateDevHostLaunchCookieIdentity } from "@/features/candidate-auth-v2/dev-host-launch-cookie-identity";
+import { resolveCandidateOwnedCookieIdentity } from "@/features/candidate-auth-v2/candidate-route-authorization";
 import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-auth-v2/production-host-launch-runtime";
 import {
     createCandidatePracticeSessionRepository,
@@ -21,13 +20,20 @@ import {
 
 type CandidatePracticeReadyPageProps = {
     searchParams?: Promise<CandidatePracticeReadySearchParams> | CandidatePracticeReadySearchParams;
+    authorizedCandidateProfileId?: string;
 };
 
-export default async function CandidatePracticeReadyPage({ searchParams }: CandidatePracticeReadyPageProps = {}) {
+export default async function CandidatePracticeReadyPage({
+    searchParams,
+    authorizedCandidateProfileId,
+}: CandidatePracticeReadyPageProps = {}) {
     const resolvedSearchParams = await searchParams;
     return renderCandidatePracticeReadyPage({
         searchParams: resolvedSearchParams,
-        dependencies: createDefaultCandidatePracticeReadyPageDependencies(resolvedSearchParams),
+        dependencies: createDefaultCandidatePracticeReadyPageDependencies(
+            resolvedSearchParams,
+            authorizedCandidateProfileId,
+        ),
     });
 }
 
@@ -112,6 +118,7 @@ function PracticeReadyRecoveryState() {
 
 function createDefaultCandidatePracticeReadyPageDependencies(
     searchParams: CandidatePracticeReadySearchParams | null | undefined,
+    authorizedCandidateProfileId?: string,
 ): CandidatePracticeReadyPageDependencies {
     const databaseUrl = process.env[CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV]?.trim();
     if (!databaseUrl) {
@@ -125,12 +132,8 @@ function createDefaultCandidatePracticeReadyPageDependencies(
     return {
         async resolveFollowUpPracticeIntent(intent) {
             try {
-                const { headers } = await import("next/headers");
-                const requestHeaders = await headers();
-                const candidateProfileId = await resolveCandidateProfileIdFromRequestHeaders(
-                    requestHeaders.get("cookie"),
-                    queryClient,
-                );
+                const candidateProfileId = authorizedCandidateProfileId
+                    ?? await resolveCandidatePracticeReadyProfileIdFromCurrentRequest(queryClient);
 
                 if (!candidateProfileId) {
                     return null;
@@ -164,6 +167,17 @@ function createDefaultCandidatePracticeReadyPageDependencies(
     };
 }
 
+async function resolveCandidatePracticeReadyProfileIdFromCurrentRequest(
+    client: CandidatePracticeReadyQueryClient,
+) {
+    const { headers } = await import("next/headers");
+    const requestHeaders = await headers();
+    return resolveCandidateProfileIdFromRequestHeaders(
+        requestHeaders.get("cookie"),
+        client,
+    );
+}
+
 type CandidatePracticeReadyQueryClient = {
     query: (sql: string, values: unknown[]) => Promise<{
         rows: Array<Record<string, unknown>>;
@@ -191,26 +205,8 @@ async function resolveCandidateProfileIdFromRequestHeaders(
     cookieHeader: string | null,
     client: CandidatePracticeReadyQueryClient,
 ) {
-    const devIdentity = resolveCandidateDevHostLaunchCookieIdentity(cookieHeader);
-    if (devIdentity) {
-        return devIdentity.candidateProfileId;
-    }
-
-    const candidateLaunchSessionId = readCookieValue(cookieHeader, CANDIDATE_HOST_LAUNCH_SESSION_COOKIE);
-    if (!candidateLaunchSessionId) {
-        return null;
-    }
-
-    const result = await client.query(`
-        select candidate_profile_id
-        from public.candidate_launch_sessions
-        where candidate_launch_session_id = $1
-          and revoked_at is null
-          and expires_at > now()
-        limit 1
-    `, [candidateLaunchSessionId]);
-
-    return readString(result.rows[0]?.candidate_profile_id);
+    const identity = await resolveCandidateOwnedCookieIdentity(cookieHeader, client);
+    return identity?.candidateProfileId ?? null;
 }
 
 function readSearchParam(value: string | string[] | undefined) {
@@ -218,23 +214,6 @@ function readSearchParam(value: string | string[] | undefined) {
         return value[0] ?? null;
     }
     return value ?? null;
-}
-
-function readCookieValue(cookieHeader: string | null, name: string) {
-    if (!cookieHeader) {
-        return null;
-    }
-
-    const cookie = cookieHeader
-        .split(";")
-        .map((part) => part.trim())
-        .find((part) => part.startsWith(`${name}=`));
-
-    return cookie ? decodeURIComponent(cookie.slice(name.length + 1)) : null;
-}
-
-function readString(value: unknown) {
-    return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 function getCandidatePracticeReadyRuntimeSslConfig(databaseUrl: string) {

@@ -14,10 +14,15 @@ describe("application design system primitives", () => {
 
     it("exposes layout primitives for page-frame composition", () => {
         expect(candidateV2Classes.appGrid).toBe("app-grid");
+        expect(candidateV2Classes.appGridWorkflow).toBe("app-grid--workflow");
+        expect(candidateV2Classes.appGridFormFlow).toBe("app-grid--form-flow");
+        expect(candidateV2Classes.appGridFocused).toBe("app-grid--focused");
         expect(candidateV2Classes.grid12).toBe("grid-12");
         expect(candidateV2Classes.mainRail).toBe("layout-main-rail");
         expect(candidateV2Classes.readable).toBe("layout-readable");
         expect(candidateV2Classes.sectionSpace).toBe("section-space");
+        expect(candidateV2Classes.onColorGlass).toBe("on-color-glass");
+        expect(candidateV2Classes.onColorAction).toBe("on-color-action");
     });
 
     it("renders a candidate V2 surface with semantic heading and copy", () => {

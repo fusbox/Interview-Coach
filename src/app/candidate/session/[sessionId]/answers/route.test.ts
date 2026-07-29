@@ -2,20 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createCandidateAnswerAnalysisProviderResultFixture } from "@/features/candidate-session-v2/candidate-answer-analysis-test-fixture";
 
-import { handleCandidateAnswerSubmitRequest, resolveCandidateAnswerSubmitIdentityFromDevLaunchCookie } from "./route-implementation";
+import { handleCandidateAnswerSubmitRequest } from "./route-implementation";
 
 describe("/candidate/session/[sessionId]/answers route", () => {
-    it("resolves explicit dev host-launch cookies for answer submit attempts", () => {
-        vi.stubEnv("CANDIDATE_HOST_LAUNCH_DEV_MODE", "true");
-        vi.stubEnv("CANDIDATE_HOST_LAUNCH_DEV_SECRET", "local-dev-shared-secret");
-
-        expect(resolveCandidateAnswerSubmitIdentityFromDevLaunchCookie(
-            "ic_candidate_launch_session=dev-host-launch-100001",
-        )).toEqual({
-            candidateProfileId: "10000000-0000-4000-8000-000000000001",
-        });
-    });
-
     it("persists a typed answer submission after candidate-owned session verification", async () => {
         const findSetupSession = vi.fn(async () => ({
             candidatePracticeSessionId: "session-1",

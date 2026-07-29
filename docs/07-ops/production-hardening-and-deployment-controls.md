@@ -1,7 +1,7 @@
 # Candidate Production Hardening And Deployment Controls
 
 Status: Ratified baseline; deployment acceptance pending
-Last updated: 2026-07-19
+Last updated: 2026-07-28
 
 ## Purpose
 
@@ -14,6 +14,8 @@ It does not approve a pilot or release. Real TA launch acceptance, organizationa
 Before deployment promotion:
 
 ```powershell
+vercel env pull ".env.vercel.production.local" --environment=production
+npm run env:check:vercel
 npm run lint
 npm run typecheck
 npm run test:candidate
@@ -21,6 +23,18 @@ npm run db:smoke-candidate-readiness
 npm run test:e2e:candidate-seeded
 npm run test:e2e:candidate-production
 ```
+
+The first command creates an ignored local snapshot of the environment currently configured on the
+linked Vercel project. Vercel replaces Sensitive values with `[SENSITIVE]` in that snapshot, so
+`env:check:vercel` proves required-variable presence and validates only values Vercel leaves readable.
+The strict `npm run env:check` mode must also run inside the deployment build/runtime environment,
+where it can validate shapes, bounds, canonical origins, exact provider/profile identities, and the
+absence of local fixture/fault controls without printing values.
+`vercel-app` covers the candidate, invited-candidate, and recruiter web deployment. Run `host-launch`,
+`ai-eval-worker`, and `ai-eval-retention` separately only when those add-ons are being deployed; they
+have different owners, secrets, and runtime postures and do not belong in the first Vercel promotion.
+The committed [.env.example](../../.env.example) is the complete current/future variable manifest, not
+a file to upload with blank placeholders.
 
 `test:e2e:candidate-production` creates isolated optimized output, starts `next start` on a free port, and then removes that output. It proves the public shell at desktop and mobile, WCAG 2.2 A/AA axe rules, no horizontal overflow, bounded local navigation/resource metrics, and production denial of dev launch and candidate prototype routes. It deliberately blanks database, launch, and Gemini credentials.
 
@@ -65,20 +79,21 @@ High-severity immediate alerts remain appropriate for suspected cross-candidate 
 | --- | --- | --- |
 | Local development | dev host launch plus fixture providers; local smoke Postgres | `.env.local` only; no committed secrets; direct `/candidate/dev/launch`; deterministic candidates |
 | CI production smoke | optimized production runtime with launch/database/provider secrets blank | isolated output and port; dev/prototype routes 404; no external network dependency |
-| TA staging | production launch verifier, TA MSSQL lookup, staging Postgres, approved Gemini profiles | HTTPS; host-minted two-minute single-use launch; query redaction; least-privilege DB users; staging-only secrets; metadata telemetry and alert test |
+| TA staging | production launch verifier, TA MSSQL lookup, staging Postgres, approved Gemini profiles | HTTPS; host-minted two-minute single-use launch; sensitive-query redaction; least-privilege DB users; staging-only secrets; metadata telemetry and alert test |
 | Production | same contracts as accepted staging with production-owned secret instances | explicit promotion evidence, secret rotation procedure, backup/rollback owner, post-deploy smoke, senior release approval |
 
 Configuration groups:
 
 - Postgres: `DATABASE_URL`.
 - Host verification/session: `CANDIDATE_HOST_LAUNCH_SECRET`, `CANDIDATE_HOST_LAUNCH_EXPECTED_ISSUER`, `CANDIDATE_HOST_LAUNCH_EXPECTED_WORKSPACE=talentarbor`, `CANDIDATE_HOST_LAUNCH_MAX_TOKEN_LIFETIME_SECONDS`, `CANDIDATE_HOST_LAUNCH_CLOCK_SKEW_SECONDS`, and `CANDIDATE_HOST_LAUNCH_SESSION_TTL_SECONDS`.
+- App-owned candidate accounts: `CANDIDATE_ACCOUNT_EMAIL_PROVIDER=smtp`, `CANDIDATE_ACCOUNT_PUBLIC_ORIGIN`, optional `CANDIDATE_ACCOUNT_FROM_EMAIL`, `CANDIDATE_EMAIL_VERIFICATION_TTL_SECONDS`, and explicit deployed versions for `CANDIDATE_TERMS_VERSION`, `CANDIDATE_PRIVACY_VERSION`, `CANDIDATE_COOKIE_VERSION`, `CANDIDATE_RESPONSIBLE_AI_VERSION`, and `CANDIDATE_CONTACT_AUTHORIZATION_VERSION`.
 - TA MSSQL: `CANDIDATE_HOST_LAUNCH_TA_SQL_SERVER`, `_PORT`, `_DATABASE`, `_USER`, `_PASSWORD`, `_ENCRYPT`, `_TRUST_SERVER_CERTIFICATE`, `_CONNECT_TIMEOUT_MS`, `_REQUEST_TIMEOUT_MS`, and `_POOL_MAX`.
 - Model selection: `CANDIDATE_QUESTION_WORDING_PROVIDER`/`_PROFILE`, `CANDIDATE_ANSWER_ANALYSIS_PROVIDER`/`_PROFILE`, `CANDIDATE_COACH_UPDATE_PROVIDER`/`_PROFILE`, and server-only `GEMINI_API_KEY`.
 - Operations: deployment id/environment metadata, durable metrics configuration, and the approved alert destination secret.
 
 The host/integration owner owns token minting, issuer, secret synchronization, quick-link behavior, and upstream query redaction. The IC deployment owner owns verifier/session settings, Postgres, MSSQL read credentials, provider profiles, telemetry, and rollback. Security owns secret-store and rotation policy. Product/AI owners approve serving profiles and candidate-facing behavior.
 
-Fixture/fault modes and `CANDIDATE_HOST_LAUNCH_DEV_MODE` must be unavailable when `NODE_ENV=production`.
+Fixture/fault modes, `CANDIDATE_ACCOUNT_EMAIL_PROVIDER=fixture`, and `CANDIDATE_HOST_LAUNCH_DEV_MODE` must be unavailable when `NODE_ENV=production`.
 
 ## Rollback Contract
 
@@ -99,9 +114,11 @@ Run in order:
 2. `/candidate/dev/launch`, `/candidate/dashboard-demo`, `/candidate/session-demo`, and `/candidate/settings-demo` return 404.
 3. Host mints a fresh staging URL through its authenticated UI. The token query is absent from CDN/proxy/application logs and is exchanged once into a clean `/candidate/*` URL plus the IC HttpOnly session cookie.
 4. Run identity-new, identity-returning, job-owned, replay, invalid-ownership, and invalid/expired credential cases from [TA Host Launch Live Acceptance](../09-dev/host-launch-live-acceptance.md).
-5. Complete one synthetic candidate setup, three-question text round, immediate coaching, dashboard return, Coach Update, one-question follow-up, pause/resume, and refresh/new-tab recovery using the approved staging provider profiles.
-6. Confirm metadata-only telemetry for each phase, expected dashboard/alert health, and no candidate content or credentials in logs.
-7. Run the shared-host recruiter regression checklist before promotion if recruiter/admin routes ship in the same deployment.
+5. Register one app-owned candidate and confirm that registration and resend remain enumeration-safe, the email-verification link requires an explicit POST before activation, an expired or replayed token is rejected, verified login succeeds, and logout revokes only the candidate app session.
+6. Confirm that `/candidate/launch?token=...`, `/s/[token]`, `/candidate/verify-email?token=...`, and `/candidate/reset-password?token=...` credentials are redacted from CDN, proxy, application, analytics, and error-reporting logs. Route-health telemetry may retain only the normalized route family.
+7. Complete one synthetic candidate setup, three-question text round, immediate coaching, dashboard return, Coach Update, one-question follow-up, pause/resume, and refresh/new-tab recovery using the approved staging provider profiles.
+8. Confirm metadata-only telemetry for each phase, expected dashboard/alert health, and no candidate content or credentials in logs.
+9. Run the shared-host recruiter regression checklist before promotion if recruiter/admin routes ship in the same deployment.
 
 The real host cases require fresh host-minted credentials. Local token minting, fabricated MSSQL rows, or manually set cookies are not substitutes for deployment acceptance.
 
@@ -127,4 +144,4 @@ Advisory references: [brace-expansion denial of service](https://github.com/advi
 - Re-audit the production tree after compatible Google SDK and Next/Sharp upgrades; record the owner and expiry for every temporary dependency-risk acceptance before pilot or release.
 - Complete the manual accessibility matrix and organizational AI/privacy approvals.
 - Run the senior release pass.
-- Resolve the public `Employee login` destination as part of recruiter/shared-host route ownership; `/login` is not implemented in the clean rebuild.
+- Confirm the public `Employee login` affordance continues to resolve to the app-owned recruiter `/login` boundary and never to candidate account entry.

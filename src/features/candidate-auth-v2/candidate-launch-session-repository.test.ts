@@ -34,6 +34,10 @@ describe("candidate launch session repository", () => {
             "candidate:12345",
         ]);
         expect(query).toHaveBeenCalledWith(expect.stringContaining("p.status = 'active'"), expect.any(Array));
+        expect(query).toHaveBeenCalledWith(
+            expect.stringContaining("p.app_user_id is null"),
+            expect.any(Array),
+        );
     });
 
     it("creates or refreshes a candidate profile from launch attributes", async () => {
@@ -63,6 +67,10 @@ describe("candidate launch session repository", () => {
         ]);
         expect(query).toHaveBeenCalledWith(
             expect.stringContaining("where candidate_profiles.status = 'active'"),
+            expect.any(Array),
+        );
+        expect(query).toHaveBeenCalledWith(
+            expect.stringContaining("candidate_profiles.app_user_id is null"),
             expect.any(Array),
         );
     });
@@ -118,6 +126,10 @@ describe("candidate launch session repository", () => {
             "talentarbor",
         ]);
         expect(query).toHaveBeenCalledWith(expect.stringContaining("and status = 'active'"), expect.any(Array));
+        expect(query).toHaveBeenCalledWith(
+            expect.stringContaining("and app_user_id is null"),
+            expect.any(Array),
+        );
     });
 
     it("detects whether identity-only launch should resume an existing prep context", async () => {
@@ -192,6 +204,10 @@ describe("candidate launch session repository", () => {
         ]);
         expect(query).toHaveBeenCalledWith(
             expect.stringContaining("insert into public.candidate_launch_setup_contexts"),
+            expect.any(Array),
+        );
+        expect(query).toHaveBeenCalledWith(
+            expect.stringContaining("profile.app_user_id is null"),
             expect.any(Array),
         );
     });

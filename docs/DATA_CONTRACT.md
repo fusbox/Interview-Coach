@@ -111,7 +111,7 @@ Contract rules:
 
 ### Candidate Identity
 
-Current candidate-owned behavior is anchored by a candidate profile resolved from auth handoff data.
+Current candidate-owned behavior is anchored by one opaque candidate profile resolved through either an app-owned account session or a host launch session.
 
 Important fields:
 
@@ -121,7 +121,17 @@ Important fields:
 - auth issuer;
 - auth subject.
 
-Local development uses explicit fixture candidates through `/candidate/dev/launch`, which resolves into the same app-owned candidate launch-session shape used after production exchange. Fixture identity and seeded examples are development data, not durable product semantics. Preview/password/mock auth scripts left from earlier app phases are compatibility debt and must not be treated as the V2 identity contract.
+App-owned candidate profiles use `workspace = "interview_coach"` and carry one unique nullable `app_user_id` binding to the shared app-auth principal. Authorization requires the same active app user to hold the `candidate` role. Host-created candidate profiles keep `app_user_id` null and retain their provider/issuer/subject identity mapping. Neither email nor normalized display name is a profile-linking key.
+
+The candidate audience cookie and host launch cookie are separate. A present candidate app-session cookie is authoritative for that request: invalid app-account access fails closed without consulting host launch. Host profile lookup, refresh, and launch-session creation require `candidate_profiles.app_user_id is null`. This prevents app-owned access from depending on host services and prevents host exchange from mutating an app-bound profile.
+
+Registration must atomically create the app user, password credential, candidate role, app-owned candidate profile, and profile binding before a candidate session can be issued. Full product access additionally requires verified email. Verification and reset credentials are random single-use bearer tokens stored only as hashes. Automatic host/app profile linking and history merging are not part of the first-release contract.
+
+Candidate password reset is one atomic credential boundary. Issuance applies only to an active, verified app user with the candidate role and one active `interview_coach` profile, supersedes earlier unused reset tokens, and returns no account-existence fact to the browser. Consumption locks the reset token and credential owner, rejects expired/used/replayed input, updates the scrypt hash, clears failed-login state, marks all reset tokens used, and revokes all active app sessions for that app user. It creates no new session and never touches `candidate_launch_sessions`. Reset-token rows, app-session rows, and auth-audit rows remain app-user facts; candidate-owned product data remains anchored to the unchanged `candidate_profile_id`.
+
+Candidate account rate limits use `rate_limit_buckets` with purpose-scoped one-way request-source digests. Audit metadata contains bounded reason/provider/revocation facts only. Raw email, phone, postal data, names, candidate ids, passwords, bearer tokens, and token hashes are excluded from bucket keys and audit metadata.
+
+Local development has two independent fixtures: explicit host candidates through `/candidate/dev/launch`, and app-account candidate seeds through the ordinary candidate login boundary. Fixture identity and seeded examples are development data, not durable product semantics.
 
 ### PrepProfile
 
@@ -183,9 +193,10 @@ Future prep-context evolution rules:
 - a later reconciliation service may compare a revised resume with current plan questions, propose slot/category-preserving one-for-one replacements, and version only candidate-accepted question replacements;
 - a candidate-initiated interview-stage change creates a new linked `role_profile_id` with blank evidence. Stage lineage and update UI are not yet implemented.
 
-Production identity rule:
+Production identity rules:
 
-- Production `/candidate/setup` requires an active verified launch-session identity.
+- Production `/candidate/setup` requires an active candidate principal from either app-owned account access or verified host launch.
+- App-owned access can create manual candidate-owned prep profiles and never receives host source metadata.
 - Identity-only launch may create a manual candidate-owned prep profile when the candidate has no existing path; it never receives host source metadata.
 - Job-aware prep profiles are found or created from candidate identity plus source platform and owned `JobCollectionID`; optional `RequirementID` is retained for later richer identity.
 - Canonical host role/JD is server-staged and read-only. Browser-supplied mutation cannot be labeled or resolved as host-platform identity.
@@ -515,6 +526,18 @@ Rules:
 - identity-only launch does not infer a job, and an invalid or unowned requested job does not downgrade to identity-only success;
 - provider/issuer/subject identity mappings cannot be silently relinked to another platform candidate, and disabled candidate profiles remain fail-closed;
 - launch-context absence of resume or consent fields means those domains were not queried, not that the candidate lacks a resume or consent.
+
+### App-owned candidate registration
+
+- `app_users` owns the login email, password credential relationship, first/last/display name, email verification timestamp, status, and shared app-session relationship.
+- An app-owned candidate has exactly one active `candidate_profiles` ownership anchor with `workspace = "interview_coach"` and the same `app_user_id`.
+- Candidate registration profile data extends that anchor with normalized E.164 phone, nullable phone-verification time, `US` country code, and text ZIP/postal code. Phone and postal values are integration/profile facts, not authenticators.
+- Candidate contact preferences are current mutable channel state. They cannot be interpreted as legal acceptance without a corresponding consent receipt.
+- Candidate consent receipts are append-only facts carrying decision type, document key or authorization scope, explicit version, canonical URI where applicable, collection surface, timestamp, and bounded request metadata.
+- Registration atomically creates the app user, credential, candidate role, candidate profile, registration profile, contact preferences, required receipts, and one hashed email-verification token. Provider delivery occurs afterward and may be retried without recreating identity facts.
+- Duplicate or concurrent registration attempts for the same normalized email do not create a second user, candidate profile, or receipt set. Public responses do not disclose whether the address already exists.
+- Email-verification GET requests never consume tokens. A same-origin POST atomically consumes one unexpired token, verifies the user, and invalidates sibling tokens. Replaying an already consumed token converges to the already-verified state.
+- No app-owned registration path queries or mutates host identity, MSSQL launch context, trusted-host staging, or external candidate mappings. Future TA reconciliation uses a separate explicit external-identity mapping and never copies Interview Coach password hashes.
 
 ### CandidateHostLaunchSetupContext
 
