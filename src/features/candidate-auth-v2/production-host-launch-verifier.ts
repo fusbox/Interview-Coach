@@ -70,7 +70,12 @@ type CandidateProductionHostLaunchClaims = JWTPayload & {
     candidate_id?: unknown;
     product?: unknown;
     email?: unknown;
+    name?: unknown;
+    display_name?: unknown;
     job_collection_id?: unknown;
+    requirement_id?: unknown;
+    talent_channel_id?: unknown;
+    client_id?: unknown;
     host_domain?: unknown;
     source_surface?: unknown;
     source_portal?: unknown;
@@ -247,7 +252,7 @@ export async function verifyCandidateProductionHostLaunchToken({
             issuer,
             subject: `candidate:${candidateId}`,
             email,
-            displayName: null,
+            displayName: readOptionalStringClaim(claims.name) ?? readOptionalStringClaim(claims.display_name),
             workspace: expectedWorkspace,
             product,
             expiresAt: new Date(expiresAtSeconds * 1000).toISOString(),
@@ -258,6 +263,9 @@ export async function verifyCandidateProductionHostLaunchToken({
             talentArborId: expectedWorkspace === "talentarbor" ? candidateId : null,
             rangamWorksId: expectedWorkspace === "rangamworks" ? candidateId : null,
             jobCollectionId: readOptionalStringClaim(claims.job_collection_id),
+            requirementId: readOptionalStringClaim(claims.requirement_id),
+            talentChannelId: readOptionalStringClaim(claims.talent_channel_id),
+            clientId: readOptionalStringClaim(claims.client_id),
             hostDomain: readOptionalStringClaim(claims.host_domain),
             sourceSurface: readOptionalStringClaim(claims.source_surface),
         },

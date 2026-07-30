@@ -112,19 +112,36 @@ An authorization or database failure must fail closed rather than being presente
 
 ### Host Launch Token
 
-The July 6, 2026 integration discussion clarified the expected production handoff shape:
+TalentArbor hands off through a short-lived signed JWT. Interview Coach validates that token before any product work, then exchanges it for an app-owned host-launch session cookie.
 
-- TalentArbor/RangamWorks will redirect the candidate to Interview Coach with a token in a query parameter.
-- The token is expected to be long and URL-safe.
-- The token is expected to be JWT-like and signed with a shared secret stored only on the TalentArbor/RangamWorks server side and the Interview Coach server side.
-- Interview Coach must verify the token signature server-side before trusting any claim.
-- The token includes standard numeric `iat` and `exp` claims. Interview Coach currently accepts at most a two-minute launch lifetime.
-- The token includes a product claim. Current integration understanding expects `product: "interview-coach"`. Interview Coach should validate that the product is Interview Coach, but it does not need to store the product value.
-- The token payload should identify the candidate enough to resolve or create an Interview Coach candidate profile and map that profile to host-side identity such as email, user id, candidate id, TalentArbor id, or RangamWorks id.
-- If a host-authenticated candidate is new to Interview Coach, Interview Coach creates the candidate profile/identity mapping after token verification.
-- After verification and profile resolution, Interview Coach should establish its own candidate session and redirect to a canonical candidate route without leaving the token-bearing URL in normal navigation.
-- The launch token is one-time. Interview Coach stores only a SHA-256 fingerprint plus optional issuer-scoped `jti`; a second exchange fails closed and cannot recover the first app session.
-- A dashboard quick-link may identify only the candidate. Job-aware launch additionally carries `job_collection_id`, but job context is not an authentication prerequisite.
+Canonical entry:
+
+```text
+https://interviewcoach.talentarbor.com/candidate/launch?token=<signed-jwt>
+```
+
+The `token` query value may optionally include a leading `Bearer ` prefix (flowchart form). Interview Coach strips that prefix before HS256 verification. Unsigned `candidateId` / `requirementId` query parameters are never an authentication path.
+
+Required claims: `candidate_id`, `email`, `product` (`interview-coach`), `iss`, numeric `iat`, numeric `exp`. Optional claims: `jti`, `name` / `display_name`, `source_portal`, `source_surface`, `host_domain`, `job_collection_id`, `requirement_id`, `talent_channel_id`, `client_id`.
+
+Job-aware launch uses TalentArbor job-page branching after the token is verified:
+
+- `talent_channel_id == 0` or only `job_collection_id` → `Usp_SC_GET_JobCollection_ById` (`JobCollection`);
+- `talent_channel_id > 0` → `Usp_SC_JobSeeker_Get_JobRequirementDetails` (`RequirementMaster`; requires `client_id`);
+- RequirementMaster staging uses a stable IC catalog key `rm:{requirementId}` as `jobCollectionId` because setup staging requires a non-null job collection key, while `requirement_id` stores the real RequirementMaster id.
+
+Ownership key is the signed `candidate_id`, not email alone. After TA `CandidateMaster` lookup, the token email must match the canonical database email (case-insensitive). Mismatch fails closed. Display name prefers TA profile fields, then optional token `name` / `display_name`.
+
+Resume HTML is not a launch authentication prerequisite. When identity is proved, Interview Coach may call `USP_AI_Get_CandidateHTMLResume`, convert HTML to text, scrub through the trusted-host resume processor, and stage an awaiting-review artifact. Empty or failed resume prefetch leaves setup open for paste/upload and must not fail the launch exchange. Resume bodies never appear in the JWT, cookie, URL, or compact launch snapshot.
+
+Other durable rules:
+
+- Interview Coach verifies signature, algorithm, issuer, product, source portal, numeric dates, and lifetime server-side using `CANDIDATE_HOST_LAUNCH_SECRET` before trusting any claim.
+- Default maximum launch lifetime remains 120 seconds and is capped at 15 minutes by configuration.
+- New host candidates resolve-or-create an Interview Coach profile and identity mapping after verification.
+- After exchange, Interview Coach sets `ic_candidate_launch_session` (`HttpOnly`, `SameSite=Lax`, `/candidate`) and redirects to a clean `/candidate/setup` or `/candidate/dashboard` URL with no token.
+- The launch token is one-time. Interview Coach stores only a SHA-256 fingerprint plus optional issuer-scoped `jti`; a second exchange fails closed.
+- A dashboard quick-link may identify only the candidate. Job context is not an authentication prerequisite.
 
 Current V2 scaffold:
 

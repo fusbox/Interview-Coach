@@ -1,5 +1,6 @@
 import {
     resolveCandidateLaunchContext,
+    type CandidateLaunchContext,
     type CandidateLaunchContextLookupInput,
 } from "./candidate-launch-context";
 import { createCandidateLaunchSessionRepository } from "./candidate-launch-session-repository";
@@ -22,6 +23,7 @@ import {
     type TalentArborMssqlConfig,
 } from "./talentarbor-mssql-runtime";
 import { createCandidatePostgresQueryClient } from "./candidate-postgres-runtime";
+import { createCandidateResumeTextArtifactRepository } from "@/features/candidate-setup-v2/candidate-resume-text-artifact-repository";
 
 export const CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV = "DATABASE_URL";
 export const CANDIDATE_HOST_LAUNCH_SESSION_TTL_SECONDS_ENV = "CANDIDATE_HOST_LAUNCH_SESSION_TTL_SECONDS";
@@ -57,7 +59,9 @@ export function createCandidateProductionHostLaunchRouteDependencies({
     const verifyConfiguredToken = createCandidateProductionHostLaunchVerifier(env, {
         onDiagnostic: onVerificationDiagnostic,
     });
-    const sessionRepository = createCandidateLaunchSessionRepository(createCandidatePostgresQueryClient(databaseUrl));
+    const queryClient = createCandidatePostgresQueryClient(databaseUrl);
+    const sessionRepository = createCandidateLaunchSessionRepository(queryClient);
+    const resumeRepository = createCandidateResumeTextArtifactRepository(queryClient);
     const lookupLaunchContext = createTalentArborLookup(talentArborConfig.config);
 
     return {
@@ -90,14 +94,53 @@ export function createCandidateProductionHostLaunchRouteDependencies({
                 repository: sessionRepository,
             });
 
-            return session.ok
-                ? { ok: true, ...session.session }
-                : {
+            if (!session.ok) {
+                return {
                     ok: false,
                     reason: session.reason === "replayed_token" ? "replayed_token" : "invalid_identity",
                 };
+            }
+
+            await stageTrustedHostResume({
+                candidateProfileId: session.session.candidateProfileId,
+                launchContext: launchContext.context,
+                resumeRepository,
+                now,
+            });
+
+            return { ok: true, ...session.session };
         },
     };
+}
+
+async function stageTrustedHostResume({
+    candidateProfileId,
+    launchContext,
+    resumeRepository,
+    now,
+}: {
+    candidateProfileId: string;
+    launchContext: CandidateLaunchContext;
+    resumeRepository: ReturnType<typeof createCandidateResumeTextArtifactRepository>;
+    now: Date;
+}) {
+    const resumePlainText = launchContext.resumePlainText?.trim();
+    if (!resumePlainText) {
+        return;
+    }
+
+    try {
+        await resumeRepository.createOrRecoverReviewArtifact({
+            candidateProfileId,
+            source: "trusted_host",
+            text: resumePlainText,
+            candidateLabel: launchContext.candidate.displayName,
+            now,
+        });
+    } catch {
+        // Resume prefetch is best-effort and must never fail the launch exchange.
+        console.warn("[candidate-host-launch] trusted-host resume staging skipped");
+    }
 }
 
 function createDefaultTalentArborLookup(config: TalentArborMssqlConfig) {
@@ -114,6 +157,9 @@ function toLaunchContextLookupInput(
     return {
         candidateId: handoff.launchContextHint.candidateId,
         jobCollectionId: handoff.launchContextHint.jobCollectionId,
+        requirementId: handoff.launchContextHint.requirementId,
+        talentChannelId: handoff.launchContextHint.talentChannelId,
+        clientId: handoff.launchContextHint.clientId,
         hostDomain: handoff.launchContextHint.hostDomain,
         sourceSurface: handoff.launchContextHint.sourceSurface,
     };

@@ -30,6 +30,7 @@
     "qa:candidate:voice-transcription-live": "tsx scripts/run-voice-transcription-live-validation.ts",
     "qa:candidate:voice-transcription-browser-fixtures": "tsx scripts/generate-voice-transcription-browser-fixtures.ts",
     "qa:candidate:host-launch": "tsx scripts/run-candidate-host-launch-acceptance.ts",
+    "qa:candidate:mint-host-launch-token": "tsx scripts/mint-candidate-host-launch-token.ts",
     "qa:recruiter:smtp-live": "tsx scripts/run-recruiter-smtp-live-validation.ts",
     "qa:ai-eval:scenario-worker": "tsx scripts/run-ai-eval-scenario-worker.ts",
     "qa:ai-eval:scenario-worker:live": "tsx scripts/run-ai-eval-scenario-worker.ts --live --confirm-live --once",

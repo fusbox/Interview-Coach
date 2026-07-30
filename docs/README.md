@@ -50,6 +50,7 @@ Every active document must have one clear job. Slice history and long validation
 - [Practice Setup Scope](./02-requirements/practice-setup-scope.md)
 - [Authenticated Candidate Access](./02-requirements/authenticated-candidate-access.md)
 - [Host Launch Implementation](./09-dev/host-launch-api-implementation.md)
+- [Host Launch Local Token Mint](./09-dev/host-launch-local-token-mint.md)
 - [Host Launch Acceptance](./09-dev/host-launch-live-acceptance.md)
 - [Storage And Resume Ingestion](./04-architecture/storage-and-resume-ingestion.md)
 

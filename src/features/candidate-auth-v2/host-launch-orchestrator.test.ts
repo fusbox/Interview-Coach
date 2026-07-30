@@ -27,7 +27,7 @@ describe("candidate host launch orchestration boundary", () => {
         candidateId: 12345,
         userId: 67890,
         companyId: 2,
-        email: "context@example.com",
+        email: "candidate@example.com",
         displayName: "Context Candidate",
         hostDomain: "talentarbor.com",
         sourceSurface: "TA_JOB_SEARCH",
@@ -85,6 +85,9 @@ describe("candidate host launch orchestration boundary", () => {
         expect(lookupLaunchContext).toHaveBeenCalledWith({
             candidateId: "12345",
             jobCollectionId: "555",
+            requirementId: null,
+            talentChannelId: null,
+            clientId: null,
             hostDomain: "talentarbor.com",
             sourceSurface: "TA_JOB_SEARCH",
         });
@@ -113,6 +116,16 @@ describe("candidate host launch orchestration boundary", () => {
         const lookupLaunchContext = vi.fn(async () => ({
             ...launchContextRow,
             jobCollectionId: null,
+            requirementId: null,
+            requirementCode: null,
+            jobTitle: null,
+            jobDescription: null,
+            jobDescriptionSource: null,
+            client: null,
+            location: null,
+            isActive: null,
+            isExpired: null,
+            expirationDate: null,
         }));
         const sessionRepository = {
             findProfileByIdentity: vi.fn(async () => ({

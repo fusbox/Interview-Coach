@@ -88,6 +88,9 @@ function toLaunchContextLookupInput(
     return {
         candidateId: handoff.launchContextHint.candidateId,
         jobCollectionId: handoff.launchContextHint.jobCollectionId,
+        requirementId: handoff.launchContextHint.requirementId,
+        talentChannelId: handoff.launchContextHint.talentChannelId,
+        clientId: handoff.launchContextHint.clientId,
         hostDomain: handoff.launchContextHint.hostDomain,
         sourceSurface: handoff.launchContextHint.sourceSurface,
     };

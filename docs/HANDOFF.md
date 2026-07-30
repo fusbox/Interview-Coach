@@ -1,8 +1,8 @@
 # Interview Coach V2 Handoff
 
 Status: Active resumption contract
-Last updated: 2026-07-29
-Current branch: `feature/candidate-v2-rebuild`
+Last updated: 2026-07-30
+Current branch: `release/njcareers`
 
 ## Resume Here
 
@@ -26,6 +26,8 @@ Before a meaningful workflow slice, inspect matching V1 behavior from `feature/c
 195. Run the post-UI V14/V15 evaluator calibration gate. Start with the focused technical-boundary, answer-usability, criterion-availability, and strong-answer cases, then run the complete credentialed scenario set. Compare candidate-visible coaching, question-preparedness bands, Coach Update framing, and execution/assertion failures against the accepted fixture baseline. Do not promote a serving profile, alter evaluator meaning, or expand provider cost without separate review.
 
 Alongside Slice 195, prioritize broader operation cleanup jobs, dependency disposition, telemetry/alert sinks, and release evidence. Real TA staging integration remains dependent on final host/network access and upstream acceptance details.
+
+Active integration slice: TalentArbor JWT gateway hardening plus JobCollection/RequirementMaster SP job prefetch and optional `USP_AI_Get_CandidateHTMLResume` trusted-host resume staging. Local mint runbook: [Host Launch Local Token Mint](./09-dev/host-launch-local-token-mint.md).
 
 ### Production UI Lane
 

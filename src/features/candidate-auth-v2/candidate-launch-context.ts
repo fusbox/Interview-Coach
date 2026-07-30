@@ -32,6 +32,7 @@ export type CandidateLaunchContext = {
         talentChannelId: string | null;
     };
     job: CandidateLaunchJobContext | null;
+    resumePlainText: string | null;
 };
 
 export type CandidateLaunchContextRow = {
@@ -54,11 +55,16 @@ export type CandidateLaunchContextRow = {
     isActive?: unknown;
     isExpired?: unknown;
     expirationDate?: unknown;
+    resumeHtmlContent?: unknown;
+    resumePlainText?: unknown;
 } | null;
 
 export type CandidateLaunchContextLookupInput = {
     candidateId: string;
     jobCollectionId: string | null;
+    requirementId: string | null;
+    talentChannelId: string | null;
+    clientId: string | null;
     hostDomain: string | null;
     sourceSurface: string;
 };
@@ -130,6 +136,8 @@ export function normalizeCandidateLaunchContextRow(row: CandidateLaunchContextRo
                 talentChannelId: toNullableString(row.talentChannelId),
             },
             job: job.context,
+            resumePlainText: toNullableString(row.resumePlainText)
+                ?? htmlResumeToPlainText(row.resumeHtmlContent),
         },
     };
 }
@@ -138,7 +146,8 @@ function normalizeJobContext(row: Exclude<CandidateLaunchContextRow, null>):
     | { ok: true; context: CandidateLaunchJobContext | null }
     | { ok: false; reason: CandidateLaunchContextFailureReason } {
     const jobCollectionId = toNullableString(row.jobCollectionId);
-    if (!jobCollectionId) {
+    const requirementId = toNullableString(row.requirementId);
+    if (!jobCollectionId && !requirementId) {
         return { ok: true, context: null };
     }
 
@@ -160,8 +169,8 @@ function normalizeJobContext(row: Exclude<CandidateLaunchContextRow, null>):
     return {
         ok: true,
         context: {
-            jobCollectionId,
-            requirementId: toNullableString(row.requirementId),
+            jobCollectionId: jobCollectionId ?? `rm:${requirementId}`,
+            requirementId,
             requirementCode: toNullableString(row.requirementCode),
             title,
             description,
@@ -213,6 +222,38 @@ function toNullableBoolean(value: unknown) {
     }
 
     return null;
+}
+
+export function htmlResumeToPlainText(value: unknown) {
+    const html = toNullableString(value);
+    if (!html) {
+        return null;
+    }
+
+    const withoutScripts = html
+        .replace(/<script[\s\S]*?<\/script>/gi, " ")
+        .replace(/<style[\s\S]*?<\/style>/gi, " ");
+    const withBreaks = withoutScripts
+        .replace(/<\s*br\s*\/?>/gi, "\n")
+        .replace(/<\/\s*p\s*>/gi, "\n")
+        .replace(/<\/\s*div\s*>/gi, "\n")
+        .replace(/<\/\s*li\s*>/gi, "\n")
+        .replace(/<\/\s*tr\s*>/gi, "\n")
+        .replace(/<\/\s*h[1-6]\s*>/gi, "\n");
+    const plain = withBreaks
+        .replace(/<[^>]+>/g, " ")
+        .replace(/&nbsp;/gi, " ")
+        .replace(/&amp;/gi, "&")
+        .replace(/&lt;/gi, "<")
+        .replace(/&gt;/gi, ">")
+        .replace(/&quot;/gi, "\"")
+        .replace(/&#39;/gi, "'")
+        .replace(/[ \t]+\n/g, "\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .replace(/[ \t]{2,}/g, " ")
+        .trim();
+
+    return plain || null;
 }
 
 function fail(reason: CandidateLaunchContextFailureReason): { ok: false; reason: CandidateLaunchContextFailureReason } {

@@ -238,7 +238,21 @@ function hasIdentityContextMismatch(
         handoff.externalIds.talentArborId,
     );
 
-    return Boolean(hostCandidateId && hostCandidateId !== launchContext.candidate.candidateId);
+    if (hostCandidateId && hostCandidateId !== launchContext.candidate.candidateId) {
+        return true;
+    }
+
+    const tokenEmail = normalizeEmail(handoff.email);
+    const databaseEmail = normalizeEmail(launchContext.candidate.email);
+    if (tokenEmail && databaseEmail && tokenEmail !== databaseEmail) {
+        return true;
+    }
+
+    return false;
+}
+
+function normalizeEmail(value: string | null | undefined) {
+    return value?.trim().toLowerCase() || null;
 }
 
 function firstNonEmpty(...values: Array<string | null | undefined>) {

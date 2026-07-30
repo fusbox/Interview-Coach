@@ -57,6 +57,7 @@ describe("candidate setup entry context", () => {
                     isExpired: false,
                     expirationDate: null,
                 },
+                resumePlainText: null,
             },
         })).toMatchObject({
             sourcePlatform: "talentarbor",
