@@ -30,7 +30,9 @@ export function createCandidateLoginRouteHandler(dependencies: {
                 {},
                 {
                     requiredRole: "candidate",
-                    requireVerifiedEmail: true,
+                    // ponytail: email verification temporarily disabled for signup/login testing.
+                    // Re-enable by uncommenting the line below once SMTP delivery is confirmed.
+                    // requireVerifiedEmail: true,
                     requireCandidateProfile: true,
                 },
             );

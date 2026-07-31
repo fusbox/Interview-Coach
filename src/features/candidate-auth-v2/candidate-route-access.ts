@@ -87,7 +87,9 @@ async function resolveAppAccountAccess(
           join public.app_users app_user
             on app_user.user_id = session.user_id
            and app_user.status = 'active'
-           and app_user.email_verified_at is not null
+           -- ponytail: email verification temporarily disabled for signup/login testing.
+           -- Re-enable by uncommenting the line below once SMTP delivery is confirmed.
+           -- and app_user.email_verified_at is not null
           join public.app_user_roles app_role
             on app_role.user_id = app_user.user_id
            and app_role.role = 'candidate'

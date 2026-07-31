@@ -173,8 +173,9 @@ describe("candidate account routes", () => {
             { userAgent: null, ipAddress: null },
             {},
             {
+                // ponytail: email verification temporarily disabled for signup/login testing.
+                // Restore requireVerifiedEmail: true once route-implementation.ts re-enables it.
                 requiredRole: "candidate",
-                requireVerifiedEmail: true,
                 requireCandidateProfile: true,
             },
         );
