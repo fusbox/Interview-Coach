@@ -93,6 +93,38 @@ describe("candidate setup prep-context repository", () => {
         ]);
     });
 
+    it("preserves multiline host job descriptions instead of collapsing whitespace", async () => {
+        const jobDescription = "**FULL-TIME**  Part-time\n  \n\n  \n**LOCATION**  Issaquah WA";
+        const trusted = {
+            ...trustedSetupContext(),
+            targetRole: "Sales and Service Associate",
+            jobDescription,
+            jobDescriptionHash: sha256(jobDescription),
+        };
+        const query = vi.fn()
+            .mockResolvedValueOnce({ rows: [] })
+            .mockResolvedValueOnce({ rows: [{ role_profile_id: "host-multiline-profile" }] });
+        const repository = createCandidateSetupPrepContextRepository({ query });
+
+        await expect(repository.resolveSetupPrepContext({
+            candidateProfileId: "candidate-1",
+            trustedLaunchSessionId: "launch-session-1",
+            trustedLaunchContext: trusted,
+            allowManualCreation: true,
+            setupSnapshot: setupSnapshot({
+                targetRole: trusted.targetRole,
+                jobDescription,
+            }),
+        })).resolves.toEqual({
+            status: "resolved",
+            roleProfileId: "host-multiline-profile",
+            resolution: "created",
+        });
+
+        expect(query.mock.calls[1][1]?.[3]).toBe(jobDescription);
+        expect(query.mock.calls[1][1]?.[4]).toBe(sha256(jobDescription));
+    });
+
     it("keys an existing host path by platform job identity rather than matching role text", async () => {
         const query = vi.fn(async () => ({
             rows: [matchRow({ role_profile_id: "existing-host-profile" })],

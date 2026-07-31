@@ -240,21 +240,25 @@ function createCandidateHostPrepContextKey(
     trusted: CandidateTrustedSetupContext,
     setupSnapshot: CandidateSetupSessionCreationResult["setupSnapshot"],
 ): CandidateHostPrepContextKey | null {
-    const canonical = createCandidateManualPrepContextKey({
-        targetRole: trusted.targetRole,
-        jobDescription: trusted.jobDescription,
-    });
+    // Host-trusted role/JD are exact snapshots from launch staging. Do not collapse
+    // whitespace the way manual keys do — TalentArbor JDs keep newlines/spacing, and
+    // jobDescriptionHash is sha256 of that exact text.
+    const targetRole = trusted.targetRole.trim();
+    const jobDescription = trusted.jobDescription;
+    const jobDescriptionHash = createHash("sha256").update(jobDescription).digest("hex");
     if (
-        setupSnapshot.targetRole !== canonical.targetRole
-        || setupSnapshot.jobDescription !== canonical.jobDescription
-        || trusted.jobDescriptionHash !== canonical.jobDescriptionHash
+        !targetRole
+        || !jobDescription.trim()
+        || setupSnapshot.targetRole !== trusted.targetRole
+        || setupSnapshot.jobDescription !== jobDescription
+        || trusted.jobDescriptionHash !== jobDescriptionHash
     ) {
         return null;
     }
 
     return {
         ...trusted,
-        normalizedTargetRole: canonical.normalizedTargetRole,
+        normalizedTargetRole: targetRole.toLowerCase(),
     };
 }
 
