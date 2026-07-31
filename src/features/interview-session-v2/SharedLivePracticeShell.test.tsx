@@ -54,6 +54,10 @@ describe("SharedLivePracticeShell", () => {
             />,
         );
 
+        expect(screen.getByRole("img", { name: "NJ Career" })).toHaveAttribute(
+            "src",
+            expect.stringContaining("njcareer-logo.png"),
+        );
         expect(screen.getByText("Material Handler")).toBeInTheDocument();
         expect(screen.getByText("Question 2 of 3")).toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "Question 2" })).toBeInTheDocument();

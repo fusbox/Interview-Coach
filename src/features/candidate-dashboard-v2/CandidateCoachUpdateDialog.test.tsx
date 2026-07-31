@@ -23,6 +23,10 @@ describe("CandidateCoachUpdateDialog", () => {
         expect(within(evidence as HTMLElement).queryByText("What I noticed")).not.toBeInTheDocument();
         expect(within(currentSlide).getByText("What I noticed")).toBeInTheDocument();
         expect(within(currentSlide).getByText("Try next")).toBeInTheDocument();
+        expect(within(currentSlide).getByLabelText("What to try next for question 1"))
+            .toHaveClass("candidate-answer-review__next");
+        expect(within(currentSlide).getByLabelText("What to try next for question 1"))
+            .not.toHaveClass("surface-orange");
         expect(within(currentSlide).getByText("Name the measurable customer outcome.")).toBeInTheDocument();
     });
 

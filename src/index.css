@@ -14582,10 +14582,31 @@ button.candidate-dashboard-action:disabled {
 .candidate-dashboard-topbar__inner.app-grid {
     width: min(calc(100% - 2rem), var(--dashboard-canvas-max-width));
     min-height: auto;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: var(--space-2);
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
     margin-inline: auto;
     padding: var(--space-4) 0 var(--space-3);
+}
+
+.candidate-dashboard-brand-row,
+.candidate-dashboard-control-row {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.candidate-dashboard-brand-mark {
+    width: auto;
+    height: var(--space-9);
+    object-fit: contain;
+}
+
+.candidate-dashboard-control-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2);
 }
 
 .candidate-dashboard-account {
@@ -15758,6 +15779,13 @@ button.candidate-dashboard-action:disabled {
     gap: var(--space-3);
     align-items: start;
     padding: var(--space-4);
+}
+
+.candidate-answer-review__next {
+    border: 0;
+    border-radius: var(--radius-card);
+    background: rgb(var(--surface-base));
+    box-shadow: var(--shadow-soft);
 }
 
 .candidate-answer-review__icon {

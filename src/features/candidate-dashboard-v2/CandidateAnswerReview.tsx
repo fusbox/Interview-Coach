@@ -62,7 +62,7 @@ export function CandidateAnswerReview({
             ) : null}
 
             <aside
-                className="candidate-answer-review__next surface-orange"
+                className="candidate-answer-review__next"
                 aria-label={`What to try next for question ${item.questionNumber}`}
             >
                 <span className="candidate-answer-review__icon" aria-hidden="true">

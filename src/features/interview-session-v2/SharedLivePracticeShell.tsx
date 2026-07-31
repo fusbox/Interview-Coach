@@ -15,6 +15,7 @@ import {
     SendHorizontal,
     Square,
 } from "lucide-react";
+import Image from "next/image";
 import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
 
@@ -178,6 +179,17 @@ export function SharedLivePracticeShell({
     if (!currentQuestion) {
         return (
             <main className={styles.missingShell}>
+                <header className={styles.missingHeader} aria-label="Practice header">
+                    <Image
+                        src="/njcareer-logo.png"
+                        alt="NJ Career"
+                        width={520}
+                        height={120}
+                        className={styles.brandMark}
+                        priority
+                        unoptimized
+                    />
+                </header>
                 <Surface
                     as="section"
                     className={styles.missing}
@@ -246,6 +258,17 @@ export function SharedLivePracticeShell({
             <main className={styles.shell} data-interaction-gated={interactionGateActive || undefined}>
             <header className={styles.header}>
                 <div className={styles.headerInner}>
+                    <div className={styles.brandRow}>
+                        <Image
+                            src="/njcareer-logo.png"
+                            alt="NJ Career"
+                            width={520}
+                            height={120}
+                            className={styles.brandMark}
+                            priority
+                            unoptimized
+                        />
+                    </div>
                     <div className={styles.headerTop}>
                         <div className={styles.identity}>
                             <p title={facts.targetRole}>{facts.targetRole}</p>

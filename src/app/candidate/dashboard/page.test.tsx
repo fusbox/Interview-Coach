@@ -16,6 +16,10 @@ it("renders the candidate dashboard route shell", async () => {
     render(await CandidateDashboardPage());
 
     expect(screen.getByRole("banner", { name: "Dashboard header" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "NJ Career" })).toHaveAttribute(
+        "src",
+        expect.stringContaining("njcareer-logo.png"),
+    );
     expect(screen.getByRole("heading", { name: "Build your first practice plan." })).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "Set up practice" })).toHaveLength(2);
 });

@@ -1,4 +1,5 @@
 import { ArrowRight, Briefcase, ChevronDown, ClipboardList, Plus } from "lucide-react";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 
 import { CandidateLogoutButton } from "@/features/candidate-auth-v2/CandidateLogoutButton";
@@ -160,66 +161,79 @@ function CandidateDashboardShellHeader({
     return (
         <header className="candidate-dashboard-topbar" aria-label="Dashboard header">
             <div className="candidate-dashboard-topbar__inner app-grid">
-                <div className="candidate-dashboard-account">
-                    <div
-                        className="candidate-dashboard-identity"
-                        role="img"
-                        aria-label={`Signed in as ${displayName || email || "candidate"}`}
-                    >
-                        {getCandidateInitials(displayName, email)}
+                <div className="candidate-dashboard-brand-row">
+                    <Image
+                        src="/njcareer-logo.png"
+                        alt="NJ Career"
+                        width={520}
+                        height={120}
+                        className="candidate-dashboard-brand-mark"
+                        priority
+                        unoptimized
+                    />
+                    <div className="candidate-dashboard-account">
+                        <div
+                            className="candidate-dashboard-identity"
+                            role="img"
+                            aria-label={`Signed in as ${displayName || email || "candidate"}`}
+                        >
+                            {getCandidateInitials(displayName, email)}
+                        </div>
+                        {showAccountLogout ? (
+                            <CandidateLogoutButton className="candidate-dashboard-logout" iconOnly />
+                        ) : null}
                     </div>
-                    {showAccountLogout ? (
-                        <CandidateLogoutButton className="candidate-dashboard-logout" iconOnly />
-                    ) : null}
                 </div>
 
-                {selectedTargetInterview ? (
-                    <details className="candidate-dashboard-context-menu">
-                        <summary>
-                            <Briefcase size={16} aria-hidden="true" />
-                            <span>
-                                <strong>{selectedTargetInterview.targetRole}</strong>
-                            </span>
-                            <ChevronDown size={18} aria-hidden="true" />
-                        </summary>
-                        <div className="candidate-dashboard-context-menu__popover">
-                            <p className="type-eyebrow">Your prep contexts</p>
-                            <div className="candidate-dashboard-context-menu__current" aria-current="page">
-                                <strong>{selectedTargetInterview.targetRole}</strong>
-                                <span>{formatTargetInterviewProgress(selectedTargetInterview)}</span>
-                            </div>
-                            {alternateTargetInterviews.map((targetInterview) => (
-                                <a
-                                    key={targetInterview.id}
-                                    href={createCandidateDashboardTargetInterviewHref(targetInterview)}
-                                >
-                                    <strong>{targetInterview.targetRole}</strong>
-                                    <span>{formatTargetInterviewProgress(targetInterview)}</span>
+                <div className="candidate-dashboard-control-row">
+                    {selectedTargetInterview ? (
+                        <details className="candidate-dashboard-context-menu">
+                            <summary>
+                                <Briefcase size={16} aria-hidden="true" />
+                                <span>
+                                    <strong>{selectedTargetInterview.targetRole}</strong>
+                                </span>
+                                <ChevronDown size={18} aria-hidden="true" />
+                            </summary>
+                            <div className="candidate-dashboard-context-menu__popover">
+                                <p className="type-eyebrow">Your prep contexts</p>
+                                <div className="candidate-dashboard-context-menu__current" aria-current="page">
+                                    <strong>{selectedTargetInterview.targetRole}</strong>
+                                    <span>{formatTargetInterviewProgress(selectedTargetInterview)}</span>
+                                </div>
+                                {alternateTargetInterviews.map((targetInterview) => (
+                                    <a
+                                        key={targetInterview.id}
+                                        href={createCandidateDashboardTargetInterviewHref(targetInterview)}
+                                    >
+                                        <strong>{targetInterview.targetRole}</strong>
+                                        <span>{formatTargetInterviewProgress(targetInterview)}</span>
+                                    </a>
+                                ))}
+                                <a className="candidate-dashboard-context-menu__new" href="/candidate/setup">
+                                    <Plus size={17} aria-hidden="true" />
+                                    <span>Prep for a new role</span>
                                 </a>
-                            ))}
-                            <a className="candidate-dashboard-context-menu__new" href="/candidate/setup">
-                                <Plus size={17} aria-hidden="true" />
-                                <span>Prep for a new role</span>
-                            </a>
-                        </div>
-                    </details>
-                ) : <span className="candidate-dashboard-topbar__spacer" />}
+                            </div>
+                        </details>
+                    ) : <span className="candidate-dashboard-topbar__spacer" />}
 
-                {hasNextRoundBuilder ? (
-                    <CandidateNextRoundBuilderTrigger />
-                ) : (
-                    <a
-                        className="candidate-dashboard-next-link"
-                        href={selectedTargetInterview ? "#practice-next" : "/candidate/setup"}
-                    >
-                        {selectedTargetInterview
-                            ? <ClipboardList size={18} aria-hidden="true" />
-                            : <Plus size={18} aria-hidden="true" />}
-                        <span className="candidate-dashboard-next-link__label">
-                            {selectedTargetInterview ? "Practice next" : "Set up practice"}
-                        </span>
-                    </a>
-                )}
+                    {hasNextRoundBuilder ? (
+                        <CandidateNextRoundBuilderTrigger />
+                    ) : (
+                        <a
+                            className="candidate-dashboard-next-link"
+                            href={selectedTargetInterview ? "#practice-next" : "/candidate/setup"}
+                        >
+                            {selectedTargetInterview
+                                ? <ClipboardList size={18} aria-hidden="true" />
+                                : <Plus size={18} aria-hidden="true" />}
+                            <span className="candidate-dashboard-next-link__label">
+                                {selectedTargetInterview ? "Practice next" : "Set up practice"}
+                            </span>
+                        </a>
+                    )}
+                </div>
             </div>
         </header>
     );

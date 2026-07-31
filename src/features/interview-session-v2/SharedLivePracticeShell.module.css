@@ -29,6 +29,18 @@
     padding-block: var(--space-3);
 }
 
+.brandRow {
+    display: flex;
+    min-height: var(--space-9);
+    align-items: center;
+}
+
+.brandMark {
+    width: auto;
+    height: var(--space-9);
+    object-fit: contain;
+}
+
 .headerTop {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -454,12 +466,21 @@
 }
 
 .missingShell {
-    display: grid;
+    display: flex;
     min-height: 100vh;
     min-height: 100svh;
-    place-items: center;
-    padding: var(--space-6);
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-8);
+    padding: var(--space-4) var(--space-6) var(--space-6);
     background: rgb(var(--background));
+}
+
+.missingHeader {
+    display: flex;
+    width: min(100%, var(--grid-form-flow-max));
+    min-height: var(--layout-header-height);
+    align-items: center;
 }
 
 .missing {
@@ -467,6 +488,7 @@
     width: min(100%, 42rem);
     gap: var(--space-5);
     padding: var(--space-6);
+    margin-block: auto;
 }
 
 .missing > p {

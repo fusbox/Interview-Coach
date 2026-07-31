@@ -245,7 +245,7 @@ and mutation contracts.
 
 Coach Update extracts one route-owned dialog with question context outside the
 answer-review nest. The nest contains only `Your answer` and the immutable
-transcript; accepted whole-answer observation and one warm-coral `Try next`
+transcript; accepted whole-answer observation and one white `--surface-base` `Try next`
 remain separate question-owned guidance. Exact accepted transcript annotations
 open on hover, click, keyboard activation, and tap. The carousel uses a compact
 scrollable question picker, removes noncurrent slides from focus and active
