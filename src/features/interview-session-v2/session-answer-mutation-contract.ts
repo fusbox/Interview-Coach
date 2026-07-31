@@ -37,21 +37,19 @@ export function getSessionAnswerMutationPresentation(
     switch (phase) {
         case "draft_dirty":
             return createPresentation({
-                message: "Changes waiting to save.",
+                message: "",
                 primaryAction: "submit",
                 primaryLabel: "Submit answer",
             });
         case "draft_saving":
             return createPresentation({
-                message: "Saving your draft...",
-                tone: "progress",
+                message: "",
                 primaryAction: "submit",
                 primaryLabel: "Submit answer",
             });
         case "draft_saved":
             return createPresentation({
-                message: "Draft saved.",
-                tone: "success",
+                message: "",
                 primaryAction: "submit",
                 primaryLabel: "Submit answer",
             });
@@ -130,7 +128,7 @@ export function getSessionAnswerMutationPresentation(
         case "idle":
         default:
             return createPresentation({
-                message: "Your draft saves as you write.",
+                message: "",
                 primaryAction: "submit",
                 primaryLabel: "Submit answer",
             });

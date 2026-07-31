@@ -1,4 +1,5 @@
-import { render, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { createCandidateAnswerAnalysisProviderResultFixture } from "./candidate-answer-analysis-test-fixture";
@@ -9,6 +10,42 @@ import {
 import { CandidateStagedFeedback } from "./CandidateStagedFeedback";
 
 describe("candidate staged feedback recovery", () => {
+    it("opens as a modal coaching surface and preserves staged navigation", async () => {
+        const user = userEvent.setup();
+        const interaction = createCandidateFeedbackInteraction({ analysisSnapshot, isLastQuestion: false });
+
+        render(
+            <CandidateStagedFeedback
+                interaction={interaction}
+                isCompletingSession={false}
+                onPersistAction={async () => true}
+                onAdvanceQuestion={vi.fn()}
+                onFinishSession={vi.fn()}
+                onRetryAnswer={vi.fn()}
+            />,
+        );
+
+        const dialog = await screen.findByRole("dialog");
+        expect(dialog).toHaveAttribute("aria-modal", "true");
+        expect(dialog).toHaveAccessibleName("Coach feedback");
+        expect(document.body).toHaveStyle({ overflow: "hidden" });
+        expect(screen.queryByText(interaction.stages[0].label)).not.toBeInTheDocument();
+        expect(screen.queryByText(interaction.stages[0].title)).not.toBeInTheDocument();
+        expect(screen.getByText(interaction.stages[0].body)).toBeInTheDocument();
+
+        const stageAction = interaction.stages[0].actions.find((action) => (
+            action.transition === "show_feedback_stage"
+        ));
+        if (!stageAction) throw new Error("Expected staged feedback fixture.");
+
+        await user.click(screen.getByRole("button", { name: stageAction.label }));
+        const targetStage = interaction.stages.find((stage) => stage.id === stageAction.targetStageId)!;
+        await screen.findByText(targetStage.body);
+        expect(screen.queryByText(targetStage.label)).not.toBeInTheDocument();
+        expect(screen.queryByText(targetStage.title)).not.toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Coach feedback" })).toHaveFocus();
+    });
+
     it("applies a durably selected next-question transition once on recovery", async () => {
         const interaction = createCandidateFeedbackInteraction({ analysisSnapshot, isLastQuestion: false });
         const action = interaction.stages[0].actions.find((candidate) => (

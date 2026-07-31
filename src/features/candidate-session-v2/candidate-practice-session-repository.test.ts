@@ -497,6 +497,9 @@ describe("candidate practice session repository", () => {
         expect(query).toHaveBeenCalledWith(expect.stringContaining(
             "status = case when status = 'planned' then 'in_progress' else status end",
         ), expect.any(Array));
+        expect(query).toHaveBeenCalledWith(expect.stringContaining(
+            "answer_drafts_json = coalesce(answer_drafts_json, '{}'::jsonb) - $3",
+        ), expect.any(Array));
     });
 
     it("persists one answer analysis snapshot by candidate-owned session and slot", async () => {

@@ -52,6 +52,9 @@ describe("candidate question wording runtime", () => {
 
         expect(runtime.metadata.configurationFingerprint).toMatch(/^[a-f0-9]{64}$/);
         expect(result.questions).toHaveLength(5);
+        expect(result.questions.every((question) => (
+            !("assistance" in question) && !("contentFingerprint" in question)
+        ))).toBe(true);
         expect(result.generation).toMatchObject({
             status: "candidate_question_wording_generation_v1",
             provider: "candidate_v2_question_wording_fixture",
@@ -137,6 +140,14 @@ function createProviderRequest(input: {
             interviewStage: "screening",
             questionCount: 5,
             resumeCaptureMode: "pasted_text",
+            resumeArtifact: {
+                artifactId: "resume-artifact-1",
+                version: 1,
+                revision: 1,
+                source: "pasted_text",
+                candidateLabel: "Pasted resume",
+                reviewState: "accepted",
+            },
             createdAt: "2026-07-18T11:55:00.000Z",
         },
         questionPlanSnapshot: plan,
@@ -153,6 +164,14 @@ function createRequest() {
             interviewStage: "screening",
             questionCount: 5,
             resumeCaptureMode: "pasted_text",
+            resumeArtifact: {
+                artifactId: "resume-artifact-1",
+                version: 1,
+                revision: 1,
+                source: "pasted_text",
+                candidateLabel: "Pasted resume",
+                reviewState: "accepted",
+            },
             createdAt: "2026-07-18T11:55:00.000Z",
         },
         questionPlanSnapshot: plan,

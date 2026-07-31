@@ -21,13 +21,16 @@ describe("SessionVoiceAnswerCapture", () => {
         );
 
         expect(screen.getByRole("button", { name: "Start recording" })).toBeInTheDocument();
-        expect(screen.getByText(/Interview Coach does not keep a separate audio file/)).toBeInTheDocument();
+        expect(screen.getByText("Tap to record; tap again to stop.")).toBeInTheDocument();
+        expect(screen.getByText("0:00")).toBeInTheDocument();
+        expect(screen.queryByText(/3:00/)).not.toBeInTheDocument();
         expect(getUserMedia).not.toHaveBeenCalled();
     });
 
     it("recovers quick submit as a read-only continuation and reuses its original submission path", async () => {
         const onQuickSubmitTranscript = vi.fn(async () => undefined);
         const onReviewedSubmitTranscript = vi.fn(async () => undefined);
+        const onSubmitProgressChange = vi.fn();
         render(
             <SessionVoiceAnswerCapture
                 mutationBasePath="/candidate/session/session-1"
@@ -45,6 +48,7 @@ describe("SessionVoiceAnswerCapture", () => {
                 onQuickSubmitTranscript={onQuickSubmitTranscript}
                 onReviewedSubmitTranscript={onReviewedSubmitTranscript}
                 onSwitchToText={vi.fn()}
+                onSubmitProgressChange={onSubmitProgressChange}
             />,
         );
 
@@ -52,6 +56,9 @@ describe("SessionVoiceAnswerCapture", () => {
         fireEvent.click(screen.getByRole("button", { name: "Continue submitting answer" }));
         await waitFor(() => expect(onQuickSubmitTranscript).toHaveBeenCalledOnce());
         expect(onReviewedSubmitTranscript).not.toHaveBeenCalled();
+        expect(onSubmitProgressChange).toHaveBeenNthCalledWith(1, true);
+        expect(onSubmitProgressChange).toHaveBeenNthCalledWith(2, false);
+        expect(screen.queryByText("Saving your answer...")).not.toBeInTheDocument();
     });
 
     it("recovers a durable transcript directly into optional review without claiming audio playback", () => {

@@ -119,9 +119,14 @@ it("renders the production pre-session landing without scaffold preview controls
         render(ui);
     });
 
-    expect(screen.getByRole("heading", { name: "Your practice is ready." })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Customer service representative" })).toBeInTheDocument();
+    expect(screen.getByText(/Your practice is ready\./)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Customer service representative", level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Question plan" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Start practice" })).toBeEnabled();
+    expect(screen.getByRole("link", { name: "Return to Coach Plan" })).toHaveAttribute(
+        "href",
+        "/candidate/dashboard",
+    );
     expect(screen.queryByText("Development tools")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /question preview/i })).not.toBeInTheDocument();
 });
@@ -186,6 +191,36 @@ it("preserves the entering-practice transition before opening the shared live sh
     );
 });
 
+it("opens durable candidate question assistance in the live session", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({
+        status: "ready",
+        output: {
+            status: "candidate_question_hints_v1",
+            doThis: "Start with your main answer before adding detail.",
+            avoidThis: "Avoid losing the connection to what matters in the role.",
+        },
+    })));
+
+    render(
+        <CandidatePlannedSessionExperience
+            sessionId="session-v2-1"
+            dashboardHref="/candidate/dashboard"
+            initialSession={createSession({
+                progress: {
+                    status: "live_question",
+                    currentQuestionIndex: 0,
+                },
+            })}
+        />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Hints" }));
+
+    expect(screen.getByRole("dialog", { name: "Hints & framework" })).toBeInTheDocument();
+    expect(await screen.findByText("Start with your main answer before adding detail.")).toBeInTheDocument();
+    expect(screen.getByText("Avoid losing the connection to what matters in the role.")).toBeInTheDocument();
+});
+
 it("releases a routed follow-up transition over the already-mounted live question", async () => {
     vi.useFakeTimers();
     window.history.replaceState({}, "", "/candidate/session/session-v2-1?entry=1");
@@ -226,7 +261,7 @@ it("releases a routed follow-up transition over the already-mounted live questio
     expect(screen.queryByRole("heading", { name: "Entering practice space" })).not.toBeInTheDocument();
 });
 
-it("offers the shared voice-answer editor and durably remembers an explicit mode change", async () => {
+it("defaults to voice and durably remembers an explicit type choice", async () => {
     const fetch = vi.fn(async () => new Response(JSON.stringify({ status: "progress_saved" }), { status: 200 }));
     vi.stubGlobal("fetch", fetch);
     render(
@@ -244,11 +279,11 @@ it("offers the shared voice-answer editor and durably remembers an explicit mode
     );
 
     const recordMode = screen.getByRole("button", { name: "Record" });
-    expect(recordMode).toHaveAttribute("aria-pressed", "false");
-    fireEvent.click(recordMode);
     expect(recordMode).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("heading", { name: "Record your answer" })).toBeInTheDocument();
+    expect(screen.getByText("Tap to record; tap again to stop.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Start recording" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Type" }));
+    expect(screen.getByRole("button", { name: "Type" })).toHaveAttribute("aria-pressed", "true");
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(
         "/candidate/session/session-v2-1/progress",
         expect.objectContaining({
@@ -256,7 +291,7 @@ it("offers the shared voice-answer editor and durably remembers an explicit mode
             body: JSON.stringify({
                 status: "live_question",
                 currentQuestionIndex: 0,
-                answerMode: "voice",
+                answerMode: "text",
             }),
         }),
     ));
@@ -279,7 +314,7 @@ it("restores voice as the last-used mode when the runtime remains available", ()
     );
 
     expect(screen.getByRole("button", { name: "Record" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("heading", { name: "Record your answer" })).toBeInTheDocument();
+    expect(screen.getByText("Tap to record; tap again to stop.")).toBeInTheDocument();
 });
 
 it("submits a recovered reviewed transcript as a source-linked voice answer", async () => {
@@ -324,6 +359,15 @@ it("submits a recovered reviewed transcript as a source-linked voice answer", as
             dashboardHref="/candidate/dashboard"
             initialSession={createSession({
                 progress: { status: "live_question", currentQuestionIndex: 0 },
+                answerDrafts: {
+                    "slot-1": {
+                        slotId: "slot-1",
+                        questionIndex: 0,
+                        mode: "text",
+                        text: "This typed draft must not be submitted.",
+                        updatedAt: "2026-07-21T16:59:00.000Z",
+                    },
+                },
                 voiceTranscriptDrafts: {
                     "slot-1": {
                         status: "voice_transcript_draft",
@@ -340,15 +384,16 @@ it("submits a recovered reviewed transcript as a source-linked voice answer", as
         />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Record" }));
     expect(screen.getByLabelText("Review your transcript")).toHaveValue(
         "I checked the labels and documented the result.",
     );
-    expect(screen.getByRole("button", { name: "Type" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Record" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Type" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Record" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Submit answer" }));
 
     await waitFor(() => expect(screen.getByText("Answer saved")).toBeInTheDocument());
+    expect(screen.getByText("I checked the labels and documented the result.")).toBeInTheDocument();
+    expect(screen.queryByText("This typed draft must not be submitted.")).not.toBeInTheDocument();
     const answerCall = fetch.mock.calls.find(([input]) => String(input).endsWith("/answers"));
     expect(answerCall?.[1]).toMatchObject({
         method: "POST",
@@ -362,6 +407,91 @@ it("submits a recovered reviewed transcript as a source-linked voice answer", as
         text: "I checked the labels and documented the result.",
         sourceVoiceTranscriptionRunId: sourceRunId,
         voiceSubmissionPath: "transcript_review",
+    });
+});
+
+it("submits the active typed draft without reusing a stored voice transcript", async () => {
+    const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.endsWith("/answer-drafts")) {
+            return new Response(JSON.stringify({ status: "answer_draft_saved" }), { status: 200 });
+        }
+        if (url.endsWith("/answers")) {
+            return new Response(JSON.stringify({
+                status: "answer_submit_saved",
+                answerSubmissions: {
+                    "slot-1": {
+                        slotId: "slot-1",
+                        questionIndex: 0,
+                        mode: "text",
+                        text: "This typed answer is the active submission.",
+                        submittedAt: "2026-07-21T17:01:00.000Z",
+                        status: "pending_analysis",
+                        answerAttemptId: "11111111-1111-4111-8111-111111111111",
+                        attemptNumber: 1,
+                        trigger: "initial_submit",
+                        supersedesAnswerAttemptId: null,
+                    },
+                },
+            }), { status: 202 });
+        }
+        if (url.endsWith("/analysis")) {
+            return new Response(JSON.stringify({
+                status: "answer_analysis_unavailable",
+                retryable: false,
+            }), { status: 503 });
+        }
+        throw new Error(`Unexpected request: ${url} ${init?.method ?? "GET"}`);
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    render(
+        <CandidatePlannedSessionExperience
+            sessionId="session-v2-1"
+            dashboardHref="/candidate/dashboard"
+            initialSession={createSession({
+                progress: {
+                    status: "live_question",
+                    currentQuestionIndex: 0,
+                    answerMode: "text",
+                },
+                answerDrafts: {
+                    "slot-1": {
+                        slotId: "slot-1",
+                        questionIndex: 0,
+                        mode: "text",
+                        text: "This typed answer is the active submission.",
+                        updatedAt: "2026-07-21T17:00:00.000Z",
+                    },
+                },
+                voiceTranscriptDrafts: {
+                    "slot-1": {
+                        status: "voice_transcript_draft",
+                        slotId: "slot-1",
+                        questionIndex: 0,
+                        transcriptText: "This stored voice transcript must not be submitted.",
+                        sourceTranscriptionRunId: "55555555-5555-4555-8555-555555555555",
+                        submissionPath: "transcript_review",
+                        updatedAt: "2026-07-21T16:59:00.000Z",
+                    },
+                },
+            })}
+            voiceAnswerEnabled
+        />,
+    );
+
+    expect(screen.getByRole("textbox", { name: "Type your answer" })).toHaveValue(
+        "This typed answer is the active submission.",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Submit answer" }));
+
+    await waitFor(() => expect(screen.getByText("Answer saved")).toBeInTheDocument());
+    expect(screen.getByText("This typed answer is the active submission.")).toBeInTheDocument();
+    expect(screen.queryByText("This stored voice transcript must not be submitted.")).not.toBeInTheDocument();
+    const answerCall = fetch.mock.calls.find(([input]) => String(input).endsWith("/answers"));
+    expect(JSON.parse(String(answerCall?.[1]?.body))).toMatchObject({
+        mode: "text",
+        text: "This typed answer is the active submission.",
     });
 });
 
@@ -425,7 +555,18 @@ it("migrates recovered preview progress into the live question contract", async 
 
 it("restores and saves the draft for the active durable question", async () => {
     vi.useFakeTimers();
-    const fetch = vi.fn(async () => new Response(JSON.stringify({ status: "answer_draft_saved" }), { status: 200 }));
+    const fetch = vi.fn(async (input: RequestInfo | URL) => (
+        String(input).endsWith("/question-assistance")
+            ? Response.json({
+                status: "ready",
+                output: {
+                    status: "candidate_question_hints_v1",
+                    doThis: "Answer directly.",
+                    avoidThis: "Avoid unsupported claims.",
+                },
+            })
+            : new Response(JSON.stringify({ status: "answer_draft_saved" }), { status: 200 })
+    ));
     vi.stubGlobal("fetch", fetch);
     const ui = await renderCandidateSessionPage({
         params: Promise.resolve({ sessionId: "session-v2-1" }),
@@ -455,8 +596,8 @@ it("restores and saves the draft for the active durable question", async () => {
     const answer = screen.getByRole("textbox", { name: "Type your answer" });
     expect(answer).toHaveValue("My saved answer");
     fireEvent.change(answer, { target: { value: "My revised answer" } });
-    expect(screen.getByText("Changes waiting to save.")).toBeInTheDocument();
-    expect(fetch).not.toHaveBeenCalled();
+    expect(screen.queryByText("Changes waiting to save.")).not.toBeInTheDocument();
+    expect(fetch.mock.calls.filter(([input]) => String(input).endsWith("/answer-drafts"))).toHaveLength(0);
 
     await act(async () => {
         vi.advanceTimersByTime(600);
@@ -476,7 +617,7 @@ it("restores and saves the draft for the active durable question", async () => {
             }),
         }),
     );
-    expect(screen.getByText("Draft saved.")).toBeInTheDocument();
+    expect(screen.queryByText("Draft saved.")).not.toBeInTheDocument();
 });
 
 it("serializes autosaves so an older request cannot overtake newer typing", async () => {
@@ -531,11 +672,14 @@ it("serializes autosaves so an older request cannot overtake newer typing", asyn
     });
 
     expect(draftSaveCalls).toBe(2);
-    expect(fetch.mock.calls.map(([, request]) => JSON.parse(String(request?.body))).map((body) => body.text)).toEqual([
+    expect(fetch.mock.calls
+        .filter(([input]) => String(input).endsWith("/answer-drafts"))
+        .map(([, request]) => JSON.parse(String(request?.body)))
+        .map((body) => body.text)).toEqual([
         "Older draft",
         "Newest draft",
     ]);
-    expect(screen.getByText("Draft saved.")).toBeInTheDocument();
+    expect(screen.queryByText("Draft saved.")).not.toBeInTheDocument();
 });
 
 it("keeps a saved answer locked and retries only coaching after analysis fails", async () => {
@@ -613,7 +757,8 @@ it("keeps a saved answer locked and retries only coaching after analysis fails",
 
     fireEvent.click(screen.getByRole("button", { name: "Try coaching again" }));
 
-    expect(await screen.findByRole("heading", { name: "First, here is what I heard." })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "Coach feedback" })).toBeInTheDocument();
+    expect(screen.getByText("You named a practical first step.")).toBeInTheDocument();
     expect(fetch.mock.calls.filter(([input]) => String(input).endsWith("/answers"))).toHaveLength(1);
     expect(fetch.mock.calls.filter(([input]) => String(input).endsWith("/answers/slot-1/analysis"))).toHaveLength(2);
 });
@@ -654,7 +799,8 @@ it("recovers a persisted answer after reload as analysis-only work", async () =>
 
     fireEvent.click(screen.getByRole("button", { name: "Try coaching again" }));
 
-    expect(await screen.findByRole("heading", { name: "First, here is what I heard." })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "Coach feedback" })).toBeInTheDocument();
+    expect(screen.getByText("You named a practical first step.")).toBeInTheDocument();
     expect(fetch.mock.calls.filter(([input]) => String(input).endsWith("/answers"))).toHaveLength(0);
     expect(fetch.mock.calls.filter(([input]) => String(input).endsWith("/answers/slot-1/analysis"))).toHaveLength(1);
 });
@@ -692,8 +838,10 @@ it("keeps a failed draft save editable and retries it in place", async () => {
     expect(answer).not.toHaveAttribute("readonly");
     fireEvent.click(screen.getByRole("button", { name: "Try saving again" }));
 
-    expect(await screen.findByText("Draft saved.")).toBeInTheDocument();
-    expect(draftSaveAttempts).toBe(2);
+    await waitFor(() => expect(draftSaveAttempts).toBe(2));
+    await waitFor(() => expect(screen.queryByText("Your latest changes aren't saved yet."))
+        .not.toBeInTheDocument());
+    expect(screen.queryByText("Draft saved.")).not.toBeInTheDocument();
 });
 
 it("keeps the draft editable and retries submission when the answer was not accepted", async () => {
@@ -752,7 +900,8 @@ it("keeps the draft editable and retries submission when the answer was not acce
     expect(answer).not.toHaveAttribute("readonly");
     fireEvent.click(screen.getByRole("button", { name: "Try submit again" }));
 
-    expect(await screen.findByRole("heading", { name: "First, here is what I heard." })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "Coach feedback" })).toBeInTheDocument();
+    expect(screen.getByText("You named a practical first step.")).toBeInTheDocument();
     expect(submitAttempts).toBe(2);
 });
 
@@ -787,13 +936,14 @@ it("continues from saved coaching to the next live question", async () => {
         />,
     );
 
-    expect(screen.getByRole("heading", { name: "First, here is what I heard." })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Coach feedback" })).toBeInTheDocument();
+    expect(screen.getByText("You named a practical first step.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Explore feedback" }));
-    const strengtheningHeading = await screen.findByRole("heading", { name: "One useful focus" });
-    await waitFor(() => expect(strengtheningHeading).toHaveFocus());
+    expect(await screen.findAllByText("The answer would be stronger with a concrete outcome.")).not.toHaveLength(0);
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Coach feedback" })).toHaveFocus());
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    const nextStepHeading = await screen.findByRole("heading", { name: "Try the answer again" });
-    await waitFor(() => expect(nextStepHeading).toHaveFocus());
+    await screen.findByText("Add what changed after your action.");
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Coach feedback" })).toHaveFocus());
     fireEvent.click(screen.getByRole("button", { name: "Continue to next question" }));
 
     expect(await screen.findByRole("heading", { name: "Stored snapshot question for the second slot." })).toBeInTheDocument();
@@ -946,9 +1096,9 @@ it("reopens a coached answer and submits the retry as a linked attempt", async (
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Explore feedback" }));
-    await screen.findByRole("heading", { name: "One useful focus" });
+    expect(await screen.findAllByText("The answer would be stronger with a concrete outcome.")).not.toHaveLength(0);
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    await screen.findByRole("heading", { name: "Try the answer again" });
+    await screen.findByText("Add what changed after your action.");
     fireEvent.click(screen.getByRole("button", { name: "Retry my answer" }));
 
     const answer = await screen.findByRole("textbox", { name: "Type your answer" });
@@ -956,7 +1106,8 @@ it("reopens a coached answer and submits the retry as a linked attempt", async (
     fireEvent.change(answer, { target: { value: "A clearer answer with the result included." } });
     fireEvent.click(screen.getByRole("button", { name: "Submit answer" }));
 
-    expect(await screen.findByRole("heading", { name: "First, here is what I heard." })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "Coach feedback" })).toBeInTheDocument();
+    expect(screen.getByText("You named a practical first step.")).toBeInTheDocument();
     expect(answerRequestBodies).toEqual([expect.objectContaining({
         trigger: "feedback_retry",
         supersedesAnswerAttemptId: sourceAttemptId,
@@ -1067,9 +1218,9 @@ it("finishes the session from the last staged coaching step", async () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Explore feedback" }));
-    await screen.findByRole("heading", { name: "One useful focus" });
+    expect(await screen.findAllByText("The answer would be stronger with a concrete outcome.")).not.toHaveLength(0);
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    await screen.findByRole("heading", { name: "Try the answer again" });
+    await screen.findByText("Add what changed after your action.");
     fireEvent.click(screen.getByRole("button", { name: "Finish session" }));
 
     expect(await screen.findByRole("heading", { name: "Preparing your Coach Plan" })).toBeInTheDocument();

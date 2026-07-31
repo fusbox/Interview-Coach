@@ -150,4 +150,27 @@ describe("session runtime facts", () => {
         expect(facts.currentQuestionIndex).toBe(0);
         expect(JSON.stringify(facts)).not.toMatch(/candidateProfileId|candidateLaunchSessionId|setupSnapshot|resumeText/);
     });
+
+    it("keeps assistance outside audience-neutral runtime facts", () => {
+        const facts = createSessionRuntimeFacts({
+            audience: "candidate_led",
+            sessionId: "session-1",
+            targetRole: "Material Handler",
+            interviewStage: "screening",
+            questionCount: 1,
+            currentQuestionIndex: 0,
+            questions: [{
+                questionKey: "slot-1",
+                questionIndex: 0,
+                category: "screening",
+                questionText: "What interests you about this role?",
+            }],
+            completionBehavior: {
+                kind: "candidate_dashboard",
+                dashboardHref: "/candidate/dashboard",
+            },
+        });
+
+        expect(facts.questions[0]).not.toHaveProperty("assistance");
+    });
 });

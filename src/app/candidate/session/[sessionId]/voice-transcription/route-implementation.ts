@@ -31,7 +31,7 @@ export type VoiceTranscriptionRouteDiagnostic = {
     configurationFingerprint?: string;
     generationAttempt?: number;
     audioSizeBucket?: "under_256kb" | "under_1mb" | "under_4mb";
-    durationBucket?: "under_30s" | "under_90s" | "under_180s";
+    durationBucket?: "under_30s" | "under_90s" | "under_180s" | "under_10m";
     durationMs: number;
 };
 
@@ -258,7 +258,8 @@ function bucketAudioSize(value: number): VoiceTranscriptionRouteDiagnostic["audi
 function bucketDuration(value: number): VoiceTranscriptionRouteDiagnostic["durationBucket"] {
     if (value <= 30_000) return "under_30s";
     if (value <= 90_000) return "under_90s";
-    return "under_180s";
+    if (value <= 180_000) return "under_180s";
+    return "under_10m";
 }
 
 function recordDefaultDiagnostic(event: VoiceTranscriptionRouteDiagnostic) {

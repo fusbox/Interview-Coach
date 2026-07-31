@@ -816,7 +816,7 @@ describe("evidence-first evaluator contract", () => {
             profile: {
                 profileId: "pipeline-a",
                 evaluatorVersion: "candidate_evidence_first_v2",
-                promptBundleVersion: "candidate_evidence_first_prompts_v14",
+                promptBundleVersion: "candidate_evidence_first_prompts_v15",
                 serviceMode: "test",
                 adapterVersion: "test_adapter_v1",
                 evidenceExtractor: {
@@ -862,7 +862,7 @@ function createModelProfile() {
     return {
         profileId: "google_gemini_2_5_flash_v1",
         evaluatorVersion: "candidate_evidence_first_v2" as const,
-        promptBundleVersion: "candidate_evidence_first_prompts_v14" as const,
+        promptBundleVersion: "candidate_evidence_first_prompts_v15" as const,
         serviceMode: "gemini_api",
         adapterVersion: "google_genai_evidence_first_adapter_v1",
         evidenceExtractor: {

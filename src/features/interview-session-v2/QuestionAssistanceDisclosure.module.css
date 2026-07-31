@@ -1,0 +1,429 @@
+.disclosure {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.triggers {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.trigger {
+    position: relative;
+    width: 2.25rem;
+    min-width: 2.25rem;
+    height: 2.25rem;
+    min-height: 2.25rem;
+    padding: 0;
+    border-color: rgb(var(--surface) / 0.7);
+    background: rgb(var(--surface) / 0.82);
+    box-shadow:
+        inset 0 1px 0 rgb(var(--surface) / 0.88),
+        inset 0 -1px 1px rgb(var(--foreground) / 0.09),
+        var(--elevation-row);
+    backdrop-filter: blur(0.625rem);
+}
+
+.trigger::before {
+    position: absolute;
+    inset: -0.25rem;
+    content: "";
+}
+
+.hintsTrigger {
+    border-color: rgb(var(--accent) / 0.18);
+    background: rgb(var(--accent-soft) / 0.94);
+    color: rgb(var(--accent));
+}
+
+.strongResponseTrigger {
+    border-color: rgb(var(--accent-alt) / 0.18);
+    background: rgb(var(--accent-alt-soft) / 0.94);
+    color: rgb(var(--accent-alt));
+}
+
+.hintsTrigger:hover:not(:disabled):not([aria-disabled="true"]) {
+    border-color: rgb(var(--accent) / 0.4);
+    background: rgb(var(--accent-soft));
+    color: rgb(var(--accent));
+}
+
+.strongResponseTrigger:hover:not(:disabled):not([aria-disabled="true"]) {
+    border-color: rgb(var(--accent-alt) / 0.4);
+    background: rgb(var(--accent-alt-soft));
+    color: rgb(var(--accent-alt));
+}
+
+.hintsTrigger[aria-pressed="true"] {
+    border-color: rgb(var(--accent-solid));
+    background: rgb(var(--accent-solid));
+    color: rgb(var(--solid-foreground));
+}
+
+.trigger.strongResponseTrigger[aria-pressed="true"][aria-expanded="true"] {
+    border-color: rgb(var(--accent-alt-solid));
+    background: rgb(var(--accent-alt-solid));
+    color: rgb(var(--solid-foreground));
+}
+
+.hintsTrigger[aria-pressed="true"]:hover:not(:disabled):not([aria-disabled="true"]) {
+    border-color: rgb(var(--accent-solid));
+    background: rgb(var(--accent-solid));
+    color: rgb(var(--solid-foreground));
+}
+
+.trigger.strongResponseTrigger[aria-pressed="true"][aria-expanded="true"]:hover:not(:disabled):not([aria-disabled="true"]) {
+    border-color: rgb(var(--accent-alt-solid));
+    background: rgb(var(--accent-alt-solid));
+    color: rgb(var(--solid-foreground));
+}
+
+.modalLayer {
+    position: fixed;
+    z-index: var(--z-modal-backdrop);
+    inset: 0;
+    pointer-events: none;
+}
+
+.backdrop {
+    position: fixed;
+    z-index: -1;
+    inset: 0;
+    background: transparent;
+    pointer-events: auto;
+}
+
+.drawer {
+    position: fixed;
+    z-index: var(--z-modal);
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
+    border: 1px solid rgb(var(--border));
+    border-radius: var(--radius-panel);
+    background: rgb(var(--surface));
+    color: rgb(var(--foreground));
+    box-shadow: var(--elevation-modal);
+    pointer-events: auto;
+    transform-origin: top right;
+}
+
+.modalLayer[data-phase="open"] .backdrop {
+    animation: assistance-backdrop-in var(--motion-control-duration) var(--ease-standard);
+}
+
+.drawer[data-phase="open"] {
+    animation: assistance-modal-in var(--motion-control-duration) var(--ease-emphasized);
+}
+
+.modalLayer[data-phase="closing"] .backdrop {
+    animation: assistance-backdrop-out var(--duration-fast) var(--ease-standard) forwards;
+}
+
+.drawer[data-phase="closing"] {
+    animation: assistance-modal-out var(--duration-fast) var(--ease-standard) forwards;
+}
+
+.drawerHeader {
+    position: sticky;
+    z-index: 2;
+    top: 0;
+    display: grid;
+    grid-template-columns: 5.25rem minmax(0, 1fr) 5.25rem;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 3.25rem;
+    padding: var(--space-2) var(--space-3);
+    background: rgb(var(--surface));
+    box-shadow: inset 0 -1px 0 rgb(var(--border) / 0.62);
+}
+
+.drawer[data-panel="hints"] .drawerHeader {
+    background: linear-gradient(
+        90deg,
+        rgb(var(--accent-soft) / 0.5),
+        rgb(var(--surface)) 46%
+    );
+}
+
+.drawer[data-panel="strong_response"] .drawerHeader {
+    background: linear-gradient(
+        90deg,
+        rgb(var(--accent-alt-soft) / 0.55),
+        rgb(var(--surface)) 46%
+    );
+}
+
+.drawerHeader h2,
+.example h3,
+.guidance h3,
+.drawerBody p {
+    margin: 0;
+}
+
+.drawerHeader h2 {
+    overflow-wrap: anywhere;
+    color: rgb(var(--accent));
+    font-family: var(--font-display);
+    font-size: var(--type-label-size);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 0.08em;
+    line-height: var(--type-label-line);
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.drawer[data-panel="strong_response"] .drawerHeader h2,
+.drawer[data-panel="strong_response"] .example h3 {
+    color: rgb(var(--accent-alt));
+}
+
+.drawerHeaderSide {
+    display: flex;
+    width: 100%;
+    justify-content: flex-start;
+}
+
+.closeButton {
+    color: rgb(var(--muted));
+    box-shadow: none;
+}
+
+.modalTriggers {
+    justify-content: flex-end;
+}
+
+.panelTransition {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.panelTransition[data-direction="forward"] {
+    animation: assistance-panel-forward var(--motion-surface-duration) var(--ease-emphasized);
+}
+
+.panelTransition[data-direction="backward"] {
+    animation: assistance-panel-backward var(--motion-surface-duration) var(--ease-emphasized);
+}
+
+.drawerBody {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-4);
+}
+
+.intro {
+    max-width: 66ch;
+    color: rgb(var(--muted));
+    font-size: var(--type-body-sm-size);
+    line-height: var(--type-body-sm-line);
+    text-wrap: pretty;
+}
+
+.guidance,
+.example {
+    display: grid;
+    gap: var(--space-2);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.drawer[data-panel="hints"] .guidance {
+    border: 0;
+    background: transparent;
+}
+
+.drawer[data-panel="strong_response"] .example {
+    border: 0;
+    background: transparent;
+}
+
+.guidance h3,
+.example h3 {
+    color: rgb(var(--primary));
+    font-size: var(--type-label-size);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--type-label-line);
+}
+
+.drawer[data-panel="hints"] .guidance h3 {
+    color: rgb(var(--accent));
+}
+
+.guidance p,
+.example p {
+    max-width: 70ch;
+    overflow-wrap: anywhere;
+    color: rgb(var(--foreground));
+    font-size: var(--type-body-sm-size);
+    line-height: 1.55;
+    text-wrap: pretty;
+}
+
+.example p {
+    white-space: pre-wrap;
+}
+
+.guidance ul {
+    display: grid;
+    gap: var(--space-2);
+    margin: 0;
+    padding-inline-start: var(--space-5);
+    color: rgb(var(--muted));
+    font-size: var(--type-body-sm-size);
+    line-height: 1.6;
+}
+
+.guidance li {
+    padding-inline-start: var(--space-1);
+}
+
+.guidance li::marker {
+    color: rgb(var(--primary));
+}
+
+.guidance li strong {
+    color: rgb(var(--foreground));
+}
+
+.loading,
+.error {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-3);
+    color: rgb(var(--muted));
+}
+
+.loading p,
+.error p {
+    margin: 0;
+}
+
+.error {
+    color: rgb(var(--danger-solid));
+}
+
+.error > div {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-3);
+}
+
+.spinner {
+    animation: assistance-spin 0.8s linear infinite;
+}
+
+@keyframes assistance-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes assistance-backdrop-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes assistance-backdrop-out {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes assistance-modal-in {
+    from {
+        opacity: 0;
+        transform: translateY(-0.5rem);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes assistance-modal-out {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-0.5rem);
+    }
+}
+
+@keyframes assistance-panel-forward {
+    from {
+        opacity: 0;
+        transform: translateX(1rem);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes assistance-panel-backward {
+    from {
+        opacity: 0;
+        transform: translateX(-1rem);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@media (max-width: 420px) {
+    .drawerHeader {
+        grid-template-columns: 5.25rem minmax(0, 1fr) 5.25rem;
+        gap: var(--space-2);
+        padding-inline: var(--space-2);
+    }
+
+    .drawerBody {
+        padding: var(--space-3);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .backdrop,
+    .drawer,
+    .panelTransition,
+    .spinner {
+        animation: none;
+    }
+}
+
+@media (forced-colors: active) {
+    .trigger,
+    .drawer,
+    .guidance,
+    .example {
+        border: 1px solid CanvasText;
+    }
+
+    .backdrop {
+        background: Canvas;
+        opacity: 0.75;
+    }
+}

@@ -111,6 +111,8 @@ export function CandidatePlannedSessionExperience({
     );
     const [hasUnsafeVoiceWork, setHasUnsafeVoiceWork] = useState(false);
     const [isVoiceAnswerModeLocked, setIsVoiceAnswerModeLocked] = useState(false);
+    const [isVoiceInteractionGated, setIsVoiceInteractionGated] = useState(false);
+    const [isVoiceSubmitPreparing, setIsVoiceSubmitPreparing] = useState(false);
     const [entryTransitionPhase, setEntryTransitionPhase] = useState<"entering" | "releasing" | null>(
         entryTransitionRequested ? "entering" : null,
     );
@@ -471,9 +473,11 @@ export function CandidatePlannedSessionExperience({
         const activeAnswerSubmission = answerSubmissions[activeQuestion.slotId] ?? null;
         const activeAnalysisRecovery = session.answerAnalysisRecoveries?.[activeQuestion.slotId] ?? null;
         const activeRetrySource = feedbackRetrySources[activeQuestion.slotId] ?? null;
-        const activeDraftText = activeRetrySource
+        const activeTextDraft = activeRetrySource
             ? answerDrafts[activeQuestion.slotId]?.text ?? activeAnswerSubmission?.text ?? ""
-            : activeAnswerSubmission?.text ?? answerDrafts[activeQuestion.slotId]?.text ?? "";
+            : answerDrafts[activeQuestion.slotId]?.text ?? "";
+        const activeSubmittedAnswerText = activeAnswerSubmission?.text
+            ?? (answerMode === "text" ? activeTextDraft : "");
         const currentVoiceTranscriptDraft = session.voiceTranscriptDrafts?.[activeQuestion.slotId] ?? null;
         const initialVoiceTranscriptDraft = isVoiceTranscriptDraftResolvedByAnswer(
             currentVoiceTranscriptDraft,
@@ -497,7 +501,7 @@ export function CandidatePlannedSessionExperience({
                     ? activeAnalysisRecovery
                         ? toRecoveredAnswerMutationPhase(activeAnalysisRecovery)
                         : "analysis_failed"
-                    : activeDraftText
+                    : activeTextDraft
                         ? "draft_saved"
                         : "idle");
         const isLastQuestion = activeQuestionIndex >= questionWordingPreview.questions.length - 1;
@@ -530,7 +534,7 @@ export function CandidatePlannedSessionExperience({
                     updateAnswerDraft({
                         slotId: activeQuestion.slotId,
                         questionIndex: activeQuestion.index,
-                        text: activeAnswerSubmission?.text ?? activeDraftText,
+                        text: activeAnswerSubmission?.text ?? activeTextDraft,
                     });
                     window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
@@ -564,7 +568,7 @@ export function CandidatePlannedSessionExperience({
                     : await flushAnswerDraft({
                         slotId: activeQuestion.slotId,
                         questionIndex: activeQuestion.index,
-                        text: activeDraftText,
+                        text: activeTextDraft,
                     });
                 if (draftSaved) {
                     setIsSessionPaused(true);
@@ -598,8 +602,11 @@ export function CandidatePlannedSessionExperience({
                     answerMode={answerMode}
                     availableAnswerModes={canUseVoiceAnswers ? ["text", "voice"] : ["text"]}
                     answerModeChangeDisabled={isVoiceAnswerModeLocked}
+                    interactionGateActive={isVoiceInteractionGated}
+                    isVoiceSubmitPreparing={isVoiceSubmitPreparing}
                     onAnswerModeChange={handleAnswerModeChange}
-                    draftText={activeDraftText}
+                    draftText={activeTextDraft}
+                    submittedAnswerText={activeSubmittedAnswerText}
                     answerMutationPhase={activeAnswerMutationPhase}
                     feedbackContent={feedbackContent}
                     questionAudio={questionAudio}
@@ -626,6 +633,8 @@ export function CandidatePlannedSessionExperience({
                             onSwitchToText={() => handleAnswerModeChange("text")}
                             onUnsafeLocalWorkChange={setHasUnsafeVoiceWork}
                             onAnswerModeLockChange={setIsVoiceAnswerModeLocked}
+                            onInteractionGateChange={setIsVoiceInteractionGated}
+                            onSubmitProgressChange={setIsVoiceSubmitPreparing}
                         />
                     ) : undefined}
                     onDraftChange={(text) => updateAnswerDraft({
@@ -636,13 +645,13 @@ export function CandidatePlannedSessionExperience({
                     onDraftBlur={() => flushAnswerDraft({
                         slotId: activeQuestion.slotId,
                         questionIndex: activeQuestion.index,
-                        text: activeDraftText,
+                        text: activeTextDraft,
                         retrySourceAnswerAttemptId: activeRetrySource,
                     })}
                     onRetryDraftSave={() => flushAnswerDraft({
                         slotId: activeQuestion.slotId,
                         questionIndex: activeQuestion.index,
-                        text: activeDraftText,
+                        text: activeTextDraft,
                     })}
                     onRetryAnalysis={() => retryAnswerAnalysis(activeQuestion.slotId)}
                     onContinueWithoutCoaching={() => {
@@ -663,7 +672,7 @@ export function CandidatePlannedSessionExperience({
                     onSubmit={() => submitAnswerDraft({
                         slotId: activeQuestion.slotId,
                         questionIndex: activeQuestion.index,
-                        text: activeDraftText,
+                        text: activeTextDraft,
                         retrySourceAnswerAttemptId: feedbackRetrySourcesRef.current[activeQuestion.slotId]
                             ?? activeRetrySource,
                     })}
@@ -684,6 +693,12 @@ export function CandidatePlannedSessionExperience({
                 resumeIncluded={Boolean(session.setupSnapshot.resumeText)}
                 resumeLabel={session.setupSnapshot.resumeArtifact?.candidateLabel ?? null}
                 sessionId={sessionId}
+                questions={questionWordingPreview?.questions.map((question, index) => ({
+                    id: question.slotId,
+                    number: index + 1,
+                    category: question.category,
+                    questionText: question.questionText,
+                }))}
                 firstQuestion={questionWordingPreview?.questions[0] ? {
                     id: questionWordingPreview.questions[0].slotId,
                     number: 1,
@@ -693,6 +708,7 @@ export function CandidatePlannedSessionExperience({
                 questionAudio={questionAudio}
                 manageTransitionExternally
                 onStart={questionWordingPreview ? beginPracticeEntryTransition : undefined}
+                returnHref={dashboardHref}
             />
             {entryTransition}
         </>
@@ -799,7 +815,8 @@ function resolveAvailableAnswerMode(
     persistedMode: CandidateProvisionalSessionProgress["answerMode"],
     voiceAnswerEnabled: boolean,
 ): "text" | "voice" {
-    return voiceAnswerEnabled && persistedMode === "voice" ? "voice" : "text";
+    if (!voiceAnswerEnabled) return "text";
+    return persistedMode === "text" ? "text" : "voice";
 }
 
 function toRecoveredAnswerMutationPhase(

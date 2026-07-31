@@ -181,5 +181,6 @@ describe("candidate question wording boundary", () => {
         expect(result.questions).toHaveLength(5);
         expect(result.questions[1].questionText).not.toContain(setupSnapshot.jobDescription);
         expect(result.questions.every((question) => question.questionText.length < 180)).toBe(true);
+        expect(result.questions.every((question) => !("assistance" in question))).toBe(true);
     });
 });

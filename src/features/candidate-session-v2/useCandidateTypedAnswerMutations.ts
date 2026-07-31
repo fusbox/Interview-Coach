@@ -160,6 +160,7 @@ export function useCandidateTypedAnswerMutations({
             }
 
             setAnswerSubmissions(result.answerSubmissions);
+            clearAcceptedAnswerDraft(slotId);
             setAnswerAnalysisSnapshots((currentSnapshots) => {
                 const nextSnapshots = { ...currentSnapshots };
                 delete nextSnapshots[slotId];
@@ -194,6 +195,7 @@ export function useCandidateTypedAnswerMutations({
 
         answerOperationSlotRef.current = draft.slotId;
         try {
+            await settleTextDraftBeforeVoiceSubmission(draft.slotId);
             setAnswerMutationPhase(draft.slotId, "submitting");
             const response = await fetch(`${mutationBasePath}/answers`, {
                 method: "POST",
@@ -222,6 +224,7 @@ export function useCandidateTypedAnswerMutations({
             }
 
             setAnswerSubmissions(result.answerSubmissions);
+            clearAcceptedAnswerDraft(draft.slotId);
             setAnswerAnalysisSnapshots((currentSnapshots) => {
                 const nextSnapshots = { ...currentSnapshots };
                 delete nextSnapshots[draft.slotId];
@@ -345,6 +348,38 @@ export function useCandidateTypedAnswerMutations({
             window.clearTimeout(draftSaveTimerRef.current);
             draftSaveTimerRef.current = null;
         }
+    }
+
+    async function settleTextDraftBeforeVoiceSubmission(slotId: string) {
+        const latestDraft = latestDraftRef.current;
+        if (latestDraft?.slotId !== slotId) {
+            if (draftSaveDrainRef.current) {
+                await draftSaveDrainRef.current;
+            }
+            return;
+        }
+
+        clearDraftSaveTimer();
+        await enqueueAnswerDraftSave(latestDraft);
+    }
+
+    function clearAcceptedAnswerDraft(slotId: string) {
+        if (latestDraftRef.current?.slotId === slotId) {
+            clearDraftSaveTimer();
+            latestDraftRef.current = null;
+        }
+        if (draftSaveQueueRef.current?.slotId === slotId) {
+            draftSaveQueueRef.current = null;
+        }
+        setAnswerDrafts((currentDrafts) => {
+            if (!(slotId in currentDrafts)) {
+                return currentDrafts;
+            }
+
+            const nextDrafts = { ...currentDrafts };
+            delete nextDrafts[slotId];
+            return nextDrafts;
+        });
     }
 
     function setAnswerMutationPhase(slotId: string, phase: SessionAnswerMutationPhase) {

@@ -48,7 +48,7 @@ export const candidateAnswerAnalysisFixtureProfile: EvidenceFirstEvaluatorProfil
     feedbackComposer: {
         provider: "deterministic_local_fixture",
         model: "fixture_feedback_composer_v1",
-        promptVersion: "fixture_feedback_composer_prompt_v1",
+        promptVersion: "fixture_feedback_composer_prompt_v2",
         responseSchemaVersion: "feedback_composition_output_v1",
         generation: deterministicFixtureGeneration,
     },
@@ -273,7 +273,9 @@ function createFixtureFeedback(
             intervention: shouldRetry ? "revise_answer" : "affirm_and_continue",
         },
         candidateFeedback: {
-            acknowledgement: "You gave me a direct starting point to work with.",
+            acknowledgement: shouldRetry
+                ? "You made your starting point easy to follow, so we have something concrete to strengthen."
+                : "You made your answer easy to follow, and that clear structure is worth carrying forward.",
             primaryStrength: "Your response makes its starting point easy to find.",
             biggestUpgrade: shouldRetry ? patternGap.upgrade : null,
             redoPrompt: shouldRetry

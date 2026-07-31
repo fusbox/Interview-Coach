@@ -61,7 +61,7 @@ describe("Google evidence-first evaluator adapter", () => {
                 generation: { reasoningPosture: "medium", thinkingBudget: 1024 },
             },
             feedbackComposer: {
-                promptVersion: "candidate_feedback_composition_google_v8",
+                promptVersion: "candidate_feedback_composition_google_v9",
                 generation: { reasoningPosture: "low", thinkingBudget: 512, temperature: 0.2 },
             },
         });
@@ -92,6 +92,12 @@ describe("Google evidence-first evaluator adapter", () => {
         );
         expect(FEEDBACK_COMPOSER_SYSTEM_POLICY.join("\n")).toContain(
             "Do not call a factual claim correct or accurate",
+        );
+        expect(FEEDBACK_COMPOSER_SYSTEM_POLICY.join("\n")).toContain(
+            "one natural conversational sentence",
+        );
+        expect(FEEDBACK_COMPOSER_SYSTEM_POLICY.join("\n")).toContain(
+            "Avoid canned evaluation language",
         );
     });
 

@@ -36,6 +36,14 @@ const SYNTHETIC_SETUP = Object.freeze({
     interviewStage: "first_interview" as const,
     questionCount: 5,
     resumeCaptureMode: "pasted_text" as const,
+    resumeArtifact: {
+        artifactId: "synthetic-resume-artifact",
+        version: 1,
+        revision: 1,
+        source: "pasted_text" as const,
+        candidateLabel: "Synthetic resume",
+        reviewState: "accepted" as const,
+    },
     createdAt: "2026-07-18T12:00:00.000Z",
 });
 
@@ -69,7 +77,7 @@ const failedResultSchema = z.object({
 
 export const candidateQuestionWordingLiveValidationArtifactSchema = z.object({
     status: z.literal("candidate_question_wording_live_validation_artifact"),
-    schemaVersion: z.literal(1),
+    schemaVersion: z.literal(2),
     artifactId: z.string().regex(/^live_question_wording_[a-f0-9]{16}$/),
     generatedAt: z.string().datetime(),
     syntheticCase: z.object({
@@ -209,7 +217,12 @@ export async function runCandidateQuestionWordingLiveValidation(input: {
                 inputTokens: wording.generation!.validation.tokenUsage.inputTokens,
                 outputTokens: wording.generation!.validation.tokenUsage.outputTokens,
             },
-            questions: wording.questions,
+            questions: wording.questions.map((question) => ({
+                slotId: question.slotId,
+                index: question.index,
+                category: question.category,
+                questionText: question.questionText,
+            })),
         };
     } catch (error) {
         const runtimeError = error instanceof CandidateQuestionWordingRuntimeError ? error : null;
@@ -248,7 +261,7 @@ export async function runCandidateQuestionWordingLiveValidation(input: {
     }).slice(0, 16)}`;
     const artifact = candidateQuestionWordingLiveValidationArtifactSchema.parse({
         status: "candidate_question_wording_live_validation_artifact",
-        schemaVersion: 1,
+        schemaVersion: 2,
         artifactId,
         generatedAt,
         syntheticCase: {

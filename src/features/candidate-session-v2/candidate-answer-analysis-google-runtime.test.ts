@@ -30,7 +30,7 @@ describe("candidate answer-analysis Google runtime", () => {
             configurationManifest: {
                 configurationStatus: "resolved",
                 serviceMode: "gemini_api",
-                adapterVersion: "google_genai_evidence_first_adapter_v15",
+                adapterVersion: "google_genai_evidence_first_adapter_v16",
             },
         });
         expect(JSON.stringify(runtime)).not.toContain("route-secret");

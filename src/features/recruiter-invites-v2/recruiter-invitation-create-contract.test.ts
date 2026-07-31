@@ -47,6 +47,17 @@ describe("recruiter invitation create contract", () => {
             { slotId: "slot-4", questionText: "Question four?" },
             { slotId: "slot-5", questionText: "Question five?" },
         ]);
+        expect(prepared.manualQuestionWordingSnapshot?.questions).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    assistance: expect.objectContaining({
+                        status: "candidate_question_assistance_v1",
+                        acceptedResumeAnchor: null,
+                    }),
+                    contentFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+                }),
+            ]),
+        );
     });
 
     it("rejects mutable count, incomplete slots, duplicate recipients, and body-supplied recruiter identity", () => {

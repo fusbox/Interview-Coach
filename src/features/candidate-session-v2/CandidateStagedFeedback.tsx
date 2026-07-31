@@ -1,7 +1,12 @@
 "use client";
 
-import { ArrowRight, MessageSquareQuote, RotateCcw } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { ArrowRight, RotateCcw } from "lucide-react";
+import { createPortal } from "react-dom";
+import type { KeyboardEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
+
+import { CandidateCoachAvatar } from "@/features/candidate-v2/CandidateCoachAvatar";
 
 import {
     createCandidateFeedbackActionEvent,
@@ -35,8 +40,11 @@ export function CandidateStagedFeedback({
     const [activeStageId, setActiveStageId] = useState<CandidateFeedbackInteractionStageId>(() => (
         resolveRecoveredStageId(interaction, savedActionEvent)
     ));
+    const [mounted, setMounted] = useState(false);
+    const [stageDirection, setStageDirection] = useState(1);
     const [pendingActionKind, setPendingActionKind] = useState<CandidateFeedbackAction["kind"] | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
+    const dialogRef = useRef<HTMLElement>(null);
     const headingRef = useRef<HTMLHeadingElement>(null);
     const previousStageIdRef = useRef(activeStageId);
     const recoveredActionEventRef = useRef(savedActionEvent);
@@ -46,12 +54,28 @@ export function CandidateStagedFeedback({
         [activeStageId, interaction.stages],
     );
     const stageIndex = interaction.stages.findIndex((stage) => stage.id === activeStage.id);
+    const reduceMotion = useReducedMotion();
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     useEffect(() => {
         if (previousStageIdRef.current === activeStageId) return;
         previousStageIdRef.current = activeStageId;
         headingRef.current?.focus();
     }, [activeStageId]);
+
+    useEffect(() => {
+        if (!mounted) return;
+        headingRef.current?.focus();
+
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        return () => {
+            document.body.style.overflow = previousOverflow;
+        };
+    }, [mounted]);
 
     useEffect(() => {
         if (hasAppliedRecoveredTransitionRef.current) return;
@@ -66,77 +90,150 @@ export function CandidateStagedFeedback({
         }
     }, [interaction, onAdvanceQuestion, onFinishSession]);
 
-    return (
-        <section className="candidate-staged-feedback" aria-labelledby="coach-feedback-title" aria-live="polite">
-            <header className="candidate-staged-feedback__header">
-                <div className="candidate-staged-feedback__identity">
-                    <span className="candidate-staged-feedback__mark" aria-hidden="true">
-                        <MessageSquareQuote size={18} />
-                    </span>
-                    <div>
-                        <p>{activeStage.label}</p>
-                        <h2 id="coach-feedback-title" ref={headingRef} tabIndex={-1}>{activeStage.title}</h2>
-                    </div>
-                </div>
-                <div className="candidate-staged-feedback__progress">
-                    <span className="sr-only">
-                        Feedback step {stageIndex + 1} of {interaction.stages.length}
-                    </span>
-                    <div aria-hidden="true">
-                        {interaction.stages.map((stage, index) => (
-                            <span
-                                key={stage.id}
-                                data-state={index < stageIndex
-                                    ? "complete"
-                                    : index === stageIndex
-                                        ? "current"
-                                        : "upcoming"}
-                            />
-                        ))}
-                    </div>
-                </div>
-            </header>
+    if (!mounted) return null;
 
-            <p className="candidate-staged-feedback__body">{activeStage.body}</p>
+    return createPortal(
+        <div className="candidate-staged-feedback__backdrop">
+            <motion.section
+                ref={dialogRef}
+                className="candidate-staged-feedback"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="coach-feedback-title"
+                aria-describedby="coach-feedback-step coach-feedback-body"
+                onKeyDown={trapDialogFocus}
+                initial={reduceMotion ? false : { opacity: 0, y: 18, scale: 0.985 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 10, scale: 0.99 }}
+                transition={{
+                    duration: reduceMotion ? 0 : 0.2,
+                    ease: [0.22, 1, 0.36, 1],
+                }}
+            >
+                <header className="candidate-staged-feedback__header">
+                    <div className="candidate-staged-feedback__identity">
+                        <CandidateCoachAvatar
+                            variant="surface"
+                            className="candidate-staged-feedback__mark"
+                        />
+                        <h2
+                            id="coach-feedback-title"
+                            ref={headingRef}
+                            className="sr-only"
+                            tabIndex={-1}
+                        >
+                            Coach feedback
+                        </h2>
+                        <p id="coach-feedback-step" className="sr-only" aria-live="polite">
+                            Feedback step {stageIndex + 1} of {interaction.stages.length}: {activeStage.label}
+                        </p>
+                    </div>
+                    <div className="candidate-staged-feedback__progress">
+                        <span className="sr-only">
+                            Feedback step {stageIndex + 1} of {interaction.stages.length}
+                        </span>
+                        <div aria-hidden="true">
+                            {interaction.stages.map((stage, index) => (
+                                <span
+                                    key={stage.id}
+                                    data-state={index < stageIndex
+                                        ? "complete"
+                                        : index === stageIndex
+                                            ? "current"
+                                            : "upcoming"}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                </header>
 
-            {activeStage.guidance?.length ? (
-                <div className="candidate-staged-feedback__guidance">
-                    {activeStage.guidance.map((item) => (
-                        <section key={`${item.label}:${item.body}`}>
-                            <h3>{item.label}</h3>
-                            <p>{item.body}</p>
-                            {item.steps?.length ? (
-                                <ol>
-                                    {item.steps.map((step) => <li key={step}>{step}</li>)}
-                                </ol>
+                <div className="candidate-staged-feedback__viewport">
+                    <AnimatePresence mode="wait" custom={stageDirection}>
+                        <motion.div
+                            key={activeStage.id}
+                            className="candidate-staged-feedback__content"
+                            custom={stageDirection}
+                            initial={reduceMotion ? false : { opacity: 0, x: stageDirection * 28 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: stageDirection * -20 }}
+                            transition={{
+                                duration: reduceMotion ? 0 : 0.18,
+                                ease: [0.22, 1, 0.36, 1],
+                            }}
+                        >
+                            <p id="coach-feedback-body" className="candidate-staged-feedback__body">
+                                {activeStage.body}
+                            </p>
+
+                            {activeStage.guidance?.length ? (
+                                <div className="candidate-staged-feedback__guidance">
+                                    {activeStage.guidance.map((item) => (
+                                        <section key={`${item.label}:${item.body}`}>
+                                            <h3>{item.label}</h3>
+                                            <p>{item.body}</p>
+                                            {item.steps?.length ? (
+                                                <ol>
+                                                    {item.steps.map((step) => <li key={step}>{step}</li>)}
+                                                </ol>
+                                            ) : null}
+                                        </section>
+                                    ))}
+                                </div>
                             ) : null}
-                        </section>
-                    ))}
+                        </motion.div>
+                    </AnimatePresence>
                 </div>
-            ) : null}
 
-            <footer className="candidate-staged-feedback__actions">
-                {activeStage.actions.map((action) => (
-                    <button
-                        className={action.emphasis === "primary"
-                            ? "candidate-button candidate-button--primary"
-                            : "candidate-button candidate-button--secondary"}
-                        type="button"
-                        key={`${activeStage.id}:${action.kind}`}
-                        disabled={Boolean(pendingActionKind) || isCompletingSession}
-                        onClick={() => selectAction(action)}
-                    >
-                        {action.kind === "retry_answer" ? <RotateCcw size={16} aria-hidden="true" /> : null}
-                        {pendingActionKind === action.kind ? "Saving..." : action.label}
-                        {action.kind !== "retry_answer" ? <ArrowRight size={16} aria-hidden="true" /> : null}
-                    </button>
-                ))}
-            </footer>
-
-            {actionError ? <p className="planned-session-status" role="alert">{actionError}</p> : null}
-            {completionMessage ? <p className="planned-session-status" role="alert">{completionMessage}</p> : null}
-        </section>
+                <footer className="candidate-staged-feedback__actions">
+                    {actionError ? <p className="planned-session-status" role="alert">{actionError}</p> : null}
+                    {completionMessage
+                        ? <p className="planned-session-status" role="alert">{completionMessage}</p>
+                        : null}
+                    {activeStage.actions.map((action) => (
+                        <button
+                            className={action.emphasis === "primary"
+                                ? "candidate-button candidate-button--primary"
+                                : "candidate-button candidate-button--secondary"}
+                            type="button"
+                            key={`${activeStage.id}:${action.kind}`}
+                            disabled={Boolean(pendingActionKind) || isCompletingSession}
+                            onClick={() => selectAction(action)}
+                        >
+                            {action.kind === "retry_answer" ? <RotateCcw size={16} aria-hidden="true" /> : null}
+                            {pendingActionKind === action.kind ? "Saving..." : action.label}
+                            {action.kind !== "retry_answer" ? <ArrowRight size={16} aria-hidden="true" /> : null}
+                        </button>
+                    ))}
+                </footer>
+            </motion.section>
+        </div>,
+        document.body,
     );
+
+    function trapDialogFocus(event: KeyboardEvent<HTMLElement>) {
+        if (event.key !== "Tab") return;
+
+        const focusable = Array.from(
+            dialogRef.current?.querySelectorAll<HTMLElement>(
+                "button:not([disabled]), a[href], summary, [tabindex]:not([tabindex='-1'])",
+            ) ?? [],
+        ).filter((element) => !element.hasAttribute("hidden"));
+        if (focusable.length === 0) {
+            event.preventDefault();
+            headingRef.current?.focus();
+            return;
+        }
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
+    }
 
     async function selectAction(action: CandidateFeedbackAction) {
         setPendingActionKind(action.kind);
@@ -157,7 +254,11 @@ export function CandidateStagedFeedback({
 
         switch (action.transition) {
             case "show_feedback_stage":
-                if (action.targetStageId) setActiveStageId(action.targetStageId);
+                if (action.targetStageId) {
+                    const targetIndex = interaction.stages.findIndex((stage) => stage.id === action.targetStageId);
+                    setStageDirection(targetIndex >= stageIndex ? 1 : -1);
+                    setActiveStageId(action.targetStageId);
+                }
                 break;
             case "advance_to_next_question":
                 onAdvanceQuestion();

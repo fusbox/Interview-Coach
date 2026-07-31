@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
     VOICE_TRANSCRIPTION_MAX_AUDIO_BYTES,
+    VOICE_TRANSCRIPTION_MAX_DURATION_MS,
     VoiceTranscriptionMediaError,
     parseVoiceTranscriptionMediaRequest,
 } from "./voice-transcription-media-contract";
@@ -54,7 +55,7 @@ describe("voice transcription media contract", () => {
             "content-type": "application/octet-stream",
         }))).rejects.toMatchObject({ statusCode: 415, failureClass: "audio_type_unsupported" });
         await expect(parseVoiceTranscriptionMediaRequest(rawRequest(undefined, {
-            "x-ic-audio-duration-ms": "180001",
+            "x-ic-audio-duration-ms": String(VOICE_TRANSCRIPTION_MAX_DURATION_MS + 1),
         }))).rejects.toMatchObject({ statusCode: 400, failureClass: "audio_duration_invalid" });
     });
 

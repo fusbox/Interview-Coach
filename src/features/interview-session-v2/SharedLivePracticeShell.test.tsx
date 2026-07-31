@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createSessionRuntimeFacts } from "./session-runtime-facts";
 import { SharedLivePracticeShell } from "./SharedLivePracticeShell";
@@ -7,6 +8,29 @@ import { SharedLivePracticeShell } from "./SharedLivePracticeShell";
 describe("SharedLivePracticeShell", () => {
     beforeEach(() => {
         window.scrollTo = vi.fn();
+        vi.stubGlobal("fetch", vi.fn(async (_url: string, init?: RequestInit) => {
+            const body = JSON.parse(String(init?.body)) as { assistanceKind: string };
+            return Response.json({
+                status: "ready",
+                output: body.assistanceKind === "hints"
+                    ? {
+                        status: "candidate_question_hints_v1",
+                        doThis: "Start with your main answer before adding one useful detail.",
+                        avoidThis: "Avoid giving a general answer without connecting it to the role.",
+                    }
+                    : {
+                        status: "candidate_strong_response_v1",
+                        strongResponse:
+                            "I am interested in this role because the work fits how I contribute best. In a recent role, I organized a recurring task, communicated progress clearly, and helped the team finish accurately.",
+                        whyThisWorks:
+                            "It answers directly and adds a concise example. The candidate's own actions remain clear.",
+                    },
+            });
+        }));
+    });
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
     });
 
     it("renders the candidate live workspace from shared facts and exits to the dashboard", () => {
@@ -171,6 +195,63 @@ describe("SharedLivePracticeShell", () => {
         expect(onContinueWithoutCoaching).toHaveBeenCalledOnce();
     });
 
+    it("does not claim an answer is saved before submission is accepted", () => {
+        render(
+            <SharedLivePracticeShell
+                facts={createFacts("candidate_led")}
+                answerMode="text"
+                draftText="My answer awaiting acceptance"
+                answerMutationPhase="submitting"
+                onDraftChange={vi.fn()}
+                onSubmit={vi.fn()}
+            />,
+        );
+
+        expect(screen.getByLabelText("Answer being saved")).toHaveTextContent("Saving answer");
+        expect(screen.queryByLabelText("Submitted answer")).not.toBeInTheDocument();
+        expect(screen.getByRole("status")).toHaveTextContent("Saving your answer");
+        expect(screen.getByRole("dialog", { name: "Reviewing your response" })).toBeInTheDocument();
+        expect(screen.queryByText("Noting your speaking delivery...")).not.toBeInTheDocument();
+    });
+
+    it("uses the voice progress sequence while an accepted recording is analyzed", () => {
+        render(
+            <SharedLivePracticeShell
+                facts={createFacts("invited_candidate")}
+                answerMode="voice"
+                availableAnswerModes={["text", "voice"]}
+                draftText=""
+                voiceAnswerContent={<section aria-label="Voice answer capture">Capture</section>}
+                answerMutationPhase="analyzing"
+                onAnswerModeChange={vi.fn()}
+                onDraftChange={vi.fn()}
+                onSubmit={vi.fn()}
+            />,
+        );
+
+        expect(screen.getByRole("dialog", { name: "Reviewing your response" })).toBeInTheDocument();
+        expect(screen.getByText("Noting your speaking delivery...")).toBeInTheDocument();
+    });
+
+    it("uses the same voice progress sequence while quick-submit transcription is running", () => {
+        render(
+            <SharedLivePracticeShell
+                facts={createFacts("candidate_led")}
+                answerMode="voice"
+                availableAnswerModes={["text", "voice"]}
+                draftText=""
+                voiceAnswerContent={<section aria-label="Voice answer capture">Capture</section>}
+                isVoiceSubmitPreparing
+                onAnswerModeChange={vi.fn()}
+                onDraftChange={vi.fn()}
+                onSubmit={vi.fn()}
+            />,
+        );
+
+        expect(screen.getByRole("dialog", { name: "Reviewing your response" })).toBeInTheDocument();
+        expect(screen.getByText("Noting your speaking delivery...")).toBeInTheDocument();
+    });
+
     it("makes continuation primary when coaching is terminally unavailable", () => {
         const onContinueWithoutCoaching = vi.fn();
 
@@ -290,6 +371,79 @@ describe("SharedLivePracticeShell", () => {
         const disclosure = screen.getByText("Review your saved answer").closest("details");
         expect(disclosure).not.toHaveAttribute("open");
         expect(screen.getByRole("region", { name: "Coach feedback" })).toBeInTheDocument();
+        expect(screen.queryByRole("dialog", { name: "Reviewing your response" })).not.toBeInTheDocument();
+    });
+
+    it("loads current-question hints automatically and hides assistance after submission", async () => {
+        const user = userEvent.setup();
+        const facts = createFacts("candidate_led");
+        const shell = (answerMutationPhase: "idle" | "analysis_failed") => (
+            <SharedLivePracticeShell
+                facts={facts}
+                answerMode="text"
+                draftText={answerMutationPhase === "idle" ? "" : "My submitted answer"}
+                answerMutationPhase={answerMutationPhase}
+                onDraftChange={vi.fn()}
+                onRetryAnalysis={vi.fn()}
+                onContinueWithoutCoaching={vi.fn()}
+                onSubmit={vi.fn()}
+            />
+        );
+
+        const view = render(shell("idle"));
+        await waitFor(() => expect(fetch).toHaveBeenCalledWith(
+            `/candidate/session/${facts.sessionId}/question-assistance`,
+            expect.objectContaining({
+                method: "POST",
+                body: JSON.stringify({
+                    questionKey: facts.questions[1].questionKey,
+                    assistanceKind: "hints",
+                }),
+            }),
+        ));
+
+        await user.click(screen.getByRole("button", { name: "Hints" }));
+        expect(screen.getByRole("dialog", { name: "Hints & framework" })).toHaveTextContent(
+            "Start with your main answer before adding one useful detail.",
+        );
+
+        view.rerender(shell("analysis_failed"));
+
+        expect(screen.queryByRole("button", { name: "Hints" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Strong response" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    it("keeps a visible adapter-owned question playback control", () => {
+        const onToggle = vi.fn();
+        const facts = createFacts("candidate_led");
+        const shell = (isPlaying: boolean, isLoading = false) => (
+            <SharedLivePracticeShell
+                facts={facts}
+                answerMode="text"
+                draftText=""
+                questionPlaybackControl={{
+                    isPlaying,
+                    isLoading,
+                    onToggle,
+                }}
+                onDraftChange={vi.fn()}
+                onSubmit={vi.fn()}
+            />
+        );
+
+        const view = render(shell(false));
+        screen.getByRole("button", { name: "Read question aloud" }).click();
+        expect(onToggle).toHaveBeenCalledOnce();
+
+        view.rerender(shell(true));
+        expect(screen.getByRole("button", { name: "Stop reading question" })).toHaveAttribute(
+            "aria-pressed",
+            "true",
+        );
+
+        view.rerender(shell(false, true));
+        expect(screen.getByRole("button", { name: "Loading question audio" })).toBeDisabled();
     });
 });
 

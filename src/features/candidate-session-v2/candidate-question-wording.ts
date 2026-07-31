@@ -161,15 +161,18 @@ export function createFixtureCandidateQuestionWordingResult({
     const categoryOccurrences = createCategoryOccurrenceTracker();
     return parseCandidateQuestionWordingResult({
         status: "questions_worded",
-        questions: questionPlanSnapshot.slots.map((slot) => ({
-            slotId: slot.id,
-            category: slot.category,
-            questionText: createFixtureCandidateQuestionText(
+        questions: questionPlanSnapshot.slots.map((slot) => {
+            const questionText = createFixtureCandidateQuestionText(
                 slot.category,
                 categoryOccurrences.next(slot.category),
                 setupSnapshot.targetRole,
-            ),
-        })),
+            );
+            return {
+                slotId: slot.id,
+                category: slot.category,
+                questionText,
+            };
+        }),
     }, questionPlanSnapshot);
 }
 

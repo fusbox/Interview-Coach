@@ -4,6 +4,7 @@ import { createInvitedPracticeRuntimeSeed } from "./invited-practice-runtime";
 
 describe("invited practice runtime seed", () => {
     it("projects an invite-owned session into the shared audience-neutral runtime", () => {
+        const questionText = "Why are you interested?";
         const runtime = createInvitedPracticeRuntimeSeed({
             sessionId: "session-1",
             recipientId: "recipient-1",
@@ -39,7 +40,7 @@ describe("invited practice runtime seed", () => {
                     slotId: "slot-1",
                     index: 0,
                     category: "screening",
-                    questionText: "Why are you interested?",
+                    questionText,
                 }],
             },
             progress: {
@@ -62,5 +63,6 @@ describe("invited practice runtime seed", () => {
         });
         expect(runtime).not.toHaveProperty("candidateProfileId");
         expect(runtime).not.toHaveProperty("recruiterId");
+        expect(runtime.questions[0]).not.toHaveProperty("assistance");
     });
 });

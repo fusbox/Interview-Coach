@@ -84,6 +84,7 @@ export const GOOGLE_CANDIDATE_QUESTION_WORDING_SYSTEM_INSTRUCTION = Object.freez
     "Do not ask for exact numerical standards, legal or regulatory requirements, clinical instructions, hazardous-work procedures, or other authoritative factual recall. In regulated, safety-sensitive, or employer-specific contexts, ask how the candidate follows, verifies, or escalates approved procedures.",
     "Do not treat the resume as proof of qualification and do not use your own knowledge, the job description, or the resume as an authoritative technical reference.",
     "Each questionText must be a complete question between 8 and 500 characters.",
+    "Do not author hints, an answer, a sample response, evaluation, or coaching. Those are generated separately when the candidate uses the live practice space.",
 ]);
 
 export const GOOGLE_CANDIDATE_QUESTION_WORDING_CONFIGURATION_MANIFEST = Object.freeze({

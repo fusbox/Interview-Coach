@@ -31,7 +31,7 @@ import {
 export const GOOGLE_EVIDENCE_FIRST_PROFILE_ID = "google_gemini_2_5_flash_v1" as const;
 export const GOOGLE_EVIDENCE_FIRST_PROVIDER = "google_genai" as const;
 export const GOOGLE_EVIDENCE_FIRST_MODEL = "gemini-2.5-flash" as const;
-export const GOOGLE_EVIDENCE_FIRST_ADAPTER_VERSION = "google_genai_evidence_first_adapter_v15" as const;
+export const GOOGLE_EVIDENCE_FIRST_ADAPTER_VERSION = "google_genai_evidence_first_adapter_v16" as const;
 export const GOOGLE_EVIDENCE_FIRST_PROFILE_ENV = "CANDIDATE_ANSWER_ANALYSIS_PROFILE" as const;
 export const GOOGLE_GENAI_API_KEY_ENV = "GEMINI_API_KEY" as const;
 
@@ -97,7 +97,7 @@ const verificationDescriptor = createModelDescriptor({
 });
 
 const compositionDescriptor = createModelDescriptor({
-    promptVersion: "candidate_feedback_composition_google_v8",
+    promptVersion: "candidate_feedback_composition_google_v9",
     responseSchemaVersion: "feedback_composition_provider_output_v3",
     reasoningPosture: "low",
     thinkingBudget: 512,

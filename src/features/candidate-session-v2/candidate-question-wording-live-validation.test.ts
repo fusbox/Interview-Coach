@@ -73,7 +73,10 @@ describe("candidate question wording live validation", () => {
             outcome: "accepted",
             metrics: { inputTokens: 310, outputTokens: 120 },
             questions: expect.arrayContaining([
-                expect.objectContaining({ slotId: "slot-1", category: "screening" }),
+                expect.objectContaining({
+                    slotId: "slot-1",
+                    category: "screening",
+                }),
             ]),
         });
         expect(findProhibitedQuestionWordingLiveArtifactKeys(artifact)).toEqual([]);

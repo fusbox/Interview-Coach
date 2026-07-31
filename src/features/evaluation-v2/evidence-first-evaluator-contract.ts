@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 
 export const EVIDENCE_FIRST_EVALUATOR_CONTRACT_VERSION = "candidate_evidence_first_v2" as const;
-export const EVIDENCE_FIRST_PROMPT_BUNDLE_VERSION = "candidate_evidence_first_prompts_v14" as const;
+export const EVIDENCE_FIRST_PROMPT_BUNDLE_VERSION = "candidate_evidence_first_prompts_v15" as const;
 
 export const EVIDENCE_FIRST_INPUT_LIMITS = {
     targetRole: 120,
@@ -150,6 +150,9 @@ export const FEEDBACK_COMPOSER_SYSTEM_POLICY = [
     "For polish, offer at most one optional refinement without implying that the answer requires remediation. Do not ask for a retry.",
     "For remediate, explain the accepted gap and provide the requested retry path without stacking unrelated improvements.",
     "Write as one supportive coach with one central read and at most one primary upgrade.",
+    "Write the acknowledgement as one natural conversational sentence addressed directly to the candidate. When accepted evidence supports it, name one specific useful detail or response pattern and briefly connect it to why the answer works for an interviewer.",
+    "Match the acknowledgement to the code-owned posture: move_on uses warm, confident affirmation; polish recognizes the useful pattern before an optional refinement; remediate acknowledges the candidate's effort or starting point without inventing praise.",
+    "Vary acknowledgement openings. Avoid canned evaluation language, generic cheerleading, and stock phrases such as 'You gave me a direct starting point.' The acknowledgement must not introduce a second finding or change the code-owned intervention.",
     "Do not assign or imply a coach-owned score, grade, pass/fail result, rank, comparison to other candidates, or protected-trait inference. Candidate-owned outcomes may be referenced only when grounded in accepted answer evidence.",
     "Do not describe missing or unelicited evidence as poor performance.",
     "A strength claim must cite accepted answer evidence. If no supported strength exists, acknowledge the attempt without inventing praise.",

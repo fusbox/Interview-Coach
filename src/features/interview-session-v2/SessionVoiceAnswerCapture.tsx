@@ -1,8 +1,20 @@
 "use client";
 
-import { AlertCircle, Loader2, Mic, RotateCcw, Square } from "lucide-react";
+import {
+    AlertCircle,
+    CheckCircle2,
+    Loader2,
+    Mic,
+    Pause,
+    Play,
+    RotateCcw,
+    Square,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { Button } from "@/components/ui/button";
+
+import styles from "./SessionVoiceAnswerCapture.module.css";
 import type { VoiceTranscriptDraft } from "./voice-answer-transcription";
 import {
     SessionVoiceAnswerBrowserError,
@@ -13,14 +25,17 @@ import {
     selectSessionVoiceCaptureMimeType,
     type SessionVoiceRecording,
 } from "./session-voice-answer-browser";
-import { VOICE_TRANSCRIPTION_MAX_DURATION_MS } from "./voice-transcription-media-contract";
+import {
+    startSessionVoiceLevelMonitor,
+    type SessionVoiceLevelMonitor,
+} from "./session-voice-level-monitor";
 
 type VoiceCapturePhase =
     | "notice"
     | "requesting_permission"
     | "recording"
     | "recorded"
-    | "transcribing"
+    | "transcribing_review"
     | "submitting"
     | "review"
     | "failed";
@@ -38,6 +53,8 @@ type SessionVoiceAnswerCaptureProps = {
     onSwitchToText: () => void;
     onUnsafeLocalWorkChange?: (hasUnsafeLocalWork: boolean) => void;
     onAnswerModeLockChange?: (isAnswerModeLocked: boolean) => void;
+    onInteractionGateChange?: (isInteractionGated: boolean) => void;
+    onSubmitProgressChange?: (isPreparingAnswer: boolean) => void;
 };
 
 export function SessionVoiceAnswerCapture({
@@ -50,6 +67,8 @@ export function SessionVoiceAnswerCapture({
     onSwitchToText,
     onUnsafeLocalWorkChange,
     onAnswerModeLockChange,
+    onInteractionGateChange,
+    onSubmitProgressChange,
 }: SessionVoiceAnswerCaptureProps) {
     const [phase, setPhase] = useState<VoiceCapturePhase>(initialTranscriptDraft ? "review" : "notice");
     const [recording, setRecording] = useState<SessionVoiceRecording | null>(null);
@@ -57,16 +76,33 @@ export function SessionVoiceAnswerCapture({
     const [transcriptText, setTranscriptText] = useState(initialTranscriptDraft?.transcriptText ?? "");
     const [elapsedMs, setElapsedMs] = useState(0);
     const [error, setError] = useState<SessionVoiceAnswerBrowserError | null>(null);
+    const [isPlaybackActive, setIsPlaybackActive] = useState(false);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
     const recorderRef = useRef<MediaRecorder | null>(null);
     const streamRef = useRef<MediaStream | null>(null);
+    const waveformRef = useRef<HTMLDivElement | null>(null);
+    const levelMonitorRef = useRef<SessionVoiceLevelMonitor | null>(null);
     const chunksRef = useRef<Blob[]>([]);
     const startedAtRef = useRef(0);
-    const stopTimeoutRef = useRef<number | null>(null);
     const timerRef = useRef<number | null>(null);
     const recordingRef = useRef<SessionVoiceRecording | null>(null);
     const lastTranscriptionIntentRef = useRef<"submit_answer" | "review_transcript">("review_transcript");
 
+    const stopLevelMonitor = useCallback(() => {
+        levelMonitorRef.current?.stop();
+        levelMonitorRef.current = null;
+    }, []);
+
+    const updateWaveformLevels = useCallback((levels: number[]) => {
+        const bars = waveformRef.current?.querySelectorAll<HTMLElement>("[data-voice-level]");
+        bars?.forEach((bar, index) => {
+            bar.style.setProperty("--voice-level", String(levels[index] ?? 0.08));
+        });
+    }, []);
+
     const discardRecording = useCallback(() => {
+        audioRef.current?.pause();
+        setIsPlaybackActive(false);
         const currentRecording = recordingRef.current;
         if (currentRecording) URL.revokeObjectURL(currentRecording.playbackUrl);
         recordingRef.current = null;
@@ -74,16 +110,18 @@ export function SessionVoiceAnswerCapture({
     }, []);
 
     const stopMedia = useCallback(() => {
-        if (stopTimeoutRef.current !== null) window.clearTimeout(stopTimeoutRef.current);
         if (timerRef.current !== null) window.clearInterval(timerRef.current);
-        stopTimeoutRef.current = null;
         timerRef.current = null;
+        stopLevelMonitor();
         streamRef.current?.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
-    }, []);
+    }, [stopLevelMonitor]);
 
     useEffect(() => {
-        const hasUnsafeLocalWork = phase === "recording" || phase === "recorded" || phase === "transcribing";
+        const hasUnsafeLocalWork = phase === "recording"
+            || phase === "recorded"
+            || phase === "transcribing_review"
+            || phase === "submitting";
         onUnsafeLocalWorkChange?.(hasUnsafeLocalWork);
         if (!hasUnsafeLocalWork) return;
         const warnBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -101,12 +139,21 @@ export function SessionVoiceAnswerCapture({
         const isAnswerModeLocked = phase === "requesting_permission"
             || phase === "recording"
             || phase === "recorded"
-            || phase === "transcribing"
+            || phase === "transcribing_review"
             || phase === "submitting"
             || phase === "review";
         onAnswerModeLockChange?.(isAnswerModeLocked);
         return () => onAnswerModeLockChange?.(false);
     }, [onAnswerModeLockChange, phase]);
+
+    useEffect(() => {
+        const isInteractionGated = phase === "recorded"
+            || phase === "transcribing_review"
+            || phase === "submitting"
+            || phase === "review";
+        onInteractionGateChange?.(isInteractionGated);
+        return () => onInteractionGateChange?.(false);
+    }, [onInteractionGateChange, phase]);
 
     useEffect(() => () => {
         const recorder = recorderRef.current;
@@ -114,7 +161,8 @@ export function SessionVoiceAnswerCapture({
         stopMedia();
         const currentRecording = recordingRef.current;
         if (currentRecording) URL.revokeObjectURL(currentRecording.playbackUrl);
-    }, [stopMedia]);
+        onSubmitProgressChange?.(false);
+    }, [onSubmitProgressChange, stopMedia]);
 
     const startRecording = useCallback(async () => {
         setError(null);
@@ -148,6 +196,12 @@ export function SessionVoiceAnswerCapture({
                 );
             }
             streamRef.current = stream;
+            stopLevelMonitor();
+            levelMonitorRef.current = startSessionVoiceLevelMonitor({
+                stream,
+                barCount: 16,
+                onLevels: updateWaveformLevels,
+            });
             recorderRef.current = recorder;
             chunksRef.current = [];
             recorder.addEventListener("dataavailable", (event) => {
@@ -188,11 +242,8 @@ export function SessionVoiceAnswerCapture({
             recorder.start(250);
             setPhase("recording");
             timerRef.current = window.setInterval(() => {
-                setElapsedMs(Math.min(Date.now() - startedAtRef.current, VOICE_TRANSCRIPTION_MAX_DURATION_MS));
+                setElapsedMs(Date.now() - startedAtRef.current);
             }, 250);
-            stopTimeoutRef.current = window.setTimeout(() => {
-                if (recorder.state === "recording") recorder.stop();
-            }, VOICE_TRANSCRIPTION_MAX_DURATION_MS);
         } catch (captureError) {
             stopMedia();
             setError(captureError instanceof SessionVoiceAnswerBrowserError
@@ -204,18 +255,38 @@ export function SessionVoiceAnswerCapture({
                 ));
             setPhase("failed");
         }
-    }, [discardRecording, stopMedia]);
+    }, [discardRecording, stopLevelMonitor, stopMedia, updateWaveformLevels]);
 
     const stopRecording = useCallback(() => {
         const recorder = recorderRef.current;
         if (recorder?.state === "recording") recorder.stop();
     }, []);
 
+    const togglePlayback = useCallback(async () => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        if (audio.paused) {
+            try {
+                await audio.play();
+                setIsPlaybackActive(true);
+            } catch {
+                setIsPlaybackActive(false);
+            }
+        } else {
+            audio.pause();
+            setIsPlaybackActive(false);
+        }
+    }, []);
+
     const transcribe = useCallback(async (intent: "submit_answer" | "review_transcript") => {
         if (!recording) return;
         lastTranscriptionIntentRef.current = intent;
         setError(null);
-        setPhase("transcribing");
+        const isQuickSubmit = intent === "submit_answer";
+        setPhase(isQuickSubmit ? "submitting" : "transcribing_review");
+        if (isQuickSubmit) {
+            onSubmitProgressChange?.(true);
+        }
         try {
             const draft = await requestSessionVoiceTranscript({
                 mutationBasePath,
@@ -226,8 +297,7 @@ export function SessionVoiceAnswerCapture({
             });
             setTranscriptDraft(draft);
             setTranscriptText(draft.transcriptText);
-            if (intent === "submit_answer" && onQuickSubmitTranscript) {
-                setPhase("submitting");
+            if (isQuickSubmit && onQuickSubmitTranscript) {
                 await onQuickSubmitTranscript(draft);
                 discardRecording();
                 return;
@@ -236,8 +306,20 @@ export function SessionVoiceAnswerCapture({
         } catch (transcriptionError) {
             setError(toBrowserError(transcriptionError));
             setPhase("failed");
+        } finally {
+            if (isQuickSubmit) {
+                onSubmitProgressChange?.(false);
+            }
         }
-    }, [discardRecording, mutationBasePath, onQuickSubmitTranscript, questionIndex, questionSlotId, recording]);
+    }, [
+        discardRecording,
+        mutationBasePath,
+        onQuickSubmitTranscript,
+        onSubmitProgressChange,
+        questionIndex,
+        questionSlotId,
+        recording,
+    ]);
 
     const submitRecoveredTranscript = useCallback(async () => {
         if (!transcriptDraft || !transcriptText.trim()) return;
@@ -245,6 +327,7 @@ export function SessionVoiceAnswerCapture({
         if (isQuickSubmitRecovery ? !onQuickSubmitTranscript : !onReviewedSubmitTranscript) return;
         setPhase("submitting");
         setError(null);
+        onSubmitProgressChange?.(true);
         try {
             if (isQuickSubmitRecovery) {
                 await onQuickSubmitTranscript!(transcriptDraft);
@@ -258,27 +341,55 @@ export function SessionVoiceAnswerCapture({
         } catch (submissionError) {
             setError(toBrowserError(submissionError));
             setPhase("review");
+        } finally {
+            onSubmitProgressChange?.(false);
         }
-    }, [discardRecording, onQuickSubmitTranscript, onReviewedSubmitTranscript, transcriptDraft, transcriptText]);
+    }, [
+        discardRecording,
+        onQuickSubmitTranscript,
+        onReviewedSubmitTranscript,
+        onSubmitProgressChange,
+        transcriptDraft,
+        transcriptText,
+    ]);
 
     const isQuickSubmitRecovery = transcriptDraft?.submissionPath === "quick_submit";
 
     return (
-        <div className="session-voice-answer" data-phase={phase}>
+        <div className={`session-voice-answer ${styles.root}`} data-phase={phase}>
+            {recording ? (
+                <audio
+                    ref={audioRef}
+                    className={styles.playbackAudio}
+                    preload="metadata"
+                    src={recording.playbackUrl}
+                    onPause={() => setIsPlaybackActive(false)}
+                    onPlay={() => setIsPlaybackActive(true)}
+                    onEnded={() => setIsPlaybackActive(false)}
+                >
+                    Your browser does not support audio playback.
+                </audio>
+            ) : null}
+
             {phase === "notice" ? (
-                <div className="session-voice-answer__notice">
-                    <Mic size={22} aria-hidden="true" />
-                    <div>
-                        <h3>Record your answer</h3>
-                        <p>
-                            Your microphone is used only while you record. Audio is sent to create a transcript.
-                            Interview Coach does not keep a separate audio file after it is processed.
-                        </p>
+                <div className={`session-voice-answer__notice ${styles.notice}`}>
+                    <div className={styles.recordingHeader}>
+                        <span>Tap to record; tap again to stop.</span>
+                        <span aria-hidden="true">0:00</span>
                     </div>
-                    <button className="candidate-button candidate-button--primary" type="button" onClick={startRecording}>
-                        <Mic size={17} aria-hidden="true" />
-                        Start recording
-                    </button>
+                    <div className={`${styles.waveform} ${styles.waveformIdle}`} aria-hidden="true">
+                        {Array.from({ length: 16 }, (_, index) => <span key={index} />)}
+                    </div>
+                    <div className={styles.instrument}>
+                        <button
+                            className={styles.recordControl}
+                            type="button"
+                            onClick={startRecording}
+                            aria-label="Start recording"
+                        >
+                            <Mic size={30} aria-hidden="true" />
+                        </button>
+                    </div>
                 </div>
             ) : null}
 
@@ -287,61 +398,115 @@ export function SessionVoiceAnswerCapture({
             ) : null}
 
             {phase === "recording" ? (
-                <div className="session-voice-answer__recording">
+                <div className={`session-voice-answer__recording ${styles.recording}`}>
                     <span className="sr-only" role="status" aria-live="polite">Recording started.</span>
-                    <span className="session-voice-answer__recording-dot" aria-hidden="true" />
-                    <div>
-                        <strong>Recording</strong>
-                        <span aria-hidden="true">{formatDuration(elapsedMs)} of 3:00</span>
+                    <div className={styles.recordingHeader}>
+                        <span>
+                            <strong>Recording</strong>
+                        </span>
+                        <span aria-hidden="true">{formatDuration(elapsedMs)}</span>
                     </div>
-                    <button className="candidate-button candidate-button--primary" type="button" onClick={stopRecording}>
-                        <Square size={16} aria-hidden="true" />
-                        Stop recording
-                    </button>
+                    <div ref={waveformRef} className={styles.waveform} aria-hidden="true">
+                        {Array.from({ length: 16 }, (_, index) => (
+                            <span key={index} data-voice-level />
+                        ))}
+                    </div>
+                    <div className={styles.instrument}>
+                        <button
+                            className={`${styles.recordControl} ${styles.stopControl}`}
+                            type="button"
+                            onClick={stopRecording}
+                            aria-label="Stop recording"
+                        >
+                            <Square size={24} aria-hidden="true" />
+                        </button>
+                    </div>
                 </div>
             ) : null}
 
             {phase === "recorded" && recording ? (
-                <div className="session-voice-answer__recorded">
-                    <div>
-                        <strong>Recording ready</strong>
-                        <span>{formatDuration(recording.durationMs)}</span>
+                <div className={`session-voice-answer__recorded ${styles.recorded}`}>
+                    <div className={styles.readyState}>
+                        <div className={styles.readySummary}>
+                            <span className={styles.readyIcon}>
+                                <CheckCircle2 size={20} aria-hidden="true" />
+                            </span>
+                            <div>
+                                <strong>Recording captured</strong>
+                                <span>{formatDuration(recording.durationMs)}</span>
+                            </div>
+                        </div>
+                        <Button
+                            emphasis="secondary"
+                            density="compact"
+                            shape="pill"
+                            type="button"
+                            onClick={() => void togglePlayback()}
+                        >
+                            {isPlaybackActive ? (
+                                <Pause size={15} aria-hidden="true" />
+                            ) : (
+                                <Play size={15} aria-hidden="true" />
+                            )}
+                            {isPlaybackActive ? "Pause" : "Replay"}
+                        </Button>
                     </div>
-                    <audio controls preload="metadata" src={recording.playbackUrl}>
-                        Your browser does not support audio playback.
-                    </audio>
-                    <div className="session-voice-answer__actions">
-                        <button
-                            className="candidate-button candidate-button--primary"
+                    <div className={`session-voice-answer__actions ${styles.actions}`}>
+                        <Button
+                            emphasis="primary"
+                            density="comfortable"
+                            shape="pill"
                             type="button"
                             disabled={!onQuickSubmitTranscript}
                             onClick={() => void transcribe("submit_answer")}
                         >
                             Submit answer
-                        </button>
-                        <button className="candidate-button candidate-button--secondary" type="button" onClick={() => void startRecording()}>
+                        </Button>
+                        <Button emphasis="secondary" density="comfortable" shape="pill" type="button" onClick={() => void startRecording()}>
                             <RotateCcw size={16} aria-hidden="true" />
                             Retry
-                        </button>
-                        <button className="candidate-button candidate-button--secondary session-voice-answer__review-action" type="button" onClick={() => void transcribe("review_transcript")}>
+                        </Button>
+                        <Button
+                            className={`session-voice-answer__review-action ${styles.reviewAction}`}
+                            emphasis="secondary"
+                            density="comfortable"
+                            shape="pill"
+                            type="button"
+                            onClick={() => void transcribe("review_transcript")}
+                        >
                             Review
-                        </button>
+                        </Button>
                     </div>
                 </div>
             ) : null}
 
-            {phase === "transcribing" ? <VoiceProgress>Preparing your transcript...</VoiceProgress> : null}
-            {phase === "submitting" ? <VoiceProgress>Saving your answer...</VoiceProgress> : null}
+            {phase === "transcribing_review" ? <VoiceProgress>Preparing your transcript...</VoiceProgress> : null}
 
             {phase === "review" && transcriptDraft ? (
-                <div className="session-voice-answer__review">
-                    {recording ? (
-                        <audio controls preload="metadata" src={recording.playbackUrl}>
-                            Your browser does not support audio playback.
-                        </audio>
-                    ) : null}
+                <div className={`session-voice-answer__review ${styles.review}`}>
+                    <div className={styles.reviewHeader}>
+                        <span>{isQuickSubmitRecovery ? "Your transcript is ready" : "Review your answer"}</span>
+                        {recording ? (
+                            <Button
+                                emphasis="secondary"
+                                density="compact"
+                                shape="pill"
+                                type="button"
+                                onClick={() => void togglePlayback()}
+                            >
+                                {isPlaybackActive ? (
+                                    <Pause size={15} aria-hidden="true" />
+                                ) : (
+                                    <Play size={15} aria-hidden="true" />
+                                )}
+                                {isPlaybackActive ? "Pause" : "Replay"}
+                            </Button>
+                        ) : null}
+                    </div>
                     <label>
-                        <span>{isQuickSubmitRecovery ? "Your transcript is ready" : "Review your transcript"}</span>
+                        <span className="sr-only">
+                            {isQuickSubmitRecovery ? "Your transcript is ready" : "Review your transcript"}
+                        </span>
                         <textarea
                             rows={7}
                             value={transcriptText}
@@ -349,9 +514,15 @@ export function SessionVoiceAnswerCapture({
                             onChange={(event) => setTranscriptText(event.target.value)}
                         />
                     </label>
-                    <div className="session-voice-answer__actions">
-                        <button
-                            className="candidate-button candidate-button--primary"
+                    <div className={`session-voice-answer__actions ${styles.actions} ${styles.reviewActions}`}>
+                        <Button emphasis="secondary" density="comfortable" shape="pill" type="button" onClick={() => void startRecording()}>
+                            <RotateCcw size={16} aria-hidden="true" />
+                            Retry
+                        </Button>
+                        <Button
+                            emphasis="primary"
+                            density="comfortable"
+                            shape="pill"
                             type="button"
                             disabled={!transcriptText.trim() || (isQuickSubmitRecovery
                                 ? !onQuickSubmitTranscript
@@ -359,32 +530,28 @@ export function SessionVoiceAnswerCapture({
                             onClick={() => void submitRecoveredTranscript()}
                         >
                             {isQuickSubmitRecovery ? "Continue submitting answer" : "Submit answer"}
-                        </button>
-                        <button className="candidate-button candidate-button--secondary" type="button" onClick={() => void startRecording()}>
-                            <RotateCcw size={16} aria-hidden="true" />
-                            Retry
-                        </button>
+                        </Button>
                     </div>
                 </div>
             ) : null}
 
             {phase === "failed" && error ? (
-                <div className="session-voice-answer__failure" role="alert">
+                <div className={`session-voice-answer__failure ${styles.failure}`} role="alert">
                     <AlertCircle size={20} aria-hidden="true" />
                     <p>{error.publicMessage}</p>
-                    <div className="session-voice-answer__actions">
+                    <div className={`session-voice-answer__actions ${styles.actions}`}>
                         {recording && error.retryable ? (
-                            <button className="candidate-button candidate-button--secondary" type="button" onClick={() => void transcribe(lastTranscriptionIntentRef.current)}>
+                            <Button emphasis="secondary" density="comfortable" shape="pill" type="button" onClick={() => void transcribe(lastTranscriptionIntentRef.current)}>
                                 Try again
-                            </button>
+                            </Button>
                         ) : (
-                            <button className="candidate-button candidate-button--secondary" type="button" onClick={() => void startRecording()}>
+                            <Button emphasis="secondary" density="comfortable" shape="pill" type="button" onClick={() => void startRecording()}>
                                 Record again
-                            </button>
+                            </Button>
                         )}
-                        <button className="candidate-button candidate-button--secondary" type="button" onClick={onSwitchToText}>
+                        <Button emphasis="secondary" density="comfortable" shape="pill" type="button" onClick={onSwitchToText}>
                             Type answer
-                        </button>
+                        </Button>
                     </div>
                 </div>
             ) : null}
@@ -394,7 +561,7 @@ export function SessionVoiceAnswerCapture({
 
 function VoiceProgress({ children }: { children: string }) {
     return (
-        <div className="session-voice-answer__progress" role="status" aria-live="polite">
+        <div className={styles.progress} role="status" aria-live="polite">
             <Loader2 className="session-live-shell__status-spinner" size={20} aria-hidden="true" />
             <p>{children}</p>
         </div>

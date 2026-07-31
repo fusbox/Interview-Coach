@@ -38,6 +38,9 @@ describe("Google candidate question wording adapter", () => {
         expect(GOOGLE_CANDIDATE_QUESTION_WORDING_SYSTEM_INSTRUCTION.join("\n")).toContain(
             "do not use your own knowledge",
         );
+        expect(GOOGLE_CANDIDATE_QUESTION_WORDING_SYSTEM_INSTRUCTION.join("\n")).toContain(
+            "Do not author hints",
+        );
     });
 
     it("selects one exact server profile without retaining its credential", () => {
@@ -131,7 +134,11 @@ describe("Google candidate question wording adapter", () => {
         expect(result).toMatchObject({
             status: "questions_worded",
             questions: expect.arrayContaining([
-                expect.objectContaining({ slotId: "slot-1", index: 0, category: "screening" }),
+                expect.objectContaining({
+                    slotId: "slot-1",
+                    index: 0,
+                    category: "screening",
+                }),
             ]),
             generation: {
                 provider: "google_genai",
@@ -196,6 +203,14 @@ function createRequest() {
             interviewStage: "screening",
             questionCount: 5,
             resumeCaptureMode: "pasted_text",
+            resumeArtifact: {
+                artifactId: "resume-artifact-1",
+                version: 1,
+                revision: 1,
+                source: "pasted_text",
+                candidateLabel: "Pasted resume",
+                reviewState: "accepted",
+            },
             createdAt: "2026-07-18T12:00:00.000Z",
         },
         questionPlanSnapshot,

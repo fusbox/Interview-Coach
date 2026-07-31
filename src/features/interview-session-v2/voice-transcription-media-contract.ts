@@ -1,7 +1,8 @@
 import type { VoiceTranscriptionCommandIntent } from "./voice-answer-transcription";
 
 export const VOICE_TRANSCRIPTION_MAX_AUDIO_BYTES = 4 * 1_024 * 1_024;
-export const VOICE_TRANSCRIPTION_MAX_DURATION_MS = 180_000;
+// This is a server-side abuse ceiling, not a candidate pacing target.
+export const VOICE_TRANSCRIPTION_MAX_DURATION_MS = 10 * 60_000;
 const MAX_MULTIPART_ENVELOPE_BYTES = VOICE_TRANSCRIPTION_MAX_AUDIO_BYTES + 16_384;
 const MAX_OPERATION_KEY_LENGTH = 128;
 const MAX_SLOT_ID_LENGTH = 128;

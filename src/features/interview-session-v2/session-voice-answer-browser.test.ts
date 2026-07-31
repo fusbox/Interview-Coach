@@ -8,6 +8,7 @@ import {
     requestSessionVoiceTranscript,
     selectSessionVoiceCaptureMimeType,
 } from "./session-voice-answer-browser";
+import { VOICE_TRANSCRIPTION_MAX_DURATION_MS } from "./voice-transcription-media-contract";
 
 const transcriptDraft = {
     status: "voice_transcript_draft",
@@ -107,7 +108,7 @@ describe("session voice answer browser contract", () => {
         })).toThrowError(expect.objectContaining({ code: "recording_empty" }));
         expect(() => assertSessionVoiceRecordingBounds({
             blob: new Blob([new Uint8Array([1])], { type: "audio/webm" }),
-            durationMs: 180_001,
+            durationMs: VOICE_TRANSCRIPTION_MAX_DURATION_MS + 1,
         })).toThrowError(SessionVoiceAnswerBrowserError);
     });
 });

@@ -65,7 +65,7 @@ export function assertSessionVoiceRecordingBounds(recording: Pick<SessionVoiceRe
     if (recording.durationMs < 1 || recording.durationMs > VOICE_TRANSCRIPTION_MAX_DURATION_MS) {
         throw new SessionVoiceAnswerBrowserError(
             "recording_duration_invalid",
-            "Keep the recording under three minutes, then try again.",
+            "That recording is too long to process. Try a shorter answer or type it instead.",
             true,
         );
     }

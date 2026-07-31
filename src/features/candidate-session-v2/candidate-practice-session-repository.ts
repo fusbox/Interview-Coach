@@ -511,6 +511,7 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
             const result = await client.query(`
                 update public.candidate_practice_sessions
                 set status = case when status = 'planned' then 'in_progress' else status end,
+                    answer_drafts_json = coalesce(answer_drafts_json, '{}'::jsonb) - $3,
                     answer_submissions_json = jsonb_set(
                   coalesce(answer_submissions_json, '{}'::jsonb),
                   $3::text[],
