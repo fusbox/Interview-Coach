@@ -61,6 +61,8 @@ Every active document must have one clear job. Slice history and long validation
 - [Evidence-First Evaluator Contract](./05-quality/evidence-first-evaluator-contract.md)
 - [Production Evaluator Integration](./05-quality/production-evaluator-integration-contract.md)
 - [Evidence-First Dashboard Architecture](./04-architecture/evidence-first-dashboard-information-architecture.md)
+- [Candidate Dashboard Composition Direction](./03-design/dashboard-composition-direction.md)
+- [Dashboard Progress Visualization](./03-design/dashboard-progress-visualization-contract.md)
 - [Coach Update Card And Transcript Canvas](./03-design/coach-update-v2-card-spec.md)
 - [AI-Eval Operator Workbench](./05-quality/ai-eval-operator-workbench.md)
 - [Evidence-First Coaching Scenario Lab](./05-quality/evidence-first-coaching-scenario-lab.md)
@@ -78,6 +80,8 @@ Every active document must have one clear job. Slice history and long validation
 
 - [Design System Foundation](./03-design/design-system-foundation.md)
 - [Production UI Workstream](./03-design/production-ui-workstream.md)
+- [Candidate Dashboard Composition Direction](./03-design/dashboard-composition-direction.md)
+- [Dashboard Progress Visualization](./03-design/dashboard-progress-visualization-contract.md)
 - [Candidate Production UI Milestone](./05-quality/candidate-production-ui-milestone.md)
 - [Coach Update Card And Transcript Canvas](./03-design/coach-update-v2-card-spec.md)
 

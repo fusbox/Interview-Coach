@@ -1,7 +1,7 @@
 # Production Question Wording Integration Contract
 
 Status: Ratified implementation contract
-Last updated: 2026-07-24
+Last updated: 2026-07-29
 
 ## Purpose
 
@@ -13,7 +13,7 @@ The release profile is:
 - profile: `google_gemini_2_5_flash_question_wording_v2`;
 - model: `gemini-2.5-flash`;
 - prompt version: `candidate_question_wording_prompt_v2`;
-- configuration fingerprint: `464fe1ec7f59131ed7cca42412e6847a4fa4df98865de22404d05f6942e24b95`.
+- configuration fingerprint: `69782fdca5d05977a1cd86f7314bc6d2c3185ced106f9d3713a4d519779379c0`.
 
 V1 remains immutable historical validation evidence. It is not the serving profile after the V2 prompt passes its credentialed gate.
 
@@ -31,7 +31,7 @@ For an initial setup-created round, `/candidate/setup/start` must execute in thi
 
 Provider failure creates no session and does not consume trusted setup staging. An empty prep context created before the call may be reused by a later retry; it is not practice evidence and is not shown as a duplicate active practice path.
 
-Follow-up rounds do not call this provider. A one-question action, queue, or fixed bundle snapshots the exact already-worded source questions selected by the candidate. Regenerating those questions would break practice intent and attempt lineage.
+Follow-up rounds do not call this provider. A one-question action, queue, or fixed bundle snapshots the exact already-worded source questions. Regenerating question wording would break practice intent and attempt lineage. Hints and Strong response follow their separate session-scoped lifecycle and are not copied as question wording.
 
 ## Provider Input
 
@@ -58,6 +58,18 @@ The current deterministic planner reserves technical/role-specific slots by inte
 - never use its own model knowledge, the JD, or the resume as an authoritative technical reference.
 
 This posture minimizes reference dependency; it does not remove technical/role-specific practice. A future role-aware planner may omit or substitute category slots, but that is outside this release slice.
+
+## Pre-Answer Assistance Boundary
+
+Question wording does not generate or embed Hints or Strong response content. Those are separately authorized candidate-session operations:
+
+- Hints begin generating automatically when the question becomes current.
+- Strong response generates only when the candidate explicitly requests it.
+- Both use the immutable question, category, role/JD context, and accepted processed resume snapshot staged for that session.
+- Both persist as candidate-owned question artifacts and replay after reload, recovery, or a concurrent-tab request.
+- Both expose truthful loading, failure, and explicit retry states without blocking practice.
+
+Assistance remains candidate-only, is excluded from evaluator evidence, and is omitted from recruiter transcript reads. The assistance provider may help the candidate identify useful evidence or model a natural response pattern, but it may not assert candidate facts, employer facts, qualification, technical correctness, exact standards, hazardous procedures, or invented experience. Technical/role-specific Strong response output stays at a safe demonstration-pattern level unless a separately governed trusted reference is available.
 
 ## Output And Validation
 

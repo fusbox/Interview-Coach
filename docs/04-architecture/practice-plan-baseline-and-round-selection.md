@@ -67,3 +67,9 @@ No V1 data compatibility is required. Existing V2 development fixtures and local
 Slice 149 persists `rigorBaselineSnapshot` and `rigorBaselineQuestionWordingSnapshot` on the prep context before saving round one. One provider result is deterministically projected into the full baseline and the selected round. Round slots carry stable plan-question references and a baseline/supplemental classification. Dashboard and follow-up services read the prep baseline, while persisted session snapshots remain scoped to the questions actually exposed in that round.
 
 An unexposed baseline question uses the earliest original session only as a lineage anchor; its identity and wording come from the prep-context snapshot. This keeps existing intent/session machinery stable without rewriting historical session content in storage.
+
+## Follow-Up Launch Invariant
+
+Any canonical baseline question that the selected-context Coach Plan exposes as eligible for Practice Next must also be executable from the durable next-round draft. The immutable prep-context baseline is authoritative for a never-exposed question's identity and wording; the original session remains only its candidate-owned lineage anchor.
+
+The atomic queue-to-intent and intent-to-session validators must therefore accept `practice_missing_evidence` when the anchored question exists either in the source round wording or in the matching candidate-owned prep-context baseline and the source anchor has no submitted answer for that key. The immutable intent and created follow-up session must preserve the exact baseline wording and lineage that passed those checks. `practice_from_feedback` remains stricter: its question must exist in the persisted source round and its latest submission must have matching accepted analysis. This baseline fallback must not widen feedback eligibility, mutate the original round snapshot, or allow cross-candidate or cross-prep-context launch.

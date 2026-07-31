@@ -2,7 +2,7 @@
 
 Status: Ratified executable contract
 Contract version: `candidate_evidence_first_v2`
-Prompt bundle version: `candidate_evidence_first_prompts_v14`
+Prompt bundle version: `candidate_evidence_first_prompts_v15`
 Last updated: 2026-07-25
 
 ## Purpose
@@ -16,7 +16,7 @@ This contract was ratified on 2026-07-14. The provider-neutral runtime and local
 
 Live-model quality validation is a separate explicit operation governed by the [Live Evaluator Validation Runbook](./live-evaluator-validation-runbook.md). It uses synthetic fixed inputs and emits only redacted review facts; it does not read candidate data or weaken the runtime's no-prompt/no-raw-output retention contract.
 
-Prompt bundle V9 remains the accepted local calibration after the first full credentialed corpus run and its targeted regression confirmation. V10 was the first staged technical-framing pass. V11 added answer-demonstrated role capability, direct qualitative appraisal propagation, verification-aware gap selection, and stricter no-reference technical language. Its focused V5 run showed that first-pass semantic rejection could remove coaching entirely. V12 added one bounded, code-directed composer rewrite only for ungrounded technical-language rejection; its focused V6 run proved availability but exposed an over-prescriptive intervention policy. V13 first made completion posture code-owned. Slice 192 stages V14: code now derives that posture from the ratified question-preparedness synthesis instead of letting one Emerging criterion override the rest, and extraction may represent an observed category signal with a whole-answer basis when no unique exact span is reliable.
+Prompt bundle V9 remains the accepted local calibration after the first full credentialed corpus run and its targeted regression confirmation. V10 was the first staged technical-framing pass. V11 added answer-demonstrated role capability, direct qualitative appraisal propagation, verification-aware gap selection, and stricter no-reference technical language. Its focused V5 run showed that first-pass semantic rejection could remove coaching entirely. V12 added one bounded, code-directed composer rewrite only for ungrounded technical-language rejection; its focused V6 run proved availability but exposed an over-prescriptive intervention policy. V13 first made completion posture code-owned. Slice 192 staged V14: code derives that posture from the ratified question-preparedness synthesis instead of letting one Emerging criterion override the rest, and extraction may represent an observed category signal with a whole-answer basis when no unique exact span is reliable. Slice 206 stages V15 without changing evaluation meaning: acknowledgements must sound conversational and candidate-directed, recognize one accepted detail or pattern when evidence supports it, and match the existing code-owned intervention posture without adding another finding.
 
 ## Pipeline
 
@@ -282,4 +282,4 @@ Raw provider-output retention remains opt-in and should require a defined access
 4. Ratified in Slice 189: technical/role-specific `role_skill_signal` is answer-demonstrated capability and remains independently appraisable without a reference; `technicalAccuracy` alone stays `not_assessed`.
 5. Confirm raw prompts and unvalidated outputs are not retained by default.
 6. Define technical-reference source and ownership before enabling strict production correctness claims; ordinary role-capability coaching does not depend on this optional path.
-7. Decide whether accepted internal criterion bands may appear directly in future candidate UI or only through composed coaching and derived dashboard facts.
+7. Still open at the presentation layer: evaluate the production transcript canvas with representative accepted outputs before deciding whether candidates need a separate cross-question criterion-balance view. If a radar survives that review, it must use a candidate-owned prep-context projection, qualitative labels, practiced-evidence context, and no numeric values; it must not expose evaluator internals, provider output, technical-verification state, or raw evidence classifications. See the [Dashboard Progress Visualization Contract](../03-design/dashboard-progress-visualization-contract.md).

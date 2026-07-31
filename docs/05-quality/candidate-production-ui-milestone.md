@@ -1,8 +1,8 @@
 # Candidate Production UI Milestone
 
 Status: Local milestone pass; human visual review and release acceptance pending
-Date: 2026-07-26
-Scope: Slices 194 and 196
+Date: 2026-07-31
+Scope: Slices 194, 196, 205, and 206 plus the Coach Desk opened-surface migration
 
 ## Outcome
 
@@ -25,7 +25,7 @@ Malformed or lineage-mismatched session analysis projections are dropped before 
 - **Preserve:** required setup inputs and draft recovery; role-scoped feedback/feedforward loop; unfinished-round recovery and follow-up actions; orienting pre-session landing and transition; one-question-at-a-time coaching cadence.
 - **Reinterpret:** V1 navigation and dense intake through the lean global system; dashboard modules through an evidence-first hierarchy and opaque prep-context identity; the mature shared session runtime through the active-question composition.
 - **Retire:** title-keyed prep identity, browser-only queue semantics, local-only setup drafts, same-answer retry mutation, preview-era live-session presentation, and score-like dashboard summaries.
-- **Defer:** invited, recruiter, QA, Coach Update detail, and remaining provisional-surface redesign; compatibility-token removal where provisional consumers remain; credentialed evaluator calibration.
+- **Defer:** invited, recruiter, QA, and remaining provisional-surface redesign; compatibility-token removal where provisional consumers remain; credentialed evaluator calibration.
 
 ## Verification
 
@@ -90,3 +90,187 @@ The accepted-resume edit recovery closes a state gap without relaxing the privac
 Verification for this recovery: 158 resume/setup contract tests, the disposable Postgres resume-ingestion smoke including accepted-edit replacement, TypeScript, lint, documentation-link validation, and `git diff --check` pass.
 
 The local verdict remains `pass with human visual acceptance pending`. Manual screen-reader, zoom, high-contrast, software-keyboard, and device picker review remain part of the human/release evidence boundary.
+
+## Slice 205 Live Session Refinement
+
+Slice 205 replaces the remaining preview-era live-session composition with the authored `Candidate Session Mobile A.dc.html` hierarchy while preserving the shared candidate-led/invited runtime. One compact sticky header contains role, question position, audience-safe exit, and segmented progress. The question and response surfaces use the shared cutout primitive; audio, answer-mode, and assistance controls occupy their intended notches without changing route or mutation ownership.
+
+Pre-answer assistance now follows the ratified runtime contract from the prior app generations without copying their browser-only cache. Question wording remains wording-only. When a question becomes current, the shared candidate-led/invited shell automatically requests Hints; Strong response makes no request until the candidate opens it. The server derives the immutable question, role/JD, and accepted processed-resume context, fences duplicate work with a durable claim, persists validated output as a candidate-owned question artifact, and replays it across reload, recovery, and tabs. Both controls expose truthful loading, unavailable, and retry states. Assistance remains excluded from evaluator evidence and recruiter transcript reads.
+
+The voice composer now follows the authored state sequence rather than embedding the former utility form inside the new surface: ready status, elapsed recording time, waveform field, 84px recording instrument, recording gate, captured-recording playback, full-width Submit answer, paired Retry and Review actions, editable transcript review, and recoverable failure. Elapsed time has no target, countdown, or automatic three-minute stop; transport byte limits and a generous server-only abuse ceiling remain technical safeguards. Immediate retry still discards the unresolved browser recording; post-feedback retry remains an immutable new answer attempt. Purple `--accent-alt` is intentionally restricted to Strong response and voice Review. It is not a general V2 surface family.
+
+The closing geometry pass gives both cutout control groups one design-system-owned centering rule: 36px visible controls retain 44px effective targets and sit centrally in the 44px notch instead of leaning toward the surface. The shared cutout primitive also owns the mockup's complete depth construction: rounded recess backing, direction-aware inset contour, then the shaped edge and raised shadow. Text and voice now share one 14.25rem resting composer height, and flex-column geometry places that composer at the safe viewport bottom while retaining its normal-flow footprint. The text textarea and compact footer flex inside that footprint, matching the mockup's stable mode swap without discarding truthful failure/recovery expansion. Routine dirty, saving, and successful autosave states are silent; failures, answer acceptance, and coaching remain visible.
+
+Assistance interaction is elevated above the page rather than confined inside the notch. Resting Hints and Strong response controls use their supportive green and session-purple semantic surfaces. Once opened, a fixed interaction layer covers the complete session while the drawer remains aligned to the question surface's exact top and inline edges; it is intentionally not centered. Both controls stay available as toggles, the active toggle closes the drawer, and changing content uses direction-aware horizontal motion. Drawer open and close use a short vertical crossfade; focus containment, scroll blocking, Escape, clickaway dismissal, focus restoration, forced-color support, and reduced-motion fallbacks are acceptance requirements.
+
+The answer-mode isolation regression closes a cross-mode state leak. Editable text now comes only from the text-draft channel, voice submission comes only from the authorized transcript, and the locked answer view comes only from the accepted answer or its active pending mode. An accepted text or voice answer clears the obsolete text draft locally and in the same durable session update. Focused tests cover text-draft-to-voice submission, stored-voice-to-text submission, and pending-draft ordering before voice acceptance; the five relevant session/repository suites pass 65 tests.
+
+Focused verification:
+
+- the dedicated question-assistance suite covers migration shape, durable claim/replay/retry, provider validation, ownership-scoped routes, automatic Hints, on-demand Strong response, and shared-shell audience routing;
+- 87 question-wording/provider/setup tests passed;
+- 167 voice-transcription and answer-lifecycle tests passed;
+- 69 question-audio and candidate/invited route tests passed;
+- browser inspection confirmed the compact one-column question/voice composition, long-role containment, absence of horizontal overflow in the available embedded viewport, and removal of the programmatic static-heading focus halo.
+
+Credentialed V2 wording calibration and physical-device microphone/voice review remain release gates.
+
+## Slice 206 Post-Answer Coaching Refinement
+
+Slice 206 restores the v0.5-shaped submit-to-feedback rhythm without restoring
+its legacy evaluator or scoring semantics. One shared body-level progress
+overlay now covers the real answer-acceptance and initial-analysis interval for
+candidate-led and invited practice. Typed submissions use three fixed timed
+steps at the original 3,000ms cadence; voice submissions use four at 2,500ms,
+adding `Noting your speaking delivery...`. The sequence is deliberately
+modality-based and does not branch on evaluator markers or pretend to expose
+provider pipeline stages. Save failure returns to the editable mode-owned
+draft, analysis failure returns to the accepted-answer recovery actions, and
+recovered coaching-ready work skips the loader.
+
+Accepted coaching now opens in one elevated modal work surface with the
+existing acknowledgement-first stages, persisted actions, immutable
+answer-attempt identity, directional stage motion, contained scrolling, body
+scroll lock, focus movement, and keyboard focus containment. The candidate-safe
+feedback fields and retry/continue/finish contract are unchanged.
+
+Prompt bundle V15 and Google adapter V16 make one bounded presentation change:
+the acknowledgement must be a natural candidate-directed sentence that names
+one accepted detail or pattern when evidence supports it and matches the
+code-owned move-on, polish, or remediate posture. It may not invent praise,
+introduce another finding, or change evaluator meaning. The deterministic
+fixture mirrors that tone for local UI review.
+
+Focused verification: 91 loader, shared-session, staged-feedback, interaction,
+evaluator, and Google-adapter tests pass; lint passes with no warnings.
+Credentialed V15/V16 tone calibration and human mobile/desktop feedback-flow
+review remain acceptance gates.
+
+## Slice 207 Session Feedback And Voice Refinement
+
+Slice 207 removes the remaining duplicate work between voice acceptance and
+the shared post-answer experience. A quick voice submit now enters the shared
+four-step progress overlay immediately while transcription remains part of the
+same accepted-answer operation. The separate transcript loader is retained
+only for the explicit Review path, where transcript review is the action the
+candidate requested; the retired voice save/transcript presentation is removed
+from the quick-submit path rather than hidden.
+
+The staged feedback surface now has its own 32px
+`--radius-feedback-modal` shape role and a taller, viewport-bounded work area.
+Its visible header contains only the coach avatar and progress indicator.
+Acknowledgement, coaching, and next-step stage names remain available to
+assistive technology but are no longer visible scaffold headings. Candidate
+feedback copy uses promoted body typography across every stage. Theme-specific
+coach-avatar assets occupy one image layer so only the active light or dark
+variant can render.
+
+Follow-up practice entry now has one routed transition owner. The source landing
+does not start a competing overlay, and the destination route uses the same
+entry transition during its Next.js loading fallback and mounted session
+handoff. Browser timing checks showed one continuous `Entering practice space`
+sequence with no intervening generic skeleton.
+
+Voice is the default answer mode whenever voice is available and the candidate
+has no explicit persisted text preference. Recording visualization now samples
+the active microphone stream through a transient Web Audio analyser; no sampled
+level data is stored, transmitted, or connected to an audio output. Cleanup
+cancels animation sampling, disconnects the analyser, and closes its audio
+context.
+
+Verification:
+
+- 70 focused session, loader, feedback, transition, and analyser tests pass;
+- the 692-test candidate regression suite passes;
+- zero-warning lint and documentation-link checks pass;
+- browser validation confirms direct typed submit-to-shared-loader behavior,
+  all three promoted feedback stages, one correctly layered coach avatar, the
+  32px/672px desktop modal geometry, a skeleton-free follow-up entry sequence,
+  and voice as the initial answer mode;
+
+Physical microphone input remains the human validation gate for confirming that
+the rendered bars respond naturally to real speech amplitude on target mobile
+and desktop devices.
+
+## Dashboard Coach Desk Home Migration
+
+The accepted Phase 1 Coach Desk composition now replaces the provisional
+production dashboard home without replacing its domain behavior. The route
+continues to consume the canonical dashboard read model, state-priority rule,
+Coach Update lifecycle and repair action, immutable Coach Update detail,
+Coach Plan reference, durable question-practice actions, selected opaque prep
+context, and next-round builder. The migrated home owns only composition:
+transparent header over a tokenized blue canvas, glass role and queue controls,
+an accessible Practice/Progress switcher, one state-owned lifecycle stage, one
+truthful quiet secondary region, and the Strong-of-plan progress rail.
+
+Unfinished round and cold start received the same closing parity review as the
+ready and after-review states. Both use the borderless raised neutral-glass
+material, `--radius-card`, `--shadow-raised-2`, one `36px` circular glass icon,
+semantic typography, and grouped spacing. Unfinished round retains actual
+answered/current-question progress and one Resume action. Cold start retains
+the canonical plan count, first-question context, primary start action, and a
+lower-emphasis Plan path. Neither surface renders a made-up saved-state row or
+fixture-only fact. The opened Coach Update and Coach Plan migration described
+below now completes the bounded dashboard composition pass. The former
+`CandidateDashboardPriorityExperience` is no longer mounted by the route. The
+live Coach Desk imports the extracted Coach Update dialog directly; the old
+module remains compatibility cleanup rather than a production route dependency.
+
+Verification:
+
+- five focused dashboard/design-system files pass 31 tests, including cold
+  start, unfinished round, roving tab focus, and Strong-only checked badges;
+- the complete candidate regression suite passes 99 files and 697 tests;
+- the optimized production build and zero-warning lint pass;
+- documentation links and `git diff --check` pass;
+- authenticated browser review covers ready, Progress, and after-review at
+  320px, 390px, and 1440px in light and forced-dark themes with no horizontal
+  overflow, page errors, failed requests, or WCAG 2.2 A/AA axe violations;
+- computed production geometry confirms 36px dashboard icons, 44px header
+  controls, full-pill role/queue shapes, 24px raised-card radii, 32px spotlight
+  radius, and the intended light/dark glass fills and elevations.
+
+The browser pass found one responsive defect before acceptance: a long role
+name could wrap and grow the role pill above 44px at 320px. The production rule
+now truncates that label on one line and preserves the control height. The
+production Next.js build completes successfully.
+
+## Dashboard Opened-Surface Migration
+
+The production Coach Desk now mounts the accepted opened Coach Update and Coach
+Plan compositions instead of leaving those interactions on the provisional
+dashboard treatment. This remains a presentation slice over the existing read
+and mutation contracts.
+
+Coach Update extracts one route-owned dialog with question context outside the
+answer-review nest. The nest contains only `Your answer` and the immutable
+transcript; accepted whole-answer observation and one warm-coral `Try next`
+remain separate question-owned guidance. Exact accepted transcript annotations
+open on hover, click, keyboard activation, and tap. The carousel uses a compact
+scrollable question picker, removes noncurrent slides from focus and active
+height, and restores focus even when opening the update replaces its unseen
+launcher with the reviewed launcher.
+
+Coach Plan defaults to Questions and exposes Categories as a secondary context
+lens. Question tabs show the highest earned state, preserve upcoming-wording
+reveal, and reuse the same answer-review component only when an exact immutable
+Coach Update item matches the question. Category `Strong X of Y` counts require
+rated Strong preparedness and never become a parallel practiced-count model.
+Both sheets use `--radius-feedback-modal`; contained answer reviews use
+`--radius-card`.
+
+Verification:
+
+- five focused dashboard files pass 27 tests, including route wiring, roving
+  navigation, noncurrent action suppression, transcript fallback, and focus
+  restoration after launcher replacement;
+- the complete candidate suite passes 99 files and 697 tests;
+- the optimized production build, zero-warning lint, documentation links, and
+  `git diff --check` pass;
+- authenticated browser review covers both opened surfaces at 320px and 1280px
+  in light and forced-dark themes, with no horizontal page overflow; both
+  opened surfaces return zero axe violations at 320px;
+- the browser pass verified hover annotation reveal, dark annotation contrast,
+  active-slide height, Escape dismissal, body-scroll restoration, and focus
+  return.

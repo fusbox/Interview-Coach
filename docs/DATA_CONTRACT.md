@@ -196,7 +196,10 @@ The profile stores only resume inclusion/capture-mode metadata in its current re
 Future prep-context evolution rules:
 
 - a resume revision stays under the same `role_profile_id`, but every session preserves the exact staged resume version/label it consumed;
-- runtime hints, strong-response guidance, and feedback consume that session's resume snapshot;
+- question wording does not embed candidate assistance. Hints and strong responses are separate candidate-owned question artifacts: hints are requested automatically when the question becomes current, while a strong response is requested only after an explicit candidate action;
+- each assistance artifact is keyed by candidate profile, immutable practice session, question key, assistance kind, and a request fingerprint over the exact question/setup context. A successful artifact is replayed across reload, recovery, and tabs; a bounded claim lease prevents concurrent provider duplication, and one question/kind artifact permits at most three generation attempts before becoming non-retryable;
+- assistance may consume the accepted processed resume snapshot staged for that session, remains absent from evaluator evidence and recruiter transcript reads, and must not invent candidate facts or ungrounded technical authority;
+- answer evaluation and feedback consume the session's question/setup/answer facts independently and must not treat pre-answer assistance as candidate evidence;
 - existing questions are never silently reinterpreted after a resume change;
 - a later reconciliation service may compare a revised resume with current plan questions, propose slot/category-preserving one-for-one replacements, and version only candidate-accepted question replacements;
 - a candidate-initiated interview-stage change creates a new linked `role_profile_id` with blank evidence. Stage lineage and update UI are not yet implemented.
@@ -369,13 +372,14 @@ Contract rules:
 - production queue and intent creation must use one candidate-owned opaque prep-context id; `candidate_practice_intents.role_profile_id` now carries that identity under a composite candidate/profile ownership constraint, while readable `target_interview_id` values remain display and bounded legacy compatibility metadata;
 - `practice_from_feedback` resolves only when the source question has both answer evidence and accepted coach analysis evidence;
 - `practice_from_feedback` uses `coach_update_detail` source posture; `practice_missing_evidence` uses Coach Plan/Practice Next source posture;
-- `practice_missing_evidence` resolves only when the source question has no answer submission;
+- `practice_missing_evidence` resolves only when the source question has no answer submission. A never-exposed canonical baseline question may resolve through the matching candidate-owned prep-context baseline while retaining the earliest original session as its lineage anchor; it does not need to be copied into that round's persisted wording snapshot;
 - `POST /candidate/practice/ready/intents` accepts one to twenty stable source pointers plus a per-activation `Idempotency-Key`, and returns a `redirectTo` route for the durable ready page after identity and source validation succeed. It stores only the SHA-256 key hash and a fingerprint of the exact canonical server-resolved snapshot;
 - `candidate_practice_intent_creation_requests` is the bounded candidate-owned replay ledger for direct one-question and fixed-set creation. Its unique candidate-plus-key hash points to one immutable intent for 24 hours. Exact replay returns that intent, changed source/order/items/prep context/snapshot content conflicts before mutation, and a new key permits intentional repractice of identical content;
 - the browser retains at most one exact pending direct action in tab-scoped session storage. Refresh or an ambiguous transport failure reuses its key; an accepted destination clears it; a fingerprint conflict clears it before the next user activation receives a new key. The browser record contains only action source, opaque source session/question pointers, key, and timestamp and is not durable candidate history;
 - `public.create_candidate_direct_practice_intent(...)` serializes candidate-plus-key requests and inserts the ready intent and request pointer in one transaction. It has no pending or lease state because no external provider work occurs; statement failure leaves neither row committed, so the same key can retry safely;
 - `Start practice` from an editable queue validates its current version and source pointers, atomically creates the immutable intent snapshot, and clears or links the launched queue draft. A conflict returns without silently dropping newer selections;
-- the atomic database function locks the exact candidate-owned draft, revalidates every source question and latest answer/analysis relationship, compares the submitted ordered payload with every normalized draft item, inserts one immutable `practice_builder` intent, clears the item rows, and increments the draft version in one statement;
+- the atomic draft-snapshot function locks the exact candidate-owned draft, revalidates every source question and latest answer/analysis relationship, compares the submitted ordered payload with every normalized draft item, inserts one immutable `practice_builder` intent, clears the item rows, and increments the draft version in one statement. Its question-existence check uses persisted source-round wording for feedback-driven practice and permits the matching immutable prep-context baseline only for missing-evidence questions that were not exposed in the source round;
+- the atomic intent-to-session function repeats the same source boundary before consuming the intent: feedback-driven questions must match persisted source-round wording, while a missing-evidence question may match exact wording in the owned prep-context baseline. The created session copies the exact immutable intent wording and lineage; failure leaves the ready intent unconsumed;
 - repeated launch of the same draft version recovers the same ready intent, or its already-consumed session, instead of creating another round. A stale version, stale evidence, malformed payload, or ownership mismatch leaves the editable draft unchanged;
 - the current intent builder requires every selected item to resolve to one opaque prep context and one matching staged setup snapshot, including interview stage and resume-inclusion posture. The product does not intentionally assemble mixed-profile/stage/resume rounds; mismatch is an integrity failure. Future resume revision work must explicitly stage one resume version before launch;
 - one-question and fixed coach-bundle fast paths may create immutable intents directly, but still route to the durable ready landing; `Customize` may instead seed or merge items into the durable queue draft;
@@ -823,201 +827,203 @@ Target prep-context and round snapshots:
 
 Landed in Slice 149: setup persists the full stage baseline and wording under the prep context, derives the initial round from that accepted set, marks above-baseline slots supplemental, and makes unexposed baseline questions executable follow-up choices. Future baseline revisions may add a structured role/JD adjustment layer without changing that ownership model.
 
-### CoachPlan
+### Candidate Dashboard And Coach Plan Reads
 
-`CoachPlan` is the dashboard home-base read model for a selected `prepProfile`.
+`CandidateDashboardV2ReadModel` is the dashboard home read for one selected candidate-owned prep context. It keeps the action loop, Coach Plan reference, and question-preparedness projection as separate fields rather than embedding Coach Update and Practice Next inside one score-oriented Plan object.
 
-It is derived from persisted setup, session, question, answer, and analysis evidence. It is not a new persistence requirement for the first implementation slice.
-
-Current release shape:
+Relevant current shape:
 
 ```ts
-type CoachPlan = {
-    prepProfileId: string;
+type CandidateDashboardV2ReadModel = {
+    selectedTargetInterview: CandidateDashboardTargetInterview | null;
+    activeRound: CandidateDashboardActiveRound | null;
+    coachUpdateState: CandidateDashboardCoachUpdateState;
+    coachUpdateDetail: CandidateCoachUpdateDetail | null;
+    practiceDirection: CandidateDashboardPracticeDirection;
+    coachPlan: CandidateCoachPlanReference | null;
+    questionPreparedness: CandidateQuestionPreparednessProgress | null;
+};
+```
+
+`CandidateCoachPlanReference` owns canonical plan framing and teaching:
+
+```ts
+type CandidateCoachPlanReference = {
+    source: {
+        baselineCandidatePracticeSessionId: string;
+        roleProfileId: string | null;
+    };
     targetRole: string;
-    interviewStage: InterviewStage;
-    baselineQuestionCount: number;
-    selectedFace: "categories" | "skills" | "question_set";
-    planGoals: string[];
-    rationaleSummary: string[];
-    preparednessTarget: PreparednessTarget;
-    categoryFace: CoachPlanCategoryFace;
-    skillsFace: CoachPlanSkillsFace;
-    questionSetFace: CoachPlanQuestionSetFace;
-    coachUpdate?: CoachUpdate;
-    practiceNext: PracticeNextRecommendation;
+    stage: {
+        id: InterviewStage;
+        label: string;
+        detail: string;
+    };
+    questionCount: number;
+    practicedQuestionCount: number;
+    missingEvidenceCount: number;
+    categories: CandidateCoachPlanCategoryReference[];
+    questions: CandidateCoachPlanQuestionReference[];
 };
 ```
 
 Rules:
 
-- source the model from the selected target interview context only;
-- keep fixed framing brief and candidate-facing;
-- never expose hidden numeric averages or raw score dimensions;
-- let the UI remember the last selected face for a prep context, but default to `categories`.
+- source every field from the selected owned prep context;
+- keep Coach Update, Practice Next, Coach Plan, and the editable next-round draft distinct;
+- derive Plan and progress reads from immutable baseline/session/attempt/evaluator facts;
+- never expose hidden numeric averages or raw evaluator dimensions;
+- keep opened-Plan presentation state in the browser when useful; the data contract does not require Categories, Skills, and Question Set faces.
 
-### PreparednessTarget
+### CandidateQuestionPreparednessProgress
 
-`PreparednessTarget` is the derived visual read that sits in the Coach Plan fixed framing.
-
-It answers:
-
-- how many baseline questions have at least one usable answer;
-- what the current aggregate prep state is for practiced baseline questions;
-- whether repeat practice produced improvement or watch items.
+`CandidateQuestionPreparednessProgress` is the current read-time progress projection. It replaces the retired hidden-score `PreparednessTarget` and its gauge renderer.
 
 Current release shape:
 
 ```ts
-type PreparednessTarget = {
-    baselineQuestionCount: number;
-    practicedBaselineQuestionCount: number;
-    state: "not_practiced" | "emerging" | "clear" | "strong";
-    coverageRatio: number;
-    coverageSummary: string;
-    coachObservation: string;
-    movement: {
-        improvedCount: number;
-        watchCount: number;
+type CandidateQuestionPreparednessProgress = {
+    source: {
+        persistence: "read_time_projection";
+        bandSelection: "highest_earned";
+        regressionPolicy: "deferred_keep_highest";
     };
-    explainer: string;
+    coverage: {
+        canonicalQuestionCount: number;
+        unpracticedQuestionCount: number;
+        attemptedQuestionCount: number;
+        evaluatedQuestionCount: number;
+        incompleteQuestionCount: number;
+        evaluationUnavailableQuestionCount: number;
+    };
+    achievement: {
+        emerging: number;
+        clear: number;
+        strong: number;
+    };
+    questions: Array<{
+        questionKey: string;
+        questionNumber: number;
+        category: QuestionPlanCategory;
+        questionText: string | null;
+        attemptCount: number;
+        evaluatedAttemptCount: number;
+        state: "not_practiced" | "evaluation_unavailable" | "incomplete" | "rated";
+        band: "emerging" | "clear" | "strong" | null;
+        highestEarnedAttemptId: string | null;
+    }>;
 };
 ```
 
-Aggregation rule:
+Rules:
 
-1. For each practiced baseline question, average the rated dimensions that have valid numeric scores.
-2. Average those per-question averages across practiced baseline questions.
-3. Map the hidden aggregate to the qualitative evidence state.
+- highest-earned question progress is monotonic for the first release;
+- unanswered baseline questions are neutral and contribute only to coverage;
+- repeated practice does not increase coverage or question weight;
+- incomplete and evaluation-unavailable are not low bands;
+- missing optional evaluator history makes the projection unavailable rather than reclassifying practiced evidence;
+- Strong-of-plan uses `achievement.strong` over `coverage.canonicalQuestionCount`;
+- Plan completion is true only when the canonical count is greater than zero and every canonical question contributes to `achievement.strong`;
+- `coverage.attemptedQuestionCount` remains separate supporting context;
+- rendering and copy follow the [Dashboard Progress Visualization Contract](./03-design/dashboard-progress-visualization-contract.md).
 
-Release threshold compatibility may use the existing dashboard mapping:
+### Optional CoachPlanCategoryPatternProjection
 
-- score >= 4: `strong`;
-- score >= 3: `clear`;
-- score >= 1: `emerging`;
-- no usable practiced evidence: `not_practiced`.
-
-Repeat-practice rules:
-
-- repeat practice does not increase `practicedBaselineQuestionCount`;
-- latest clear or strong evidence can promote the current question read;
-- one weaker repeat becomes a caution or watch item, not an automatic demotion;
-- repeated weaker evidence or regression on a high-priority baseline question can lower the current read;
-- mixed evidence should produce coach copy that explains the tension instead of pretending the state is absolute.
-
-Zero-practiced rule:
-
-- show the plan as ready but without practice evidence;
-- do not imply failure;
-- point to the first recommended practice action.
-
-Rendering rule:
-
-- render one rounded gauge arc whose fill proportion is `practicedBaselineQuestionCount / baselineQuestionCount`;
-- the filled arc uses the current aggregate qualitative prep-state color;
-- the unfilled track remains muted and must not read as weak performance;
-- the center shows the qualitative state chip plus `X/Y practiced`;
-- supporting copy combines practiced/to-practice status into one coach-voice coverage summary;
-- the coach observation uses first person, addresses the candidate directly, starts from "I see...", and frames `clear`/`strong` as affirmation and `emerging` as encouragement;
-- future recommendation CTAs can attach one or two highest-value practice targets once Practice Next exposes that target data to the Coach Plan target surface;
-- hover/focus/tap explainer copy may label practiced vs unpracticed context and summarize the current read without exposing numeric scores.
-
-### CoachPlanCategoryFace
-
-The Category face shows only categories present in the baseline plan.
-
-Current release shape:
+This optional projection joins canonical Coach Plan teaching with question-preparedness status when design review retains a category/question pattern view. It is not new persistence and does not require a Categories face.
 
 ```ts
-type CoachPlanCategoryFace = {
+type CoachPlanCategoryPatternProjection = {
     categories: Array<{
         categoryId: QuestionPlanCategory;
         label: string;
         plannedCount: number;
         practicedCount: number;
-        state: "not_practiced" | "emerging" | "clear" | "strong";
-        teaching: {
-            whyHere: string;
-            purpose: string;
-            strongAnswerShape: string[];
-            watchOuts: string[];
+        statusCounts: {
+            unpracticed: number;
+            emerging: number;
+            clear: number;
+            strong: number;
+            incomplete: number;
+            evaluationUnavailable: number;
         };
-        questions: CoachPlanQuestion[];
+        teaching: CandidateCoachPlanCategoryReference["teaching"];
+        questionKeys: string[];
     }>;
 };
 ```
 
 Rules:
 
-- chart segment size may reflect planned count, but chart choice can change if count-based segments become hard to read;
-- chart labels may render near segments when space allows;
-- selecting a segment or label opens a teaching-first coaching sheet;
-- non-sheet screen area should remain available for clickaway or tapaway close.
+- preserve canonical category and question order;
+- count each canonical question once;
+- do not average a category into a score or label unpracticed questions weak;
+- selecting a category opens teaching and question detail;
+- an incomplete cross-context or question/category join fails closed.
 
-### CoachPlanSkillsFace
+### Optional CandidateCriterionBalanceProjection
 
-The Skills face shows the three release lanes as the only first-pass tap targets.
+This projection is not landed or required. It would summarize the five universal criteria, not the retired Substance/Structure/Delivery lanes, only if transcript-canvas evaluation and dashboard probes establish a distinct cross-question need.
 
-Current release shape:
+Target shape:
 
 ```ts
-type CoachPlanSkillsFace = {
-    lanes: Array<{
-        laneId: "answer_substance" | "interview_structure" | "communication_delivery";
-        label: string;
-        state: "not_practiced" | "emerging" | "clear" | "strong";
-        teaching: {
-            whyItMattersHere: string;
-            strongAnswerShape: string[];
-        };
-        dimensions: Array<{
-            dimension: Dimension;
-            label: string;
-            state: "not_practiced" | "emerging" | "clear" | "strong";
-            evidenceStatus: "observed" | "not_elicited" | "insufficient_data" | "unscoreable";
-        }>;
+type CandidateCriterionBalanceProjection = {
+    status: "candidate_criterion_balance_projection";
+    source: {
+        persistence: "read_time_projection";
+        roleProfileId: string;
+        aggregation: "highest_per_question_then_qualitative_median";
+    };
+    contributingQuestionCount: number;
+    criteria: Array<{
+        criterion:
+            | "answer_focus"
+            | "organization"
+            | "evidence_specificity"
+            | "role_skill_signal"
+            | "impact_judgment_takeaway";
+        level: "emerging" | "clear" | "strong";
+        contributingQuestionCount: number;
+        excludedQuestionCount: number;
     }>;
 };
 ```
 
 Rules:
 
-- child dimensions are not first-pass chart tap targets;
-- the lane coaching sheet should show all lane dimensions together;
-- current scoring must be hardened before dimension-level claims become prominent.
+- derive only from accepted evaluator runs with canonical baseline lineage;
+- give each canonical question at most one contribution per criterion;
+- exclude `not_elicited`, `insufficient_data`, `unscoreable`, and missing accepted runs instead of mapping them to Emerging;
+- expose qualitative levels and evidence counts only;
+- when the evidence threshold is not met, do not render a radar;
+- the UI never computes this projection from hydrated cards.
 
-### CoachPlanQuestionSetFace
+### Optional CoachPlanQuestionSetProjection
 
-The Question Set face shows the planned coach sequence.
-
-Current release shape:
+This optional presentation projection joins canonical Coach Plan order, question preparedness, and server-resolved practice capability. The same fields may support one adaptive opened Plan or a question drilldown; they do not require a Question Set face.
 
 ```ts
 type CoachPlanQuestion = {
-    questionId: string;
-    planIndex: number;
-    categoryId: QuestionPlanCategory;
-    questionText: string;
+    questionKey: string;
+    questionNumber: number;
+    category: QuestionPlanCategory;
+    questionText: string | null;
     visibility: "visible" | "hidden_until_reveal";
-    status: "unanswered" | "answered" | "repeat_practiced";
-    attempts: Array<{
-        answerId: string;
-        submittedAt: number;
-        transcript: string;
-        modality: "text" | "voice";
-        state: "emerging" | "clear" | "strong" | "unscoreable";
-        movement?: "improved" | "steady" | "watch";
-    }>;
+    state: "not_practiced" | "evaluation_unavailable" | "incomplete" | "rated";
+    band: "emerging" | "clear" | "strong" | null;
+    attemptCount: number;
+    practiceCapability: "queued" | "available" | "round_full" | "unavailable";
 };
 ```
 
 Rules:
 
-- answered questions are visible by default;
-- unanswered questions are hidden by default with a reveal option;
-- visibility is based on answered/unanswered state, not current-round membership;
-- opening a question first shows the full question and answer transcript;
-- future annotation can mark transcript phrases, sections, or milestones with progressive feedback.
+- practiced questions are visible by default;
+- unpracticed wording remains hidden by default with a deliberate reveal option;
+- visibility is based on practiced evidence, not current-round membership;
+- opening a practiced question may lead to its accepted transcript/feedback detail;
+- queue membership and practice capability come from the authoritative selected-context builder;
+- future regression display waits on the separate regression contract.
 
 ### CoachUpdate
 
@@ -1177,9 +1183,11 @@ The durable accepted record separates:
 
 No numeric score is part of the V2 evidence-first criterion contract. `not_elicited`, `insufficient_data`, and `unscoreable` never carry a qualitative band. Technical `supported` or `contradicted` accuracy claims require a versioned reference. Without one, technical accuracy is `not_assessed`, while directly observable role-skill evidence, practical application, reasoning, tradeoffs, assumptions, and verification awareness may still receive qualitative appraisals without implying factual correctness. Assembled prompts and unvalidated raw model responses are not persisted by default. Operational telemetry is metadata-only.
 
-## Interview Preparedness Contract
+## Legacy Interview Preparedness Compatibility Model
 
-The top-level lane ids are immutable unless a new ADR changes the model:
+`PrepSignal` and `PrepSignalLane` are retained only as documentation for older compatibility payloads. They are not the production dashboard progress model, are not a source for current Coach Plan presentation, and must not be introduced into new V2 dashboard reads. Current question progress uses `CandidateQuestionPreparednessProgress`; any future five-criteria visualization uses the separate optional candidate-owned criterion projection defined above.
+
+Within an older payload that still carries this model, the lane ids remain stable:
 
 ```ts
 type PrepSignalLane =
@@ -1190,13 +1198,13 @@ type PrepSignalLane =
     | "interview_range";
 ```
 
-Candidate-facing lane labels:
+Legacy lane labels:
 
 - Answer Substance
 - Interview Structure
 - Communication Delivery
 
-Role Fit is out of release scope. Interview Range is represented as question category coverage cards, not as a lane.
+Role Fit was out of that release scope. Interview Range was represented as question category coverage cards, not as a lane.
 
 Resume/JD context is evidence and signal framing, not a standalone lane.
 
@@ -1247,7 +1255,7 @@ type PrepEvidenceRef = {
 };
 ```
 
-Evidence refs must use candidate-safe excerpts and evaluation copy. Dashboard lane and category drilldowns may show the candidate's own answer transcript, modality, submitted date, and session grouping context for practiced questions. Do not surface raw resume content, prompts, hidden numeric scores, or AI-quality internals in normal candidate UI.
+Legacy evidence refs must use candidate-safe excerpts and evaluation copy. Any retained compatibility drilldown may show the candidate's own answer transcript, modality, submitted date, and session grouping context for practiced questions. Do not surface raw resume content, prompts, hidden numeric scores, or AI-quality internals in normal candidate UI.
 
 Answer modality is persisted in `answers.modality` and should be carried into `PrepEvidenceRef.answerModality`. For historical answers saved before modality was written at every submit/recovery boundary, dashboard read paths may fall back to `analysis.meta.modality` when present. If neither source can prove voice mode, the UI must treat the answer as text rather than guessing.
 
@@ -1316,7 +1324,8 @@ Confidence should never be treated as performance evidence.
 - `oneBigUpgrade`: legacy/internal output name retained only for older persisted payload compatibility. New generated output should use `coachSignal` and candidate-facing "biggest lift" language.
 - `scoring_dimensions`: legacy/optional unless explicitly populated and consumed.
 - `competencies`: prompt language may use competencies, but dashboard claims require populated evidence.
-- Resume bridge lane: superseded; use resume/JD as evidence and framing across lanes.
+- Resume bridge lane: superseded; use resume/JD as evidence and framing across current V2 criteria and coaching.
+- `PrepSignal` / `PrepSignalLane`: legacy compatibility model only; current dashboard progress uses question preparedness and the future five-criteria projection.
 
 ## Change Rule
 

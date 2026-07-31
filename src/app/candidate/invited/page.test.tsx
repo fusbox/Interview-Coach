@@ -19,8 +19,9 @@ describe("candidate invited entry page", () => {
             resolveState: async () => state({ initialsConfirmed: true, candidateFirstName: "Irma" }),
         }));
         expect(screen.queryByRole("textbox", { name: "Your initials" })).not.toBeInTheDocument();
-        expect(screen.getByRole("heading", { name: "Hi Irma. Ready to practice?" })).toBeInTheDocument();
-        expect(screen.getByText("Screening call")).toBeInTheDocument();
+        expect(screen.getByRole("heading", { level: 1, name: "Quality Inspector" })).toBeInTheDocument();
+        expect(screen.getByText(/Hi Irma\. Ready to practice\?/i)).toBeInTheDocument();
+        expect(screen.getAllByText("Screening call")).toHaveLength(2);
     });
 
     it("fails closed for missing, completed, and abandoned invited access", async () => {
