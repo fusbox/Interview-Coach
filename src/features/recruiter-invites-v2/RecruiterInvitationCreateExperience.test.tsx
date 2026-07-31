@@ -10,6 +10,19 @@ afterEach(() => {
 });
 
 describe("RecruiterInvitationCreateExperience", () => {
+    it("uses the workflow stepper as the sole page-level orientation", () => {
+        render(<RecruiterInvitationCreateExperience />);
+
+        expect(screen.getByRole("navigation", { name: "Invitation creation progress" })).toBeInTheDocument();
+        expect(screen.getByRole("listitem", { name: "Job & questions, current step" })).toHaveAttribute("aria-current", "step");
+        expect(screen.getByRole("listitem", { name: "Candidates, upcoming" })).toBeInTheDocument();
+        expect(screen.getByRole("listitem", { name: "Review, upcoming" })).toBeInTheDocument();
+        expect(screen.queryByText("Recruiter invitations")).not.toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: "Create a practice invitation" })).not.toBeInTheDocument();
+        expect(screen.queryByText("Interview context")).not.toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Generate questions" })).toHaveClass("recruiter-generate-questions");
+    });
+
     it("changes only the fixed slot count when stage changes", async () => {
         render(<RecruiterInvitationCreateExperience />);
         expect(screen.getAllByLabelText(/^Q\d/)).toHaveLength(5);
@@ -115,14 +128,19 @@ describe("RecruiterInvitationCreateExperience", () => {
         fireEvent.change(screen.getByLabelText("Job description *"), { target: { value: "Inspect finished goods." } });
         await userEvent.click(screen.getByRole("button", { name: "Generate questions" }));
         await screen.findByRole("heading", { name: "Candidates" });
+        expect(screen.getByRole("listitem", { name: "Job & questions, complete" })).toBeInTheDocument();
+        expect(screen.getByRole("listitem", { name: "Candidates, current step" })).toHaveAttribute("aria-current", "step");
         fireEvent.change(screen.getByLabelText("First name *"), { target: { value: "Irma" } });
         fireEvent.change(screen.getByLabelText("Last name *"), { target: { value: "Castillo" } });
         fireEvent.change(screen.getByLabelText("Email *"), { target: { value: "irma@example.com" } });
         await userEvent.click(screen.getByRole("button", { name: "Review invitations" }));
+        expect(screen.getByRole("listitem", { name: "Candidates, complete" })).toBeInTheDocument();
+        expect(screen.getByRole("listitem", { name: "Review, current step" })).toHaveAttribute("aria-current", "step");
         expect(screen.getByText("Not sent yet")).toBeInTheDocument();
         await userEvent.click(screen.getByRole("button", { name: "Create invitations" }));
 
         expect(await screen.findByRole("heading", { name: "Share the invitations" })).toBeInTheDocument();
+        expect(screen.getByRole("listitem", { name: "Review, complete" })).not.toHaveAttribute("aria-current");
         expect(screen.getByText("Ready to share")).toBeInTheDocument();
         expect(screen.getByRole("link", { name: /Manage invitations/ })).toHaveAttribute(
             "href",

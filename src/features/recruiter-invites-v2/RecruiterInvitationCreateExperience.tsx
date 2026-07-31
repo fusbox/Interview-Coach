@@ -251,28 +251,31 @@ export function RecruiterInvitationCreateExperience() {
         const result = deliveryResults[invitation.recipientId];
         return !result || (result.status === "failed" && result.retryable);
     });
+    const activeStepIndex = phase === "questions" ? 0 : phase === "recipients" ? 1 : 2;
 
     return (
         <main className="recruiter-workspace recruiter-create-page">
-            <header className="recruiter-create-intro">
-                <div>
-                    <p className="type-eyebrow">Recruiter invitations</p>
-                    <h1>Create a practice invitation</h1>
-                    <p>Set the interview context, confirm the questions, then add candidates.</p>
-                </div>
+            <nav className="recruiter-create-stepper" aria-label="Invitation creation progress">
                 <ol className="recruiter-create-progress" aria-label="Invitation progress">
-                    {(["Questions", "Candidates", "Review"] as const).map((label, index) => {
-                        const activeIndex = phase === "questions" ? 0 : phase === "recipients" ? 1 : 2;
-                        const complete = phase === "complete" || index < activeIndex;
+                    {(["Job & questions", "Candidates", "Review"] as const).map((label, index) => {
+                        const current = phase !== "complete" && index === activeStepIndex;
+                        const complete = phase === "complete" || index < activeStepIndex;
                         return (
-                            <li key={label} className={index === activeIndex && phase !== "complete" ? "is-current" : complete ? "is-complete" : ""}>
-                                <span>{complete ? <Check size={14} /> : index + 1}</span>
-                                {label}
+                            <li
+                                key={label}
+                                className={current ? "is-current" : complete ? "is-complete" : ""}
+                                aria-current={current ? "step" : undefined}
+                                aria-label={`${label}, ${current ? "current step" : complete ? "complete" : "upcoming"}`}
+                            >
+                                <span className="recruiter-create-progress__node" aria-hidden="true">
+                                    {complete ? <Check size={15} /> : index + 1}
+                                </span>
+                                <span className="recruiter-create-progress__label">{label}</span>
                             </li>
                         );
                     })}
                 </ol>
-            </header>
+            </nav>
 
             {error ? <div className="recruiter-create-error" role="alert">{error}</div> : null}
 
@@ -280,7 +283,6 @@ export function RecruiterInvitationCreateExperience() {
                 <section className="recruiter-create-section" aria-labelledby="question-context-title">
                     <div className="recruiter-create-section__heading">
                         <div>
-                            <p className="type-eyebrow">Interview context</p>
                             <h2 id="question-context-title">Questions</h2>
                         </div>
                         {preparedQuestionSet ? (
@@ -346,6 +348,7 @@ export function RecruiterInvitationCreateExperience() {
                                     density="comfortable"
                                     shape="app"
                                     label="strong"
+                                    className="recruiter-generate-questions"
                                     disabled={!targetRole.trim() || !jobDescription.trim() || busyAction !== null}
                                     onClick={() => prepareQuestions("generated")}
                                 >
