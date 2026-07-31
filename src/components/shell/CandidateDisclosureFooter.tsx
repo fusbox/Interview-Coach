@@ -21,11 +21,11 @@ export function CandidateDisclosureFooter({ children }: CandidateDisclosureFoote
             <div className="site-footer__inner">
                 <div className="site-footer__brand-row">
                     <Image
-                        src="/TA-logo.webp"
-                        alt="TalentArbor"
-                        width={300}
-                        height={70}
-                        className="site-footer__ta-logo"
+                        src="/njcareer-logo.png"
+                        alt="NJ Career"
+                        width={520}
+                        height={120}
+                        className="site-footer__brand-logo"
                         unoptimized
                     />
                     <div className="site-footer__product-of">

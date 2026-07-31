@@ -10566,7 +10566,7 @@ button.candidate-dashboard-action:disabled {
     gap: var(--space-5);
 }
 
-.site-footer__ta-logo {
+.site-footer__brand-logo {
     height: 2.25rem;
     width: auto;
     object-fit: contain;

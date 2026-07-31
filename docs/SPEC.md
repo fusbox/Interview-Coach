@@ -59,6 +59,8 @@ Recruiter question setup is one linear seeding path: target role and job descrip
 
 The public page introduces Interview Coach as a TalentArbor/Rangam gateway for visitors who arrive directly at `interviewcoach.talentarbor.com`.
 
+The visible partner mark across public, candidate, invited-practice, recruiter, and QA shells is **NJ Career**, and its accessible name must match. This visual branding does not rename TalentArbor host-launch identities, domains, policy links, provider contracts, or durable source-system values.
+
 The public page should:
 
 - make the product name and preparation purpose clear in the first viewport;

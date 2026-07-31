@@ -20,12 +20,12 @@ export function InvitedPracticePause({
 
     return (
         <main className="invited-practice-pause candidate-app-shell">
-            <header className="candidate-pre-session__brand app-grid" aria-label="TalentArbor">
+            <header className="candidate-pre-session__brand app-grid" aria-label="NJ Career">
                 <Image
-                    src="/TA-logo.webp"
-                    alt="TalentArbor"
-                    width={300}
-                    height={70}
+                    src="/njcareer-logo.png"
+                    alt="NJ Career"
+                    width={520}
+                    height={120}
                     className="candidate-pre-session__brand-mark"
                     priority
                     unoptimized

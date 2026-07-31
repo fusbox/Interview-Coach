@@ -33,12 +33,12 @@ export function InvitedPracticeCompleted({ debrief }: { debrief: InvitedPractice
 
     return (
         <main className="invited-practice-complete candidate-app-shell">
-            <header className="candidate-pre-session__brand" aria-label="TalentArbor">
+            <header className="candidate-pre-session__brand" aria-label="NJ Career">
                 <Image
-                    src="/TA-logo.webp"
-                    alt="TalentArbor"
-                    width={300}
-                    height={70}
+                    src="/njcareer-logo.png"
+                    alt="NJ Career"
+                    width={520}
+                    height={120}
                     className="candidate-pre-session__brand-mark"
                     priority
                     unoptimized

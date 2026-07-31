@@ -42,12 +42,12 @@ export function RecruiterLoginExperience({ nextTarget }: { nextTarget: string })
     return (
         <main className="recruiter-login-page">
             <header className="recruiter-login-page__header">
-                <Link href="/" aria-label="TalentArbor Interview Coach home">
+                <Link href="/" aria-label="NJ Career Interview Coach home">
                     <Image
-                        src="/TA-logo.webp"
-                        alt="TalentArbor"
-                        width={300}
-                        height={70}
+                        src="/njcareer-logo.png"
+                        alt="NJ Career"
+                        width={520}
+                        height={120}
                         className="recruiter-login-page__logo"
                         priority
                         unoptimized

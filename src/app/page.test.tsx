@@ -17,7 +17,7 @@ it("renders the marketing Interview Coach home", () => {
 
     expect(screen.getByRole("heading", { level: 1, name: /practice with a coach, not a score/i })).toBeInTheDocument();
     expect(screen.getByText("Interview Coach", { selector: ".marketing-hero__brand" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "TalentArbor Interview Coach" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "NJ Career Interview Coach" })).toHaveAttribute("href", "/");
     expect(screen.getByRole("link", { name: "Employee login" })).toHaveAttribute("href", "/login");
 });
 

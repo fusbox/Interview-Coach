@@ -13,10 +13,10 @@ export function AiEvalShell({ user, children }: { user: AppUser; children: React
                 <div className="ai-eval-shell__brand">
                     <Link href="/qa/ai-eval" aria-label="AI quality workbench home">
                         <Image
-                            src="/TA-logo.webp"
-                            alt="TalentArbor"
-                            width={300}
-                            height={70}
+                            src="/njcareer-logo.png"
+                            alt="NJ Career"
+                            width={520}
+                            height={120}
                             className="ai-eval-shell__logo"
                             priority
                             unoptimized

@@ -179,12 +179,12 @@ export function LabExperience({
         <main className={`marketing-home marketing-home--lab${dockVisible ? " has-docked-hiw" : ""}`}>
             <header className="marketing-home__header marketing-home__header--over-hero">
                 <div className="marketing-home__header-inner">
-                    <Link href="/" aria-label="TalentArbor Interview Coach" className="brand-lockup brand-lockup--on-dark">
+                    <Link href="/" aria-label="NJ Career Interview Coach" className="brand-lockup brand-lockup--on-dark">
                         <Image
-                            src="/TA-logo.webp"
+                            src="/njcareer-logo.png"
                             alt=""
-                            width={300}
-                            height={70}
+                            width={520}
+                            height={120}
                             className="brand-lockup__mark"
                             priority
                             unoptimized

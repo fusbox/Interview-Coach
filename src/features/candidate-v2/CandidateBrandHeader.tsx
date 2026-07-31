@@ -16,14 +16,14 @@ export function CandidateBrandHeader({
     const frameClass = frame === "default" ? "" : ` app-grid--${frame}`;
 
     return (
-        <header className="candidate-brand-header" aria-label="TalentArbor Interview Coach">
+        <header className="candidate-brand-header" aria-label="NJ Career Interview Coach">
             <div className={`candidate-brand-header__inner app-grid${frameClass}`}>
-                <Link className="candidate-brand-header__identity" href="/" aria-label="TalentArbor Interview Coach home">
+                <Link className="candidate-brand-header__identity" href="/" aria-label="NJ Career Interview Coach home">
                     <Image
-                        src="/TA-logo.webp"
-                        alt="TalentArbor"
-                        width={300}
-                        height={70}
+                        src="/njcareer-logo.png"
+                        alt="NJ Career"
+                        width={520}
+                        height={120}
                         className="candidate-brand-header__mark"
                         priority
                         unoptimized

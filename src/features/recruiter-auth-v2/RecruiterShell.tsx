@@ -12,10 +12,10 @@ export function RecruiterShell({ user, children }: { user: AppUser; children: Re
             <header className="recruiter-shell__header">
                 <Link href="/recruiter" aria-label="Interview Coach recruiter home">
                     <Image
-                        src="/TA-logo.webp"
-                        alt="TalentArbor"
-                        width={300}
-                        height={70}
+                        src="/njcareer-logo.png"
+                        alt="NJ Career"
+                        width={520}
+                        height={120}
                         className="recruiter-shell__logo"
                         priority
                         unoptimized
