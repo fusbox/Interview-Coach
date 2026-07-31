@@ -27,6 +27,67 @@ describe("CandidateTranscriptCanvas", () => {
         expect(screen.getByText("You used a concrete work detail.")).toBeInTheDocument();
     });
 
+    it("supports the compact hover disclosure without repeating the indicator label", () => {
+        render(
+            <CandidateTranscriptCanvas
+                annotationPopoverVariant="compact"
+                answerText="I checked the shipment records and corrected the count."
+                projection={createProjection()}
+                isCurrent
+            />,
+        );
+
+        const trigger = screen.getByRole("button", {
+            name: "checked the shipment records",
+        });
+        fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
+
+        expect(screen.getByText("What I noticed")).toBeInTheDocument();
+        expect(screen.queryByText("Evidence in your answer")).not.toBeInTheDocument();
+        expect(screen.queryByText("Coach noticed")).not.toBeInTheDocument();
+        expect(screen.getByText("You used a concrete work detail.")).toBeInTheDocument();
+    });
+
+    it("replaces the active compact annotation when hover moves to another span", () => {
+        const answerText = "I checked the shipment records and corrected the count.";
+        const projection = createProjection();
+        const secondQuote = "corrected the count";
+        const secondStart = answerText.indexOf(secondQuote);
+        projection.annotations.push({
+            id: "annotation-2",
+            quote: secondQuote,
+            start: secondStart,
+            end: secondStart + secondQuote.length,
+            basis: { kind: "span", spanIds: ["span-2"] },
+            markerIds: ["outcome"],
+            indicators: [{
+                kind: "acknowledgement",
+                label: "Coach noticed",
+                message: "The correction made the result clear.",
+            }],
+        });
+
+        render(
+            <CandidateTranscriptCanvas
+                annotationPopoverVariant="compact"
+                answerText={answerText}
+                projection={projection}
+                isCurrent
+            />,
+        );
+
+        fireEvent.pointerEnter(screen.getByRole("button", {
+            name: "checked the shipment records",
+        }), { pointerType: "mouse" });
+        fireEvent.pointerEnter(screen.getByRole("button", {
+            name: secondQuote,
+        }), { pointerType: "mouse" });
+
+        expect(screen.getAllByText("What I noticed")).toHaveLength(1);
+        expect(screen.queryByText("You used a concrete work detail.")).not.toBeInTheDocument();
+        expect(screen.getByText("The correction made the result clear.")).toBeInTheDocument();
+    });
+
     it("removes annotation triggers from the tab order on a noncurrent slide", () => {
         render(
             <CandidateTranscriptCanvas

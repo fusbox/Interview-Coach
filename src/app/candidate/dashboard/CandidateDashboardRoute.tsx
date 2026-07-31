@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronDown, ClipboardList, Plus } from "lucide-react";
+import { ArrowRight, Briefcase, ChevronDown, ClipboardList, Plus } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { CandidateLogoutButton } from "@/features/candidate-auth-v2/CandidateLogoutButton";
@@ -9,7 +9,7 @@ import {
     type CandidateDashboardV2ReadModel,
 } from "@/features/candidate-dashboard-v2/candidate-dashboard-read-model";
 import { createCandidateCoachUpdateArtifactRepository } from "@/features/candidate-dashboard-v2/candidate-coach-update-artifact-repository";
-import { CandidateDashboardPriorityExperience } from "@/features/candidate-dashboard-v2/CandidateDashboardPriorityExperience";
+import { CandidateDashboardCoachDeskExperience } from "@/features/candidate-dashboard-v2/CandidateDashboardCoachDeskExperience";
 import {
     CandidateNextRoundBuilderExperience,
     CandidateNextRoundBuilderTrigger,
@@ -176,8 +176,8 @@ function CandidateDashboardShellHeader({
                 {selectedTargetInterview ? (
                     <details className="candidate-dashboard-context-menu">
                         <summary>
+                            <Briefcase size={16} aria-hidden="true" />
                             <span>
-                                <span className="candidate-dashboard-context-menu__label">Preparing for</span>
                                 <strong>{selectedTargetInterview.targetRole}</strong>
                             </span>
                             <ChevronDown size={18} aria-hidden="true" />
@@ -215,7 +215,9 @@ function CandidateDashboardShellHeader({
                         {selectedTargetInterview
                             ? <ClipboardList size={18} aria-hidden="true" />
                             : <Plus size={18} aria-hidden="true" />}
-                        <span>{selectedTargetInterview ? "Practice next" : "Set up practice"}</span>
+                        <span className="candidate-dashboard-next-link__label">
+                            {selectedTargetInterview ? "Practice next" : "Set up practice"}
+                        </span>
                     </a>
                 )}
             </div>
@@ -224,19 +226,9 @@ function CandidateDashboardShellHeader({
 }
 
 function CandidateDashboardLearningLoop({ dashboard }: { dashboard: CandidateDashboardV2ReadModel }) {
-    const selectedTargetInterview = dashboard.selectedTargetInterview;
-
     return (
         <div className="candidate-dashboard-content">
-            <header className="candidate-dashboard-intro">
-                <p className="candidate-dashboard-intro__label">Practice home</p>
-                <h1>{selectedTargetInterview?.targetRole ?? "Your interview practice"}</h1>
-                <p>
-                    Continue your practice, review what I noticed, and choose what to work on next.
-                </p>
-            </header>
-
-            <CandidateDashboardPriorityExperience dashboard={dashboard} />
+            <CandidateDashboardCoachDeskExperience dashboard={dashboard} />
         </div>
     );
 }

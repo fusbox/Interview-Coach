@@ -184,6 +184,8 @@ Only the accepted deterministic `patternGap` becomes the primary missing-signal 
 - Transcript text remains selectable.
 - An annotation is keyboard focusable and opens on click, Enter, Space, or pointer tap; hover is enhancement only.
 - The popover names the fixed evidence label and accepted candidate-safe claim.
+- The compact opened-dashboard presentation may rename the popover header to `What I noticed` and omit a repeated indicator label such as `Coach noticed`; it must not suppress or rewrite the accepted candidate-safe claim or fixed evidence-marker label.
+- The compact presentation may reveal on mouse hover in addition to the required click, keyboard, and pointer-tap paths. Hover exit may dismiss only a hover-opened popover; it must not make a clicked or keyboard-opened popover unstable.
 - Opening a new annotation closes the previous one. Escape closes it and returns focus to the trigger.
 - Annotation meaning does not depend on color. Underline, background, label, and focus treatment work together.
 - Focus mode may dim unannotated text only while a specific annotation is hovered or focused, never for the entire canvas by default.

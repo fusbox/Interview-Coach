@@ -192,7 +192,7 @@ export function CandidateNextRoundBuilderTrigger() {
             }}
         >
             <ClipboardList size={18} aria-hidden="true" />
-            <span>Next practice round</span>
+            <span className="candidate-dashboard-next-link__label">Next practice round</span>
             {controller.builder.itemCount > 0 ? (
                 <span className="candidate-next-round-count" aria-hidden="true">
                     {controller.builder.itemCount}

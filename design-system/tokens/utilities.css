@@ -68,11 +68,11 @@
    Uses the solid-fill tokens (not --primary/--primary-deep) so dark mode gets a
    deep, contrast-checked blue instead of a brightened one glaring against the ground. */
 .surface-spotlight {
-    background: linear-gradient(150deg, rgb(var(--primary-solid)), rgb(var(--primary-solid-deep)));
-    border: 1px solid rgb(255 255 255 / 0.08);
+    background: var(--surface-spotlight-background);
+    border: 1px solid rgb(var(--solid-foreground) / 0.08);
     box-shadow: var(--shadow-panel);
     border-radius: var(--radius-panel);
-    color: rgb(255 255 255);
+    color: rgb(var(--solid-foreground));
 }
 
 /* Calm — near-white general-purpose card. Most cards live here.
@@ -107,6 +107,37 @@
 .dark .surface-feature-dark {
     background: linear-gradient(135deg, rgb(var(--surface-subtle)), rgb(var(--background)));
     border: 1px solid rgb(var(--border) / 0.6);
+}
+
+/* Neutral dashboard glass. Color belongs to the canvas beneath these surfaces. */
+.surface-glass-raised,
+.surface-glass-quiet {
+    border: 0;
+    border-radius: var(--radius-card);
+    color: rgb(var(--foreground));
+}
+
+.surface-glass-raised {
+    background: var(--dashboard-glass-raised-background);
+    box-shadow:
+        var(--shadow-raised-2),
+        inset 0 1px 0 var(--dashboard-glass-raised-contour);
+    backdrop-filter: var(--dashboard-glass-filter-raised);
+    -webkit-backdrop-filter: var(--dashboard-glass-filter-raised);
+}
+
+.surface-glass-quiet {
+    background: var(--dashboard-glass-quiet-background);
+    box-shadow:
+        var(--shadow-raised-1),
+        inset 0 1px 0 var(--dashboard-glass-quiet-contour);
+    backdrop-filter: var(--dashboard-glass-filter-quiet);
+    -webkit-backdrop-filter: var(--dashboard-glass-filter-quiet);
+}
+
+.surface-glass-quiet[data-interactive="true"]:hover,
+.surface-glass-quiet[data-interactive="true"]:focus-visible {
+    background: var(--dashboard-glass-quiet-hover-background);
 }
 
 /* Glass-on-color — a child of any colored/dark surface. Translucent, never an
@@ -216,4 +247,348 @@
     font-size: 0.9rem;
     line-height: 1.75;
     color: rgb(var(--muted));
+}
+
+/* Shared production controls. Component code supplies structure and state;
+   these classes keep color, motion, and disabled behavior token-driven. */
+.ui-button {
+    position: relative;
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+    transition:
+        background-color var(--motion-control-duration) var(--motion-control-ease),
+        border-color var(--motion-control-duration) var(--motion-control-ease),
+        color var(--motion-control-duration) var(--motion-control-ease),
+        box-shadow var(--motion-control-duration) var(--motion-control-ease),
+        transform var(--motion-control-duration) var(--motion-control-ease);
+}
+
+.ui-button:hover:not(:disabled):not([aria-disabled="true"]) {
+    transform: translateY(-1px);
+}
+
+.ui-button:active:not(:disabled):not([aria-disabled="true"]) {
+    transform: translateY(0) scale(0.99);
+}
+
+.ui-button:disabled,
+.ui-button[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: 0.52;
+}
+
+.ui-button[aria-busy="true"] {
+    cursor: progress;
+}
+
+.ui-button--primary {
+    border-color: rgb(var(--primary-solid));
+    background: rgb(var(--primary-solid));
+    color: rgb(var(--solid-foreground));
+    box-shadow: var(--elevation-cta);
+}
+
+.ui-button--primary:hover:not(:disabled):not([aria-disabled="true"]) {
+    border-color: rgb(var(--primary-solid-hover));
+    background: rgb(var(--primary-solid-hover));
+}
+
+.ui-button--primary:active:not(:disabled):not([aria-disabled="true"]) {
+    border-color: rgb(var(--primary-solid-active));
+    background: rgb(var(--primary-solid-active));
+}
+
+.ui-button--secondary {
+    border-color: rgb(var(--border));
+    background: rgb(var(--surface));
+    color: rgb(var(--primary));
+    box-shadow: var(--elevation-row);
+}
+
+.ui-button--secondary:hover:not(:disabled):not([aria-disabled="true"]) {
+    border-color: rgb(var(--primary) / 0.48);
+    background: rgb(var(--surface-subtle));
+}
+
+.ui-button--tertiary,
+.ui-button--link {
+    border-color: transparent;
+    background: transparent;
+    color: rgb(var(--primary));
+    box-shadow: none;
+}
+
+.ui-button--tertiary:hover:not(:disabled):not([aria-disabled="true"]) {
+    background: rgb(var(--primary-soft) / 0.54);
+}
+
+.ui-button--link:hover:not(:disabled):not([aria-disabled="true"]) {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+}
+
+.ui-button--danger {
+    border-color: rgb(var(--destructive));
+    background: rgb(var(--destructive));
+    color: rgb(var(--solid-foreground));
+    box-shadow: var(--elevation-row);
+}
+
+.ui-button--danger:hover:not(:disabled):not([aria-disabled="true"]) {
+    filter: brightness(0.92);
+}
+
+.ui-button--info {
+    border-color: rgb(var(--state-info));
+    background: rgb(var(--state-info));
+    color: rgb(var(--solid-foreground));
+    box-shadow: var(--elevation-row);
+}
+
+.ui-button--info:hover:not(:disabled):not([aria-disabled="true"]) {
+    filter: brightness(0.92);
+}
+
+.ui-button__content {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
+    gap: var(--gap-inline);
+}
+
+.ui-button[data-state="loading"] .ui-button__content {
+    opacity: 0;
+}
+
+.ui-button__spinner {
+    position: absolute;
+    width: 1em;
+    height: 1em;
+    animation: ui-progress-spin var(--motion-progress-duration) linear infinite;
+}
+
+/* Icon-only controls use a fixed square target and visible selected states.
+   The accessible label remains the responsibility of the React primitive. */
+.ui-icon-button {
+    flex: 0 0 auto;
+    padding: 0;
+    border-color: rgb(var(--border) / 0.82);
+    border-radius: var(--radius-control);
+    background: rgb(var(--surface) / 0.9);
+    color: rgb(var(--foreground));
+    box-shadow: var(--elevation-row);
+}
+
+.ui-icon-button[data-size="compact"] {
+    width: var(--icon-button-size-compact);
+    height: var(--icon-button-size-compact);
+}
+
+.ui-icon-button[data-size="default"] {
+    width: var(--icon-button-size-default);
+    height: var(--icon-button-size-default);
+}
+
+.ui-icon-button[data-size="comfortable"] {
+    width: var(--icon-button-size-comfortable);
+    height: var(--icon-button-size-comfortable);
+}
+
+.ui-icon-button:hover:not(:disabled):not([aria-disabled="true"]) {
+    border-color: rgb(var(--primary) / 0.44);
+    background: rgb(var(--surface));
+    color: rgb(var(--primary));
+}
+
+.ui-icon-button[data-tone="neutral"][aria-pressed="true"] {
+    border-color: rgb(var(--primary) / 0.42);
+    background: rgb(var(--primary-soft));
+    color: rgb(var(--primary));
+}
+
+.ui-icon-button[data-tone="primary"][aria-pressed="true"] {
+    border-color: rgb(var(--primary-solid));
+    background: rgb(var(--primary-solid));
+    color: rgb(var(--solid-foreground));
+}
+
+.ui-icon-button[data-tone="accent"][aria-pressed="true"] {
+    border-color: rgb(var(--accent-solid));
+    background: rgb(var(--accent-solid));
+    color: rgb(var(--solid-foreground));
+}
+
+.ui-icon-button[data-tone="danger"][aria-pressed="true"] {
+    border-color: rgb(var(--destructive));
+    background: rgb(var(--destructive));
+    color: rgb(var(--solid-foreground));
+}
+
+/* Typed surfaces add state without changing the established prominence ladder. */
+.ui-surface {
+    min-width: 0;
+    transition:
+        border-color var(--motion-surface-duration) var(--motion-surface-ease),
+        box-shadow var(--motion-surface-duration) var(--motion-surface-ease),
+        opacity var(--motion-surface-duration) var(--motion-surface-ease),
+        transform var(--motion-surface-duration) var(--motion-surface-ease);
+}
+
+.ui-surface[data-interactive="true"]:hover {
+    transform: translateY(-1px);
+}
+
+.ui-surface[data-state="selected"] {
+    border-color: rgb(var(--primary) / 0.58);
+}
+
+.ui-surface[data-state="success"] {
+    border-color: rgb(var(--state-success) / 0.58);
+}
+
+.ui-surface[data-state="warning"] {
+    border-color: rgb(var(--state-warning) / 0.62);
+}
+
+.ui-surface[data-state="critical"] {
+    border-color: rgb(var(--state-critical) / 0.62);
+}
+
+.ui-surface[data-state="disabled"] {
+    opacity: 0.56;
+}
+
+.ui-surface[aria-busy="true"] {
+    cursor: progress;
+}
+
+/* Responsive notched surface used by the live question and answer composer. */
+.ui-cutout-surface {
+    position: relative;
+    isolation: isolate;
+    min-height: calc(
+        var(--cutout-notch-depth) +
+        var(--cutout-surface-radius) +
+        var(--cutout-surface-radius)
+    );
+    border-radius: var(--cutout-surface-radius);
+    color: rgb(var(--foreground));
+}
+
+.ui-cutout-surface__recess,
+.ui-cutout-surface__contour {
+    position: absolute;
+    pointer-events: none;
+    inset: 0;
+    border-radius: var(--cutout-surface-radius);
+}
+
+.ui-cutout-surface__recess {
+    z-index: -3;
+    background: rgb(var(--surface));
+}
+
+.ui-cutout-surface[data-tone="question"] .ui-cutout-surface__recess {
+    box-shadow: var(--elevation-cutout-question);
+}
+
+.ui-cutout-surface[data-tone="composer"] .ui-cutout-surface__recess {
+    box-shadow: var(--elevation-cutout-composer);
+}
+
+.ui-cutout-surface__contour {
+    z-index: -2;
+    background: transparent;
+}
+
+.ui-cutout-surface[data-cutout="top-end"] .ui-cutout-surface__contour {
+    box-shadow:
+        inset -1px 1px 2px rgb(var(--foreground) / 0.06),
+        inset -0.5px 0.5px 1px rgb(var(--foreground) / 0.1);
+}
+
+.ui-cutout-surface[data-cutout="bottom-start"] .ui-cutout-surface__contour {
+    box-shadow:
+        inset 1px -1px 2px rgb(var(--foreground) / 0.06),
+        inset 0.5px -0.5px 1px rgb(var(--foreground) / 0.09);
+}
+
+.ui-cutout-surface__shape {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+    filter: drop-shadow(var(--elevation-cutout-edge));
+}
+
+.ui-cutout-surface__path {
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+}
+
+.ui-cutout-surface[data-tone="question"] .ui-cutout-surface__stop-start {
+    stop-color: rgb(var(--surface-alt));
+}
+
+.ui-cutout-surface[data-tone="question"] .ui-cutout-surface__stop-end {
+    stop-color: rgb(var(--primary-soft));
+}
+
+.ui-cutout-surface[data-tone="question"] .ui-cutout-surface__path {
+    stroke: rgb(var(--primary) / 0.18);
+}
+
+.ui-cutout-surface[data-tone="composer"] .ui-cutout-surface__stop-start,
+.ui-cutout-surface[data-tone="composer"] .ui-cutout-surface__stop-end {
+    stop-color: rgb(var(--surface));
+}
+
+.ui-cutout-surface[data-tone="composer"] .ui-cutout-surface__path {
+    stroke: rgb(var(--border) / 0.7);
+}
+
+.ui-cutout-surface[data-state="selected"] .ui-cutout-surface__path {
+    stroke: rgb(var(--primary) / 0.62);
+}
+
+.ui-cutout-surface[data-state="success"] .ui-cutout-surface__path {
+    stroke: rgb(var(--state-success) / 0.62);
+}
+
+.ui-cutout-surface[data-state="warning"] .ui-cutout-surface__path {
+    stroke: rgb(var(--state-warning) / 0.68);
+}
+
+.ui-cutout-surface[data-state="critical"] .ui-cutout-surface__path {
+    stroke: rgb(var(--state-critical) / 0.68);
+}
+
+.ui-cutout-surface__content {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+    min-height: inherit;
+}
+
+.ui-cutout-surface__notch {
+    position: absolute;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.ui-cutout-surface[data-cutout="top-end"] .ui-cutout-surface__notch {
+    top: var(--cutout-control-offset);
+    right: var(--space-2);
+}
+
+.ui-cutout-surface[data-cutout="bottom-start"] .ui-cutout-surface__notch {
+    bottom: var(--cutout-control-offset);
+    left: var(--space-2);
 }

@@ -40,6 +40,21 @@
     --primary-solid-active: 0 54 172; /* @kind color */
     --primary-solid-deep: 0 40 159; /* @kind color */
     --accent-solid: 23 160 121; /* @kind color */
+    --solid-foreground: 255 255 255; /* @kind color */
+
+    /* Candidate dashboard canvas and spotlight primitives. Components consume
+       the semantic material roles in roles.css rather than these stops. */
+    --dashboard-canvas-blue-1: 217 236 255; /* @kind color */
+    --dashboard-canvas-blue-2: 229 244 255; /* @kind color */
+    --dashboard-canvas-blue-3: 210 241 255; /* @kind color */
+    --dashboard-canvas-blue-4: 227 247 255; /* @kind color */
+    --dashboard-canvas-blue-5: 236 246 255; /* @kind color */
+    --dashboard-canvas-blue-6: 242 250 255; /* @kind color */
+    --dashboard-canvas-blue-7: 236 250 255; /* @kind color */
+    --dashboard-canvas-blue-8: 225 249 255; /* @kind color */
+    --dashboard-spotlight-accent-soft: 157 194 255; /* @kind color */
+    --dashboard-spotlight-accent-bright: 233 241 255; /* @kind color */
+    --dashboard-spotlight-accent-next: 140 232 206; /* @kind color */
 
     /* On-glass ink + hairline (over colored surfaces) */
     --glass-ink: 255 255 255; /* @kind color */
@@ -56,6 +71,7 @@
     --secondary-foreground: 15 23 42; /* @kind color */
     --accent-foreground: 15 23 42; /* @kind color */
     --accent-alt: 124 59 237; /* @kind color */
+    --accent-alt-soft: 238 230 253; /* @kind color */
     --accent-alt-solid: 124 59 237; /* @kind color, solid-fill variant, see note above */
     --destructive: 239 68 68; /* @kind color */
     --destructive-foreground: 248 250 252; /* @kind color */
@@ -133,6 +149,15 @@
     --primary-solid-active: 24 50 104; /* @kind color */
     --primary-solid-deep: 16 28 58; /* @kind color, ~16.8:1 vs white */
     --accent-solid: 20 110 88; /* @kind color, ~6.2:1 vs white */
+    --solid-foreground: 255 255 255; /* @kind color */
+    --dashboard-canvas-blue-1: 70 97 128; /* @kind color */
+    --dashboard-canvas-blue-2: 56 78 99; /* @kind color */
+    --dashboard-canvas-blue-3: 50 96 118; /* @kind color */
+    --dashboard-canvas-blue-4: 49 77 95; /* @kind color */
+    --dashboard-canvas-blue-5: 48 60 78; /* @kind color */
+    --dashboard-canvas-blue-6: 45 59 72; /* @kind color */
+    --dashboard-canvas-blue-7: 44 62 75; /* @kind color */
+    --dashboard-canvas-blue-8: 39 67 80; /* @kind color */
     --glass-ink: 226 232 243; /* @kind color */
     --glass-tint: 226 232 243; /* @kind color */
 
@@ -147,6 +172,7 @@
     --secondary-foreground: 241 245 249; /* @kind color */
     --accent-foreground: 241 245 249; /* @kind color */
     --accent-alt: 158 116 231; /* @kind color */
+    --accent-alt-soft: 43 31 70; /* @kind color */
     --accent-alt-solid: 83 31 173; /* @kind color, deep purple fill, contrast-checked vs white */
     --destructive: 187 43 43; /* @kind color */
     --destructive-foreground: 248 250 252; /* @kind color */

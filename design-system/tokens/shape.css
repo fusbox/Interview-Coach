@@ -11,4 +11,5 @@
     /* Surface radii */
     --radius-card: var(--radius-2xl);   /* 24px — standard outer surfaces */
     --radius-panel: var(--radius-3xl);  /* 32px — spotlights and focus regions */
+    --radius-feedback-modal: var(--radius-3xl); /* 32px — immersive staged coaching */
 }

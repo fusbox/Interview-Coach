@@ -24,23 +24,8 @@
     --type-display-lg-line: 1.05;
     --type-display-md-size: clamp(1.35rem, 1.5vw + 0.9rem, 1.625rem);
     --type-display-md-line: 1.12;
-    --type-display-sm-size: 1.25rem;
-    --type-display-sm-line: 1.2;
-    --type-title-size: 1.0625rem;
-    --type-title-line: 1.25;
-    --type-title-md-size: 1.125rem;
     --type-body-lg-size: 1.0625rem;
     --type-body-lg-line: 1.6;
-    --type-body-md-size: 0.875rem;
-    --type-body-md-line: 1.5;
-    --type-body-sm-size: 0.8125rem;
-    --type-body-sm-line: 1.45;
-    --type-body-size: 0.9375rem;
-    --type-body-line: 1.6;
-    --type-label-size: 0.75rem;
-    --type-label-line: 1.2;
-    --type-eyebrow-size: 0.75rem;
-    --type-metric-value-size: 1.875rem;
 
     /* Transitional spacing and layout roles */
     --space-0-5: 0.125rem;

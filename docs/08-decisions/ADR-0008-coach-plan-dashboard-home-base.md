@@ -5,6 +5,8 @@ Status: Superseded in part by ADR-0010
 
 ADR-0010 supersedes score-driven aggregate preparedness, title-based context grouping, and the earlier broad Coach Update/debrief boundary. It preserves Coach Plan as the stable teaching and reference object.
 
+The [Dashboard Composition Direction](../03-design/dashboard-composition-direction.md) and [Dashboard Progress Visualization Contract](../03-design/dashboard-progress-visualization-contract.md) further supersede this ADR's dashboard composition, preparedness-target rendering, and three-lane Skills face. This ADR remains historical rationale for preserving Coach Plan as the stable teaching and reference object.
+
 ## Context
 
 The candidate dashboard has proven the core read-model logic: selected target interview scoping, planned category coverage, score-driven Substance / Structure / Delivery lanes, Practice Next, and evidence drilldowns all work as implementation foundations.

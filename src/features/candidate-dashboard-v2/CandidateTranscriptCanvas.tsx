@@ -2,7 +2,7 @@
 
 import * as Popover from "@radix-ui/react-popover";
 import { Lightbulb, MessageSquareQuote, X } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { getCandidateEvidenceMarkerLabel } from "./candidate-transcript-canvas-labels";
 import type {
@@ -12,14 +12,17 @@ import type {
 import { createCandidateTranscriptSegments } from "./candidate-transcript-segments";
 
 export function CandidateTranscriptCanvas({
+    annotationPopoverVariant = "default",
     answerText,
     projection,
     isCurrent,
 }: {
+    annotationPopoverVariant?: "default" | "compact";
     answerText: string;
     projection: CandidateTranscriptCanvasProjection | null;
     isCurrent: boolean;
 }) {
+    const [openAnnotationId, setOpenAnnotationId] = useState<string | null>(null);
     const annotationsById = useMemo(
         () => new Map(projection?.annotations.map((annotation) => [annotation.id, annotation]) ?? []),
         [projection],
@@ -40,7 +43,19 @@ export function CandidateTranscriptCanvas({
                     return annotations.length > 0 ? (
                         <CandidateTranscriptAnnotationTrigger
                             key={segment.id}
+                            annotationPopoverVariant={annotationPopoverVariant}
+                            open={openAnnotationId === segment.id}
+                            onOpenChange={(nextOpen) => {
+                                setOpenAnnotationId((currentId) => (
+                                    nextOpen
+                                        ? segment.id
+                                        : currentId === segment.id ? null : currentId
+                                ));
+                            }}
                             annotations={annotations}
+                            anotherAnnotationIsOpen={
+                                openAnnotationId !== null && openAnnotationId !== segment.id
+                            }
                             isCurrent={isCurrent}
                             text={segment.text}
                         />
@@ -83,14 +98,26 @@ export function CandidateTranscriptCanvas({
 }
 
 function CandidateTranscriptAnnotationTrigger({
+    annotationPopoverVariant,
+    anotherAnnotationIsOpen,
     annotations,
     isCurrent,
+    onOpenChange,
+    open,
     text,
 }: {
+    annotationPopoverVariant: "default" | "compact";
+    anotherAnnotationIsOpen: boolean;
     annotations: CandidateTranscriptAnnotation[];
     isCurrent: boolean;
+    onOpenChange: (open: boolean) => void;
+    open: boolean;
     text: string;
 }) {
+    const hoverCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const openedByHoverRef = useRef(false);
+    const suppressCloseAutoFocusRef = useRef(false);
+    const compact = annotationPopoverVariant === "compact";
     const markerIds = Array.from(new Set(annotations.flatMap((annotation) => annotation.markerIds)));
     const indicators = annotations.flatMap((annotation) => annotation.indicators).filter((indicator, index, all) => (
         all.findIndex((candidate) => (
@@ -98,13 +125,61 @@ function CandidateTranscriptAnnotationTrigger({
         )) === index
     ));
 
+    const clearHoverClose = () => {
+        if (hoverCloseTimerRef.current === null) return;
+        clearTimeout(hoverCloseTimerRef.current);
+        hoverCloseTimerRef.current = null;
+    };
+
+    const scheduleHoverClose = () => {
+        if (!compact || !openedByHoverRef.current) return;
+        clearHoverClose();
+        hoverCloseTimerRef.current = setTimeout(() => {
+            suppressCloseAutoFocusRef.current = true;
+            openedByHoverRef.current = false;
+            onOpenChange(false);
+            hoverCloseTimerRef.current = null;
+        }, 120);
+    };
+
+    useEffect(() => () => {
+        if (hoverCloseTimerRef.current !== null) {
+            clearTimeout(hoverCloseTimerRef.current);
+        }
+    }, []);
+
     return (
-        <Popover.Root>
+        <Popover.Root
+            open={open}
+            onOpenChange={(nextOpen) => {
+                if (!nextOpen && openedByHoverRef.current) {
+                    suppressCloseAutoFocusRef.current = true;
+                }
+                if (!nextOpen) openedByHoverRef.current = false;
+                onOpenChange(nextOpen);
+            }}
+        >
             <Popover.Trigger asChild>
                 <button
                     type="button"
                     className="candidate-transcript-canvas__annotation"
                     tabIndex={isCurrent ? 0 : -1}
+                    onKeyDown={(event) => {
+                        if (event.key !== "Enter" && event.key !== " ") return;
+                        clearHoverClose();
+                        openedByHoverRef.current = false;
+                    }}
+                    onPointerDown={() => {
+                        clearHoverClose();
+                        openedByHoverRef.current = false;
+                    }}
+                    onPointerEnter={(event) => {
+                        if (!compact || event.pointerType !== "mouse") return;
+                        clearHoverClose();
+                        openedByHoverRef.current = true;
+                        onOpenChange(true);
+                    }}
+                    onPointerLeave={scheduleHoverClose}
                 >
                     {text}
                 </button>
@@ -116,9 +191,23 @@ function CandidateTranscriptAnnotationTrigger({
                     align="start"
                     sideOffset={8}
                     collisionPadding={12}
+                    data-variant={annotationPopoverVariant}
+                    onCloseAutoFocus={(event) => {
+                        if (!anotherAnnotationIsOpen && !suppressCloseAutoFocusRef.current) return;
+                        event.preventDefault();
+                        suppressCloseAutoFocusRef.current = false;
+                    }}
+                    onOpenAutoFocus={(event) => {
+                        if (openedByHoverRef.current) event.preventDefault();
+                    }}
+                    onPointerEnter={(event) => {
+                        if (!compact || event.pointerType !== "mouse") return;
+                        clearHoverClose();
+                    }}
+                    onPointerLeave={scheduleHoverClose}
                 >
                     <div className="candidate-transcript-canvas__popover-header">
-                        <p>Evidence in your answer</p>
+                        <p>{compact ? "What I noticed" : "Evidence in your answer"}</p>
                         <Popover.Close aria-label="Close evidence note">
                             <X size={15} aria-hidden="true" />
                         </Popover.Close>
@@ -130,7 +219,7 @@ function CandidateTranscriptAnnotationTrigger({
                     </div>
                     {indicators.map((indicator) => (
                         <div key={`${indicator.kind}-${indicator.message}`} className="candidate-transcript-canvas__indicator">
-                            <p className="type-eyebrow">{indicator.label}</p>
+                            {!compact ? <p className="type-eyebrow">{indicator.label}</p> : null}
                             <p>{indicator.message}</p>
                         </div>
                     ))}

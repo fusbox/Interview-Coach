@@ -104,6 +104,7 @@ export function CandidateFixedPracticeAction({
     createPracticeIntent = createCandidateFixedPracticeIntent,
     navigate = (href) => window.location.assign(href),
     className = "candidate-dashboard-action",
+    ariaLabel,
     tabIndex,
 }: {
     source: CandidateDirectPracticeIntentSource;
@@ -112,6 +113,7 @@ export function CandidateFixedPracticeAction({
     createPracticeIntent?: (input: CandidateFixedPracticeIntentCreateInput) => Promise<CandidateFixedPracticeIntentCreateResult>;
     navigate?: (href: string) => void;
     className?: string;
+    ariaLabel?: string;
     tabIndex?: number;
 }) {
     const [status, setStatus] = useState<"idle" | "creating" | "error" | "changed">("idle");
@@ -124,6 +126,7 @@ export function CandidateFixedPracticeAction({
             <button
                 className={className}
                 type="button"
+                aria-label={ariaLabel}
                 tabIndex={tabIndex}
                 disabled={!canCreate || status === "creating"}
                 onClick={async () => {

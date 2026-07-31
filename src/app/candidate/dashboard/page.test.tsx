@@ -147,16 +147,16 @@ it("renders the V2 dashboard read boundary when completed-round facts are availa
         },
     }));
 
-    expect(screen.getByRole("heading", { name: "Material Handler I" })).toBeInTheDocument();
+    expect(screen.getAllByText("Material Handler I").length).toBeGreaterThan(0);
     expect(screen.getByRole("img", { name: "Signed in as Candidate One" })).toHaveTextContent("CO");
-    expect(screen.getByText("Coach Update")).toBeInTheDocument();
-    expect(screen.getByText("The latest round is complete.")).toBeInTheDocument();
+    expect(screen.getAllByText(/Coach update/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText("The latest round is complete.")).not.toBeInTheDocument();
     expect(screen.queryByText("Use what happened in practice to choose the next useful move.")).not.toBeInTheDocument();
     expect(screen.queryByText("Completed rounds")).not.toBeInTheDocument();
     expect(screen.queryByText("Answered questions")).not.toBeInTheDocument();
     expect(screen.queryByText("Coached answers")).not.toBeInTheDocument();
     expect(screen.getByText("Add one result from the inventory count.")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Your practice is saved." })).toBeInTheDocument();
+    expect(screen.getByText("Your practice is saved")).toBeInTheDocument();
     expect(screen.queryByText("Material Handler I practice complete")).not.toBeInTheDocument();
 });
 
@@ -321,7 +321,7 @@ it("does not render the legacy latest-round transcript without a synthesized Coa
     }));
 
     expect(screen.queryByRole("link", { name: /Coach Update/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Your practice is saved." })).toBeInTheDocument();
+    expect(screen.getByText("Your practice is saved")).toBeInTheDocument();
     expect(screen.queryByText("Q1 - Behavioral")).not.toBeInTheDocument();
     expect(screen.queryByText(/I noticed the count was off/i)).not.toBeInTheDocument();
     expect(screen.queryByText("Q2 - Scenario")).not.toBeInTheDocument();
@@ -512,17 +512,16 @@ it("opens the exact Coach Update artifact from the sparse feedback card", async 
         },
     }));
 
-    expect(screen.getByText("New")).toBeInTheDocument();
+    expect(screen.getByText("Coach update ready")).toBeInTheDocument();
+    expect(screen.queryByText("New")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Open Coach Update" }));
 
-    expect(screen.queryByText("New")).not.toBeInTheDocument();
     expect(window.localStorage.getItem("candidate-v2:coach-update-seen:candidate-1:session-1")).toBe("artifact-1");
 
     const detail = screen.getByRole("dialog", { name: "Let's review your latest practice." });
-    expect(within(detail).getByText("Q1")).toBeInTheDocument();
-    expect(within(detail).getByText("Behavioral")).toBeInTheDocument();
+    expect(within(detail).getByText(/Question 1 .* Behavioral/)).toBeInTheDocument();
     expect(within(detail).getByText("I checked the shipment records before updating the inventory sheet.")).toBeInTheDocument();
-    expect(within(detail).getByRole("region", { name: "Coach observation" })).toHaveTextContent(
+    expect(within(detail).getByRole("complementary", { name: "What the coach noticed in question 1" })).toHaveTextContent(
         "Your answer includes the task, but the result is still missing.",
     );
     expect(within(detail).getByText("Add the result of the inventory count.")).toBeInTheDocument();
@@ -533,9 +532,8 @@ it("opens the exact Coach Update artifact from the sparse feedback card", async 
     expect(within(detail).queryByRole("link", { name: "Practice this question" })).not.toBeInTheDocument();
     expect(JSON.stringify(detail.textContent)).not.toMatch(/score|oneBigUpgrade|percentile|pass|fail/i);
 
-    const priorities = screen.getByRole("region", { name: "Practice priorities" });
-    expect(within(priorities).getByRole("heading", { name: "Add the result of the inventory count." }).closest("article"))
-        .toHaveClass("is-primary");
+    expect(screen.getByRole("region", { name: "Add the result of the inventory count." }))
+        .toHaveClass("candidate-dashboard-stage--next");
 });
 
 it("renders selected target interview context and switch links", async () => {
@@ -648,8 +646,8 @@ it("renders selected target interview context and switch links", async () => {
         },
     }));
 
-    expect(screen.getByText("Preparing for")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "CSR" })).toBeInTheDocument();
+    expect(screen.queryByText("Preparing for")).not.toBeInTheDocument();
+    expect(screen.getAllByText("CSR").length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: /Packaging Associate/i })).toHaveAttribute(
         "href",
         "/candidate/dashboard?prep=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
@@ -875,11 +873,11 @@ it("renders selected-context active round resume details", async () => {
         },
     }));
 
-    const activeRound = screen.getByRole("region", { name: "Active round" });
-    expect(activeRound).toHaveTextContent("Packaging Associate");
+    const activeRound = screen.getByRole("region", { name: "Pick up where you left off" });
+    expect(screen.getAllByText("Packaging Associate").length).toBeGreaterThan(0);
     expect(activeRound).toHaveTextContent("2 of 5 answered");
     expect(activeRound).toHaveTextContent("Question 3");
-    expect(within(activeRound).getByRole("link", { name: /Resume round/i })).toHaveAttribute(
+    expect(within(activeRound).getByRole("link", { name: /Resume question 3/i })).toHaveAttribute(
         "href",
         "/candidate/session/active-session",
     );

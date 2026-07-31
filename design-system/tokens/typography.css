@@ -17,6 +17,27 @@
     --text-micro-size: 0.625rem; /* @kind font */
     --text-micro-line: 1rem; /* @kind font */
     --text-micro-tracking: 0.05em; /* @kind font */
+
+    /* Shared semantic interface roles */
+    --type-display-sm-size: 1.25rem; /* @kind font */
+    --type-display-sm-line: 1.2; /* @kind font */
+    --type-title-size: 1.0625rem; /* @kind font */
+    --type-title-line: 1.25; /* @kind font */
+    --type-title-md-size: 1.125rem; /* @kind font */
+    --type-title-md-line: 1.2; /* @kind font */
+    --type-body-md-size: 0.875rem; /* @kind font */
+    --type-body-md-line: 1.5; /* @kind font */
+    --type-body-sm-size: 0.8125rem; /* @kind font */
+    --type-body-sm-line: 1.45; /* @kind font */
+    --type-body-size: 0.9375rem; /* @kind font */
+    --type-body-line: 1.6; /* @kind font */
+    --type-label-size: 0.75rem; /* @kind font */
+    --type-label-line: 1.2; /* @kind font */
+    --type-eyebrow-size: 0.75rem; /* @kind font */
+    --type-eyebrow-line: 1.2; /* @kind font */
+    --type-eyebrow-tracking: 0.05em; /* @kind font */
+    --type-metric-value-size: 1.875rem; /* @kind font */
+    --type-metric-value-line: 1; /* @kind font */
 }
 
 body {

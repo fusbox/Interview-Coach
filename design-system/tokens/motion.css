@@ -3,6 +3,13 @@
     --duration-fast: 120ms; /* @kind other */
     --duration-base: 180ms; /* @kind other */
     --duration-slow: 260ms; /* @kind other */
+    --duration-progress: 800ms; /* @kind other */
     --ease-standard: cubic-bezier(0.4, 0, 0.2, 1); /* @kind other */
     --ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1); /* @kind other */
+}
+
+@keyframes ui-progress-spin {
+    to {
+        transform: rotate(1turn);
+    }
 }

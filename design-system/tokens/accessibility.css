@@ -23,4 +23,43 @@
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
     }
+
+    :where(.ui-button, .ui-icon-button):hover,
+    :where(.ui-button, .ui-icon-button):active,
+    .ui-surface[data-interactive="true"]:hover {
+        transform: none !important;
+    }
+
+    .ui-button__spinner {
+        animation: none !important;
+    }
+}
+
+@media (prefers-contrast: more) {
+    :where(.ui-button, .ui-icon-button, .ui-surface) {
+        border-width: 2px;
+    }
+}
+
+@media (forced-colors: active) {
+    :where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
+        outline-color: Highlight;
+    }
+
+    :where(.ui-button, .ui-icon-button, .ui-surface) {
+        border: 1px solid ButtonText;
+        box-shadow: none;
+        forced-color-adjust: auto;
+    }
+
+    :where(.ui-button, .ui-icon-button)[aria-pressed="true"],
+    .ui-surface[data-state="selected"] {
+        outline: 2px solid Highlight;
+        outline-offset: 2px;
+    }
+
+    .ui-cutout-surface__path {
+        fill: Canvas;
+        stroke: CanvasText;
+    }
 }

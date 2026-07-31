@@ -105,8 +105,8 @@ describe("CandidateDashboardPriorityExperience", () => {
         fireEvent.click(screen.getByRole("button", { name: "Open Coach Update" }));
 
         const dialog = screen.getByRole("dialog", { name: "Let's review your latest practice." });
-        expect(within(dialog).getByRole("tab", { name: "Current feedback: question 1" })).toHaveAttribute("aria-selected", "true");
-        expect(within(dialog).getByRole("tab", { name: "Current feedback: question 1" })).toHaveTextContent("Q1");
+        expect(within(dialog).getByRole("button", { name: "Current feedback: question 1" })).toHaveAttribute("aria-current", "true");
+        expect(within(dialog).getByRole("button", { name: "Current feedback: question 1" })).toHaveTextContent("Q1");
         const currentSlide = within(dialog).getByRole("group", { name: "Question feedback 1 of 2" });
         expect(within(currentSlide).getByText("What I noticed")).toBeInTheDocument();
         expect(within(currentSlide).getByText("Try next")).toBeInTheDocument();
@@ -116,34 +116,35 @@ describe("CandidateDashboardPriorityExperience", () => {
 
         fireEvent.click(within(dialog).getByRole("button", { name: "Next question feedback" }));
 
-        expect(within(dialog).getByRole("tab", { name: "Current feedback: question 2" })).toHaveAttribute("aria-selected", "true");
+        expect(within(dialog).getByRole("button", { name: "Current feedback: question 2" })).toHaveAttribute("aria-current", "true");
         expect(focusLinks[0]).toHaveAttribute("tabindex", "-1");
         expect(focusLinks[1]).not.toHaveAttribute("tabindex", "-1");
         expect(within(dialog).getByRole("button", { name: "Next question feedback" })).toBeDisabled();
     });
 
-    it("opens the Coach Plan reference with category teaching and deliberately hidden upcoming questions", () => {
+    it("opens the Coach Plan question spine with a secondary category lens and hidden upcoming wording", () => {
         render(<CandidateDashboardPriorityExperience dashboard={createReadyDashboard()} />);
 
         fireEvent.click(screen.getByRole("button", { name: "View Coach Plan" }));
-        const dialog = screen.getByRole("dialog", { name: "Your plan for Material Handler I" });
-        expect(within(dialog).getByRole("tab", { name: "Categories" })).toHaveAttribute("aria-selected", "true");
-        expect(within(dialog).getByRole("heading", { name: "Basic fit and role alignment." })).toBeInTheDocument();
+        const dialog = screen.getByRole("dialog", { name: "Material Handler I" });
+        expect(within(dialog).getByRole("tab", { name: "Questions" })).toHaveAttribute("aria-selected", "true");
+        expect(within(dialog).getByText("What interests you about this role?")).toBeInTheDocument();
 
-        fireEvent.click(within(dialog).getByRole("button", { name: /Behavioral.*1 of 1 practiced/i }));
+        fireEvent.click(within(dialog).getByRole("tab", { name: "Categories" }));
+        fireEvent.click(within(dialog).getByRole("button", { name: /Behavioral.*1 question/i }));
         expect(within(dialog).getByRole("heading", { name: "Past examples and personal action." })).toBeInTheDocument();
         expect(dialog.querySelector(".candidate-coach-plan-coverage")).not.toBeInTheDocument();
 
-        fireEvent.click(within(dialog).getByRole("tab", { name: "Question set" }));
-        expect(within(dialog).getByText("What interests you about this role?")).toBeInTheDocument();
+        fireEvent.click(within(dialog).getByRole("tab", { name: "Questions" }));
+        fireEvent.click(within(dialog).getByRole("tab", { name: "Question 3: Not practiced yet" }));
         expect(within(dialog).queryByText("What work environment helps you do your best work?")).not.toBeInTheDocument();
 
-        fireEvent.click(within(dialog).getByRole("button", { name: "Reveal 1 upcoming" }));
+        fireEvent.click(within(dialog).getByRole("button", { name: "Reveal question" }));
         expect(within(dialog).getByText("What work environment helps you do your best work?")).toBeInTheDocument();
         expect(within(dialog).queryByText(/score|mastery/i)).not.toBeInTheDocument();
 
         fireEvent.keyDown(document, { key: "Escape" });
-        expect(screen.queryByRole("dialog", { name: "Your plan for Material Handler I" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("dialog", { name: "Material Handler I" })).not.toBeInTheDocument();
     });
 
     it("presents plan coverage separately from highest-earned preparedness", () => {
@@ -194,7 +195,7 @@ describe("CandidateDashboardPriorityExperience", () => {
         expect(within(progress).getByText("Not practiced yet")).toBeInTheDocument();
 
         fireEvent.click(within(progress).getByRole("button", { name: "View Coach Plan" }));
-        expect(screen.getByRole("dialog", { name: "Your plan for Material Handler I" })).toBeInTheDocument();
+        expect(screen.getByRole("dialog", { name: "Material Handler I" })).toBeInTheDocument();
     });
 });
 

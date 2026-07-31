@@ -25,6 +25,69 @@
     --elevation-card:  var(--shadow-card);  /* Tier 3 calm card */
     --elevation-panel: var(--shadow-panel); /* Tier 1/2 feature + spotlight */
     --elevation-cta:   var(--shadow-cta);   /* primary action drop shadow */
+    --elevation-modal: var(--shadow-modal); /* blocking dialog above the app shell */
+
+    /* Surface materials shared across differently shaped components. */
+    --surface-spotlight-background: linear-gradient(
+        150deg,
+        rgb(var(--primary-solid)),
+        rgb(var(--primary-solid-deep))
+    );
+
+    /* Candidate dashboard Coach Desk material roles. The blue canvas owns color;
+       neutral glass components only reveal it through tokenized translucency. */
+    --dashboard-canvas-max-width: 26.875rem;
+    --dashboard-canvas-background:
+        radial-gradient(
+            144% 82% at -14% -8%,
+            rgb(var(--dashboard-canvas-blue-1)) 0,
+            rgb(var(--dashboard-canvas-blue-2)) 50%,
+            transparent 84%
+        ),
+        radial-gradient(
+            136% 82% at 114% 78%,
+            rgb(var(--dashboard-canvas-blue-3)) 0,
+            rgb(var(--dashboard-canvas-blue-4)) 52%,
+            transparent 84%
+        ),
+        linear-gradient(
+            145deg,
+            rgb(var(--dashboard-canvas-blue-5)) 0%,
+            rgb(var(--dashboard-canvas-blue-6)) 42%,
+            rgb(var(--dashboard-canvas-blue-7)) 64%,
+            rgb(var(--dashboard-canvas-blue-8)) 100%
+        );
+    --dashboard-glass-raised-background: rgb(var(--surface) / 0.64);
+    --dashboard-glass-plan-background: rgb(var(--surface) / 0.68);
+    --dashboard-glass-quiet-background: rgb(var(--surface) / 0.14);
+    --dashboard-glass-quiet-hover-background: rgb(var(--surface) / 0.28);
+    --dashboard-glass-selected-background: rgb(var(--surface) / 0.5);
+    --dashboard-glass-control-background: rgb(var(--surface) / 0.38);
+    --dashboard-glass-control-hover-background: rgb(var(--surface) / 0.52);
+    --dashboard-glass-raised-contour: rgb(var(--glass-tint) / 0.7);
+    --dashboard-glass-quiet-contour: rgb(var(--glass-tint) / 0.48);
+    --dashboard-glass-filter-raised: blur(18px) saturate(112%);
+    --dashboard-glass-filter-quiet: blur(16px);
+    --dashboard-state-icon-background: rgb(var(--glass-tint) / 0.28);
+    --dashboard-state-icon-contour: rgb(var(--glass-tint) / 0.42);
+    --dashboard-action-badge-background: rgb(var(--solid-foreground) / 0.96);
+    --dashboard-spotlight-top-accent: linear-gradient(
+        90deg,
+        transparent 0,
+        rgb(var(--dashboard-spotlight-accent-soft) / 0.38) 6%,
+        rgb(var(--dashboard-spotlight-accent-soft)) 24%,
+        rgb(var(--dashboard-spotlight-accent-bright)) 52%,
+        rgb(var(--dashboard-spotlight-accent-next)) 82%,
+        transparent 100%
+    );
+    --dashboard-spotlight-radial-light: radial-gradient(
+        circle,
+        rgb(var(--solid-foreground) / 0.14) 0,
+        rgb(var(--primary) / 0.05) 42%,
+        transparent 72%
+    );
+    --dashboard-plan-gauge-size: 6.75rem;
+    --dashboard-plan-gauge-size-compact: 5.75rem;
 
     /* ── Motion · duration + ease paired by intent (motion.css) ── */
     /* Controls move fast & standard; surfaces move slower & emphasized. */
@@ -32,10 +95,74 @@
     --motion-control-ease:     var(--ease-standard); /* @kind other */
     --motion-surface-duration: var(--duration-slow); /* @kind other */
     --motion-surface-ease:     var(--ease-emphasized); /* @kind other */
+    --motion-progress-duration: var(--duration-progress); /* @kind other */
 
     /* Control sizing - single height baseline for application CTAs.
        Primary and secondary pill buttons share one resting height.
        (Previously drifted to 50px/46px per-instance; 44px is canonical —
        matches the shadcn --radius-md button "lg"/"comfortable" tiers.) */
     --button-height: 44px; /* @kind spacing */
+    --icon-button-size-compact: 2.25rem; /* 36px */
+    --icon-button-size-default: 2.5rem; /* 40px */
+    --icon-button-size-comfortable: var(--button-height);
+
+    /* Responsive question/composer cutout geometry. */
+    --cutout-notch-width: 5.75rem; /* 92px */
+    --cutout-notch-depth: var(--button-height); /* 44px */
+    --cutout-notch-radius: var(--radius-widget); /* 16px */
+    --cutout-surface-radius: var(--radius-card); /* 24px */
+    --cutout-control-offset: calc(
+        (var(--cutout-notch-depth) - var(--icon-button-size-default)) / 2
+    );
+    --elevation-cutout-edge: var(--shadow-cutout-edge);
+    --elevation-cutout-question: var(--shadow-cutout-question);
+    --elevation-cutout-composer: var(--shadow-cutout-composer);
+
+    /* Semantic stacking order. Components may share a tier but must not
+       invent values above this scale. */
+    --z-sticky: 20;
+    --z-modal-backdrop: 60;
+    --z-modal: 70;
+    --z-toast: 80;
+    --z-tooltip: 90;
+}
+
+.dark {
+    --dashboard-canvas-background:
+        radial-gradient(
+            144% 82% at -14% -8%,
+            rgb(var(--dashboard-canvas-blue-1)) 0,
+            rgb(var(--dashboard-canvas-blue-2)) 50%,
+            transparent 84%
+        ),
+        radial-gradient(
+            136% 82% at 114% 78%,
+            rgb(var(--dashboard-canvas-blue-3)) 0,
+            rgb(var(--dashboard-canvas-blue-4)) 52%,
+            transparent 84%
+        ),
+        linear-gradient(
+            145deg,
+            rgb(var(--dashboard-canvas-blue-5)) 0%,
+            rgb(var(--dashboard-canvas-blue-6)) 42%,
+            rgb(var(--dashboard-canvas-blue-7)) 64%,
+            rgb(var(--dashboard-canvas-blue-8)) 100%
+        );
+    --dashboard-glass-raised-background: rgb(var(--surface-alt) / 0.68);
+    --dashboard-glass-plan-background: rgb(var(--surface-alt) / 0.68);
+    --dashboard-glass-quiet-background: rgb(var(--surface-alt) / 0.14);
+    --dashboard-glass-quiet-hover-background: rgb(var(--surface-alt) / 0.26);
+    --dashboard-glass-selected-background: rgb(var(--surface-alt) / 0.46);
+    --dashboard-glass-control-background: rgb(var(--surface-alt) / 0.36);
+    --dashboard-glass-control-hover-background: rgb(var(--surface-alt) / 0.5);
+    --dashboard-glass-raised-contour: rgb(var(--glass-tint) / 0.11);
+    --dashboard-glass-quiet-contour: rgb(var(--glass-tint) / 0.11);
+    --dashboard-state-icon-background: rgb(var(--glass-tint) / 0.14);
+    --dashboard-state-icon-contour: rgb(var(--glass-tint) / 0.18);
+    --dashboard-spotlight-radial-light: radial-gradient(
+        circle,
+        rgb(var(--solid-foreground) / 0.2) 0,
+        rgb(var(--primary) / 0.08) 40%,
+        transparent 72%
+    );
 }

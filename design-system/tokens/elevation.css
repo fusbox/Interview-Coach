@@ -4,6 +4,16 @@
     --shadow-raised-1: 0 2px 10px rgb(15 23 42 / 0.05);
     --shadow-raised-2: 0 8px 24px rgb(15 23 42 / 0.08);
     --shadow-floating: 0 20px 48px rgb(15 23 42 / 0.12);
+    --shadow-modal:
+        0 28px 58px rgb(15 23 42 / 0.2),
+        0 8px 20px rgb(var(--primary) / 0.08);
+    --shadow-cutout-question:
+        0 12px 24px rgb(15 33 57 / 0.09),
+        0 3px 6px rgb(15 33 57 / 0.035);
+    --shadow-cutout-composer:
+        0 5px 12px rgb(15 33 57 / 0.04),
+        0 1px 3px rgb(15 33 57 / 0.025);
+    --shadow-cutout-edge: 0 2px 4px rgb(15 33 57 / 0.11);
 
     /* Surface shadows */
     --shadow-card: 0 18px 45px rgb(15 33 57 / 0.08);
@@ -21,6 +31,16 @@
     --shadow-raised-1: 0 2px 10px rgb(0 0 0 / 0.3);
     --shadow-raised-2: 0 8px 32px rgb(0 0 0 / 0.4);
     --shadow-floating: 0 24px 64px rgb(0 0 0 / 0.5);
+    --shadow-modal:
+        0 30px 64px rgb(0 0 0 / 0.62),
+        0 8px 22px rgb(var(--primary) / 0.1);
+    --shadow-cutout-question:
+        0 12px 26px rgb(0 0 0 / 0.34),
+        0 3px 7px rgb(0 0 0 / 0.18);
+    --shadow-cutout-composer:
+        0 6px 14px rgb(0 0 0 / 0.28),
+        0 2px 4px rgb(0 0 0 / 0.16);
+    --shadow-cutout-edge: 0 2px 5px rgb(0 0 0 / 0.34);
     --shadow-cta:
         0 5px 12px rgb(0 0 0 / 0.32),
         0 2px 8px rgb(var(--primary) / 0.12);
