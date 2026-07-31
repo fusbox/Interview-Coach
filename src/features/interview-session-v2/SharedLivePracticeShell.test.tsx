@@ -2,6 +2,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { interviewCoachBrand } from "@/features/brand-v2/interview-coach-brand";
+
 import { createSessionRuntimeFacts } from "./session-runtime-facts";
 import { SharedLivePracticeShell } from "./SharedLivePracticeShell";
 
@@ -54,9 +56,9 @@ describe("SharedLivePracticeShell", () => {
             />,
         );
 
-        expect(screen.getByRole("img", { name: "NJ Career" })).toHaveAttribute(
+        expect(screen.getByRole("img", { name: interviewCoachBrand.displayName })).toHaveAttribute(
             "src",
-            expect.stringContaining("njcareer-logo.png"),
+            expect.stringContaining(interviewCoachBrand.logoSrc.slice(1)),
         );
         expect(screen.getByText("Material Handler")).toBeInTheDocument();
         expect(screen.getByText("Question 2 of 3")).toBeInTheDocument();

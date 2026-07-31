@@ -1,7 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { InterviewCoachBrandMark } from "@/features/brand-v2/InterviewCoachBrandMark";
 import { RecruiterLogoutButton } from "@/features/recruiter-auth-v2/RecruiterLogoutButton";
 import type { AppUser } from "@/features/recruiter-auth-v2/app-user";
 import { getAppUserDisplayName } from "@/features/recruiter-auth-v2/app-user";
@@ -12,14 +12,9 @@ export function AiEvalShell({ user, children }: { user: AppUser; children: React
             <header className="ai-eval-shell__header">
                 <div className="ai-eval-shell__brand">
                     <Link href="/qa/ai-eval" aria-label="AI quality workbench home">
-                        <Image
-                            src="/njcareer-logo.png"
-                            alt="NJ Career"
-                            width={520}
-                            height={120}
+                        <InterviewCoachBrandMark
                             className="ai-eval-shell__logo"
                             priority
-                            unoptimized
                         />
                     </Link>
                     <span>AI quality workbench</span>

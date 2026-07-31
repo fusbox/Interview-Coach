@@ -75,8 +75,7 @@ select {
     gap: var(--space-2);
 }
 
-.candidate-header-logout,
-.candidate-dashboard-logout {
+.candidate-header-logout {
     display: inline-grid;
     width: 2.75rem;
     height: 2.75rem;
@@ -90,26 +89,22 @@ select {
     box-shadow: var(--elevation-row);
 }
 
-.candidate-header-logout:hover,
-.candidate-dashboard-logout:hover {
+.candidate-header-logout:hover {
     border-color: rgb(var(--primary) / 0.62);
     color: rgb(var(--primary));
 }
 
-.candidate-header-logout.is-error,
-.candidate-dashboard-logout.is-error {
+.candidate-header-logout.is-error {
     border-color: rgb(var(--destructive));
     color: rgb(var(--destructive));
 }
 
-.candidate-header-logout:focus-visible,
-.candidate-dashboard-logout:focus-visible {
+.candidate-header-logout:focus-visible {
     outline: 3px solid rgb(var(--ring) / 0.26);
     outline-offset: 2px;
 }
 
-.candidate-header-logout:disabled,
-.candidate-dashboard-logout:disabled {
+.candidate-header-logout:disabled {
     cursor: wait;
     opacity: 0.62;
 }
@@ -1437,6 +1432,10 @@ select {
 }
 
 .brand-lockup--on-dark .brand-lockup__mark {
+    filter: brightness(0) invert(1);
+}
+
+.brand-lockup--on-dark .brand-lockup__mark[data-brand="njcareers"] {
     filter: grayscale(1) brightness(2) contrast(0.85);
 }
 
@@ -8205,12 +8204,6 @@ button.candidate-dashboard-action:disabled {
     box-shadow: var(--elevation-row);
 }
 
-.candidate-dashboard-account {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-}
-
 .candidate-dashboard-context-menu {
     position: relative;
     width: min(100%, 34rem);
@@ -14597,6 +14590,10 @@ button.candidate-dashboard-action:disabled {
     gap: var(--space-3);
 }
 
+.candidate-dashboard-brand-row {
+    justify-content: flex-start;
+}
+
 .candidate-dashboard-brand-mark {
     width: auto;
     height: var(--space-9);
@@ -14605,12 +14602,8 @@ button.candidate-dashboard-action:disabled {
 
 .candidate-dashboard-control-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     gap: var(--space-2);
-}
-
-.candidate-dashboard-account {
-    gap: var(--space-1);
 }
 
 .candidate-dashboard-identity {
@@ -14624,6 +14617,86 @@ button.candidate-dashboard-action:disabled {
     font-size: var(--type-label-size);
     font-weight: var(--font-weight-bold);
     box-shadow: none;
+}
+
+.candidate-dashboard-account-menu {
+    position: relative;
+    align-self: center;
+}
+
+.candidate-dashboard-account-menu__trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.candidate-dashboard-account-menu__trigger:hover,
+.candidate-dashboard-account-menu[data-open="true"] .candidate-dashboard-account-menu__trigger {
+    background: rgb(var(--primary-solid-hover));
+    box-shadow:
+        var(--shadow-raised-1),
+        inset 0 1px 0 rgb(var(--glass-tint) / 0.24);
+}
+
+.candidate-dashboard-account-menu__trigger:focus-visible {
+    outline: 3px solid rgb(var(--ring) / 0.28);
+    outline-offset: 2px;
+}
+
+.candidate-dashboard-account-menu__popover {
+    position: absolute;
+    z-index: var(--z-tooltip);
+    top: calc(100% + var(--space-2));
+    left: 0;
+    display: grid;
+    width: max-content;
+    min-width: 10rem;
+    padding: var(--space-2);
+    border-radius: var(--radius-popover);
+    background: var(--dashboard-glass-raised-background);
+    box-shadow:
+        var(--shadow-floating),
+        inset 0 1px 0 var(--dashboard-glass-raised-contour);
+    backdrop-filter: var(--dashboard-glass-filter-raised);
+    -webkit-backdrop-filter: var(--dashboard-glass-filter-raised);
+}
+
+.candidate-dashboard-account-menu__logout {
+    display: flex;
+    min-height: var(--button-height);
+    align-items: center;
+    gap: var(--space-2);
+    border: 0;
+    border-radius: var(--radius-row);
+    background: transparent;
+    padding: var(--space-2) var(--space-3);
+    color: rgb(var(--foreground));
+    font-size: var(--type-label-size);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--type-label-line);
+    text-align: left;
+    cursor: pointer;
+}
+
+.candidate-dashboard-account-menu__logout:hover,
+.candidate-dashboard-account-menu__logout:focus-visible {
+    background: var(--dashboard-glass-control-hover-background);
+    color: rgb(var(--primary));
+}
+
+.candidate-dashboard-account-menu__logout:focus-visible {
+    outline: 3px solid rgb(var(--ring) / 0.24);
+    outline-offset: 1px;
+}
+
+.candidate-dashboard-account-menu__logout.is-error {
+    color: rgb(var(--destructive));
+}
+
+.candidate-dashboard-account-menu__logout:disabled {
+    cursor: wait;
+    opacity: 0.62;
 }
 
 .candidate-dashboard-context-menu {

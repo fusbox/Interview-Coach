@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
+import { interviewCoachBrand } from "@/features/brand-v2/interview-coach-brand";
 import type { CandidateDashboardV2ReadModel } from "@/features/candidate-dashboard-v2/candidate-dashboard-read-model";
 import CandidateDashboardPage, { getCandidateDashboardRuntimeSslConfig, renderCandidateDashboardPage } from "./CandidateDashboardRoute";
 
@@ -16,12 +17,35 @@ it("renders the candidate dashboard route shell", async () => {
     render(await CandidateDashboardPage());
 
     expect(screen.getByRole("banner", { name: "Dashboard header" })).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "NJ Career" })).toHaveAttribute(
+    const brandMark = screen.getByRole("img", { name: interviewCoachBrand.displayName });
+    expect(brandMark).toHaveAttribute(
         "src",
-        expect.stringContaining("njcareer-logo.png"),
+        expect.stringContaining(interviewCoachBrand.logoSrc.slice(1)),
     );
+    expect(brandMark.parentElement).toHaveClass("candidate-dashboard-brand-row");
     expect(screen.getByRole("heading", { name: "Build your first practice plan." })).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "Set up practice" })).toHaveLength(2);
+});
+
+it("places app-account logout inside the dashboard avatar menu", async () => {
+    render(await CandidateDashboardPage({ showAccountLogout: true }));
+
+    const accountTrigger = screen.getByRole("button", { name: "Open account menu for candidate" });
+    expect(accountTrigger).toHaveClass("candidate-dashboard-identity");
+    expect(accountTrigger.closest(".candidate-dashboard-control-row")).not.toBeNull();
+    expect(accountTrigger).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("button", { name: "Sign out" })).not.toBeInTheDocument();
+
+    fireEvent.click(accountTrigger);
+
+    expect(accountTrigger).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "Sign out" })).toBeVisible();
+    expect(screen.queryByTitle("Sign out")).not.toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(screen.queryByRole("button", { name: "Sign out" })).not.toBeInTheDocument();
+    expect(accountTrigger).toHaveFocus();
 });
 
 it("renders the V2 dashboard read boundary when completed-round facts are available", async () => {

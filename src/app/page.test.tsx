@@ -2,6 +2,8 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { act } from "react";
 import { expect, it } from "vitest";
+
+import { interviewCoachBrand } from "@/features/brand-v2/interview-coach-brand";
 import Home from "./page";
 import {
     CANDIDATE_LOGIN_HREF,
@@ -17,7 +19,9 @@ it("renders the marketing Interview Coach home", () => {
 
     expect(screen.getByRole("heading", { level: 1, name: /practice with a coach, not a score/i })).toBeInTheDocument();
     expect(screen.getByText("Interview Coach", { selector: ".marketing-hero__brand" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "NJ Career Interview Coach" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", {
+        name: `${interviewCoachBrand.displayName} Interview Coach`,
+    })).toHaveAttribute("href", "/");
     expect(screen.getByRole("link", { name: "Employee login" })).toHaveAttribute("href", "/login");
 });
 

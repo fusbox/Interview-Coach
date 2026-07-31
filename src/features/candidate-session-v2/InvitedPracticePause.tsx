@@ -1,8 +1,10 @@
 "use client";
 
 import { Check, Play } from "lucide-react";
-import Image from "next/image";
 import { useEffect, useRef } from "react";
+
+import { InterviewCoachBrandMark } from "@/features/brand-v2/InterviewCoachBrandMark";
+import { interviewCoachBrand } from "@/features/brand-v2/interview-coach-brand";
 
 export function InvitedPracticePause({
     targetRole,
@@ -20,15 +22,10 @@ export function InvitedPracticePause({
 
     return (
         <main className="invited-practice-pause candidate-app-shell">
-            <header className="candidate-pre-session__brand app-grid" aria-label="NJ Career">
-                <Image
-                    src="/njcareer-logo.png"
-                    alt="NJ Career"
-                    width={520}
-                    height={120}
+            <header className="candidate-pre-session__brand app-grid" aria-label={interviewCoachBrand.displayName}>
+                <InterviewCoachBrandMark
                     className="candidate-pre-session__brand-mark"
                     priority
-                    unoptimized
                 />
             </header>
             <section className="invited-practice-pause__panel" aria-labelledby="invited-practice-pause-title">

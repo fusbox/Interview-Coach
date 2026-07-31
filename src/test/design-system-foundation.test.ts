@@ -57,4 +57,17 @@ describe("global design-system foundation", () => {
 
         expect(source).not.toContain("candidate-design-system");
     });
+
+    it("keeps the responsive blue canvas scoped to the candidate dashboard", () => {
+        const roles = readFileSync(join(tokenDirectory, "roles.css"), "utf8");
+        const applicationStyles = readFileSync(join(process.cwd(), "src", "index.css"), "utf8");
+
+        expect(roles).toContain("--dashboard-canvas-background:");
+        expect(roles).toContain("--dashboard-canvas-field-inline-offset: min(64vw, 17.2rem);");
+        expect(roles).toContain("--dashboard-canvas-field-leading-width: min(144vw, 38.7rem);");
+        expect(roles).toContain("--dashboard-canvas-field-trailing-width: min(136vw, 36.55rem);");
+        expect(applicationStyles).toMatch(
+            /\.candidate-dashboard-page\s*\{[\s\S]*?background:\s*var\(--dashboard-canvas-background\);/,
+        );
+    });
 });

@@ -37,15 +37,25 @@
     /* Candidate dashboard Coach Desk material roles. The blue canvas owns color;
        neutral glass components only reveal it through tokenized translucency. */
     --dashboard-canvas-max-width: 26.875rem;
+    /* Preserve the reviewed 428px lab-frame confluence on narrow screens, then
+       clamp its radial fields around the centered Coach Desk at wider widths. */
+    --dashboard-canvas-field-inline-offset: min(64vw, 17.2rem);
+    --dashboard-canvas-field-leading-width: min(144vw, 38.7rem);
+    --dashboard-canvas-field-trailing-width: min(136vw, 36.55rem);
+    --dashboard-canvas-field-height: min(82dvh, 43.25rem);
+    --dashboard-canvas-field-leading-block: max(-8dvh, -4.25rem);
+    --dashboard-canvas-field-trailing-block: min(78dvh, 41rem);
     --dashboard-canvas-background:
         radial-gradient(
-            144% 82% at -14% -8%,
+            var(--dashboard-canvas-field-leading-width) var(--dashboard-canvas-field-height)
+                at calc(50% - var(--dashboard-canvas-field-inline-offset)) var(--dashboard-canvas-field-leading-block),
             rgb(var(--dashboard-canvas-blue-1)) 0,
             rgb(var(--dashboard-canvas-blue-2)) 50%,
             transparent 84%
         ),
         radial-gradient(
-            136% 82% at 114% 78%,
+            var(--dashboard-canvas-field-trailing-width) var(--dashboard-canvas-field-height)
+                at calc(50% + var(--dashboard-canvas-field-inline-offset)) var(--dashboard-canvas-field-trailing-block),
             rgb(var(--dashboard-canvas-blue-3)) 0,
             rgb(var(--dashboard-canvas-blue-4)) 52%,
             transparent 84%
@@ -130,13 +140,15 @@
 .dark {
     --dashboard-canvas-background:
         radial-gradient(
-            144% 82% at -14% -8%,
+            var(--dashboard-canvas-field-leading-width) var(--dashboard-canvas-field-height)
+                at calc(50% - var(--dashboard-canvas-field-inline-offset)) var(--dashboard-canvas-field-leading-block),
             rgb(var(--dashboard-canvas-blue-1)) 0,
             rgb(var(--dashboard-canvas-blue-2)) 50%,
             transparent 84%
         ),
         radial-gradient(
-            136% 82% at 114% 78%,
+            var(--dashboard-canvas-field-trailing-width) var(--dashboard-canvas-field-height)
+                at calc(50% + var(--dashboard-canvas-field-inline-offset)) var(--dashboard-canvas-field-trailing-block),
             rgb(var(--dashboard-canvas-blue-3)) 0,
             rgb(var(--dashboard-canvas-blue-4)) 52%,
             transparent 84%

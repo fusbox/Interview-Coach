@@ -1,6 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
+
+import { InterviewCoachBrandMark } from "@/features/brand-v2/InterviewCoachBrandMark";
+import { interviewCoachBrand } from "@/features/brand-v2/interview-coach-brand";
 
 type CandidateBrandHeaderProps = {
     actions?: ReactNode;
@@ -16,17 +18,16 @@ export function CandidateBrandHeader({
     const frameClass = frame === "default" ? "" : ` app-grid--${frame}`;
 
     return (
-        <header className="candidate-brand-header" aria-label="NJ Career Interview Coach">
+        <header className="candidate-brand-header" aria-label={`${interviewCoachBrand.displayName} Interview Coach`}>
             <div className={`candidate-brand-header__inner app-grid${frameClass}`}>
-                <Link className="candidate-brand-header__identity" href="/" aria-label="NJ Career Interview Coach home">
-                    <Image
-                        src="/njcareer-logo.png"
-                        alt="NJ Career"
-                        width={520}
-                        height={120}
+                <Link
+                    className="candidate-brand-header__identity"
+                    href="/"
+                    aria-label={`${interviewCoachBrand.displayName} Interview Coach home`}
+                >
+                    <InterviewCoachBrandMark
                         className="candidate-brand-header__mark"
                         priority
-                        unoptimized
                     />
                     <span aria-hidden="true">{label}</span>
                 </Link>

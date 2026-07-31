@@ -1,8 +1,7 @@
 import { ArrowRight, Briefcase, ChevronDown, ClipboardList, Plus } from "lucide-react";
-import Image from "next/image";
 import { redirect } from "next/navigation";
 
-import { CandidateLogoutButton } from "@/features/candidate-auth-v2/CandidateLogoutButton";
+import { InterviewCoachBrandMark } from "@/features/brand-v2/InterviewCoachBrandMark";
 import { resolveCandidateOwnedCookieIdentity } from "@/features/candidate-auth-v2/candidate-route-authorization";
 import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-auth-v2/production-host-launch-runtime";
 import {
@@ -10,6 +9,7 @@ import {
     type CandidateDashboardV2ReadModel,
 } from "@/features/candidate-dashboard-v2/candidate-dashboard-read-model";
 import { createCandidateCoachUpdateArtifactRepository } from "@/features/candidate-dashboard-v2/candidate-coach-update-artifact-repository";
+import { CandidateDashboardAccountMenu } from "@/features/candidate-dashboard-v2/CandidateDashboardAccountMenu";
 import { CandidateDashboardCoachDeskExperience } from "@/features/candidate-dashboard-v2/CandidateDashboardCoachDeskExperience";
 import {
     CandidateNextRoundBuilderExperience,
@@ -162,16 +162,19 @@ function CandidateDashboardShellHeader({
         <header className="candidate-dashboard-topbar" aria-label="Dashboard header">
             <div className="candidate-dashboard-topbar__inner app-grid">
                 <div className="candidate-dashboard-brand-row">
-                    <Image
-                        src="/njcareer-logo.png"
-                        alt="NJ Career"
-                        width={520}
-                        height={120}
+                    <InterviewCoachBrandMark
                         className="candidate-dashboard-brand-mark"
                         priority
-                        unoptimized
                     />
-                    <div className="candidate-dashboard-account">
+                </div>
+
+                <div className="candidate-dashboard-control-row">
+                    {showAccountLogout ? (
+                        <CandidateDashboardAccountMenu
+                            initials={getCandidateInitials(displayName, email)}
+                            identityLabel={displayName || email || "candidate"}
+                        />
+                    ) : (
                         <div
                             className="candidate-dashboard-identity"
                             role="img"
@@ -179,13 +182,8 @@ function CandidateDashboardShellHeader({
                         >
                             {getCandidateInitials(displayName, email)}
                         </div>
-                        {showAccountLogout ? (
-                            <CandidateLogoutButton className="candidate-dashboard-logout" iconOnly />
-                        ) : null}
-                    </div>
-                </div>
+                    )}
 
-                <div className="candidate-dashboard-control-row">
                     {selectedTargetInterview ? (
                         <details className="candidate-dashboard-context-menu">
                             <summary>

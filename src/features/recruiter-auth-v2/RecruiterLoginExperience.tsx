@@ -1,11 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { AlertCircle, Eye, EyeOff, Loader2, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { InterviewCoachBrandMark } from "@/features/brand-v2/InterviewCoachBrandMark";
+import { interviewCoachBrand } from "@/features/brand-v2/interview-coach-brand";
 
 export function RecruiterLoginExperience({ nextTarget }: { nextTarget: string }) {
     const router = useRouter();
@@ -42,15 +43,10 @@ export function RecruiterLoginExperience({ nextTarget }: { nextTarget: string })
     return (
         <main className="recruiter-login-page">
             <header className="recruiter-login-page__header">
-                <Link href="/" aria-label="NJ Career Interview Coach home">
-                    <Image
-                        src="/njcareer-logo.png"
-                        alt="NJ Career"
-                        width={520}
-                        height={120}
+                <Link href="/" aria-label={`${interviewCoachBrand.displayName} Interview Coach home`}>
+                    <InterviewCoachBrandMark
                         className="recruiter-login-page__logo"
                         priority
-                        unoptimized
                     />
                 </Link>
             </header>

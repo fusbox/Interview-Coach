@@ -1,7 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Settings2 } from "lucide-react";
 import type { ReactNode } from "react";
+
+import { InterviewCoachBrandMark } from "@/features/brand-v2/InterviewCoachBrandMark";
 import type { AppUser } from "./app-user";
 import { getAppUserDisplayName } from "./app-user";
 import { RecruiterLogoutButton } from "./RecruiterLogoutButton";
@@ -11,14 +12,9 @@ export function RecruiterShell({ user, children }: { user: AppUser; children: Re
         <div className="recruiter-shell">
             <header className="recruiter-shell__header">
                 <Link href="/recruiter" aria-label="Interview Coach recruiter home">
-                    <Image
-                        src="/njcareer-logo.png"
-                        alt="NJ Career"
-                        width={520}
-                        height={120}
+                    <InterviewCoachBrandMark
                         className="recruiter-shell__logo"
                         priority
-                        unoptimized
                     />
                 </Link>
                 <div className="recruiter-shell__identity">

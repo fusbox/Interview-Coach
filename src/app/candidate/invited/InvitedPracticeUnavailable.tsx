@@ -1,19 +1,16 @@
 import { Link2Off } from "lucide-react";
-import Image from "next/image";
+
+import { InterviewCoachBrandMark } from "@/features/brand-v2/InterviewCoachBrandMark";
+import { interviewCoachBrand } from "@/features/brand-v2/interview-coach-brand";
 
 export function InvitedPracticeUnavailable() {
     return (
         <main className="invited-practice-entry candidate-app-shell">
             <section className="invited-practice-entry__panel" aria-labelledby="invited-practice-unavailable-title">
-                <header className="candidate-pre-session__brand" aria-label="NJ Career">
-                    <Image
-                        src="/njcareer-logo.png"
-                        alt="NJ Career"
-                        width={520}
-                        height={120}
+                <header className="candidate-pre-session__brand" aria-label={interviewCoachBrand.displayName}>
+                    <InterviewCoachBrandMark
                         className="candidate-pre-session__brand-mark"
                         priority
-                        unoptimized
                     />
                 </header>
                 <span className="candidate-pre-session__icon" aria-hidden="true">

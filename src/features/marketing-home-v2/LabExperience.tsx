@@ -5,6 +5,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 
+import { InterviewCoachBrandMark } from "@/features/brand-v2/InterviewCoachBrandMark";
+import { interviewCoachBrand } from "@/features/brand-v2/interview-coach-brand";
+
 import { LabChapter } from "./LabChapter";
 import type { LabChapterConfig } from "./lab-types";
 
@@ -179,15 +182,15 @@ export function LabExperience({
         <main className={`marketing-home marketing-home--lab${dockVisible ? " has-docked-hiw" : ""}`}>
             <header className="marketing-home__header marketing-home__header--over-hero">
                 <div className="marketing-home__header-inner">
-                    <Link href="/" aria-label="NJ Career Interview Coach" className="brand-lockup brand-lockup--on-dark">
-                        <Image
-                            src="/njcareer-logo.png"
-                            alt=""
-                            width={520}
-                            height={120}
+                    <Link
+                        href="/"
+                        aria-label={`${interviewCoachBrand.displayName} Interview Coach`}
+                        className="brand-lockup brand-lockup--on-dark"
+                    >
+                        <InterviewCoachBrandMark
                             className="brand-lockup__mark"
+                            decorative
                             priority
-                            unoptimized
                         />
                     </Link>
                     <nav className="marketing-home__nav" aria-label="Primary">

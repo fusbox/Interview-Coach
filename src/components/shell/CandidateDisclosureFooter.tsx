@@ -1,6 +1,8 @@
 import type React from "react";
 import Image from "next/image";
 
+import { InterviewCoachBrandMark } from "@/features/brand-v2/InterviewCoachBrandMark";
+
 type CandidateDisclosureFooterProps = {
     children?: React.ReactNode;
 };
@@ -20,13 +22,8 @@ export function CandidateDisclosureFooter({ children }: CandidateDisclosureFoote
         <footer className="site-footer">
             <div className="site-footer__inner">
                 <div className="site-footer__brand-row">
-                    <Image
-                        src="/njcareer-logo.png"
-                        alt="NJ Career"
-                        width={520}
-                        height={120}
+                    <InterviewCoachBrandMark
                         className="site-footer__brand-logo"
-                        unoptimized
                     />
                     <div className="site-footer__product-of">
                         <span>A product of</span>
