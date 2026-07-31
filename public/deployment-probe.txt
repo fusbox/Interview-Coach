@@ -1,0 +1,4 @@
+Interview Coach deployment probe
+branch=feature/integration-TA
+probe=candidate-v2-2026-07-31-a1
+purpose=temporary branch-to-environment deployment verification
