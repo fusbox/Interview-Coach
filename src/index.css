@@ -1572,6 +1572,7 @@ select {
     justify-items: center;
     width: min(100%, var(--layout-public-max));
     padding-inline: var(--space-6);
+    pointer-events: none;
     will-change: opacity, transform;
 }
 

@@ -1175,6 +1175,72 @@ it("keeps completion unavailable before practice starts", () => {
     expect(screen.queryByRole("button", { name: "Finish session" })).not.toBeInTheDocument();
 });
 
+it("does not carry a failed finish message into feedback for a retried answer", async () => {
+    const sourceAttemptId = "11111111-1111-4111-8111-111111111111";
+    const retryAttemptId = "22222222-2222-4222-8222-222222222222";
+    const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.endsWith("/feedback-actions")) {
+            const event = JSON.parse(String(init?.body));
+            return new Response(JSON.stringify({
+                status: "feedback_action_saved",
+                feedbackActionEvents: { "slot-3": event },
+            }), { status: 200 });
+        }
+        if (url.endsWith("/complete")) {
+            return new Response(null, { status: 503 });
+        }
+        if (url.endsWith("/answer-drafts")) {
+            return new Response(JSON.stringify({ status: "answer_draft_saved" }), { status: 200 });
+        }
+        if (url.endsWith("/answers")) {
+            return new Response(JSON.stringify({
+                status: "answer_submit_saved",
+                answerSubmissions: {
+                    "slot-3": createAnswerSubmissionWithAttempt("slot-3", 2, retryAttemptId, 2),
+                },
+            }), { status: 202 });
+        }
+        if (url.endsWith("/answers/slot-3/analysis")) {
+            return new Response(JSON.stringify({
+                status: "answer_analysis_saved",
+                analysisSnapshot: createAnalysisSnapshotWithAttempt("slot-3", 2, retryAttemptId, 2),
+            }), { status: 200 });
+        }
+        return new Response(null, { status: 500 });
+    });
+    vi.stubGlobal("fetch", fetch);
+    render(
+        <CandidatePlannedSessionExperience
+            sessionId="session-v2-1"
+            dashboardHref="/candidate/dashboard"
+            initialSession={createSession({
+                progress: { status: "live_question", currentQuestionIndex: 2 },
+                answerSubmissions: {
+                    "slot-3": createAnswerSubmissionWithAttempt("slot-3", 2, sourceAttemptId, 1),
+                },
+                answerAnalysisSnapshots: {
+                    "slot-3": createAnalysisSnapshotWithAttempt("slot-3", 2, sourceAttemptId, 1),
+                },
+            })}
+        />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Explore feedback" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Next" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Finish session" }));
+    expect(await screen.findAllByText("I could not finish this session yet. Try again.")).not.toHaveLength(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry my answer" }));
+    const answer = await screen.findByRole("textbox", { name: "Type your answer" });
+    await waitFor(() => expect(answer).not.toHaveAttribute("readonly"));
+    fireEvent.change(answer, { target: { value: "A stronger retry with a clear outcome." } });
+    fireEvent.click(screen.getByRole("button", { name: "Submit answer" }));
+
+    expect(await screen.findByRole("dialog", { name: "Coach feedback" })).toBeInTheDocument();
+    expect(screen.queryAllByText("I could not finish this session yet. Try again.")).toHaveLength(0);
+});
+
 it("finishes the session from the last staged coaching step", async () => {
     const assign = vi.fn();
     Object.defineProperty(window, "location", {

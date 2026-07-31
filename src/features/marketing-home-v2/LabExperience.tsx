@@ -248,13 +248,13 @@ export function LabExperience({
                                     always know what to practice next.
                                 </p>
                                 <div className="marketing-hero__actions">
-                                    <Link href={candidateRegisterHref} className="marketing-btn marketing-btn--primary">
+                                    <a href={candidateRegisterHref} className="marketing-btn marketing-btn--primary">
                                         Start practicing
                                         <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-                                    </Link>
-                                    <Link href={candidateRegisterHref} className="marketing-btn marketing-btn--on-photo">
+                                    </a>
+                                    <a href={candidateRegisterHref} className="marketing-btn marketing-btn--on-photo">
                                         Create account
-                                    </Link>
+                                    </a>
                                 </div>
                                 <p className="marketing-hero__audience marketing-hero__audience--on-photo">
                                     Looking for a job instead? <Link href={jobSeekerHref}>Job seekers</Link>

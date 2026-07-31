@@ -1,7 +1,7 @@
 # Database Access Hardening
 
 Status: Ratified staging baseline; Supabase cutover pending
-Last updated: 2026-07-29
+Last updated: 2026-07-31
 
 ## Purpose
 
@@ -51,7 +51,7 @@ Remove-Item Env:DATABASE_RUNTIME_PASSWORD
 
 The provisioner verifies the new login without printing the password or connection URI. With the Supavisor shared pooler, the application username is `interview_coach_runtime.<project-ref>`; direct connections use `interview_coach_runtime`.
 
-5. Build the runtime URI with that user and password. For serverless traffic, Supavisor transaction mode on port `6543` is the default target; session mode on `5432` remains acceptable when a persistent-session constraint is proven. Keep TLS enabled.
+5. Build the runtime URI with that user and password. Vercel serverless traffic must use Supavisor transaction mode on port `6543`; the deployment preflight rejects Supabase session mode because warm route functions can exhaust its fixed client ceiling. Session mode on `5432` is reserved for a non-serverless persistent process only when its connection lifetime and capacity have been proven. Keep TLS enabled.
 6. Set Azure staging `DATABASE_URL` to the runtime URI. Never deploy the owner URI.
 7. Populate the ignored Azure staging operator snapshot and run:
 

@@ -121,6 +121,23 @@ describe("deployment environment preflight", () => {
         expect(result.errors).toEqual([]);
     });
 
+    it("rejects the Supavisor session pooler for the Vercel serverless target", () => {
+        const result = validateDeploymentEnvironment({
+            env: {
+                ...validVercelEnvironment,
+                DATABASE_URL: "postgresql://interview_coach_runtime.projectref:secret@aws-1.pooler.supabase.com:5432/postgres?sslmode=require",
+            },
+            targets: ["vercel-app"],
+        });
+
+        expect(result.ok).toBe(false);
+        expect(result.errors).toContainEqual(expect.objectContaining({
+            target: "vercel-app",
+            variable: "DATABASE_URL",
+            code: "SUPABASE_SESSION_POOLER_UNSAFE",
+        }));
+    });
+
     it("treats Vercel sensitive markers as presence-only in snapshot mode", () => {
         const masked = Object.fromEntries(
             Object.keys(validVercelEnvironment).map((variable) => [variable, "[SENSITIVE]"]),

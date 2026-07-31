@@ -33,13 +33,15 @@ it("states interview-domain expertise and next-practice clarity in the lede", ()
 it("routes candidate practice CTAs to registration and sign-in", () => {
     render(<Home />);
 
-    expect(screen.getAllByRole("link", { name: /start practicing/i })[0]).toHaveAttribute(
+    const heroActions = document.querySelector(".marketing-hero__actions");
+    expect(heroActions).not.toBeNull();
+    expect(within(heroActions as HTMLElement).getByRole("link", { name: /start practicing/i })).toHaveAttribute(
         "href",
-        CANDIDATE_REGISTER_HREF,
+        "/candidate/register",
     );
-    expect(screen.getByRole("link", { name: /create account/i })).toHaveAttribute(
+    expect(within(heroActions as HTMLElement).getByRole("link", { name: /create account/i })).toHaveAttribute(
         "href",
-        CANDIDATE_REGISTER_HREF,
+        "/candidate/register",
     );
     expect(screen.getAllByRole("link", { name: /^sign in$/i })[0]).toHaveAttribute(
         "href",

@@ -525,6 +525,7 @@ export function CandidatePlannedSessionExperience({
                 })}
                 onFinishSession={finishSession}
                 onRetryAnswer={(sourceAnswerAttemptId) => {
+                    setSessionCompletionMessage(null);
                     const nextRetrySources = {
                         ...feedbackRetrySourcesRef.current,
                         [activeQuestion.slotId]: sourceAnswerAttemptId,

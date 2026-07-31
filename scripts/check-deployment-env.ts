@@ -312,6 +312,19 @@ function validateDatabaseUrl(env: Environment, state: MutableValidation, target:
                 "Remote application processes must connect as interview_coach_runtime, not an owner or administrative role.",
             );
         }
+        if (
+            target === "vercel-app"
+            && url.hostname.toLowerCase().endsWith(".pooler.supabase.com")
+            && (url.port || "5432") !== "6543"
+        ) {
+            addError(
+                state,
+                target,
+                variable,
+                "SUPABASE_SESSION_POOLER_UNSAFE",
+                "Vercel must use the Supavisor transaction pooler on port 6543; session mode can exhaust the database client ceiling.",
+            );
+        }
     }
 }
 
