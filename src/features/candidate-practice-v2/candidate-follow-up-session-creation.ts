@@ -107,6 +107,27 @@ export function createCandidateFollowUpSessionInputFromIntent({
     if (!sourceSession) {
         return null;
     }
+    const sourceQuestionContent = intent.items.map((item, index) => {
+        const sourceQuestion = sourceSessions[index]?.questionWordingSnapshot?.questions.find((question) => (
+            question.slotId === item.source.questionKey
+        ));
+        if (
+            !sourceQuestion
+            || sourceQuestion.questionText !== item.source.questionText
+            || sourceQuestion.category !== normalizeCategory(item.source.category)
+        ) {
+            return null;
+        }
+        return {
+            questionText: sourceQuestion.questionText,
+        };
+    });
+    if (sourceQuestionContent.some((question) => !question)) {
+        return null;
+    }
+    const resolvedSourceQuestionContent = sourceQuestionContent as Array<{
+        questionText: string;
+    }>;
 
     const sessionAttemptNumber = countCandidatePriorPracticeSessionsForIntent(intent, existingPracticeSessions) + 1;
     const nextRoundDraftSource = intent.sourceNextRoundDraftId && intent.sourceNextRoundDraftVersion
@@ -188,7 +209,7 @@ export function createCandidateFollowUpSessionInputFromIntent({
             slotId: `slot-${index + 1}`,
             index,
             category: slots[index].category,
-            questionText: item.source.questionText,
+            ...resolvedSourceQuestionContent[index],
             sourceQuestion: resolvedFollowUpItems[index],
         })),
         followUpPractice: questionPlanSnapshot.followUpPractice,

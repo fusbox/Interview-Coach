@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
+import { hydrateCandidateQuestionAssistance } from "@/features/candidate-session-v2/candidate-question-assistance";
 import {
     type CandidateFollowUpPracticeSessionMetadata,
     type CandidateFollowUpQuestionWordingResult,
@@ -10,15 +11,14 @@ import type { CandidatePracticeIntentRecord } from "./candidate-follow-up-practi
 
 describe("candidate follow-up session creation", () => {
     it("creates a normal practice-session input from a one-or-many question practice intent", () => {
+        const sourceSession = createSourceSession({
+            candidatePracticeSessionId: "source-session-1",
+            answeredSlotIds: ["slot-1"],
+        });
         const input = createCandidateFollowUpSessionInputFromIntent({
             candidateProfileId: "candidate-1",
             intent: createPracticeIntentRecord(),
-            existingPracticeSessions: [
-                createSourceSession({
-                    candidatePracticeSessionId: "source-session-1",
-                    answeredSlotIds: ["slot-1"],
-                }),
-            ],
+            existingPracticeSessions: [sourceSession],
             now: new Date("2026-07-12T17:00:00.000Z"),
         });
 
@@ -128,6 +128,8 @@ describe("candidate follow-up session creation", () => {
                 },
             },
         ]);
+        expect(questionWordingSnapshot?.questions[0]).not.toHaveProperty("assistance");
+        expect(questionWordingSnapshot?.questions[0]).not.toHaveProperty("contentFingerprint");
     });
 
     it("increments question attempt numbers from previous follow-up sessions with the same source question lineage", () => {
@@ -334,6 +336,26 @@ function createSourceSession({
             })),
         }
         : undefined;
+    const screeningQuestionText = "What interests you about this Material Handler I role?";
+    const behavioralQuestionText = "Tell me about a time you handled an inventory issue.";
+    const screeningAssistance = hydrateCandidateQuestionAssistance({
+        category: "screening",
+        questionText: screeningQuestionText,
+        assistancePlan: {
+            evidenceFocus: ["answer_first", "role_connection"],
+            resumeAnchorId: null,
+        },
+        resumeAnchors: [],
+    });
+    const behavioralAssistance = hydrateCandidateQuestionAssistance({
+        category: "behavioral",
+        questionText: behavioralQuestionText,
+        assistancePlan: {
+            evidenceFocus: ["brief_context", "personal_action", "observable_result"],
+            resumeAnchorId: null,
+        },
+        resumeAnchors: [],
+    });
 
     return {
         candidatePracticeSessionId,
@@ -382,13 +404,15 @@ function createSourceSession({
                     slotId: "slot-1",
                     index: 0,
                     category: "screening",
-                    questionText: "What interests you about this Material Handler I role?",
+                    questionText: screeningQuestionText,
+                    ...screeningAssistance,
                 },
                 {
                     slotId: "slot-2",
                     index: 1,
                     category: "behavioral",
-                    questionText: "Tell me about a time you handled an inventory issue.",
+                    questionText: behavioralQuestionText,
+                    ...behavioralAssistance,
                 },
             ],
         },

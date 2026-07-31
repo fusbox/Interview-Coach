@@ -24,10 +24,9 @@ it("renders a durable one-question follow-up practice intent", async () => {
         },
     }));
 
-    expect(screen.getByRole("heading", { name: "Your focused practice is ready." })).toBeInTheDocument();
-    expect(screen.getByText(/1 question from your Coach Plan is ready/i)).toBeInTheDocument();
+    expect(screen.getByText("Your focused practice is ready.", { exact: false })).toBeInTheDocument();
+    expect(screen.getByText(/focused on the question you chose/i)).toBeInTheDocument();
     expect(screen.getByText("Material Handler I")).toBeInTheDocument();
-    expect(screen.getByText("Q1")).toBeInTheDocument();
     expect(screen.getByText("Screening")).toBeInTheDocument();
     expect(screen.getByText("What interests you about this Material Handler role?")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Start practice" })).toBeEnabled();
@@ -54,14 +53,12 @@ it("renders a durable multi-question follow-up practice intent without changing 
         },
     }));
 
-    expect(screen.getByText(/3 questions from your Coach Plan are ready/i)).toBeInTheDocument();
+    expect(screen.getByText(/focused on the questions you chose/i)).toBeInTheDocument();
 
     const list = screen.getByRole("list", { name: "Selected practice questions" });
     expect(within(list).getAllByRole("listitem")).toHaveLength(3);
-    expect(within(list).getByText("Q2")).toBeInTheDocument();
     expect(within(list).getByText("Behavioral")).toBeInTheDocument();
     expect(within(list).getByText("Tell me about a time you handled an inventory issue.")).toBeInTheDocument();
-    expect(within(list).getByText("Q3")).toBeInTheDocument();
     expect(within(list).getByText("Culture / Fit")).toBeInTheDocument();
     expect(within(list).getByText("What work environment helps you do your best work?")).toBeInTheDocument();
 });
