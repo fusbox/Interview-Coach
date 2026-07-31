@@ -3,7 +3,10 @@
 import { ArrowRight, UserRoundCheck } from "lucide-react";
 import { useState } from "react";
 
-import { CandidatePreSessionLanding } from "./CandidatePreSessionLanding";
+import {
+    CandidatePreSessionLanding,
+    type CandidatePreSessionQuestion,
+} from "./CandidatePreSessionLanding";
 import type { SessionQuestionAudioLifecycle } from "@/features/interview-session-v2/session-question-audio-contract";
 
 const UNICODE_LETTER_PATTERN = new RegExp("\\p{L}", "u");
@@ -17,6 +20,7 @@ type InvitedPracticeEntryProps = {
     onConfirmInitials: (initials: string) => Promise<{ candidateFirstName?: string } | void> | { candidateFirstName?: string } | void;
     onStart: () => void;
     sessionId?: string;
+    questions?: CandidatePreSessionQuestion[];
     firstQuestion?: {
         id: string;
         number: number;
@@ -35,6 +39,7 @@ export function InvitedPracticeEntry({
     onConfirmInitials,
     onStart,
     sessionId,
+    questions,
     firstQuestion,
     questionAudio,
 }: InvitedPracticeEntryProps) {
@@ -54,6 +59,7 @@ export function InvitedPracticeEntry({
                 resumeIncluded={false}
                 candidateFirstName={resolvedFirstName}
                 sessionId={sessionId}
+                questions={questions}
                 firstQuestion={firstQuestion}
                 questionAudio={questionAudio}
                 manageTransitionExternally

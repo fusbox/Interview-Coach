@@ -26,7 +26,7 @@ test("seeded candidate completes the candidate-led V2 practice loop", async ({ p
     await page.getByRole("button", { name: "Start practice" }).click();
 
     await expect(page).toHaveURL(/\/candidate\/session\/[0-9a-f-]+$/i, { timeout: routeTransitionTimeout });
-    await expect(page.getByRole("heading", { name: "Your practice is ready." })).toBeVisible();
+    await expect(page.getByText("Your practice is ready.", { exact: false })).toBeVisible();
     await expect(page.getByRole("heading", { name: role })).toBeVisible();
     await expectCandidatePageToMeetAccessibilityBaseline(page, "candidate practice landing");
     await page.waitForTimeout(500);

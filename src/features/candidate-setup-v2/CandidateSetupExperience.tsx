@@ -1412,6 +1412,7 @@ export function CandidateSetupExperience({
                                     <div className="stage-grid">
                                         {candidateSetupStageOptions
                                             .filter((stage) => stage.id !== "practice_only")
+                                            .concat(candidateSetupStageOptions.filter((stage) => stage.id === "practice_only"))
                                             .map((stage) => (
                                                 <button
                                                     key={stage.id}
@@ -1421,21 +1422,6 @@ export function CandidateSetupExperience({
                                                     onClick={() => chooseStage(stage)}
                                                 >
                                                     <strong>{stage.label}</strong>
-                                                    <span className="stage-card__detail">{stage.detail}</span>
-                                                </button>
-                                            ))}
-                                        {candidateSetupStageOptions
-                                            .filter((stage) => stage.id === "practice_only")
-                                            .map((stage) => (
-                                                <button
-                                                    key={stage.id}
-                                                    type="button"
-                                                    className={`stage-card stage-card--full ${selectedStage === stage.id ? "is-selected" : ""}`}
-                                                    aria-pressed={selectedStage === stage.id}
-                                                    onClick={() => chooseStage(stage)}
-                                                >
-                                                    <strong>{stage.label}</strong>
-                                                    <span className="stage-card__detail">{stage.detail}</span>
                                                 </button>
                                             ))}
                                     </div>

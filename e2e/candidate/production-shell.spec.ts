@@ -15,6 +15,9 @@ test("production public shell is accessible, responsive, and within local budget
     const failedRequests: string[] = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
     page.on("requestfailed", (request) => {
+        if (isCancelledNextPrefetch(request)) {
+            return;
+        }
         failedRequests.push(`${request.method()} ${request.url()}: ${request.failure()?.errorText ?? "failed"}`);
     });
 
@@ -91,4 +94,13 @@ async function readProductionMetrics(page: import("@playwright/test").Page) {
 
 async function hasHorizontalOverflow(page: import("@playwright/test").Page) {
     return page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
+}
+
+function isCancelledNextPrefetch(request: import("@playwright/test").Request) {
+    const failureText = request.failure()?.errorText ?? "";
+    const url = new URL(request.url());
+
+    return request.method() === "GET"
+        && url.searchParams.has("_rsc")
+        && failureText.includes("ERR_ABORTED");
 }

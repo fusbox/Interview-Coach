@@ -36,7 +36,10 @@ describe("invited practice route experience", () => {
 
         fireEvent.change(screen.getByRole("textbox", { name: "Your initials" }), { target: { value: "XX" } });
         fireEvent.click(screen.getByRole("button", { name: "Review practice" }));
-        await waitFor(() => expect(screen.getByRole("heading", { name: "Ready to practice?" })).toBeInTheDocument());
+        await waitFor(() => expect(
+            screen.getByRole("heading", { level: 1, name: "Quality Inspector" }),
+        ).toBeInTheDocument());
+        expect(screen.getByText(/Ready to practice\?/i)).toBeInTheDocument();
         expect(fetchMock).toHaveBeenCalledWith("/candidate/invited/initials", expect.objectContaining({
             method: "POST",
             credentials: "same-origin",
@@ -60,7 +63,7 @@ describe("invited practice route experience", () => {
     });
 
     it("pauses an active invited round in place and resumes the exact question", async () => {
-        vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(
+        vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => new Response(
             JSON.stringify({ status: "answer_draft_saved" }),
             { status: 200, headers: { "Content-Type": "application/json" } },
         )));
@@ -106,7 +109,7 @@ describe("invited practice route experience", () => {
                 updatedAt: "2026-07-20T00:01:00.000Z",
             },
         };
-        const fetchMock = vi.fn().mockResolvedValue(new Response(
+        const fetchMock = vi.fn().mockImplementation(async () => new Response(
             JSON.stringify({ status: "answer_draft_saved" }),
             { status: 200, headers: { "Content-Type": "application/json" } },
         ));

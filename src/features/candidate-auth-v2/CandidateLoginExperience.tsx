@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { AlertCircle, ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react";
+import { AlertCircle, ArrowRight, ChevronDown, Eye, EyeOff, Loader2 } from "lucide-react";
 
 import { CandidateVerificationResend } from "./CandidateVerificationResend";
 
@@ -41,68 +41,81 @@ export function CandidateLoginExperience({ nextTarget }: { nextTarget: string })
     }
 
     return (
-        <section className="candidate-account-panel candidate-account-panel--login" aria-labelledby="candidate-login-title">
-            <header className="candidate-account-panel__intro">
+        <section className="candidate-account-entry candidate-account-entry--login" aria-labelledby="candidate-login-title">
+            <header className="candidate-account-entry__intro">
                 <p className="type-eyebrow">Candidate access</p>
                 <h1 id="candidate-login-title">Welcome back.</h1>
                 <p>Sign in to continue your interview practice.</p>
             </header>
 
-            <form className="candidate-account-form" onSubmit={handleSubmit} aria-busy={submitting}>
-                {error ? (
-                    <div className="candidate-account-alert" role="alert">
-                        <AlertCircle size={18} aria-hidden="true" />
-                        <span>{error}</span>
-                    </div>
-                ) : null}
-                <div className="candidate-account-field">
-                    <label htmlFor="candidate-login-email">Email</label>
-                    <input
-                        id="candidate-login-email"
-                        type="email"
-                        autoComplete="username"
-                        inputMode="email"
-                        required
-                        maxLength={320}
-                        value={email}
-                        onChange={(event) => setEmail(event.target.value)}
-                    />
-                </div>
-                <div className="candidate-account-field">
-                    <label htmlFor="candidate-login-password">Password</label>
-                    <span className="candidate-account-password">
+            <div className="candidate-account-panel candidate-account-panel--login">
+                <form className="candidate-account-form candidate-account-form--login" onSubmit={handleSubmit} aria-busy={submitting}>
+                    {error ? (
+                        <div className="candidate-account-alert" role="alert">
+                            <AlertCircle size={18} aria-hidden="true" />
+                            <span>{error}</span>
+                        </div>
+                    ) : null}
+                    <div className="candidate-account-field">
+                        <label htmlFor="candidate-login-email">Email</label>
                         <input
-                            id="candidate-login-password"
-                            type={showPassword ? "text" : "password"}
-                            autoComplete="current-password"
+                            id="candidate-login-email"
+                            type="email"
+                            autoComplete="username"
+                            inputMode="email"
                             required
-                            maxLength={128}
-                            value={password}
-                            onChange={(event) => setPassword(event.target.value)}
+                            maxLength={320}
+                            value={email}
+                            onChange={(event) => setEmail(event.target.value)}
                         />
-                        <button
-                            type="button"
-                            onClick={() => setShowPassword((visible) => !visible)}
-                            aria-label={showPassword ? "Hide password" : "Show password"}
-                            title={showPassword ? "Hide password" : "Show password"}
-                        >
-                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                        </button>
-                    </span>
-                    <Link href="/candidate/forgot-password">Forgot password?</Link>
-                </div>
-                <button type="submit" className="candidate-account-submit" disabled={submitting}>
-                    {submitting ? <Loader2 className="candidate-account-spin" size={19} /> : null}
-                    {submitting ? "Signing in" : "Sign in"}
-                    {!submitting ? <ArrowRight size={19} /> : null}
-                </button>
-            </form>
+                    </div>
+                    <div className="candidate-account-field">
+                        <div className="candidate-account-field__label-row">
+                            <label htmlFor="candidate-login-password">Password</label>
+                            <Link href="/candidate/forgot-password">Forgot password?</Link>
+                        </div>
+                        <span className="candidate-account-password">
+                            <input
+                                id="candidate-login-password"
+                                type={showPassword ? "text" : "password"}
+                                autoComplete="current-password"
+                                required
+                                maxLength={128}
+                                value={password}
+                                onChange={(event) => setPassword(event.target.value)}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword((visible) => !visible)}
+                                aria-label={showPassword ? "Hide password" : "Show password"}
+                                title={showPassword ? "Hide password" : "Show password"}
+                            >
+                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                        </span>
+                    </div>
+                    <button type="submit" className="candidate-account-submit" disabled={submitting}>
+                        {submitting ? <Loader2 className="candidate-account-spin" size={19} /> : null}
+                        {submitting ? "Signing in" : "Sign in"}
+                        {!submitting ? <ArrowRight size={19} /> : null}
+                    </button>
+                </form>
 
-            <div className="candidate-account-panel__support">
-                <button type="button" onClick={() => setShowResend((value) => !value)}>
-                    Need a new verification email?
-                </button>
-                {showResend ? <CandidateVerificationResend initialEmail={email} /> : null}
+                <div className="candidate-account-panel__support">
+                    <button
+                        type="button"
+                        aria-expanded={showResend}
+                        onClick={() => setShowResend((value) => !value)}
+                    >
+                        <span>Need a new verification email?</span>
+                        <ChevronDown
+                            className={showResend ? "is-open" : undefined}
+                            size={17}
+                            aria-hidden="true"
+                        />
+                    </button>
+                    {showResend ? <CandidateVerificationResend initialEmail={email} /> : null}
+                </div>
             </div>
 
             <p className="candidate-account-panel__switch">

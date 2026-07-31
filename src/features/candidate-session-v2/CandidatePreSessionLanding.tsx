@@ -1,14 +1,20 @@
 "use client";
 
-import { ArrowLeft, Clock3, LockKeyhole, Play, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Clock3, LockKeyhole, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
 import {
     toSessionQuestionAudioTarget,
     type SessionQuestionAudioLifecycle,
 } from "@/features/interview-session-v2/session-question-audio-contract";
 import { CandidateBrandHeader } from "@/features/candidate-v2/CandidateBrandHeader";
+import {
+    candidateQuestionPlanCategoryDetails,
+    type CandidateQuestionPlanCategory,
+} from "./candidate-question-plan";
+
+import styles from "./CandidatePreSessionLanding.module.css";
 
 export type CandidatePreSessionQuestion = {
     id: string;
@@ -58,6 +64,7 @@ export function CandidatePreSessionLanding({
     manageTransitionExternally = false,
 }: CandidatePreSessionLandingProps) {
     const [isPreparing, setIsPreparing] = useState(false);
+    const pageRef = useRef<HTMLElement | null>(null);
     const transitionTimerRef = useRef<number | null>(null);
     const isFollowUp = variant === "follow_up";
     const isInvited = variant === "invited";
@@ -67,11 +74,16 @@ export function CandidatePreSessionLanding({
     const stageContext = normalizedStage === "not sure yet"
         ? "based on the role details you shared"
         : `for your ${normalizedStage}`;
-    const heading = isFollowUp
+    const statusLead = isFollowUp
         ? "Your focused practice is ready."
         : isInvited
             ? `${candidateFirstName ? `Hi ${candidateFirstName}. ` : ""}Ready to practice?`
             : "Your practice is ready.";
+    const statusDetail = isFollowUp
+        ? `I'll keep this round focused on the ${questionCount === 1 ? "question" : "questions"} you chose.`
+        : isInvited
+            ? `You've been invited to work through ${questionLabel}. After each answer, your coach will help you strengthen your response.`
+            : `You'll work through ${questionLabel} ${stageContext}. After each answer, I'll help you see what's working and what to try next.`;
 
     useEffect(() => () => {
         if (transitionTimerRef.current !== null) {
@@ -93,36 +105,46 @@ export function CandidatePreSessionLanding({
         }));
     }, [firstQuestion, questionAudio, sessionId]);
 
+    useLayoutEffect(() => {
+        const page = pageRef.current;
+        if (!page) {
+            return;
+        }
+
+        if (isPreparing) {
+            page.setAttribute("inert", "");
+            return () => page.removeAttribute("inert");
+        }
+
+        page.removeAttribute("inert");
+    }, [isPreparing]);
+
     return (
         <>
         <main
-            className="candidate-pre-session candidate-app-shell"
-            inert={isPreparing ? true : undefined}
+            ref={pageRef}
+            className={`${styles.page} candidate-app-shell`}
             aria-hidden={isPreparing || undefined}
         >
-            <CandidateBrandHeader />
-            <div className="candidate-pre-session__layout app-grid">
-                <section className="candidate-pre-session__intro" aria-labelledby="candidate-pre-session-title">
-                    <h1 id="candidate-pre-session-title">{heading}</h1>
-                    <p className="candidate-pre-session__lede">
-                        {isFollowUp
-                            ? `${questionLabel} from your Coach Plan ${questionCount === 1 ? "is" : "are"} ready. I'll keep this round focused on the practice you chose.`
-                            : isInvited
-                                ? `You've been invited to work through ${questionLabel} for the ${targetRole} role. After each answer, your coach will help you strengthen your response.`
-                            : `You'll work through ${questionLabel} ${stageContext}. After each answer, I'll help you see what's working and what to try next.`}
+            <CandidateBrandHeader frame="focused" />
+            <div className={`${styles.layout} app-grid app-grid--focused`}>
+                <section
+                    className={`${styles.spotlight} surface-spotlight`}
+                    aria-labelledby="candidate-pre-session-title"
+                >
+                    <p className={`${styles.stageLabel} label-micro`}>{stageLabel}</p>
+                    <h1 id="candidate-pre-session-title" className={styles.roleHeading}>{targetRole}</h1>
+                    <p className={styles.statusCopy}>
+                        <strong>{statusLead}</strong>{" "}
+                        {statusDetail}
                     </p>
-                </section>
-
-                <section className="candidate-pre-session__summary" aria-label="Practice round details">
-                    <header className="candidate-pre-session__summary-label">
-                        <h2>{targetRole}</h2>
-                    </header>
                     <dl
                         className={
                             isInvited
-                                ? "candidate-pre-session__facts candidate-pre-session__facts--two"
-                                : "candidate-pre-session__facts candidate-pre-session__facts--three"
+                                ? `${styles.facts} ${styles.factsTwo} on-color-glass`
+                                : `${styles.facts} ${styles.factsThree} on-color-glass`
                         }
+                        aria-label="Practice round details"
                     >
                         <div>
                             <dt>Stage</dt>
@@ -135,25 +157,29 @@ export function CandidatePreSessionLanding({
                         {!isInvited ? (
                             <div>
                                 <dt>Resume</dt>
-                                <dd>{resumeIncluded ? resumeLabel?.trim() || "Included" : "Not included"}</dd>
+                                <dd
+                                    className={styles.resumeFact}
+                                    title={resumeIncluded ? resumeLabel?.trim() || "Included" : undefined}
+                                >
+                                    {resumeIncluded ? resumeLabel?.trim() || "Included" : "Not included"}
+                                </dd>
                             </div>
                         ) : null}
                     </dl>
                 </section>
 
                 {questions.length > 0 ? (
-                    <section className="candidate-pre-session__questions" aria-labelledby="selected-practice-title">
-                        <div>
-                            <p className="type-eyebrow">Selected practice</p>
-                            <h2 id="selected-practice-title">What you&apos;ll work through</h2>
-                        </div>
+                    <section className={styles.questions} aria-labelledby="selected-practice-title">
+                        <h2 id="selected-practice-title" className="label-micro">Question plan</h2>
                         <ol aria-label="Selected practice questions">
                             {questions.map((question) => (
                                 <li key={question.id}>
-                                    <span>Q{question.number}</span>
+                                    <span aria-hidden="true">{question.number}</span>
                                     <div>
-                                        <p className="type-eyebrow">{question.category}</p>
-                                        <p>{question.questionText}</p>
+                                        <p className={`${styles.questionCategory} label-micro`}>
+                                            {formatPreSessionCategory(question.category)}
+                                        </p>
+                                        <CandidatePreSessionQuestionText questionText={question.questionText} />
                                     </div>
                                 </li>
                             ))}
@@ -161,87 +187,90 @@ export function CandidatePreSessionLanding({
                     </section>
                 ) : null}
 
-                <section className="candidate-pre-session__reassurance" aria-label="Before you begin">
-                    <article>
-                        <Clock3 size={20} aria-hidden="true" />
-                        <div>
-                            <h2>Practice at your pace.</h2>
+                <div className={styles.closing}>
+                    <section className={styles.reassurance} aria-label="Before you begin">
+                        <article>
+                            <Clock3 size={17} aria-hidden="true" />
                             <p>
+                                <strong>{isInvited ? "Take your time." : "Practice at your pace."}</strong>{" "}
                                 {isInvited
-                                    ? "Take the time you need. If you step away, use your original invitation link to return."
-                                    : "Your progress is saved as you go, so you can pause and return when you're ready."}
+                                    ? "If you step away, use your original invitation link to return."
+                                    : "Your progress saves automatically, so you can pause and return when you're ready."}
                             </p>
-                        </div>
-                    </article>
-                    <article>
-                        <LockKeyhole size={20} aria-hidden="true" />
-                        <div>
-                            <h2>{isInvited ? "Know what is shared." : "For preparation, not hiring decisions."}</h2>
+                        </article>
+                        <article>
+                            <LockKeyhole size={17} aria-hidden="true" />
                             {isInvited ? (
                                 <p>
-                                    The recruiting team may review your answers to support your preparation. Your AI coaching is visible only to you, and the coach does not score you or make hiring decisions.
+                                    <strong>Know what is shared.</strong>{" "}
+                                    The recruiting team may review your answers. Your AI coaching is visible only to you and is not used to make hiring decisions.
                                 </p>
                             ) : (
-                                <p>This candidate-led practice is for preparation and is not used to make hiring decisions.</p>
+                                <p>
+                                    <strong>For preparation only.</strong>{" "}
+                                    This candidate-led practice is not used to make hiring decisions.
+                                </p>
                             )}
-                        </div>
-                    </article>
-                </section>
+                        </article>
+                    </section>
 
-                <section className="candidate-pre-session__actions" aria-label="Practice actions">
-                    {startActionUrl ? (
-                        <form
-                            aria-label="Start follow-up practice"
-                            action={startActionUrl}
-                            method="post"
-                            onSubmit={() => {
-                                setIsPreparing(true);
-                                void questionAudio?.unlock();
-                            }}
-                        >
-                            <button
-                                className="candidate-button candidate-button--primary"
-                                type="submit"
-                                disabled={isPreparing}
+                    <section className={styles.actions} aria-label="Practice actions">
+                        {startActionUrl ? (
+                            <form
+                                className={styles.primaryAction}
+                                aria-label="Start follow-up practice"
+                                action={startActionUrl}
+                                method="post"
+                                onSubmit={() => {
+                                    void questionAudio?.unlock();
+                                }}
                             >
-                                <Play size={16} aria-hidden="true" />
-                                {isPreparing ? "Starting practice" : "Start practice"}
+                                <button
+                                    className={`candidate-button candidate-button--primary ${styles.actionButton}`}
+                                    type="submit"
+                                >
+                                    Start practice
+                                    <ArrowRight size={16} aria-hidden="true" />
+                                </button>
+                            </form>
+                        ) : (
+                            <button
+                                className={`candidate-button candidate-button--primary ${styles.actionButton} ${styles.primaryAction}`}
+                                type="button"
+                                disabled={!canStart}
+                                onClick={() => beginPreparing(onStart)}
+                            >
+                                Start practice
+                                <ArrowRight size={16} aria-hidden="true" />
                             </button>
-                        </form>
-                    ) : (
-                        <button
-                            className="candidate-button candidate-button--primary"
-                            type="button"
-                            disabled={!canStart}
-                            onClick={() => beginPreparing(onStart)}
-                        >
-                            <Play size={16} aria-hidden="true" />
-                            Start practice
-                        </button>
-                    )}
+                        )}
 
-                    {!canStart ? (
-                        <p className="candidate-pre-session__start-error" role="status">
-                            I could not prepare the questions for this round. Return to setup and try again.
-                        </p>
+                        {!canStart ? (
+                            <p className={styles.startError} role="status">
+                                I could not prepare the questions for this round. Return to setup and try again.
+                            </p>
+                        ) : null}
+
+                        {returnHref ? (
+                            <Link
+                                className={`candidate-button candidate-button--secondary ${styles.actionButton} ${styles.secondaryAction}`}
+                                href={returnHref}
+                            >
+                                <ArrowLeft size={16} aria-hidden="true" />
+                                Return to Coach Plan
+                            </Link>
+                        ) : null}
+                    </section>
+
+                    {process.env.NODE_ENV !== "production" && onOpenDevelopmentPreview ? (
+                        <details className={styles.development}>
+                            <summary>Development tools</summary>
+                            <button type="button" onClick={onOpenDevelopmentPreview}>
+                                Open first question preview
+                            </button>
+                        </details>
                     ) : null}
-
-                    {returnHref ? (
-                        <Link className="candidate-button candidate-button--secondary" href={returnHref}>
-                            <ArrowLeft size={16} aria-hidden="true" />
-                            Return to Coach Plan
-                        </Link>
-                    ) : null}
-                </section>
-
-                {process.env.NODE_ENV !== "production" && onOpenDevelopmentPreview ? (
-                    <details className="candidate-pre-session__development">
-                        <summary>Development tools</summary>
-                        <button type="button" onClick={onOpenDevelopmentPreview}>
-                            Open first question preview
-                        </button>
-                    </details>
-                ) : null}
+                </div>
             </div>
         </main>
         {isPreparing ? <CandidatePracticeEntryTransitionOverlay isReleasing={false} /> : null}
@@ -262,6 +291,69 @@ export function CandidatePreSessionLanding({
         setIsPreparing(true);
         transitionTimerRef.current = window.setTimeout(continueToPractice, CANDIDATE_PRACTICE_ENTRY_HOLD_MS);
     }
+}
+
+function formatPreSessionCategory(category: string) {
+    if (category in candidateQuestionPlanCategoryDetails) {
+        return candidateQuestionPlanCategoryDetails[category as CandidateQuestionPlanCategory].label;
+    }
+    return category;
+}
+
+function CandidatePreSessionQuestionText({ questionText }: { questionText: string }) {
+    const contentId = useId();
+    const textRef = useRef<HTMLParagraphElement | null>(null);
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [canToggle, setCanToggle] = useState(false);
+
+    useLayoutEffect(() => {
+        if (isExpanded) {
+            return;
+        }
+
+        const element = textRef.current;
+        if (!element) {
+            return;
+        }
+
+        const measure = () => {
+            setCanToggle(element.scrollHeight > element.clientHeight + 1);
+        };
+
+        measure();
+
+        if (typeof ResizeObserver !== "undefined") {
+            const observer = new ResizeObserver(measure);
+            observer.observe(element);
+            return () => observer.disconnect();
+        }
+
+        window.addEventListener("resize", measure);
+        return () => window.removeEventListener("resize", measure);
+    }, [isExpanded, questionText]);
+
+    return (
+        <>
+            <p
+                ref={textRef}
+                id={contentId}
+                className={`${styles.questionText}${isExpanded ? "" : ` ${styles.questionTextCollapsed}`}`}
+            >
+                {questionText}
+            </p>
+            {canToggle ? (
+                <button
+                    className={styles.questionToggle}
+                    type="button"
+                    aria-controls={contentId}
+                    aria-expanded={isExpanded}
+                    onClick={() => setIsExpanded((current) => !current)}
+                >
+                    {isExpanded ? "Show less" : "Show more"}
+                </button>
+            ) : null}
+        </>
+    );
 }
 
 export function CandidatePracticeEntryTransitionOverlay({

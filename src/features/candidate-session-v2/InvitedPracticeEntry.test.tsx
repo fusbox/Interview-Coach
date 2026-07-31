@@ -30,7 +30,8 @@ it("keeps start gated by initials but does not gate invited practice on a rating
     fireEvent.click(screen.getByRole("button", { name: "Review practice" }));
 
     await waitFor(() => expect(onConfirmInitials).toHaveBeenCalledWith("IC"));
-    expect(screen.getByRole("heading", { name: "Hi Irma. Ready to practice?" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Material Handler I" })).toBeInTheDocument();
+    expect(screen.getByText(/Hi Irma\. Ready to practice\?/i)).toBeInTheDocument();
     expect(screen.getByText(/use your original invitation link to return/i)).toBeInTheDocument();
     expect(screen.getByText(/recruiting team may review your answers/i)).toBeInTheDocument();
     expect(screen.getByText(/AI coaching is visible only to you/i)).toBeInTheDocument();
@@ -52,5 +53,6 @@ it("recovers directly to the landing without repeating initials", () => {
     );
 
     expect(screen.queryByRole("textbox", { name: "Your initials" })).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Hi Irma. Ready to practice?" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Material Handler I" })).toBeInTheDocument();
+    expect(screen.getByText(/Hi Irma\. Ready to practice\?/i)).toBeInTheDocument();
 });

@@ -105,14 +105,14 @@ export function CandidateRegistrationExperience() {
     }
 
     return (
-        <section className="candidate-account-panel candidate-account-panel--registration" aria-labelledby="candidate-register-title">
-            <header className="candidate-account-panel__intro">
+        <section className="candidate-account-entry candidate-account-entry--registration" aria-labelledby="candidate-register-title">
+            <header className="candidate-account-entry__intro">
                 <p className="type-eyebrow">Candidate account</p>
                 <h1 id="candidate-register-title">Create your Interview Coach account.</h1>
                 <p>Your account connects your practice, coaching, and progress across devices.</p>
             </header>
 
-            <form className="candidate-account-form" onSubmit={handleSubmit} aria-busy={submitting}>
+            <form className="candidate-account-form candidate-account-form--registration" onSubmit={handleSubmit} aria-busy={submitting}>
                 {error ? (
                     <div className="candidate-account-alert" role="alert">
                         <AlertCircle size={18} aria-hidden="true" />
@@ -120,8 +120,8 @@ export function CandidateRegistrationExperience() {
                     </div>
                 ) : null}
 
-                <fieldset>
-                    <legend>About you</legend>
+                <fieldset className="candidate-account-form__section">
+                    <legend className="type-eyebrow">About you</legend>
                     <div className="candidate-account-form__grid">
                         <Field label="First name" name="firstName" autoComplete="given-name" />
                         <Field label="Last name" name="lastName" autoComplete="family-name" />
@@ -139,7 +139,7 @@ export function CandidateRegistrationExperience() {
                             type="tel"
                             autoComplete="tel"
                             inputMode="tel"
-                            helper="US numbers may be entered with or without +1."
+                            placeholder="(555) 555-5555"
                         />
                         <Field
                             label="ZIP code"
@@ -151,15 +151,14 @@ export function CandidateRegistrationExperience() {
                     </div>
                 </fieldset>
 
-                <fieldset>
-                    <legend>Secure your account</legend>
+                <fieldset className="candidate-account-form__section">
+                    <legend className="type-eyebrow">Secure your account</legend>
                     <div className="candidate-account-form__grid">
                         <PasswordField
                             label="Password"
                             name="password"
                             visible={showPassword}
                             toggle={() => setShowPassword((value) => !value)}
-                            helper="Use at least 12 characters."
                         />
                         <Field
                             label="Confirm password"
@@ -172,8 +171,8 @@ export function CandidateRegistrationExperience() {
                     </div>
                 </fieldset>
 
-                <fieldset>
-                    <legend>Contact preferences</legend>
+                <fieldset className="candidate-account-form__section">
+                    <legend className="type-eyebrow">Contact preferences</legend>
                     <p className="candidate-account-form__section-copy">
                         Optional. Choose how TalentArbor may share job opportunities and platform updates.
                     </p>
@@ -207,8 +206,8 @@ export function CandidateRegistrationExperience() {
                     ) : null}
                 </fieldset>
 
-                <fieldset>
-                    <legend>Platform terms</legend>
+                <fieldset className="candidate-account-form__section">
+                    <legend className="type-eyebrow">Platform terms</legend>
                     <label className="candidate-account-consent">
                         <input name="platformPolicyAccepted" type="checkbox" required />
                         <span>
@@ -230,11 +229,13 @@ export function CandidateRegistrationExperience() {
                     </label>
                 </fieldset>
 
-                <button type="submit" className="candidate-account-submit" disabled={submitting}>
-                    {submitting ? <Loader2 className="candidate-account-spin" size={19} /> : null}
-                    {submitting ? "Creating account" : "Create account"}
-                    {!submitting ? <ArrowRight size={19} /> : null}
-                </button>
+                <div className="candidate-account-form__actions">
+                    <button type="submit" className="candidate-account-submit" disabled={submitting}>
+                        {submitting ? <Loader2 className="candidate-account-spin" size={19} /> : null}
+                        {submitting ? "Creating account" : "Create account"}
+                        {!submitting ? <ArrowRight size={19} /> : null}
+                    </button>
+                </div>
             </form>
 
             <p className="candidate-account-panel__switch">
@@ -279,13 +280,11 @@ function PasswordField({
     name,
     visible,
     toggle,
-    helper,
 }: {
     label: string;
     name: string;
     visible: boolean;
     toggle: () => void;
-    helper: string;
 }) {
     return (
         <div className="candidate-account-field">
@@ -298,6 +297,7 @@ function PasswordField({
                     autoComplete="new-password"
                     minLength={12}
                     maxLength={128}
+                    placeholder="At least 12 characters"
                     required
                 />
                 <button
@@ -309,7 +309,6 @@ function PasswordField({
                     {visible ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
             </span>
-            <small>{helper}</small>
         </div>
     );
 }

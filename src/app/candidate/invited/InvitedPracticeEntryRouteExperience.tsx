@@ -50,6 +50,12 @@ export function InvitedPracticeEntryRouteExperience(props: {
         <InvitedPracticeEntry
             {...props}
             sessionId={props.initialSession.sessionId}
+            questions={props.initialSession.questionWordingSnapshot?.questions.map((question, index) => ({
+                id: question.slotId,
+                number: index + 1,
+                category: question.category,
+                questionText: question.questionText,
+            }))}
             firstQuestion={props.initialSession.questionWordingSnapshot?.questions[0] ? {
                 id: props.initialSession.questionWordingSnapshot.questions[0].slotId,
                 number: 1,
