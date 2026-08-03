@@ -1,6 +1,6 @@
 # Interview Coach Design System
 
-This folder contains the active app-wide runtime design system and local inputs used to evolve it.
+This folder contains the active app-wide runtime design system. Local authoring inputs remain ignored outside the tracked runtime tree.
 
 ## Active Runtime
 
@@ -41,11 +41,11 @@ The latest local authoring snapshot includes mature-but-not-final mobile referen
 
 These references guide production composition and responsive intent. They do not override route behavior, persistence, authorization, evaluator meaning, recovery states, accessibility, or the complete state matrix.
 
-## Other Folder Contents
+## Retired Authoring Material
 
-The older `components/`, `guidelines/`, `ui_kits/`, `explorations/`, generated bundles, and support files are not imported by the application. Treat them as historical or transitional authoring material unless a current production pass explicitly reconciles a pattern into runtime code.
+The older component specimens, guidelines, UI kits, explorations, generated bundles, support files, and duplicate assets are retired from the current tree and remain available through Git history. Reintroduce a pattern only by reconciling it into the runtime token contract or production code.
 
-`tokens/legacy-compat.css` is different: it is currently imported, but only as migration support. Do not add new production design decisions there.
+`tokens/legacy-compat.css` remains imported as migration support. Do not add new production design decisions there.
 
 ## Reconciliation Workflow
 

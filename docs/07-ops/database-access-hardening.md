@@ -1,6 +1,6 @@
 # Database Access Hardening
 
-Status: Ratified staging baseline; Supabase cutover pending
+Status: Personal Vercel runtime cutover accepted; company rollout pending
 Last updated: 2026-07-31
 
 ## Purpose
@@ -8,6 +8,16 @@ Last updated: 2026-07-31
 This runbook hardens the PostgreSQL execution boundary for the solo-developer Supabase staging deployment while preserving a path to the company release. Interview Coach uses trusted Next.js server processes, direct PostgreSQL connections, app-owned sessions, and ownership-scoped repositories. It does not use Supabase Auth, `supabase-js`, REST, GraphQL, or browser database access.
 
 RLS therefore serves as defense in depth around the database service role. It does not replace candidate/recruiter ownership checks and does not use `auth.uid()`.
+
+The 2026-07-31 personal-demo cutover applied migrations `001`–`049`, proved a
+password-authenticated runtime login and application-table read, moved Vercel
+production to `interview_coach_runtime.<project-ref>` through transaction mode
+on port `6543`, and rebuilt the existing Ready artifact. Supabase reported no
+user-visible physical backup or PITR; a schema-only pre-change snapshot was
+captured without table data. The unused Data API is disabled in the Supabase
+Dashboard, which reports that no schemas can be queried. A gateway `401` is not
+a valid enabled-state probe. This evidence is not company-environment or
+production release approval.
 
 ## Staging Contract
 
@@ -40,6 +50,19 @@ $env:DATABASE_MIGRATION_URL = "<Supabase owner connection URI>"
 npm run db:migrate
 npm run db:smoke-database-access-hardening
 ```
+
+Supabase's hosted `postgres` account is a non-superuser `CREATEROLE` operator.
+PostgreSQL reserves changes to `SUPERUSER`, `REPLICATION`, and `BYPASSRLS` for a
+superuser even when the requested value is false. Migration `046` therefore
+creates those attributes safely, fails closed if they are ever found enabled,
+and only reapplies the role attributes this operator may change. The
+provisioner repeats the privilege check before enabling login and independently
+enforces the mutable attributes and session defaults. Supabase grants the
+creator `ADMIN` but not `SET` on the runtime role, so the catalog smoke does not
+impersonate it; the provisioner opens a real password-authenticated runtime
+connection and reads an application table instead. Password activation and
+session-default enforcement commit atomically; a failed provisioning step rolls
+the role change back before the runtime probe.
 
 4. Generate a unique password of at least 24 characters, expose it only to the one provisioning process, and provision/rotate the role:
 

@@ -4,8 +4,7 @@ import process from "node:process";
 
 const root = process.cwd();
 const docsRoot = resolve(root, "docs");
-const includeArchive = process.argv.includes("--include-archive");
-const rootMarkdownFiles = ["AGENTS.md", "CONTRIBUTING.md", "DECISION_LOG.md", "README.md"]
+const rootMarkdownFiles = ["AGENTS.md", "CONTRIBUTING.md", "README.md"]
     .map((path) => resolve(root, path))
     .filter(existsSync);
 
@@ -13,9 +12,6 @@ function walk(directory) {
     return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
         const path = resolve(directory, entry.name);
         if (entry.isDirectory()) {
-            if (!includeArchive && path.startsWith(resolve(docsRoot, "reference-archive"))) {
-                return [];
-            }
             return walk(path);
         }
         return extname(entry.name).toLowerCase() === ".md" ? [path] : [];

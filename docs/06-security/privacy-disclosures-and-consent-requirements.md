@@ -374,5 +374,4 @@ Explicit product/legal review is required before:
 
 - [Candidate App Threat Model](threat-model.md)
 - [Storage And Resume Ingestion](../04-architecture/storage-and-resume-ingestion.md)
-- [Historical Candidate Login Redirect Contract](../reference-archive/candidate-interim/product/candidate-login-redirect-contract.md)
 - [ADR-0005: Processed Resume Retention By Default](../08-decisions/ADR-0005-processed-resume-retention-by-default.md)

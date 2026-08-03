@@ -24,4 +24,4 @@ Current docs should describe the cleanroom `/candidate/*` rebuild or durable pro
 - [Storage And Resume Ingestion](./storage-and-resume-ingestion.md)
 - [Platform Launch PrepProfile Migration](./platform-launch-prepprofile-migration.md)
 
-The role-preparedness inventory, score-era signal contract/map, and earlier persistence/session plans are historical. They are archived under [Candidate V1 And Interim V2](../reference-archive/candidate-interim/README.md).
+The role-preparedness inventory, score-era signal contract/map, and earlier persistence/session plans are historical and available only through Git history.

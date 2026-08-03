@@ -19,7 +19,7 @@ Adopt a lightweight active documentation stack under `docs/`:
 - `HANDOFF.md` - ephemeral execution state, completed work, current context, immediate next step, and risks.
 - `08-decisions/` - immutable ADRs for durable why-decisions.
 
-Active subsystem contracts and runbooks are read only when their concern is in scope. Superseded detail lives under `reference-archive/` and is historical, not supporting authority. Autonomous multi-slice work is governed by `07-ops/autonomous-development-operating-model.md` while the active milestone instance remains in `HANDOFF.md`.
+Active subsystem contracts and runbooks are read only when their concern is in scope. Superseded detail is removed from the current tree and remains historical in Git, not supporting authority. Autonomous multi-slice work is governed by `07-ops/autonomous-development-operating-model.md` while the active milestone instance remains in `HANDOFF.md`.
 
 ## Consequences
 
@@ -45,4 +45,4 @@ For candidate app implementation:
 3. Read `HANDOFF.md` before choosing the next implementation slice.
 4. Check ADRs before cross-cutting changes.
 5. Read only the subsystem documents linked from the active work.
-6. Do not treat `reference-archive` content as current direction unless prior-behavior review is explicit.
+6. Consult Git history only when prior-behavior review is explicit; do not treat retired content as current direction.

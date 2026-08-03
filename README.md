@@ -80,7 +80,6 @@ Full-repository checks can include unrelated V1 or local prototype debt. Do not 
 - [Candidate V2 spec](docs/SPEC.md)
 - [Candidate V2 data contract](docs/DATA_CONTRACT.md)
 - [Candidate V2 docs by concern](docs/README.md)
-- [Recruiter-led V1/shared app archive](docs/reference-archive/recruiter-v1/README.md)
 - [Contributing guide](CONTRIBUTING.md)
 
 ## Product Boundaries

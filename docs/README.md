@@ -41,7 +41,7 @@ Name and resolve conflicts before implementation. Do not silently combine incomp
 | Historical | Behavior archaeology, prior plans, or milestone history | Read only when explicitly comparing prior behavior |
 | Local-only | Discovery output, imports, credentials, or design experiments | Keep outside tracked docs |
 
-Every active document must have one clear job. Slice history and long validation evidence belong in milestone evidence or the reference archive, not product contracts.
+Every active document must have one clear job. Concise milestone evidence may remain in the governing quality artifact or handoff; superseded plans and long-form history belong in Git history, not the current tree or product contracts.
 
 ## Read By Concern
 
@@ -114,19 +114,18 @@ The extracted design-system source, experiments, and UI lab remain under `.untra
 
 `HANDOFF.md` owns the active milestone instance, internal slice status, shared-file claims, current risks, and verdict. Do not create a second active backlog.
 
-## Reference Archives
+## Repository Retention Boundary
 
-- [Candidate V1 and interim V2 archive](./reference-archive/candidate-interim/README.md)
-- [Recruiter-led V1/shared app archive](./reference-archive/recruiter-v1/README.md)
+The tracked tree keeps deployable source and assets plus the engineering source needed to reproduce, verify, operate, and safely change it: active contracts, tests, migrations, CI, design-system source, and referenced operational scripts. Generated output, local data, design experiments, one-off discovery probes, superseded documentation, and tool caches remain ignored.
 
-Reference archives are excluded from the default documentation link gate and agent reading path. V1 remains valuable for behavior comparison, but it is never a current contract by default.
+Retirement work is first moved to an ignored local holding area under `.untracked/retirement/` so it remains recoverable during review. The resulting Git deletions remove it from the next PR and from fresh checkouts. Historical V1/interim behavior remains available in Git history when an explicit prior-behavior review requires it.
 
 ## Maintenance Rules
 
 - Update `SPEC.md` when product behavior or claims change.
 - Update `DATA_CONTRACT.md` when durable vocabulary, ownership, lifecycle, or lineage changes.
 - Update `HANDOFF.md` only for changed current truth, active milestone status, phase movement, risks, and concise milestone evidence.
-- Put detailed validation in subsystem contracts, runbooks, or dated milestone artifacts.
+- Put detailed validation in subsystem contracts, runbooks, or a still-active dated milestone artifact.
 - Keep raw staging queries, credentials, candidate/job rows, provider output, and design imports out of tracked docs.
 - Run `npm run docs:check` after documentation moves or link changes.
-- Archive a document when it no longer answers a live product, implementation, validation, or release question.
+- Retire a document from the current tree when it no longer answers a live product, implementation, validation, or release question; Git history is the archive.

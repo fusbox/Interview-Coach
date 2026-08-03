@@ -47,11 +47,43 @@ coverage/
 .nyc_output/
 .playwright-cli/
 output/
+test-results/
 
 # Local design studies and extracted source bundles
 .untracked/
 design-system/*.zip
+design-system/assets/
+design-system/components/
+design-system/explorations/
+design-system/guidelines/
+design-system/ui_kits/
+design-system/SKILL.md
+design-system/handoff.md
+design-system/support.js
+design-system/_*
 tmp/
+
+# Retired and local-only repository material
+.github/hooks/
+.data/
+.understand-anything/
+docs/reference-archive/
+docs/09-dev/candidate-dashboard-persona-fixtures.md
+docs/09-dev/staging-launch-context-*.md
+docs/09-dev/staging-launch-context-*.sql
+docs/09-dev/rw-job-catalog-ownership-diagnostic.sql
+docs/09-dev/ta-resolve-rw-jobcollection-ids.sql
+docs/09-dev/USP_InterviewCoach_GetLaunchContext.draft.sql
+scripts/probe-staging-*.mjs
+scripts/seed-candidate-dashboard-personas.ts
+scripts/lib/candidate-dashboard-personas*.ts
+supabase/
+/DECISION_LOG.md
+/Install-Service.ps1
+/feedback_schema.json
+/lint-report.json
+/nssm.exe
+/.cursorrules
  
 # TypeScript
 *.tsbuildinfo
@@ -84,7 +116,6 @@ docs/09-dev/*.csv
 .untracked
 .deprecated
 .superpowers
-.github
 
 
 # Azure Boards import/export scratch

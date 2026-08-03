@@ -719,14 +719,9 @@ Check that you entered through `/candidate/dev/launch` and that the `ic_candidat
 
 That prompt appears when the dev server was started through `cmd /c`, including nested npm scripts. It is normal on Windows. Press `Y` to stop the batch process.
 
-## Reference Archive
+## Historical Bootstrap Material
 
-Historical V1/interim docs and the old all-in-one local SQL query live under:
-
-- [Reference Archive](../reference-archive/README.md)
-- [V1 master query](../reference-archive/candidate-interim/sql/master_query.v1.sql)
-
-Use those files when comparing against V1 behavior. Do not treat them as current bootstrap instructions.
+Historical V1/interim docs and the old all-in-one local SQL query are retired from the current tree. Use Git history only when an explicit prior-behavior comparison requires them; they are not current bootstrap instructions.
 
 ## Acceptance Checklist
 

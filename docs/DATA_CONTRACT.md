@@ -240,9 +240,8 @@ Question category reference: [Question Category Contract](./04-architecture/ques
 
 Dashboard information architecture: [Evidence-First Dashboard Information Architecture](./04-architecture/evidence-first-dashboard-information-architecture.md).
 
-The retired score-era instant-read plan is preserved only as historical design
-evidence in `reference-archive/candidate-interim/instant-read-surface-plan-score-era.md`. Its
-numeric rollups, `overallRead`, and compatibility fallbacks are not V2 inputs.
+The retired score-era instant-read plan remains available only through Git history.
+Its numeric rollups, `overallRead`, and compatibility fallbacks are not V2 inputs.
 
 Dashboard scoping transition:
 

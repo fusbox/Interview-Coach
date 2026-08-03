@@ -127,8 +127,4 @@ Tradeoffs:
 
 ## First Implementation Plan
 
-The historical first implementation plan is preserved at:
-
-- [Parallel V2 Rebuild Implementation Plan](../reference-archive/candidate-interim/planning/2026-07-06-parallel-v2-rebuild.md)
-
-Current sequencing lives in [HANDOFF](../HANDOFF.md).
+The historical first implementation plan is retired from the current tree and remains available through Git history. Current sequencing lives in [HANDOFF](../HANDOFF.md).

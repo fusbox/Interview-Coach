@@ -11,8 +11,7 @@
 
 1. Install dependencies with `npm install`.
 2. Configure local environment variables and the disposable database using [Candidate Local Dev Bootstrap](docs/09-dev/local-dev-bootstrap.md).
-3. For legacy recruiter-only environment details, consult the archived [Environment Variable Matrix](docs/reference-archive/recruiter-v1/05-quality/environment_variable_matrix.md).
-4. Start the app with `npm run dev`.
+3. Start the app with `npm run dev`.
 
 ## Required Checks Before Opening a PR
 
@@ -65,6 +64,6 @@ npm run ci:quality
 - `src/app/api/**`
 - `src/features/session/**`
 - `src/lib/server/**`
-- `supabase/migrations/**`
+- `db/migrations/**`
 
 Changes in these areas should be reviewed for correctness, abuse resistance, and regression risk, not just style.
