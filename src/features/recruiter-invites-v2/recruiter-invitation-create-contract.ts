@@ -162,10 +162,10 @@ function createManualQuestionWording(
     return parseCandidateQuestionWordingResult({
         status: "questions_worded",
         questions: questionPlanSnapshot.slots.map((slot, index) => ({
-            slotId: slot.id,
-            category: slot.category,
-            questionText: questions[index],
-        })),
+                slotId: slot.id,
+                category: slot.category,
+                questionText: questions[index],
+            })),
     }, questionPlanSnapshot);
 }
 

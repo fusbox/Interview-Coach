@@ -1,6 +1,8 @@
 import type { CandidateCoachUpdateArtifactRecord } from "./candidate-coach-update-artifact";
 import type { CandidateTranscriptCanvasProjection } from "./candidate-transcript-canvas";
 import type { CandidateFollowUpPracticeIntentKind } from "@/features/candidate-practice-v2/candidate-follow-up-practice-intent";
+import { resolveCandidateFollowUpPlanQuestionNumber } from "@/features/candidate-practice-v2/candidate-follow-up-session-creation";
+import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 
 export type CandidateCoachUpdateDetail = {
     status: "candidate_coach_update_detail_ready";
@@ -66,16 +68,21 @@ export type CandidateFocusedPracticeAction = {
 
 export function createCandidateCoachUpdateDetail(
     artifact: CandidateCoachUpdateArtifactRecord | null,
+    sourceSession: CandidatePracticeSessionRecord | null = null,
 ): CandidateCoachUpdateDetail | null {
     if (artifact?.lifecycleState !== "completed" || !artifact.candidateSafeContent || !artifact.completedAt) {
         return null;
     }
 
     const content = artifact.candidateSafeContent;
+    const matchedSourceSession = sourceSession?.candidatePracticeSessionId === artifact.sourceCandidatePracticeSessionId
+        ? sourceSession
+        : null;
     const items = content.questions.map((question) => toQuestionDetail({
         question,
         candidatePracticeSessionId: artifact.sourceCandidatePracticeSessionId,
         targetRole: content.targetRole,
+        sourceSession: matchedSourceSession,
     }));
 
     return {
@@ -97,21 +104,29 @@ function toQuestionDetail({
     question,
     candidatePracticeSessionId,
     targetRole,
+    sourceSession,
 }: {
     question: NonNullable<CandidateCoachUpdateArtifactRecord["candidateSafeContent"]>["questions"][number];
     candidatePracticeSessionId: string;
     targetRole: string;
+    sourceSession: CandidatePracticeSessionRecord | null;
 }): CandidateCoachUpdateQuestionDetail {
     const actionPosture: CandidateCoachUpdateActionPosture = {
         kind: "review_coaching",
         label: "Review coach feedback",
         reason: "This answer has accepted coaching ready.",
     };
+    const questionNumber = sourceSession
+        ? resolveCandidateFollowUpPlanQuestionNumber({
+            session: sourceSession,
+            questionKey: question.questionKey,
+        }) ?? question.questionNumber
+        : question.questionNumber;
 
     return {
         status: "candidate_coach_update_question_detail",
         questionKey: question.questionKey,
-        questionNumber: question.questionNumber,
+        questionNumber,
         category: question.category,
         questionText: question.questionText,
         evidenceStatus: "practiced",
@@ -128,6 +143,7 @@ function toQuestionDetail({
             candidatePracticeSessionId,
             targetRole,
             question,
+            questionNumber,
         }),
     };
 }
@@ -136,10 +152,12 @@ function getFocusedPracticeAction({
     candidatePracticeSessionId,
     targetRole,
     question,
+    questionNumber,
 }: {
     candidatePracticeSessionId: string;
     targetRole: string;
     question: NonNullable<CandidateCoachUpdateArtifactRecord["candidateSafeContent"]>["questions"][number];
+    questionNumber: number;
 }): CandidateFocusedPracticeAction {
     return {
         status: "candidate_focused_practice_action",
@@ -154,7 +172,7 @@ function getFocusedPracticeAction({
             kind: "coach_update_detail",
             candidatePracticeSessionId,
             questionKey: question.questionKey,
-            questionNumber: question.questionNumber,
+            questionNumber,
             category: question.category,
             targetRole,
         },

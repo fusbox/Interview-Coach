@@ -9,6 +9,7 @@ import {
 
 export default async function CandidateSetupPage() {
     const { access, client } = await requireCurrentCandidatePageAccess("/candidate/setup");
+    const candidateIdentity = await resolveCandidateSetupHeaderIdentity(client, access.candidateProfileId);
     if (access.source !== "host_launch") {
         const draftOwnerKey = createCandidateSetupDraftOwnerKey(access.candidateProfileId, null);
         const initialResumeArtifact = await recoverCandidateSetupResumeArtifact(
@@ -19,6 +20,7 @@ export default async function CandidateSetupPage() {
         return <CandidateSetupExperience
             draftOwnerKey={draftOwnerKey}
             initialResumeArtifact={initialResumeArtifact}
+            candidateIdentity={candidateIdentity}
             showAccountLogout={access.source === "app_account"}
         />;
     }
@@ -40,8 +42,31 @@ export default async function CandidateSetupPage() {
         draftOwnerKey={draftOwnerKey}
         initialResumeArtifact={initialResumeArtifact}
         trustedSetupContext={entry.trustedSetupContext}
+        candidateIdentity={candidateIdentity}
         showAccountLogout={false}
     />;
+}
+
+async function resolveCandidateSetupHeaderIdentity(
+    client: Parameters<typeof createCandidateSetupResumeSelectionRepository>[0],
+    candidateProfileId: string,
+) {
+    const result = await client.query(`
+        select display_name, email
+        from public.candidate_profiles
+        where candidate_profile_id = $1
+          and status = 'active'
+        limit 1
+    `, [candidateProfileId]);
+
+    return {
+        displayName: readOptionalString(result.rows[0]?.display_name),
+        email: readOptionalString(result.rows[0]?.email),
+    };
+}
+
+function readOptionalString(value: unknown) {
+    return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 async function recoverCandidateSetupResumeArtifact(

@@ -23,6 +23,7 @@ it("renders the candidate dashboard route shell", async () => {
         expect.stringContaining(interviewCoachBrand.logoSrc.slice(1)),
     );
     expect(brandMark.parentElement).toHaveClass("candidate-dashboard-brand-row");
+    expect(screen.getByRole("button", { name: /Switch to dark theme/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Build your first practice plan." })).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "Set up practice" })).toHaveLength(2);
 });
@@ -542,6 +543,10 @@ it("opens the exact Coach Update artifact from the sparse feedback card", async 
 
     expect(screen.getByText("Coach update ready")).toBeInTheDocument();
     expect(screen.queryByText("New")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Review Question 1/i })).toHaveClass(
+        "candidate-dashboard-stage__primary",
+        "on-color-action",
+    );
     fireEvent.click(screen.getByRole("button", { name: "Open Coach Update" }));
 
     expect(window.localStorage.getItem("candidate-v2:coach-update-seen:candidate-1:session-1")).toBe("artifact-1");

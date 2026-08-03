@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { CandidateLogoutButton } from "@/features/candidate-auth-v2/CandidateLogoutButton";
 
-export function CandidateDashboardAccountMenu({
+export function CandidateAccountMenu({
     initials,
     identityLabel,
 }: {

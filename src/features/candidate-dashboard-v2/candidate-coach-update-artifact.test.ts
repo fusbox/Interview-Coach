@@ -130,7 +130,9 @@ describe("candidate Coach Update artifact input", () => {
         expect(input?.questions[0]).toMatchObject({
             acceptedEvaluationRun: { candidateAnswerEvaluationRunId: "run-internal" },
             acceptedAnalysis: {
-                coachFeedback: { acknowledgement: "You gave me a direct starting point to work with." },
+                coachFeedback: {
+                    acknowledgement: "You made your starting point easy to follow, so we have something concrete to strengthen.",
+                },
             },
             transcriptCanvas: {
                 status: "candidate_transcript_canvas_v1",
@@ -158,6 +160,7 @@ describe("candidate Coach Update artifact input", () => {
             completedAt: "2026-07-15T13:05:00.000Z",
             followUpSourceSessionId: "session-1",
             followUpSourceQuestionKey: "slot-1",
+            followUpSourceQuestionNumber: 4,
         });
         const currentAttempt = createAttempt({
             id: "attempt-current",
@@ -189,6 +192,7 @@ describe("candidate Coach Update artifact input", () => {
         expect(input?.questions[0]?.priorComparableAttempts.map((item) => item.answerAttempt.candidateAnswerAttemptId)).toEqual([
             "attempt-prior",
         ]);
+        expect(input?.questions[0]?.questionNumber).toBe(4);
         expect(createFixtureCandidateCoachUpdateContent(input!).questions[0]?.comparison).toMatchObject({
             kind: "repeat_practice",
             priorComparableAttemptCount: 1,
@@ -300,11 +304,13 @@ function createCompletedSession({
     completedAt = "2026-07-15T12:05:00.000Z",
     followUpSourceSessionId,
     followUpSourceQuestionKey,
+    followUpSourceQuestionNumber = 1,
 }: {
     sessionId?: string;
     completedAt?: string;
     followUpSourceSessionId?: string;
     followUpSourceQuestionKey?: string;
+    followUpSourceQuestionNumber?: number;
 } = {}): CandidatePracticeSessionRecord {
     const followUpPractice = followUpSourceSessionId && followUpSourceQuestionKey ? {
         status: "candidate_follow_up_practice_session" as const,
@@ -316,7 +322,7 @@ function createCompletedSession({
             localSlotId: "slot-1",
             sourceCandidatePracticeSessionId: followUpSourceSessionId,
             sourceQuestionKey: followUpSourceQuestionKey,
-            sourceQuestionNumber: 1,
+            sourceQuestionNumber: followUpSourceQuestionNumber,
             sourceQuestionText: "What interests you about this role?",
             sourceCategory: "Screening",
             questionAttemptNumber: 2,

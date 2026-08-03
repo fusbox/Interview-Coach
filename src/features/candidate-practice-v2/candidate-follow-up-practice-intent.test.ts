@@ -119,6 +119,30 @@ describe("candidate follow-up practice intent", () => {
         });
     });
 
+    it("keeps the canonical Plan question number when the source is a follow-up round", () => {
+        const parsedIntent = parseCandidateFollowUpPracticeIntent({
+            intent: "coach-update-feedback-focus",
+            fromSession: "follow-up-session-1",
+            questionKey: "slot-1",
+        });
+        const sourceSession = createPracticeSession({
+            candidatePracticeSessionId: "follow-up-session-1",
+            candidateProfileId: "candidate-1",
+            answeredSlotIds: ["slot-1"],
+            analyzedSlotIds: ["slot-1"],
+            followUpSourceQuestionNumber: 4,
+        });
+
+        expect(resolveCandidateFollowUpPracticeIntent({
+            intent: parsedIntent,
+            candidateProfileId: "candidate-1",
+            practiceSessions: [sourceSession],
+        })).toMatchObject({
+            source: { questionKey: "slot-1", questionNumber: 4 },
+            display: { body: expect.stringContaining("question 4") },
+        });
+    });
+
     it("resolves a missing-evidence intent only when the planned question has no answer evidence", () => {
         const parsedIntent = parseCandidateFollowUpPracticeIntent({
             intent: "coach-update-missing-evidence",
@@ -347,13 +371,35 @@ function createPracticeSession({
     roleProfileId = null,
     answeredSlotIds = [],
     analyzedSlotIds = [],
+    followUpSourceQuestionNumber,
 }: {
     candidatePracticeSessionId: string;
     candidateProfileId: string;
     roleProfileId?: string | null;
     answeredSlotIds?: string[];
     analyzedSlotIds?: string[];
+    followUpSourceQuestionNumber?: number;
 }): CandidatePracticeSessionRecord {
+    const followUpPractice = followUpSourceQuestionNumber ? {
+        status: "candidate_follow_up_practice_session" as const,
+        sourceIntentId: "source-intent-1",
+        source: "practice_builder" as const,
+        sessionAttemptNumber: 2,
+        itemCount: 1,
+        items: [{
+            localSlotId: "slot-1",
+            localQuestionNumber: 1,
+            candidatePracticeSessionId: "source-session-1",
+            questionKey: "slot-4",
+            sourceCandidatePracticeSessionId: "source-session-1",
+            sourceQuestionKey: "slot-4",
+            sourceQuestionNumber: followUpSourceQuestionNumber,
+            sourceQuestionText: "What interests you about this Material Handler I role?",
+            sourceCategory: "Screening",
+            questionAttemptNumber: 2,
+            practiceKind: "practice_from_feedback" as const,
+        }],
+    } : undefined;
     const setupSnapshot = {
         targetRole: "Material Handler I",
         jobDescription: "Move materials safely.",
@@ -370,6 +416,7 @@ function createPracticeSession({
         questionCount: 3,
         resumeCaptureMode: "document_upload" as const,
         createdAt: "2026-07-11T12:00:00.000Z",
+        ...(followUpPractice ? { followUpPractice } : {}),
     };
     const questionPlanSnapshot = createCandidateQuestionPlan({
         interviewStage: "first_interview",

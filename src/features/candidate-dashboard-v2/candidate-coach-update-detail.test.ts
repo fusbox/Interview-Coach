@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 import type { CandidateCoachUpdateArtifactRecord } from "./candidate-coach-update-artifact";
 import { createCandidateCoachUpdateDetail } from "./candidate-coach-update-detail";
 
@@ -63,6 +64,15 @@ describe("candidate Coach Update detail contract", () => {
             },
         });
         expect(detail?.items[0]?.focusedPracticeAction.href).not.toMatch(/shipment|inventory|result/);
+    });
+
+    it("projects a canonical Plan number over an older round-local artifact number", () => {
+        const detail = createCandidateCoachUpdateDetail(createArtifact(), createFollowUpSourceSession(4));
+
+        expect(detail?.items[0]).toMatchObject({
+            questionNumber: 4,
+            focusedPracticeAction: { source: { questionNumber: 4 } },
+        });
     });
 
     it("returns null for an absent or noncompleted artifact", () => {
@@ -135,5 +145,79 @@ function createArtifact(): CandidateCoachUpdateArtifactRecord {
         completedAt: "2026-07-11T12:00:02.000Z",
         createdAt: "2026-07-11T12:00:01.000Z",
         updatedAt: "2026-07-11T12:00:02.000Z",
+    };
+}
+
+function createFollowUpSourceSession(sourceQuestionNumber: number): CandidatePracticeSessionRecord {
+    return {
+        candidatePracticeSessionId: "session-1",
+        candidateProfileId: "candidate-1",
+        roleProfileId: "10000000-0000-4000-8000-000000000001",
+        candidateLaunchSessionId: null,
+        status: "completed",
+        setupSnapshot: {
+            targetRole: "Material Handler I",
+            jobDescription: "Move materials safely.",
+            resumeText: null,
+            interviewStage: "first_interview",
+            questionCount: 1,
+            resumeCaptureMode: "none",
+            createdAt: "2026-07-11T12:00:00.000Z",
+            followUpPractice: {
+                status: "candidate_follow_up_practice_session",
+                sourceIntentId: "intent-1",
+                source: "practice_builder",
+                sessionAttemptNumber: 2,
+                itemCount: 1,
+                items: [{
+                    localSlotId: "slot-1",
+                    localQuestionNumber: 1,
+                    candidatePracticeSessionId: "source-session-1",
+                    questionKey: "slot-4",
+                    sourceCandidatePracticeSessionId: "source-session-1",
+                    sourceQuestionKey: "slot-4",
+                    sourceQuestionNumber,
+                    sourceQuestionText: "Tell me about a time you handled an inventory issue.",
+                    sourceCategory: "Behavioral",
+                    questionAttemptNumber: 2,
+                    practiceKind: "practice_from_feedback",
+                }],
+            },
+        } as CandidatePracticeSessionRecord["setupSnapshot"],
+        questionPlanSnapshot: {
+            interviewStage: "first_interview",
+            questionCount: 1,
+            categoryCounts: {
+                screening: 0,
+                behavioral: 1,
+                culture_fit: 0,
+                case_scenario: 0,
+                technical_role_specific: 0,
+            },
+            slots: [{
+                id: "slot-1",
+                index: 0,
+                category: "behavioral",
+                label: "Behavioral",
+                purpose: "Past examples.",
+            }],
+        },
+        questionWordingSnapshot: {
+            status: "questions_worded",
+            questions: [{
+                slotId: "slot-1",
+                index: 0,
+                category: "behavioral",
+                questionText: "Tell me about a time you handled an inventory issue.",
+            }],
+        },
+        questionWordingStatus: "worded",
+        progress: { status: "completed", currentQuestionIndex: 0 },
+        answerDrafts: {},
+        answerSubmissions: {},
+        answerIdempotencyRecords: {},
+        answerAnalysisSnapshots: {},
+        feedbackActionEvents: {},
+        completionSnapshot: null,
     };
 }

@@ -9,7 +9,6 @@ import {
     type CandidateDashboardV2ReadModel,
 } from "@/features/candidate-dashboard-v2/candidate-dashboard-read-model";
 import { createCandidateCoachUpdateArtifactRepository } from "@/features/candidate-dashboard-v2/candidate-coach-update-artifact-repository";
-import { CandidateDashboardAccountMenu } from "@/features/candidate-dashboard-v2/CandidateDashboardAccountMenu";
 import { CandidateDashboardCoachDeskExperience } from "@/features/candidate-dashboard-v2/CandidateDashboardCoachDeskExperience";
 import {
     CandidateNextRoundBuilderExperience,
@@ -28,6 +27,9 @@ import { parseAcceptedEvidenceFirstEvaluatorRun } from "@/features/evaluation-v2
 import { createCandidatePracticePlanBaselineRepository } from "@/features/candidate-setup-v2/candidate-practice-plan-baseline-repository";
 import type { CandidateNextRoundBuilderModel } from "@/features/candidate-practice-v2/candidate-next-round-builder";
 import { createCandidateNextRoundRuntime } from "@/features/candidate-practice-v2/candidate-next-round-runtime";
+import { CandidateAccountMenu } from "@/features/candidate-v2/CandidateAccountMenu";
+import { getCandidateInitials } from "@/features/candidate-v2/candidate-identity";
+import { CandidateThemeSwitcher } from "@/features/candidate-v2/CandidateThemeSwitcher";
 
 type CandidateDashboardPageProps = {
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -166,11 +168,12 @@ function CandidateDashboardShellHeader({
                         className="candidate-dashboard-brand-mark"
                         priority
                     />
+                    <CandidateThemeSwitcher />
                 </div>
 
                 <div className="candidate-dashboard-control-row">
                     {showAccountLogout ? (
-                        <CandidateDashboardAccountMenu
+                        <CandidateAccountMenu
                             initials={getCandidateInitials(displayName, email)}
                             identityLabel={displayName || email || "candidate"}
                         />
@@ -279,21 +282,6 @@ function formatTargetInterviewProgress(targetInterview: CandidateDashboardV2Read
         : `${targetInterview.completedRoundCount} completed`;
     const answerLabel = `${targetInterview.answeredQuestionCount} answered`;
     return `${roundLabel} - ${answerLabel}`;
-}
-
-function getCandidateInitials(displayName?: string | null, email?: string | null) {
-    const source = displayName?.trim() || email?.trim() || "Candidate";
-    const nameParts = source
-        .replace(/@.*/, "")
-        .split(/\s+/)
-        .map((part) => part.replace(/[^a-zA-Z0-9]/g, ""))
-        .filter(Boolean);
-
-    if (nameParts.length >= 2) {
-        return `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase();
-    }
-
-    return (nameParts[0] || "C").slice(0, 2).toUpperCase();
 }
 
 function CandidateDashboardEmptyState() {

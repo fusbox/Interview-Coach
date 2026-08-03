@@ -7,7 +7,10 @@ import {
 } from "@/features/candidate-session-v2/candidate-completed-round-read-model";
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 import type { CandidateAnswerAttemptRecord } from "@/features/candidate-session-v2/candidate-answer-history";
-import type { CandidatePracticePlanBaselineRecord } from "@/features/candidate-setup-v2/candidate-practice-plan-baseline-repository";
+import {
+    createCandidateBaselineAwarePracticeSessions,
+    type CandidatePracticePlanBaselineRecord,
+} from "@/features/candidate-setup-v2/candidate-practice-plan-baseline-repository";
 import {
     createCandidateCoachPlanReference,
     type CandidateCoachPlanReference,
@@ -235,21 +238,34 @@ export function createCandidateDashboardV2ReadModel({
         })
         : null;
     const latestCoachUpdate = createDashboardCoachUpdateFromArtifact(latestCoachUpdateArtifact, latestCompletedRound);
-    const coachUpdateDetail = createCandidateCoachUpdateDetail(latestCoachUpdateArtifact);
+    const latestCoachUpdateSourceSession = latestCoachUpdateArtifact
+        ? scopedCandidateSessions.find((session) => (
+            session.candidatePracticeSessionId === latestCoachUpdateArtifact.sourceCandidatePracticeSessionId
+        )) ?? null
+        : null;
+    const coachUpdateDetail = createCandidateCoachUpdateDetail(
+        latestCoachUpdateArtifact,
+        latestCoachUpdateSourceSession,
+    );
     const resolvedSelectedRoleProfileId = selectedRoleProfileIdFromKey(selectedContextKey);
+    const practicePlanBaseline = practicePlanBaselines.find((baseline) => (
+        baseline.candidateProfileId === candidateProfileId
+        && baseline.roleProfileId === resolvedSelectedRoleProfileId
+    )) ?? null;
+    const baselineAwareScopedCandidateSessions = createCandidateBaselineAwarePracticeSessions({
+        practiceSessions: scopedCandidateSessions,
+        baseline: practicePlanBaseline,
+    });
     const coachPlan = createCandidateCoachPlanReference({
         candidateProfileId,
         roleProfileId: resolvedSelectedRoleProfileId,
-        practiceSessions: scopedCandidateSessions,
-        practicePlanBaseline: practicePlanBaselines.find((baseline) => (
-            baseline.candidateProfileId === candidateProfileId
-            && baseline.roleProfileId === resolvedSelectedRoleProfileId
-        )) ?? null,
+        practiceSessions: baselineAwareScopedCandidateSessions,
+        practicePlanBaseline,
     });
     const questionPreparedness = answerAttempts && acceptedEvaluationRuns
         ? createCandidateQuestionPreparednessProgress({
             candidateProfileId,
-            practiceSessions: scopedCandidateSessions,
+            practiceSessions: baselineAwareScopedCandidateSessions,
             coachPlan,
             answerAttempts,
             acceptedRuns: acceptedEvaluationRuns,

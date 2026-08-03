@@ -23,6 +23,7 @@ import { CutoutSurface } from "@/components/ui/cutout-surface";
 import { IconButton } from "@/components/ui/icon-button";
 import { Surface, type SurfaceState } from "@/components/ui/surface";
 import { InterviewCoachBrandMark } from "@/features/brand-v2/InterviewCoachBrandMark";
+import { CandidateThemeSwitcher } from "@/features/candidate-v2/CandidateThemeSwitcher";
 
 import { PostAnswerCoachingProgress } from "./PostAnswerCoachingProgress";
 import { QuestionAssistanceDisclosure } from "./QuestionAssistanceDisclosure";
@@ -184,6 +185,7 @@ export function SharedLivePracticeShell({
                         className={styles.brandMark}
                         priority
                     />
+                    <CandidateThemeSwitcher />
                 </header>
                 <Surface
                     as="section"
@@ -258,6 +260,7 @@ export function SharedLivePracticeShell({
                             className={styles.brandMark}
                             priority
                         />
+                        <CandidateThemeSwitcher />
                     </div>
                     <div className={styles.headerTop}>
                         <div className={styles.identity}>

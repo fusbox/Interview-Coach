@@ -1,6 +1,7 @@
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 import type { CandidateQuestionPlanCategory } from "@/features/candidate-session-v2/candidate-question-plan";
 import type { CandidateSetupResumeArtifactReference } from "@/features/candidate-setup-v2/candidate-setup-contract";
+import { resolveCandidateFollowUpPlanQuestionNumber } from "./candidate-follow-up-session-creation";
 
 export type CandidateFollowUpPracticeIntentKind =
     | "practice_from_feedback"
@@ -200,6 +201,10 @@ export function resolveCandidateFollowUpPracticeIntent({
     if (intent.kind === "practice_missing_evidence" && hasAnswer) {
         return null;
     }
+    const planQuestionNumber = resolveCandidateFollowUpPlanQuestionNumber({
+        session: sourceSession,
+        questionKey: sourceQuestion.slotId,
+    }) ?? sourceQuestion.index + 1;
 
     return {
         status: "candidate_follow_up_practice_intent_resolved",
@@ -211,7 +216,7 @@ export function resolveCandidateFollowUpPracticeIntent({
             questionKey: sourceQuestion.slotId,
             targetInterviewId,
             targetRole: sourceSession.setupSnapshot.targetRole,
-            questionNumber: sourceQuestion.index + 1,
+            questionNumber: planQuestionNumber,
             category: labelForCategory(sourceQuestion.category),
             questionText: sourceQuestion.questionText,
             evidenceStatus: intent.kind === "practice_from_feedback"
@@ -226,7 +231,7 @@ export function resolveCandidateFollowUpPracticeIntent({
             resumeIncluded: Boolean(sourceSession.setupSnapshot.resumeText),
             resumeArtifact: sourceSession.setupSnapshot.resumeArtifact ?? null,
         },
-        display: getResolvedIntentDisplay(intent.kind, sourceSession.setupSnapshot.targetRole, sourceQuestion.index + 1),
+        display: getResolvedIntentDisplay(intent.kind, sourceSession.setupSnapshot.targetRole, planQuestionNumber),
     };
 }
 

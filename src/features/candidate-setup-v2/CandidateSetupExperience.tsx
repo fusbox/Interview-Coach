@@ -31,9 +31,11 @@ import {
     type CandidateSetupResumeArtifactReference,
 } from "./candidate-setup-contract";
 import { CandidateBrandHeader } from "@/features/candidate-v2/CandidateBrandHeader";
+import { CandidateAccountMenu } from "@/features/candidate-v2/CandidateAccountMenu";
 import { CandidateCoachAvatar } from "@/features/candidate-v2/CandidateCoachAvatar";
 import { CandidatePrimaryNavigation } from "@/features/candidate-v2/CandidatePrimaryNavigation";
-import { CandidateLogoutButton } from "@/features/candidate-auth-v2/CandidateLogoutButton";
+import { getCandidateInitials } from "@/features/candidate-v2/candidate-identity";
+import { CandidateThemeSwitcher } from "@/features/candidate-v2/CandidateThemeSwitcher";
 import { candidateV2Classes } from "@/features/candidate-v2/design-system";
 import type { CandidateSetupSessionCreationResult } from "./candidate-setup-session-creation";
 import type { CandidateExistingPrepContextSummary } from "./candidate-setup-prep-context-repository";
@@ -86,6 +88,10 @@ type CandidateSetupExperienceProps = {
     draftStore?: CandidateSetupDraftStore;
     trustedSetupContext?: CandidateTrustedSetupContext | null;
     initialResumeArtifact?: CandidateResumeReviewArtifact | null;
+    candidateIdentity?: {
+        displayName?: string | null;
+        email?: string | null;
+    };
     showAccountLogout?: boolean;
 };
 
@@ -133,6 +139,7 @@ export function CandidateSetupExperience({
     draftStore,
     trustedSetupContext = null,
     initialResumeArtifact = null,
+    candidateIdentity = {},
     showAccountLogout = false,
 }: CandidateSetupExperienceProps = {}) {
     const [browserDraftStore, setBrowserDraftStore] = useState<CandidateSetupDraftStore | null>(null);
@@ -929,13 +936,23 @@ export function CandidateSetupExperience({
     return (
         <main className="setup-page">
             <CandidateBrandHeader
+                brandActions={<CandidateThemeSwitcher />}
+                controls={showAccountLogout ? (
+                    <CandidateAccountMenu
+                        initials={getCandidateInitials(candidateIdentity.displayName, candidateIdentity.email)}
+                        identityLabel={candidateIdentity.displayName || candidateIdentity.email || "candidate"}
+                    />
+                ) : (
+                    <div
+                        className="candidate-dashboard-identity"
+                        role="img"
+                        aria-label={`Signed in as ${candidateIdentity.displayName || candidateIdentity.email || "candidate"}`}
+                    >
+                        {getCandidateInitials(candidateIdentity.displayName, candidateIdentity.email)}
+                    </div>
+                )}
                 actions={(
-                    <>
-                        <CandidatePrimaryNavigation activeDestination="setup" />
-                        {showAccountLogout ? (
-                            <CandidateLogoutButton className="candidate-header-logout" iconOnly />
-                        ) : null}
-                    </>
+                    <CandidatePrimaryNavigation activeDestination="setup" />
                 )}
                 frame="form-flow"
             />

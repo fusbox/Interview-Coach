@@ -13,7 +13,7 @@ describe("CandidateCoachUpdateDialog", () => {
         const currentSlide = within(dialog).getByRole("group", { name: "Question feedback 1 of 2" });
         const evidence = currentSlide.querySelector(".candidate-answer-review__evidence");
 
-        expect(within(currentSlide).getByText(/Question 1 .* Behavioral/)).toBeInTheDocument();
+        expect(within(currentSlide).getByText(/Question 4 .* Behavioral/)).toBeInTheDocument();
         expect(within(currentSlide).getByRole("heading", {
             name: "Tell me about a time you resolved a high-risk customer issue.",
         })).toBeInTheDocument();
@@ -23,9 +23,9 @@ describe("CandidateCoachUpdateDialog", () => {
         expect(within(evidence as HTMLElement).queryByText("What I noticed")).not.toBeInTheDocument();
         expect(within(currentSlide).getByText("What I noticed")).toBeInTheDocument();
         expect(within(currentSlide).getByText("Try next")).toBeInTheDocument();
-        expect(within(currentSlide).getByLabelText("What to try next for question 1"))
+        expect(within(currentSlide).getByLabelText("What to try next for question 4"))
             .toHaveClass("candidate-answer-review__next");
-        expect(within(currentSlide).getByLabelText("What to try next for question 1"))
+        expect(within(currentSlide).getByLabelText("What to try next for question 4"))
             .not.toHaveClass("surface-orange");
         expect(within(currentSlide).getByText("Name the measurable customer outcome.")).toBeInTheDocument();
     });
@@ -34,14 +34,14 @@ describe("CandidateCoachUpdateDialog", () => {
         render(<CandidateCoachUpdateDialog detail={createDetail()} onClose={() => undefined} />);
 
         const dialog = screen.getByRole("dialog", { name: "Let's review your latest practice." });
-        const firstTab = within(dialog).getByRole("button", { name: "Current feedback: question 1" });
+        const firstTab = within(dialog).getByRole("button", { name: "Current feedback: question 4" });
         firstTab.focus();
         fireEvent.keyDown(firstTab, { key: "ArrowRight" });
 
         await waitFor(() => {
-            expect(within(dialog).getByRole("button", { name: "Current feedback: question 2" })).toHaveFocus();
+            expect(within(dialog).getByRole("button", { name: "Current feedback: question 1" })).toHaveFocus();
         });
-        expect(within(dialog).getByRole("button", { name: "Current feedback: question 2" }))
+        expect(within(dialog).getByRole("button", { name: "Current feedback: question 1" }))
             .toHaveAttribute("aria-current", "true");
         const actions = within(dialog).getAllByRole("button", { name: "Practice this now", hidden: true });
         expect(actions[0]).toHaveAttribute("tabindex", "-1");
@@ -97,7 +97,7 @@ function createDetail(): CandidateCoachUpdateDetail {
         items: [
             createItem({
                 questionKey: "slot-1",
-                questionNumber: 1,
+                questionNumber: 4,
                 category: "Behavioral",
                 questionText: "Tell me about a time you resolved a high-risk customer issue.",
                 answerText: "I brought support and engineering together, clarified the tradeoff, and shipped the fix.",
@@ -106,7 +106,7 @@ function createDetail(): CandidateCoachUpdateDetail {
             }),
             createItem({
                 questionKey: "slot-2",
-                questionNumber: 2,
+                questionNumber: 1,
                 category: "Situational",
                 questionText: "How would you communicate a service disruption to key accounts?",
                 answerText: "I would explain what happened, what customers can expect, and when I will update them.",

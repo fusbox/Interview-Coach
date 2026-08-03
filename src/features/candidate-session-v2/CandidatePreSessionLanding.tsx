@@ -9,6 +9,7 @@ import {
     type SessionQuestionAudioLifecycle,
 } from "@/features/interview-session-v2/session-question-audio-contract";
 import { CandidateBrandHeader } from "@/features/candidate-v2/CandidateBrandHeader";
+import { CandidateThemeSwitcher } from "@/features/candidate-v2/CandidateThemeSwitcher";
 import {
     candidateQuestionPlanCategoryDetails,
     type CandidateQuestionPlanCategory,
@@ -126,7 +127,7 @@ export function CandidatePreSessionLanding({
             className={`${styles.page} candidate-app-shell`}
             aria-hidden={isPreparing || undefined}
         >
-            <CandidateBrandHeader frame="focused" />
+            <CandidateBrandHeader actions={<CandidateThemeSwitcher />} frame="focused" />
             <div className={`${styles.layout} app-grid app-grid--focused`}>
                 <section
                     className={`${styles.spotlight} surface-spotlight`}

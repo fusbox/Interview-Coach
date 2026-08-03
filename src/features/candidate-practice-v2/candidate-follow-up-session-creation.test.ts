@@ -4,6 +4,7 @@ import type { CandidatePracticeSessionRecord } from "@/features/candidate-sessio
 import { hydrateCandidateQuestionAssistance } from "@/features/candidate-session-v2/candidate-question-assistance";
 import {
     type CandidateFollowUpPracticeSessionMetadata,
+    type CandidateFollowUpQuestionPlanSlot,
     type CandidateFollowUpQuestionWordingResult,
     createCandidateFollowUpSessionInputFromIntent,
 } from "./candidate-follow-up-session-creation";
@@ -179,6 +180,7 @@ describe("candidate follow-up session creation", () => {
                 localSlotId: "slot-1",
                 sourceCandidatePracticeSessionId: "source-session-1",
                 sourceQuestionKey: "slot-1",
+                sourceQuestionNumber: 4,
                 questionAttemptNumber: 2,
             }],
         });
@@ -200,8 +202,49 @@ describe("candidate follow-up session creation", () => {
                 sourceQuestionKey: "slot-1",
                 rootSourceCandidatePracticeSessionId: "source-session-1",
                 rootSourceQuestionKey: "slot-1",
+                sourceQuestionNumber: 4,
             },
         });
+    });
+
+    it("preserves follow-up selection order instead of numerically sorting canonical Plan numbers", () => {
+        const originalSession = createSourceSession({
+            candidatePracticeSessionId: "source-session-1",
+            answeredSlotIds: ["slot-1", "slot-2"],
+        });
+        const priorFollowUp = createSourceSession({
+            candidatePracticeSessionId: "follow-up-session-1",
+            answeredSlotIds: ["slot-1", "slot-2"],
+            followUpItems: [
+                {
+                    localSlotId: "slot-1",
+                    sourceCandidatePracticeSessionId: "source-session-1",
+                    sourceQuestionKey: "slot-1",
+                    sourceQuestionNumber: 4,
+                    questionAttemptNumber: 2,
+                },
+                {
+                    localSlotId: "slot-2",
+                    sourceCandidatePracticeSessionId: "source-session-1",
+                    sourceQuestionKey: "slot-2",
+                    sourceQuestionNumber: 1,
+                    questionAttemptNumber: 2,
+                },
+            ],
+        });
+
+        const input = createCandidateFollowUpSessionInputFromIntent({
+            candidateProfileId: "candidate-1",
+            intent: createPracticeIntentRecord({
+                itemKeys: ["slot-1", "slot-2"],
+                sourceSessionId: "follow-up-session-1",
+            }),
+            existingPracticeSessions: [originalSession, priorFollowUp],
+            now: new Date("2026-07-12T17:00:00.000Z"),
+        });
+
+        const slots = input?.questionPlanSnapshot.slots as CandidateFollowUpQuestionPlanSlot[] | undefined;
+        expect(slots?.map((slot) => slot.sourceQuestion.sourceQuestionNumber)).toEqual([4, 1]);
     });
 
     it("fails closed when the source session for inherited setup context is unavailable", () => {
@@ -318,6 +361,7 @@ function createSourceSession({
         localSlotId: string;
         sourceCandidatePracticeSessionId: string;
         sourceQuestionKey: string;
+        sourceQuestionNumber?: number;
         questionAttemptNumber: number;
     }>;
 }): CandidatePracticeSessionRecord {
@@ -328,11 +372,20 @@ function createSourceSession({
             source: "practice_builder",
             sessionAttemptNumber: 2,
             itemCount: followUpItems.length,
-            items: followUpItems.map((item) => ({
+            items: followUpItems.map((item, index) => ({
                 localSlotId: item.localSlotId,
+                localQuestionNumber: index + 1,
+                candidatePracticeSessionId: item.sourceCandidatePracticeSessionId,
+                questionKey: item.sourceQuestionKey,
                 sourceCandidatePracticeSessionId: item.sourceCandidatePracticeSessionId,
                 sourceQuestionKey: item.sourceQuestionKey,
+                sourceQuestionNumber: item.sourceQuestionNumber ?? index + 1,
+                sourceQuestionText: item.localSlotId === "slot-1"
+                    ? "What interests you about this Material Handler I role?"
+                    : "Tell me about a time you handled an inventory issue.",
+                sourceCategory: item.localSlotId === "slot-1" ? "Screening" : "Behavioral",
                 questionAttemptNumber: item.questionAttemptNumber,
+                practiceKind: "practice_from_feedback" as const,
             })),
         }
         : undefined;

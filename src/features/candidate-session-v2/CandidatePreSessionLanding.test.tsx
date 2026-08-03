@@ -31,6 +31,7 @@ describe("candidate practice transition copy", () => {
         />);
 
         expect(screen.getByText("resume.pdf")).toHaveAttribute("title", "resume.pdf");
+        expect(screen.getByRole("button", { name: /Switch to (dark|light) theme/i })).toBeInTheDocument();
         expect(screen.queryByText("Included")).not.toBeInTheDocument();
     });
 

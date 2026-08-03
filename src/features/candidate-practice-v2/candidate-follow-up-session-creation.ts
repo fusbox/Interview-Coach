@@ -138,6 +138,10 @@ export function createCandidateFollowUpSessionInputFromIntent({
         : {};
     const followUpItems = intent.items.map((item, index) => {
         const localSlotId = `slot-${index + 1}`;
+        const sourceQuestionNumber = resolveCandidateFollowUpPlanQuestionNumber({
+            session: sourceSessions[index]!,
+            questionKey: item.source.questionKey,
+        }) ?? item.source.questionNumber;
         const rootSource = resolveCandidateFollowUpQuestionRoot({
             candidatePracticeSessionId: item.source.candidatePracticeSessionId,
             questionKey: item.source.questionKey,
@@ -155,7 +159,7 @@ export function createCandidateFollowUpSessionInputFromIntent({
             sourceQuestionKey: item.source.questionKey,
             rootSourceCandidatePracticeSessionId: rootSource.candidatePracticeSessionId,
             rootSourceQuestionKey: rootSource.questionKey,
-            sourceQuestionNumber: item.source.questionNumber,
+            sourceQuestionNumber,
             sourceQuestionText: item.source.questionText,
             sourceCategory: item.source.category,
             questionAttemptNumber: countPriorQuestionAttempts(item, existingPracticeSessions) + 1,
@@ -445,6 +449,28 @@ export function readCandidateFollowUpPracticeSessionMetadata(
     }
 
     return followUpPractice as CandidateFollowUpPracticeSessionMetadata;
+}
+
+export function resolveCandidateFollowUpPlanQuestionNumber({
+    session,
+    questionKey,
+}: {
+    session: CandidatePracticeSessionRecord;
+    questionKey: string;
+}): number | null {
+    const question = session.questionWordingSnapshot?.questions.find((item) => item.slotId === questionKey);
+    if (!question) {
+        return null;
+    }
+
+    const followUpPractice = readCandidateFollowUpPracticeSessionMetadata(session.setupSnapshot);
+    const sourceQuestionNumber = followUpPractice?.items.find((item) => (
+        item.localSlotId === questionKey
+    ))?.sourceQuestionNumber;
+
+    return Number.isInteger(sourceQuestionNumber) && Number(sourceQuestionNumber) > 0
+        ? Number(sourceQuestionNumber)
+        : question.index + 1;
 }
 
 function normalizeCategory(category: string): CandidateQuestionPlanCategory {

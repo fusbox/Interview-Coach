@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 
 import { CandidatePracticeEntryTransitionOverlay } from "@/features/candidate-session-v2/CandidatePreSessionLanding";
 import { CandidateBrandHeader } from "@/features/candidate-v2/CandidateBrandHeader";
+import { CandidateThemeSwitcher } from "@/features/candidate-v2/CandidateThemeSwitcher";
 
 export default function CandidateSessionLoading() {
     const searchParams = useSearchParams();
@@ -14,7 +15,7 @@ export default function CandidateSessionLoading() {
 
     return (
         <main className="candidate-route-state" aria-busy="true" aria-label="Loading Interview Coach">
-            <CandidateBrandHeader />
+            <CandidateBrandHeader actions={<CandidateThemeSwitcher />} />
             <section className="candidate-route-state__content app-grid">
                 <div className="candidate-route-state__heading">
                     <span className="candidate-route-state__skeleton candidate-route-state__skeleton--label" />

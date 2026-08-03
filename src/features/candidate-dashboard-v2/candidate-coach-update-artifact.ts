@@ -10,6 +10,7 @@ import type {
 } from "@/features/candidate-session-v2/candidate-answer-history";
 import { createCandidateAnswerCoachingFacts } from "@/features/candidate-session-v2/candidate-coaching-facts";
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
+import { resolveCandidateFollowUpPlanQuestionNumber } from "@/features/candidate-practice-v2/candidate-follow-up-session-creation";
 import { parseAcceptedEvidenceFirstEvaluatorRun } from "@/features/evaluation-v2/evidence-first-evaluator-runtime";
 import { findProhibitedCandidateJudgments } from "@/features/evaluation-v2/candidate-generated-language-policy";
 
@@ -219,7 +220,10 @@ export function createCandidateCoachUpdateSynthesisInput({
 
         questions.push({
             questionKey: question.slotId,
-            questionNumber: question.index + 1,
+            questionNumber: resolveCandidateFollowUpPlanQuestionNumber({
+                session: sourceSession,
+                questionKey: question.slotId,
+            }) ?? question.index + 1,
             category: labelForCategory(question.category),
             questionText: question.questionText,
             answerAttempt: latestAttempt,

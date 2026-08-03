@@ -33,6 +33,8 @@
     display: flex;
     min-height: var(--space-9);
     align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
 }
 
 .brandMark {
@@ -481,6 +483,8 @@
     width: min(100%, var(--grid-form-flow-max));
     min-height: var(--layout-header-height);
     align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
 }
 
 .missing {

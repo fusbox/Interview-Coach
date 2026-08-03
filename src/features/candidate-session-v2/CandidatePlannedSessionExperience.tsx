@@ -51,6 +51,8 @@ import type { SessionAnswerMutationPhase } from "@/features/interview-session-v2
 import { useSessionQuestionAudio } from "@/features/interview-session-v2/session-question-audio-browser";
 import { toSessionQuestionAudioTarget } from "@/features/interview-session-v2/session-question-audio-contract";
 import { isVoiceTranscriptDraftResolvedByAnswer } from "@/features/interview-session-v2/voice-answer-transcription";
+import { CandidateBrandHeader } from "@/features/candidate-v2/CandidateBrandHeader";
+import { CandidateThemeSwitcher } from "@/features/candidate-v2/CandidateThemeSwitcher";
 
 type CandidatePlannedSessionExperienceProps = {
     sessionId: string;
@@ -435,31 +437,37 @@ export function CandidatePlannedSessionExperience({
 
     if (!hasCheckedStorage) {
         return (
-            <main className="planned-session-page">
-                <section className="planned-session-card" aria-live="polite">
-                    <p className="type-eyebrow">Practice session</p>
-                    <h1>Loading your practice plan.</h1>
-                </section>
-            </main>
+            <>
+                <CandidateBrandHeader actions={<CandidateThemeSwitcher />} frame="focused" />
+                <main className="planned-session-page">
+                    <section className="planned-session-card" aria-live="polite">
+                        <p className="type-eyebrow">Practice session</p>
+                        <h1>Loading your practice plan.</h1>
+                    </section>
+                </main>
+            </>
         );
     }
 
     if (!session) {
         return (
-            <main className="planned-session-page">
-                <section className="planned-session-card planned-session-card--missing">
-                    <p className="type-eyebrow">Practice session</p>
-                    <h1>I need the setup details for this practice round.</h1>
-                    <p>
-                        Start from Practice Setup again so I can prepare the round from the role, job description,
-                        interview stage, and question count.
-                    </p>
-                    <a className="planned-session-action" href="/candidate/setup">
-                        <ArrowLeft size={16} aria-hidden="true" />
-                        Back to setup
-                    </a>
-                </section>
-            </main>
+            <>
+                <CandidateBrandHeader actions={<CandidateThemeSwitcher />} frame="focused" />
+                <main className="planned-session-page">
+                    <section className="planned-session-card planned-session-card--missing">
+                        <p className="type-eyebrow">Practice session</p>
+                        <h1>I need the setup details for this practice round.</h1>
+                        <p>
+                            Start from Practice Setup again so I can prepare the round from the role, job description,
+                            interview stage, and question count.
+                        </p>
+                        <a className="planned-session-action" href="/candidate/setup">
+                            <ArrowLeft size={16} aria-hidden="true" />
+                            Back to setup
+                        </a>
+                    </section>
+                </main>
+            </>
         );
     }
 

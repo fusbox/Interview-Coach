@@ -60,6 +60,7 @@ describe("SharedLivePracticeShell", () => {
             "src",
             expect.stringContaining(interviewCoachBrand.logoSrc.slice(1)),
         );
+        expect(screen.getByRole("button", { name: /Switch to dark theme/i })).toBeInTheDocument();
         expect(screen.getByText("Material Handler")).toBeInTheDocument();
         expect(screen.getByText("Question 2 of 3")).toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "Question 2" })).toBeInTheDocument();

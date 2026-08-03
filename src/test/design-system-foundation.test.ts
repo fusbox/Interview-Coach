@@ -70,4 +70,14 @@ describe("global design-system foundation", () => {
             /\.candidate-dashboard-page\s*\{[\s\S]*?background:\s*var\(--dashboard-canvas-background\);/,
         );
     });
+
+    it("keeps spotlight actions white with primary-blue content after application overrides", () => {
+        const utilities = readFileSync(join(tokenDirectory, "utilities.css"), "utf8");
+        const applicationStyles = readFileSync(join(process.cwd(), "src", "index.css"), "utf8");
+
+        expect(utilities).toMatch(
+            /\.on-color-action\s*\{[\s\S]*?background:\s*rgb\(var\(--solid-foreground\)\);[\s\S]*?color:\s*rgb\(var\(--primary-solid\)\);/,
+        );
+        expect(applicationStyles).toContain(".candidate-dashboard-stage__primary:not(.on-color-action)");
+    });
 });

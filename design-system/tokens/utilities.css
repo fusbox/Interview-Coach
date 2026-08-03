@@ -163,7 +163,7 @@
 /* Solid contrast action placed directly on a saturated surface. */
 .on-color-action {
     border-color: transparent;
-    background: rgb(255 255 255);
+    background: rgb(var(--solid-foreground));
     color: rgb(var(--primary-solid));
     box-shadow: var(--elevation-cta);
     transition:
@@ -180,7 +180,7 @@
 }
 
 .on-color-action:focus-visible {
-    outline: 3px solid rgb(255 255 255 / 0.48);
+    outline: 3px solid rgb(var(--solid-foreground) / 0.48);
     outline-offset: 3px;
 }
 

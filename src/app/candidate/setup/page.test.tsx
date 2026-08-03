@@ -44,6 +44,8 @@ it("renders the candidate setup inputs with required markers", () => {
     expect(screen.getByRole("button", { name: "7" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "10" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "4" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Switch to dark theme/i })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Signed in as candidate" })).toHaveTextContent("CA");
 
     const candidateNavigation = screen.getByRole("navigation", { name: "Candidate" });
     expect(within(candidateNavigation).getByRole("link", { name: "Dashboard" })).toHaveAttribute(
@@ -89,6 +91,28 @@ it("renders the candidate setup inputs with required markers", () => {
         "Selected",
     ]);
     expect(within(round).getByRole("button", { name: /start practice/i })).toHaveClass("on-color-action");
+});
+
+it("places app-account logout inside the setup avatar instead of the navigation dock", () => {
+    render(<CandidateSetupExperience
+        candidateIdentity={{ displayName: "Candidate One", email: "candidate.one@example.com" }}
+        showAccountLogout
+    />);
+
+    const accountTrigger = screen.getByRole("button", { name: "Open account menu for Candidate One" });
+    const candidateNavigation = screen.getByRole("navigation", { name: "Candidate" });
+
+    expect(accountTrigger).toHaveTextContent("CO");
+    expect(accountTrigger.closest(".candidate-brand-header__control-row")).not.toBeNull();
+    expect(candidateNavigation.closest(".candidate-brand-header__actions")).not.toBeNull();
+    expect(screen.queryByTitle("Sign out")).not.toBeInTheDocument();
+
+    fireEvent.click(accountTrigger);
+
+    expect(screen.getByRole("button", { name: "Sign out" })).toBeVisible();
+    expect(within(screen.getByRole("group", { name: "Account options" })).getAllByRole("button")[0]).toHaveAccessibleName(
+        "Sign out",
+    );
 });
 
 it("presents resume preparation as an action, then explains processing and review", async () => {
