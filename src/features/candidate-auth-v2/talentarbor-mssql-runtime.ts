@@ -49,41 +49,6 @@ from dbo.CandidateMaster as cm
 where cm.CandidateID = @candidateId;
 `;
 
-const OWNED_JOB_CONTEXT_QUERY = `
-select top (2)
-  cm.CandidateID as candidateId,
-  cast(null as int) as userId,
-  cm.CompanyID as companyId,
-  nullif(ltrim(rtrim(cm.Email)), '') as email,
-  nullif(ltrim(rtrim(concat(
-    nullif(ltrim(rtrim(cm.FirstName)), ''),
-    case
-      when nullif(ltrim(rtrim(cm.FirstName)), '') is not null
-       and nullif(ltrim(rtrim(cm.LastName)), '') is not null then ' '
-      else ''
-    end,
-    nullif(ltrim(rtrim(cm.LastName)), '')
-  ))), '') as displayName,
-  jc.JobCollectionID as jobCollectionId,
-  jc.JobTitle as jobTitle,
-  jc.JobDescription as jobDescription,
-  jc.Client as client,
-  jc.Location as location,
-  jc.IsActive as isActive,
-  jc.IsExpired as isExpired,
-  jc.ExpirationDate as expirationDate
-from dbo.CandidateMaster as cm
-inner join dbo.JobCollection as jc
-  on jc.JobCollectionID = @jobCollectionId
-where cm.CandidateID = @candidateId
-  and exists (
-    select 1
-    from dbo.CandidateJobCollectionTxn as cjt
-    where cjt.CandidateID = cm.CandidateID
-      and cjt.JobCollectionID = jc.JobCollectionID
-  );
-`;
-
 export type TalentArborMssqlRuntimeEnv = Record<string, string | undefined>;
 
 export type TalentArborMssqlConfig = {
@@ -204,13 +169,32 @@ export function createTalentArborMssqlReader({
             const result = await request.query<Record<string, unknown>>(CANDIDATE_IDENTITY_QUERY);
             return result.recordset;
         },
-        async findOwnedJobContext(candidateId, jobCollectionId) {
+        async findJobCollectionById(candidateId, jobCollectionId) {
             const pool = await getPool(config);
             const request = pool.request();
-            request.input("candidateId", sql.Int, candidateId);
-            request.input("jobCollectionId", sql.Int, jobCollectionId);
-            const result = await request.query<Record<string, unknown>>(OWNED_JOB_CONTEXT_QUERY);
-            return result.recordset;
+            request.input("JobCollectionID", sql.Int, jobCollectionId);
+            request.input("CandidateID", sql.Int, candidateId);
+            const result = await request.execute<Record<string, unknown>>("dbo.Usp_SC_GET_JobCollection_ById");
+            return limitRecordset(result.recordset);
+        },
+        async findRequirementById({ candidateId, requirementId, clientId, talentChannelId }) {
+            const pool = await getPool(config);
+            const request = pool.request();
+            request.input("RequirementID", sql.Int, requirementId);
+            request.input("ClientID", sql.Int, clientId);
+            request.input("CandidateID", sql.Int, candidateId);
+            request.input("TalentChannelID", sql.Int, talentChannelId);
+            const result = await request.execute<Record<string, unknown>>(
+                "dbo.Usp_SC_JobSeeker_Get_JobRequirementDetails",
+            );
+            return limitRecordset(result.recordset);
+        },
+        async findCandidateResumeHtml(candidateId) {
+            const pool = await getPool(config);
+            const request = pool.request();
+            request.input("CandidateID", sql.Int, candidateId);
+            const result = await request.execute<Record<string, unknown>>("dbo.USP_AI_Get_CandidateHTMLResume");
+            return limitRecordset(result.recordset);
         },
     };
 }
@@ -269,6 +253,13 @@ function toMssqlConfig(config: TalentArborMssqlConfig): MssqlConfig {
 
 function fingerprintConfig(config: TalentArborMssqlConfig) {
     return createHash("sha256").update(JSON.stringify(config)).digest("hex");
+}
+
+function limitRecordset(rows: Array<Record<string, unknown>> | undefined) {
+    if (!rows || rows.length === 0) {
+        return [];
+    }
+    return rows.slice(0, 2);
 }
 
 function readBoundedInteger(

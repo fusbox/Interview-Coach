@@ -109,11 +109,14 @@ describe("production host launch runtime assembly", () => {
                 rangamWorksId: null,
             },
             launchContextHint: {
-                candidateId: "12345",
-                jobCollectionId: "555",
-                hostDomain: "talentarbor.com",
-                sourceSurface: "TA_JOB_SEARCH",
-            },
+            candidateId: "12345",
+            jobCollectionId: "555",
+            requirementId: null,
+            talentChannelId: null,
+            clientId: null,
+            hostDomain: "talentarbor.com",
+            sourceSurface: "TA_JOB_SEARCH",
+        },
         }, {
             launchTokenExpiresAt: "2026-07-08T17:02:00.000Z",
             issuedAt: "2026-07-08T17:00:00.000Z",
@@ -127,6 +130,9 @@ describe("production host launch runtime assembly", () => {
         expect(lookupLaunchContext).toHaveBeenCalledWith({
             candidateId: "12345",
             jobCollectionId: "555",
+            requirementId: null,
+            talentChannelId: null,
+            clientId: null,
             hostDomain: "talentarbor.com",
             sourceSurface: "TA_JOB_SEARCH",
         });

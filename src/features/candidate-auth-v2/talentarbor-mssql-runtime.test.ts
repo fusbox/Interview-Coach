@@ -87,13 +87,17 @@ describe("TalentArbor MSSQL runtime", () => {
         })).toEqual({ ok: false, reason: "missing_configuration" });
     });
 
-    it("binds numeric identifiers as SQL parameters and selects only approved tables and columns", async () => {
+    it("binds numeric identifiers as SQL parameters and executes job/resume SPs", async () => {
         const input = vi.fn();
         const query = vi.fn(async (sql: string) => {
             void sql;
             return { recordset: [] };
         });
-        const request = { input, query };
+        const execute = vi.fn(async (procedure: string) => {
+            void procedure;
+            return { recordset: [] };
+        });
+        const request = { input, query, execute };
         input.mockReturnValue(request);
         const getPool = vi.fn(async () => ({
             request: () => request,
@@ -104,19 +108,29 @@ describe("TalentArbor MSSQL runtime", () => {
         });
 
         await reader.findCandidateById(123456);
-        await reader.findOwnedJobContext(123456, 5551234);
+        await reader.findJobCollectionById(123456, 5551234);
+        await reader.findRequirementById({
+            candidateId: 123456,
+            requirementId: 129571,
+            clientId: 13,
+            talentChannelId: 3,
+        });
+        await reader.findCandidateResumeHtml?.(123456);
 
         expect(input).toHaveBeenCalledWith("candidateId", expect.anything(), 123456);
-        expect(input).toHaveBeenCalledWith("jobCollectionId", expect.anything(), 5551234);
+        expect(input).toHaveBeenCalledWith("JobCollectionID", expect.anything(), 5551234);
+        expect(input).toHaveBeenCalledWith("CandidateID", expect.anything(), 123456);
+        expect(input).toHaveBeenCalledWith("RequirementID", expect.anything(), 129571);
+        expect(input).toHaveBeenCalledWith("ClientID", expect.anything(), 13);
+        expect(input).toHaveBeenCalledWith("TalentChannelID", expect.anything(), 3);
+        expect(execute).toHaveBeenCalledWith("dbo.Usp_SC_GET_JobCollection_ById");
+        expect(execute).toHaveBeenCalledWith("dbo.Usp_SC_JobSeeker_Get_JobRequirementDetails");
+        expect(execute).toHaveBeenCalledWith("dbo.USP_AI_Get_CandidateHTMLResume");
         const identitySql = String(query.mock.calls[0][0]);
-        const jobSql = String(query.mock.calls[1][0]);
         expect(identitySql).toContain("dbo.CandidateMaster");
-        expect(jobSql).toContain("dbo.CandidateJobCollectionTxn");
-        expect(jobSql).toContain("dbo.JobCollection");
-        expect(`${identitySql}\n${jobSql}`).not.toContain("CreatedBy");
-        expect(`${identitySql}\n${jobSql}`).not.toMatch(/Password|Salt|SSN|Birthdate|ResumeParserJSONMaster/i);
-        expect(`${identitySql}\n${jobSql}`).not.toContain("123456");
-        expect(`${identitySql}\n${jobSql}`).not.toContain("5551234");
+        expect(identitySql).not.toContain("CreatedBy");
+        expect(identitySql).not.toMatch(/Password|Salt|SSN|Birthdate/i);
+        expect(identitySql).not.toContain("123456");
     });
 });
 

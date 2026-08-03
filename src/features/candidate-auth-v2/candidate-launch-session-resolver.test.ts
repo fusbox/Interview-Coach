@@ -21,6 +21,9 @@ describe("candidate launch session resolver", () => {
         launchContextHint: {
             candidateId: "12345",
             jobCollectionId: "555",
+            requirementId: null,
+            talentChannelId: null,
+            clientId: null,
             hostDomain: "rangamworks.com",
             sourceSurface: "RW_JOB_SEARCH",
         },
@@ -52,6 +55,7 @@ describe("candidate launch session resolver", () => {
             isExpired: false,
             expirationDate: "2026-08-01T00:00:00.000Z",
         },
+        resumePlainText: null,
     };
 
     const exchange = {
@@ -240,7 +244,38 @@ describe("candidate launch session resolver", () => {
         }));
     });
 
-    it("prefers canonical host-database profile attributes over duplicated token attributes", async () => {
+    it("fails closed when token email disagrees with canonical host-database email", async () => {
+        const repository = {
+            findProfileByIdentity: vi.fn(async () => null),
+            createProfileFromLaunch: vi.fn(),
+            refreshProfileFromLaunch: vi.fn(),
+            upsertIdentity: vi.fn(),
+            hasPrepContexts: vi.fn(),
+            createSession: vi.fn(),
+        };
+
+        await expect(resolveCandidateLaunchSession({
+            handoff,
+            launchContext: {
+                ...launchContext,
+                candidate: {
+                    ...launchContext.candidate,
+                    email: "canonical@example.com",
+                    displayName: "Canonical Candidate",
+                },
+            },
+            launchedAt: "2026-07-08T17:00:00.000Z",
+            ...exchange,
+            repository,
+        })).resolves.toEqual({
+            ok: false,
+            reason: "identity_context_mismatch",
+        });
+        expect(repository.createProfileFromLaunch).not.toHaveBeenCalled();
+        expect(repository.createSession).not.toHaveBeenCalled();
+    });
+
+    it("prefers canonical host-database profile attributes when token email matches", async () => {
         const repository = {
             findProfileByIdentity: vi.fn(async () => null),
             createProfileFromLaunch: vi.fn(async () => ({
@@ -254,7 +289,10 @@ describe("candidate launch session resolver", () => {
         };
 
         await resolveCandidateLaunchSession({
-            handoff,
+            handoff: {
+                ...handoff,
+                email: "Canonical@Example.com",
+            },
             launchContext: {
                 ...launchContext,
                 candidate: {

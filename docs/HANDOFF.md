@@ -1,8 +1,9 @@
 # Interview Coach V2 Handoff
 
 Status: Active resumption contract
-Last updated: 2026-07-31
+Last updated: 2026-08-03
 Current branch: `feature/candidate-v2-rebuild`
+Azure PR target: `dev`
 
 ## Resume Here
 
@@ -16,7 +17,7 @@ The NJ Career logo is a bounded visual demo variant, not the application default
 
 ### Demo Deployment Packaging
 
-The current application chain is packaged first on `feature/candidate-v2-rebuild`, excluding the separately staged discovery and validation-fixture lanes. Exact clean-snapshot verification passes TypeScript, zero-warning lint, documentation links, 99 candidate files / 697 tests, 11 recruiter-auth files / 60 tests, 56 recruiter/invited files / 196 tests, and the optimized production build. That source checkpoint is forward-integrated into the latest `feature/integration-TA`; the resulting integration head is then forward-integrated into the latest `release/njcareers`. Both shared branches retain their target-only history and use normal non-force pushes. `release/njcareers` is a demo deployment target in this pass, not evidence of production-release approval; the production gates below remain unchanged.
+The current rebuild work remains packaged on `feature/candidate-v2-rebuild`, excluding the separately staged discovery and validation-fixture lanes, until its active cleanup and integration slice is complete. The company Azure `dev` branch is now the shared Interview Coach PR target. New Interview Coach branches synchronize from the latest `dev` and return through reviewed PRs; they do not merge directly into Himanshu's parallel `feature/TA-integration` workstream or assume that workstream is ready for its downstream staging promotion. `release/njcareers` remains a bounded demo deployment target rather than evidence of production-release approval; the production gates below remain unchanged.
 
 Read in this order:
 
@@ -27,7 +28,7 @@ Read in this order:
 5. [Production UI Workstream](./03-design/production-ui-workstream.md) when changing tracked product UI.
 6. [Autonomous Development Operating Model](./07-ops/autonomous-development-operating-model.md) before executing a multi-slice milestone.
 
-Before a meaningful workflow slice, inspect matching V1 behavior from `feature/candidate-module` and classify it as `preserve`, `reinterpret`, `retire`, or `defer`. Use `.agents/skills/senior-slice-pass` for meaningful slices, `senior-milestone-pass` at integrated boundaries, and `senior-release-pass` before deployment, pilot, migration, or release decisions. Use `.agents/skills/autonomous-milestone-run` only after the milestone outcome, authority envelope, and acceptance evidence are explicit.
+Before a meaningful workflow slice, inspect matching V1 behavior from the immutable reference snapshot `618808e174fd1ad73bb7eceadf4f03aa74b1a664` and classify it as `preserve`, `reinterpret`, `retire`, or `defer`. Use `.agents/skills/senior-slice-pass` for meaningful slices, `senior-milestone-pass` at integrated boundaries, and `senior-release-pass` before deployment, pilot, migration, or release decisions. Use `.agents/skills/autonomous-milestone-run` only after the milestone outcome, authority envelope, and acceptance evidence are explicit.
 
 ## Next Work
 
@@ -36,6 +37,8 @@ Before a meaningful workflow slice, inspect matching V1 behavior from `feature/c
 195. Run the post-UI V15/V16 evaluator calibration gate. Start with the focused technical-boundary, answer-usability, criterion-availability, strong-answer, and acknowledgement-tone cases, then run the complete credentialed scenario set. Compare candidate-visible coaching, question-preparedness bands, Coach Update framing, and execution/assertion failures against the accepted fixture baseline. Do not promote a serving profile, alter evaluator meaning, or expand provider cost without separate review.
 
 Alongside Slice 195, prioritize broader operation cleanup jobs, dependency disposition, telemetry/alert sinks, and release evidence. Real TA staging integration remains dependent on final host/network access and upstream acceptance details.
+
+Active integration slice: TalentArbor JWT gateway hardening plus JobCollection/RequirementMaster SP job prefetch and optional `USP_AI_Get_CandidateHTMLResume` trusted-host resume staging. Local mint runbook: [Host Launch Local Token Mint](./09-dev/host-launch-local-token-mint.md).
 
 ### Production UI Lane
 

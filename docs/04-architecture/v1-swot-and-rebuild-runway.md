@@ -7,7 +7,7 @@ Last updated: 2026-07-18
 
 This document keeps the cleanroom rebuild grounded in two references at once:
 
-- V1 on `feature/candidate-module`, which is the best behavior reference for what already worked in the candidate app.
+- The immutable V1 snapshot at `618808e174fd1ad73bb7eceadf4f03aa74b1a664`, which is the best behavior reference for what already worked in the candidate app.
 - The original refactor pack in `.untracked/interview-coach-refactor-agent-reference-pack`, which defines the target direction: one session experience, one answer lifecycle, evidence-first evaluation, and dashboard migration away from legacy feedback truth.
 
 The rebuild direction has changed from a strangler refactor to a cleanroom rebuild. That changes the implementation method, not the north star.
@@ -30,7 +30,7 @@ If V1 and the refactor target disagree, do not silently choose. Name the tradeof
 
 ## V1 Reference Map
 
-Use `git show feature/candidate-module:<path>` to inspect V1 without switching away from the active rebuild worktree.
+Use `git show 618808e174fd1ad73bb7eceadf4f03aa74b1a664:<path>` to inspect V1 without switching away from the active rebuild worktree.
 
 Practice setup:
 

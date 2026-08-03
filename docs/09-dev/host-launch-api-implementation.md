@@ -1,7 +1,7 @@
 # Host Launch API Implementation
 
 Status: Active implementation guide
-Last updated: 2026-07-17
+Last updated: 2026-07-30
 
 ## Purpose
 
@@ -34,16 +34,28 @@ Recommended dashboard token:
 }
 ```
 
-A job-aware host link may also include:
+A job-aware host link may also include partner JobCollection context:
 
 ```json
 {
   "job_collection_id": "5551234",
+  "talent_channel_id": "0",
   "source_surface": "TA_JOB_DETAIL"
 }
 ```
 
-Required claims are `candidate_id`, `email`, `product`, `iss`, numeric `iat`, and numeric `exp`. `jti`, `source_portal`, `source_surface`, and `job_collection_id` are supported but job context is not required for a dashboard launch.
+Or Rangam RequirementMaster context:
+
+```json
+{
+  "requirement_id": "129571",
+  "talent_channel_id": "3",
+  "client_id": "13",
+  "source_surface": "TA_JOB_DETAIL"
+}
+```
+
+Required claims are `candidate_id`, `email`, `product`, `iss`, numeric `iat`, and numeric `exp`. `jti`, `name` / `display_name`, `source_portal`, `source_surface`, `job_collection_id`, `requirement_id`, `talent_channel_id`, and `client_id` are supported but job context is not required for a dashboard launch. The query `token` value may include an optional leading `Bearer ` prefix; Interview Coach strips it before verification.
 
 Current IC policy:
 
@@ -152,22 +164,25 @@ Production assembly fails closed when required or bounded values are missing or 
 
 ## TalentArbor MSSQL Adapter Contract
 
-The first server-only host-data adapter behind `lookupLaunchContext` must:
+The server-only host-data adapter behind `lookupLaunchContext` must:
 
-- resolve `candidate_id` against `CandidateMaster`;
-- permit identity-only rows;
-- for `job_collection_id`, prove ownership through `CandidateJobCollectionTxn`;
-- use `CandidateJobCollectionTxn` only to prove ownership and TA `JobCollection` as canonical catalog context;
-- use parameterized queries, bounded connection pools, strict timeouts, and privacy-safe diagnostics;
-- select only approved identity/job columns and return no raw SQL or parameter values in failures;
+- resolve `candidate_id` against `CandidateMaster` with approved identity columns only;
+- permit identity-only rows when no job claims are present;
+- for partner/direct jobs (`talent_channel_id == 0` or only `job_collection_id`), call `Usp_SC_GET_JobCollection_ById` and map `JobTitle` / `JobDescription` / `Client` / `Location`;
+- for Rangam/channel jobs (`talent_channel_id > 0`), call `Usp_SC_JobSeeker_Get_JobRequirementDetails` with `@RequirementID`, `@ClientID`, `@CandidateID`, `@TalentChannelID` and map `JobTitleText` / `RequirementJobDescription` / `ClientName`;
+- stage RequirementMaster jobs with `jobCollectionId = rm:{requirementId}` and real `requirementId`;
+- optionally prefetch resume HTML through `USP_AI_Get_CandidateHTMLResume` after identity proof; empty/failed resume never fails launch;
+- use parameterized SP/query inputs, bounded connection pools, strict timeouts, and privacy-safe diagnostics;
 - reject nonnumeric identifiers before opening a connection;
-- fail closed on missing, duplicate, malformed, or unowned rows;
+- fail closed on missing, duplicate, or malformed identity/job rows when job claims are asserted;
 - treat active/expired flags as context rather than ownership gates;
 - require complete validated MSSQL configuration before production launch dependencies assemble;
-- keep resume retrieval behind a separate port until the authoritative current-resume rule is ratified;
+- never select password, salt, SSN, birthdate, or unrelated candidate fields into launch context;
 - keep RW fail-closed until its identity mapping is known.
 
-The draft `USP_InterviewCoach_GetLaunchContext` and staging CSVs remain discovery inputs. Do not deploy the draft procedure unchanged: requirement, channel, resume, and consent joins are intentionally outside the launch-critical query.
+Local minting for IC-side testing uses `npm run qa:candidate:mint-host-launch-token` and never commits secrets. TalentArbor host minting remains host-owned and is not implemented in this repository.
+
+The draft `USP_InterviewCoach_GetLaunchContext` and staging CSVs remain discovery inputs only.
 
 ## Verification
 

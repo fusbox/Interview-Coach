@@ -64,6 +64,9 @@ describe("candidate host launch contract", () => {
             launchContextHint: {
                 candidateId: "cand-123",
                 jobCollectionId: null,
+                requirementId: null,
+                talentChannelId: null,
+                clientId: null,
                 hostDomain: null,
                 sourceSurface: "UNKNOWN",
             },
@@ -74,6 +77,31 @@ describe("candidate host launch contract", () => {
             tokenFingerprint: createHash("sha256").update("signed.jwt").digest("hex"),
             sessionExpiresAt: "2026-07-15T17:56:00.000Z",
         });
+    });
+
+    it("strips an optional Bearer prefix before verification and fingerprinting", async () => {
+        const verifyLaunchToken = vi.fn(async () => validPayload);
+        const resolveCandidateProfile = vi.fn(async () => ({
+            ok: true as const,
+            candidateProfileId: "profile-123",
+            sessionId: "session-123",
+        }));
+
+        const result = await createCandidateHostLaunchSession({
+            token: "Bearer signed.jwt",
+            now: new Date("2026-07-08T17:56:00.000Z"),
+            verifyLaunchToken,
+            resolveCandidateProfile,
+        });
+
+        expect(result.ok).toBe(true);
+        expect(verifyLaunchToken).toHaveBeenCalledWith("signed.jwt");
+        expect(resolveCandidateProfile).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                tokenFingerprint: createHash("sha256").update("signed.jwt").digest("hex"),
+            }),
+        );
     });
 
     it("rejects missing tokens before profile resolution", async () => {

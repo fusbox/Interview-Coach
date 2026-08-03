@@ -41,7 +41,7 @@ Out of scope:
 
 The recommendation is grounded in:
 
-- V1 `AIService.analyzeAnswer`, `ai-config`, provider response parsing, AI-generation capture, and the session-scoped analysis route from `feature/candidate-module`;
+- V1 `AIService.analyzeAnswer`, `ai-config`, provider response parsing, AI-generation capture, and the session-scoped analysis route from immutable snapshot `618808e174fd1ad73bb7eceadf4f03aa74b1a664`;
 - the original refactor pack's evidence extraction, deterministic appraisal, conditional verifier, feedback composition, model-routing, persistence, and golden-test direction;
 - the landed V2 evaluator schemas, provider-neutral runtime, durable generation claims, local fault matrix, and candidate-safe projection boundary;
 - the repository's existing `@google/genai` dependency, `GEMINI_API_KEY` deployment seam, and prior Gemini/Postgres AI smoke evidence.

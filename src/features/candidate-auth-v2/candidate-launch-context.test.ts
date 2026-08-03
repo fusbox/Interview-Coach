@@ -60,6 +60,7 @@ describe("candidate launch context contract", () => {
                     isExpired: false,
                     expirationDate: "2026-08-01T00:00:00.000Z",
                 },
+                resumePlainText: null,
             },
         });
     });
@@ -116,11 +117,17 @@ describe("candidate launch context contract", () => {
             ok: false,
             reason: "missing_candidate_id",
         });
-        expect(normalizeCandidateLaunchContextRow({ ...baseRow, jobCollectionId: null })).toMatchObject({
+        expect(normalizeCandidateLaunchContextRow({
+            ...baseRow,
+            jobCollectionId: null,
+            requirementId: null,
+            requirementCode: null,
+        })).toMatchObject({
             ok: true,
             context: {
                 candidate: { candidateId: "12345" },
                 job: null,
+                resumePlainText: null,
             },
         });
         expect(normalizeCandidateLaunchContextRow({ ...baseRow, jobTitle: " " })).toEqual({
@@ -140,6 +147,9 @@ describe("candidate launch context contract", () => {
             input: {
                 candidateId: "12345",
                 jobCollectionId: "555",
+                requirementId: null,
+                talentChannelId: null,
+                clientId: null,
                 hostDomain: "rangamworks.com",
                 sourceSurface: "RW_JOB_SEARCH",
             },
@@ -155,11 +165,15 @@ describe("candidate launch context contract", () => {
                 job: {
                     jobCollectionId: "555",
                 },
+                resumePlainText: null,
             },
         });
         expect(lookupLaunchContext).toHaveBeenCalledWith({
             candidateId: "12345",
             jobCollectionId: "555",
+            requirementId: null,
+            talentChannelId: null,
+            clientId: null,
             hostDomain: "rangamworks.com",
             sourceSurface: "RW_JOB_SEARCH",
         });

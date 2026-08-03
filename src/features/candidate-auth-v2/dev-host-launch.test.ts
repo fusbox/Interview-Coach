@@ -109,11 +109,14 @@ describe("candidate dev host launch", () => {
                 rangamWorksId: null,
             },
             launchContextHint: {
-                candidateId: "100002",
-                jobCollectionId: null,
-                hostDomain: null,
-                sourceSurface: "UNKNOWN",
-            },
+            candidateId: "100002",
+            jobCollectionId: null,
+            requirementId: null,
+            talentChannelId: null,
+            clientId: null,
+            hostDomain: null,
+            sourceSurface: "UNKNOWN",
+        },
         };
 
         await expect(resolveCandidateDevHostLaunchProfile(handoff)).resolves.toEqual({

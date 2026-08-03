@@ -7,7 +7,7 @@ AI-assisted interview practice for candidate-led preparation and recruiter-invit
 This repository contains two important product generations:
 
 - the recruiter-led V1 application, including recruiter-created invitations and invited candidate practice; and
-- the cleanroom candidate V2 rebuild on `feature/candidate-v2-rebuild`, with host-authenticated setup, evidence-first coaching, Coach Update, follow-up practice, and a candidate dashboard.
+- the cleanroom candidate V2 rebuild, developed on bounded work branches and reviewed into company Azure `dev`, with host-authenticated setup, evidence-first coaching, Coach Update, follow-up practice, and a candidate dashboard.
 
 V2 intentionally reuses proven V1 behavior only after review. Current implementation truth lives in [docs/HANDOFF.md](docs/HANDOFF.md).
 

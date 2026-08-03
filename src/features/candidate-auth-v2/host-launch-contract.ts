@@ -29,6 +29,9 @@ export type CandidateHostLaunchTokenPayload = {
     talentArborId?: string | null;
     rangamWorksId?: string | null;
     jobCollectionId?: string | null;
+    requirementId?: string | null;
+    talentChannelId?: string | null;
+    clientId?: string | null;
     hostDomain?: string | null;
     sourceSurface?: string | null;
 };
@@ -49,6 +52,9 @@ export type CandidateHostLaunchHandoff = {
     launchContextHint: {
         candidateId: string | null;
         jobCollectionId: string | null;
+        requirementId: string | null;
+        talentChannelId: string | null;
+        clientId: string | null;
         hostDomain: string | null;
         sourceSurface: string;
     };
@@ -115,7 +121,7 @@ export async function createCandidateHostLaunchSession({
     resolveCandidateProfile,
     sessionTtlSeconds = CANDIDATE_HOST_LAUNCH_DEFAULT_SESSION_TTL_SECONDS,
 }: CandidateHostLaunchDependencies): Promise<CandidateHostLaunchResult> {
-    const normalizedToken = token?.trim();
+    const normalizedToken = normalizeCandidateHostLaunchToken(token);
     if (!normalizedToken) {
         return failCandidateLaunch("missing_token");
     }
@@ -177,6 +183,16 @@ export function normalizeCandidateLaunchRedirect(path: string | null | undefined
     return path;
 }
 
+/** Strip optional flowchart-style `Bearer ` prefix before JWT verification. */
+export function normalizeCandidateHostLaunchToken(token: string | null | undefined) {
+    const trimmed = token?.trim();
+    if (!trimmed) {
+        return null;
+    }
+
+    return trimmed.replace(/^Bearer\s+/i, "").trim() || null;
+}
+
 function toCandidateHostLaunchHandoff(payload: CandidateHostLaunchTokenPayload): CandidateHostLaunchHandoff | null {
     const email = payload.email.trim();
     const subject = payload.subject.trim();
@@ -202,6 +218,9 @@ function toCandidateHostLaunchHandoff(payload: CandidateHostLaunchTokenPayload):
         launchContextHint: {
             candidateId: firstNonEmpty(payload.hostCandidateId, payload.talentArborId, payload.rangamWorksId),
             jobCollectionId: payload.jobCollectionId?.trim() || null,
+            requirementId: payload.requirementId?.trim() || null,
+            talentChannelId: payload.talentChannelId?.trim() || null,
+            clientId: payload.clientId?.trim() || null,
             hostDomain: payload.hostDomain?.trim() || null,
             sourceSurface: payload.sourceSurface?.trim() || "UNKNOWN",
         },

@@ -11,13 +11,13 @@ Production UI work may proceed in parallel with core V2 completion, but it must 
 
 | Lane | Branch | Worktree | Owns |
 | --- | --- | --- | --- |
-| Core/integration | `feature/candidate-v2-rebuild` | `C:\tmp\Interview-Coach-Recruiter-postgres` | Domain contracts, persistence, providers, routes/API behavior, migrations, security, operations, canonical docs, and final integration |
+| Core/integration | short-lived work branch -> PR to `dev` | `C:\tmp\Interview-Coach-Recruiter-postgres` | Domain contracts, persistence, providers, routes/API behavior, migrations, security, operations, canonical docs, and final integration |
 | Production UI | `feature/candidate-v2-production-ui` | `C:\tmp\Interview-Coach-Recruiter-production-ui` | Accepted tracked surface composition, design-system evolution, presentation tests, responsive/accessibility validation, and UI-specific documentation |
 | Exploratory UI | no tracked branch | `.untracked/ui-lab` | Disposable live mockups and visual experiments with no production imports |
 
 Do not run two coding agents against the same dirty worktree. Start the UI branch from an accepted core milestone, keep commits small enough to review by surface, and merge or cherry-pick accepted UI commits back through the core/integration branch.
 
-For the current dashboard migration, concurrent production-UI work is inactive and the repository owner has explicitly transferred the bounded implementation lane to `feature/candidate-v2-rebuild` in `C:\tmp\Interview-Coach-Recruiter-postgres`. The shared-file lock and small-slice verification rules still apply. Do not resume parallel edits in the dedicated UI worktree until this transfer is closed or explicitly reassigned.
+Concurrent production-UI work is currently inactive, and bounded implementation remains in `C:\tmp\Interview-Coach-Recruiter-postgres` on the active work branch before review into `dev`. The shared-file lock and small-slice verification rules still apply. Do not resume parallel edits in the dedicated UI worktree until ownership is explicitly reassigned.
 
 ## Ownership Boundary
 

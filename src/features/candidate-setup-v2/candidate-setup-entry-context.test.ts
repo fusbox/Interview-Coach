@@ -33,7 +33,7 @@ describe("candidate setup entry context", () => {
             workspace: "talentarbor",
             launchContext: {
                 candidate: {
-                    candidateId: "353373",
+                    candidateId: "123456",
                     userId: null,
                     companyId: null,
                     email: "candidate@example.com",
@@ -57,6 +57,7 @@ describe("candidate setup entry context", () => {
                     isExpired: false,
                     expirationDate: null,
                 },
+                resumePlainText: null,
             },
         })).toMatchObject({
             sourcePlatform: "talentarbor",
