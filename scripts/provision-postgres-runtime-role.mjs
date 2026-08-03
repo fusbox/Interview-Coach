@@ -17,34 +17,63 @@ async function main() {
     }
 
     const adminPool = new Pool(buildPoolConfig(migrationUrl, "interview-coach-role-provisioner"));
+    let adminClient;
     try {
-        const roleResult = await adminPool.query(`
-            select rolname, rolcanlogin, rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls
-            from pg_roles
-            where rolname = $1
-        `, [RUNTIME_ROLE]);
-        if (roleResult.rowCount !== 1) {
-            throw new Error(
-                "interview_coach_runtime does not exist. Apply migration 046 before provisioning its login.",
+        adminClient = await adminPool.connect();
+        await adminClient.query("begin");
+        try {
+            const roleResult = await adminClient.query(`
+                select rolname, rolcanlogin, rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls
+                from pg_roles
+                where rolname = $1
+            `, [RUNTIME_ROLE]);
+            if (roleResult.rowCount !== 1) {
+                throw new Error(
+                    "interview_coach_runtime does not exist. Apply migration 046 before provisioning its login.",
+                );
+            }
+
+            const role = roleResult.rows[0];
+            if (
+                role.rolsuper
+                || role.rolcreatedb
+                || role.rolcreaterole
+                || role.rolreplication
+                || role.rolbypassrls
+            ) {
+                throw new Error("Refusing to provision a privileged runtime role.");
+            }
+
+            const passwordLiteral = runtimePassword.replaceAll("'", "''");
+            await adminClient.query(
+                `alter role ${RUNTIME_ROLE}
+                    with login
+                    password '${passwordLiteral}'
+                    nocreatedb
+                    nocreaterole
+                    inherit
+                    connection limit 40`,
             );
+            await adminClient.query(`alter role ${RUNTIME_ROLE} set statement_timeout = '15s'`);
+            await adminClient.query(`alter role ${RUNTIME_ROLE} set lock_timeout = '5s'`);
+            await adminClient.query(
+                `alter role ${RUNTIME_ROLE} set idle_in_transaction_session_timeout = '15s'`,
+            );
+            await adminClient.query(
+                `alter role ${RUNTIME_ROLE} set search_path = 'pg_catalog', 'public'`,
+            );
+            await adminClient.query("commit");
+        } catch (error) {
+            try {
+                await adminClient.query("rollback");
+            } catch {
+                // Preserve the provisioning failure; the operator can inspect
+                // rollback health through the owner connection.
+            }
+            throw error;
         }
-
-        const role = roleResult.rows[0];
-        if (
-            role.rolsuper
-            || role.rolcreatedb
-            || role.rolcreaterole
-            || role.rolreplication
-            || role.rolbypassrls
-        ) {
-            throw new Error("Refusing to provision a privileged runtime role.");
-        }
-
-        const passwordLiteral = runtimePassword.replaceAll("'", "''");
-        await adminPool.query(
-            `alter role ${RUNTIME_ROLE} with login password '${passwordLiteral}'`,
-        );
     } finally {
+        adminClient?.release();
         await adminPool.end();
     }
 
@@ -56,7 +85,8 @@ async function main() {
                 current_user as role_name,
                 has_schema_privilege(current_user, 'public', 'usage') as can_use_schema,
                 has_schema_privilege(current_user, 'public', 'create') as can_create_in_schema,
-                has_table_privilege(current_user, 'public.app_users', 'select') as can_read_app_users
+                has_table_privilege(current_user, 'public.app_users', 'select') as can_read_app_users,
+                (select count(*) >= 0 from public.app_users) as runtime_read_probe
         `);
         const probe = result.rows[0];
         if (
@@ -64,6 +94,7 @@ async function main() {
             || probe.can_use_schema !== true
             || probe.can_create_in_schema !== false
             || probe.can_read_app_users !== true
+            || probe.runtime_read_probe !== true
         ) {
             throw new Error("Runtime role probe did not match the hardened permission contract.");
         }

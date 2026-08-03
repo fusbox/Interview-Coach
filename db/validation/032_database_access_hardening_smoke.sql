@@ -194,9 +194,14 @@ begin
 end;
 $$;
 
-set local role interview_coach_runtime;
-select count(*) >= 0 as runtime_can_read
-from public.app_users;
-reset role;
+-- Supabase grants a non-superuser role creator ADMIN but SET FALSE on the new
+-- role. Catalog checks above prove the grants without weakening that boundary;
+-- the provisioning script opens a real password-authenticated runtime
+-- connection and performs the application-table read probe.
+select has_table_privilege(
+    'interview_coach_runtime',
+    'public.app_users',
+    'select'
+) as runtime_can_read;
 
 rollback;

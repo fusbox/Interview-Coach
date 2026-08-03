@@ -18,25 +18,34 @@ begin
             noreplication
             nobypassrls
             connection limit 40;
+    else
+        -- PostgreSQL intentionally reserves SUPERUSER, REPLICATION, and
+        -- BYPASSRLS changes for superusers, even when the requested value is
+        -- false. Supabase's postgres role is a non-superuser CREATEROLE
+        -- operator, so fail closed if those immutable attributes are ever
+        -- unsafe and enforce only the attributes this operator may change.
+        if exists (
+            select 1
+            from pg_roles
+            where rolname = 'interview_coach_runtime'
+              and (rolsuper or rolreplication or rolbypassrls)
+        ) then
+            raise exception 'interview_coach_runtime has superuser-only privileges';
+        end if;
+
+        alter role interview_coach_runtime
+            nocreatedb
+            nocreaterole
+            inherit
+            connection limit 40;
+
+        alter role interview_coach_runtime set statement_timeout = '15s';
+        alter role interview_coach_runtime set lock_timeout = '5s';
+        alter role interview_coach_runtime set idle_in_transaction_session_timeout = '15s';
+        alter role interview_coach_runtime set search_path = 'pg_catalog', 'public';
     end if;
 end;
 $$;
-
--- Preserve LOGIN if an operator has already provisioned the credential, while
--- continually enforcing the role's non-administrative posture.
-alter role interview_coach_runtime
-    nosuperuser
-    nocreatedb
-    nocreaterole
-    inherit
-    noreplication
-    nobypassrls
-    connection limit 40;
-
-alter role interview_coach_runtime set statement_timeout = '15s';
-alter role interview_coach_runtime set lock_timeout = '5s';
-alter role interview_coach_runtime set idle_in_transaction_session_timeout = '15s';
-alter role interview_coach_runtime set search_path = 'pg_catalog', 'public';
 
 revoke all privileges on schema public from public;
 revoke all privileges on all tables in schema public from public;
