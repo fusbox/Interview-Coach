@@ -198,6 +198,8 @@ The resume milestone browser matrix is documented in [Resume Ingestion Milestone
 
 ## CI Gate Direction
 
+Ignored local material under `.untracked/` is outside both Vitest discovery and coverage. The stability runner repeats the active candidate answer-history repository and direct-practice intent-creation contracts, which cover evaluator-claim reconciliation and idempotent follow-up creation without reviving retired V1 session tests.
+
 PR gate should eventually run:
 
 - `npm ci`

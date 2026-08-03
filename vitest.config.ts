@@ -9,11 +9,11 @@ export default defineConfig({
         globals: true,
         setupFiles: ['./src/test/setup.ts'],
         include: ['**/*.{test,spec}.{ts,tsx}'],
-        exclude: ['e2e/**', 'node_modules/**', '.next/**'],
+        exclude: ['e2e/**', 'node_modules/**', '.next/**', '.untracked/**'],
         coverage: {
             provider: 'v8',
             reporter: ['text', 'json-summary', 'lcov'],
-            exclude: ['e2e/**', 'node_modules/**', '.next/**', 'playwright.config.ts'],
+            exclude: ['e2e/**', 'node_modules/**', '.next/**', '.untracked/**', 'playwright.config.ts'],
             thresholds: {
                 lines: 40,
                 functions: 40,

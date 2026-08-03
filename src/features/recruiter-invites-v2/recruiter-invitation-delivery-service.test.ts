@@ -192,6 +192,6 @@ function recipient(recipientId: string, firstName: string, email: string) {
         tokenHash: "a".repeat(64),
         tokenCiphertext: `token-${recipientId}`,
         encryptionKeyId: "key",
-        tokenExpiresAt: "2026-08-01T00:00:00.000Z",
+        tokenExpiresAt: "2099-08-01T00:00:00.000Z",
     };
 }
