@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { CandidateQuestionAssistanceClaim } from "@/features/candidate-session-v2/candidate-question-assistance-repository";
-import { createCandidateQuestionAssistanceRuntimeFromEnvironment } from "@/features/candidate-session-v2/candidate-question-assistance-runtime";
+import {
+    CandidateQuestionAssistanceRuntimeError,
+    createCandidateQuestionAssistanceRuntimeFromEnvironment,
+} from "@/features/candidate-session-v2/candidate-question-assistance-runtime";
 
 import { handleQuestionAssistanceRequest } from "./route-implementation";
 
@@ -139,6 +142,44 @@ describe("question assistance route implementation", () => {
         expect(response.status).toBe(503);
         await expect(response.json()).resolves.toMatchObject({ retryable: false });
         expect(generate).not.toHaveBeenCalled();
+    });
+
+    it("records only bounded structured-output diagnostics on provider failure", async () => {
+        const recordDiagnostic = vi.fn();
+        const repository = createRepository({
+            kind: "claimed",
+            claimToken: "claim-1",
+            attemptCount: 1,
+        });
+        const response = await handleQuestionAssistanceRequest({
+            request: request("strong_response"),
+            sessionId: "session-1",
+            resolveSessionIdentity: async () => ({ ownerId: "owner-1" }),
+            sessionRepository: { findSetupSession: async () => session },
+            assistanceRepository: repository,
+            assistanceRuntime: {
+                createRequestFingerprint: () => "a".repeat(64),
+                generate: async () => {
+                    throw new CandidateQuestionAssistanceRuntimeError(
+                        "invalid_json",
+                        true,
+                        { responseLength: 1_017, finishReason: "MAX_TOKENS" },
+                    );
+                },
+            },
+            createClaimToken: () => "claim-1",
+            recordDiagnostic,
+        });
+
+        expect(response.status).toBe(503);
+        expect(recordDiagnostic).toHaveBeenCalledWith(expect.objectContaining({
+            event: "candidate_question_assistance",
+            assistanceKind: "strong_response",
+            failureClass: "invalid_json",
+            responseLength: 1_017,
+            providerFinishReason: "MAX_TOKENS",
+        }));
+        expect(JSON.stringify(recordDiagnostic.mock.calls)).not.toContain("responseText");
     });
 });
 

@@ -4,6 +4,7 @@ do $$
 declare
     v_role record;
     v_missing_count integer;
+    v_extension_schema text;
     v_allowed_names constant text[] := array[
         'advance_invited_practice_attempt',
         'claim_ai_eval_scenario_live_operation',
@@ -25,6 +26,7 @@ declare
         'fail_candidate_resume_ingestion_operation',
         'invalidate_candidate_email_verification_v1',
         'invalidate_candidate_password_reset_v1',
+        'interview_coach_sha256_text',
         'is_active_ai_eval_operator',
         'issue_candidate_email_verification_v1',
         'issue_candidate_password_reset_v1',
@@ -130,6 +132,45 @@ begin
 
     if v_missing_count <> 0 then
         raise exception '% allowlisted runtime functions lack EXECUTE', v_missing_count;
+    end if;
+
+    if public.interview_coach_sha256_text('compatibility-probe')
+       <> 'd70c1d99ead442bd828a0c72fe2bdc8fee04e62e9f0174746aefaf722afbec62' then
+        raise exception 'runtime hash wrapper returned an unexpected fingerprint';
+    end if;
+
+    if not exists (
+        select 1
+        from pg_proc as procedure
+        join pg_namespace as namespace
+          on namespace.oid = procedure.pronamespace
+        where namespace.nspname = 'public'
+          and procedure.proname = 'interview_coach_sha256_text'
+          and procedure.prosecdef
+          and coalesce(procedure.proconfig, array[]::text[])
+              @> array['search_path=pg_catalog, public, pg_temp']
+    ) then
+        raise exception 'runtime hash wrapper lacks its fixed security-definer boundary';
+    end if;
+
+    select namespace.nspname
+    into v_extension_schema
+    from pg_extension as extension
+    join pg_namespace as namespace
+      on namespace.oid = extension.extnamespace
+    where extension.extname = 'pgcrypto';
+
+    if v_extension_schema is null then
+        raise exception 'pgcrypto extension is missing';
+    end if;
+
+    if v_extension_schema <> 'public'
+       and has_schema_privilege(
+           'interview_coach_runtime',
+           v_extension_schema,
+           'usage'
+       ) then
+        raise exception 'runtime role has unnecessary pgcrypto schema usage';
     end if;
 
     if has_schema_privilege('interview_coach_runtime', 'public', 'create') then

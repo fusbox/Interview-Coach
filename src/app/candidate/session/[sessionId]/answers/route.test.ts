@@ -410,6 +410,10 @@ describe("/candidate/session/[sessionId]/answers route", () => {
 
     it("clears a pending idempotency record when answer persistence throws", async () => {
         const clearAnswerIdempotencyRecord = vi.fn(async () => ({}));
+        const recordDiagnostic = vi.fn();
+        const databaseError = Object.assign(new Error("database unavailable"), {
+            code: "42883",
+        });
         const response = await handleCandidateAnswerSubmitRequest({
             request: new Request("https://interviewcoach.talentarbor.com/candidate/session/session-1/answers", {
                 method: "POST",
@@ -428,11 +432,12 @@ describe("/candidate/session/[sessionId]/answers route", () => {
             practiceSessionRepository: {
                 findSetupSession: vi.fn(async () => ({ answerIdempotencyRecords: {} })),
                 saveAnswerSubmission: vi.fn(async () => {
-                    throw new Error("database unavailable");
+                    throw databaseError;
                 }),
                 saveAnswerIdempotencyRecord: vi.fn(async () => ({})),
                 clearAnswerIdempotencyRecord,
             },
+            recordDiagnostic,
         });
 
         expect(response.status).toBe(503);
@@ -445,6 +450,16 @@ describe("/candidate/session/[sessionId]/answers route", () => {
             candidatePracticeSessionId: "session-1",
             recordKey: expect.stringContaining("candidate_answer_submit:session-1:slot-1"),
         }));
+        expect(recordDiagnostic).toHaveBeenCalledWith({
+            event: "candidate_answer_submit",
+            outcome: "failed",
+            statusCode: 503,
+            answerMode: "text",
+            persistenceStage: "save_answer_projection",
+            failureClass: "database_error",
+            databaseCode: "42883",
+        });
+        expect(JSON.stringify(recordDiagnostic.mock.calls)).not.toContain("database unavailable");
     });
 
     it("replays a completed typed answer submit with the same idempotency key and payload", async () => {

@@ -66,11 +66,19 @@ describe("database access hardening migration", () => {
             "alter function %s set search_path = pg_catalog, public, pg_temp",
         );
         expect(migration).toContain("v_allowed_names constant text[]");
+        expect(migration).toContain("'interview_coach_sha256_text'");
         expect(migration).toContain(
             "grant execute on function %s to interview_coach_runtime",
         );
         expect(migration).not.toContain(
             "grant execute on all functions in schema public to interview_coach_runtime",
+        );
+        expect(migration).not.toContain("grant usage on schema extensions");
+        expect(validation).toContain(
+            "runtime hash wrapper lacks its fixed security-definer boundary",
+        );
+        expect(validation).toContain(
+            "runtime role has unnecessary pgcrypto schema usage",
         );
     });
 });

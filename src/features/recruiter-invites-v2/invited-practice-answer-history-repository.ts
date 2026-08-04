@@ -172,13 +172,13 @@ export function createInvitedPracticeAnswerHistoryRepository(client: InvitedPrac
                     and session.voice_transcript_drafts_json -> $3 ->> 'questionIndex' = $4::text
                     and (
                       $6 <> 'quick_submit'
-                      or run.output_fingerprint = encode(digest(trim($7), 'sha256'), 'hex')
+                      or run.output_fingerprint = public.interview_coach_sha256_text(trim($7))
                     )
                   returning session.voice_transcript_drafts_json -> $3 as transcript_draft,
                             run.output_fingerprint
                 )
                 select transcript_draft,
-                       output_fingerprint <> encode(digest(trim($7), 'sha256'), 'hex')
+                       output_fingerprint <> public.interview_coach_sha256_text(trim($7))
                          as voice_transcript_edited
                 from authorized
             `, [

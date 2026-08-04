@@ -11,6 +11,7 @@ import {
     type CandidateQuestionAssistanceKind,
 } from "@/features/candidate-session-v2/candidate-question-assistance";
 import {
+    CANDIDATE_QUESTION_ASSISTANCE_GENERATION_REVISION,
     createCandidateQuestionAssistanceRepository,
 } from "@/features/candidate-session-v2/candidate-question-assistance-repository";
 import {
@@ -51,6 +52,8 @@ export type QuestionAssistanceDiagnostic = {
     failureClass?: string;
     provider?: string;
     profileId?: string;
+    responseLength?: number;
+    providerFinishReason?: string;
     durationMs: number;
 };
 
@@ -121,6 +124,7 @@ export async function handleQuestionAssistanceRequest(input: {
             requestFingerprint,
             claimToken,
             claimLeaseMs: CLAIM_LEASE_MS,
+            generationRevision: CANDIDATE_QUESTION_ASSISTANCE_GENERATION_REVISION,
         });
     } catch {
         return finish(503, { error: "Question assistance is unavailable." }, "unavailable", "claim_failed");
@@ -194,7 +198,10 @@ export async function handleQuestionAssistanceRequest(input: {
             retryable: error instanceof CandidateQuestionAssistanceRuntimeError
                 ? error.retryable
                 : true,
-        }, "unavailable", failureClass);
+        }, "unavailable", failureClass, undefined, undefined,
+        error instanceof CandidateQuestionAssistanceRuntimeError
+            ? error.diagnostics
+            : undefined);
     }
 
     function finish(
@@ -204,6 +211,7 @@ export async function handleQuestionAssistanceRequest(input: {
         failureClass?: string,
         provider?: string,
         profileId?: string,
+        runtimeDiagnostics?: CandidateQuestionAssistanceRuntimeError["diagnostics"],
     ) {
         diagnostic({
             event: "candidate_question_assistance",
@@ -213,6 +221,12 @@ export async function handleQuestionAssistanceRequest(input: {
             ...(failureClass ? { failureClass } : {}),
             ...(provider ? { provider } : {}),
             ...(profileId ? { profileId } : {}),
+            ...(runtimeDiagnostics ? {
+                responseLength: runtimeDiagnostics.responseLength,
+                ...(runtimeDiagnostics.finishReason
+                    ? { providerFinishReason: runtimeDiagnostics.finishReason }
+                    : {}),
+            } : {}),
             durationMs: Date.now() - startedAt,
         });
         return Response.json(body, {

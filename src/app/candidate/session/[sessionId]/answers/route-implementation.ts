@@ -97,6 +97,21 @@ export type CandidateAnswerSubmitRouteDependencies = {
     resolveCandidateSessionIdentity?: (request: Request) => Promise<CandidateSessionIdentity | null>;
     practiceSessionRepository?: CandidateAnswerSubmitRepository;
     answerAttemptRepository?: CandidateAnswerAttemptRepository;
+    recordDiagnostic?: (event: CandidateAnswerSubmitDiagnostic) => void;
+};
+
+export type CandidateAnswerSubmitDiagnostic = {
+    event: "candidate_answer_submit";
+    outcome: "failed";
+    statusCode: 503;
+    answerMode: CandidateAnswerMode;
+    persistenceStage: "save_idempotency"
+        | "authorize_voice_transcript"
+        | "append_answer_attempt"
+        | "save_answer_projection"
+        | "complete_idempotency";
+    failureClass: "database_error";
+    databaseCode?: string;
 };
 
 export async function POST(
@@ -119,6 +134,7 @@ export async function handleCandidateAnswerSubmitRequest({
     resolveCandidateSessionIdentity,
     practiceSessionRepository,
     answerAttemptRepository,
+    recordDiagnostic = recordDefaultCandidateAnswerSubmitDiagnostic,
 }: CandidateAnswerSubmitRouteDependencies & {
     request: Request;
     sessionId: string;
@@ -214,8 +230,10 @@ export async function handleCandidateAnswerSubmitRequest({
     }
 
     let completed = false;
+    let persistenceStage: CandidateAnswerSubmitDiagnostic["persistenceStage"] = "save_idempotency";
     try {
         if (practiceSessionRepository.saveAnswerIdempotencyRecord) {
+            persistenceStage = "save_idempotency";
             await practiceSessionRepository.saveAnswerIdempotencyRecord({
                 candidatePracticeSessionId: sessionId,
                 candidateProfileId: identity.candidateProfileId,
@@ -235,6 +253,7 @@ export async function handleCandidateAnswerSubmitRequest({
                     retryable: true,
                 }, { status: 503 });
             }
+            persistenceStage = "authorize_voice_transcript";
             const authorizedTranscript = await answerAttemptRepository.authorizeVoiceAnswerTranscript({
                 candidatePracticeSessionId: sessionId,
                 candidateProfileId: identity.candidateProfileId,
@@ -260,6 +279,7 @@ export async function handleCandidateAnswerSubmitRequest({
         });
 
         if (answerAttemptRepository) {
+            persistenceStage = "append_answer_attempt";
             const attemptWrite = await answerAttemptRepository.appendAnswerAttempt({
                 candidatePracticeSessionId: sessionId,
                 candidateProfileId: identity.candidateProfileId,
@@ -306,6 +326,7 @@ export async function handleCandidateAnswerSubmitRequest({
             answerSubmission = toLatestCandidateAnswerSubmission(attemptWrite.attempt);
         }
 
+        persistenceStage = "save_answer_projection";
         const answerSubmissions = await practiceSessionRepository.saveAnswerSubmission({
             candidatePracticeSessionId: sessionId,
             candidateProfileId: identity.candidateProfileId,
@@ -324,6 +345,7 @@ export async function handleCandidateAnswerSubmitRequest({
         };
 
         if (practiceSessionRepository.saveAnswerIdempotencyRecord) {
+            persistenceStage = "complete_idempotency";
             await practiceSessionRepository.saveAnswerIdempotencyRecord({
                 candidatePracticeSessionId: sessionId,
                 candidateProfileId: identity.candidateProfileId,
@@ -338,7 +360,16 @@ export async function handleCandidateAnswerSubmitRequest({
 
         completed = true;
         return Response.json(responseBody, { status: 202 });
-    } catch {
+    } catch (error) {
+        recordDiagnostic({
+            event: "candidate_answer_submit",
+            outcome: "failed",
+            statusCode: 503,
+            answerMode: submitRequest.draft.mode,
+            persistenceStage,
+            failureClass: "database_error",
+            ...safeDatabaseCode(error),
+        });
         return Response.json({
             code: "ANSWER_SUBMIT_FAILED",
             error: "Candidate answer could not be saved.",
@@ -353,6 +384,19 @@ export async function handleCandidateAnswerSubmitRequest({
             }).catch(() => undefined);
         }
     }
+}
+
+function safeDatabaseCode(error: unknown): { databaseCode?: string } {
+    const code = error && typeof error === "object" && "code" in error
+        ? (error as { code?: unknown }).code
+        : undefined;
+    return typeof code === "string" && /^[0-9A-Z]{5}$/.test(code)
+        ? { databaseCode: code }
+        : {};
+}
+
+function recordDefaultCandidateAnswerSubmitDiagnostic(event: CandidateAnswerSubmitDiagnostic) {
+    console.info("candidate_answer_submit", event);
 }
 
 function createDefaultCandidateAnswerSubmitDependencies(): Pick<

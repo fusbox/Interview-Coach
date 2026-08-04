@@ -443,7 +443,7 @@ export function SharedLivePracticeShell({
                             </label>
                         )}
 
-                        {answerMode === "voice" && !showSubmittedAnswer ? null : (
+                        {answerMode === "voice" && !showSubmittedAnswer && !showAnswerStatus ? null : (
                             <footer className={styles.answerFooter}>
                                 {showAnswerStatus ? (
                                     <div
@@ -475,7 +475,8 @@ export function SharedLivePracticeShell({
                                         ) : null}
                                     </div>
                                 ) : null}
-                                {answerPresentation.primaryAction || answerPresentation.secondaryAction ? (
+                                {answerMode === "voice" && !showSubmittedAnswer ? null
+                                    : answerPresentation.primaryAction || answerPresentation.secondaryAction ? (
                                     <div className={styles.answerActions}>
                                         {answerPresentation.secondaryAction === "continue_without_coaching" ? (
                                             <Button
@@ -522,7 +523,7 @@ export function SharedLivePracticeShell({
                                             </Button>
                                         ) : null}
                                     </div>
-                                ) : null}
+                                    ) : null}
                             </footer>
                         )}
                     </section>

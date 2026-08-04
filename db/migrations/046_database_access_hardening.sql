@@ -106,6 +106,7 @@ declare
         'fail_candidate_resume_ingestion_operation',
         'invalidate_candidate_email_verification_v1',
         'invalidate_candidate_password_reset_v1',
+        'interview_coach_sha256_text',
         'is_active_ai_eval_operator',
         'issue_candidate_email_verification_v1',
         'issue_candidate_password_reset_v1',

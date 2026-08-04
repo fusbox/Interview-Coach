@@ -38,7 +38,7 @@ const strongResponseSchema = z.object({
 const generationSettings = Object.freeze({
     responseMimeType: "application/json" as const,
     temperature: 0.35,
-    maxOutputTokens: 1_024,
+    maxOutputTokens: 2_048,
     candidateCount: 1,
     seed: 0,
     thinkingBudget: 512,
@@ -80,12 +80,21 @@ export type CandidateQuestionAssistanceRuntime = {
 export class CandidateQuestionAssistanceRuntimeError extends Error {
     readonly code: string;
     readonly retryable: boolean;
+    readonly diagnostics?: {
+        responseLength: number;
+        finishReason?: string;
+    };
 
-    constructor(code: string, retryable = true) {
+    constructor(
+        code: string,
+        retryable = true,
+        diagnostics?: CandidateQuestionAssistanceRuntimeError["diagnostics"],
+    ) {
         super(code);
         this.name = "CandidateQuestionAssistanceRuntimeError";
         this.code = code;
         this.retryable = retryable;
+        this.diagnostics = diagnostics;
     }
 }
 
@@ -145,7 +154,11 @@ export function createCandidateQuestionAssistanceRuntimeFromEnvironment({
                         abortSignal: controller.signal,
                     },
                 });
-                const output = parseOutput(request.assistanceKind, response.text);
+                const output = parseOutput(
+                    request.assistanceKind,
+                    response.text,
+                    safeFinishReason(response),
+                );
                 return {
                     output,
                     requestFingerprint: createRequestFingerprint(request),
@@ -228,20 +241,23 @@ function createRequestFingerprint(request: CandidateQuestionAssistanceRequest) {
 function parseOutput(
     assistanceKind: CandidateQuestionAssistanceKind,
     rawText: string | undefined,
+    finishReason?: string,
 ): CandidateQuestionAssistanceOutput {
+    const diagnostics = {
+        responseLength: rawText?.length ?? 0,
+        ...(finishReason ? { finishReason } : {}),
+    };
     if (!rawText?.trim()) {
-        throw new CandidateQuestionAssistanceRuntimeError("empty_response");
+        throw new CandidateQuestionAssistanceRuntimeError("empty_response", true, diagnostics);
     }
-    let value: unknown;
-    try {
-        value = JSON.parse(rawText);
-    } catch {
-        throw new CandidateQuestionAssistanceRuntimeError("invalid_json");
+    const value = parseBoundedJsonEnvelope(rawText);
+    if (value === undefined) {
+        throw new CandidateQuestionAssistanceRuntimeError("invalid_json", true, diagnostics);
     }
     if (assistanceKind === "hints") {
         const parsed = hintsSchema.safeParse(value);
         if (!parsed.success) {
-            throw new CandidateQuestionAssistanceRuntimeError("invalid_schema");
+            throw new CandidateQuestionAssistanceRuntimeError("invalid_schema", true, diagnostics);
         }
         return {
             status: "candidate_question_hints_v1",
@@ -250,12 +266,41 @@ function parseOutput(
     }
     const parsed = strongResponseSchema.safeParse(value);
     if (!parsed.success) {
-        throw new CandidateQuestionAssistanceRuntimeError("invalid_schema");
+        throw new CandidateQuestionAssistanceRuntimeError("invalid_schema", true, diagnostics);
     }
     return {
         status: "candidate_strong_response_v1",
         ...parsed.data,
     } satisfies CandidateStrongResponse;
+}
+
+function parseBoundedJsonEnvelope(rawText: string): unknown | undefined {
+    const trimmed = rawText.trim();
+    const candidates = [trimmed];
+    const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i)?.[1]?.trim();
+    if (fenced) {
+        candidates.push(fenced);
+    }
+    const firstObject = trimmed.indexOf("{");
+    const lastObject = trimmed.lastIndexOf("}");
+    if (firstObject >= 0 && lastObject > firstObject) {
+        candidates.push(trimmed.slice(firstObject, lastObject + 1));
+    }
+
+    for (const candidate of Array.from(new Set(candidates))) {
+        try {
+            return JSON.parse(candidate) as unknown;
+        } catch {
+            // A later bounded candidate may still contain the exact JSON object.
+        }
+    }
+    return undefined;
+}
+
+function safeFinishReason(response: GenerateContentResponse) {
+    const value = response.candidates?.[0]?.finishReason;
+    const normalized = typeof value === "string" ? value.trim() : String(value ?? "").trim();
+    return /^[a-z0-9_]{1,48}$/i.test(normalized) ? normalized : undefined;
 }
 
 function buildPrompt(request: CandidateQuestionAssistanceRequest) {

@@ -12,6 +12,7 @@ export type CandidateQuestionAssistanceQueryClient = {
 };
 
 export const CANDIDATE_QUESTION_ASSISTANCE_MAX_ATTEMPTS = 3;
+export const CANDIDATE_QUESTION_ASSISTANCE_GENERATION_REVISION = 2;
 
 export type CandidateQuestionAssistanceClaim =
     | {
@@ -65,6 +66,28 @@ function createQuestionAssistanceRepository(
     },
 ) {
     const table = `public.${scope.tableName}`;
+    const generationCanAdvance =
+        `${scope.tableName}.generation_revision < excluded.generation_revision`;
+    const claimCanAdvance = `
+        ${scope.tableName}.request_fingerprint = excluded.request_fingerprint
+        and (
+          (
+            ${scope.tableName}.lifecycle_state = 'failed'
+            and (
+              ${scope.tableName}.attempt_count < ${CANDIDATE_QUESTION_ASSISTANCE_MAX_ATTEMPTS}
+              or ${generationCanAdvance}
+            )
+          )
+          or (
+            ${scope.tableName}.lifecycle_state = 'pending'
+            and ${scope.tableName}.claim_expires_at <= now()
+            and (
+              ${scope.tableName}.attempt_count < ${CANDIDATE_QUESTION_ASSISTANCE_MAX_ATTEMPTS}
+              or ${generationCanAdvance}
+            )
+          )
+        )
+    `;
     return {
         async claim(input: {
             practiceSessionId: string;
@@ -74,6 +97,7 @@ function createQuestionAssistanceRepository(
             requestFingerprint: string;
             claimToken: string;
             claimLeaseMs: number;
+            generationRevision: number;
         }): Promise<CandidateQuestionAssistanceClaim> {
             const result = await client.query(`
                 insert into ${table} (
@@ -85,7 +109,8 @@ function createQuestionAssistanceRepository(
                   lifecycle_state,
                   claim_token,
                   claim_expires_at,
-                  attempt_count
+                  attempt_count,
+                  generation_revision
                 )
                 values (
                   $1::uuid,
@@ -96,7 +121,8 @@ function createQuestionAssistanceRepository(
                   'pending',
                   $6::uuid,
                   now() + ($7::integer * interval '1 millisecond'),
-                  1
+                  1,
+                  $8::integer
                 )
                 on conflict (
                   ${scope.idColumn},
@@ -106,86 +132,40 @@ function createQuestionAssistanceRepository(
                 )
                 do update set
                   lifecycle_state = case
-                    when ${scope.tableName}.request_fingerprint = excluded.request_fingerprint
-                      and (
-                        ${scope.tableName}.lifecycle_state = 'failed'
-                        and ${scope.tableName}.attempt_count < ${CANDIDATE_QUESTION_ASSISTANCE_MAX_ATTEMPTS}
-                        or (
-                          ${scope.tableName}.lifecycle_state = 'pending'
-                          and ${scope.tableName}.claim_expires_at <= now()
-                          and ${scope.tableName}.attempt_count < ${CANDIDATE_QUESTION_ASSISTANCE_MAX_ATTEMPTS}
-                        )
-                      )
+                    when ${claimCanAdvance}
                       then 'pending'
                     else ${scope.tableName}.lifecycle_state
                   end,
                   claim_token = case
-                    when ${scope.tableName}.request_fingerprint = excluded.request_fingerprint
-                      and (
-                        ${scope.tableName}.lifecycle_state = 'failed'
-                        and ${scope.tableName}.attempt_count < ${CANDIDATE_QUESTION_ASSISTANCE_MAX_ATTEMPTS}
-                        or (
-                          ${scope.tableName}.lifecycle_state = 'pending'
-                          and ${scope.tableName}.claim_expires_at <= now()
-                          and ${scope.tableName}.attempt_count < ${CANDIDATE_QUESTION_ASSISTANCE_MAX_ATTEMPTS}
-                        )
-                      )
+                    when ${claimCanAdvance}
                       then excluded.claim_token
                     else ${scope.tableName}.claim_token
                   end,
                   claim_expires_at = case
-                    when ${scope.tableName}.request_fingerprint = excluded.request_fingerprint
-                      and (
-                        ${scope.tableName}.lifecycle_state = 'failed'
-                        and ${scope.tableName}.attempt_count < ${CANDIDATE_QUESTION_ASSISTANCE_MAX_ATTEMPTS}
-                        or (
-                          ${scope.tableName}.lifecycle_state = 'pending'
-                          and ${scope.tableName}.claim_expires_at <= now()
-                          and ${scope.tableName}.attempt_count < ${CANDIDATE_QUESTION_ASSISTANCE_MAX_ATTEMPTS}
-                        )
-                      )
+                    when ${claimCanAdvance}
                       then excluded.claim_expires_at
                     else ${scope.tableName}.claim_expires_at
                   end,
                   attempt_count = case
-                    when ${scope.tableName}.request_fingerprint = excluded.request_fingerprint
-                      and (
-                        ${scope.tableName}.lifecycle_state = 'failed'
-                        and ${scope.tableName}.attempt_count < ${CANDIDATE_QUESTION_ASSISTANCE_MAX_ATTEMPTS}
-                        or (
-                          ${scope.tableName}.lifecycle_state = 'pending'
-                          and ${scope.tableName}.claim_expires_at <= now()
-                          and ${scope.tableName}.attempt_count < ${CANDIDATE_QUESTION_ASSISTANCE_MAX_ATTEMPTS}
-                        )
-                      )
-                      then ${scope.tableName}.attempt_count + 1
+                    when ${claimCanAdvance}
+                      then case
+                        when ${generationCanAdvance} then 1
+                        else ${scope.tableName}.attempt_count + 1
+                      end
                     else ${scope.tableName}.attempt_count
                   end,
+                  generation_revision = case
+                    when ${claimCanAdvance}
+                      then excluded.generation_revision
+                    else ${scope.tableName}.generation_revision
+                  end,
                   output_json = case
-                    when ${scope.tableName}.request_fingerprint = excluded.request_fingerprint
-                      and (
-                        ${scope.tableName}.lifecycle_state = 'failed'
-                        and ${scope.tableName}.attempt_count < ${CANDIDATE_QUESTION_ASSISTANCE_MAX_ATTEMPTS}
-                        or (
-                          ${scope.tableName}.lifecycle_state = 'pending'
-                          and ${scope.tableName}.claim_expires_at <= now()
-                          and ${scope.tableName}.attempt_count < ${CANDIDATE_QUESTION_ASSISTANCE_MAX_ATTEMPTS}
-                        )
-                      )
+                    when ${claimCanAdvance}
                       then null
                     else ${scope.tableName}.output_json
                   end,
                   error_code = case
-                    when ${scope.tableName}.request_fingerprint = excluded.request_fingerprint
-                      and (
-                        ${scope.tableName}.lifecycle_state = 'failed'
-                        and ${scope.tableName}.attempt_count < ${CANDIDATE_QUESTION_ASSISTANCE_MAX_ATTEMPTS}
-                        or (
-                          ${scope.tableName}.lifecycle_state = 'pending'
-                          and ${scope.tableName}.claim_expires_at <= now()
-                          and ${scope.tableName}.attempt_count < ${CANDIDATE_QUESTION_ASSISTANCE_MAX_ATTEMPTS}
-                        )
-                      )
+                    when ${claimCanAdvance}
                       then null
                     else ${scope.tableName}.error_code
                   end
@@ -195,6 +175,7 @@ function createQuestionAssistanceRepository(
                   claim_token,
                   claim_expires_at,
                   attempt_count,
+                  generation_revision,
                   output_json
             `, [
                 input.practiceSessionId,
@@ -204,6 +185,7 @@ function createQuestionAssistanceRepository(
                 input.requestFingerprint,
                 input.claimToken,
                 input.claimLeaseMs,
+                input.generationRevision,
             ]);
             const row = result.rows[0];
             if (!row || row.request_fingerprint !== input.requestFingerprint) {

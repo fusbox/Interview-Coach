@@ -1,7 +1,7 @@
 # Database Access Hardening
 
-Status: Personal Vercel runtime cutover accepted; company rollout pending
-Last updated: 2026-07-31
+Status: Personal Vercel runtime cutover and voice hash compatibility migration accepted; company rollout pending
+Last updated: 2026-08-03
 
 ## Purpose
 
@@ -19,6 +19,14 @@ Dashboard, which reports that no schemas can be queried. A gateway `401` is not
 a valid enabled-state probe. This evidence is not company-environment or
 production release approval.
 
+On 2026-08-03, forward migrations `050`-`051` were applied to the personal
+Supabase project before the matching application deployment. Read-only catalog
+validation proved the fixed-search-path hash wrapper, candidate and invited
+voice-trigger replacement, runtime `EXECUTE`, continued denial of runtime
+`extensions` schema usage, and both question-assistance generation-revision
+constraints. This is personal-demo migration evidence only; the company rollout
+still requires its own owner migration, restricted-role smokes, and approval.
+
 ## Staging Contract
 
 - Schema migrations run with an operator-only owner connection in `DATABASE_MIGRATION_URL`.
@@ -27,6 +35,7 @@ production release approval.
 - Every current public application table has RLS enabled and one explicit all-row policy scoped only to `interview_coach_runtime`.
 - PostgreSQL `PUBLIC` plus Supabase `anon`, `authenticated`, `service_role`, and `authenticator` receive no public-schema table, sequence, or function access.
 - Direct function execution is an allowlist derived from current server/worker/maintenance callers. Trigger and constraint functions are not directly executable by the runtime role.
+- Extension functions remain outside the runtime role's schema search path. Application SQL and trigger validation that require SHA-256 use one allowlisted `SECURITY DEFINER` wrapper with a fixed trusted search path and a migration-resolved, schema-qualified `pgcrypto.digest` call; the runtime role does not receive general access to Supabase's `extensions` schema.
 - Every `SECURITY DEFINER` function has a fixed `pg_catalog, public, pg_temp` search path and is not executable by `PUBLIC`.
 - Future tables are private by default but still require explicit RLS. Future direct function calls require an explicit runtime grant. The hardening smoke fails if either step is omitted.
 - The Supabase Data API is disabled. No application feature depends on it.
@@ -94,7 +103,7 @@ If the runtime cutover breaks an application path:
 1. Do not re-enable browser/Data API access.
 2. Record the failing route family and database error code without logging credentials or product content.
 3. Use the operator connection to inspect the missing table/function grant.
-4. Add a reviewed forward migration and extend `032_database_access_hardening_smoke.sql`.
+4. Add a reviewed forward migration and extend `032_database_access_hardening_smoke.sql`. Do not broaden the runtime role's `search_path` to make an extension function resolve implicitly.
 5. Re-run the local disposable database and staging smoke before redeploying.
 
 Temporarily restoring the owner URI to the web application is an emergency rollback only. Treat it as a high-severity privileged-credential exposure window, rotate afterward, and record the exception.
@@ -118,7 +127,9 @@ The staging policy that allows the runtime role to reach all application rows mu
 ```powershell
 npm run test:deployment-env
 cmd /c npx vitest run db/migrations/046_database_access_hardening.test.ts
+npm run test:voice-transcription-seam
 npm run db:smoke-database-access-hardening
+npm run db:smoke-voice-transcription-foundation
 npm run typecheck
 npm run docs:check
 ```

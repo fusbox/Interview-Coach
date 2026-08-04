@@ -38,6 +38,7 @@ describe("candidate question assistance repository", () => {
             requestFingerprint: "a".repeat(64),
             claimToken: ids.claim,
             claimLeaseMs: 30_000,
+            generationRevision: 2,
         };
 
         await expect(repository.claim(input)).resolves.toEqual({
@@ -73,6 +74,7 @@ describe("candidate question assistance repository", () => {
             requestFingerprint: "b".repeat(64),
             claimToken: ids.claim,
             claimLeaseMs: 30_000,
+            generationRevision: 2,
         })).resolves.toEqual({ kind: "replay", output });
     });
 
@@ -121,8 +123,12 @@ describe("candidate question assistance repository", () => {
             requestFingerprint: "d".repeat(64),
             claimToken: ids.claim,
             claimLeaseMs: 30_000,
+            generationRevision: 2,
         })).resolves.toEqual({ kind: "exhausted" });
         expect(query.mock.calls[0][0]).toContain("attempt_count < 3");
+        expect(query.mock.calls[0][0]).toContain(
+            "generation_revision < excluded.generation_revision",
+        );
     });
 
     it("does not reclaim an expired final claim after a worker interruption", async () => {
@@ -146,6 +152,42 @@ describe("candidate question assistance repository", () => {
             requestFingerprint: "e".repeat(64),
             claimToken: ids.claim,
             claimLeaseMs: 30_000,
+            generationRevision: 2,
         })).resolves.toEqual({ kind: "exhausted" });
+    });
+
+    it("resets the attempt budget only when an older failed generation advances", async () => {
+        const query = vi.fn().mockResolvedValue({
+            rows: [{
+                request_fingerprint: "f".repeat(64),
+                lifecycle_state: "pending",
+                claim_token: ids.claim,
+                attempt_count: 1,
+                generation_revision: 2,
+                output_json: null,
+            }],
+        });
+        const repository = createCandidateQuestionAssistanceRepository({ query });
+
+        await expect(repository.claim({
+            practiceSessionId: ids.session,
+            ownerId: ids.profile,
+            questionKey: "q1",
+            assistanceKind: "strong_response",
+            requestFingerprint: "f".repeat(64),
+            claimToken: ids.claim,
+            claimLeaseMs: 30_000,
+            generationRevision: 2,
+        })).resolves.toEqual({
+            kind: "claimed",
+            claimToken: ids.claim,
+            attemptCount: 1,
+        });
+
+        const [sql, values] = query.mock.calls[0];
+        expect(sql).toContain(
+            "generation_revision < excluded.generation_revision then 1",
+        );
+        expect(values.at(-1)).toBe(2);
     });
 });

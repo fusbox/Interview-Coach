@@ -362,6 +362,26 @@ describe("SharedLivePracticeShell", () => {
         expect(screen.queryByRole("button", { name: "Submit answer" })).not.toBeInTheDocument();
     });
 
+    it("shows a textual submit failure in the active voice composer", () => {
+        render(
+            <SharedLivePracticeShell
+                facts={createFacts("candidate_led")}
+                answerMode="voice"
+                availableAnswerModes={["text", "voice"]}
+                draftText=""
+                voiceAnswerContent={<section aria-label="Voice answer capture">Transcript ready</section>}
+                answerMutationPhase="submit_failed"
+                onAnswerModeChange={vi.fn()}
+                onDraftChange={vi.fn()}
+                onSubmit={vi.fn()}
+            />,
+        );
+
+        expect(screen.getByRole("region", { name: "Voice answer capture" })).toBeInTheDocument();
+        expect(screen.getByRole("alert")).toHaveTextContent(/couldn.t save your answer/i);
+        expect(screen.queryByRole("textbox", { name: "Type your answer" })).not.toBeInTheDocument();
+    });
+
     it("collapses the saved answer after coaching becomes available", () => {
         render(
             <SharedLivePracticeShell

@@ -67,6 +67,7 @@ Raw audio is transient request material. The app does not persist it to Postgres
 - The transcription service returns faithful transcript text only. It cannot coach, score, classify answer quality, or silently improve the response.
 - Typed practice remains available before, during, and after every recoverable voice failure.
 - A transcription failure does not create an answer attempt or evaluator run.
+- A persistence failure after successful transcription leaves the recoverable transcript current, shows a textual error in the active voice composer, and retries answer authorization/append without repeating transcription.
 - Delivery claims are absent unless a later trusted extractor supplies accepted, persisted voice markers. Content bands never change because of speaking mechanics.
 - Candidate-led transcripts remain candidate-owned. Invited submitted transcripts become recruiter-visible only through the existing narrow latest-answer projection; raw audio, drafts, superseded attempts, coaching, and evaluator output remain excluded.
 
@@ -147,7 +148,7 @@ Each transcription run stores only:
 
 It does not store raw audio or a duplicate transcript. The completed transaction writes transcript text, source run id, and bounded submission path (`quick_submit` or `transcript_review`) into the audience session's current voice-draft projection. Once submitted, the immutable answer attempt becomes the durable transcript truth and links to the source transcription run.
 
-The answer lineage records the server-resolved submission path. The server derives whether the final submitted transcript differs from the machine transcript by comparing the submitted answer fingerprint with the completed run's output fingerprint. The browser does not assert that fact. Quick submit must produce matching fingerprints; the review path may produce either matching or edited provenance.
+The answer lineage records the server-resolved submission path. The server derives whether the final submitted transcript differs from the machine transcript by comparing the submitted answer fingerprint with the completed run's output fingerprint. The browser does not assert that fact. Quick submit must produce matching fingerprints; the review path may produce either matching or edited provenance. Database-side fingerprint enforcement must remain valid under the least-privilege runtime role without adding an extension schema to its search path; a narrowly executable application hash wrapper owns the schema-qualified `pgcrypto` dependency.
 
 Rerecording creates a new run and moves the current draft projection to it. Earlier runs retain metadata-only lifecycle evidence. Draft retention follows the audience session-draft policy; submitted transcripts follow immutable answer-history retention.
 

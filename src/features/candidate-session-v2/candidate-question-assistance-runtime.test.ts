@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+    CandidateQuestionAssistanceRuntimeError,
     CANDIDATE_QUESTION_ASSISTANCE_GOOGLE_PROFILE,
     createCandidateQuestionAssistanceRuntimeFromEnvironment,
 } from "./candidate-question-assistance-runtime";
@@ -66,5 +67,56 @@ describe("candidate question assistance runtime", () => {
         expect(result.output.status).toBe("candidate_question_hints_v1");
         expect(result.tokenUsage).toEqual({ inputTokens: 100, outputTokens: 40 });
         expect(generateContent).toHaveBeenCalledOnce();
+        expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({
+            config: expect.objectContaining({ maxOutputTokens: 2_048 }),
+        }));
+    });
+
+    it("recovers one bounded JSON object envelope before exact strong-response validation", async () => {
+        const generateContent = vi.fn().mockResolvedValue({
+            text: `Here is the requested response:\n\`\`\`json\n${JSON.stringify({
+                strongResponse:
+                    "I noticed a recurring quality issue, checked the approved requirements, documented what I found, and raised it before the work moved forward.",
+                whyThisWorks:
+                    "It answers directly and gives a concise example. The candidate's actions and result remain easy to follow.",
+            })}\n\`\`\``,
+            candidates: [{ finishReason: "STOP" }],
+        });
+        const runtime = createCandidateQuestionAssistanceRuntimeFromEnvironment({
+            env: {
+                CANDIDATE_QUESTION_ASSISTANCE_PROVIDER: "google_genai",
+                CANDIDATE_QUESTION_ASSISTANCE_PROFILE:
+                    CANDIDATE_QUESTION_ASSISTANCE_GOOGLE_PROFILE,
+            },
+            transport: { generateContent },
+        });
+
+        const result = await runtime.generate({ ...request, assistanceKind: "strong_response" });
+
+        expect(result.output).toMatchObject({ status: "candidate_strong_response_v1" });
+    });
+
+    it("classifies malformed output with metadata-only provider diagnostics", async () => {
+        const generateContent = vi.fn().mockResolvedValue({
+            text: "{truncated",
+            candidates: [{ finishReason: "MAX_TOKENS" }],
+        });
+        const runtime = createCandidateQuestionAssistanceRuntimeFromEnvironment({
+            env: {
+                CANDIDATE_QUESTION_ASSISTANCE_PROVIDER: "google_genai",
+                CANDIDATE_QUESTION_ASSISTANCE_PROFILE:
+                    CANDIDATE_QUESTION_ASSISTANCE_GOOGLE_PROFILE,
+            },
+            transport: { generateContent },
+        });
+
+        await expect(runtime.generate({ ...request, assistanceKind: "strong_response" }))
+            .rejects.toMatchObject({
+                code: "invalid_json",
+                diagnostics: {
+                    responseLength: 10,
+                    finishReason: "MAX_TOKENS",
+                },
+            } satisfies Partial<CandidateQuestionAssistanceRuntimeError>);
     });
 });
