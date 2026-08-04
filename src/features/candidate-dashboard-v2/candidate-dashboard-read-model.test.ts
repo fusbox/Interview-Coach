@@ -644,11 +644,13 @@ describe("candidate dashboard V2 read model", () => {
                             localSlotId: "slot-1",
                             localQuestionNumber: 1,
                             candidatePracticeSessionId: "source-session-1",
-                            questionKey: "slot-1",
+                            questionKey: "slot-4",
                             sourceCandidatePracticeSessionId: "source-session-1",
-                            sourceQuestionKey: "slot-1",
-                            sourceQuestionNumber: 1,
-                            sourceQuestionText: "Tell me about a time you handled warehouse materials.",
+                            sourceQuestionKey: "slot-4",
+                            rootSourceCandidatePracticeSessionId: "source-session-1",
+                            rootSourceQuestionKey: "slot-4",
+                            sourceQuestionNumber: 4,
+                            sourceQuestionText: "How do you keep warehouse records accurate?",
                             sourceCategory: "Behavioral",
                             questionAttemptNumber: 2,
                             practiceKind: "practice_from_feedback",
@@ -670,6 +672,12 @@ describe("candidate dashboard V2 read model", () => {
             questionAttemptCount: 2,
             followUpQuestionAttemptCount: 1,
         });
+        expect(model.practiceDirection.coachGuidedFocus).toMatchObject({
+            title: "Name the measurable outcome sooner.",
+            candidatePracticeSessionId: "follow-up-session-2",
+            sourceQuestionKey: "slot-1",
+            questionKeys: ["slot-4"],
+        });
         expect(model.postRoundReviews[0].questions).toHaveLength(1);
         expect(model.postRoundReviews[0].questions[0]).toMatchObject({
             questionKey: "slot-1",
@@ -678,7 +686,9 @@ describe("candidate dashboard V2 read model", () => {
                 sessionAttemptNumber: 2,
                 questionAttemptNumber: 2,
                 sourceCandidatePracticeSessionId: "source-session-1",
-                sourceQuestionKey: "slot-1",
+                sourceQuestionKey: "slot-4",
+                rootSourceCandidatePracticeSessionId: "source-session-1",
+                rootSourceQuestionKey: "slot-4",
             },
         });
     });
@@ -793,6 +803,8 @@ function createCompletedSession({
             questionKey: string;
             sourceCandidatePracticeSessionId: string;
             sourceQuestionKey: string;
+            rootSourceCandidatePracticeSessionId?: string;
+            rootSourceQuestionKey?: string;
             sourceQuestionNumber: number;
             sourceQuestionText: string;
             sourceCategory: string;
@@ -892,6 +904,11 @@ function createCompletedSession({
                     acknowledgement: "You gave a relevant answer.",
                     observation: "The answer connects to the job, but it can use one sharper detail.",
                     nextPracticeFocus: focus,
+                },
+                evidenceFirst: {
+                    candidateFeedback: {
+                        biggestUpgrade: focus,
+                    },
                 },
             }),
         },

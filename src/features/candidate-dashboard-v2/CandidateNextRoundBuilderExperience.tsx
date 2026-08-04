@@ -18,6 +18,7 @@ import {
     useRef,
     useState,
     type CSSProperties,
+    type PointerEvent as ReactPointerEvent,
     type ReactNode,
 } from "react";
 
@@ -262,6 +263,10 @@ function CandidateNextRoundBuilderDialog({
     const [notice, setNotice] = useState<{ kind: "info" | "error"; message: string } | null>(null);
     const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
+    const sheetDragRef = useRef<{ pointerId: number; startY: number } | null>(null);
+    const sheetDragOffsetRef = useRef(0);
+    const [sheetDragOffset, setSheetDragOffset] = useState(0);
+    const [isSheetDragging, setIsSheetDragging] = useState(false);
     const availableChoices = builder.choices.filter((choice) => !choice.isQueued);
 
     useEffect(() => {
@@ -373,11 +378,54 @@ function CandidateNextRoundBuilderDialog({
         [orderedItemIds[index], orderedItemIds[nextIndex]] = [orderedItemIds[nextIndex], orderedItemIds[index]];
         void mutate({ kind: "reorder", orderedItemIds });
     };
+
+    const resetSheetDrag = () => {
+        sheetDragRef.current = null;
+        sheetDragOffsetRef.current = 0;
+        setSheetDragOffset(0);
+        setIsSheetDragging(false);
+    };
+
+    const handleSheetPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+        if (isClearConfirmOpen || (event.pointerType === "mouse" && event.button !== 0)) return;
+        sheetDragRef.current = {
+            pointerId: event.pointerId,
+            startY: event.clientY,
+        };
+        sheetDragOffsetRef.current = 0;
+        setSheetDragOffset(0);
+        setIsSheetDragging(true);
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+    };
+
+    const handleSheetPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+        const drag = sheetDragRef.current;
+        if (!drag || drag.pointerId !== event.pointerId) return;
+        const nextOffset = Math.max(0, event.clientY - drag.startY);
+        sheetDragOffsetRef.current = nextOffset;
+        setSheetDragOffset(nextOffset);
+    };
+
+    const handleSheetPointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+        const drag = sheetDragRef.current;
+        if (!drag || drag.pointerId !== event.pointerId) return;
+        event.currentTarget.releasePointerCapture?.(event.pointerId);
+        const sheetHeight = dialogRef.current?.getBoundingClientRect().height ?? 0;
+        const closeThreshold = Math.min(128, Math.max(72, sheetHeight * 0.2));
+        const shouldClose = sheetDragOffsetRef.current >= closeThreshold;
+        resetSheetDrag();
+        if (shouldClose) onClose();
+    };
+
     const anchoredStyle = anchorRect ? ({
         "--next-round-anchor-top": `${Math.max(anchorRect.top - 20, 12)}px`,
         "--next-round-anchor-right": `${Math.max(window.innerWidth - anchorRect.right, 12)}px`,
         "--next-round-anchor-width": `${anchorRect.width}px`,
     } as CSSProperties) : undefined;
+    const dialogStyle = {
+        ...anchoredStyle,
+        "--candidate-next-round-sheet-offset": `${sheetDragOffset}px`,
+    } as CSSProperties;
 
     return (
         <div
@@ -388,13 +436,24 @@ function CandidateNextRoundBuilderDialog({
             }}
         >
             <section
-                className={`candidate-next-round-dialog${anchorRect ? " is-anchored" : ""}${isExpanded ? " is-expanded" : ""}`}
-                style={anchoredStyle}
+                className={`candidate-next-round-dialog${anchorRect ? " is-anchored" : ""}${isExpanded ? " is-expanded" : ""}${isSheetDragging ? " is-sheet-dragging" : ""}`}
+                style={dialogStyle}
                 ref={dialogRef}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="candidate-next-round-title"
             >
+                <div
+                    className="candidate-next-round-dialog__grabber"
+                    data-testid="candidate-next-round-sheet-grabber"
+                    aria-hidden="true"
+                    onPointerDown={handleSheetPointerDown}
+                    onPointerMove={handleSheetPointerMove}
+                    onPointerUp={handleSheetPointerEnd}
+                    onPointerCancel={resetSheetDrag}
+                >
+                    <span />
+                </div>
                 <header
                     className="candidate-next-round-dialog__header"
                     aria-hidden={isClearConfirmOpen || undefined}
@@ -402,19 +461,12 @@ function CandidateNextRoundBuilderDialog({
                 >
                     <div className="candidate-next-round-dialog__title-row">
                         <h2 id="candidate-next-round-title">Next practice round</h2>
-                        <span>{builder.itemCount}</span>
+                        <span aria-label={`${builder.itemCount} ${builder.itemCount === 1 ? "question" : "questions"} queued`}>
+                            {builder.itemCount}
+                        </span>
                     </div>
                     <button ref={closeButtonRef} type="button" onClick={onClose} aria-label="Close next practice round">
                         <X size={19} aria-hidden="true" />
-                    </button>
-                    <button
-                        className="candidate-next-round-start"
-                        type="button"
-                        disabled={builder.itemCount < 1 || Boolean(busyAction)}
-                        onClick={() => void launch()}
-                    >
-                        {busyAction === "launch" ? "Preparing practice..." : "Start practice"}
-                        <ArrowRight size={17} aria-hidden="true" />
                     </button>
                 </header>
 
@@ -423,10 +475,6 @@ function CandidateNextRoundBuilderDialog({
                     aria-hidden={isClearConfirmOpen || undefined}
                     inert={isClearConfirmOpen || undefined}
                 >
-                    <div className="candidate-next-round-context">
-                        <span>Preparing for</span>
-                        <strong>{builder.targetRole}</strong>
-                    </div>
                     {notice ? (
                         <p className={`candidate-next-round-notice is-${notice.kind}`} role={notice.kind === "error" ? "alert" : "status"}>
                             {notice.message}
@@ -434,10 +482,7 @@ function CandidateNextRoundBuilderDialog({
                     ) : null}
 
                     <section className="candidate-next-round-section" aria-labelledby="candidate-next-round-queued-title">
-                        <div className="candidate-next-round-section__heading">
-                            <h3 id="candidate-next-round-queued-title">In this round</h3>
-                            <span>{builder.itemCount} of {builder.capacity}</span>
-                        </div>
+                        <h3 className="sr-only" id="candidate-next-round-queued-title">Queued questions</h3>
                         {builder.items.length > 0 ? (
                             <ol className="candidate-next-round-list">
                                 {builder.items.map((item, index) => (
@@ -445,7 +490,6 @@ function CandidateNextRoundBuilderDialog({
                                         <div className="candidate-next-round-item__meta">
                                             <span>Q{item.questionNumber}:</span>
                                             <span>{item.category}</span>
-                                            <span>{item.evidenceLabel}</span>
                                         </div>
                                         <p>{item.questionText}</p>
                                         <div className="candidate-next-round-item__actions">
@@ -491,9 +535,11 @@ function CandidateNextRoundBuilderDialog({
 
                     <section className="candidate-next-round-section" aria-labelledby="candidate-next-round-available-title">
                         <div className="candidate-next-round-section__heading">
-                            <h3 id="candidate-next-round-available-title">Available from Coach Plan</h3>
+                            <h3 id="candidate-next-round-available-title">Available to add</h3>
                         </div>
-                        {availableChoices.length > 0 ? (
+                        {builder.itemCount >= builder.capacity ? (
+                            <p className="candidate-next-round-section__complete">Round is full.</p>
+                        ) : availableChoices.length > 0 ? (
                             <ul className="candidate-next-round-choices">
                                 {availableChoices.map((choice) => (
                                     <li key={`${choice.sourceCandidatePracticeSessionId}:${choice.sourceQuestionKey}`}>
@@ -501,7 +547,6 @@ function CandidateNextRoundBuilderDialog({
                                             <div className="candidate-next-round-item__meta">
                                                 <span>Q{choice.questionNumber}:</span>
                                                 <span>{choice.category}</span>
-                                                <span>{choice.evidenceLabel}</span>
                                             </div>
                                             <p>{choice.questionText}</p>
                                         </div>
@@ -522,7 +567,7 @@ function CandidateNextRoundBuilderDialog({
                                 ))}
                             </ul>
                         ) : (
-                            <p className="candidate-next-round-section__complete">Every currently eligible question is already in this round.</p>
+                            <p className="candidate-next-round-section__complete">Every eligible question is already in this round.</p>
                         )}
                     </section>
                 </div>
@@ -532,7 +577,7 @@ function CandidateNextRoundBuilderDialog({
                     aria-hidden={isClearConfirmOpen || undefined}
                     inert={isClearConfirmOpen || undefined}
                 >
-                    <button type="button" onClick={onClose}>Cancel</button>
+                    <button className="is-cancel" type="button" onClick={onClose}>Cancel</button>
                     <button
                         className="is-clear"
                         type="button"
@@ -541,6 +586,15 @@ function CandidateNextRoundBuilderDialog({
                     >
                         Clear all
                         <Trash2 size={16} aria-hidden="true" />
+                    </button>
+                    <button
+                        className="candidate-next-round-start"
+                        type="button"
+                        disabled={builder.itemCount < 1 || Boolean(busyAction)}
+                        onClick={() => void launch()}
+                    >
+                        {busyAction === "launch" ? "Preparing practice..." : "Start practice"}
+                        <ArrowRight size={17} aria-hidden="true" />
                     </button>
                 </footer>
 

@@ -344,6 +344,7 @@ function createReadyDashboard(
                 body: "Use the latest coach feedback for one focused practice round.",
                 href: "/candidate/practice/ready?intent=coach-update-feedback-focus&fromSession=session-1&questionKey=slot-1",
                 candidatePracticeSessionId: "session-1",
+                sourceQuestionKey: "slot-1",
                 questionKeys: ["slot-1"],
             },
         },

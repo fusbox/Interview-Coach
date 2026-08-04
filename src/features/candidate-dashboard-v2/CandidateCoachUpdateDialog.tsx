@@ -4,7 +4,6 @@ import useEmblaCarousel from "embla-carousel-react";
 import {
     ChevronLeft,
     ChevronRight,
-    MessageSquareQuote,
     X,
 } from "lucide-react";
 import {
@@ -12,9 +11,12 @@ import {
     useEffect,
     useRef,
     useState,
+    type CSSProperties,
     type KeyboardEvent as ReactKeyboardEvent,
+    type PointerEvent as ReactPointerEvent,
 } from "react";
 
+import { CandidateCoachAvatar } from "../candidate-v2/CandidateCoachAvatar";
 import type { CandidateCoachUpdateDetail } from "./candidate-coach-update-detail";
 import { CandidateAnswerReview } from "./CandidateAnswerReview";
 import { CandidateQuestionPracticeActions } from "./CandidatePracticeNextActions";
@@ -37,6 +39,10 @@ export function CandidateCoachUpdateDialog({
     const closeButtonRef = useRef<HTMLButtonElement | null>(null);
     const contentRef = useRef<HTMLDivElement | null>(null);
     const previousFocusRef = useRef<HTMLElement | null>(null);
+    const sheetDragRef = useRef<{ pointerId: number; startY: number } | null>(null);
+    const sheetDragOffsetRef = useRef(0);
+    const [sheetDragOffset, setSheetDragOffset] = useState(0);
+    const [isSheetDragging, setIsSheetDragging] = useState(false);
 
     const resetContentScroll = useCallback(() => {
         if (!contentRef.current) return;
@@ -135,6 +141,48 @@ export function CandidateCoachUpdateDialog({
         selectQuestion(nextIndex, true);
     };
 
+    const resetSheetDrag = () => {
+        sheetDragRef.current = null;
+        sheetDragOffsetRef.current = 0;
+        setSheetDragOffset(0);
+        setIsSheetDragging(false);
+    };
+
+    const handleSheetPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+        if (event.pointerType === "mouse" && event.button !== 0) return;
+        sheetDragRef.current = {
+            pointerId: event.pointerId,
+            startY: event.clientY,
+        };
+        sheetDragOffsetRef.current = 0;
+        setSheetDragOffset(0);
+        setIsSheetDragging(true);
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+    };
+
+    const handleSheetPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+        const drag = sheetDragRef.current;
+        if (!drag || drag.pointerId !== event.pointerId) return;
+        const nextOffset = Math.max(0, event.clientY - drag.startY);
+        sheetDragOffsetRef.current = nextOffset;
+        setSheetDragOffset(nextOffset);
+    };
+
+    const handleSheetPointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+        const drag = sheetDragRef.current;
+        if (!drag || drag.pointerId !== event.pointerId) return;
+        event.currentTarget.releasePointerCapture?.(event.pointerId);
+        const sheetHeight = dialogRef.current?.getBoundingClientRect().height ?? 0;
+        const closeThreshold = Math.min(128, Math.max(72, sheetHeight * 0.2));
+        const shouldClose = sheetDragOffsetRef.current >= closeThreshold;
+        resetSheetDrag();
+        if (shouldClose) onClose();
+    };
+
+    const sheetStyle = {
+        "--candidate-coach-update-sheet-offset": `${sheetDragOffset}px`,
+    } as CSSProperties;
+
     return (
         <div
             className="candidate-coach-update-backdrop"
@@ -144,14 +192,29 @@ export function CandidateCoachUpdateDialog({
             }}
         >
             <section
-                className="candidate-coach-update-dialog"
+                className={`candidate-coach-update-dialog${isSheetDragging ? " is-sheet-dragging" : ""}`}
                 ref={dialogRef}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="candidate-coach-update-title"
+                style={sheetStyle}
             >
+                <div
+                    className="candidate-coach-update-dialog__grabber"
+                    data-testid="coach-update-sheet-grabber"
+                    aria-hidden="true"
+                    onPointerDown={handleSheetPointerDown}
+                    onPointerMove={handleSheetPointerMove}
+                    onPointerUp={handleSheetPointerEnd}
+                    onPointerCancel={resetSheetDrag}
+                >
+                    <span />
+                </div>
                 <header className="candidate-coach-update-dialog__header">
-                    <MessageSquareQuote size={20} aria-hidden="true" />
+                    <CandidateCoachAvatar
+                        variant="surface"
+                        className="candidate-coach-update-dialog__avatar"
+                    />
                     <h2 id="candidate-coach-update-title">Let&apos;s review your latest practice.</h2>
                     <button ref={closeButtonRef} type="button" onClick={onClose} aria-label="Close Coach Update">
                         <X size={19} aria-hidden="true" />

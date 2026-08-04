@@ -66,8 +66,15 @@ describe("CandidateNextRoundBuilderExperience", () => {
         const trigger = screen.getByRole("button", { name: "Next practice round, 1 queued" });
         await user.click(trigger);
         const dialog = screen.getByRole("dialog", { name: "Next practice round" });
-        expect(within(dialog).getByText("Quality Inspector")).toBeInTheDocument();
-        expect(within(dialog).getByText("1 of 20")).toBeInTheDocument();
+        expect(within(dialog).queryByText("Quality Inspector")).not.toBeInTheDocument();
+        expect(within(dialog).queryByText("Preparing for")).not.toBeInTheDocument();
+        expect(within(dialog).queryByText("In this round")).not.toBeInTheDocument();
+        expect(within(dialog).queryByText("1 of 20")).not.toBeInTheDocument();
+        expect(within(dialog).queryByText("Coach feedback")).not.toBeInTheDocument();
+        expect(within(dialog).queryByText("Plan coverage")).not.toBeInTheDocument();
+        expect(within(dialog).getByRole("heading", { name: "Available to add" })).toBeInTheDocument();
+        const footerButtons = within(dialog.querySelector("footer")!).getAllByRole("button");
+        expect(footerButtons.at(-1)).toHaveAccessibleName("Start practice");
 
         await user.click(within(dialog).getByRole("button", { name: "Add question 2 to next practice round" }));
         expect(requestMutation).toHaveBeenLastCalledWith(
@@ -182,8 +189,24 @@ describe("CandidateNextRoundBuilderExperience", () => {
 
         await user.click(screen.getByRole("button", { name: "Next practice round, 1 queued" }));
 
-        expect(screen.getByRole("button", { name: "Add question 2 to next practice round" })).toBeDisabled();
-        expect(screen.getByText("1 of 1")).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Add question 2 to next practice round" })).not.toBeInTheDocument();
+        expect(screen.queryByText("1 of 1")).not.toBeInTheDocument();
+        expect(screen.getByText("Round is full.")).toBeInTheDocument();
+    });
+
+    it("dismisses the mobile sheet after a deliberate downward grabber drag", async () => {
+        const user = userEvent.setup();
+        renderBuilder({ initialBuilder: createBuilder(1, 3) });
+        const trigger = screen.getByRole("button", { name: "Next practice round, 1 queued" });
+
+        await user.click(trigger);
+        const grabber = screen.getByTestId("candidate-next-round-sheet-grabber");
+        fireEvent.pointerDown(grabber, { pointerId: 1, pointerType: "touch", clientY: 20 });
+        fireEvent.pointerMove(grabber, { pointerId: 1, pointerType: "touch", clientY: 120 });
+        fireEvent.pointerUp(grabber, { pointerId: 1, pointerType: "touch", clientY: 120 });
+
+        expect(screen.queryByRole("dialog", { name: "Next practice round" })).not.toBeInTheDocument();
+        await waitFor(() => expect(trigger).toHaveFocus());
     });
 });
 

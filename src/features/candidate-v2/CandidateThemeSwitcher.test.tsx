@@ -24,7 +24,11 @@ describe("CandidateThemeSwitcher", () => {
         expect(document.documentElement).toHaveAttribute("data-theme", "dark");
         expect(document.documentElement.style.colorScheme).toBe("dark");
         expect(window.localStorage.getItem(CANDIDATE_THEME_STORAGE_KEY)).toBe("dark");
-        expect(screen.getByRole("button", { name: "Switch to light theme" })).toHaveTextContent("Dark");
+        const updatedSwitcher = screen.getByRole("button", { name: "Switch to light theme" });
+        expect(updatedSwitcher.textContent).toBe("");
+        expect(updatedSwitcher.querySelector('[data-active="true"]')).toBe(
+            updatedSwitcher.querySelectorAll(".candidate-theme-switcher__option")[1],
+        );
     });
 
     it("reflects a dark theme applied by the pre-hydration bootstrap", async () => {
@@ -35,7 +39,10 @@ describe("CandidateThemeSwitcher", () => {
         render(<CandidateThemeSwitcher />);
 
         await waitFor(() => {
-            expect(screen.getByRole("button", { name: "Switch to light theme" })).toHaveTextContent("Dark");
+            const switcher = screen.getByRole("button", { name: "Switch to light theme" });
+            expect(switcher.querySelector('[data-active="true"]')).toBe(
+                switcher.querySelectorAll(".candidate-theme-switcher__option")[1],
+            );
         });
     });
 });

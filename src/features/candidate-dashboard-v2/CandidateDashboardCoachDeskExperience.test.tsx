@@ -80,6 +80,130 @@ describe("CandidateDashboardCoachDeskExperience", () => {
         expect(document.querySelector(".candidate-dashboard-quiet-row")).not.toBeInTheDocument();
     });
 
+    it("keeps quiet and promoted Practice Next tied to one canonical question and one coaching move", async () => {
+        const base = createColdStartDashboard();
+        const questionText = "The shift is 9:30 a.m. to 6 p.m. Does this schedule work for you?";
+        const recommendedMove = "Keep the answer professional without sharing private personal details.";
+        const dashboard = createColdStartDashboard({
+            coachUpdateState: {
+                status: "candidate_coach_update_ready",
+                candidatePracticeSessionId: "follow-up-session",
+                presentationKey: "update-1",
+                completedAt: "2026-08-04T12:00:00.000Z",
+                answeredCount: 1,
+                questionCount: 1,
+            },
+            coachUpdateDetail: {
+                status: "candidate_coach_update_detail_ready",
+                presentationKey: "update-1",
+                candidatePracticeSessionId: "follow-up-session",
+                targetRole: "Senior Product Designer",
+                completedAt: "2026-08-04T12:00:00.000Z",
+                answeredCount: 1,
+                questionCount: 1,
+                reviewPosture: "fully_reviewable",
+                summary: "Your feedback is ready.",
+                primaryFocus: recommendedMove,
+                items: [{
+                    status: "candidate_coach_update_question_detail",
+                    questionKey: "slot-1",
+                    questionNumber: 4,
+                    category: "Screening",
+                    questionText,
+                    evidenceStatus: "practiced",
+                    answer: {
+                        mode: "text",
+                        text: "The schedule works for me.",
+                        submittedAt: "2026-08-04T11:55:00.000Z",
+                    },
+                    transcriptCanvas: null,
+                    coachRead: {
+                        acknowledgement: "You answered directly.",
+                        observation: "You confirmed your availability.",
+                        nextPracticeFocus: "Try the question again.",
+                    },
+                    comparison: {
+                        kind: "first_practice",
+                        priorComparableAttemptCount: 0,
+                        message: "This is your first practice attempt for this question.",
+                    },
+                    actionPosture: {
+                        kind: "review_coaching",
+                        label: "Review coach feedback",
+                        reason: "This answer has accepted coaching ready.",
+                    },
+                    focusedPracticeAction: {
+                        status: "candidate_focused_practice_action",
+                        kind: "practice_from_feedback",
+                        label: "Practice this focus",
+                        href: "/candidate/practice/ready?intent=coach-update-feedback-focus&fromSession=follow-up-session&questionKey=slot-1",
+                        source: {
+                            kind: "coach_update_detail",
+                            candidatePracticeSessionId: "follow-up-session",
+                            questionKey: "slot-1",
+                            questionNumber: 4,
+                            category: "Screening",
+                            targetRole: "Senior Product Designer",
+                        },
+                    },
+                }],
+            },
+            practiceDirection: {
+                status: "candidate_dashboard_practice_direction_ready",
+                primaryAction: "practice_from_feedback",
+                planProgress: {
+                    status: "candidate_dashboard_plan_progress_ready",
+                    label: "Plan progress",
+                    source: "completed_plan",
+                    title: "The latest round is complete.",
+                    body: "Feedback-based practice can build on what I noticed.",
+                    href: null,
+                    questionKeys: [],
+                },
+                coachGuidedFocus: {
+                    status: "candidate_dashboard_coach_guided_focus_ready",
+                    label: "Practice from feedback",
+                    source: "coach_feedback",
+                    title: recommendedMove,
+                    body: "Use the latest coach feedback to choose one focused answer pattern to practice next.",
+                    href: "/candidate/practice/ready?intent=coach-update-feedback-focus&fromSession=follow-up-session&questionKey=slot-1",
+                    candidatePracticeSessionId: "follow-up-session",
+                    sourceQuestionKey: "slot-1",
+                    questionKeys: ["slot-4"],
+                },
+            },
+            coachPlan: {
+                ...base.coachPlan!,
+                questionCount: 5,
+                questions: [{
+                    questionKey: "slot-4",
+                    questionNumber: 4,
+                    category: "screening",
+                    categoryLabel: "Screening",
+                    questionText,
+                    evidenceStatus: "practiced",
+                }],
+            },
+        });
+
+        render(<CandidateDashboardCoachDeskExperience dashboard={dashboard} />);
+
+        const quietRow = await screen.findByRole("article");
+        expect(within(quietRow).getByText(/Practice next.*Question 4/)).toBeInTheDocument();
+        expect(within(quietRow).getByText(recommendedMove)).toBeInTheDocument();
+        expect(within(quietRow).getByText(questionText)).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", { name: "Review question 4" }));
+        fireEvent.click(screen.getByRole("button", { name: "Close Coach Update" }));
+
+        const promoted = screen.getByRole("region", { name: recommendedMove });
+        expect(within(promoted).getByText(/Question 4 of 5.*Screening/)).toBeInTheDocument();
+        expect(within(promoted).getByText(questionText)).toBeInTheDocument();
+        expect(within(promoted).getByRole("heading", { name: recommendedMove })).toBeInTheDocument();
+        expect(within(promoted).queryByText("Use the latest coach feedback to choose one focused answer pattern to practice next.")).not.toBeInTheDocument();
+        expect(within(promoted).queryByText("Try the question again.")).not.toBeInTheDocument();
+    });
+
     it("uses roving tab focus and keeps Strong as the only checked question badge", async () => {
         render(<CandidateDashboardCoachDeskExperience dashboard={createProgressDashboard()} />);
 

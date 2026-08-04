@@ -14,7 +14,13 @@ const analysisSnapshot = createCandidateAnswerAnalysisProviderResultFixture({
     coachFeedback: {
         acknowledgement: "You gave a direct answer.",
         observation: "Add a specific example from the shift.",
-        nextPracticeFocus: "Name one task you handled well and what changed.",
+        nextPracticeFocus: "Try the question again with one concrete example.",
+    },
+    evidenceFirst: {
+        candidateFeedback: {
+            biggestUpgrade: "Name one task you handled well and what changed.",
+            redoPrompt: "Try the question again with one concrete example.",
+        },
     },
 });
 
@@ -48,7 +54,7 @@ describe("candidate completed round read model", () => {
                     questionNumber: 1,
                     category: "Screening",
                     observation: "Add a specific example from the shift.",
-                    nextPracticeFocus: "Name one task you handled well and what changed.",
+                    nextPracticeFocus: "Try the question again with one concrete example.",
                 },
             },
             postRoundReview: {
@@ -73,7 +79,8 @@ describe("candidate completed round read model", () => {
                         coaching: {
                             acknowledgement: "You gave a direct answer.",
                             observation: "Add a specific example from the shift.",
-                            nextPracticeFocus: "Name one task you handled well and what changed.",
+                            nextPracticeFocus: "Try the question again with one concrete example.",
+                            recommendedMove: "Name one task you handled well and what changed.",
                         },
                     },
                     {
@@ -128,7 +135,9 @@ describe("candidate completed round read model", () => {
                     questionKey: "slot-1",
                     sourceCandidatePracticeSessionId: "source-session-1",
                     sourceQuestionKey: "slot-1",
-                    sourceQuestionNumber: 1,
+                    rootSourceCandidatePracticeSessionId: "root-session-1",
+                    rootSourceQuestionKey: "slot-4",
+                    sourceQuestionNumber: 4,
                     sourceQuestionText: "What interests you about this Material Handler role?",
                     sourceCategory: "Screening",
                     questionAttemptNumber: 2,
@@ -153,7 +162,9 @@ describe("candidate completed round read model", () => {
                 questionAttemptNumber: 2,
                 sourceCandidatePracticeSessionId: "source-session-1",
                 sourceQuestionKey: "slot-1",
-                sourceQuestionNumber: 1,
+                rootSourceCandidatePracticeSessionId: "root-session-1",
+                rootSourceQuestionKey: "slot-4",
+                sourceQuestionNumber: 4,
                 practiceKind: "practice_from_feedback",
             },
         });
@@ -189,6 +200,8 @@ function createCompletedSessionRecord({
             questionKey: string;
             sourceCandidatePracticeSessionId: string;
             sourceQuestionKey: string;
+            rootSourceCandidatePracticeSessionId?: string;
+            rootSourceQuestionKey?: string;
             sourceQuestionNumber: number;
             sourceQuestionText: string;
             sourceCategory: string;

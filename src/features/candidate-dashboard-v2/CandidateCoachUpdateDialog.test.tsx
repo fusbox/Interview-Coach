@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useState } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { CandidateCoachUpdateDetail } from "./candidate-coach-update-detail";
 import { CandidateCoachUpdateDialog } from "./CandidateCoachUpdateDialog";
@@ -13,6 +13,11 @@ describe("CandidateCoachUpdateDialog", () => {
         const currentSlide = within(dialog).getByRole("group", { name: "Question feedback 1 of 2" });
         const evidence = currentSlide.querySelector(".candidate-answer-review__evidence");
 
+        const coachAvatar = dialog.querySelector(".candidate-coach-update-dialog__avatar.candidate-coach-avatar");
+        expect(coachAvatar).not.toBeNull();
+        expect(coachAvatar?.querySelector(".candidate-coach-avatar__light"))
+            .toHaveAttribute("src", "/coach-avatar-surface-light.svg");
+        expect(screen.getByTestId("coach-update-sheet-grabber")).toBeInTheDocument();
         expect(within(currentSlide).getByText(/Question 4 .* Behavioral/)).toBeInTheDocument();
         expect(within(currentSlide).getByRole("heading", {
             name: "Tell me about a time you resolved a high-risk customer issue.",
@@ -28,6 +33,21 @@ describe("CandidateCoachUpdateDialog", () => {
         expect(within(currentSlide).getByLabelText("What to try next for question 4"))
             .not.toHaveClass("surface-orange");
         expect(within(currentSlide).getByText("Name the measurable customer outcome.")).toBeInTheDocument();
+    });
+
+    it("dismisses the mobile sheet after a deliberate downward drag", () => {
+        const onClose = vi.fn();
+        render(<CandidateCoachUpdateDialog detail={createDetail()} onClose={onClose} />);
+
+        const dialog = screen.getByRole("dialog", { name: "Let's review your latest practice." });
+        const grabber = screen.getByTestId("coach-update-sheet-grabber");
+        fireEvent.pointerDown(grabber, { pointerId: 1, pointerType: "touch", clientY: 20 });
+        fireEvent.pointerMove(grabber, { pointerId: 1, pointerType: "touch", clientY: 120 });
+
+        expect(dialog).toHaveStyle("--candidate-coach-update-sheet-offset: 100px");
+
+        fireEvent.pointerUp(grabber, { pointerId: 1, pointerType: "touch", clientY: 120 });
+        expect(onClose).toHaveBeenCalledTimes(1);
     });
 
     it("uses roving question tabs and suppresses actions in non-current slides", async () => {

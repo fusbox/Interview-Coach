@@ -156,16 +156,16 @@ The transcript canvas is a design gate. If exact answer evidence, whole-answer s
 
 Depth belongs in opened surfaces rather than expanding every home component:
 
-- Coach Update opens the existing top-anchored mobile sheet or wider modal;
+- Coach Update opens a bottom-anchored mobile sheet with a visible grabber and downward drag dismissal, or a wider centered modal; explicit close, Escape, and permitted tapaway remain available;
 - opened Coach Update keeps question context outside the evidence surface. The nested evidence surface contains only the `Your answer` eyebrow and the selectable transcript; accepted whole-answer notes and the single `Try next` gap sit below it as separate, question-owned guidance;
 - Coach Plan opens its selected-context reference surface;
-- the next-round builder opens from the persistent draft trigger;
+- the next-round builder opens from the persistent draft trigger as a control-anchored wider surface or the same grabbed, downward-dismissible bottom sheet used by mobile Coach Update. Its ordered queue receives the stronger contained treatment, `Available to add` remains the quieter inventory, and the footer ends with the primary `Start practice` action;
 - any retained pattern or criteria-balance detail opens from its explicitly ratified owner;
 - transcript evidence uses the existing provenance-safe interaction.
 
 Top-level surfaces close with Escape, explicit close, and permitted clickaway/tapaway. Nested detail uses a back action rather than another clickaway layer.
 
-Dashboard cards use `--radius-card`, with the ready Coach Update retaining `--radius-panel` through `.surface-spotlight`. Opened Coach Update and Coach Plan sheets use `--radius-feedback-modal`; their contained answer-review cards use `--radius-card`. These semantic shape roles do not select or alter elevation.
+Dashboard cards use `--radius-card`, with the ready Coach Update retaining `--radius-panel` through `.surface-spotlight`. Opened Coach Update and Coach Plan sheets use `--radius-feedback-modal`; their contained evidence and guidance surfaces use `--radius-card`, while a Coach Update carousel item adds no outer card plane. These semantic shape roles do not select or alter elevation.
 
 ## Mobile-First Composition
 

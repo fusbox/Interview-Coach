@@ -56,12 +56,20 @@ export function CandidateThemeSwitcher({ className }: { className?: string }) {
             title={`Switch to ${nextTheme} theme`}
             onClick={toggleTheme}
         >
-            {currentTheme === "dark" ? (
-                <Moon size={16} strokeWidth={2.2} aria-hidden="true" />
-            ) : (
-                <Sun size={16} strokeWidth={2.2} aria-hidden="true" />
-            )}
-            <span>{currentTheme === "dark" ? "Dark" : "Light"}</span>
+            <span
+                className={`candidate-theme-switcher__option${currentTheme === "light" ? " is-active" : ""}`}
+                data-active={currentTheme === "light"}
+                aria-hidden="true"
+            >
+                <Sun size={15} strokeWidth={2.2} />
+            </span>
+            <span
+                className={`candidate-theme-switcher__option${currentTheme === "dark" ? " is-active" : ""}`}
+                data-active={currentTheme === "dark"}
+                aria-hidden="true"
+            >
+                <Moon size={15} strokeWidth={2.2} />
+            </span>
         </button>
     );
 }

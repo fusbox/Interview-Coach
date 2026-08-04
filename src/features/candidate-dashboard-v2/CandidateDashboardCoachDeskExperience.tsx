@@ -398,11 +398,10 @@ function CandidateDashboardPracticeNextStage({ dashboard }: { dashboard: Candida
             />
             <CandidateDashboardQuestionReference question={question} />
             <h2 id="candidate-dashboard-practice-next-title">{focus.title}</h2>
-            <p>{focus.body}</p>
             <CandidateQuestionPracticeActions
                 pointer={{
                     sourceCandidatePracticeSessionId: focus.candidatePracticeSessionId,
-                    sourceQuestionKey: focus.questionKeys[0],
+                    sourceQuestionKey: focus.sourceQuestionKey,
                 }}
                 practiceNowHref={focus.href}
             />
@@ -602,7 +601,7 @@ function CandidateDashboardQuietPracticeNext({ dashboard }: { dashboard: Candida
                 items={[{
                     intent: "coach-update-feedback-focus",
                     fromSession: focus.candidatePracticeSessionId,
-                    questionKey: focus.questionKeys[0],
+                    questionKey: focus.sourceQuestionKey,
                 }]}
                 label="Start"
                 ariaLabel={label}

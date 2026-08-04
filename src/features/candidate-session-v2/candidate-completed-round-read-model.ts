@@ -73,6 +73,7 @@ export type CandidatePostRoundReviewQuestion = {
         acknowledgement: string;
         observation: string;
         nextPracticeFocus: string;
+        recommendedMove: string;
     };
     attemptContext?: CandidateQuestionAttemptContext;
 };
@@ -83,6 +84,8 @@ export type CandidateQuestionAttemptContext = {
     questionAttemptNumber: number;
     sourceCandidatePracticeSessionId: string;
     sourceQuestionKey: string;
+    rootSourceCandidatePracticeSessionId?: string;
+    rootSourceQuestionKey?: string;
     sourceQuestionNumber: number;
     practiceKind: "practice_from_feedback" | "practice_missing_evidence";
 };
@@ -132,6 +135,9 @@ export function createCandidateCompletedRoundReadModels(
                         acknowledgement: coachingFacts.coachFeedback.acknowledgement,
                         observation: coachingFacts.coachFeedback.observation,
                         nextPracticeFocus: coachingFacts.coachFeedback.nextPracticeFocus,
+                        recommendedMove: analysisSnapshot.evidenceFirst.candidateFeedback.biggestUpgrade
+                            ?? coachingFacts.appraisal.patternGap.upgrade
+                            ?? coachingFacts.coachFeedback.observation,
                     },
                 }
                 : {}),
@@ -143,6 +149,12 @@ export function createCandidateCompletedRoundReadModels(
                         questionAttemptNumber: followUpItem.questionAttemptNumber,
                         sourceCandidatePracticeSessionId: followUpItem.sourceCandidatePracticeSessionId,
                         sourceQuestionKey: followUpItem.sourceQuestionKey,
+                        ...(followUpItem.rootSourceCandidatePracticeSessionId
+                            ? { rootSourceCandidatePracticeSessionId: followUpItem.rootSourceCandidatePracticeSessionId }
+                            : {}),
+                        ...(followUpItem.rootSourceQuestionKey
+                            ? { rootSourceQuestionKey: followUpItem.rootSourceQuestionKey }
+                            : {}),
                         sourceQuestionNumber: followUpItem.sourceQuestionNumber,
                         practiceKind: followUpItem.practiceKind,
                     },
@@ -217,6 +229,8 @@ type FollowUpPracticeSnapshot = {
         localSlotId: string;
         sourceCandidatePracticeSessionId: string;
         sourceQuestionKey: string;
+        rootSourceCandidatePracticeSessionId?: string;
+        rootSourceQuestionKey?: string;
         sourceQuestionNumber: number;
         questionAttemptNumber: number;
         practiceKind: "practice_from_feedback" | "practice_missing_evidence";
@@ -257,6 +271,14 @@ function readFollowUpPractice(setupSnapshot: unknown): FollowUpPracticeSnapshot 
         && typeof (item as { localSlotId?: unknown }).localSlotId === "string"
         && typeof (item as { sourceCandidatePracticeSessionId?: unknown }).sourceCandidatePracticeSessionId === "string"
         && typeof (item as { sourceQuestionKey?: unknown }).sourceQuestionKey === "string"
+        && (
+            (item as { rootSourceCandidatePracticeSessionId?: unknown }).rootSourceCandidatePracticeSessionId === undefined
+            || typeof (item as { rootSourceCandidatePracticeSessionId?: unknown }).rootSourceCandidatePracticeSessionId === "string"
+        )
+        && (
+            (item as { rootSourceQuestionKey?: unknown }).rootSourceQuestionKey === undefined
+            || typeof (item as { rootSourceQuestionKey?: unknown }).rootSourceQuestionKey === "string"
+        )
         && typeof (item as { sourceQuestionNumber?: unknown }).sourceQuestionNumber === "number"
         && typeof (item as { questionAttemptNumber?: unknown }).questionAttemptNumber === "number"
         && (

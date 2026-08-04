@@ -180,6 +180,7 @@ export type CandidateDashboardCoachGuidedFocusIndicator = {
     body: string;
     href: string;
     candidatePracticeSessionId: string;
+    sourceQuestionKey: string;
     questionKeys: string[];
 };
 
@@ -866,7 +867,7 @@ function createCoachGuidedFocus(
         status: "candidate_dashboard_coach_guided_focus_ready",
         label: "Practice from feedback",
         source: "coach_feedback",
-        title: firstCoachedQuestion.coaching.nextPracticeFocus,
+        title: firstCoachedQuestion.coaching.recommendedMove,
         body: "Use the latest coach feedback to choose one focused answer pattern to practice next.",
         href: createCandidateFocusedPracticeHref({
             kind: "practice_from_feedback",
@@ -874,6 +875,11 @@ function createCoachGuidedFocus(
             questionKey: firstCoachedQuestion.questionKey,
         }),
         candidatePracticeSessionId: latestCompletedRound.round.candidatePracticeSessionId,
-        questionKeys: [firstCoachedQuestion.questionKey],
+        sourceQuestionKey: firstCoachedQuestion.questionKey,
+        questionKeys: [
+            firstCoachedQuestion.attemptContext?.rootSourceQuestionKey
+                ?? firstCoachedQuestion.attemptContext?.sourceQuestionKey
+                ?? firstCoachedQuestion.questionKey,
+        ],
     };
 }
