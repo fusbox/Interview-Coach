@@ -92,6 +92,8 @@ The primary surface roles are:
 - `.surface-feature-tint`
 - `.surface-feature-dark`
 - `.surface-calm`
+- `.surface-coach-quiet`
+- `.surface-plan`
 - `.on-color-glass`
 - `.on-color-glass-strong`
 - `.on-color-action`
@@ -106,7 +108,9 @@ Older `.surface-base`, `.surface-elevated`, `.surface-blue`, `.surface-orange`, 
 - Promote a pattern into a shared primitive when it recurs or protects an important consistency/accessibility rule.
 - Treat a surface-specific exception as deliberate debt with a named removal or promotion trigger.
 - Apply depth through semantic elevation roles. `--elevation-cta` is reserved for primary actions and resolves to a short neutral-first drop shadow with a restrained blue tint; selected controls use fill and contour, not CTA elevation.
-- Coach-voice surfaces use the surface compass avatar variant, whose light and dark assets replace the calm mark's white needle half with the current theme's primary blue. The calm variant remains appropriate on blue spotlight surfaces; CTA remains a separate authored treatment.
+- Use `.surface-coach-quiet` only for reviewed coaching that remains available as quiet dashboard history: opaque powder blue with blue ink in light mode, deep ink blue with light ink in dark mode, short row elevation, and no backdrop blur. It is not a preparedness state or a second spotlight.
+- Use `.surface-plan` for the closed-home Coach Plan reference object: opaque matte blue with white ink, no visible border or backdrop blur, panel elevation, and one restrained inset contour. The same role must render the complete Plan Dial and its legend in every closed dashboard composition; do not maintain a separate pulse or glass variant.
+- Coach identity is semantic rather than decorative. Explicit neutral coach interpretation uses the `surface` compass variant in the shared circular surface frame; the calm variant remains appropriate on blue spotlight surfaces and CTA remains a separate authored treatment. Generic processing/success states and utility headers use ordinary state or navigation affordances instead of a coach avatar.
 - Use `.untracked/ui-lab` for interactive visual exploration. Do not add mock routes under `src/app`.
 
 ## Verification

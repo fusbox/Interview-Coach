@@ -1,7 +1,7 @@
 # Question Preparedness Progress Contract
 
 Status: Ratified implementation contract
-Last updated: 2026-07-25
+Last updated: 2026-08-06
 
 ## Purpose
 
@@ -93,6 +93,8 @@ Unanswered questions do not lower achievement. For example, two Strong questions
 ## Persistence And Ownership
 
 The immutable answer attempt and accepted evaluator run remain durable truth. Question and prep-context progress are read-time projections derived from candidate-owned practice-plan baselines, practice-session lineage, answer attempts, and accepted evaluator runs. No new score column or mutable aggregate table is required. If optional attempt or evaluator history cannot be read, the preparedness projection is unavailable while the rest of the dashboard remains usable; the app must not reinterpret missing input as unpracticed or weak evidence.
+
+The active evaluator runtime and the historical read boundary have different version obligations. New evaluator work must validate against the one current serving prompt bundle. Historical reads may accept only an explicit allowlist of prior bundles whose persisted schema and evaluation meaning are documented as compatible with the current projection. Prompt bundle V14 and V15 share the question-preparedness semantics required by this contract, so accepted V14 records remain readable while V15 stays the only active write/runtime version. Older bundles remain unavailable unless a separate compatibility review proves their meaning and shape; a current-version literal must never silently erase otherwise valid historical evidence.
 
 If query volume later justifies a materialized projection, it must be versioned, rebuildable from immutable facts, fenced against stale writes, and preserve the same unanswered-neutral and highest-earned rules.
 

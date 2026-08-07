@@ -218,6 +218,8 @@ Requirements:
 - preserve operational metadata needed for support and reliability
 - extraction failures must use safe reason codes instead of raw parser output
 
+Candidate-led engagement reporting, when explicitly enabled, stores only append-only active-time slices, candidate/session ownership keys, bounded reason codes, and server receipt time. The detailed interaction/window log is development-only and in-memory. Production collection defaults off pending approval of protected-route behavioral-monitoring disclosure, retention, and administrator-access controls. Engagement telemetry must not contain question, answer, transcript, resume/JD, coaching, assistance, evaluator, prompt, provider, IP-address, or user-agent data.
+
 ## Cookies, Analytics, And Session Monitoring
 
 Requirements:

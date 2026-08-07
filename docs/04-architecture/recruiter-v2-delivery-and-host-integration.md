@@ -98,6 +98,8 @@ Slice 147 landed this boundary with the following operational defaults:
 - ten failed password attempts establish a fifteen-minute lock in the current standalone baseline; final MFA, administrator-unlock, reset, and support policy remain release decisions;
 - the deterministic development recruiter and password can be seeded only through a command that always targets the disposable local smoke database and is disabled under `NODE_ENV=production`.
 
+Recruiter login and logout use one navigation-handoff lifecycle: the initiating control is claimed synchronously, duplicate activation is ignored, and a recoverable request or navigation failure restores the control. After an accepted session mutation hands navigation to the destination, the departing control remains busy and disabled until the route transition unmounts it. Success must not briefly return the login or logout surface to an idle state.
+
 Existing `auth:provision-user` remains the explicit production/staging account provisioning mechanism until an approved administrator or host-identity workflow replaces it. Development seed credentials are not a deployable account posture.
 
 ## Invite Handoff Baseline

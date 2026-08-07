@@ -80,7 +80,15 @@ npm run db:smoke-recruiter-auth
 ```
 
 The final command proves password verification, role recovery, hashed durable session recovery,
-and revocation against the disposable database. It does not send invitations or email.
+and revocation against the disposable database. It does not send invitations or email. The local fixture
+has recruiter and administrator roles so it can validate both recruiter routes and the direct
+`/admin/reports` engagement read; this does not create a production administrator.
+
+Candidate-led engagement collection defaults on outside production after migration `052`. During a local
+candidate session, the invisible lower-left development target opens the active/idle countdown and local
+event/window log. After at least one persisted slice, sign in with the local operator above and open
+`/admin/reports` to validate the privacy-minimized server total. Use
+`npm run db:smoke-candidate-engagement-reporting` for the rollback-only schema and append-only grant proof.
 
 The same local-only recruiter fixture receives a separate active individual AI-eval operator grant.
 The grant is not an app role: recruiter, admin, and legacy QA roles do not grant workbench access.

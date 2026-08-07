@@ -67,6 +67,7 @@ Every active document must have one clear job. Concise milestone evidence may re
 - [Coach Update Card And Transcript Canvas](./03-design/coach-update-v2-card-spec.md)
 - [AI-Eval Operator Workbench](./05-quality/ai-eval-operator-workbench.md)
 - [Evidence-First Coaching Scenario Lab](./05-quality/evidence-first-coaching-scenario-lab.md)
+- [Candidate Engagement Reporting](./04-architecture/candidate-engagement-reporting-contract.md)
 
 ### Invited Practice And Recruiter
 

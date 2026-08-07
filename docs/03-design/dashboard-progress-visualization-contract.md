@@ -1,7 +1,7 @@
 # Dashboard Progress Visualization Contract
 
-Status: Ratified production UI design contract
-Last updated: 2026-07-30
+Status: Ratified data/meaning contract; Plan Dial accepted in lab, category and criteria probes pending review
+Last updated: 2026-08-05
 
 ## Purpose
 
@@ -36,8 +36,8 @@ The first release does not provide:
 | Practiced coverage | `coverage.attemptedQuestionCount` | Secondary `X of Y practiced` context |
 | Unpracticed coverage | `coverage.unpracticedQuestionCount` and question `state` | Neutral, never Emerging or weak |
 | Strong achievement | `achievement.strong` | Primary Plan-rail anchor |
-| Clear achievement | `achievement.clear` | Plan detail and compact labeled Plan-rail question breakdown |
-| Emerging achievement | `achievement.emerging` | Plan detail and compact labeled Plan-rail question breakdown |
+| Clear achievement | `achievement.clear` | Plan detail and graphical Plan-node state |
+| Emerging achievement | `achievement.emerging` | Plan detail and graphical Plan-node state |
 | Incomplete | `coverage.incompleteQuestionCount` and question `state` | Needs a complete usable answer; not a low band |
 | Evaluation unavailable | `coverage.evaluationUnavailableQuestionCount` and question `state` | Coaching unavailable; not unpracticed or weak |
 | Question status | `questions[].state` and `questions[].band` | Compact Plan rail and opened Plan detail |
@@ -67,7 +67,9 @@ Coverage remains adjacent but secondary. It may appear as concise count language
 - `You have practiced 3 of 5 questions`
 - `2 questions are still unpracticed`
 
-The compact home treatment uses one enlarged progress ring in an `Overall plan` cell beside a vertical `By question` breakdown. The two cells have equal width and centered distribution inside one inset progress field; neither receives more layout weight. The darker rail shell remains visible as the `32px` side gutters around that field. The ring owns the Strong-of-plan story; the breakdown uses question number, a circular state badge, and a visible state label to explain which canonical questions contribute. Strong alone uses the filled preparedness value with a checkmark. Clear, Emerging, not practiced, incomplete, and unavailable use lighter treatments from their truthful preparedness roles so they remain secondary without losing their distinct labels. The rail does not repeat the breakdown as a horizontal segment chart. The UI must not convert the ratio to percentage copy, label it readiness, or imply that Plan completion is required before the candidate can interview successfully.
+The compact home treatment uses one integrated `Plan Dial`. The Strong-of-plan ring remains the central anchor while one ordered node per canonical question is distributed around it. The ring answers how close the complete Plan is to its explicit Strong terminal condition; the surrounding nodes show which questions contribute without repeating that meaning as a text-heavy list or second chart. Strong alone uses the filled preparedness value plus a checkmark. Clear, Emerging, not practiced, incomplete, and unavailable use distinct lighter fill, contour, and non-color marks from their truthful preparedness roles. One compact legend names only the states present. The home nodes are summary marks rather than individual tab stops; one icon-only action with the accessible name `View Coach Plan` remains the single home-level interaction. At narrow widths or 200% zoom the nodes may unfold into an ordered compact grid while preserving the ring, canonical order, state distinctions, and equivalent accessible summary. The UI must not convert the ratio to percentage copy, label it readiness, or imply that Plan completion is required before the candidate can interview successfully.
+
+Inside the opened Coach Plan, the same component becomes the canonical question selector on a theme-aware raised neutral field. The ring retains exactly the same overall meaning, while each node becomes a 44px-effective control with a visible primary-blue selected halo and accessible question/state label. A Strong interactive node retains its `Q#` identity and adds a checkmark instead of replacing identity with the checkmark. Selecting a node changes question detail; it does not change progress. Switching to the Categories lens renders the nodes as noninteractive status marks and removes the selected-question halo while leaving the overall Plan read intact. This reuse replaces a second horizontal `Q#` tab strip rather than adding another navigation or progress model.
 
 ### State Rules
 
@@ -80,7 +82,7 @@ The compact home treatment uses one enlarged progress ring in an `Overall plan` 
 - A missing projection produces an unavailable progress state, not `0 Strong`.
 - A zero-question or unresolved baseline suppresses the visual and exposes setup/recovery guidance.
 
-The compact question breakdown preserves canonical question order and shows each canonical question once. Badge treatment and text carry meaning together; color is supporting only. The Strong checkmark supplies a non-color confirmation affordance, while every other state remains a lighter circular badge with its visible label. Unpracticed questions remain neutral, and incomplete or evaluation-unavailable questions keep their distinct truthful labels rather than collapsing into a low band. The breakdown is explanatory context for the overall anchor, not an interactive chart or a second completion measure.
+The ordered node map shows each canonical question exactly once. Shape, contour, and mark carry meaning together with the compact legend; color remains supporting only. The Strong checkmark supplies a non-color confirmation affordance. Unpracticed questions remain neutral and hollow or dashed, while incomplete and evaluation-unavailable questions keep distinct truthful marks rather than collapsing into a low band. The map is explanatory context for the overall anchor, not a second completion measure.
 
 ## Pattern Chart
 
@@ -122,6 +124,14 @@ Category totals are counts of canonical questions in those states. They are not 
 - Unpracticed wording remains hidden until the candidate deliberately reveals it when the governing Question Set contract requires that disclosure.
 - Hover may enhance desktop explanation; tap and focus provide the complete interaction.
 
+### Current Lab Probe: Category Pattern Field
+
+The local-only dashboard lab tests the pattern chart as an aligned category field rather than another card grid, category tab rail, or aggregate score. One row per canonical Plan category crosses only the preparedness states present in the selected Plan. One mark per canonical question occupies its truthful state lane, so a category with several questions can show a distribution without averaging them and a one-question category remains honest rather than visually inflated. Labels and question identifiers remain visible; color supports the existing preparedness roles but never replaces text, contour, or the Strong checkmark.
+
+Selecting a category reveals one adjacent light-surface teaching lens containing the same answer-shape timeline and one `Watch for` cue used in the Questions view. It does not repeat category-purpose copy or expose a second constituent-question list. Switching from Questions to Categories removes the selected-question halo from the persistent Plan Dial so the category field, not one question, owns the current focus. The blue pattern surface places its matrix inside one glass overlay; the selected category row may use a bounded on-color response, but it does not become a second completion gauge.
+
+At narrow widths the field keeps category labels and current-state labels together and hides decorative axis repetition; it does not require horizontal page scrolling. Missing or inconsistent category joins fail the affected category to an explicit unavailable state. This probe uses only the current Coach Plan categories and highest-earned preparedness projection; it neither fabricates criterion balance nor authorizes the five-criteria radar.
+
 ## Five-Criteria Radar
 
 The radar is an optional cross-question view of balance across the five universal criteria:
@@ -133,6 +143,10 @@ The radar is an optional cross-question view of balance across the five universa
 5. Impact, Judgment, and Takeaway
 
 It is not a required Coach Plan face, home hero, per-answer carousel decoration, or numeric competency score.
+
+A retained radar may compare the current qualitative shape with one explicitly named, previously established baseline such as `After round 1`. This remains a comparison between two evidence snapshots, not an improvement or regression chart. The view must label both shapes, expose the contributing-question coverage for each, and explain when a changed edge also reflects a broader evidence base. It must not add better/worse color semantics, trend arrows, or causal language that the snapshots cannot support.
+
+Current and baseline shapes use distinct, non-valenced comparison colors through semantic chart roles. Neither color inherits Emerging, Clear, or Strong meaning; those preparedness colors remain reserved for the qualitative band marks. The comparison must also remain understandable through labels, line treatment, and text rather than color alone.
 
 ### Candidate-UI Decision
 
@@ -172,7 +186,9 @@ Otherwise do not draw the radar. The owning surface may explain which criteria t
 - Missing evidence uses a neutral state rather than a zero-length weak axis.
 - The chart includes `Based on X practiced plan questions` or equivalent coverage context.
 - Color supports the shape but is not the sole carrier of meaning.
-- Selecting or focusing an axis opens criterion teaching and evidence coverage, not a score breakdown.
+- Selecting or focusing an axis opens criterion teaching and evidence coverage, not a numeric score breakdown.
+- A selected-axis companion may expose one mark per contributing canonical question and summarize the count in each `Emerging`, `Clear`, and `Strong` band. It must use the same highest-accepted-per-question evidence set that produces the qualitative median.
+- The median remains the headline. The companion does not calculate, normalize, interpolate, or expose a decimal average; for an even count it explains the ratified lower-middle resolution rule.
 
 ## Latest Feedback Boundary
 

@@ -21,8 +21,8 @@ The dashboard is not an analytics report, a readiness score, or a second evaluat
 | --- | --- | --- |
 | Role-context switcher | Preserve and harden | Select an opaque candidate-owned prep-context id. Role title is display text only. |
 | Normalized role title as dashboard identity | Retire | Same-title preparation contexts must remain distinct. |
-| Coach Update as the post-practice learning entry | Preserve and reinterpret | Show a synthesized review of the latest completed practice, distinct from immediate in-session feedback. |
-| Question-first evidence review | Preserve | Coach Update detail contains only questions practiced in the source session. |
+| Coach Update as the post-practice learning entry | Preserve and reinterpret | Show a synthesized review of the latest settled question, distinct from immediate in-session feedback. |
+| Question-first evidence review | Preserve | Each Coach Update checkpoint contains the exact settled question and accepted evidence that produced it. |
 | Unanswered questions inside Coach Update | Retire | Unanswered plan coverage belongs to Coach Plan and Practice Next. |
 | Coach Plan as a stable reference | Preserve and reinterpret | Keep plan coverage, category teaching, question set, broader guidance, and transparent highest-earned question progress available without score-driven mastery claims. |
 | Candidate-managed next-round queue | Preserve and harden | Replace dashboard-local state with a durable editable draft scoped to one prep context. |
@@ -53,7 +53,7 @@ The final composition should keep these stable concepts available for the select
 The shell changes emphasis without changing the meaning of its regions:
 
 1. If an unfinished round exists, resuming it is the primary action.
-2. After a newly completed round, Coach Update receives the strongest review emphasis and a noncritical `New` treatment.
+2. After a newly settled question, Coach Update receives the strongest review emphasis and a noncritical `New` treatment.
 3. After the candidate opens the update, its content remains available while Practice Next can take stronger action emphasis.
 4. Without a new update or active round, Practice Next is primary.
 5. Without a valid prep context, the candidate enters new-context setup rather than receiving mixed-role or fabricated dashboard claims.
@@ -70,11 +70,11 @@ In-session feedback is immediate question-level evaluation and coaching. It help
 
 ### Coach Update
 
-Coach Update is a post-session synthesis. It explains what the latest practice activity adds to the coach's understanding and what that means for the candidate's next decision. It is not a replay of every in-session card.
+Coach Update is a settled-question synthesis. It explains what the latest successfully persisted answer and accepted evaluation add to the coach's understanding and what that means for the candidate's next decision. It is not a replay of every in-session card, and it does not wait for the session to end.
 
-Coach Update receives a code-owned framing for each accepted answer and for the round. It does not recalculate answer quality, count criterion bands, or stack several observations into a different valence. A `move_on` answer remains complete and is represented through a grounded example of the response pattern that worked. A `polish` answer may receive one optional refinement without being recast as deficient. A `remediate` answer carries the accepted improvement focus. The round's primary framing uses the highest-priority existing posture without weakening any individual answer's accepted framing.
+Coach Update receives a code-owned framing for the exact accepted answer checkpoint. It does not recalculate answer quality, count criterion bands, or stack several observations into a different valence. A `move_on` answer remains complete and is represented through a grounded example of the response pattern that worked. A `polish` answer may receive one optional refinement without being recast as deficient. A `remediate` answer carries the accepted improvement focus.
 
-The source set is limited to questions practiced in that completed session. A single-question session still produces a contextual update; it may refer naturally to the coaching already given while adding cross-attempt or plan context.
+The source set is the one question settled by the checkpoint. It may refer naturally to the coaching already given while adding cross-attempt or plan context. Later checkpoints create new immutable items rather than replacing prior question history.
 
 The synthesis may include:
 
@@ -86,7 +86,7 @@ The synthesis may include:
 
 Repeat-practice comparisons must match the same prep context and source plan question. They must be evidence-specific. Repetition is evidence of effort, not automatic improvement. A weaker or missing signal is not regression unless the evaluator contract supports a comparable, candidate-safe claim. Insufficient comparison evidence produces a neutral observation.
 
-The exact generated Coach Update should be stored as a versioned operational coaching artifact tied to its source session, answer attempts, accepted evaluator runs, input fingerprint, prompt/evaluator versions, and creation time. This preserves stable replay and QA lineage without turning the artifact into durable preparedness truth. New practice may supersede which update is primary without deleting older source-linked artifacts.
+The exact generated Coach Update should be stored as a versioned operational coaching artifact tied to its source session, canonical question, exact answer attempt, accepted evaluator run, input fingerprint, prompt/evaluator versions, and creation time. This preserves stable replay and QA lineage without turning the artifact into durable preparedness truth. A later settled question may supersede which update is primary without deleting older source-linked artifacts.
 
 ### Coach Update Synthesis Runtime
 
@@ -103,6 +103,10 @@ The first serving profile is bound to a code-owned configuration manifest coveri
 ### Coach Plan And Practice Next
 
 Unanswered planned questions are missing coverage, not feedback and not poor performance. They belong to Coach Plan and Practice Next. Feedback-driven practice and unfinished plan coverage can both be visible, but their sources and meanings remain distinct.
+
+Follow-up rounds carry two identities that must stay separate. The exact source-session id plus round-local question key remains the action pointer for retrying the practiced occurrence. Plan joins, visible `Q#` references, preparedness, and answer-review placement use the resolved canonical root session plus root question key. A reused local key such as `slot-1` cannot join Coach Update evidence to Coach Plan by itself.
+
+Practice Next uses an explicit plan-aware policy instead of incidental array order. Across eligible coached questions it ranks the latest attempt posture in this order: incomplete, Emerging, Clear, Strong, then evaluation unavailable. Canonical Plan order is the deterministic tie-break. During first-pass completion, unanswered canonical coverage outranks repeat practice and all practice entry points resolve into the original canonical session.
 
 ## Editable Queue And Immutable Launch
 
@@ -137,7 +141,7 @@ The mutable queue must never be used later to explain what an existing session c
 | --- | --- | --- | --- |
 | Selected prep context | Candidate-owned `role_profile_id` | Display role/stage/job hints after ownership resolution | Normalized role title as identity |
 | Active round | Candidate-owned unfinished practice session | Resume state and remaining item count | Cross-role latest-session fallback after explicit selection |
-| Coach Update | Completed session, immutable attempts, accepted evaluator runs, versioned synthesis artifact | Latest-practice reflection and evidence-specific comparison | Unanswered plan items, hidden scores, or unvalidated model prose |
+| Coach Update | Settled question checkpoint, immutable attempt, accepted evaluator run, versioned synthesis artifact | Latest-practice reflection and evidence-specific comparison | Unanswered plan items, hidden scores, or unvalidated model prose |
 | Coach Update `New` emphasis | Latest update fingerprint plus noncritical seen state | Presentation emphasis only | Treating opened state as learning evidence |
 | Coach Plan coverage | Prep-context plan and practiced source-question lineage | Practiced versus unpracticed coverage | Treating unanswered questions as weak answers |
 | Practice from feedback | Accepted candidate-safe coaching tied to a practiced answer attempt | Focused retry or follow-up practice | Deriving from raw provider output or legacy score |
@@ -149,7 +153,8 @@ The mutable queue must never be used later to explain what an existing session c
 ## Failure And Recovery Rules
 
 - Invalid or unauthorized prep-context ids fail closed and must not fall back to another context while preserving the invalid selection as if it succeeded.
-- Coach Update generation failure must not erase completed practice facts or in-session feedback. The dashboard may show a truthful pending or unavailable update state and retry synthesis against the same fixed source fingerprint.
+- Coach Update generation failure must not erase the settled answer, accepted evaluation, feedback action, canonical cursor, or in-session feedback. The dashboard may show a truthful pending or unavailable update state and retry synthesis against the same fixed question-checkpoint fingerprint.
+- A pending Coach Update may trigger only a bounded, backoff-based dashboard refresh keyed to its exact durable request identity. Polling remains read-only, stops when lifecycle state changes, and reaches the existing 120-second claim lease once before exhaustion; it never invokes repair or synthesis. At or beyond that lease, the read model projects an abandoned request as candidate-safe `unavailable`, enabling the existing explicit repair mutation against the unchanged source fingerprint. A request still pending after the bounded schedule yields to candidate-invoked status refresh instead of perpetual polling.
 - A late or duplicate synthesis result cannot replace a newer source-session update.
 - Queue mutations validate candidate ownership, prep context, eligible source question, and current version.
 - Concurrent queue edits return a conflict or merge-safe response instead of silently dropping selections.
@@ -159,7 +164,7 @@ The mutable queue must never be used later to explain what an existing session c
 ## Implementation Runway
 
 1. Landed: opaque prep-context identity is authoritative from setup/profile resolution through sessions, intents, dashboard reads, and canonical navigation. Historical null-profile records retain a bounded compatibility path.
-2. Define and persist the versioned post-session Coach Update artifact, including same-question comparison inputs and stale-result rejection.
+2. Define and persist the versioned settled-question Coach Update artifact, including exact attempt/evaluation identity, same-question comparison inputs, and stale-result rejection.
 3. Remove unpracticed questions from Coach Update detail and keep them in Coach Plan/Practice Next reads.
 4. Landed: durable queue-draft and normalized item persistence with ownership, versioning, ordering, deduplication, capacity, and source-pointer validation.
 5. Landed: atomic queue-to-intent snapshot creation, item clearing/version advance, immutable assembly lineage, duplicate-launch replay, and ready/consumed intent recovery.

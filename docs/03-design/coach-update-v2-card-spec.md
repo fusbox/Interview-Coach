@@ -1,7 +1,7 @@
 # Coach Update Transcript Canvas Contract
 
 Status: Ratified implementation contract
-Last updated: 2026-07-19
+Last updated: 2026-08-07
 
 This contract defines how accepted V2 evaluation facts become candidate-visible indicators in Coach Update. It supersedes the earlier demo-only tokenizer and score-colored card concepts. The dashboard demo remains a visual exploration, not a runtime data contract.
 
@@ -9,9 +9,29 @@ This contract defines how accepted V2 evaluation facts become candidate-visible 
 
 Coach Update should let a candidate see how the coach reached a useful observation without turning practice into a score. The candidate's submitted answer is the evidence canvas. Exact excerpts may be annotated when the system can do so predictably and safely. Whole-answer observations and missing expected signals remain useful even when no excerpt can or should be highlighted.
 
+An admitted inline annotation highlights only the rendered text fragments of its exact excerpt, including when that excerpt wraps across lines. The theme-aware semantic blue highlight uses a full-height text-fragment fill rather than a partial underline-style fill, remains visible against both transcript surfaces, and uses restrained end caps to distinguish adjacent admitted spans without changing their text spacing or suggesting different evidence classes. Transcript typography uses the shared transcript line-height role so the underline retains breathing room without shrinking the candidate's words. The interactive trigger may retain its complete keyboard focus target, but the visual highlight must not fill a rectangular row box or imply that adjacent unannotated space is evidence.
+
 The governing rule is:
 
 > Evaluate broadly, annotate narrowly, and fail quietly.
+
+## Opened Surface Composition
+
+The opened Coach Update is one feedback workspace rather than a stack of equal
+cards. Its question context remains a quiet, flat introduction. The candidate's
+answer is the primary raised reading surface. `What I noticed` and `Try next`
+form one subordinate coaching region with clear internal separation: the
+observation uses a quiet blue reflective field, while feedforward guidance is
+the contrasting solid-green field with inverted text. Its compact answer-shape
+template sits inside a light glass pill so the template reads as a usable form
+for the guidance rather than another independent recommendation.
+
+On wider layouts, observation and feedforward may sit side by side when both
+exist. On narrow layouts they stack with a full cluster gap; they must not read
+as touching cards. The transcript, coaching region, and practice actions keep
+section-level spacing. Light and dark themes use the same hierarchy even when
+their surface values differ. No additional explanatory copy, repeated question
+number, or decorative outer card is introduced to manufacture hierarchy.
 
 Evaluation validity does not depend on candidate-visible annotation eligibility. If an annotation cannot be admitted, the accepted answer, candidate-safe coaching, and follow-up actions still render.
 
@@ -142,7 +162,10 @@ Structural validation proves that quoted text exists; it does not independently 
 - Presentation code never recomputes an admitted range using `indexOf`.
 - Duplicate-quote detection may omit an otherwise structurally valid span from the candidate projection.
 - Ranges may overlap or share identical boundaries.
-- Rendering splits the answer at every unique start/end boundary.
+- Candidate-visible ranges trim leading/trailing whitespace and sentence punctuation when the narrowed quote remains exact and unique; punctuation-only ranges are omitted.
+- Overlapping or touching ranges carrying the exact same candidate-facing claim are coalesced before rendering. Their source span ids and marker ids are unioned. Ranges with different claims or an uncited gap remain distinct.
+- The same normalization runs when reading an already-persisted V1 projection so existing accepted artifacts receive the presentation correction without evaluator regeneration.
+- Rendering splits the answer at every remaining unique start/end boundary.
 - Each rendered segment carries all active annotations covering that interval.
 - Adjacent segments with the same annotation set may be merged.
 - Invalid, out-of-bounds, or zero-length ranges are omitted from the candidate projection.
@@ -164,6 +187,8 @@ Generic booleans such as `answeredQuestion` are not automatically useful candida
 ## Missing Signals And Pattern Gaps
 
 Only the accepted deterministic `patternGap` becomes the primary missing-signal callout. It appears below or beside the transcript, never inserted at a fabricated character position.
+
+The candidate-facing Try Next sentence and suggested answer shape remain one primary-gap projection, not two independently selected recommendations. The sentence may use the accepted candidate projection's tailored `biggestUpgrade`, while the answer shape retains that same gap's deterministic `redoPattern`. When the shape is rendered in Coach Update, it follows the guidance closely as an unlabeled compact template strip on the muted accent-green surface, remaining subordinate within the Try Next component.
 
 - `reinforce_effective_pattern` is supportive feedforward, not a warning.
 - Missing category evidence may be shown only when the question category expected it.
@@ -213,6 +238,7 @@ The implementation and tests must cover:
 - One unique exact span.
 - Multiple non-overlapping spans.
 - Identical and partially overlapping spans carrying different markers.
+- Overlapping same-claim spans with punctuation-only remainder and persisted-artifact normalization.
 - Repeated quote text in different answer locations.
 - Smart punctuation, emoji, and other surrogate-pair text under UTF-16 offsets.
 - Leading/trailing whitespace retained in the immutable answer.

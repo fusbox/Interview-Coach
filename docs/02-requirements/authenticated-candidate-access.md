@@ -45,7 +45,7 @@ App-owned candidate authentication reuses the shared app-auth primitives already
 
 The candidate audience uses its own `ic_candidate_app_session` cookie even though its opaque token is persisted in the shared `app_sessions` table. This keeps candidate and recruiter browser sessions independent and prevents one audience login from replacing the other.
 
-Registration creates a new app user and a new app-owned candidate profile atomically. The release registration contract captures first name, last name, email, password, phone number, US ZIP code, contact-channel preferences, required platform-policy acceptance, required responsible-AI acknowledgement, and optional contact authorization. Email plus password remain the credential pair, and verified email remains the activation gate. Phone is profile and future-integration data only in this release; it is not treated as verified, used for login, or used for recovery.
+Registration creates a new app user and a new app-owned candidate profile atomically. The release registration contract captures first name, last name, email, password, phone number, US ZIP code, contact-channel preferences, required platform-policy acceptance, required responsible-AI acknowledgement, and optional contact authorization. Email plus password remain the credential pair, and verified email remains the activation gate. Candidate-facing input and the server request boundary agree on the formats: email must be syntactically valid and at most 320 characters; phone must be either a ten-digit US number or an international number beginning with `+` and containing 8-15 digits; ZIP must contain exactly five digits and remains a string to retain leading zeroes. Phone is profile and future-integration data only in this release; it is not treated as verified, used for login, or used for recovery.
 
 Personal details are split by authority:
 
@@ -79,6 +79,8 @@ Reset does not create a new session. The candidate signs in with the new passwor
 Public candidate-account mutations use database-backed bounded rate controls in addition to the per-account password lock and verification/reset issuance cooldowns. Rate-limit bucket keys contain a purpose plus a one-way request-source digest, never a raw email, IP address, token, password, name, phone number, or candidate id. Authentication audit metadata is likewise allowlisted to bounded event, outcome, reason, provider, and session-revocation facts; the dedicated audit IP/user-agent columns remain the only request-source fields. If the rate-control store is unavailable, public authentication mutations fail closed rather than running unbounded.
 
 Candidate logout is an app-account action. It is shown only when the resolved candidate access source is `app_account`, revokes the current app session, clears only `ic_candidate_app_session`, and returns to candidate login. Host-launched candidates are not shown this control because their host session has a separate owner and lifecycle.
+
+Candidate login and logout claim their controls before issuing the mutation and reject duplicate activation while it is in flight. Validation, authorization, or network failure restores the current control and preserves the existing error/retry behavior. Once the server has accepted the session change and document-level navigation has been handed off, the departing screen remains visibly busy and disabled until navigation unmounts it; it must not flash an idle login or logout state after success.
 
 ## Protected Candidate Route Boundary
 

@@ -146,6 +146,8 @@ eligible exact output
 
 The initial filters cover surface, source kind, review lifecycle, and source lifecycle. Audience, provider/configuration, category/stage, assignment/priority, finding/remediation, and date filters remain legitimate operational refinements after real operator use demonstrates which ones earn permanent UI space. The UI does not expose candidate identity, broad export, remediation controls, recheck execution, or same-input model comparison.
 
+Every workbench form that invokes a server mutation must expose one shared pending contract. A valid submission immediately marks the form busy, disables every submit action in that form, identifies the chosen action with an animated progress indicator, and blocks duplicate submission until the redirect completes. Multi-action forms must preserve the chosen submitter's name and value so save, stage, delete, and submit commands cannot be confused. Read-only GET filters, previews, and comparisons are outside this mutation contract.
+
 ### Queue
 
 The queue should support operator-oriented filtering by:
@@ -279,6 +281,8 @@ Promotion is idempotent by exact source: retrying the same promotion returns the
 ## Access, Privacy, And Audit
 
 QA access is an explicit cross-owner trust boundary, not candidate ownership or organizational RBAC. Only an active app user with one active, manually provisioned `ai_eval_operator_grants` record may open the workbench or source details. `recruiter`, `admin`, and legacy `qa` roles do not imply this access, alone or in combination. Grant and revoke history is immutable and metadata-audited. The initial operating posture may have only one named operator; the boundary must still remain independently revocable and must not be weakened into an app-role shortcut.
+
+The shared `/qa/*` route-loading boundary may appear before that individual grant is resolved. It therefore renders only a noninteractive, grant-neutral shell and structural placeholders with an accessible busy announcement. It must not project operator identity, workbench view names, case/run counts, source or candidate content, run status, live-execution readiness, token/cost estimates, or any other inferred workbench fact. Reduced-motion preferences disable its decorative shimmer without removing the busy announcement.
 
 Every source-detail read, review mutation/submission, finding mutation, remediation mutation/link, grant/revoke, and future export must create a metadata-only audit event. Queue views use opaque case identifiers and exclude names, emails, launch identity, recruiter identity, and invitation tokens. Detail views expose only content needed for the selected rubric:
 

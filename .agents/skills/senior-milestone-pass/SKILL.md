@@ -35,6 +35,16 @@ Audit these lenses with repository evidence:
 - **Operations:** failures are diagnosable; configuration and local/preview/prod behavior do not accidentally diverge.
 - **Verification:** tests cover cross-slice behavior, not only units; browser or DB smoke evidence exists where the contract requires it.
 
+For milestones that project persisted history or repeated workflow items, require a lineage-reconciliation pack in addition to ordinary integration tests:
+
+- an inventory of persisted producer/prompt/schema versions and an explicit active-write versus compatible-read matrix;
+- at least one representative record on each supported compatibility boundary plus one intentionally rejected older record;
+- a multi-round fixture where local item keys collide while canonical/root identities differ;
+- a recommendation fixture where the correct primary item is not first in source order and ties resolve deterministically;
+- a reconciliation assertion across every surface that projects the same source fact, including the exact action pointer and canonical display identity.
+
+Do not accept a milestone whose current runtime works only because historical records were silently dropped, relabeled as current, or reparsed through an obsolete producer.
+
 Use counterfactuals: duplicate requests, reordered responses, provider timeout after persistence, process termination, stale tabs, legacy records, unavailable dependencies, multi-instance races, and recovery on another browser/device.
 
 ## Findings And Remediation

@@ -13,6 +13,7 @@ Judge whether the system can be operated safely, not merely whether it builds. D
 2. Confirm production identity, authorization, tenancy, secrets, network, and trust boundaries. Do not infer production behavior from dev bypasses.
 3. Inventory migrations, backfills, compatibility windows, destructive changes, rollback limits, and data-retention effects.
 4. State assumptions and request targeted confirmation for any assumption that changes release risk.
+5. Inventory producer, prompt, schema, and projection versions present in the target data store. Compare them with the release artifact's strict write versions and compatible read allowlists. Quantify records that would become unreadable, unavailable, or eligible for repair before approving rollout.
 
 ## Readiness Lenses
 
@@ -33,6 +34,8 @@ Invoke or recommend specialist reviews when warranted: security best practices, 
 ## Adversarial Scenarios
 
 Test or explicitly assess: stolen/expired/replayed identity, cross-user resource access, malformed or oversized inputs, duplicate concurrent mutations, provider timeout or invalid output, database interruption, partial deploy, stale clients, migration failure, rollback after writes, log/URL leakage, rate-limit exhaustion, and support recovery from durable state.
+
+For releases with historical projections or repeated-item lineage, also assess: a supported prior-version record after deployment; an unsupported older record failing truthfully; local-key reuse across rounds/contexts; a recommendation whose correct item is not first; and cross-surface reconciliation of canonical display identity versus exact action occurrence. Monitoring must distinguish genuine weak/missing evidence from records dropped by version or lineage parsing.
 
 ## Verdict
 

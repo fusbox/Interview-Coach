@@ -1,7 +1,7 @@
 # Practice Plan Baseline And Round Selection
 
-Status: Landed in Slice 149
-Last updated: 2026-07-19
+Status: Ratified implementation contract
+Last updated: 2026-08-06
 
 ## Purpose
 
@@ -9,7 +9,7 @@ This contract separates the coach's stage-defined practice-plan baseline from an
 
 ## Stage Baseline
 
-One candidate prep context owns one immutable baseline question set for its interview stage:
+One candidate prep context owns one immutable canonical question set. The stage recommendation is the minimum size of that set:
 
 | Interview stage | Baseline questions |
 | --- | ---: |
@@ -21,34 +21,48 @@ One candidate prep context owns one immutable baseline question set for its inte
 
 Changing interview stage creates a new linked prep context rather than silently changing the existing baseline.
 
+The count selected at setup changes the canonical set only when it is larger than the stage recommendation. In that case the selected count becomes the immutable baseline denominator and the deterministic category sequence scales to that count. A smaller selection never shrinks the baseline; it becomes the candidate's preferred pace through the full canonical set.
+
 ## Round Selection
 
-Candidate-led setup may still recommend the stage baseline while allowing the candidate to select a different first-round count.
+Candidate-led setup still recommends the stage baseline while allowing the candidate to select a different count.
 
-- When the selected count is smaller than the baseline, the first round contains a representative subset of baseline questions.
-- When the selected count equals the baseline, the first round may contain the full baseline.
-- When the selected count is larger than the baseline, the round contains the full baseline plus explicitly supplemental questions. Supplemental questions do not increase the baseline denominator.
-- A round snapshot carries stable references to its source baseline questions. Repeated practice and follow-up rounds add evidence to those questions rather than creating new baseline coverage.
+- When the selected count is smaller than the stage recommendation, the app creates and persists the full stage baseline, then uses the selected count as a pace limit before returning the candidate to the dashboard.
+- When the selected count equals the stage recommendation, the canonical set and pace are equal.
+- When the selected count is larger than the stage recommendation, every generated question belongs to the canonical baseline and the selected count becomes its denominator.
+- The persisted initial session owns the complete canonical plan and wording. Questions are not moved into plan-continuation sessions merely because a paced visit ended.
+- Repeated practice after first-pass completion may create follow-up sessions that reference canonical plan questions. Questions intentionally added beyond that immutable set remain supplemental and do not change the denominator.
 
-The prep context must persist both the immutable baseline plan and the corresponding worded baseline question set. Generating only the first-round wording is insufficient because the coach cannot safely recommend an unexposed question that has no stable identity or wording.
+The prep context must persist both the immutable baseline plan and the corresponding worded baseline question set. The original candidate practice session persists the same complete set; its current cursor and submitted-answer map are the sole first-pass continuation boundary.
+
+## Paced Session Contract
+
+The candidate may leave the canonical session after a bounded amount of new work without finishing or replacing it.
+
+- `Continue round` resumes the same session at the shared next-unanswered resolver and applies the setup pace.
+- `One-question round` resumes the same session, permits one newly settled answer, then returns to the dashboard.
+- Direct first-pass practice from Coach Plan or Coach Update targets an unanswered canonical question in the same session and returns after that question is settled.
+- A paced exit does not complete the session, create a follow-up intent, copy question wording, or reset the canonical cursor.
+- A paced exit claims navigation once, presents the dedicated dashboard-return transition before document navigation, and describes the visit as saved/resumable rather than complete.
+- The resolver uses immutable canonical order after the requested focus, wraps once, and skips every question with a durable submitted answer. Array position, dashboard display order, and feedback-carousel order are not completion authority.
 
 ## Completion Meaning
 
-- **Round complete** means the candidate reached the terminal boundary for that session.
-- **Round unfinished** means one or more questions exposed in that session still need an answer or terminal disposition.
+- **Initial session complete** means every canonical baseline question has at least one usable submitted answer and the terminal completion boundary has been persisted.
+- **Initial session unfinished** means at least one canonical baseline question lacks a usable submitted answer, regardless of how many paced visits have ended.
 - **Plan coverage complete** means every baseline question has at least one usable submitted answer.
-- **Upcoming plan coverage** means a baseline question has not yet been exposed in a round or has been exposed without usable evidence.
+- **Upcoming plan coverage** means a baseline question does not yet have usable evidence.
 
 Candidate-facing UI must not use `finished` without naming the object. Finishing a round must not imply that the broader Coach Plan is complete.
 
 ## Dashboard Priority
 
-1. Resume an active unfinished round.
-2. Continue baseline questions that still lack evidence, whether they were skipped in a completed round or have not yet been exposed.
+1. Resume the one active unfinished canonical session.
+2. Continue baseline questions that still lack evidence.
 3. Practice from feedback on questions with existing evidence.
 4. Offer supplemental or new-context practice after the baseline and higher-priority remediation needs are clear.
 
-When the initial round is unfinished, its active-round surface should state how many questions in that round remain. Coach Plan may separately explain that additional baseline questions will follow after the current round, but it should not compete with the resume action.
+When the initial session is unfinished, the dashboard derives all continuation actions from the same unanswered set. `Continue round` resumes the shared cursor; `One-question round` targets its next member. A read-only progress/status object may orient the candidate, but the UI must not present a separate continuation round or imply that a new round is required to finish the plan.
 
 ## Persistence Boundary
 
@@ -56,20 +70,21 @@ The durable target is prep-context ownership rather than inference from the earl
 
 - immutable stage-defined baseline plan snapshot;
 - immutable worded baseline question-set snapshot with stable plan-question ids;
-- per-round plan and wording snapshots referencing baseline ids or marking supplemental questions;
+- the initial session plan and wording snapshot matching the complete baseline one-to-one;
+- follow-up plan and wording snapshots referencing baseline ids or marking genuinely post-baseline supplemental questions;
 - answer and repeat-practice lineage resolving to the stable baseline question id;
 - dashboard coverage derived from baseline ids plus usable answer evidence.
 
-No V1 data compatibility is required. Existing V2 development fixtures and local databases may be regenerated when this contract lands.
+Existing V1 baseline and session-level Coach Update artifacts remain readable compatibility rows, but no synthetic question history or baseline rewrite is required. Existing V2 development fixtures and local databases may be regenerated when this contract lands.
 
-## Landed Runtime Boundary
+## Runtime Version Boundary
 
-Slice 149 persists `rigorBaselineSnapshot` and `rigorBaselineQuestionWordingSnapshot` on the prep context before saving round one. One provider result is deterministically projected into the full baseline and the selected round. Round slots carry stable plan-question references and a baseline/supplemental classification. Dashboard and follow-up services read the prep baseline, while persisted session snapshots remain scoped to the questions actually exposed in that round.
-
-An unexposed baseline question uses the earliest original session only as a lineage anchor; its identity and wording come from the prep-context snapshot. This keeps existing intent/session machinery stable without rewriting historical session content in storage.
+Baseline V2 writes the effective canonical count, the stage-recommended count, and the setup pace. V1 baseline snapshots remain readable for historical development rows but are never written by the active setup path. No compatibility migration or synthetic answer history is required for the disposable test context.
 
 ## Follow-Up Launch Invariant
 
-Any canonical baseline question that the selected-context Coach Plan exposes as eligible for Practice Next must also be executable from the durable next-round draft. The immutable prep-context baseline is authoritative for a never-exposed question's identity and wording; the original session remains only its candidate-owned lineage anchor.
+Before initial-plan completion, canonical unanswered questions never enter the durable next-round draft. `Practice now`, `Continue round`, and `One-question round` resolve into the original canonical session. Already answered questions expose no practice or queue mutation action during that phase. The existing queue/intent/session machinery remains the post-completion boundary for repeat practice and genuine supplemental work.
 
-The atomic queue-to-intent and intent-to-session validators must therefore accept `practice_missing_evidence` when the anchored question exists either in the source round wording or in the matching candidate-owned prep-context baseline and the source anchor has no submitted answer for that key. The immutable intent and created follow-up session must preserve the exact baseline wording and lineage that passed those checks. `practice_from_feedback` remains stricter: its question must exist in the persisted source round and its latest submission must have matching accepted analysis. This baseline fallback must not widen feedback eligibility, mutate the original round snapshot, or allow cross-candidate or cross-prep-context launch.
+## Coach Update Checkpoint
+
+Coach Update production is question-settled, not session-terminal. A question becomes eligible after its latest answer attempt is durably submitted, its accepted coaching evaluation is persisted, its terminal feedback action is saved, and the canonical cursor can advance. Generation failure must not block that settled transition. The resulting immutable update item is keyed by the exact answer attempt and accepted evaluator run, while the source session and canonical plan-question identity remain provenance. Replays are idempotent; later attempts create new items without overwriting history.
